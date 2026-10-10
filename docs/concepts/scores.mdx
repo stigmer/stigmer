@@ -3,7 +3,8 @@ title: Scores
 description:
   A Score records how good a finished run was. Learn about a person's thumbs on
   the final answer, the free run-health checks Stigmer runs on every completed
-  run, AI grading switched on per Agent, and who can see them.
+  run, AI grading switched on per Agent, a plugin eval's checks on each try, and
+  who can see them.
 ---
 
 Reading a whole conversation is the only way to know whether an Agent did a good
@@ -11,7 +12,7 @@ job, and what you decide is lost the moment you close the tab. A **Score**
 writes it down. Each [run](/docs/concepts/agents#blueprint-vs-runtime) that
 completes can carry scores, and anyone who can see the run sees them.
 
-A run carries up to three kinds of score:
+A run carries up to four kinds of score:
 
 - **Feedback**: a person's thumbs up or thumbs down on the final answer, with an
   optional comment. For example, Priya marks last night's triage run "down:
@@ -20,6 +21,8 @@ A run carries up to three kinds of score:
   completes. It asks no AI model, so it costs nothing.
 - **AI grading**: an AI judge's verdict on whether the run did its task and made
   nothing up, for Agents whose maintainers switch it on.
+- **Plugin eval**: the checks a plugin author wrote for one test case, on one
+  try of a plugin eval.
 
 ## Feedback
 
@@ -102,6 +105,25 @@ grade is recorded.
 A run's text can still try to sway the judge, so treat a grade as a signal to
 look closer, not a final verdict.
 
+## Plugin evals
+
+A plugin can carry its own test cases in an `evals/` folder, in Claude Code's
+plugin-eval format. A
+[plugin eval](/docs/guides/plugins/test-a-plugin-with-evals) runs each case
+several times, and each of those tries is an ordinary run that records one
+score: metric `eval`, source `eval`. The score has one criterion per grader of
+the case: each is named after its grader and holds the verdict and the reason. A
+grader that only shows whether the plugin was used, such as "the Skill was
+used", is marked not applicable with the reason "indicator only". The run passes
+when every grader that counts passes.
+
+Only Stigmer writes these scores, from the case's graders; nobody rates a try by
+hand. A try Stigmer could not run or grade, for example because the Organization
+ran out of credit, says **not graded** with the reason and is left out of the
+eval's scores, never counted as a failure. The score also records the plugin
+version the case came from and the version of the judge's instructions, so
+results from different versions are never mixed.
+
 ## Who sees scores
 
 Scores follow the run. Whoever can see the run sees all of its scores:
@@ -133,9 +155,14 @@ stigmer get score scr_01abc123
 # An Agent's AI grading settings by the evaluator's id, and switching it off
 stigmer get evaluator evl_01abc123
 stigmer delete evaluator evl_01abc123
+
+# A plugin eval, with every case's results and each try's run
+stigmer get plugin-eval pev_01abc123
 ```
 
 ## Next steps
 
 - [Sessions](/docs/concepts/sessions): the conversation a run belongs to.
+- [Test a plugin with evals](/docs/guides/plugins/test-a-plugin-with-evals): run
+  a plugin's own test cases and read their scores.
 - [`stigmer runs`](/docs/cli/commands/runs): the commands that inspect a run.
