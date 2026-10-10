@@ -1115,6 +1115,7 @@ export {
   evalCaseRowsOf,
   compareEvals,
   evalFormProblem,
+  evalLabelOf,
   pluginEvalInputOf,
   evalTargetLabelsOf,
   testCaseOfRun,

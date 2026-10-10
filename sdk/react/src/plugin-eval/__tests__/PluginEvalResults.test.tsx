@@ -4,8 +4,8 @@
  * not run on one target shows the reason there, and a dash where the case
  * has no result; the cases not run listed with their reasons; a case's
  * notes when it is opened; the reason a partial eval stopped, in words (a
- * reason this client does not know by its number); and a refused cancel
- * kept as an alert. The tab around it is pinned in PluginEvalsTab.test.tsx.
+ * reason this client does not know as "stopped early"); the heading, the
+ * plugin and when the eval started; and a refused cancel kept as an alert. The tab around it is pinned in PluginEvalsTab.test.tsx.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -24,7 +24,7 @@ import {
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { PluginEvalResults } from "../PluginEvalResults";
-import { GPT, SONNET, evalWith } from "./eval-fixture";
+import { GPT, SONNET, evalStartOf, evalWith } from "./eval-fixture";
 
 afterEach(() => {
   cleanup();
@@ -63,6 +63,17 @@ describe("PluginEvalResults", () => {
     });
     expect(container.innerHTML).toBe("");
     expect(mock.plugineval.get).not.toHaveBeenCalled();
+  });
+
+  it("heads the results with the plugin and when the eval started, never the eval's name", async () => {
+    render(<PluginEvalResults evalId="pev_1" pluginName="thermos" />, {
+      wrapper: wrap(client(evalWith([{ name: "a", score: 1 }]))),
+    });
+    expect(
+      await screen.findByText(
+        `thermos · started ${evalStartOf("pev_1").toLocaleString()}`,
+      ),
+    ).toBeDefined();
   });
 
   it("names each target over its column group when the eval ran on several", async () => {
@@ -149,7 +160,7 @@ describe("PluginEvalResults", () => {
     [PluginEvalPartialReason.out_of_credit, "Partial (out of credit) ·"],
     [PluginEvalPartialReason.cancelled, "Partial (cancelled) ·"],
     [PluginEvalPartialReason.unspecified, "Partial ·"],
-    [99 as PluginEvalPartialReason, "Partial (99) ·"],
+    [99 as PluginEvalPartialReason, "Partial (stopped early) ·"],
   ])("names why a partial eval stopped (reason %s)", async (reason, start) => {
     const pluginEval = evalWith([{ name: "a", score: 1 }]);
     pluginEval.status!.phase = PluginEvalPhase.partial;

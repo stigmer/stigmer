@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * Behavior hook that cancels a running plugin eval and keeps a refusal as
+ * `error`, cleared by the next cancel.
+ *
+ * The hook only cancels; a view that shows the eval reads it again after
+ * (the results view does), so the list and the view show it as it ends.
+ * Pinned by `__tests__/hooks.test.tsx`.
+ */
+
 import { useCallback, useMemo, useState } from "react";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { useStigmer } from "../hooks.js";

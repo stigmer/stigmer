@@ -137,7 +137,8 @@ function useStartPluginEval(): UseStartPluginEvalReturn
 
 ```tsx
 const { start } = useStartPluginEval();
-const started = await start({ name, org, pluginId, maxCostUsd: 5 });
+// Unnamed: the server names the eval by its id.
+const started = await start({ name: "", org, pluginId, maxCostUsd: 5 });
 ```
 
 
@@ -156,6 +157,7 @@ The results of one plugin eval, case by case and target by target.
     evalId: { type: "string", description: "The eval's id.", required: true },
     onChanged: { type: "() => void", description: "Called after a cancel, so a list showing the eval can read it again." },
     onNavigateToRun: { type: "(runId: string) => void", description: "Called with a try's run id when the person opens it; tries carry no link when omitted." },
+    pluginName: { type: "string", description: "The evaluated plugin's name, for the heading; \"Eval\" when omitted." },
   }}
 />
 
@@ -302,6 +304,18 @@ One engine and model in the Run evals form; an empty model is the engine's defau
 />
 
 
+### evalLabelOf
+
+How an eval is labelled where it is listed or headed: its plugin and
+when it started, as "thermos · started 10/10/2026, 5:40:12 AM", or its
+id when it carries no start. `formatTime` defaults to the reader's
+locale.
+
+```tsx
+function evalLabelOf(pluginEval: PluginEval, pluginName: string, formatTime: (at: Date) => string): string
+```
+
+
 ### EvalPluginRef
 
 The plugin an eval is started for.
@@ -309,7 +323,6 @@ The plugin an eval is started for.
 <TypeTable
   type={{
     id: { type: "string", description: "", required: true },
-    name: { type: "string", description: "", required: true },
     org: { type: "string", description: "", required: true },
   }}
 />
@@ -365,10 +378,10 @@ How often a pending or running eval is read again, in milliseconds.
 
 ### pluginEvalInputOf
 
-The create input the form's settings become, named for the plugin and the moment.
+The create input the form's settings become; unnamed, so the server names it by its id.
 
 ```tsx
-function pluginEvalInputOf(plugin: EvalPluginRef, settings: EvalFormSettings, at: Date): PluginEvalInput
+function pluginEvalInputOf(plugin: EvalPluginRef, settings: EvalFormSettings): PluginEvalInput
 ```
 
 

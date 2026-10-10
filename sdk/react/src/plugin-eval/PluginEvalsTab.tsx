@@ -9,7 +9,8 @@
  * the cases Stigmer does not run yet, the feature named); the Run evals
  * form, for the plugin's editors only (the models, tries per case, the
  * comparison without the plugin, the cost limit, tries at once); the past
- * evals, newest first, each opening its results; and Compare, which puts
+ * evals, newest first, each labelled by the plugin and when it started and
+ * opening its results; and Compare, which puts
  * two evals side by side case by case, how a new version is judged against
  * the last. The results themselves are {@link PluginEvalResults}.
  *
@@ -21,7 +22,6 @@
  */
 
 import { useId, useState } from "react";
-import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { PluginEvalSuite } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
@@ -47,6 +47,7 @@ import {
   MAX_EVAL_TARGETS,
   compareEvals,
   evalFormProblem,
+  evalLabelOf,
   formatDelta,
   formatScore,
   formatUsd,
@@ -96,6 +97,7 @@ export function PluginEvalsTab({
   const { evals, isLoading, error, refetch } = usePluginEvals(pluginId);
   const [selected, setSelected] = useState<string | null>(null);
   const shown = selected ?? evals[0]?.metadata?.id ?? null;
+  const pluginName = meta?.name || meta?.slug || "";
 
   return (
     <div className={cn("stg:flex stg:flex-col stg:gap-6", className)}>
@@ -105,11 +107,7 @@ export function PluginEvalsTab({
         suite.caseCount > 0 &&
         meta !== undefined && (
           <RunEvalsForm
-            plugin={{
-              id: meta.id,
-              org: meta.org,
-              name: meta.name || meta.slug,
-            }}
+            plugin={{ id: meta.id, org: meta.org }}
             onStarted={(started) => {
               setSelected(started.metadata?.id ?? null);
               refetch();
@@ -130,19 +128,27 @@ export function PluginEvalsTab({
             No evals have run yet.
           </p>
         ) : (
-          <EvalList evals={evals} selected={shown} onSelect={setSelected} />
+          <EvalList
+            evals={evals}
+            pluginName={pluginName}
+            selected={shown}
+            onSelect={setSelected}
+          />
         )}
       </Section>
       {shown !== null && (
         <PluginEvalResults
           key={shown}
           evalId={shown}
+          pluginName={pluginName}
           canEdit={canEdit}
           onNavigateToRun={onNavigateToRun}
           onChanged={refetch}
         />
       )}
-      {evals.length >= 2 && <CompareEvals evals={evals} />}
+      {evals.length >= 2 && (
+        <CompareEvals evals={evals} pluginName={pluginName} />
+      )}
     </div>
   );
 }
@@ -224,11 +230,7 @@ function RunEvalsForm({
   plugin,
   onStarted,
 }: {
-  readonly plugin: {
-    readonly id: string;
-    readonly org: string;
-    readonly name: string;
-  };
+  readonly plugin: { readonly id: string; readonly org: string };
   readonly onStarted: (started: PluginEval) => void;
 }) {
   const baseId = useId();
@@ -259,7 +261,7 @@ function RunEvalsForm({
 
   const onRun = async (): Promise<void> => {
     try {
-      onStarted(await start(pluginEvalInputOf(plugin, draft, new Date())));
+      onStarted(await start(pluginEvalInputOf(plugin, draft)));
     } catch {
       // The hook keeps the error; the form shows it below.
     }
@@ -442,10 +444,12 @@ function NumberField({
 
 function EvalList({
   evals,
+  pluginName,
   selected,
   onSelect,
 }: {
   readonly evals: readonly PluginEval[];
+  readonly pluginName: string;
   readonly selected: string | null;
   readonly onSelect: (id: string) => void;
 }) {
@@ -473,7 +477,7 @@ function EvalList({
                   : "stg:text-muted-foreground",
               )}
             >
-              {evalSummary(pluginEval)}
+              {evalSummary(pluginEval, pluginName)}
             </button>
           </li>
         );
@@ -482,15 +486,12 @@ function EvalList({
   );
 }
 
-/** One line for an eval: when, where it is, its score, what passed, the difference, the cost. */
-function evalSummary(pluginEval: PluginEval): string {
+/** One line for an eval: its plugin and when it started, where it is, its score, what passed, the difference, the cost. */
+function evalSummary(pluginEval: PluginEval, pluginName: string): string {
   const status = pluginEval.status;
   const aggregates = status?.aggregates;
-  const createdAt = status?.audit?.specAudit?.createdAt;
   const parts = [
-    createdAt
-      ? timestampDate(createdAt).toLocaleString()
-      : (pluginEval.metadata?.name ?? ""),
+    evalLabelOf(pluginEval, pluginName),
     phaseLabel(status?.phase ?? PluginEvalPhase.unspecified),
     `score ${formatScore(aggregates?.overallScore)}`,
     `${aggregates?.casesPassed ?? 0}/${aggregates?.casesTotal ?? 0} passed`,
@@ -500,7 +501,13 @@ function evalSummary(pluginEval: PluginEval): string {
   return parts.filter((part) => part !== "").join(" · ");
 }
 
-function CompareEvals({ evals }: { readonly evals: readonly PluginEval[] }) {
+function CompareEvals({
+  evals,
+  pluginName,
+}: {
+  readonly evals: readonly PluginEval[];
+  readonly pluginName: string;
+}) {
   const baseId = useId();
   const [beforeId, setBeforeId] = useState(evals[1]?.metadata?.id ?? "");
   const [afterId, setAfterId] = useState(evals[0]?.metadata?.id ?? "");
@@ -535,7 +542,7 @@ function CompareEvals({ evals }: { readonly evals: readonly PluginEval[] }) {
             key={pluginEval.metadata?.id}
             value={pluginEval.metadata?.id ?? ""}
           >
-            {evalSummary(pluginEval)}
+            {evalSummary(pluginEval, pluginName)}
           </option>
         ))}
       </select>

@@ -96,7 +96,7 @@ describe("useStartPluginEval and useCancelPluginEval", () => {
       wrapper: wrap({ plugineval: { create } }),
     });
     const input = {
-      name: "thermos evals",
+      name: "",
       org: "acme",
       pluginId: "plg_1",
       maxCostUsd: 5,

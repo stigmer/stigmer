@@ -1,9 +1,10 @@
 /**
  * Pins the plugin's Evals tab: the suite summary (cases, tags, findings,
  * the cases not run yet with their feature) or the sentence for a plugin
- * with no cases; the Run evals form only for the plugin's editors, whose
- * start sends the plugin's id, organization and the form's settings and
- * opens the new eval, its targets added, switched to another engine (which
+ * with no cases; the Run evals form only for the plugin's editors (asked
+ * as `can_edit` on the plugin), whose start sends the plugin's id,
+ * organization and the form's settings, no name, and opens the new eval,
+ * each eval labelled by the plugin and when it started, its targets added, switched to another engine (which
  * drops the model picked) and removed; a past eval opened from the list;
  * an eval's view with a row per case, WITH, W/OUT and a provisional Δ, and
  * its tries as links to their runs; Cancel for an editor while the eval
@@ -28,7 +29,12 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { PluginEvalsTab } from "../PluginEvalsTab";
-import { evalWith } from "./eval-fixture";
+import { evalStartOf, evalWith } from "./eval-fixture";
+
+/** How the tab labels the fixture's eval `id` of thermos. */
+function labelOf(id: string): string {
+  return `thermos · started ${evalStartOf(id).toLocaleString()}`;
+}
 
 vi.mock("../../models/ModelSelector.js", () => ({
   ModelSelector: ({
@@ -146,7 +152,12 @@ describe("PluginEvalsTab", () => {
     render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
     await screen.findByText("No evals have run yet.");
     await vi.waitFor(() =>
-      expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalled(),
+      expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          resource: expect.objectContaining({ kind: "plugin", id: "plg_1" }),
+          relation: "can_edit",
+        }),
+      ),
     );
     await vi.waitFor(() =>
       expect(screen.queryByRole("button", { name: "Run evals" })).toBeNull(),
@@ -177,7 +188,7 @@ describe("PluginEvalsTab", () => {
       expect.objectContaining({
         org: "org_acme",
         pluginId: "plg_1",
-        name: expect.stringMatching(/^thermos evals /),
+        name: "",
         targets: [{ harness: Harness.NATIVE, modelName: "claude-haiku-4-5" }],
         runs: 5,
         ablation: PluginEvalAblation.none,
@@ -185,7 +196,7 @@ describe("PluginEvalsTab", () => {
         concurrency: 1,
       }),
     );
-    expect(await screen.findByText("thermos evals pev_new")).toBeDefined();
+    expect(await screen.findByText(labelOf("pev_new"))).toBeDefined();
   });
 
   it("builds the targets from the form: adds a model, switches an engine (dropping its model), removes one, and sets tries at once", async () => {
@@ -257,13 +268,13 @@ describe("PluginEvalsTab", () => {
     render(<PluginEvalsTab plugin={plugin} />, {
       wrapper: wrap(client([newer, older])),
     });
-    expect(await screen.findByText("thermos evals pev_2")).toBeDefined();
+    expect(await screen.findByText(labelOf("pev_2"))).toBeDefined();
     const list = screen.getByRole("list", { name: "Past evals" });
     const [first, second] = within(list).getAllByRole("button");
     expect(first?.getAttribute("aria-current")).toBe("true");
     fireEvent.click(second!);
-    expect(await screen.findByText("thermos evals pev_1")).toBeDefined();
-    expect(screen.queryByText("thermos evals pev_2")).toBeNull();
+    expect(await screen.findByText(labelOf("pev_1"))).toBeDefined();
+    expect(screen.queryByText(labelOf("pev_2"))).toBeNull();
     expect(second?.getAttribute("aria-current")).toBe("true");
     expect(first?.getAttribute("aria-current")).toBeNull();
   });

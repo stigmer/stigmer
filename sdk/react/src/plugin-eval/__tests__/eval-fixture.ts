@@ -1,9 +1,12 @@
 /**
  * A plugin eval built for the Evals tab's tests: one case per entry, each
  * on every target given, the with-arm's first try graded and its second
- * not graded ("platform busy"), the without-arm's one try running.
+ * not graded ("platform busy"), the without-arm's one try running. It is
+ * named by its id, as the server names an eval the client sent unnamed,
+ * and started at {@link evalStartOf} its id, so two evals read apart.
  */
 import { create } from "@bufbuild/protobuf";
+import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import {
   PluginEvalSchema,
   type PluginEval,
@@ -20,6 +23,11 @@ export const SONNET = {
 };
 export const GPT = { harness: Harness.CURSOR, modelName: "gpt-5" };
 
+/** When the fixture's eval `id` started: 2026-10-10 05:40 UTC, plus the id's digits in seconds. */
+export function evalStartOf(id: string): Date {
+  return new Date(Date.UTC(2026, 9, 10, 5, 40, Number(id.replace(/\D/g, "") || "0")));
+}
+
 export function evalWith(
   scores: {
     readonly name: string;
@@ -30,10 +38,11 @@ export function evalWith(
   id = "pev_1",
 ): PluginEval {
   return create(PluginEvalSchema, {
-    metadata: { id, org: "acme", name: `thermos evals ${id}` },
+    metadata: { id, org: "acme", name: id },
     spec: { pluginId: "plg_1", targets, maxCostUsd: 5 },
     status: {
       phase: PluginEvalPhase.completed,
+      audit: { specAudit: { createdAt: timestampFromMs(evalStartOf(id).getTime()) } },
       cases: scores.map((entry) => ({
         caseName: entry.name,
         targets: targets.map((target) => ({
