@@ -225,13 +225,13 @@ describe("the facts the step reads", () => {
       new Set(["mcp_gh", "mcp_docs", "mcp_notes"]),
     );
     expect(all.memberSkillIds()).toEqual(new Set(["skl_review", "skl_lint"]));
-    expect(all.toolRenames(ORG)).toEqual(
+    expect(all.toolRenames(ORG, [], new Set())).toEqual(
       new Map([
         ["mcp__github", NEW_PREFIX],
         ["mcp__docs-search", "mcp__plugin_docs_search"],
       ]),
     );
-    expect(all.toolRenames("org_elsewhere")).toEqual(new Map());
+    expect(all.toolRenames("org_elsewhere", [], new Set())).toEqual(new Map());
   });
 
   it("throws on bytes that do not decode", () => {
@@ -449,6 +449,54 @@ describe("migrateAgentRow", () => {
     expect(spec?.disallowedTools ?? ["mcp__notes__delete_page"]).toEqual([
       "mcp__notes__delete_page",
     ]);
+  });
+
+  it("keeps a deny on a parent organization's server the agent used: its entries take the server's new name", () => {
+    // A child organization's agent used its parent's child-shared `github`
+    // server and denied one of its tools; the step lists the parent's
+    // plugin, so the deny must name the server as a turn will.
+    const all = new RetirementFacts();
+    all.addPlugin({ id: "plg_parent", org: OTHER_ORG, slug: "kit", name: "kit" });
+    all.addServer({ id: "mcp_parent", org: OTHER_ORG, slug: "github", name: "github", pluginId: "plg_parent" });
+    const result = migrateAgentRow(
+      agent({
+        serverUsages: [serverRef("github", OTHER_ORG)],
+        spec: { disallowedTools: ["mcp__github__delete_repo"] },
+      }),
+      all,
+      recordingLogger(),
+    );
+    const spec = fromBinary(AgentSchema, result!.data).spec;
+    expect(spec?.disallowedTools).toEqual(["mcp__plugin_kit_github__delete_repo"]);
+    expect(spec?.plugins.map((ref) => `${ref.org}/${ref.slug}`)).toEqual([`${OTHER_ORG}/kit`]);
+  });
+
+  it("renames by every server of a plugin it now lists, the ones it never used included", () => {
+    // The agent used the plugin's skill only; a deny on the plugin's server
+    // still takes the server's new name.
+    const result = migrateAgentRow(
+      agent({ spec: { skillRefs: [skillRef("pr-review")], disallowedTools: ["mcp__github__delete_repo"] } }),
+      facts(),
+      recordingLogger(),
+    );
+    expect(fromBinary(AgentSchema, result!.data).spec?.disallowedTools).toEqual([`${NEW_PREFIX}__delete_repo`]);
+  });
+
+  it("lists one plugin of a name, the agent's own organization's, and logs the one left out", () => {
+    const all = facts();
+    all.addPlugin({ id: "plg_parent_gh", org: OTHER_ORG, slug: "gh-tools-shared", name: "GH Tools" });
+    all.addServer({ id: "mcp_parent_gh", org: OTHER_ORG, slug: "shared-github", name: "github", pluginId: "plg_parent_gh" });
+    const logger = recordingLogger();
+    const result = migrateAgentRow(
+      agent({ serverUsages: [serverRef("shared-github", OTHER_ORG), serverRef("github")] }),
+      all,
+      logger,
+    );
+    const spec = fromBinary(AgentSchema, result!.data).spec;
+    expect(spec?.plugins.map((ref) => `${ref.org}/${ref.slug}`)).toEqual([`${ORG}/gh-tools`]);
+    expect(logger.warnings.map((w) => w.message)).toContain(
+      "Two plugins of one name were used; only one can be listed, so the other was left out",
+    );
   });
 
   it("heads a new version: the recomputed hash, the previous one named, the retirement message", () => {

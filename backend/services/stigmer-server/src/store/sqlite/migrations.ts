@@ -1441,7 +1441,7 @@ function migrateToV26(db: DatabaseSync, logger: StoreLogger): void {
     repinned.set(row.id, migrated.versionHash);
   });
   forEachRow(RETIREMENT_SESSION_KIND, (row) => {
-    const migrated = migrateSessionRowForPlugins(row.data, facts, repinned);
+    const migrated = migrateSessionRowForPlugins(row.data, facts, repinned, logger);
     if (migrated !== undefined) {
       update.run(migrated, RETIREMENT_SESSION_KIND, row.id);
     }

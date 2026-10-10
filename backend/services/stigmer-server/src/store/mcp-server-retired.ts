@@ -172,19 +172,32 @@ export class RetirementFacts {
   }
 
   /**
-   * Each plugin server of `org`'s old tool-name prefix and the one a turn
-   * uses now. A tool list names a server by slug alone, which another
-   * organization may hold too, so only the agent's own organization's
-   * servers rename its entries.
+   * An agent's old tool-name prefixes and the ones a turn uses now. A tool
+   * list names a server by slug alone, and another organization may hold
+   * the same slug, so a slug renames by the first server that claims it,
+   * in this order: the servers the agent used (a parent organization's
+   * among them, so a deny on one keeps denying), then every server of a
+   * plugin the agent now lists, then the agent's own organization's.
    */
-  toolRenames(org: string): ReadonlyMap<string, string> {
+  toolRenames(
+    org: string,
+    used: readonly ServerFacts[],
+    pluginIds: ReadonlySet<string>,
+  ): ReadonlyMap<string, string> {
     const renames = new Map<string, string>();
-    for (const server of this.servers.values()) {
-      if (server.org !== org) continue;
+    const claim = (server: ServerFacts): void => {
       const plugin = server.pluginId === undefined ? undefined : this.plugins.get(server.pluginId);
-      if (plugin !== undefined) {
-        renames.set(`mcp__${server.slug}`, `mcp__${toolServerSegment(plugin.name, server.name)}`);
+      const old = `mcp__${server.slug}`;
+      if (plugin !== undefined && !renames.has(old)) {
+        renames.set(old, `mcp__${toolServerSegment(plugin.name, server.name)}`);
       }
+    };
+    used.forEach(claim);
+    for (const server of this.servers.values()) {
+      if (server.pluginId !== undefined && pluginIds.has(server.pluginId)) claim(server);
+    }
+    for (const server of this.servers.values()) {
+      if (server.org === org) claim(server);
     }
     return renames;
   }
@@ -257,11 +270,15 @@ export function migrateAgentRow(
   const composedBy = metadata.labels[PLUGIN_LABEL] ?? "";
   const plugins = new PluginList(spec.plugins, org);
   const dropped: string[] = [];
+  const used: ServerFacts[] = [];
   let changed = false;
 
   for (const ref of takeUnknownReferences(spec, AGENT_SPEC_SERVER_USAGES_FIELD, USAGE_REF_FIELD)) {
     changed = true;
     const server = facts.server(ref, org);
+    if (server !== undefined) {
+      used.push(server);
+    }
     const plugin = server?.pluginId === undefined ? undefined : facts.plugin(server.pluginId);
     if (plugin !== undefined) {
       plugins.add(plugin);
@@ -313,7 +330,7 @@ export function migrateAgentRow(
     spec.subAgents = [];
   }
 
-  const renames = facts.toolRenames(org);
+  const renames = facts.toolRenames(org, used, plugins.ids());
   const rename = (entries: string[]): string[] => {
     const next = entries.map((entry) => renamedToolEntry(entry, renames));
     if (next.some((entry, i) => entry !== entries[i])) {
@@ -349,6 +366,7 @@ export function migrateAgentRow(
     agent: `${org}/${metadata.slug}`,
     plugins: spec.plugins.map((ref) => ref.slug),
   });
+  logNameClashes(logger, `agent ${org}/${metadata.slug}`, plugins);
 
   const previousHash = agent.status?.versionHash ?? "";
   const versionHash = canonicalSpecHash(AgentSpecSchema, spec);
@@ -372,6 +390,7 @@ export function migrateSessionRow(
   data: Uint8Array,
   facts: RetirementFacts,
   repinned: ReadonlyMap<string, string>,
+  logger?: StoreLogger,
 ): Uint8Array | undefined {
   const session = fromBinary(SessionSchema, data);
   const spec = session.spec;
@@ -404,6 +423,9 @@ export function migrateSessionRow(
     }
     if (changed) {
       spec.plugins = plugins.references();
+      if (logger !== undefined) {
+        logNameClashes(logger, `session ${org}/${session.metadata?.slug ?? ""}`, plugins);
+      }
     }
   }
   const status = session.status;
@@ -457,6 +479,11 @@ export function renamedToolEntry(entry: string, renames: ReadonlyMap<string, str
 class PluginList {
   private readonly refs: ApiResourceReference[];
   private readonly seen = new Set<string>();
+  /** The plugin each added name went to: a turn refuses two plugins of one name. */
+  private readonly byName = new Map<string, PluginFacts>();
+  private readonly added = new Set<string>();
+  /** The plugins left out because another of the same name was kept. */
+  readonly clashes: Array<{ readonly kept: PluginFacts; readonly left: PluginFacts }> = [];
 
   constructor(existing: readonly ApiResourceReference[], private readonly org: string) {
     this.refs = [...existing];
@@ -465,12 +492,28 @@ class PluginList {
     }
   }
 
+  /**
+   * Lists `plugin` once. Of two plugins with one name (a parent
+   * organization's and the agent's own, say), the own organization's is
+   * kept, else the first: a turn listing both would be refused.
+   */
   add(plugin: PluginFacts): void {
     const key = `${plugin.org}/${plugin.slug}`;
     if (this.seen.has(key)) {
       return;
     }
+    const holder = this.byName.get(plugin.name);
+    if (holder !== undefined) {
+      if (holder.org === this.org || plugin.org !== this.org) {
+        this.clashes.push({ kept: holder, left: plugin });
+        return;
+      }
+      this.clashes.push({ kept: plugin, left: holder });
+      this.remove(holder);
+    }
     this.seen.add(key);
+    this.byName.set(plugin.name, plugin);
+    this.added.add(plugin.id);
     this.refs.push(
       create(ApiResourceReferenceSchema, {
         kind: ApiResourceKind.plugin,
@@ -480,8 +523,33 @@ class PluginList {
     );
   }
 
+  private remove(plugin: PluginFacts): void {
+    const index = this.refs.findIndex((ref) => (ref.org || this.org) === plugin.org && ref.slug === plugin.slug);
+    if (index !== -1) {
+      this.refs.splice(index, 1);
+    }
+    this.seen.delete(`${plugin.org}/${plugin.slug}`);
+    this.added.delete(plugin.id);
+  }
+
+  /** The ids of the plugins this step added. */
+  ids(): ReadonlySet<string> {
+    return this.added;
+  }
+
   references(): ApiResourceReference[] {
     return this.refs;
+  }
+}
+
+/** One warning per plugin left out because another of its name was kept. */
+function logNameClashes(logger: StoreLogger, what: string, plugins: PluginList): void {
+  for (const { kept, left } of plugins.clashes) {
+    logger.warn("Two plugins of one name were used; only one can be listed, so the other was left out", {
+      on: what,
+      kept: `${kept.org}/${kept.slug}`,
+      left: `${left.org}/${left.slug}`,
+    });
   }
 }
 

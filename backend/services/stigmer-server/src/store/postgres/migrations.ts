@@ -1469,7 +1469,7 @@ async function migrateToV21(client: PoolClient, logger: StoreLogger): Promise<vo
     repinned.set(row.id, migrated.versionHash);
   });
   await forEachRow(RETIREMENT_SESSION_KIND, async (row) => {
-    const migrated = migrateSessionRowForPlugins(row.data, facts, repinned);
+    const migrated = migrateSessionRowForPlugins(row.data, facts, repinned, logger);
     if (migrated !== undefined) {
       await client.query(
         `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`,
