@@ -8,9 +8,10 @@
  *     hands the try (its share of what the eval has left), both as the eval's caller, minted per
  *     try (extensions/plugin-eval-caller.ts; none composed: the server).
  *     Every attempt first looks for the run an earlier one created (the
- *     eval's label and the try's run name), so a start whose answer was
- *     lost is adopted, never created twice, whatever attempt number
- *     Temporal reports; should it find two (a start that raced its own
+ *     eval's label and the try's run name), before it mints the caller, so
+ *     a start whose answer was lost is adopted, never created twice nor
+ *     left going behind a refused mint, whatever attempt number Temporal
+ *     reports; should it find two (a start that raced its own
  *     retry), it adopts the earliest created and stops the other. The
  *     session's create and the run's are refused alike: a capacity
  *     refusal is thrown as PLUGIN_EVAL_BUSY_FAILURE_TYPE for the
@@ -265,14 +266,6 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           reason: TRY_UNPLANNED_REASON,
         };
       }
-      const caller = await mint(input.org, input.evalId);
-      if (caller !== undefined && "cannotAct" in caller) {
-        return {
-          kind: "refused",
-          failure: "cannot-act",
-          reason: caller.cannotAct,
-        };
-      }
       const name = tryRunName(input.evalId, input);
       const [earlier, ...extra] = await findLabelledRuns(
         deps.store,
@@ -287,6 +280,14 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           kind: "started",
           sessionId: sessionIdOf(earlier.spec),
           runId: earlier.metadata?.id ?? "",
+        };
+      }
+      const caller = await mint(input.org, input.evalId);
+      if (caller !== undefined && "cannotAct" in caller) {
+        return {
+          kind: "refused",
+          failure: "cannot-act",
+          reason: caller.cannotAct,
         };
       }
       const spec = context.pluginEval.spec;

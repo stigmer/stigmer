@@ -8,7 +8,8 @@
  *   - start-try: no caller seam (the try acts as the server); a seam that
  *     throws for another reason than a refusal; an eval with no spec; a
  *     retry with no earlier run; a run under the try's name adopted on a
- *     first attempt too; the attempt read from the activity
+ *     first attempt too, and before the caller is minted, so a refused
+ *     mint adopts it all the same; the attempt read from the activity
  *     context; a plugin moved past the eval's version (no try starts); a
  *     create that fails outside the RPC contract, an RPC code
  *     no refusal covers, an empty and an over-long refusal; a refused run
@@ -439,6 +440,23 @@ describe("start-try beside its main path", () => {
     expect(await again.cases[START_TRY_ACTIVITY_NAME](CELL)).toEqual(started);
     expect(again.record.runs).toEqual([]);
     expect(again.record.sessions).toEqual([]);
+  });
+
+  it("adopts an earlier attempt's run before it mints the caller, so a refused mint never leaves that run going", async () => {
+    await seeded();
+    const first = build();
+    const started = await first.cases[START_TRY_ACTIVITY_NAME](CELL);
+    expect(started.kind).toBe("started");
+    const refusing = build({
+      attempt: () => 2,
+      caller: {
+        mintPluginEvalCaller: () =>
+          Promise.reject(new PluginEvalCallerRefusedError("the creator left")),
+      },
+    });
+    expect(await refusing.cases[START_TRY_ACTIVITY_NAME](CELL)).toEqual(started);
+    expect(refusing.record.runs).toEqual([]);
+    expect(refusing.record.sessions).toEqual([]);
   });
 
   it("starts afresh on a retry that finds no earlier run", async () => {
