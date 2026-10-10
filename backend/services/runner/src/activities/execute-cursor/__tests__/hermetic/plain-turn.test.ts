@@ -137,7 +137,7 @@ describe("ExecuteCursor hermetic — plain turn", () => {
     expect(record.setupProgress, "the setup pipeline's phase labels, in order").toEqual([
       "Fetching execution",
       "Resolving agent blueprint",
-      "Resolving environment",
+      "Fetching values from vaults",
       "Provisioning workspace",
       "Resolving MCP servers",
       "Resolving skills",

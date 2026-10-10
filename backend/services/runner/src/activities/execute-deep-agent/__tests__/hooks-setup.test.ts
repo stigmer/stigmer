@@ -36,7 +36,7 @@ function input(
   return turnInputFixture({
     ...(extra.workspaceDir !== undefined ? { workspaceDir: extra.workspaceDir } : {}),
     hooks: { sources, pluginServers: new Map() },
-    environment: { agent: extra.agent ?? {}, tools: extra.tools ?? new Map(), repositories: [] },
+    values: { agent: extra.agent ?? {}, tools: extra.tools ?? new Map(), repositories: [] },
   });
 }
 

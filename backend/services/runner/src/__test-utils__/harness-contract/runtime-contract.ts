@@ -103,7 +103,7 @@ export const COST_CAP_FAKE_PRICE_USD = 0.6;
 export const RUNTIME_SETUP_LABELS = [
   "Fetching execution",
   "Resolving agent blueprint",
-  "Resolving environment",
+  "Fetching values from vaults",
   "Provisioning workspace",
   "Resolving MCP servers",
   "Resolving skills",
