@@ -28,7 +28,9 @@
  *    the agent references a skill, and the real hook refuses a `Read` of a
  *    skill's `SKILL.md` an earlier turn mounted, by its platform path;
  *    without the deny the skill is listed and the read passes;
- *  - `spec.append_system_prompt` ends the prompt the SDK is sent.
+ *  - `spec.append_system_prompt` ends the prompt the SDK is sent; with a
+ *    `structured_output_schema` too, the appended text comes before the
+ *    output directive, so the directive stays the prompt's last word.
  * The hook's own refusals are pinned on the real script in
  * `hook-script.test.ts`; resume's re-pass of the options in
  * `session-lifecycle.test.ts`.
@@ -79,7 +81,7 @@ import { getPlatformDir } from "../../../../shared/workspace/platform-dir.js";
 const USER_MESSAGE = "Summarise the README.";
 const ANSWER = "It is a readme.";
 
-function answeringAgent(agentId: string, runId: string, clock: ScriptedClock): ScriptedCursorAgent {
+function answeringAgent(agentId: string, runId: string, clock: ScriptedClock, answer: string = ANSWER): ScriptedCursorAgent {
   return new ScriptedCursorAgent({
     agentId,
     runIds: [runId],
@@ -91,11 +93,11 @@ function answeringAgent(agentId: string, runId: string, clock: ScriptedClock): S
           type: "assistant",
           agent_id: agentId,
           run_id: runId,
-          message: { role: "assistant", content: [{ type: "text", text: ANSWER }] },
+          message: { role: "assistant", content: [{ type: "text", text: answer }] },
         }),
         step.turnEnded({ inputTokens: 100, outputTokens: 10, cacheReadTokens: 0, cacheWriteTokens: 0 }),
         step.finished({
-          result: ANSWER,
+          result: answer,
           model: { id: FIXTURE.model, params: [{ id: "fast", value: "false" }, { id: "thinking", value: "false" }] },
         }),
       ],
@@ -354,5 +356,18 @@ describe("ExecuteCursor hermetic — tool lists", () => {
     const { phase } = await run({ message: USER_MESSAGE, appendSystemPrompt: APPENDED }, agent);
     expect(phase).toBe("RUN_COMPLETED");
     expect(String(agent.sends[0]!.message).endsWith(`<user_request>\n${USER_MESSAGE}\n</user_request>\n\n---\n\n${APPENDED}`)).toBe(true);
+  });
+
+  it("append_system_prompt comes before the structured-output directive when the turn sets both", async () => {
+    const APPENDED = "Always answer in exactly one sentence.";
+    const schema = { type: "object", properties: { answer: { type: "string" } }, required: ["answer"] };
+    const agent = answeringAgent("agent-append-schema", "run-append-schema", clock, '{"answer":"one"}');
+    const { phase, final } = await run({ message: USER_MESSAGE, appendSystemPrompt: APPENDED, structuredOutputSchema: schema }, agent);
+    expect(phase).toBe("RUN_COMPLETED");
+    const sent = String(agent.sends[0]!.message);
+    expect(sent).toContain(`<user_request>\n${USER_MESSAGE}\n</user_request>\n\n---\n\n${APPENDED}\n\n---\nCRITICAL OUTPUT REQUIREMENT:`);
+    expect(sent.endsWith("Respond with ONLY the JSON object. Nothing else.")).toBe(true);
+    expect(sent.indexOf(APPENDED)).toBe(sent.lastIndexOf(APPENDED));
+    expect(final.structuredOutput).toEqual({ answer: "one" });
   });
 });
