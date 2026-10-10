@@ -13,7 +13,10 @@
  *    excluded tool by tool and the platform's own still are (#2106):
  *    `callableServers` is the one filter, applied before the discovery
  *    backfill (itself a connection) and so before either engine connects;
- *    a plugin-eval try's mocked server never reaches the backfill either.
+ *    a plugin-eval try's mocked server never reaches the backfill either;
+ *  - a try's stand-ins (`startEvalMocks`) take their servers' places in the
+ *    list, a stand-in the lists exclude whole left out like any server, and
+ *    a try whose endpoint starts no stand-in keeps its list as it was.
  * The fetch-and-provision phases around it are pinned end to end by the
  * hermetic goldens.
  */
@@ -28,6 +31,16 @@ const resolution = vi.hoisted(() => ({
 vi.mock("../../shared/mcp-resolver.js", async (original) => ({
   ...(await original<typeof import("../../shared/mcp-resolver.js")>()),
   resolveMcpServers: () => Promise.resolve({ resolvedServers: [...resolution.resolved] }),
+}));
+/** The stand-ins the mocked endpoint serves; `undefined` when it starts none. */
+const endpoint = vi.hoisted(() => ({ servers: undefined as unknown[] | undefined }));
+vi.mock("../../shared/plugin-eval/mock-endpoint.js", () => ({
+  startMockEndpoint: () =>
+    Promise.resolve(
+      endpoint.servers === undefined
+        ? undefined
+        : { servers: endpoint.servers, bind: () => undefined, close: () => Promise.resolve() },
+    ),
 }));
 vi.mock("../../shared/connect-backfill.js", async (original) => ({
   ...(await original<typeof import("../../shared/connect-backfill.js")>()),
@@ -49,7 +62,15 @@ import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 
-import { callableServers, mainToolScope, resolveMcpServersAndPolicies, type ResolutionDeps } from "../turn-context.js";
+import {
+  callableServers,
+  mainToolScope,
+  resolveMcpServersAndPolicies,
+  startEvalMocks,
+  type ResolutionDeps,
+  type TurnFrame,
+} from "../turn-context.js";
+import { caseArchiveOf } from "../../shared/plugin-eval/case-archive.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { ToolScope } from "../../shared/tool-lists.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
@@ -212,5 +233,61 @@ describe("callableServers — a server no tool of which can be called is never c
     } finally {
       resolution.resolved = [];
     }
+  });
+});
+
+describe("startEvalMocks — a plugin-eval try's stand-ins take their servers' places", () => {
+  const server = (slug: string, url = `https://${slug}.example.com/mcp`): ResolvedMcpServer => ({
+    slug,
+    connectionType: "http",
+    url,
+    discoveredCapabilitiesEmpty: false,
+    destructiveTools: [],
+    discoveredToolNames: null,
+    serverId: `mcp_${slug}`,
+    pluginOrigin: null,
+  });
+  const frame = (): TurnFrame => ({
+    primaryDir: undefined,
+    releaseWorkspaceLock: undefined,
+    writeback: null,
+    evalMocks: undefined,
+    evalReadFiles: undefined,
+  });
+
+  /** The turn's resolved list (`tracker`, `wiki`; `orders` denied whole), then the try's stand-ins for `tracker` and `orders`. */
+  async function standIns(served: unknown[] | undefined) {
+    resolution.resolved = [server("tracker"), server("wiki")];
+    endpoint.servers = served;
+    try {
+      const turn = args({ attachments: false, agentLists: { tools: [], disallowedTools: ["mcp__orders"] } });
+      const mcp = await resolveMcpServersAndPolicies(deps({ channels: false }), turn);
+      const spec = create(RunSpecSchema, {
+        pluginEvalCase: create(PluginEvalCaseContextSchema, {
+          mocks: ["tracker", "orders"].map((segment) => create(PluginEvalMockServerSchema, { server: segment, segment })),
+        }),
+      });
+      const into = frame();
+      const out = await startEvalMocks(deps({ channels: false }), { spec, archive: caseArchiveOf([]), mcp, frame: into });
+      return { mcp, out, into };
+    } finally {
+      resolution.resolved = [];
+      endpoint.servers = undefined;
+    }
+  }
+
+  it("replaces the plugin's server of each stand-in's name, and leaves out a stand-in the lists exclude whole", async () => {
+    const { out, into } = await standIns([server("tracker", "http://127.0.0.1:4000/tracker"), server("orders", "http://127.0.0.1:4000/orders")]);
+    expect(out.servers.map((s) => [s.slug, s.url])).toEqual([
+      ["wiki", "https://wiki.example.com/mcp"],
+      ["tracker", "http://127.0.0.1:4000/tracker"],
+    ]);
+    expect(into.evalMocks, "the turn's finally closes it").toBeDefined();
+  });
+
+  it("keeps the list as it was when the endpoint starts no stand-in", async () => {
+    const { mcp, out, into } = await standIns(undefined);
+    expect(out).toBe(mcp);
+    expect(into.evalMocks).toBeUndefined();
   });
 });

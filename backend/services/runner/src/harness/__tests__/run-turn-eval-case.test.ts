@@ -11,6 +11,8 @@
  *    mocks' endpoint is started, bound to the turn's stop and cost cap, and
  *    closed when the turn ends. A mock that stops the try ends the turn
  *    TERMINATED with the mock-abort sentence.
+ *  - An agent mock's cost joins the turn's estimate, so a mock past the
+ *    try's cost cap stops the turn as the cap does.
  *  - The files the case's graders read come back on the run's status as the
  *    turn left them, the ones the try never changed included.
  *
@@ -26,6 +28,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { create } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { PluginEvalCaseContextSchema, PluginEvalMockServerSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { parseTryStop } from "@stigmer/eval-runtime";
 
 import type { PrepareOutcome } from "../../shared/plugin-eval/prepare-case.js";
@@ -163,6 +166,20 @@ describe("run-turn: a plugin-eval try's own phases", () => {
       tool: "create_issue",
       reason: "input.title must be a string",
     });
+  });
+
+  it("an agent mock's cost past the try's cap stops the turn as the cap does", async () => {
+    fakes.outcome = { kind: "ready", prepared: { referenceInputs: [], history: undefined, env: {} } };
+    fakes.onBound = (binding) => {
+      setTimeout(() => binding.onCost(5), 5);
+    };
+    const driver = tryDriver("eval-mock-cost", true);
+    driver.record.execution.status!.runConfig = create(RunConfigSchema, { maxCostUsd: 1 });
+
+    await driver.turn([scenario.say("Asking the tracker."), scenario.hang()]);
+
+    expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_TERMINATED);
+    expect(parseTryStop(driver.record.lastFullStatus?.error ?? "")).toMatchObject({ kind: "cost-limit", maxCostUsd: 1 });
   });
 
   it("a prepared case without mocks starts no endpoint and completes", async () => {
