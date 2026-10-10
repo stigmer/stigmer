@@ -29,7 +29,10 @@ export function registerPlugin(program: Command): void {
   const evalCommand = plugin
     .command("eval")
     .description("run a plugin's evals/ cases with and without it, on the models you name, and score them")
-    .argument("<plugin>", "the plugin (name, org/name or id), optionally at a version: <plugin>@<digest>")
+    .argument(
+      "<plugin>",
+      "the plugin (name, org/name or id), run at its installed version; <plugin>@<digest> is refused unless that is the installed version",
+    )
     .option("--case <glob>", "run only the cases whose name matches this glob")
     .option("--tag <tag>", "run only the cases with this tag (repeatable)", collect)
     .option("--runs <n>", "tries per case, arm and model, 1 to 50 (default: each case's runs, else 3)")

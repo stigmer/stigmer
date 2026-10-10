@@ -143,6 +143,15 @@ describe("evalExitCode", () => {
     }
   });
 
+  it("is 2 for a partial eval whose reason, or phase, a newer server added, whatever its cases scored", () => {
+    const unknownReason = finishedEval(PluginEvalPhase.partial);
+    unknownReason.status!.partialReason = 9 as PluginEvalPartialReason;
+    expect(exit(unknownReason)).toBe(EvalExit.Partial);
+    const noReason = finishedEval(PluginEvalPhase.partial);
+    expect(exit(noReason)).toBe(EvalExit.Partial);
+    expect(exit(finishedEval(9 as PluginEvalPhase))).toBe(EvalExit.Partial);
+  });
+
   it("is 130 when this command was interrupted or someone cancelled the eval", () => {
     expect(exit(finishedEval(PluginEvalPhase.running), true)).toBe(EvalExit.Interrupted);
     const cancelled = finishedEval(PluginEvalPhase.partial);

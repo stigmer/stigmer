@@ -13,8 +13,9 @@
 //
 // The exit code is the format's: 0 when every case that ran reached the
 // threshold and every case file loaded; 1 for a case below it, a load
-// finding, or no case at all; 2 for a partial run (the spending limit, or
-// the organization out of credit); 130 when the eval was cancelled, by this
+// finding, or no case at all; 2 for a partial run (the spending limit, the
+// organization out of credit, or a reason or phase a newer server added);
+// 130 when the eval was cancelled, by this
 // command's Ctrl+C or by someone else. A case Stigmer lists as not run (a
 // feature it does not run yet) is named, not failed: it never ran, and
 // `--case` or `--tag` leaves it out.
@@ -164,11 +165,28 @@ export function evalExitCode(
   if (opts.interrupted || reason === PluginEvalPartialReason.cancelled) {
     return EvalExit.Interrupted;
   }
-  if (reason === PluginEvalPartialReason.cost_ceiling || reason === PluginEvalPartialReason.out_of_credit) {
+  if (reason !== PluginEvalPartialReason.unspecified) {
+    // The spending limit, no credit, or a reason a newer server added: the
+    // eval stopped early, so its aggregates cover only part of the suite.
     return EvalExit.Partial;
   }
-  if (status?.phase === PluginEvalPhase.failed) {
-    return EvalExit.Failed;
+  const phase = status?.phase ?? PluginEvalPhase.unspecified;
+  switch (phase) {
+    case PluginEvalPhase.failed:
+      return EvalExit.Failed;
+    case PluginEvalPhase.partial:
+      return EvalExit.Partial;
+    case PluginEvalPhase.unspecified:
+    case PluginEvalPhase.pending:
+    case PluginEvalPhase.running:
+    case PluginEvalPhase.completed:
+      break;
+    default: {
+      // A phase a newer server added: not one this command knows as a full
+      // result, so never a pass.
+      const unknown: never = phase;
+      return typeof unknown === "number" ? EvalExit.Partial : EvalExit.Failed;
+    }
   }
   const aggregates = status?.aggregates;
   const total = aggregates?.casesTotal ?? 0;

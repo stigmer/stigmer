@@ -6,9 +6,13 @@
 // result document to stdout or its path; `--no-wait` prints the id and
 // returns (under `--json`, with the started eval's document); Ctrl+C cancels
 // the eval and exits 130 with the partial results and why it stopped, the
-// cancel's own answer standing when the read after it fails; a create
-// refused as a usage error exits 1, any other create failure passes on
-// unchanged; and `plugin eval cancel` cancels.
+// cancel's own answer standing when the read after it fails; a read that
+// fails is retried with backoff, and past about a minute the eval is
+// cancelled, `--json` written with what the command had, and the exit is 1;
+// the eval is sent with no name (the server names it by its id); a create
+// refused as a usage error, an organization not set, or a plugin read
+// refused as invalid exits 1, any other create failure passes on unchanged;
+// and `plugin eval cancel` cancels.
 
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
@@ -20,7 +24,7 @@ import { StigmerError, type PluginEvalInput, type Stigmer } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
 import { CliExitError } from "../../../errors/index.js";
 import { readPluginEvalOptions, type PluginEvalFlags } from "../options.js";
-import { cancelPluginEval, runPluginEval, type PluginEvalIo } from "../run.js";
+import { POLL_INTERVAL_MS, POLL_RETRY_BUDGET_MS, cancelPluginEval, runPluginEval, type PluginEvalIo } from "../run.js";
 import { finishedEval } from "./fixtures.js";
 
 const plugin = create(PluginSchema, {
@@ -39,14 +43,29 @@ function running(): PluginEval {
 }
 
 /** A server whose eval reads as each of `reads` in turn, then the last one forever. */
-function fakeServer(reads: PluginEval[], opts: { createError?: Error; getErrorAfterCancel?: Error } = {}) {
+function fakeServer(
+  reads: PluginEval[],
+  opts: {
+    createError?: Error;
+    getErrorAfterCancel?: Error;
+    pluginError?: Error;
+    /** The eval reads that fail, counted from the first read. */
+    failedReads?: ReadonlySet<number>;
+    cancelError?: Error;
+  } = {},
+) {
   const calls: string[] = [];
   const created: PluginEvalInput[] = [];
   let next = 0;
+  let readCount = 0;
   let cancelled = false;
   const client = {
     plugin: {
-      get: async (id: string) => (calls.push(`plugin.get ${id}`), plugin),
+      get: async (id: string) => {
+        calls.push(`plugin.get ${id}`);
+        if (opts.pluginError !== undefined) throw opts.pluginError;
+        return plugin;
+      },
       getByReference: async (ref: { org: string; slug: string }) => (calls.push(`plugin.ref ${ref.org}/${ref.slug}`), plugin),
     },
     plugineval: {
@@ -59,12 +78,15 @@ function fakeServer(reads: PluginEval[], opts: { createError?: Error; getErrorAf
       get: async () => {
         calls.push("get");
         if (cancelled && opts.getErrorAfterCancel !== undefined) throw opts.getErrorAfterCancel;
+        readCount += 1;
+        if (opts.failedReads?.has(readCount) === true) throw new StigmerError("unavailable", "the server is unavailable", Code.Unavailable);
         const read = reads[Math.min(next, reads.length - 1)]!;
         next += 1;
         return read;
       },
       cancel: async (id: string) => {
         calls.push(`cancel ${id}`);
+        if (opts.cancelError !== undefined) throw opts.cancelError;
         cancelled = true;
         const result = finishedEval(PluginEvalPhase.partial);
         result.status!.partialReason = PluginEvalPartialReason.cancelled;
@@ -82,12 +104,14 @@ function fakeIo(opts: { interruptAfterSleeps?: number } = {}) {
   const files = new Map<string, string>();
   let handler: (() => void) | undefined;
   let sleeps = 0;
+  const waits: number[] = [];
   const io: PluginEvalIo = {
     stdout: { write: (text) => void (stdout += text) },
     stderr: { write: (text) => void (stderr += text) },
     writeFile: async (path, content) => void files.set(path, content),
-    sleep: async () => {
+    sleep: async (ms) => {
       sleeps += 1;
+      waits.push(ms);
       if (opts.interruptAfterSleeps !== undefined && sleeps >= opts.interruptAfterSleeps) handler?.();
     },
     now: () => 1_074_000,
@@ -101,7 +125,7 @@ function fakeIo(opts: { interruptAfterSleeps?: number } = {}) {
       throw new Error(`exit ${code}`);
     },
   };
-  return { io, out: () => stdout, err: () => stderr, files, listening: () => handler !== undefined };
+  return { io, out: () => stdout, err: () => stderr, files, waits, listening: () => handler !== undefined };
 }
 
 function options(flags: PluginEvalFlags = {}) {
@@ -119,7 +143,7 @@ describe("runPluginEval", () => {
     expect(code).toBe(0);
     expect(server.calls).toEqual(["plugin.ref acme/thermos", "create", "get", "get"]);
     expect(server.created[0]).toMatchObject({
-      name: "thermos evals 1970-01-01 00:17:54 UTC",
+      name: "",
       org: "org_acme",
       pluginId: "plg_1",
       pluginDigest: "",
@@ -228,6 +252,67 @@ describe("runPluginEval", () => {
     expect(error).toBeInstanceOf(CliExitError);
     expect((error as CliExitError).exitCode).toBe(1);
     expect((error as CliExitError).message).toContain("the plugin has no evals/ cases");
+  });
+
+  it("exits 1, not the usage code, when the organization is not set", async () => {
+    const server = fakeServer([finishedEval()]);
+    const error = await runPluginEval(server.client, "", THERMOS, options(), fakeIo().io).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(CliExitError);
+    expect((error as CliExitError).exitCode).toBe(1);
+    expect((error as CliExitError).message).toContain("organization not set");
+    expect(server.calls).not.toContain("create");
+  });
+
+  it("exits 1, not the usage code, when the plugin read is refused as invalid", async () => {
+    const refusal = new StigmerError("invalid-argument", "id is not a plugin id", Code.InvalidArgument);
+    const server = fakeServer([finishedEval()], { pluginError: refusal });
+    const error = await runPluginEval(server.client, "acme", { ref: "plg_1", digest: "" }, options(), fakeIo().io).catch(
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(CliExitError);
+    expect((error as CliExitError).exitCode).toBe(1);
+    expect((error as CliExitError).message).toContain("id is not a plugin id");
+  });
+
+  it("retries a failed read of the eval with backoff and follows it to the end", async () => {
+    const server = fakeServer([running(), finishedEval()], { failedReads: new Set([1, 2]) });
+    const fake = fakeIo();
+    expect(await runPluginEval(server.client, "acme", THERMOS, options(), fake.io)).toBe(0);
+    expect(fake.waits).toEqual([POLL_INTERVAL_MS, 1_000, 2_000, POLL_INTERVAL_MS]);
+    expect(server.calls).not.toContain("cancel pev_1");
+    expect(fake.out()).toContain("1 case(s) · mean Δ +0.67");
+  });
+
+  it("cancels the eval, writes --json with what it has and exits 1 once reads have failed for about a minute", async () => {
+    const reads = new Set(Array.from({ length: 20 }, (_, i) => i + 2));
+    const server = fakeServer([running()], { failedReads: reads });
+    const fake = fakeIo();
+    const error = await runPluginEval(server.client, "acme", THERMOS, options({ json: "out.json" }), fake.io).catch(
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(CliExitError);
+    expect((error as CliExitError).exitCode).toBe(1);
+    expect((error as CliExitError).message).toBe(
+      "lost track of eval pev_1 (Cannot connect to the Stigmer server), so it was cancelled",
+    );
+    const retries = fake.waits.slice(2);
+    expect(retries.reduce((sum, ms) => sum + ms, 0)).toBe(POLL_RETRY_BUDGET_MS);
+    expect(server.calls).toContain("cancel pev_1");
+    expect(JSON.parse(fake.files.get("out.json") ?? "{}")).toMatchObject({ partial: true, partialReason: "interrupted" });
+    expect(fake.out()).toBe("");
+  });
+
+  it("prints what it has and says the cancel failed too, when the server stays unreachable", async () => {
+    const reads = new Set(Array.from({ length: 20 }, (_, i) => i + 1));
+    const server = fakeServer([running()], { failedReads: reads, cancelError: new Error("connection refused") });
+    const fake = fakeIo();
+    const error = await runPluginEval(server.client, "acme", THERMOS, options(), fake.io).catch((e: unknown) => e);
+    expect((error as CliExitError).exitCode).toBe(1);
+    expect((error as CliExitError).message).toBe(
+      "lost track of eval pev_1 (Cannot connect to the Stigmer server), and could not cancel it; cancel it with: stigmer plugin eval cancel pev_1",
+    );
+    expect(fake.err()).toContain("Could not read pev_1 (Cannot connect to the Stigmer server); trying again in 1s.\n");
+    expect(fake.out()).toContain("\nCancelled: 3 of 4 tries ran.\n");
   });
 
   it("passes on a create failure that is not a refusal of the suite, unchanged", async () => {
