@@ -9,14 +9,14 @@ import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { useChannelToolReadiness } from "../useChannelToolReadiness";
 
-function toolAgent(overrides?: { mcpUsages?: boolean }): Agent {
+function toolAgent(overrides?: { plugins?: boolean }): Agent {
   return create(AgentSchema, {
     metadata: { id: "agt_1", org: "acme", slug: "helper" },
     spec: {
       instructions: "help",
-      mcpServerUsages:
-        (overrides?.mcpUsages ?? true)
-          ? [{ mcpServerRef: { org: "acme", slug: "github" } }]
+      plugins:
+        (overrides?.plugins ?? true)
+          ? [{ org: "acme", slug: "github" }]
           : [],
     },
   });
@@ -124,11 +124,11 @@ describe("useChannelToolReadiness", () => {
     await waitFor(() => expect(result.current).toEqual({ status: "ready" }));
   });
 
-  it("is n/a for agents without MCP tools — no lookups fire", async () => {
+  it("is n/a for agents that list no plugins — no lookups fire", async () => {
     const client = mockStigmer({});
     const { result } = renderHook(
       () =>
-        useChannelToolReadiness(toolAgent({ mcpUsages: false }), true, [
+        useChannelToolReadiness(toolAgent({ plugins: false }), true, [
           { org: "acme", slug: "shared-creds" },
         ]),
       { wrapper: wrapper(client) },

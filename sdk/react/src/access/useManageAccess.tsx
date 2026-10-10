@@ -42,7 +42,7 @@ export interface UseManageAccessReturn {
 /**
  * Wires the unified Manage access dialog to a kebab/overflow menu — the
  * trigger shape used by static resource detail views (agent, skill,
- * mcp_server, plugin), whose actions live in {@link ResourceActionBar}'s
+ * plugin), whose actions live in {@link ResourceActionBar}'s
  * menu rather than as a standalone button.
  *
  * Owns the open-state and the `can_view_access` gate (a viewer may open the

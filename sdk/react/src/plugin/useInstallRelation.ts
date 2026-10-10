@@ -6,8 +6,8 @@
  *
  * A prepared install carries the digest the server would record, so the
  * question "is this already installed" is answered before a push, from the
- * org's plugin of the same name: equal digest and READY is `installed`,
- * anything else present is `upgrade`, nothing is `not-installed`. Every
+ * org's plugin of the same name: an equal digest is `installed`, another
+ * digest is `upgrade`, nothing is `not-installed`. Every
  * preview asks it, whether the archive came from a source's entry or from
  * the user's own folder, so it is one hook and the preparation hooks
  * compose it.
@@ -15,7 +15,6 @@
 
 import { useMemo } from "react";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { PluginState } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
@@ -23,9 +22,9 @@ import type { PreparedInstall } from "./sources/read.js";
 
 /**
  * - `not-installed`: no plugin of this name in the org.
- * - `installed`: the org's plugin carries this exact digest and is ready.
- * - `upgrade`: the org's plugin exists with another digest (or is not
- *   ready); a push replaces its members.
+ * - `installed`: the org's plugin carries this exact digest.
+ * - `upgrade`: the org's plugin exists with another digest; a push
+ *   replaces it with this one.
  */
 export type InstallRelation = "not-installed" | "installed" | "upgrade";
 
@@ -61,8 +60,7 @@ export function useInstallRelation(prepared: PreparedInstall | null, org: string
   const relation = useMemo<InstallRelation | null>(() => {
     if (data === undefined || digest === null) return null;
     if (data === null) return "not-installed";
-    const status = data.status;
-    return status?.digest === digest && status.state === PluginState.READY ? "installed" : "upgrade";
+    return data.status?.digest === digest ? "installed" : "upgrade";
   }, [data, digest]);
 
   return useMemo(

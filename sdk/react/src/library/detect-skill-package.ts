@@ -11,7 +11,7 @@ import { parse as parseYaml } from "yaml";
  *
  * Skill detection is a **parallel** path to YAML resource detection:
  *
- * - **YAML detection** (`detectStigmerResource`): Agents, MCP Servers — applied via `apply()`
+ * - **YAML detection** (`detectStigmerResource`): Agents — applied via `apply()`
  * - **Package detection** (`detectSkillPackage`): Skill packages (directory with SKILL.md) — pushed via `pushFromRunArtifact()`
  */
 export type SkillPackageDetection =

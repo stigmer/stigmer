@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef } from "@stigmer/sdk";
 import { OrgProvider } from "../../organization/OrgProvider";
 import {
   ACME_ID,
@@ -10,7 +10,7 @@ import {
 } from "../../organization/__tests__/org-fixture";
 
 // ---------------------------------------------------------------------------
-// Removing an MCP server or a skill from the Config facet compares the
+// Removing a plugin or a skill from the Config facet compares the
 // references by the id of the org they name: a reference can name its org by
 // slug (one a host or URL supplied) or by id (a stored or picked one), so a
 // removal drops every attachment of that resource in that org and leaves a
@@ -61,7 +61,7 @@ const stubConv = {
   clearSendError: vi.fn(),
   pendingUserMessage: null,
   workspaceEntries: [],
-  mcpServerUsages: [],
+  plugins: [],
   skillRefs: [],
   pendingApprovals: [],
   submitApproval: vi.fn(),
@@ -78,10 +78,10 @@ const stubConv = {
 
 // The same server attached twice, once naming its org by slug and once by
 // id, and a namesake in another org; likewise for a skill.
-const mcpServerUsages: McpServerUsageInput[] = [
-  { mcpServerRef: { org: "acme", slug: "github" } },
-  { mcpServerRef: { org: ACME_ID, slug: "github" } },
-  { mcpServerRef: { org: GLOBEX_ID, slug: "github" } },
+const pluginRefs: ResourceRef[] = [
+  { org: "acme", slug: "github" },
+  { org: ACME_ID, slug: "github" },
+  { org: GLOBEX_ID, slug: "github" },
 ];
 const skillRefs: ResourceRef[] = [
   { org: ACME_ID, slug: "triage" },
@@ -110,8 +110,8 @@ const stubSessionPageFlow = {
     isUpdating: false,
     updateError: null,
   },
-  mcpServerUsages,
-  setMcpServerUsages: vi.fn(),
+  pluginRefs,
+  setPluginRefs: vi.fn(),
   skillRefs,
   setSkillRefs: vi.fn(),
   workspace: stubWorkspace,
@@ -167,13 +167,13 @@ async function renderConfigFacet() {
 }
 
 describe("SessionViewer — removing an attached reference compares orgs by id", () => {
-  it("drops every attachment of the removed MCP server, and only in its org", async () => {
+  it("drops every attachment of the removed plugin, and only in its org", async () => {
     await renderConfigFacet();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Remove MCP server github" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Remove plugin github" })[0]);
 
-    expect(stubSessionPageFlow.setMcpServerUsages).toHaveBeenCalledExactlyOnceWith([
-      { mcpServerRef: { org: GLOBEX_ID, slug: "github" } },
+    expect(stubSessionPageFlow.setPluginRefs).toHaveBeenCalledExactlyOnceWith([
+      { org: GLOBEX_ID, slug: "github" },
     ]);
   });
 

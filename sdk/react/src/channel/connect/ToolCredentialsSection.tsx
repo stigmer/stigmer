@@ -10,7 +10,7 @@ import { ChevronIcon } from "./icons.js";
 /**
  * Collapsible vault section for the connect dialogs' create mode (the
  * ShareAgentDialog ToolCredentialsSection pattern). Expanded by default
- * when the agent uses MCP tools — for those agents this is essential
+ * when the agent lists plugins — for those agents this is essential
  * configuration, not an advanced option: without a vault, every channel
  * message that needs a tool is refused.
  *
@@ -30,8 +30,8 @@ export function ToolCredentialsSection({
   readonly onChange: (refs: ResourceRef[]) => void;
   readonly disabled: boolean;
 }) {
-  const hasMcpTools = (agent.spec?.mcpServerUsages?.length ?? 0) > 0;
-  const [expanded, setExpanded] = useState(hasMcpTools || value.length > 0);
+  const usesPlugins = (agent.spec?.plugins?.length ?? 0) > 0;
+  const [expanded, setExpanded] = useState(usesPlugins || value.length > 0);
 
   return (
     <section>

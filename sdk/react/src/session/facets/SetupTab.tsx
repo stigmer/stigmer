@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { BUILT_IN_ASSISTANT_NAME, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
+import { BUILT_IN_ASSISTANT_NAME, type ResourceRef } from "@stigmer/sdk";
 import { Copy, FileJson, FileText } from "lucide-react";
 import type { HarnessOption } from "../../models/harness.js";
 import { HARNESS_META } from "../../models/harness.js";
@@ -21,8 +21,8 @@ import {
 export interface SetupTabMutationCallbacks {
   /** Drop the current agent, returning the session to the built-in assistant. Absent = read-only. */
   readonly onRemoveAgent?: () => void;
-  /** Remove an MCP server by its org/slug ref. */
-  readonly onRemoveMcp?: (ref: ResourceRef) => void;
+  /** Remove a plugin by its org/slug ref. */
+  readonly onRemovePlugin?: (ref: ResourceRef) => void;
   /** Remove a skill by its org/slug ref. */
   readonly onRemoveSkill?: (ref: ResourceRef) => void;
 }
@@ -49,7 +49,8 @@ export interface SetupTabAutoApprove {
 export interface SetupTabProps {
   /** The session's agent; `null` is the built-in assistant. */
   readonly agentRef: ResourceRef | null;
-  readonly mcpServerUsages: readonly McpServerUsageInput[];
+  /** The plugins the conversation uses, each whole. */
+  readonly pluginRefs: readonly ResourceRef[];
   readonly skillRefs: readonly ResourceRef[];
   readonly harness: HarnessOption;
   readonly executionTarget: ExecutionTargetOption | undefined;
@@ -89,7 +90,7 @@ export interface SetupTabProps {
 /**
  * Persistent session configuration panel (Config facet) — shows run config
  * (harness, model, target, and the session-level auto-approve switch), agent,
- * MCP servers, skills, transcript export, and the host's
+ * plugins, skills, transcript export, and the host's
  * access management control (via `accessSlot`).
  *
  * Rendered in the session panel's shared facet vocabulary (see
@@ -104,7 +105,7 @@ export interface SetupTabProps {
  */
 export function SetupTab({
   agentRef,
-  mcpServerUsages,
+  pluginRefs,
   skillRefs,
   harness,
   executionTarget,
@@ -125,9 +126,9 @@ export function SetupTab({
 
       <AgentSection agentRef={agentRef} onRemove={mutations?.onRemoveAgent} />
 
-      <McpSection
-        mcpServerUsages={mcpServerUsages}
-        onRemove={mutations?.onRemoveMcp}
+      <PluginsSection
+        pluginRefs={pluginRefs}
+        onRemove={mutations?.onRemovePlugin}
       />
 
       <SkillsSection
@@ -226,39 +227,36 @@ function AgentSection({
 }
 
 // ---------------------------------------------------------------------------
-// MCP Servers
+// Plugins
 // ---------------------------------------------------------------------------
 
-function McpSection({
-  mcpServerUsages,
+function PluginsSection({
+  pluginRefs,
   onRemove,
 }: {
-  mcpServerUsages: readonly McpServerUsageInput[];
+  pluginRefs: readonly ResourceRef[];
   onRemove?: (ref: ResourceRef) => void;
 }) {
   return (
-    <FacetSection heading="MCP Servers" count={mcpServerUsages.length}>
-      {mcpServerUsages.length > 0 ? (
-        mcpServerUsages.map((usage) => {
-          const slug = usage.mcpServerRef.slug;
-          return (
-            <FacetRow
-              key={`${usage.mcpServerRef.org}/${slug}`}
-              actions={
-                onRemove ? (
-                  <FacetRemoveButton
-                    onClick={() => onRemove(usage.mcpServerRef)}
-                    label={`Remove MCP server ${slug}`}
-                  />
-                ) : undefined
-              }
-            >
-              <span className="stg:truncate">{slug}</span>
-            </FacetRow>
-          );
-        })
+    <FacetSection heading="Plugins" count={pluginRefs.length}>
+      {pluginRefs.length > 0 ? (
+        pluginRefs.map((ref) => (
+          <FacetRow
+            key={`${ref.org}/${ref.slug}`}
+            actions={
+              onRemove ? (
+                <FacetRemoveButton
+                  onClick={() => onRemove(ref)}
+                  label={`Remove plugin ${ref.slug}`}
+                />
+              ) : undefined
+            }
+          >
+            <span className="stg:truncate">{ref.slug}</span>
+          </FacetRow>
+        ))
       ) : (
-        <FacetEmptyHint>No MCP servers attached.</FacetEmptyHint>
+        <FacetEmptyHint>No plugins attached.</FacetEmptyHint>
       )}
     </FacetSection>
   );

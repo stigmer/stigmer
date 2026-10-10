@@ -35,8 +35,7 @@ export const TEMPLATE_CATEGORY_LABELS: Record<TemplateCategory, string> = {
  * A pre-built resource configuration that seeds a creation wizard.
  *
  * Generic over `TData` — the wizard's accumulated form state type.
- * For agents, `TData` is `AgentWizardData`; for MCP servers,
- * `TData` is `McpServerWizardData`.
+ * For agents, `TData` is `AgentWizardData`.
  *
  * `data` is `Partial<TData>`: only the fields the template wants to
  * pre-fill. The wizard merges this with its default empty state via

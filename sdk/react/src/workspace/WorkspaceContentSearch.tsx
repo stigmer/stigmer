@@ -73,7 +73,7 @@ interface FlatResult {
  * preview. Filename search lives in the sibling {@link WorkspaceFileSearch}; a
  * `Name | Text` toggle in the surface switches between them.
  *
- * Keyboard/a11y mirrors the filename sibling (and `McpServerPicker`): the input
+ * Keyboard/a11y mirrors the filename sibling (and `PluginPicker`): the input
  * is a `role="combobox"` driving `aria-activedescendant`; results are a
  * `role="listbox"` of `role="option"` line rows; ArrowUp/Down move a virtual
  * focus over the flat line-hit index (across files and entries) with Enter to

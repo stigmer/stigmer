@@ -133,7 +133,7 @@ function makeAgent(overrides: { withTools?: boolean } = {}) {
       name: "Support Agent",
     },
     spec: overrides.withTools
-      ? { mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }] }
+      ? { plugins: [{ org: "acme", slug: "github" }] }
       : {},
   } as never;
 }

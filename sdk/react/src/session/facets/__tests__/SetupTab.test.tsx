@@ -13,7 +13,7 @@ afterEach(cleanup);
 
 const BASE_PROPS: SetupTabProps = {
   agentRef: null,
-  mcpServerUsages: [],
+  pluginRefs: [],
   skillRefs: [],
   harness: "native",
   executionTarget: undefined,
@@ -36,7 +36,7 @@ describe("SetupTab — access slot", () => {
   it("renders no access section when the slot is absent", () => {
     const { container } = render(<SetupTab {...BASE_PROPS} />);
     expect(screen.queryByRole("button", { name: "Manage access" })).toBeNull();
-    // Only the four always-on sections (run config, agent, MCP, skills).
+    // Only the four always-on sections (run config, agent, plugins, skills).
     expect(container.querySelectorAll("section")).toHaveLength(4);
   });
 });

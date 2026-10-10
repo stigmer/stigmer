@@ -1,27 +1,29 @@
 import type { ResourceRef } from "@stigmer/sdk";
-import type { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { AgentEnvFormVariable } from "./AgentEnvForm.js";
 
 // ---------------------------------------------------------------------------
-// Sign-ins — an OAuth server of the agent's with no grant in the organization
+// Sign-ins — a server of the agent's plugins with no login where the run reads
 // ---------------------------------------------------------------------------
 
 /**
- * One MCP server the agent uses that authenticates by OAuth and has no
+ * One MCP server of a plugin the agent lists that signs in and has no
  * login in the vaults the run reads. The agent is not ready until each is
- * signed in: run would start and fail at the first tool call, so the
+ * signed in: a run would start and fail at the first tool call, so the
  * composer asks first, the way it asks for a missing variable. A sign-in
- * is saved in the person's My vault.
+ * is saved in the person's My vault, at the server's address.
  */
 export interface PendingSignIn {
-  /** The server's reference, for the row's own read. */
-  readonly ref: ResourceRef;
-  /** The server's id, the key a sign-in completes under. */
-  readonly id: string;
-  /** The server's display name. */
+  /** The plugin the server belongs to. */
+  readonly plugin: ResourceRef;
+  /** The plugin's name. */
+  readonly pluginName: string;
+  /** The server, from the plugin's status. */
+  readonly server: McpServerEntry;
+  /** The address the login is saved at: the key a sign-in completes under. */
+  readonly address: string;
+  /** The row's display name. */
   readonly name: string;
-  /** The grant's health as the backend graded it; `NO_GRANT` when none exists. */
-  readonly health: OAuthConnectionHealth;
 }
 
 // ---------------------------------------------------------------------------
@@ -79,8 +81,8 @@ export type AgentSetupPhase =
   | {
       /**
        * The agent needs something from the user before it can run:
-       * environment variables it declares, sign-ins to OAuth servers it
-       * uses, or both. Either list may be empty while the other is not.
+       * environment variables it declares, sign-ins to servers of the
+       * plugins it lists, or both. Either list may be empty while the other is not.
        */
       readonly status: "needsEnvVars";
       /** Reference to the agent being set up. */
@@ -91,7 +93,7 @@ export type AgentSetupPhase =
       readonly agentName: string;
       /** Environment variables the user must provide before proceeding. */
       readonly missingVariables: AgentEnvFormVariable[];
-      /** OAuth servers of the agent's that nobody in the organization has signed in to. */
+      /** Servers of the agent's plugins that sign in and have no login where the run reads. */
       readonly pendingSignIns: readonly PendingSignIn[];
     }
   | {
@@ -177,7 +179,7 @@ export type AgentSetupResult =
       readonly agentName: string;
       /** Environment variables the user must provide before proceeding. */
       readonly missingVariables: AgentEnvFormVariable[];
-      /** OAuth servers of the agent's that nobody in the organization has signed in to. */
+      /** Servers of the agent's plugins that sign in and have no login where the run reads. */
       readonly pendingSignIns: readonly PendingSignIn[];
     };
 
@@ -210,8 +212,8 @@ export type AgentSetupAction =
   | {
       /** One of the pending sign-ins completed; the hook re-resolves the agent when the last one does. */
       readonly type: "SIGN_IN_COMPLETED";
-      /** The server's id. */
-      readonly id: string;
+      /** The address the sign-in saved its login at. */
+      readonly address: string;
     }
   | {
       /** Agent resolved and is ready for session creation. */
@@ -295,7 +297,7 @@ export function agentSetupReducer(
 
     case "SIGN_IN_COMPLETED": {
       if (state.status !== "needsEnvVars") return state;
-      const pendingSignIns = state.pendingSignIns.filter((signIn) => signIn.id !== action.id);
+      const pendingSignIns = state.pendingSignIns.filter((signIn) => signIn.address !== action.address);
       if (pendingSignIns.length === state.pendingSignIns.length) return state;
       return { ...state, pendingSignIns };
     }

@@ -10,9 +10,9 @@ import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 /**
  * Describes a single environment variable the form should collect.
  *
- * Typically derived from a resource's `env` entries (Agent,
- * McpServer, or any resource that declares required environment
- * variables). The caller is responsible for filtering out variables
+ * Typically derived from a resource's `env` entries (an Agent, a
+ * plugin's declarations, or any resource that declares required
+ * environment variables). The caller is responsible for filtering out variables
  * the user has already provided (i.e. only pass the *missing* ones).
  */
 export interface EnvVarFormVariable {
@@ -89,7 +89,7 @@ export interface EnvVarFormProps {
 
 /**
  * Compact form that collects environment variable values for any
- * resource that declares `env` variables (Agents, MCP servers, etc.).
+ * resource that declares `env` variables (agents, plugins, etc.).
  *
  * Renders one labeled input per variable. Secret variables use a
  * password field with a visibility toggle. The form validates that
@@ -103,7 +103,7 @@ export interface EnvVarFormProps {
  * vaults, sessions, or orchestration. It
  * can be used standalone by platform builders for their own env
  * setup UIs, or composed by higher-level hooks like
- * {@link useAgentSetup} or `useMcpServerSetup` within the
+ * {@link useAgentSetup} within the
  * {@link SessionComposer}.
  *
  * All visual properties flow through `--stgm-*` design tokens.
@@ -111,7 +111,7 @@ export interface EnvVarFormProps {
  * @example
  * ```tsx
  * <EnvVarForm
- *   title="GitHub MCP Server"
+ *   title="GitHub"
  *   description="Enter required credentials."
  *   variables={[
  *     { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },

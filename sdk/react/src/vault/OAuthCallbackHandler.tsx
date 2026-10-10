@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * The page a login page sends a person back to: it hands the `code` and
+ * `state` to the page that started the sign-in (a vault sign-in at an
+ * address, a Slack connect) and closes. It knows nothing of what was
+ * signed in to; the page that started the flow completes it
+ * (`useVaultSignIn`'s `completeSignIn`, the Slack connect's own call).
+ */
+
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import {

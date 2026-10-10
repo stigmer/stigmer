@@ -4,14 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useAgent } from "./useAgent.js";
 import { useUpdateAgent } from "./useUpdateAgent.js";
 import { toAgentUpdateInput } from "@stigmer/sdk";
-import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
@@ -26,7 +24,6 @@ import { DependencyGraph } from "../dependency-graph/DependencyGraph.js";
 import { useDependencyGraph } from "../dependency-graph/useDependencyGraph.js";
 import { AgentToolLists, hasToolLists } from "./AgentToolLists.js";
 import { AgentHooksSection } from "./AgentHooksSection.js";
-import { withPluginHooks } from "../plugin/plugin-on-agent.js";
 import { AgentRunDefaultsSection, type AgentRunDefaultsSave } from "./AgentRunDefaultsSection.js";
 import type { DependencyNode } from "../dependency-graph/types.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
@@ -35,6 +32,7 @@ import { InlineEditKeyValue } from "../inline-edit/InlineEditKeyValue.js";
 import { InlineEditResourceList } from "../inline-edit/InlineEditResourceList.js";
 import type { KeyValueRow, ResourceRefRow } from "../inline-edit/types.js";
 import { ManagedByPluginNotice } from "../plugin/ManagedByPluginNotice.js";
+import { PluginIcon } from "../plugin/PluginIcon.js";
 import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useOrgIdForRef, useOrgSlugForId } from "../organization/useOrgRefs.js";
@@ -56,13 +54,6 @@ export interface AgentDetailViewProps {
   readonly org: string;
   /** Agent slug (URL-friendly identifier unique within the org). */
   readonly slug: string;
-  /**
-   * Called when an MCP server reference is clicked.
-   * Provides `org` and `slug` of the referenced MCP server so the
-   * consumer can wire navigation. When the reference has no explicit
-   * org, the agent's own org is used as fallback.
-   */
-  readonly onMcpServerClick?: (ref: { org: string; slug: string }) => void;
   /**
    * Called when a skill reference is clicked.
    * Provides `org` and `slug` of the referenced skill.
@@ -124,8 +115,9 @@ export interface AgentDetailViewProps {
    */
   readonly defaultTab?: string;
   /**
-   * Called when the user selects the plugin named in the "installed by a
-   * plugin" notice; the host owns the route to the plugin's page. The
+   * Called when a plugin is selected: one the agent lists in its Plugins
+   * section or its dependency graph, or the one named in the "installed
+   * by a plugin" notice. The host owns the route to the plugin's page. The
    * notice shows when this resource carries a live plugin's label, and
    * `editable` is then narrowed to `false`: the server refuses a client
    * edit of a plugin's resource, so no edit form is offered.
@@ -161,7 +153,7 @@ export interface AgentDetailViewProps {
  * Fetches the agent via {@link useAgent} internally and renders its
  * full configuration inside a {@link ResourceDetailShell}: a
  * standardized header with action bar, followed by structured content
- * sections (instructions, MCP server usages, tool lists, hooks, skills,
+ * sections (instructions, plugins, tool lists, hooks, skills,
  * sub-agents, and environment variables). Sections with no data are
  * omitted entirely — reducing visual noise per Nielsen heuristic #8.
  *
@@ -190,7 +182,7 @@ export interface AgentDetailViewProps {
  *     { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
  *     { id: "delete", label: "Delete", variant: "destructive", onAction: handleDelete },
  *   ]}
- *   onMcpServerClick={({ org, slug }) => navigateToDetail("mcp-servers", org, slug)}
+ *   onPluginClick={({ org, slug }) => navigateToDetail("plugins", org, slug)}
  *   onSkillClick={({ org, slug }) => navigateToDetail("skills", org, slug)}
  * />
  * ```
@@ -198,7 +190,6 @@ export interface AgentDetailViewProps {
 export function AgentDetailView({
   org,
   slug,
-  onMcpServerClick,
   onSkillClick,
   onResourceLoad,
   primaryAction,
@@ -232,21 +223,14 @@ export function AgentDetailView({
   } | null>(null);
 
   // Several fields saved as one edit (the run defaults write run_config
-  // and harness together); a failure is attributed to `field`. A patch
-  // built from the current input (the Hooks section reads each plugin it
-  // adds first) is a function; its error is the save's.
+  // and harness together); a failure is attributed to `field`.
   const saveFields = useCallback(
-    async (
-      field: string,
-      patch:
-        | Partial<import("@stigmer/sdk").AgentInput>
-        | ((input: import("@stigmer/sdk").AgentInput) => Promise<Partial<import("@stigmer/sdk").AgentInput>>),
-    ): Promise<boolean> => {
+    async (field: string, patch: Partial<import("@stigmer/sdk").AgentInput>): Promise<boolean> => {
       if (!agent) return false;
       setSaveError(null);
       const base = toAgentUpdateInput(agent);
       try {
-        const input = { ...base, ...(typeof patch === "function" ? await patch(base) : patch) };
+        const input = { ...base, ...patch };
         const updated = await update(input);
         onResourceUpdated?.(updated);
         refetch();
@@ -269,39 +253,6 @@ export function AgentDetailView({
       return saveFields(field, patch);
     },
     [saveFields],
-  );
-
-  // The Hooks section saves the plugin sources as listed: the sources kept
-  // stay in the agent's order with the inline block, and each plugin added
-  // is read once so `withPluginHooks` declares the variables its hooks read,
-  // the same edit the plugin page's "Add to an agent" makes.
-  // `hooksSaving` covers the plugin reads too, which run before the update
-  // marks the page as saving, so a second Save cannot start another cycle.
-  const stigmer = useStigmer();
-  const [hooksSaving, setHooksSaving] = useState(false);
-  const saveHookPlugins = useCallback(
-    (rows: ResourceRefRow[]): Promise<boolean> => {
-      setHooksSaving(true);
-      return saveFields("hooks", async (input) => {
-        const owner = input.org;
-        const key = (org: string, slug: string) => `${org || owner}/${slug}`;
-        const listed = new Set(rows.map((row) => key(row.org, row.slug)));
-        const kept = (input.hooks ?? []).filter(
-          (source) => source.plugin === undefined || listed.has(key(source.plugin.org, source.plugin.slug)),
-        );
-        const keptKeys = new Set(kept.flatMap((source) => (source.plugin ? [key(source.plugin.org, source.plugin.slug)] : [])));
-        let next: import("@stigmer/sdk").AgentInput = { ...input, hooks: kept };
-        for (const row of rows.filter((candidate) => !keptKeys.has(key(candidate.org, candidate.slug)))) {
-          const config = (await stigmer.plugin.getByReference({ org: row.org, slug: row.slug })).status?.hooks;
-          if (config === undefined || config.groups.length === 0) {
-            throw new Error(`plugin '${row.slug}' has no hooks that run on Stigmer`);
-          }
-          next = withPluginHooks(next, { org: row.org, slug: row.slug }, config);
-        }
-        return { hooks: next.hooks, env: next.env };
-      }).finally(() => setHooksSaving(false));
-    },
-    [stigmer, saveFields],
   );
 
   const saveRunDefaults = useCallback(
@@ -351,13 +302,13 @@ export function AgentDetailView({
   const handleNodeClick = useCallback(
     (node: DependencyNode) => {
       if (!node.ref) return;
-      if (node.kind === "mcp-server") {
-        onMcpServerClick?.(node.ref);
+      if (node.kind === "plugin") {
+        onPluginClick?.(node.ref);
       } else if (node.kind === "skill") {
         onSkillClick?.(node.ref);
       }
     },
-    [onMcpServerClick, onSkillClick],
+    [onPluginClick, onSkillClick],
   );
 
   const onResourceLoadRef = useRef(onResourceLoad);
@@ -484,14 +435,11 @@ export function AgentDetailView({
         spec={spec}
         agentOrg={agentOrg}
         description={spec?.description}
-        onMcpServerClick={onMcpServerClick}
         onSkillClick={onSkillClick}
         editable={editable}
         isSaving={isUpdating}
         saveField={saveField}
         saveRunDefaults={saveRunDefaults}
-        saveHookPlugins={saveHookPlugins}
-        hooksSaving={hooksSaving}
         onPluginClick={onPluginClick}
         saveError={saveError}
         clearSaveError={clearSaveError}
@@ -528,14 +476,11 @@ function AgentOverview({
   spec,
   agentOrg,
   description,
-  onMcpServerClick,
   onSkillClick,
   editable,
   isSaving,
   saveField,
   saveRunDefaults,
-  saveHookPlugins,
-  hooksSaving,
   onPluginClick,
   saveError,
   clearSaveError,
@@ -543,7 +488,6 @@ function AgentOverview({
   readonly spec: NonNullable<ReturnType<typeof useAgent>["agent"]>["spec"];
   readonly agentOrg: string;
   readonly description?: string;
-  readonly onMcpServerClick?: (ref: { org: string; slug: string }) => void;
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
   readonly editable?: boolean;
   readonly isSaving?: boolean;
@@ -552,8 +496,6 @@ function AgentOverview({
     value: import("@stigmer/sdk").AgentInput[K],
   ) => Promise<boolean>;
   readonly saveRunDefaults?: (save: AgentRunDefaultsSave) => Promise<boolean>;
-  readonly saveHookPlugins?: (plugins: ResourceRefRow[]) => Promise<boolean>;
-  readonly hooksSaving?: boolean;
   readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
   readonly saveError?: { field: string; message: string } | null;
   readonly clearSaveError?: () => void;
@@ -569,13 +511,11 @@ function AgentOverview({
     [saveField],
   );
 
-  const handleMcpServersSave = useCallback(
+  const handlePluginsSave = useCallback(
     async (refs: ResourceRefRow[]) =>
       saveField?.(
-        "mcpServerUsages",
-        refs.map((r) => ({
-          mcpServerRef: { org: r.org, slug: r.slug },
-        })),
+        "plugins",
+        refs.map((r) => ({ org: r.org, slug: r.slug })),
       ) ?? false,
     [saveField],
   );
@@ -606,17 +546,17 @@ function AgentOverview({
     [saveField],
   );
 
-  const mcpRefRows: ResourceRefRow[] = useMemo(
+  const pluginRefRows: ResourceRefRow[] = useMemo(
     () =>
-      (spec?.mcpServerUsages ?? []).map((u) => ({
-        org: u.mcpServerRef?.org || agentOrg,
-        slug: u.mcpServerRef?.slug ?? "",
+      (spec?.plugins ?? []).map((ref) => ({
+        org: ref.org || agentOrg,
+        slug: ref.slug,
         label:
-          u.mcpServerRef?.org && u.mcpServerRef.org !== agentOrg
-            ? `${slugForOrg(u.mcpServerRef.org)}/${u.mcpServerRef.slug}`
-            : u.mcpServerRef?.slug ?? "",
+          ref.org && ref.org !== agentOrg
+            ? `${slugForOrg(ref.org)}/${ref.slug}`
+            : ref.slug,
       })),
-    [spec?.mcpServerUsages, agentOrg, slugForOrg],
+    [spec?.plugins, agentOrg, slugForOrg],
   );
 
   const skillRefRows: ResourceRefRow[] = useMemo(
@@ -648,30 +588,22 @@ function AgentOverview({
 
   const showDescription = editable || !!description;
   const showInstructions = editable || !!spec?.instructions;
-  const showMcpServers = editable || (spec && spec.mcpServerUsages.length > 0);
+  const showPlugins = editable || (spec && spec.plugins.length > 0);
   const showSkills = editable || (spec && spec.skillRefs.length > 0);
   const showSubAgents = editable || (spec && spec.subAgents.length > 0);
   const showToolLists = !!spec && hasToolLists(spec);
   const showEnv = editable || (spec?.env && Object.keys(spec.env).length > 0);
 
-  const [mcpEditing, setMcpEditing] = useState(false);
-  const [hooksEditing, setHooksEditing] = useState(false);
+  const [pluginsEditing, setPluginsEditing] = useState(false);
   const [skillsEditing, setSkillsEditing] = useState(false);
   const [envEditing, setEnvEditing] = useState(false);
 
   // Entering edit mode discards the previous attempt's error — the
   // message describes a stale draft, not the one being composed.
-  const handleMcpEditingChange = useCallback(
+  const handlePluginsEditingChange = useCallback(
     (editing: boolean) => {
       if (editing) clearSaveError?.();
-      setMcpEditing(editing);
-    },
-    [clearSaveError],
-  );
-  const handleHooksEditingChange = useCallback(
-    (editing: boolean) => {
-      if (editing) clearSaveError?.();
-      setHooksEditing(editing);
+      setPluginsEditing(editing);
     },
     [clearSaveError],
   );
@@ -743,26 +675,26 @@ function AgentOverview({
         onEditStart={clearSaveError}
       />
 
-      {showMcpServers && (
-        <Section title="MCP Servers" count={spec?.mcpServerUsages.length} onEdit={editable ? () => handleMcpEditingChange(!mcpEditing) : undefined}>
+      {showPlugins && (
+        <Section title="Plugins" count={spec?.plugins.length} onEdit={editable ? () => handlePluginsEditingChange(!pluginsEditing) : undefined}>
           {editable ? (
             <InlineEditResourceList
-              value={mcpRefRows}
-              onSave={handleMcpServersSave}
+              value={pluginRefRows}
+              onSave={handlePluginsSave}
               isSaving={isSaving}
-              error={errorFor("mcpServerUsages")}
-              editing={mcpEditing}
-              onEditingChange={handleMcpEditingChange}
-              onItemClick={onMcpServerClick ? (ref) => onMcpServerClick({ org: ref.org, slug: ref.slug }) : undefined}
-              itemIcon={<McpServerIcon className="stg:size-4" />}
-              resourceLabel="MCP server"
+              error={errorFor("plugins")}
+              editing={pluginsEditing}
+              onEditingChange={handlePluginsEditingChange}
+              onItemClick={onPluginClick ? (ref) => onPluginClick({ org: ref.org, slug: ref.slug }) : undefined}
+              itemIcon={<PluginIcon className="stg:size-4" />}
+              resourceLabel="plugin"
               defaultOrg={agentOrg}
             />
           ) : (
-            <McpUsagesContent
-              usages={spec?.mcpServerUsages ?? []}
+            <PluginsContent
+              refs={spec?.plugins ?? []}
               defaultOrg={agentOrg}
-              onMcpServerClick={onMcpServerClick}
+              onPluginClick={onPluginClick}
             />
           )}
         </Section>
@@ -774,17 +706,7 @@ function AgentOverview({
         </Section>
       )}
 
-      <AgentHooksSection
-        hooks={spec?.hooks ?? []}
-        agentOrg={agentOrg}
-        onPluginClick={onPluginClick}
-        editable={!!editable && saveHookPlugins !== undefined}
-        isSaving={isSaving || hooksSaving}
-        error={errorFor("hooks")}
-        editing={hooksEditing}
-        onEditingChange={handleHooksEditingChange}
-        onSave={saveHookPlugins}
-      />
+      <AgentHooksSection hooks={spec?.hooks ?? []} />
 
       {showSkills && (
         <Section title="Skills" count={spec?.skillRefs.length} onEdit={editable ? () => handleSkillsEditingChange(!skillsEditing) : undefined}>
@@ -888,22 +810,19 @@ function InstructionsContent({ text }: { readonly text: string }) {
   );
 }
 
-function McpUsagesContent({
-  usages,
+function PluginsContent({
+  refs,
   defaultOrg,
-  onMcpServerClick,
+  onPluginClick,
 }: {
-  readonly usages: readonly McpServerUsage[];
+  readonly refs: readonly ApiResourceReference[];
   readonly defaultOrg: string;
-  readonly onMcpServerClick?: (ref: { org: string; slug: string }) => void;
+  readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
 }) {
   const slugForOrg = useOrgSlugForId();
   return (
     <div className="stg:flex stg:flex-col">
-      {usages.map((usage, index) => {
-        const ref = usage.mcpServerRef;
-        if (!ref) return null;
-
+      {refs.map((ref, index) => {
         const refOrg = ref.org || defaultOrg;
         const label =
           ref.org && ref.org !== defaultOrg
@@ -911,20 +830,18 @@ function McpUsagesContent({
             : ref.slug;
         const row = (
           <div className="stg:flex stg:items-center stg:gap-3">
-            <McpServerIcon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
+            <PluginIcon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
             <span className="stg:text-sm stg:font-medium stg:text-foreground">
               {label}
             </span>
           </div>
         );
 
-        return onMcpServerClick ? (
+        return onPluginClick ? (
           <button
-            key={ref.slug || index}
+            key={`${refOrg}/${ref.slug || index}`}
             type="button"
-            onClick={() =>
-              onMcpServerClick({ org: refOrg, slug: ref.slug })
-            }
+            onClick={() => onPluginClick({ org: refOrg, slug: ref.slug })}
             className={cn(
               "stg:w-full stg:rounded-md stg:px-3 stg:py-2 stg:text-left stg:transition-colors",
               "stg:hover:bg-accent-hover",
@@ -934,7 +851,7 @@ function McpUsagesContent({
             {row}
           </button>
         ) : (
-          <div key={ref.slug || index} className="stg:px-3 stg:py-2">
+          <div key={`${refOrg}/${ref.slug || index}`} className="stg:px-3 stg:py-2">
             {row}
           </div>
         );
@@ -1394,26 +1311,6 @@ function AgentIcon({ className }: { readonly className?: string }) {
       <rect x="3" y="5" width="10" height="8" rx="1.5" />
       <path d="M6 9h.01M10 9h.01" strokeWidth="2" />
       <path d="M8 2v3" />
-    </svg>
-  );
-}
-
-function McpServerIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="2" y="2" width="12" height="5" rx="1" />
-      <rect x="2" y="9" width="12" height="5" rx="1" />
-      <circle cx="5" cy="4.5" r="0.75" fill="currentColor" stroke="none" />
-      <circle cx="5" cy="11.5" r="0.75" fill="currentColor" stroke="none" />
     </svg>
   );
 }

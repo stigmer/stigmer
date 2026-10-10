@@ -77,7 +77,7 @@ const STEPS: WizardStepDef<AgentWizardData>[] = [
  *
  * Three condensed steps:
  * 1. **Identity & Instructions** — name, slug, description, icon, system prompt
- * 2. **Capabilities** — MCP servers + tools, skills, env var declarations (all optional)
+ * 2. **Capabilities** — plugins, skills, env var declarations (all optional)
  * 3. **Review & Create** — YAML preview + submission
  *
  * Uses the shared `WizardShell` layout and `useWizardState` hook for

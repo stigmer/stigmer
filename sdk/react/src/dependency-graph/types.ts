@@ -2,20 +2,20 @@
  * Resource kind in a dependency tree.
  *
  * - `"agent"` — the root agent (always the tree root)
- * - `"mcp-server"` — an MCP server referenced via `mcpServerUsages`
+ * - `"plugin"` — a plugin referenced via `plugins`
  * - `"skill"` — a skill referenced via `skillRefs`
  * - `"sub-agent"` — an inline sub-agent definition with its own dependencies
  */
-export type NodeKind = "agent" | "mcp-server" | "skill" | "sub-agent";
+export type NodeKind = "agent" | "plugin" | "skill" | "sub-agent";
 
 /**
  * A single node in the agent dependency tree.
  *
  * The tree is recursive: sub-agent nodes contain their own children
- * (MCP servers and skills they access). Edges are implicit in the
+ * (the skills they use). Edges are implicit in the
  * parent-child relationship — no separate edge type is needed.
  *
- * Nodes are navigable when `ref` is defined (MCP servers and skills).
+ * Nodes are navigable when `ref` is defined (plugins and skills).
  * Sub-agent nodes have no `ref` because they are inline definitions
  * within the agent spec, not standalone resources.
  */
@@ -43,11 +43,11 @@ export interface DependencyNode {
    * Examples: `{ tools: "3 tools" }`, `{ model: "gpt-4" }`.
    */
   readonly metadata?: Readonly<Record<string, string>>;
-  /** Child nodes. Empty array for leaf nodes (MCP servers, skills). */
+  /** Child nodes. Empty array for leaf nodes (plugins, skills). */
   readonly children: readonly DependencyNode[];
   /**
-   * Navigation reference for clickable nodes. Defined for MCP servers
-   * and skills (standalone resources). Undefined for sub-agents (inline
+   * Navigation reference for clickable nodes. Defined for plugins and
+   * skills (standalone resources). Undefined for sub-agents (inline
    * definitions) and the root agent.
    */
   readonly ref?: { readonly org: string; readonly slug: string };
@@ -70,7 +70,7 @@ export interface DependencyGraphProps {
   /**
    * Called when a navigable node is clicked. The `node.ref` field
    * contains the `org` and `slug` for routing. Only fired for nodes
-   * where `ref` is defined (MCP servers and skills).
+   * where `ref` is defined (plugins and skills).
    */
   readonly onNodeClick?: (node: DependencyNode) => void;
   /**
@@ -94,11 +94,9 @@ export interface UseDependencyGraphOptions {
    * `null` for `tree` and `true` for `isEmpty`.
    */
   readonly spec: {
-    readonly mcpServerUsages: readonly {
-      readonly mcpServerRef?: {
-        readonly org: string;
-        readonly slug: string;
-      };
+    readonly plugins: readonly {
+      readonly org: string;
+      readonly slug: string;
     }[];
     readonly skillRefs: readonly {
       readonly org: string;

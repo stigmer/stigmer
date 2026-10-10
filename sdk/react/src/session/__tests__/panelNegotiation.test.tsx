@@ -69,8 +69,8 @@ const stubNewSessionFlow = {
     isUpdating: false,
     updateError: null,
   },
-  mcpServerUsages: [],
-  setMcpServerUsages: vi.fn(),
+  pluginRefs: [],
+  setPluginRefs: vi.fn(),
   skillRefs: [],
   setSkillRefs: vi.fn(),
   workspace: stubWorkspace,
@@ -101,7 +101,7 @@ const stubConv = {
   retryLastSend: vi.fn(),
   pendingUserMessage: null,
   workspaceEntries: [],
-  mcpServerUsages: [],
+  plugins: [],
   skillRefs: [],
   pendingApprovals: [],
   submitApproval: vi.fn(),
@@ -135,8 +135,8 @@ const stubSessionPageFlow = {
     isUpdating: false,
     updateError: null,
   },
-  mcpServerUsages: [],
-  setMcpServerUsages: vi.fn(),
+  pluginRefs: [],
+  setPluginRefs: vi.fn(),
   skillRefs: [],
   setSkillRefs: vi.fn(),
   workspace: stubWorkspace,
@@ -203,7 +203,7 @@ describe("SessionViewer — panel=\"none\"", () => {
     expect(props.showModelSelector).toBe(true);
     expect(props.enableAttachments).toBe(true);
     expect(props.lockAgent).toBe(false);
-    expect(props.onMcpServerUsagesChange).toBeDefined();
+    expect(props.onPluginRefsChange).toBeDefined();
   });
 
   it("keeps controlled props inert — panelOpen cannot force a surface that does not exist", () => {

@@ -9,8 +9,9 @@ import { PersonalKeyDisclosure } from "../PersonalKeyDisclosure";
 // ---------------------------------------------------------------------------
 // The disclosure before a conversation's message: it names, sorted, the
 // keys a run of the agent reads from the person's My vault —
-// the keys the agent declares (`spec.env`), minus its servers' OAuth
-// variables (their sign-in fills those), and none for an agent of another
+// the keys the agent declares (`spec.env`) and its plugins read, minus the
+// login key of each plugin server that signs in (the sign-in fills it),
+// and none for an agent of another
 // organization than the conversation's. Given the conversation's pinned
 // version it names what that version declares (read by id and hash), the
 // current spec when the agent holds no such version, and nothing while the
@@ -26,7 +27,7 @@ const REF = { org: ORG, slug: "pr-reviewer" };
 interface Fakes {
   readonly getByReference: ReturnType<typeof vi.fn>;
   readonly getVersion?: ReturnType<typeof vi.fn>;
-  readonly getServer?: ReturnType<typeof vi.fn>;
+  readonly getPlugin?: ReturnType<typeof vi.fn>;
 }
 
 function wrapperFor(fakes: Fakes) {
@@ -35,7 +36,7 @@ function wrapperFor(fakes: Fakes) {
       getByReference: fakes.getByReference,
       getVersion: fakes.getVersion ?? vi.fn(),
     },
-    mcpServer: { getByReference: fakes.getServer ?? vi.fn() },
+    plugin: { getByReference: fakes.getPlugin ?? vi.fn() },
   } as unknown as Stigmer;
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
@@ -46,25 +47,38 @@ function wrapperFor(fakes: Fakes) {
   };
 }
 
-function agentOf(env: Record<string, object>, org = ORG, mcpServerUsages: object[] = []) {
+function agentOf(env: Record<string, object>, org = ORG, plugins: object[] = []) {
   return vi.fn().mockResolvedValue({
     metadata: { id: "agt_1", org, slug: "pr-reviewer" },
-    spec: { env, mcpServerUsages },
+    spec: { env, plugins },
   });
 }
 
 const LINE = "personal-key-disclosure";
 
 describe("PersonalKeyDisclosure", () => {
-  it("names the keys the agent declares, leaving out a server's OAuth variable", async () => {
+  it("names the keys the agent declares, leaving out a plugin server's login key", async () => {
     const getByReference = agentOf(
       { LINEAR_API_KEY: {}, GITHUB_TOKEN: {}, CAL_TOKEN: {} },
       ORG,
-      [{ mcpServerRef: { org: ORG, slug: "calendar" } }],
+      [{ org: ORG, slug: "calendar" }],
     );
-    const getServer = vi.fn().mockResolvedValue({ spec: { auth: { targetEnvVar: "CAL_TOKEN" } } });
+    const getPlugin = vi.fn().mockResolvedValue({
+      metadata: { name: "calendar" },
+      status: {
+        mcpServers: [
+          {
+            name: "calendar",
+            transport: { case: "http", value: { url: "https://cal.example.com/mcp", headers: { Authorization: "Bearer ${CAL_TOKEN}" } } },
+            env: ["CAL_TOKEN"],
+            signIn: {},
+          },
+        ],
+        env: {},
+      },
+    });
     render(<PersonalKeyDisclosure agentRef={REF} runOrg={ORG} />, {
-      wrapper: wrapperFor({ getByReference, getServer }),
+      wrapper: wrapperFor({ getByReference, getPlugin }),
     });
 
     await waitFor(() =>

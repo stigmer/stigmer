@@ -108,7 +108,7 @@ const AGENT = {
     name: "Support Agent",
     visibility: ApiResourceVisibility.visibility_org,
   },
-  spec: { mcpServerUsages: [] },
+  spec: { plugins: [] },
 } as never;
 
 function makeShare(overrides?: {

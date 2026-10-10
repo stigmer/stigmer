@@ -209,7 +209,7 @@ export interface SessionViewerProps {
   readonly workspaceContentSearcher?: WorkspaceContentSearcher;
   /**
    * Presentation audience for the viewer. `"endUser"` locks the
-   * session's agent and hides the MCP server, skill and vault
+   * session's agent and hides the plugin, skill and vault
    * configuration in both the composer and the
    * inspector's Setup tab — for product-embedded chat where the agent
    * is configured upstream by the platform. The model selector,
@@ -1113,8 +1113,8 @@ const ConversationColumn = memo(function ConversationColumn({
             onAgentRefChange={isGuest ? undefined : flow.setAgentRef}
             onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
             lockAgent={isCurated}
-            mcpServerUsages={isCurated ? undefined : flow.mcpServerUsages}
-            onMcpServerUsagesChange={isCurated ? undefined : flow.setMcpServerUsages}
+            pluginRefs={isCurated ? undefined : flow.pluginRefs}
+            onPluginRefsChange={isCurated ? undefined : flow.setPluginRefs}
             skillRefs={isCurated ? undefined : flow.skillRefs}
             onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
             disclosePersonalKeys={disclosePersonalKeys}
@@ -1355,17 +1355,16 @@ function SessionPanelRegion({
   // id (a stored or picked one), so both sides are compared by id.
   const orgIdFor = useOrgIdForRef();
 
-  const handleRemoveMcp = useCallback(
+  const handleRemovePlugin = useCallback(
     (ref: ResourceRef) => {
       const refOrg = orgIdFor(ref.org);
-      flow.setMcpServerUsages(
-        flow.mcpServerUsages.filter(
-          (u) =>
-            !(orgIdFor(u.mcpServerRef.org) === refOrg && u.mcpServerRef.slug === ref.slug),
+      flow.setPluginRefs(
+        flow.pluginRefs.filter(
+          (r) => !(orgIdFor(r.org) === refOrg && r.slug === ref.slug),
         ),
       );
     },
-    [flow.mcpServerUsages, flow.setMcpServerUsages, orgIdFor],
+    [flow.pluginRefs, flow.setPluginRefs, orgIdFor],
   );
 
   const handleRemoveSkill = useCallback(
@@ -1383,7 +1382,7 @@ function SessionPanelRegion({
   const sessionConfig = useMemo<SetupTabProps>(
     () => ({
       agentRef: flow.agentRef,
-      mcpServerUsages: flow.mcpServerUsages,
+      pluginRefs: flow.pluginRefs,
       skillRefs: flow.skillRefs,
       harness: flow.harness,
       executionTarget: flow.executionTarget,
@@ -1408,17 +1407,17 @@ function SessionPanelRegion({
             // Removable whenever there is one: the built-in assistant, the
             // empty state, has nothing to remove and the tab shows it as such.
             onRemoveAgent: flow.agentRef ? handleRemoveAgent : undefined,
-            onRemoveMcp: handleRemoveMcp,
+            onRemovePlugin: handleRemovePlugin,
             onRemoveSkill: handleRemoveSkill,
           },
       accessSlot,
     }),
     [
-      flow.agentRef, flow.mcpServerUsages, flow.skillRefs,
+      flow.agentRef, flow.pluginRefs, flow.skillRefs,
       flow.harness, flow.executionTarget, flow.model,
       flow.agentRunDefaults,
       flow.autoApproveAll, flow.setAutoApproveAll, isObserver, exportSessionId,
-      isCurated, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
+      isCurated, handleRemoveAgent, handleRemovePlugin, handleRemoveSkill,
       accessSlot,
     ],
   );

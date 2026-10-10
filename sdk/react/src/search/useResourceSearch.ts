@@ -5,7 +5,7 @@ import type { ListParams, ListResult } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { useFetch } from "../internal/useFetch.js";
 
-/** Shared options for resource search hooks (`useAgentSearch`, `useMcpServerSearch`, `useSkillSearch`). */
+/** Shared options for resource search hooks (`useAgentSearch`, `usePluginSearch`, `useSkillSearch`). */
 export interface UseResourceSearchOptions {
   /** Maximum results per page. @default 30 */
   readonly pageSize?: number;
@@ -13,7 +13,7 @@ export interface UseResourceSearchOptions {
   readonly debounceMs?: number;
 }
 
-/** Shared return value for resource search hooks (`useAgentSearch`, `useMcpServerSearch`, `useSkillSearch`). */
+/** Shared return value for resource search hooks (`useAgentSearch`, `usePluginSearch`, `useSkillSearch`). */
 export interface UseResourceSearchReturn {
   /** Matching resources from the most recent search. */
   readonly results: readonly SearchResult[];
@@ -35,13 +35,13 @@ const DEFAULT_PAGE_SIZE = 30;
 const DEFAULT_DEBOUNCE_MS = 300;
 
 /**
- * Internal hook that powers both `useMcpServerSearch` and `useSkillSearch`.
+ * Internal hook that powers both `usePluginSearch` and `useSkillSearch`.
  *
  * Wraps a `ListParams -> ListResult` function with query state management,
  * debounced search, loading/error tracking, and cancellation-safe fetching.
  *
  * Not exported from the public API — consumers use the resource-specific
- * hooks (`useMcpServerSearch`, `useSkillSearch`) instead.
+ * hooks (`usePluginSearch`, `useSkillSearch`) instead.
  */
 export function useResourceSearch(
   listFn: (params: ListParams) => Promise<ListResult>,

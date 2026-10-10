@@ -11,7 +11,6 @@ import { toError } from "../internal/toError.js";
 export type VisibilityResourceKind =
   | "skill"
   | "agent"
-  | "mcpServer"
   | "plugin"
   | "vault";
 
@@ -33,9 +32,8 @@ export interface UseUpdateVisibilityReturn {
 /**
  * Behavior hook that updates the visibility of a resource.
  *
- * Supports blueprints (Agent, Skill, MCP Server, Plugin) with
- * the full private/org/child-organizations spectrum (a plugin's change reaches
- * every resource it installed, by the server's contract), and shared vaults
+ * Supports blueprints (Agent, Skill, Plugin) with the full
+ * private/org/child-organizations spectrum, and shared vaults
  * with private/org (saved values never leave the org boundary, so the
  * child-organizations level is rejected by the backend).
  *
@@ -87,9 +85,6 @@ export function useUpdateVisibility(
             break;
           case "agent":
             await stigmer.agent.updateVisibility(input);
-            break;
-          case "mcpServer":
-            await stigmer.mcpServer.updateVisibility(input);
             break;
           case "plugin":
             await stigmer.plugin.updateVisibility(input);

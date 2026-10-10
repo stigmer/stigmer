@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef } from "@stigmer/sdk";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { AgentResolution } from "../agent/index.js";
 import { useApprovalDefaults } from "../approval-defaults-context.js";
@@ -167,10 +167,10 @@ export interface UseSessionPageFlowReturn {
    */
   readonly agentVersion: UseSessionAgentVersionReturn;
 
-  /** Active MCP server configurations for follow-ups. */
-  readonly mcpServerUsages: McpServerUsageInput[];
-  /** Update MCP server configurations. */
-  readonly setMcpServerUsages: (usages: McpServerUsageInput[]) => void;
+  /** Plugins the conversation uses, for follow-ups. */
+  readonly pluginRefs: ResourceRef[];
+  /** Update the plugins the conversation uses. */
+  readonly setPluginRefs: (refs: ResourceRef[]) => void;
 
   /** Active skill references for follow-ups. */
   readonly skillRefs: ResourceRef[];
@@ -364,7 +364,7 @@ export function useSessionPageFlow(
 
   const workspace = useWorkspaceEntries();
 
-  const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
+  const [pluginRefs, setPluginRefs] = useState<ResourceRef[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const initialSyncDone = useRef(false);
 
@@ -550,7 +550,7 @@ export function useSessionPageFlow(
   const model: UsePersistedModelReturn = [modelId, setModelId] as const;
 
   // -------------------------------------------------------------------------
-  // Session spec sync — hydrate workspace, MCP servers, and skills on first load
+  // Session spec sync — hydrate workspace, plugins, and skills on first load
   // -------------------------------------------------------------------------
 
   useEffect(() => {
@@ -572,11 +572,11 @@ export function useSessionPageFlow(
       }
     }
 
-    // MCP server usages and skill references, hydrated through the SDK's
-    // complete update-input mapper (the canonical proto → input lens).
+    // Plugin and skill references, hydrated through the SDK's complete
+    // update-input mapper (the canonical proto → input lens).
     const mapped = toSessionUpdateInput(conv.session);
-    if (mapped.mcpServerUsages?.length) {
-      setMcpServerUsages(mapped.mcpServerUsages);
+    if (mapped.plugins?.length) {
+      setPluginRefs(mapped.plugins);
     }
     if (mapped.skillRefs?.length) {
       setSkillRefs(mapped.skillRefs);
@@ -618,7 +618,7 @@ export function useSessionPageFlow(
         workspaceEntries: workspace.hasEntries
           ? workspace.toInput()
           : undefined,
-        mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
+        plugins: pluginRefs.length > 0 ? pluginRefs : undefined,
         skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
         // A guest never changes which vaults the conversation uses: the
         // write is the creator's, and the share's vaults are what a
@@ -637,7 +637,7 @@ export function useSessionPageFlow(
         supersedesRunId: context?.supersedesRunId,
       });
     },
-    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, mcpServerUsages, skillRefs, resolution, agentRef, agentCleared, sessionAgentRef, autoApproveAll, isGuest],
+    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, pluginRefs, skillRefs, resolution, agentRef, agentCleared, sessionAgentRef, autoApproveAll, isGuest],
   );
 
   // -------------------------------------------------------------------------
@@ -680,8 +680,8 @@ export function useSessionPageFlow(
     setResolution,
     clearAgent,
     agentVersion,
-    mcpServerUsages,
-    setMcpServerUsages,
+    pluginRefs,
+    setPluginRefs,
     skillRefs,
     setSkillRefs,
     workspace,

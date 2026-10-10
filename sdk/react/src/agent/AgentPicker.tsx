@@ -47,7 +47,7 @@ const LIST_ID = "stgm-agent-list";
  * Designed to be placed inside a popover container — this component
  * renders the picker content, not the popover shell.
  *
- * Unlike the multi-select {@link SkillPicker} and McpServerPicker,
+ * Unlike the multi-select {@link SkillPicker} and PluginPicker,
  * this picker enforces single selection: clicking a result replaces
  * the current selection. A session runs against exactly one agent.
  *

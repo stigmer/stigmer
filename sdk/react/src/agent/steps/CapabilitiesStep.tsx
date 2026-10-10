@@ -2,8 +2,8 @@
 
 import { useCallback, useId, useState } from "react";
 import { cn } from "@stigmer/theme";
-import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
-import { McpServerPicker } from "../../mcp-server/McpServerPicker.js";
+import type { ResourceRef } from "@stigmer/sdk";
+import { PluginPicker } from "../../plugin/PluginPicker.js";
 import { SkillPicker } from "../../skill/SkillPicker.js";
 import type { AgentWizardData, EnvVarEntry } from "./types.js";
 
@@ -18,7 +18,7 @@ export interface CapabilitiesStepProps {
  * Wizard step 2: Agent capabilities.
  *
  * All sections are optional and start collapsed. The user expands
- * sections to add MCP servers, skills, and environment variables.
+ * sections to add plugins, skills, and environment variables.
  * No validation gate — the user can proceed with zero capabilities.
  */
 export function CapabilitiesStep({
@@ -28,7 +28,7 @@ export function CapabilitiesStep({
 }: CapabilitiesStepProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
     const initial = new Set<string>();
-    if (data.mcpServerUsages.length > 0) initial.add("mcp");
+    if (data.plugins.length > 0) initial.add("plugins");
     if (data.skillRefs.length > 0) initial.add("skills");
     if (data.env.length > 0) initial.add("env");
     return initial;
@@ -43,9 +43,9 @@ export function CapabilitiesStep({
     });
   }, []);
 
-  const handleMcpChange = useCallback(
-    (usages: McpServerUsageInput[]) => {
-      updateData({ mcpServerUsages: usages });
+  const handlePluginsChange = useCallback(
+    (refs: ResourceRef[]) => {
+      updateData({ plugins: refs });
     },
     [updateData],
   );
@@ -69,19 +69,19 @@ export function CapabilitiesStep({
         </p>
       </div>
 
-      {/* MCP Servers */}
+      {/* Plugins */}
       <CollapsibleSection
-        id="mcp"
-        title="MCP Servers"
-        subtitle="Tools and integrations the agent can call"
-        count={data.mcpServerUsages.length}
-        expanded={expandedSections.has("mcp")}
+        id="plugins"
+        title="Plugins"
+        subtitle="Tools, skills and hooks the agent uses, each plugin whole"
+        count={data.plugins.length}
+        expanded={expandedSections.has("plugins")}
         onToggle={toggleSection}
       >
-        <McpServerPicker
+        <PluginPicker
           org={org}
-          value={data.mcpServerUsages}
-          onChange={handleMcpChange}
+          value={data.plugins}
+          onChange={handlePluginsChange}
         />
       </CollapsibleSection>
 

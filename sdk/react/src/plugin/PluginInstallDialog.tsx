@@ -2,7 +2,8 @@
 
 /**
  * The Marketplace's install dialog: a source's entry previewed as the CLI
- * describes it, then pushed on confirmation.
+ * describes it, then pushed on confirmation, then said in one line: what
+ * the installed plugin holds, from its status lists.
  *
  * The dialog owns the preparation (`usePreparePluginInstall`): opening it
  * on an entry fetches the entry's selected files, reads them and asks the
@@ -12,8 +13,7 @@
  * message records the source's name, the way `stigmer install` does.
  *
  * Visibility is the kind's default, as `SkillUploader` leaves it; the
- * plugin's page changes it afterwards through Manage access, which
- * reaches every installed resource.
+ * plugin's page changes it afterwards through Manage access.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -40,7 +40,7 @@ export interface PluginInstallDialogProps {
   readonly org: string;
   readonly open: boolean;
   readonly onClose: () => void;
-  /** Called after a successful install with the plugin and its members. */
+  /** Called after a successful install with the installed plugin. */
   readonly onInstalled?: (outcome: InstallPluginOutcome) => void;
   readonly className?: string;
 }
@@ -185,21 +185,22 @@ function InstallDialogContent({
 }
 
 /**
- * "2 skills, 1 MCP server, 1 agent": what the push produced, in the CLI's
- * words. A kind the plugin did not install is not named: most of the
- * catalogue installs tools alone, and "0 skills, 1 MCP server, 0 agents"
- * reads as three facts where there is one. A push that produced nothing
- * says so.
+ * "2 skills, 1 MCP server, 1 agent, hooks": what the installed plugin
+ * holds, from its status lists, in the CLI's words. A kind the plugin does
+ * not carry is not named: most of the catalogue is one server, and "0
+ * skills, 1 MCP server, 0 agents" reads as three facts where there is one.
+ * A plugin that carries nothing Stigmer reads says so.
  */
 export function summariseInstall(outcome: InstallPluginOutcome): string {
-  const counts = outcome.plugin.status?.materialized;
+  const status = outcome.plugin.status;
   const parts = [
-    [counts?.skills ?? 0, "skill"],
-    [counts?.mcpServers ?? 0, "MCP server"],
-    [counts?.agents ?? 0, "agent"],
+    [status?.skills.length ?? 0, "skill"],
+    [status?.mcpServers.length ?? 0, "MCP server"],
+    [status?.agents.length ?? 0, "agent"],
   ] as const;
   const named = parts.filter(([n]) => n > 0).map(([n, noun]) => count(n, noun));
-  return named.length === 0 ? "nothing installed" : named.join(", ");
+  if ((status?.hooks?.groups.length ?? 0) > 0) named.push("hooks");
+  return named.length === 0 ? "nothing Stigmer runs" : named.join(", ");
 }
 
 function count(n: number, noun: string): string {

@@ -1,6 +1,6 @@
 /**
  * AgentDetailView names a reference into another organization by that org's
- * slug (its MCP servers, skills and sub-agents' skills), a reference into the
+ * slug (its plugins, skills and sub-agents' skills), a reference into the
  * agent's own org by its slug alone, and still hands navigation the org id
  * the reference is stored by. The route may name the agent's org by slug
  * while the agent stores its org by id: the two are the same organization.
@@ -20,9 +20,9 @@ function agentWithCrossOrgRefs() {
   const agent = samples.agent({ name: "Reviewer", org: ACME_ID });
   agent.spec = create(AgentSpecSchema, {
     instructions: "Review pull requests.",
-    mcpServerUsages: [
-      { mcpServerRef: { org: GLOBEX_ID, slug: "github" } },
-      { mcpServerRef: { org: ACME_ID, slug: "jira" } },
+    plugins: [
+      { org: GLOBEX_ID, slug: "github" },
+      { org: ACME_ID, slug: "jira" },
     ],
     skillRefs: [
       { org: GLOBEX_ID, slug: "shared-guide" },
@@ -40,7 +40,7 @@ function agentWithCrossOrgRefs() {
 }
 
 function renderView(props: { editable?: boolean } = {}) {
-  const onMcpServerClick = vi.fn();
+  const onPluginClick = vi.fn();
   const onSkillClick = vi.fn();
   const getByReference = vi.fn(async () => agentWithCrossOrgRefs());
   render(
@@ -48,7 +48,7 @@ function renderView(props: { editable?: boolean } = {}) {
       org="acme"
       slug="reviewer"
       editable={props.editable}
-      onMcpServerClick={onMcpServerClick}
+      onPluginClick={onPluginClick}
       onSkillClick={onSkillClick}
     />,
     {
@@ -63,12 +63,12 @@ function renderView(props: { editable?: boolean } = {}) {
       ),
     },
   );
-  return { onMcpServerClick, onSkillClick };
+  return { onPluginClick, onSkillClick };
 }
 
 describe("AgentDetailView references across organizations", () => {
-  it("labels another org's MCP servers and skills by its slug, own-org ones by slug alone", async () => {
-    const { onMcpServerClick, onSkillClick } = renderView();
+  it("labels another org's plugins and skills by its slug, own-org ones by slug alone", async () => {
+    const { onPluginClick, onSkillClick } = renderView();
 
     expect(await screen.findByText("globex/github")).toBeTruthy();
     expect(screen.getByText("jira")).toBeTruthy();
@@ -77,7 +77,7 @@ describe("AgentDetailView references across organizations", () => {
     expect(screen.queryByText(new RegExp(GLOBEX_ID))).toBeNull();
 
     fireEvent.click(screen.getByText("globex/github"));
-    expect(onMcpServerClick).toHaveBeenCalledWith({ org: GLOBEX_ID, slug: "github" });
+    expect(onPluginClick).toHaveBeenCalledWith({ org: GLOBEX_ID, slug: "github" });
     fireEvent.click(screen.getByText("globex/shared-guide"));
     expect(onSkillClick).toHaveBeenCalledWith({ org: GLOBEX_ID, slug: "shared-guide" });
   });

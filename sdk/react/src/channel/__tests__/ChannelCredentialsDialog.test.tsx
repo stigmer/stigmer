@@ -26,8 +26,8 @@ function makeAgent(withTools = true) {
     metadata: { id: "agt_1", org: "acme", slug: "support-agent", name: "Support Agent" },
     spec: {
       instructions: "help",
-      mcpServerUsages: withTools
-        ? [{ mcpServerRef: { org: "acme", slug: "github" } }]
+      plugins: withTools
+        ? [{ org: "acme", slug: "github" }]
         : [],
     },
   });

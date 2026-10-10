@@ -969,7 +969,7 @@ function ResetLinkControl({
  * Public audience only; the section disappears for
  * org shares, whose member sessions carry no share linkage.
  *
- * Expanded by default when the agent uses MCP tools — for those agents
+ * Expanded by default when the agent lists plugins — for those agents
  * this is essential configuration, not an advanced option.
  */
 function ToolCredentialsSection({
@@ -988,9 +988,9 @@ function ToolCredentialsSection({
     successMessage: string,
   ) => Promise<boolean>;
 }) {
-  const hasMcpTools = (agent.spec?.mcpServerUsages?.length ?? 0) > 0;
+  const usesPlugins = (agent.spec?.plugins?.length ?? 0) > 0;
   const [expanded, setExpanded] = useState(
-    hasMcpTools || draft.vaults.length > 0,
+    usesPlugins || draft.vaults.length > 0,
   );
 
   const handleChange = useCallback(

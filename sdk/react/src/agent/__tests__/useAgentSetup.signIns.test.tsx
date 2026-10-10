@@ -1,25 +1,22 @@
 /**
- * An agent whose MCP server authenticates by OAuth is not ready until the
- * organization holds a grant for it. Pinned: resolving such an agent lands
- * in `needsEnvVars` with the server under `pendingSignIns` and no variable
- * asked for the token; a server with a connected grant is not pending; a
- * grant read that fails leaves the server pending (fail-closed, the
- * composer's own MCP rule); a server that cannot be read is the resolution's
- * error; `signInCompleted` for the last pending server resolves the agent
- * again and lands in `ready`; the pool covering every variable does not skip
- * a pending sign-in.
+ * An agent whose plugin carries a server that signs in is not ready until a
+ * login at the server's address is held where the run reads. Pinned:
+ * resolving such an agent lands in `needsEnvVars` with the server under
+ * `pendingSignIns` (keyed by its address) and no variable asked for its
+ * login key; a server whose address has a login in My vault is not
+ * pending; a plugin that cannot be read is the resolution's error;
+ * `signInCompleted` for the last pending address reads My vault again and
+ * lands in `ready`; the pool covering every variable does not skip a
+ * pending sign-in.
  *
- * The token variable IS on the agent: the server's MergeMcpServerEnvSpecs
- * step copies every referenced server's `env` onto the agent at save, so a
- * saved agent declares `<SLUG>_ACCESS_TOKEN` beside its own variables. Pinned
- * for that shape: a connected grant satisfies the declaration and the agent
- * resolves `ready` in direct mode; without the grant the variable is the Sign
- * in row and never a form field; a variable of the agent's own beside it is
- * still asked for.
+ * The plugin declares the login key (install writes it), and the agent may
+ * declare it too. Pinned for both: a login at the address satisfies it and
+ * the agent resolves `ready` in direct mode; without one the key is the
+ * Sign in row and never a form field; a key of the agent's own beside it,
+ * and one the plugin's server reads, are still asked for.
  *
- * The grant is My vault's: a conversation that leaves My vault out does not
- * read it and it earns nothing there, and a server is signed in only when a
- * listed vault holds a sign-in that server started.
+ * A login in My vault counts only when the conversation includes My vault,
+ * and a listed vault's login counts only at the server's own address.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -31,46 +28,64 @@ import { Stigmer } from "@stigmer/sdk";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { VaultSchema, type Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
-import { Code as VaultCode, ConnectError as VaultConnectError } from "@connectrpc/connect";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { GetOAuthGrantStatusOutputSchema, OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { HttpServerConfigSchema, McpServerAuthSchema, McpServerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { useAgentSetup } from "../useAgentSetup";
+import { useMyVault } from "../../vault/useMyVault";
+import { MY_VAULT_ONLY, type ConversationVaults } from "../../vault/conversationVaults";
 
 afterEach(cleanup);
 
 const ORG = "acme";
 const REF = { org: ORG, slug: "reviewer" };
 
+const addressOf = (slug: string) => `https://${slug}.example/mcp`;
+const loginKeyOf = (slug: string) => `${slug.toUpperCase()}_ACCESS_TOKEN`;
+
 interface World {
-  /** Per server slug: whether the organization holds a connected grant. `"unreadable"` makes the grant read fail; `"missing"` makes the server read fail. */
-  readonly grants: Record<string, boolean | "unreadable" | "missing">;
+  /** The plugins the agent lists, by slug: `"missing"` makes the plugin's read fail. */
+  readonly plugins: Record<string, "ok" | "missing">;
+  /** The addresses My vault holds a login at; mutable so a sign-in can land. */
+  readonly mine: string[];
   /** The shared vault a conversation may list; absent, reading it fails. */
   readonly listedVault?: Vault;
-  /** The grant reads made, by server id. */
-  readonly grantReads?: string[];
+  /** A variable the plugin's server reads besides its login key. */
+  readonly serverKey?: string;
 }
 
-function oauthServer(slug: string) {
-  const variable = `${slug.toUpperCase()}_ACCESS_TOKEN`;
-  return create(McpServerSchema, {
-    metadata: create(ApiResourceMetadataSchema, { id: `mcp_${slug}`, org: ORG, slug, name: slug }),
-    spec: create(McpServerSpecSchema, {
-      serverType: { case: "http", value: create(HttpServerConfigSchema, { url: `https://${slug}.example/mcp` }) },
-      auth: create(McpServerAuthSchema, { targetEnvVar: variable, oauthOnly: true }),
-      env: { [variable]: create(EnvVarDeclarationSchema, { isSecret: true }) },
-    }),
+function signInPlugin(slug: string, serverKey?: string) {
+  const loginKey = loginKeyOf(slug);
+  return create(PluginSchema, {
+    metadata: create(ApiResourceMetadataSchema, { id: `plg_${slug}`, org: ORG, slug, name: slug }),
+    status: {
+      mcpServers: [
+        {
+          name: slug,
+          transport: { case: "http", value: { url: addressOf(slug), headers: { Authorization: `Bearer \${${loginKey}}` } } },
+          env: serverKey === undefined ? [loginKey] : [loginKey, serverKey],
+          signIn: { oauthOnly: true },
+        },
+      ],
+      env: { [loginKey]: create(EnvVarDeclarationSchema, { isSecret: true }) },
+    },
+  });
+}
+
+function vaultWith(addresses: readonly string[], owner: "person" | "org"): Vault {
+  return create(VaultSchema, {
+    metadata: { org: ORG, slug: owner === "person" ? "mine" : "team" },
+    spec: {
+      owner: owner === "person" ? { case: "person", value: "ida_1" } : { case: "org", value: ORG },
+      connections: Object.fromEntries(addresses.map((address) => [address, { source: VaultConnectionSource.sign_in, signIn: { loginApp: "" } }])),
+    },
   });
 }
 
@@ -85,34 +100,23 @@ function client(world: World, agentEnv: Record<string, { isSecret: boolean }> = 
             metadata: create(ApiResourceMetadataSchema, { id: "agt_1", org: ORG, slug: REF.slug, name: "Reviewer" }),
             spec: create(AgentSpecSchema, {
               env: Object.fromEntries(Object.entries(agentEnv).map(([k, v]) => [k, create(EnvVarDeclarationSchema, v)])),
-              mcpServerUsages: Object.keys(world.grants).map((slug) =>
-                create(McpServerUsageSchema, { mcpServerRef: create(ApiResourceReferenceSchema, { org: ORG, slug }) }),
-              ),
+              plugins: Object.keys(world.plugins).map((slug) => ({ org: ORG, slug })),
             }),
           }),
       });
-      service(McpServerQueryController, {
+      service(PluginQueryController, {
         getByReference: (ref) => {
-          if (world.grants[ref.slug] === "missing") throw new ConnectError(`no server '${ref.slug}'`, Code.NotFound);
-          return oauthServer(ref.slug);
-        },
-        getOAuthGrantStatus: (input) => {
-          world.grantReads?.push(input.resourceId);
-          const slug = input.resourceId.replace(/^mcp_/, "");
-          const grant = world.grants[slug];
-          if (grant === "unreadable") throw new ConnectError("grant store away", Code.Unavailable);
-          return create(GetOAuthGrantStatusOutputSchema, {
-            connected: grant === true,
-            connectionHealth: grant === true ? OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY : OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT,
-          });
+          if (world.plugins[ref.slug] === "missing") throw new ConnectError(`no plugin '${ref.slug}'`, Code.NotFound);
+          return signInPlugin(ref.slug, world.serverKey);
         },
       });
       service(VaultQueryController, {
         getMine: () => {
-          throw new VaultConnectError("no My vault yet", VaultCode.NotFound);
+          if (world.mine.length === 0) throw new ConnectError("no My vault yet", Code.NotFound);
+          return vaultWith(world.mine, "person");
         },
         getByReference: () => {
-          if (!world.listedVault) throw new VaultConnectError("no such vault", VaultCode.NotFound);
+          if (!world.listedVault) throw new ConnectError("no such vault", Code.NotFound);
           return world.listedVault;
         },
       });
@@ -130,112 +134,78 @@ function wrapper(stigmer: Stigmer) {
   };
 }
 
-describe("useAgentSetup and the agent's OAuth servers", () => {
-  it("holds the agent until its servers without a grant are signed in, and never asks for the token as a variable", async () => {
-    const world: { grants: Record<string, boolean | "unreadable" | "missing"> } = { grants: { linear: false, notion: true } };
-    const { result } = renderHook(() => useAgentSetup(ORG), { wrapper: wrapper(client(world)) });
+/** The setup hook beside a My vault reader, settled once My vault's first read lands, as a composer mounts them. */
+async function renderSettled(
+  world: World,
+  agentEnv: Record<string, { isSecret: boolean }> = {},
+  options: { readonly pool?: Set<string>; readonly choice?: ConversationVaults } = {},
+) {
+  const rendered = renderHook(
+    () => ({ setup: useAgentSetup(ORG, options.pool, options.choice ?? MY_VAULT_ONLY), mine: useMyVault(ORG) }),
+    { wrapper: wrapper(client(world, agentEnv)) },
+  );
+  await waitFor(() => expect(rendered.result.current.mine.isLoading).toBe(false));
+  return rendered;
+}
+
+describe("useAgentSetup and the servers of the agent's plugins that sign in", () => {
+  it("holds the agent until its servers without a login are signed in, and never asks for the login key as a variable", async () => {
+    const world: World = { plugins: { linear: "ok", notion: "ok" }, mine: [addressOf("notion")] };
+    const { result } = await renderSettled(world);
 
     let outcome: unknown;
     await act(async () => {
-      outcome = await result.current.resolveAgent(REF);
+      outcome = await result.current.setup.resolveAgent(REF);
     });
+    const state = result.current.setup.state;
     expect(outcome).toMatchObject({ status: "needsEnvVars", missingVariables: [] });
-    expect(result.current.state.status).toBe("needsEnvVars");
-    if (result.current.state.status !== "needsEnvVars") return;
-    expect(result.current.state.pendingSignIns.map((s) => s.id)).toEqual(["mcp_linear"]);
-    expect(result.current.state.pendingSignIns[0]?.health).toBe(OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT);
+    if (state.status !== "needsEnvVars") throw new Error(`expected needsEnvVars, got ${state.status}`);
+    expect(state.pendingSignIns.map((s) => s.address)).toEqual([addressOf("linear")]);
+    expect(state.pendingSignIns[0]).toMatchObject({ plugin: { org: ORG, slug: "linear" }, name: "linear" });
 
-    // The sign-in lands; the world now holds the grant; the agent resolves again and is ready.
-    world.grants.linear = true;
+    // The sign-in lands in My vault through the row's own hook; the agent is resolved again over a fresh read.
+    world.mine.push(addressOf("linear"));
     await act(async () => {
-      await result.current.signInCompleted("mcp_linear");
+      await result.current.setup.signInCompleted(addressOf("linear"));
     });
-    await waitFor(() => expect(result.current.state.status).toBe("ready"));
-    expect(result.current.state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
+    await waitFor(() => expect(result.current.setup.state.status).toBe("ready"));
+    expect(result.current.setup.state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
   });
 
-  it("fails closed on a grant it cannot read, and fails the resolution on a server it cannot read", async () => {
-    const { result } = renderHook(() => useAgentSetup(ORG), { wrapper: wrapper(client({ grants: { linear: "unreadable" } })) });
+  it("fails the resolution on a plugin it cannot read", async () => {
+    const { result } = renderHook(() => useAgentSetup(ORG), { wrapper: wrapper(client({ plugins: { ghost: "missing" }, mine: [] })) });
     await act(async () => {
-      await result.current.resolveAgent(REF);
+      await expect(result.current.resolveAgent(REF)).rejects.toThrow(/no plugin 'ghost'/);
     });
-    expect(result.current.state).toMatchObject({ status: "needsEnvVars", pendingSignIns: [expect.objectContaining({ id: "mcp_linear" })] });
-
-    const broken = renderHook(() => useAgentSetup(ORG), { wrapper: wrapper(client({ grants: { ghost: "missing" } })) });
-    await act(async () => {
-      await expect(broken.result.current.resolveAgent(REF)).rejects.toThrow(/no server 'ghost'/);
-    });
-    expect(broken.result.current.state.error?.message).toMatch(/no server 'ghost'/);
+    expect(result.current.state.error?.message).toMatch(/no plugin 'ghost'/);
   });
 
-  it("treats a connected grant as satisfying the agent's declaration of the token variable", async () => {
-    // The shape a saved agent has: the server merged the OAuth server's
-    // `LINEAR_ACCESS_TOKEN` declaration onto it; the organization signed in.
-    const { result } = renderHook(() => useAgentSetup(ORG), {
-      wrapper: wrapper(client({ grants: { linear: true } }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
-    });
-    let outcome: unknown;
+  it("treats a login at the address as satisfying the declaration of the login key", async () => {
+    const { result } = await renderSettled({ plugins: { linear: "ok" }, mine: [addressOf("linear")] }, { LINEAR_ACCESS_TOKEN: { isSecret: true } });
     await act(async () => {
-      outcome = await result.current.resolveAgent(REF);
+      await result.current.setup.resolveAgent(REF);
     });
-    expect(outcome).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
-    expect(result.current.state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
+    expect(result.current.setup.state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
   });
 
-  it("offers the token variable as a Sign in row and never as a form field while the grant is missing", async () => {
-    const world: { grants: Record<string, boolean | "unreadable" | "missing"> } = { grants: { linear: false } };
-    const { result } = renderHook(() => useAgentSetup(ORG), {
-      wrapper: wrapper(client(world, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
-    });
+  it("still asks for the agent's own keys and the keys a plugin server reads beside a satisfied login key", async () => {
+    const { result } = await renderSettled(
+      { plugins: { linear: "ok" }, mine: [addressOf("linear")], serverKey: "LINEAR_WORKSPACE" },
+      { API_TOKEN: { isSecret: true } },
+    );
     await act(async () => {
-      await result.current.resolveAgent(REF);
+      await result.current.setup.resolveAgent(REF);
     });
-    expect(result.current.state).toMatchObject({
-      status: "needsEnvVars",
-      missingVariables: [],
-      pendingSignIns: [expect.objectContaining({ id: "mcp_linear" })],
-    });
-
-    world.grants.linear = true;
-    await act(async () => {
-      await result.current.signInCompleted("mcp_linear");
-    });
-    await waitFor(() => expect(result.current.state.status).toBe("ready"));
-    expect(result.current.state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
-  });
-
-  it("still asks for the agent's own variables beside a satisfied token variable", async () => {
-    const { result } = renderHook(() => useAgentSetup(ORG), {
-      wrapper: wrapper(client({ grants: { linear: true } }, { LINEAR_ACCESS_TOKEN: { isSecret: true }, API_TOKEN: { isSecret: true } })),
-    });
-    await act(async () => {
-      await result.current.resolveAgent(REF);
-    });
-    expect(result.current.state).toMatchObject({
-      status: "needsEnvVars",
-      missingVariables: [expect.objectContaining({ key: "API_TOKEN" })],
-      pendingSignIns: [],
-    });
+    const state = result.current.setup.state;
+    if (state.status !== "needsEnvVars") throw new Error(`expected needsEnvVars, got ${state.status}`);
+    expect(state.pendingSignIns).toEqual([]);
+    expect(state.missingVariables.map((v) => v.key).sort()).toEqual(["API_TOKEN", "LINEAR_WORKSPACE"]);
   });
 
   it("keeps a pending sign-in even when the pool covers every variable, and refuses submitEnvVars meanwhile", async () => {
     const pool = new Set(["API_TOKEN"]);
     const { result } = renderHook(() => useAgentSetup(ORG, pool), {
-      wrapper: wrapper(client({ grants: { linear: false } }, { API_TOKEN: { isSecret: true } })),
-    });
-    await act(async () => {
-      await result.current.resolveAgent(REF);
-    });
-    expect(result.current.state).toMatchObject({ status: "needsEnvVars", missingVariables: [], pendingSignIns: [expect.objectContaining({ id: "mcp_linear" })] });
-    await expect(result.current.submitEnvVars({})).rejects.toThrow(/every pending sign-in/);
-  });
-
-  it("gives a My vault grant no credit when the conversation leaves My vault out", async () => {
-    const LISTED = { includeMyVault: false, vaults: [{ org: ORG, slug: "team" }] };
-    const grantReads: string[] = [];
-    const empty = create(VaultSchema, { metadata: { org: ORG, slug: "team" }, spec: { owner: { case: "org", value: ORG } } });
-    const { result } = renderHook(() => useAgentSetup(ORG, undefined, LISTED), {
-      wrapper: wrapper(client({ grants: { linear: true }, listedVault: empty, grantReads }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
+      wrapper: wrapper(client({ plugins: { linear: "ok" }, mine: [] }, { API_TOKEN: { isSecret: true } })),
     });
     await act(async () => {
       await result.current.resolveAgent(REF);
@@ -243,37 +213,42 @@ describe("useAgentSetup and the agent's OAuth servers", () => {
     expect(result.current.state).toMatchObject({
       status: "needsEnvVars",
       missingVariables: [],
-      pendingSignIns: [expect.objectContaining({ id: "mcp_linear", health: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT })],
+      pendingSignIns: [expect.objectContaining({ address: addressOf("linear") })],
     });
-    expect(grantReads).toEqual([]);
+    await expect(result.current.submitEnvVars({})).rejects.toThrow(/every pending sign-in/);
   });
 
-  it("counts a listed vault's sign-in at the server's address, whichever tool signed in, and none elsewhere", async () => {
+  it("gives a login in My vault no credit when the conversation leaves My vault out", async () => {
     const LISTED = { includeMyVault: false, vaults: [{ org: ORG, slug: "team" }] };
-    const signedInAt = (address: string) =>
-      create(VaultSchema, {
-        metadata: { org: ORG, slug: "team" },
-        spec: {
-          owner: { case: "org", value: ORG },
-          connections: {
-            [address]: { source: VaultConnectionSource.sign_in, signIn: { loginApp: "" } },
-          },
-        },
-      });
+    const { result } = renderHook(() => useAgentSetup(ORG, undefined, LISTED), {
+      wrapper: wrapper(client({ plugins: { linear: "ok" }, mine: [addressOf("linear")], listedVault: vaultWith([], "org") })),
+    });
+    await act(async () => {
+      await result.current.resolveAgent(REF);
+    });
+    expect(result.current.state).toMatchObject({
+      status: "needsEnvVars",
+      missingVariables: [],
+      pendingSignIns: [expect.objectContaining({ address: addressOf("linear") })],
+    });
+  });
+
+  it("counts a listed vault's login at the server's address, and none elsewhere", async () => {
+    const LISTED = { includeMyVault: false, vaults: [{ org: ORG, slug: "team" }] };
 
     const foreign = renderHook(() => useAgentSetup(ORG, undefined, LISTED), {
-      wrapper: wrapper(client({ grants: { linear: false }, listedVault: signedInAt("https://other.example/mcp") }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
+      wrapper: wrapper(client({ plugins: { linear: "ok" }, mine: [], listedVault: vaultWith(["https://other.example/mcp"], "org") })),
     });
     await act(async () => {
       await foreign.result.current.resolveAgent(REF);
     });
     expect(foreign.result.current.state).toMatchObject({
       status: "needsEnvVars",
-      pendingSignIns: [expect.objectContaining({ id: "mcp_linear" })],
+      pendingSignIns: [expect.objectContaining({ address: addressOf("linear") })],
     });
 
     const own = renderHook(() => useAgentSetup(ORG, undefined, LISTED), {
-      wrapper: wrapper(client({ grants: { linear: false }, listedVault: signedInAt("https://linear.example/mcp") }, { LINEAR_ACCESS_TOKEN: { isSecret: true } })),
+      wrapper: wrapper(client({ plugins: { linear: "ok" }, mine: [], listedVault: vaultWith([addressOf("linear")], "org") })),
     });
     await act(async () => {
       await own.result.current.resolveAgent(REF);

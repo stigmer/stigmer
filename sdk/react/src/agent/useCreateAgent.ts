@@ -43,7 +43,7 @@ export interface UseCreateAgentReturn {
  *   name: "pr-review-bot",
  *   org: "acme",
  *   instructions: "Review pull requests for code quality...",
- *   mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }],
+ *   plugins: [{ org: "acme", slug: "github" }],
  * });
  * // agent.metadata?.slug → "pr-review-bot"
  * ```

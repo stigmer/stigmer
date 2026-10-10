@@ -14,7 +14,7 @@ import { toError } from "../internal/toError.js";
  * link to the resource in the Library (e.g., `/library/agents`).
  */
 export interface ApplyResourceResult {
-  /** The resource kind that was applied (`"Agent"`, `"McpServer"`, `"Skill"`, …). */
+  /** The resource kind that was applied (`"Agent"`, `"Skill"`, …). */
   readonly kind: string;
   /** The resource name (from response metadata). */
   readonly name: string;

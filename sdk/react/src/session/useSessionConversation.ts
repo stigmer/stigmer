@@ -6,10 +6,9 @@ import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/
 import type { FileChangeProgress, FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { ApprovalAction, RunPhase, FileChangeSetStatus, FileDecisionAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { supersededRunIds, toSessionUpdateInput, type AttachmentInput, type McpServerUsageInput, type ResourceRef, type WorkspaceEntryInput } from "@stigmer/sdk";
+import { supersededRunIds, toSessionUpdateInput, type AttachmentInput, type ResourceRef, type WorkspaceEntryInput } from "@stigmer/sdk";
 import { isTerminalPhase } from "../run/run-phases.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
 import type { ThinkingModeOption } from "../models/thinking-mode.js";
@@ -39,7 +38,7 @@ const REDISCOVERY_POLL_INTERVAL_MS = 5_000;
 /**
  * Options for {@link UseSessionConversationReturn.sendFollowUp}.
  *
- * Session-level fields (`workspaceEntries`, `mcpServerUsages`,
+ * Session-level fields (`workspaceEntries`, `plugins`,
  * `skillRefs`, `vaults`, `includeMyVault`) trigger a `session.update()`
  * before the run is created. Only provided fields are overwritten; omitted
  * fields preserve the session's existing values.
@@ -68,8 +67,8 @@ export interface SendFollowUpOptions {
    * stored token; a token sent replaces it.
    */
   readonly workspaceEntries?: WorkspaceEntryInput[];
-  /** MCP server configurations to include for tool access. */
-  readonly mcpServerUsages?: McpServerUsageInput[];
+  /** Plugins the conversation uses, replacing the stored ones; each is used whole. */
+  readonly plugins?: ResourceRef[];
   /** Skill references to enable for this run. */
   readonly skillRefs?: ResourceRef[];
   /**
@@ -154,7 +153,7 @@ export interface SendFollowUpOptions {
  *
  * Provides the full conversation state for a session: loaded data,
  * active stream, follow-up submission, approval handling, and
- * session-level context (workspace entries, MCP servers, skills).
+ * session-level context (workspace entries, plugins, skills).
  */
 export interface UseSessionConversationReturn {
   /** The session object, or null while loading. */
@@ -196,7 +195,7 @@ export interface UseSessionConversationReturn {
    * starts streaming it.
    *
    * When session-level fields (`agentRef`, `workspaceEntries`,
-   * `mcpServerUsages`, `skillRefs`) are provided in options, the
+   * `plugins`, `skillRefs`) are provided in options, the
    * session is updated via `session.update()` before creating the
    * run.
    */
@@ -254,8 +253,8 @@ export interface UseSessionConversationReturn {
 
   /** Current workspace entries from the session spec. Empty array when session is not loaded. */
   readonly workspaceEntries: readonly ProtoWorkspaceEntry[];
-  /** Current MCP server usages from the session spec. Empty array when session is not loaded. */
-  readonly mcpServerUsages: readonly ProtoMcpServerUsage[];
+  /** Current plugin references from the session spec. Empty array when session is not loaded. */
+  readonly plugins: readonly ProtoApiResourceReference[];
   /** Current skill references from the session spec. Empty array when session is not loaded. */
   readonly skillRefs: readonly ProtoApiResourceReference[];
 
@@ -635,8 +634,8 @@ export function useSessionConversation(
     [session],
   );
 
-  const mcpServerUsages = useMemo<readonly ProtoMcpServerUsage[]>(
-    () => session?.spec?.mcpServerUsages ?? [],
+  const plugins = useMemo<readonly ProtoApiResourceReference[]>(
+    () => session?.spec?.plugins ?? [],
     [session],
   );
 
@@ -666,7 +665,7 @@ export function useSessionConversation(
         const needsSessionUpdate =
           options?.agentRef !== undefined ||
           options?.workspaceEntries !== undefined ||
-          options?.mcpServerUsages !== undefined ||
+          options?.plugins !== undefined ||
           options?.skillRefs !== undefined ||
           options?.vaults !== undefined ||
           options?.includeMyVault !== undefined;
@@ -680,7 +679,7 @@ export function useSessionConversation(
             buildUpdateInput(freshSession, {
               agentRef: options?.agentRef,
               workspaceEntries: options?.workspaceEntries,
-              mcpServerUsages: options?.mcpServerUsages,
+              plugins: options?.plugins,
               skillRefs: options?.skillRefs,
               vaults: options?.vaults,
               includeMyVault: options?.includeMyVault,
@@ -823,7 +822,7 @@ export function useSessionConversation(
     pendingAttachments,
 
     workspaceEntries,
-    mcpServerUsages,
+    plugins,
     skillRefs,
 
     pendingApprovals,
@@ -892,7 +891,7 @@ function buildUpdateInput(
   overrides: {
     agentRef?: ResourceRef | null;
     workspaceEntries?: WorkspaceEntryInput[];
-    mcpServerUsages?: McpServerUsageInput[];
+    plugins?: ResourceRef[];
     skillRefs?: ResourceRef[];
     vaults?: ResourceRef[];
     includeMyVault?: boolean;
@@ -904,7 +903,7 @@ function buildUpdateInput(
   const workspaceEntries = overrides.workspaceEntries
     ? keepStoredRepositoryTokens(overrides.workspaceEntries, mapped.workspaceEntries)
     : mapped.workspaceEntries;
-  const mcpServerUsages = overrides.mcpServerUsages ?? mapped.mcpServerUsages;
+  const plugins = overrides.plugins ?? mapped.plugins;
   const skillRefs = overrides.skillRefs ?? mapped.skillRefs;
 
   return {
@@ -914,7 +913,7 @@ function buildUpdateInput(
         ? undefined
         : (overrides.agentRef ?? echoedAgentRef(mapped.agentRef)),
     workspaceEntries: workspaceEntries?.length ? workspaceEntries : undefined,
-    mcpServerUsages: mcpServerUsages?.length ? mcpServerUsages : undefined,
+    plugins: plugins?.length ? plugins : undefined,
     skillRefs: skillRefs?.length ? skillRefs : undefined,
     vaults: vaults?.length ? vaults : undefined,
     includeMyVault: includeMyVault || undefined,

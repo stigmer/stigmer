@@ -1,7 +1,7 @@
 /**
  * The composer's Sign in rows and the bridge that commits an agent that
  * became ready without a handler awaiting it. Pins: an agent in
- * `needsEnvVars` with pending sign-ins renders one row per server under
+ * `needsEnvVars` with pending sign-ins renders one row per plugin server under
  * "Sign-ins this agent needs" and no variable form while a sign-in is
  * pending, even with variables missing; the form returns once the
  * sign-ins are done; a `ready` state reached reactively (a sign-in landing,
@@ -19,7 +19,8 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vite
 import { render, cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
-import { OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { create } from "@bufbuild/protobuf";
+import { McpServerEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { StigmerContext } from "../../context";
 import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
@@ -39,13 +40,15 @@ vi.mock("../../agent/useAgentSetup", () => ({
   useAgentSetup: () => mockAgentSetup,
 }));
 
-vi.mock("../../plugin/McpServerReadiness.js", () => ({
-  McpServerReadiness: ({ onSignedIn }: { readonly onSignedIn?: (mcpServerId: string) => void }) => (
-    <button type="button" onClick={() => onSignedIn?.("mcp_linear")}>
+vi.mock("../../plugin/PluginServerSignIn.js", () => ({
+  PluginServerSignIn: ({ onSignedIn }: { readonly onSignedIn?: (address: string) => void }) => (
+    <button type="button" onClick={() => onSignedIn?.(LINEAR_ADDRESS)}>
       Sign in row
     </button>
   ),
 }));
+
+const LINEAR_ADDRESS = "https://mcp.linear.app/mcp";
 
 import { SessionComposer } from "../SessionComposer";
 
@@ -63,7 +66,7 @@ function createMinimalStigmerMock(): Stigmer {
   return {
     run: { uploadAttachment: vi.fn() },
     vault: noMyVaultClient(),
-    mcpServer: { getByReference: vi.fn().mockRejectedValue(new Error("no backend in this test")) },
+    plugin: { getByReference: vi.fn().mockRejectedValue(new Error("no backend in this test")) },
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),
     config: { baseUrl: "http://localhost:8080", getAccessToken: vi.fn().mockResolvedValue("") },
@@ -81,7 +84,13 @@ function createWrapper(client: Stigmer) {
 }
 
 const AGENT_REF = { org: "acme", slug: "reviewer" };
-const LINEAR = { ref: { org: "acme", slug: "linear" }, id: "mcp_linear", name: "Linear", health: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT };
+const LINEAR = {
+  plugin: { org: "acme", slug: "linear" },
+  pluginName: "linear",
+  server: create(McpServerEntrySchema, { name: "linear", transport: { case: "http", value: { url: LINEAR_ADDRESS } }, signIn: {} }),
+  address: LINEAR_ADDRESS,
+  name: "Linear",
+};
 
 function renderComposer(props?: Partial<React.ComponentProps<typeof SessionComposer>>) {
   return render(
@@ -177,7 +186,7 @@ describe("SessionComposer — the agent's sign-ins", () => {
 
     expect(await screen.findByText(/which this conversation does not use yet/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Sign in row" }));
-    expect(mockAgentSetup.signInCompleted).toHaveBeenCalledWith("mcp_linear");
+    expect(mockAgentSetup.signInCompleted).toHaveBeenCalledWith(LINEAR_ADDRESS);
 
     const textarea = screen.getByRole("textbox");
     fireEvent.change(textarea, { target: { value: "Go" } });

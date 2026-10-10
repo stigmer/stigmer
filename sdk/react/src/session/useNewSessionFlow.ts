@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
 import type { AccountExecutionDefaults } from "../identity-account/useAccountExecutionDefaults.js";
 import type { AgentResolution } from "../agent/index.js";
 import { useModelRegistry } from "../models/index.js";
@@ -23,6 +23,7 @@ import {
   type AgentRunDefaults,
 } from "../agent/run-defaults.js";
 import { useRunAgentSpec } from "../agent/useRunAgentSpec.js";
+import { readRememberedPluginPicks, rememberPluginPicks } from "../plugin/rememberedPluginPicks.js";
 
 const STORAGE_KEY_HARNESS = "stigmer:session:harness";
 
@@ -184,6 +185,24 @@ export interface UseNewSessionFlowOptions {
    * guest run config). See {@link SessionRunConfig}.
    */
   readonly runConfig?: SessionRunConfig;
+  /**
+   * Plugins the new conversation starts with, taken once: on mount, or
+   * when they first arrive after it (a host that reads them from its URL
+   * after hydration) unless the person has picked by then. A plugin
+   * page's "Start a chat" arrives with its plugin here. Ignored for the
+   * `"guest"` audience, whose conversation is the share's.
+   */
+  readonly initialPluginRefs?: readonly ResourceRef[];
+  /**
+   * Remember the person's plugin picks in this browser, per organization,
+   * and start the next new conversation with them (unless
+   * `initialPluginRefs` names plugins). A per-viewer convenience kept in
+   * `localStorage`; nothing reaches the server or another person. Ignored
+   * for the `"guest"` audience.
+   *
+   * @default false
+   */
+  readonly rememberPluginPicks?: boolean;
 }
 
 /** Return value of {@link useNewSessionFlow}. */
@@ -235,10 +254,10 @@ export interface UseNewSessionFlowReturn {
   /** Update the agent resolution. */
   readonly setResolution: (r: AgentResolution | null) => void;
 
-  /** Active MCP server configurations. */
-  readonly mcpServerUsages: McpServerUsageInput[];
-  /** Update MCP server configurations. */
-  readonly setMcpServerUsages: (usages: McpServerUsageInput[]) => void;
+  /** Plugins the new conversation uses, each whole. */
+  readonly pluginRefs: ResourceRef[];
+  /** Update the plugins the new conversation uses (remembered when `rememberPluginPicks` is set). */
+  readonly setPluginRefs: (refs: ResourceRef[]) => void;
 
   /** Active skill references. */
   readonly skillRefs: ResourceRef[];
@@ -270,7 +289,7 @@ export interface UseNewSessionFlowReturn {
   /**
    * Create a session with the first run.
    *
-   * Composes all managed state (agent, workspace, MCP servers, skills,
+   * Composes all managed state (agent, workspace, plugins, skills,
    * model, the vaults the conversation uses) into a single bootstrap RPC —
    * `run.create` with an embedded session spec — then calls
    * `onSessionCreated` on success.
@@ -290,7 +309,7 @@ export interface UseNewSessionFlowReturn {
  *
  * Manages all the state required to configure and submit a new session:
  * model selection (with localStorage persistence), agent resolution,
- * MCP server/skill selection, workspace entries, and the vaults the
+ * plugin/skill selection, workspace entries, and the vaults the
  * conversation uses. On submission, creates the session and its first run
  * with a single one-call bootstrap RPC (`run.create` with an
  * embedded session spec), then notifies the consumer via
@@ -316,8 +335,8 @@ export interface UseNewSessionFlowReturn {
  *   agentRef={flow.agentRef}
  *   onAgentRefChange={flow.setAgentRef}
  *   onAgentResolutionChange={flow.setResolution}
- *   mcpServerUsages={flow.mcpServerUsages}
- *   onMcpServerUsagesChange={flow.setMcpServerUsages}
+ *   pluginRefs={flow.pluginRefs}
+ *   onPluginRefsChange={flow.setPluginRefs}
  *   skillRefs={flow.skillRefs}
  *   onSkillRefsChange={flow.setSkillRefs}
 
@@ -445,7 +464,33 @@ export function useNewSessionFlow(
     setPickedModelId(undefined);
   }, []);
   const [resolution, setResolution] = useState<AgentResolution | null>(null);
-  const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
+  const remembersPicks = !isGuest && options.rememberPluginPicks === true;
+  const seed = isGuest ? undefined : options.initialPluginRefs;
+  // Set once the seed is taken or the person picks: a seed is applied at
+  // most once and never over a pick.
+  const pluginsSettledRef = useRef(seed !== undefined && seed.length > 0);
+  const [pluginRefs, setPluginRefsRaw] = useState<ResourceRef[]>(() => {
+    if (isGuest) return [];
+    if (seed !== undefined && seed.length > 0) return [...seed];
+    return remembersPicks ? readRememberedPluginPicks(org) : [];
+  });
+  // Keyed by content: hosts pass a fresh array per render.
+  const seedKey = (seed ?? []).map((ref) => `${ref.org}/${ref.slug}`).join(",");
+  const seededRefs = useMemo(() => seed ?? [], [seedKey]);
+  useEffect(() => {
+    if (pluginsSettledRef.current || seededRefs.length === 0) return;
+    pluginsSettledRef.current = true;
+    setPluginRefsRaw([...seededRefs]);
+  }, [seededRefs]);
+  // Only the person's own picks are remembered, never a seed.
+  const setPluginRefs = useCallback(
+    (refs: ResourceRef[]) => {
+      pluginsSettledRef.current = true;
+      setPluginRefsRaw(refs);
+      if (remembersPicks) rememberPluginPicks(org, refs);
+    },
+    [remembersPicks, org],
+  );
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -580,7 +625,7 @@ export function useNewSessionFlow(
           workspaceEntries: workspace.hasEntries
             ? workspace.toInput()
             : undefined,
-          mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
+          plugins: pluginRefs.length > 0 ? pluginRefs : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
           vaults: vaults?.length ? [...vaults] : undefined,
           // Only an included My vault travels; off is the wire default.
@@ -684,7 +729,7 @@ export function useNewSessionFlow(
       pinnedServiceTier,
       pinnedThinkingMode,
       workspace,
-      mcpServerUsages,
+      pluginRefs,
       skillRefs,
       metadata,
       sessionContext,
@@ -708,8 +753,8 @@ export function useNewSessionFlow(
     setAgentRef,
     resolution,
     setResolution,
-    mcpServerUsages,
-    setMcpServerUsages,
+    pluginRefs,
+    setPluginRefs,
     skillRefs,
     setSkillRefs,
     workspace,

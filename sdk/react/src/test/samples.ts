@@ -46,11 +46,13 @@ import {
   ApiResourceAuditSchema,
   ApiResourceAuditInfoSchema,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
 import {
-  McpServerSchema,
-  type McpServer,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+  McpServerEntrySchema,
+  McpServerSignInSchema,
+  PluginStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
   SessionSchema,
   type Session,
@@ -192,12 +194,14 @@ export interface SkillOverrides {
   readonly skillMd?: string;
 }
 
-export interface McpServerOverrides {
+export interface PluginOverrides {
   readonly id?: string;
   readonly name?: string;
   readonly org?: string;
   readonly slug?: string;
   readonly description?: string;
+  /** The URL of the plugin's one MCP server, which signs in. */
+  readonly serverUrl?: string;
 }
 
 export interface VaultOverrides {
@@ -380,23 +384,31 @@ export const samples = {
   },
 
   /**
-   * An MCP server resource.
-   * Default: `Demo MCP Server` in org `demo`.
+   * An installed plugin holding one MCP server at an address, which signs
+   * in. Default: `demo-plugin` in org `demo`, its server named after it.
    */
-  mcpServer(o?: McpServerOverrides): McpServer {
-    return create(McpServerSchema, {
+  plugin(o?: PluginOverrides): Plugin {
+    const name = o?.name ?? "demo-plugin";
+    return create(PluginSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
-      kind: "McpServer",
+      kind: "Plugin",
       metadata: create(ApiResourceMetadataSchema, {
-        id: o?.id ?? "mcp-00000000-0000-0000-0000-000000000001",
-        name: o?.name ?? "Demo MCP Server",
-        slug:
-          o?.slug ?? o?.name?.toLowerCase().replace(/\s+/g, "-") ?? "demo-mcp-server",
+        id: o?.id ?? "plg-00000000-0000-0000-0000-000000000001",
+        name,
+        slug: o?.slug ?? name,
         org: o?.org ?? "demo",
       }),
-      spec: create(McpServerSpecSchema, {
-        description:
-          o?.description ?? "A sample MCP server for demo purposes.",
+      spec: create(PluginSpecSchema, {
+        description: o?.description ?? "A sample plugin for demo purposes.",
+      }),
+      status: create(PluginStatusSchema, {
+        mcpServers: [
+          create(McpServerEntrySchema, {
+            name,
+            transport: { case: "http", value: { url: o?.serverUrl ?? "https://mcp.example.com/mcp" } },
+            signIn: create(McpServerSignInSchema, {}),
+          }),
+        ],
       }),
     });
   },

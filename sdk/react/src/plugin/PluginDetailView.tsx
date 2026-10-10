@@ -4,21 +4,22 @@
  * The operational detail hub for an installed Plugin, and where an install
  * ends: every console route lands here after the push.
  *
- * A plugin is what you install; it installs an agent, tools for your
- * agents, or both. So this view shows what the install produced (the
- * members, by kind, each a link into its own detail page) and, for each
- * MCP server, what stands between it and its first tool call (signed in,
- * Sign in, a key to give, nothing: `McpServerReadiness`); its hooks, every
- * command each runs (`HookConfigList`), beside the hooks Stigmer does not
- * run (the install warnings of `HOOK_WARNING_KINDS`, listed here rather
- * than among the other warnings); what the manifest said (version, format,
- * author); what else the server warned about at install; and the version
- * history. When the plugin carries an agent, the primary action is to start
- * a session on it; "Use with an agent" adds the plugin to one of the
- * organization's agents: its tools when it carries tools and no agent, its
- * hooks whenever it has hooks that run. Nothing here edits a member: a
- * plugin's resources are changed by pushing the plugin again, never one by
- * one, and the members' own pages say so.
+ * A plugin is one thing, used whole: an agent or a conversation lists it
+ * and gets its skills, its agents, its hooks and its MCP servers. So this
+ * view says what the plugin holds, from the lists its status recorded at
+ * install (nothing is installed beside it), and offers the two ways to use
+ * it: "Start a chat" (a conversation with the assistant that lists the
+ * plugin, through the host's route) and "Add to an agent" (the plugin put
+ * on one of the organization's agents). Each MCP server shows how it is
+ * reached, what stands between it and its first tool call (signed in, Sign
+ * in, a key to give: `PluginServerSignIn`, over the person's My vault), and
+ * "Check tools", which lists the server's tools now. The skills and agents
+ * are listed by the names a turn uses (`<plugin>:<skill>`); the hooks with
+ * every command each runs (`HookConfigList`), beside the hooks Stigmer
+ * does not run (the warnings of `HOOK_WARNING_KINDS`); the keys the plugin
+ * declares; what the manifest said; what else the push warned about; and
+ * the version history. Nothing here edits the plugin: it changes by being
+ * pushed again.
  *
  * The shape is `SkillDetailView`'s: the resource fetched inside, rendered
  * in `ResourceDetailShell` with Manage access folded into the kebab, the
@@ -29,11 +30,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import type { PluginMember } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { PluginDialect, type PluginSpec } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
-import { PluginState, type PluginStatus, type PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import type { PluginStatus, PluginWarning } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { McpServerUsageInput } from "@stigmer/sdk";
+import type { ResourceRef } from "@stigmer/sdk";
 import { HOOK_WARNING_KINDS } from "@stigmer/plugin-package";
 import { DIALECT_LABELS } from "@stigmer/plugin-package/client";
 import { useManageAccess } from "../access/useManageAccess.js";
@@ -44,27 +44,20 @@ import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
 import { Section } from "../resource-detail/Section.js";
 import type { AdditionalTab, DetailAction, ResourceHeaderMeta } from "../resource-detail/types.js";
 import { useDetailTabs } from "../resource-detail/useDetailTabs.js";
-import type { StatusPhase } from "../resource-workbench/types.js";
 import type { TabItem } from "../tabs/Tabs.js";
 import { VersionTimeline } from "../version-history/VersionTimeline.js";
 import { Button } from "../button/Button.js";
 import { AddPluginToAgentDialog } from "./AddPluginToAgentDialog.js";
 import { HookConfigList } from "./HookConfigList.js";
-import { McpServerReadiness } from "./McpServerReadiness.js";
 import { PluginIcon } from "./PluginIcon.js";
+import { summariseInstall } from "./PluginInstallDialog.js";
+import { PluginServerRow } from "./PluginServerRow.js";
 import { usePlugin } from "./usePlugin.js";
-import { usePluginMembers } from "./usePluginMembers.js";
 import { usePluginVersions } from "./usePluginVersions.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
-
-/** A member's reference as the host navigates to it. */
-export interface PluginMemberRef {
-  readonly org: string;
-  readonly slug: string;
-}
 
 /** Props for {@link PluginDetailView}. */
 export interface PluginDetailViewProps {
@@ -75,24 +68,13 @@ export interface PluginDetailViewProps {
   /** Called once when the plugin has been fetched, for breadcrumbs and titles. Not called on error or not-found. */
   readonly onResourceLoad?: (meta: { name: string; id: string }) => void;
   /**
-   * Called when the user asks to start a session on the plugin's agent.
-   * When provided and the plugin carries an agent, "Start session" is the
-   * header's primary action; the host owns the route.
+   * Called from "Start a chat" with the plugin's reference: the host opens
+   * a new conversation with the assistant whose `plugins` list it. When
+   * provided, "Start a chat" is the header's primary action.
    */
-  readonly onStartSession?: (agent: PluginMemberRef) => void;
-  /** Called when a member row is selected; the host owns the route to each kind's page. */
-  readonly onSkillClick?: (ref: PluginMemberRef) => void;
-  readonly onMcpServerClick?: (ref: PluginMemberRef) => void;
-  readonly onAgentClick?: (ref: PluginMemberRef) => void;
-  /**
-   * Called from "Create a new agent with these tools" with the usages the
-   * creation wizard preselects, for a plugin that installed MCP servers and
-   * no agent. The host owns the route to its wizard; the link is hidden when
-   * omitted, and "Add to an agent" still offers the organization's agents.
-   * A new agent gets the servers only; its hooks are switched on from its
-   * own page or from "Add to an agent".
-   */
-  readonly onCreateAgent?: (usages: readonly McpServerUsageInput[]) => void;
+  readonly onStartChat?: (plugin: ResourceRef) => void;
+  /** Called from "Open agent" after the plugin was added to one; the host owns the route. */
+  readonly onAgentClick?: (ref: ResourceRef) => void;
   /** Secondary actions rendered in the kebab overflow menu (remove lives here). */
   readonly actions?: readonly DetailAction[];
   /** Additional tabs beside the built-in Overview and Versions. */
@@ -106,20 +88,17 @@ export interface PluginDetailViewProps {
 }
 
 /**
- * Operational detail hub for an installed Plugin: what it installed, its
- * hooks and the ones Stigmer does not run, what its manifest declares, what
- * the server warned about, and its versions.
+ * Operational detail hub for an installed Plugin: what it holds, how to
+ * use it, each server's sign-in and tools, its hooks, what its manifest
+ * declares, what the push warned about, and its versions.
  *
  * @example
  * ```tsx
  * <PluginDetailView
  *   org="acme"
- *   slug="thermos"
- *   onStartSession={({ org, slug }) => router.push(getAgentSessionUrl(org, slug))}
- *   onSkillClick={({ org, slug }) => navigateToDetail("skills", org, slug)}
- *   onMcpServerClick={({ org, slug }) => navigateToDetail("mcp-servers", org, slug)}
+ *   slug="linear"
+ *   onStartChat={({ org, slug }) => router.push(getPluginChatUrl(org, slug))}
  *   onAgentClick={({ org, slug }) => navigateToDetail("agents", org, slug)}
- *   onCreateAgent={(usages) => router.push(`/library/agents/new?mcp=${usages.map((u) => u.mcpServerRef.slug).join(",")}`)}
  * />
  * ```
  */
@@ -127,11 +106,8 @@ export function PluginDetailView({
   org,
   slug,
   onResourceLoad,
-  onStartSession,
-  onSkillClick,
-  onMcpServerClick,
+  onStartChat,
   onAgentClick,
-  onCreateAgent,
   actions,
   additionalTabs,
   activeTab,
@@ -140,8 +116,6 @@ export function PluginDetailView({
   className,
 }: PluginDetailViewProps) {
   const { plugin, isLoading, error, refetch } = usePlugin(org, slug);
-  const pluginId = plugin?.metadata?.id ?? null;
-  const members = usePluginMembers(pluginId);
   const { versions, isEmpty: noVersions } = usePluginVersions(org, slug);
 
   const builtInTabs = useMemo<readonly TabItem[]>(
@@ -179,17 +153,18 @@ export function PluginDetailView({
       : undefined,
   });
 
-  const agentMember = members.byKind.agents[0];
+  const pluginOrg = plugin?.metadata?.org || org;
+  const pluginSlug = plugin?.metadata?.slug || slug;
   const primaryAction = useMemo<DetailAction | undefined>(
     () =>
-      onStartSession && agentMember
+      onStartChat
         ? {
-            id: "start-session",
-            label: "Start session",
-            onAction: () => onStartSession({ org, slug: agentMember.slug }),
+            id: "start-chat",
+            label: "Start a chat",
+            onAction: () => onStartChat({ org: pluginOrg, slug: pluginSlug }),
           }
         : undefined,
-    [onStartSession, agentMember, org],
+    [onStartChat, pluginOrg, pluginSlug],
   );
 
   if (isLoading) return <LoadingSkeleton className={className} />;
@@ -209,8 +184,6 @@ export function PluginDetailView({
     icon: <PluginIcon className="stg:size-6 stg:text-muted-foreground" />,
     createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
-    status: status ? stateToPhase(status.state) : undefined,
-    statusLabel: status ? stateLabel(status.state) : undefined,
   };
 
   const visibilityControl = meta ? (
@@ -224,17 +197,7 @@ export function PluginDetailView({
   } else if (effectiveActiveTab === "versions" && versions.length > 0) {
     tabContent = <VersionTimeline entries={versions} />;
   } else {
-    tabContent = (
-      <PluginOverview
-        plugin={plugin}
-        members={members.members}
-        membersError={members.error}
-        onSkillClick={onSkillClick}
-        onMcpServerClick={onMcpServerClick}
-        onAgentClick={onAgentClick}
-        onCreateAgent={onCreateAgent}
-      />
-    );
+    tabContent = <PluginOverview plugin={plugin} org={org} onStartChat={onStartChat} onAgentClick={onAgentClick} />;
   }
 
   return (
@@ -258,76 +221,94 @@ export function PluginDetailView({
 }
 
 // ---------------------------------------------------------------------------
-// Overview: what the manifest said, what the install produced, what it warned
+// Overview: what the plugin holds, how to use it, what the push warned
 // ---------------------------------------------------------------------------
 
 function PluginOverview({
   plugin,
-  members,
-  membersError,
-  onSkillClick,
-  onMcpServerClick,
+  org,
+  onStartChat,
   onAgentClick,
-  onCreateAgent,
 }: {
   readonly plugin: Plugin;
-  readonly members: readonly PluginMember[];
-  readonly membersError: Error | null;
-  readonly onSkillClick?: (ref: PluginMemberRef) => void;
-  readonly onMcpServerClick?: (ref: PluginMemberRef) => void;
-  readonly onAgentClick?: (ref: PluginMemberRef) => void;
-  readonly onCreateAgent?: (usages: readonly McpServerUsageInput[]) => void;
+  /** The organization the page is viewed in: its runner lists tools, and My vault there holds logins. */
+  readonly org: string;
+  readonly onStartChat?: (plugin: ResourceRef) => void;
+  readonly onAgentClick?: (ref: ResourceRef) => void;
 }) {
-  const org = plugin.metadata?.org ?? "";
+  const pluginOrg = plugin.metadata?.org || org;
   const slug = plugin.metadata?.slug ?? "";
+  const name = plugin.metadata?.name || slug;
+  const pluginId = plugin.metadata?.id ?? "";
   const spec = plugin.spec;
   const status = plugin.status;
+  const servers = status?.mcpServers ?? [];
+  const skills = status?.skills ?? [];
+  const agents = status?.agents ?? [];
   const hookConfig = status?.hooks !== undefined && status.hooks.groups.length > 0 ? status.hooks : undefined;
   const hookWarnings = (status?.warnings ?? []).filter((warning) => isHookWarning(warning.kind));
   const warnings = (status?.warnings ?? []).filter((warning) => !isHookWarning(warning.kind));
-  const hasAgent = members.some((member) => member.kind === ApiResourceKind.agent);
-  const servers = useMemo(
-    () =>
-      hasAgent
-        ? []
-        : members
-            .filter((member) => member.kind === ApiResourceKind.mcp_server)
-            .map((member) => ({ ref: { org, slug: member.slug }, name: member.name || member.slug })),
-    [members, org, hasAgent],
-  );
+  const variables = Object.entries(status?.env ?? {}).sort(([a], [b]) => a.localeCompare(b));
   const offer = useMemo(
-    () => ({ servers, ...(hookConfig !== undefined && { hooks: { plugin: { org, slug }, config: hookConfig } }) }),
-    [servers, hookConfig, org, slug],
+    () => ({ plugin: { org: pluginOrg, slug }, name, servers: servers.map((server) => server.name) }),
+    [pluginOrg, slug, name, servers],
   );
   const [adding, setAdding] = useState(false);
 
   return (
     <div className="stg:flex stg:flex-col stg:gap-6">
-      {status !== undefined && status.state === PluginState.FAILED && status.error !== "" && (
-        <ErrorMessage error={new Error(status.error)} title="The last install did not complete" />
+      <Section title="Use this plugin">
+        <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:px-3 stg:py-2.5">
+          <p className="stg:text-sm stg:text-muted-foreground">
+            Holds {summariseInstall({ plugin })}. A chat or an agent that uses it gets all of it.
+          </p>
+          <span className="stg:flex stg:flex-wrap stg:gap-2">
+            {onStartChat && (
+              <Button variant="outline" size="sm" onClick={() => onStartChat({ org: pluginOrg, slug })}>
+                Start a chat
+              </Button>
+            )}
+            <Button variant="primary" size="sm" onClick={() => setAdding(true)}>
+              Add to an agent
+            </Button>
+          </span>
+        </div>
+        <AddPluginToAgentDialog
+          org={pluginOrg}
+          offer={offer}
+          open={adding}
+          onClose={() => setAdding(false)}
+          onAgentClick={onAgentClick}
+        />
+      </Section>
+
+      {servers.length > 0 && (
+        <Section title="MCP servers" count={servers.length}>
+          <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:divide-y stg:divide-border")} aria-label="MCP servers">
+            {servers.map((server) => (
+              <PluginServerRow key={server.name} org={org} pluginId={pluginId} pluginName={name} server={server} />
+            ))}
+          </ul>
+        </Section>
       )}
 
-      <Section title="Installed" count={members.length}>
-        {membersError ? (
-          <div className="stg:p-3">
-            <ErrorMessage error={membersError} />
-          </div>
-        ) : members.length === 0 ? (
-          <p className="stg:px-3 stg:py-2.5 stg:text-sm stg:text-muted-foreground">Nothing installed yet.</p>
-        ) : (
-          <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
-            {members.map((member) => (
-              <MemberRow
-                key={`${member.kind}:${member.id}`}
-                member={member}
-                onClick={clickFor(member.kind, { onSkillClick, onMcpServerClick, onAgentClick })}
-                org={org}
-                keysAskedAt={hasAgent ? "agent" : "connect"}
-              />
-            ))}
-          </div>
-        )}
-      </Section>
+      {skills.length > 0 && (
+        <Section title="Skills" count={skills.length}>
+          <NamedList
+            label="Skills"
+            items={skills.map((skill) => ({ name: skill.name, turnName: `${name}:${skill.name}`, description: skill.description }))}
+          />
+        </Section>
+      )}
+
+      {agents.length > 0 && (
+        <Section title="Agents" count={agents.length}>
+          <NamedList
+            label="Agents"
+            items={agents.map((agent) => ({ name: agent.name, turnName: `${name}:${agent.name}`, description: agent.description }))}
+          />
+        </Section>
+      )}
 
       {(hookConfig !== undefined || hookWarnings.length > 0) && (
         <Section title="Hooks" count={hookConfig?.groups.length}>
@@ -345,22 +326,19 @@ function PluginOverview({
         </Section>
       )}
 
-      {(servers.length > 0 || hookConfig !== undefined) && (
-        <Section title="Use with an agent">
-          <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:px-3 stg:py-2.5">
-            <p className="stg:text-sm stg:text-muted-foreground">{useSentence(servers.length > 0, hookConfig !== undefined)}</p>
-            <Button variant="primary" size="sm" onClick={() => setAdding(true)}>
-              Add to an agent
-            </Button>
-          </div>
-          <AddPluginToAgentDialog
-            org={org}
-            offer={offer}
-            open={adding}
-            onClose={() => setAdding(false)}
-            onAgentClick={onAgentClick}
-            onCreateAgent={onCreateAgent}
-          />
+      {variables.length > 0 && (
+        <Section title="Keys" count={variables.length}>
+          <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:divide-y stg:divide-border")} aria-label="Keys this plugin reads">
+            {variables.map(([key, declaration]) => (
+              <li key={key} className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-2 stg:px-3 stg:py-2 stg:text-sm">
+                <code className="stg:font-mono stg:text-xs stg:text-foreground">{key}</code>
+                <span className="stg:text-xs stg:text-muted-foreground">
+                  {[declaration.isSecret ? "secret" : "setting", declaration.optional ? "optional" : "required"].join(", ")}
+                </span>
+                {declaration.description && <span className="stg:text-xs stg:text-muted-foreground">{declaration.description}</span>}
+              </li>
+            ))}
+          </ul>
         </Section>
       )}
 
@@ -375,17 +353,33 @@ function PluginOverview({
   );
 }
 
+/** Skills or agents by their own name and the name a turn uses, each with what it is for. */
+function NamedList({
+  label,
+  items,
+}: {
+  readonly label: string;
+  readonly items: readonly { readonly name: string; readonly turnName: string; readonly description: string }[];
+}) {
+  return (
+    <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:divide-y stg:divide-border")} aria-label={label}>
+      {items.map((item) => (
+        <li key={item.name} className="stg:flex stg:flex-col stg:gap-0.5 stg:px-3 stg:py-2">
+          <span className="stg:flex stg:flex-wrap stg:items-baseline stg:gap-x-2">
+            <span className="stg:text-sm stg:font-medium stg:text-foreground">{item.name}</span>
+            <span className="stg:font-mono stg:text-xs stg:text-muted-foreground">{item.turnName}</span>
+          </span>
+          {item.description && <span className="stg:text-xs stg:text-muted-foreground">{item.description}</span>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Whether an install warning names a hook Stigmer does not run; the wire carries the library's kind verbatim. */
 function isHookWarning(kind: string): boolean {
   const hookKinds: ReadonlySet<string> = HOOK_WARNING_KINDS;
   return hookKinds.has(kind);
-}
-
-/** The "Use with an agent" sentence, for what the plugin brings an agent. */
-function useSentence(tools: boolean, hooks: boolean): string {
-  if (tools && hooks) return "This plugin installed tools and hooks and no agent. Add them to an agent to use them in a session.";
-  if (hooks) return "Switch this plugin's hooks on for an agent, and they run on its tool calls.";
-  return "This plugin installed tools and no agent. Add them to an agent to use them in a session.";
 }
 
 function WarningList({ warnings, label }: { readonly warnings: readonly PluginWarning[]; readonly label?: string }) {
@@ -429,90 +423,6 @@ function ManifestSection({ spec, status }: { readonly spec: PluginSpec; readonly
   );
 }
 
-function MemberRow({
-  member,
-  org,
-  onClick,
-  keysAskedAt,
-}: {
-  readonly member: PluginMember;
-  readonly org: string;
-  readonly onClick?: (ref: PluginMemberRef) => void;
-  /** Where an MCP server's declared variables are given; passed to its readiness cell. */
-  readonly keysAskedAt: "agent" | "connect";
-}) {
-  const row = (
-    <div className="stg:flex stg:items-center stg:gap-3">
-      <span className="stg:w-24 stg:shrink-0 stg:text-xs stg:uppercase stg:tracking-wider stg:text-muted-foreground">
-        {kindLabel(member.kind)}
-      </span>
-      <span className="stg:text-sm stg:font-medium stg:text-foreground">{member.name || member.slug}</span>
-      {member.name && member.name !== member.slug && (
-        <span className="stg:font-mono stg:text-xs stg:text-muted-foreground">{member.slug}</span>
-      )}
-    </div>
-  );
-  const link = onClick ? (
-    <button
-      type="button"
-      onClick={() => onClick({ org, slug: member.slug })}
-      className={cn(
-        "stg:min-w-0 stg:flex-1 stg:px-3 stg:py-2 stg:text-left stg:transition-colors",
-        "stg:hover:bg-accent-hover",
-        "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-inset stg:focus-visible:ring-ring",
-      )}
-    >
-      {row}
-    </button>
-  ) : (
-    <div className="stg:min-w-0 stg:flex-1 stg:px-3 stg:py-2">{row}</div>
-  );
-  // The readiness cell is the link's sibling, never its child: it carries a
-  // button of its own, and a button inside a button is not markup a browser
-  // or a screen reader agrees on.
-  if (member.kind !== ApiResourceKind.mcp_server) return link;
-  return (
-    <div className="stg:flex stg:items-center stg:gap-3">
-      {link}
-      <McpServerReadiness org={org} slug={member.slug} keysAskedAt={keysAskedAt} className="stg:shrink-0 stg:pr-3" />
-    </div>
-  );
-}
-
-function clickFor(
-  kind: ApiResourceKind,
-  handlers: {
-    readonly onSkillClick?: (ref: PluginMemberRef) => void;
-    readonly onMcpServerClick?: (ref: PluginMemberRef) => void;
-    readonly onAgentClick?: (ref: PluginMemberRef) => void;
-  },
-): ((ref: PluginMemberRef) => void) | undefined {
-  switch (kind) {
-    case ApiResourceKind.skill:
-      return handlers.onSkillClick;
-    case ApiResourceKind.mcp_server:
-      return handlers.onMcpServerClick;
-    case ApiResourceKind.agent:
-      return handlers.onAgentClick;
-    default:
-      return undefined;
-  }
-}
-
-/** The vocabulary's word for each member kind; the CLI's install summary uses the same. */
-export function kindLabel(kind: ApiResourceKind): string {
-  switch (kind) {
-    case ApiResourceKind.skill:
-      return "Skill";
-    case ApiResourceKind.mcp_server:
-      return "MCP server";
-    case ApiResourceKind.agent:
-      return "Agent";
-    default:
-      return ApiResourceKind[kind] ?? String(kind);
-  }
-}
-
 function dialectLabel(dialect: PluginDialect): string {
   switch (dialect) {
     case PluginDialect.AGENT_PLUGINS:
@@ -528,40 +438,6 @@ function dialectLabel(dialect: PluginDialect): string {
     default: {
       const exhaustive: never = dialect;
       return String(exhaustive);
-    }
-  }
-}
-
-function stateToPhase(state: PluginState): StatusPhase | undefined {
-  switch (state) {
-    case PluginState.READY:
-      return "ready";
-    case PluginState.FAILED:
-      return "failed";
-    case PluginState.INSTALLING:
-      return "pending";
-    case PluginState.UNSPECIFIED:
-      return undefined;
-    default: {
-      const exhaustive: never = state;
-      return exhaustive;
-    }
-  }
-}
-
-function stateLabel(state: PluginState): string | undefined {
-  switch (state) {
-    case PluginState.READY:
-      return "Installed";
-    case PluginState.FAILED:
-      return "Failed";
-    case PluginState.INSTALLING:
-      return "Installing";
-    case PluginState.UNSPECIFIED:
-      return undefined;
-    default: {
-      const exhaustive: never = state;
-      return exhaustive;
     }
   }
 }

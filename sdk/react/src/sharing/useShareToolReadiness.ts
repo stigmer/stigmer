@@ -25,19 +25,19 @@ export type ShareToolReadiness = ToolCredentialsReadiness;
  * The check runs only when the share is enabled with a public audience
  * (org-audience shares reject bindings at the proto boundary), the
  * deployment is cloud (local mode has no guest runtime or secret
- * gating), and the agent declares MCP server usages.
+ * gating), and the agent lists plugins (whose servers read keys).
  */
 export function useShareToolReadiness(
   agent: Agent,
   draft: AgentShareDraft,
 ): ShareToolReadiness {
   const deploymentMode = useDeploymentMode();
-  const hasMcpTools = (agent.spec?.mcpServerUsages?.length ?? 0) > 0;
+  const usesPlugins = (agent.spec?.plugins?.length ?? 0) > 0;
   const applicable =
     draft.enabled &&
     draft.audience === "public" &&
     deploymentMode === "cloud" &&
-    hasMcpTools;
+    usesPlugins;
 
   return useToolCredentialsReadiness(applicable, draft.vaults);
 }

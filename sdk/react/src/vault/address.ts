@@ -15,7 +15,7 @@
  *
  * Pinned by __tests__/address.test.ts.
  */
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { VaultConnection } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 
@@ -68,14 +68,14 @@ function normalizeHost(input: string): string | null {
 }
 
 /**
- * The address a tool's login is saved at: its URL for an HTTP server, and
- * none for a local program, which takes its keys as secrets by name (as it
- * does for a URL holding a placeholder).
+ * The address a tool's login is saved at: the URL of a plugin's HTTP
+ * server, and none for a local program, which takes its keys as secrets by
+ * name (as it does for a URL holding a placeholder).
  */
-export function toolAddressOf(server: McpServer | null | undefined): string | null {
-  const spec = server?.spec;
-  if (!spec || spec.serverType.case !== "http") return null;
-  return normalizeAddress(spec.serverType.value.url);
+export function toolAddressOf(server: McpServerEntry | null | undefined): string | null {
+  const transport = server?.transport;
+  if (transport?.case !== "http") return null;
+  return normalizeAddress(transport.value.url);
 }
 
 /**
@@ -88,10 +88,10 @@ export function toolAddressOf(server: McpServer | null | undefined): string | nu
  */
 export function vaultLoginServes(
   connections: Readonly<Record<string, VaultConnection>>,
-  server: McpServer | null | undefined,
+  server: McpServerEntry | null | undefined,
 ): boolean {
   const address = toolAddressOf(server);
-  if (!server || address === null) return false;
+  if (address === null) return false;
   if (Object.hasOwn(connections, address)) return true;
   return onGitHubApi(address) && Object.hasOwn(connections, GITHUB_HOST);
 }
@@ -126,19 +126,16 @@ export function gitHostOf(cloneUrl: string): string | null {
 const BEARER_PLACEHOLDER = /^Bearer\s+\$\{([A-Za-z_][A-Za-z0-9_]*)\}$/i;
 
 /**
- * The variable a tool's login fills: its sign-in's `auth.target_env_var`,
- * else the variable its `Authorization: Bearer ${VAR}` header names (the
- * slot the platform writes for a URL-only tool, and authors write by hand
- * for API-key tools). A login saved at the tool's address fills it; `null`
- * when the tool has no login slot and takes only secrets by name.
+ * The variable a tool's login fills: the one its `Authorization: Bearer
+ * ${VAR}` header names (the slot install writes for a server that signs
+ * in, and authors write by hand for API-key servers), the server's own
+ * rule. A login saved at the tool's address fills it; `null` when the tool
+ * has no login slot and takes only secrets by name.
  */
-export function toolLoginKeyOf(server: McpServer | null | undefined): string | null {
-  const spec = server?.spec;
-  if (!spec) return null;
-  const target = spec.auth?.targetEnvVar ?? "";
-  if (target !== "") return target;
-  if (spec.serverType.case !== "http") return null;
-  for (const [name, value] of Object.entries(spec.serverType.value.headers)) {
+export function toolLoginKeyOf(server: McpServerEntry | null | undefined): string | null {
+  const transport = server?.transport;
+  if (transport?.case !== "http") return null;
+  for (const [name, value] of Object.entries(transport.value.headers)) {
     if (name.toLowerCase() !== "authorization") continue;
     const match = BEARER_PLACEHOLDER.exec(value.trim());
     if (match) return match[1];

@@ -91,8 +91,8 @@ export interface NewSessionViewerProps {
 
   /**
    * Presentation audience for the launcher. `"endUser"` locks the
-   * pinned agent (when `initialAgentRef` is set) and hides the MCP
-   * server, skill, and vault pickers — for product-embedded
+   * pinned agent (when `initialAgentRef` is set) and hides the
+   * plugin, skill, and vault pickers — for product-embedded
    * chat where the agent is configured upstream by the platform. The
    * model selector, interaction mode, harness selector, attachments,
    * and workspace picker remain.
@@ -189,6 +189,21 @@ export interface NewSessionViewerProps {
    * reference; a version it names is the version the session pins.
    */
   readonly initialAgentRef?: ResourceRef;
+  /**
+   * Plugins the conversation starts with, read once on mount: a plugin
+   * page's "Start a chat" arrives with its plugin here, for a
+   * conversation with the assistant that uses it. Ignored for the
+   * `"guest"` audience.
+   */
+  readonly initialPluginRefs?: readonly ResourceRef[];
+  /**
+   * Remember the person's plugin picks in this browser and start the
+   * next new conversation with them, unless `initialPluginRefs` names
+   * plugins. See {@link UseNewSessionFlowOptions.rememberPluginPicks}.
+   *
+   * @default false
+   */
+  readonly rememberPluginPicks?: boolean;
   /** Files to auto-attach on mount (used for edit flows). */
   readonly initialAttachments?: File[];
 
@@ -218,7 +233,7 @@ export interface NewSessionViewerProps {
  *
  * Owns `useNewSessionFlow` internally and composes:
  * - **Centered composer** (primary pane): `SessionComposer` with all
- *   context pickers (agent, workspace, MCP servers, skills)
+ *   context pickers (agent, workspace, plugins, skills)
  * - **Session panel** (secondary pane): the unified `WorkspaceSurface` with a
  *   Config rail view — collapsed by default behind a persistent top-right chip
  *   and homing on the Config facet when opened. Same layout model as
@@ -271,6 +286,8 @@ export function NewSessionViewer({
   defaultHarness,
   accountDefaults,
   initialAgentRef,
+  initialPluginRefs,
+  rememberPluginPicks,
   initialAttachments,
   heading = "What would you like to work on?",
   placeholder = "Describe what you need help with\u2026",
@@ -290,6 +307,8 @@ export function NewSessionViewer({
     accountDefaults,
     audience,
     runConfig,
+    initialPluginRefs,
+    rememberPluginPicks,
   });
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
   const isGuest = audience === "guest";
@@ -353,17 +372,16 @@ export function NewSessionViewer({
   // id (a stored or picked one), so both sides are compared by id.
   const orgIdFor = useOrgIdForRef();
 
-  const handleRemoveMcp = useCallback(
+  const handleRemovePlugin = useCallback(
     (ref: ResourceRef) => {
       const refOrg = orgIdFor(ref.org);
-      flow.setMcpServerUsages(
-        flow.mcpServerUsages.filter(
-          (u) =>
-            !(orgIdFor(u.mcpServerRef.org) === refOrg && u.mcpServerRef.slug === ref.slug),
+      flow.setPluginRefs(
+        flow.pluginRefs.filter(
+          (r) => !(orgIdFor(r.org) === refOrg && r.slug === ref.slug),
         ),
       );
     },
-    [flow.mcpServerUsages, flow.setMcpServerUsages, orgIdFor],
+    [flow.pluginRefs, flow.setPluginRefs, orgIdFor],
   );
 
   const handleRemoveSkill = useCallback(
@@ -381,7 +399,7 @@ export function NewSessionViewer({
   const sessionConfig: SetupTabProps = useMemo(
     () => ({
       agentRef: flow.agentRef,
-      mcpServerUsages: flow.mcpServerUsages,
+      pluginRefs: flow.pluginRefs,
       skillRefs: flow.skillRefs,
       harness: flow.harness,
       executionTarget: undefined,
@@ -399,15 +417,15 @@ export function NewSessionViewer({
         ? undefined
         : {
             onRemoveAgent: flow.agentRef ? handleRemoveAgent : undefined,
-            onRemoveMcp: handleRemoveMcp,
+            onRemovePlugin: handleRemovePlugin,
             onRemoveSkill: handleRemoveSkill,
           },
     }),
     [
-      flow.agentRef, flow.mcpServerUsages, flow.skillRefs,
+      flow.agentRef, flow.pluginRefs, flow.skillRefs,
       flow.harness, flow.modelId,
       flow.autoApproveAll, flow.setAutoApproveAll, isGuest,
-      isCurated, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
+      isCurated, handleRemoveAgent, handleRemovePlugin, handleRemoveSkill,
     ],
   );
 
@@ -466,8 +484,8 @@ export function NewSessionViewer({
           initialVaultRefs={vaults}
           initialAttachments={isGuest ? undefined : initialAttachments}
           lockAgent={isCurated && initialAgentRef != null}
-          mcpServerUsages={isCurated ? undefined : flow.mcpServerUsages}
-          onMcpServerUsagesChange={isCurated ? undefined : flow.setMcpServerUsages}
+          pluginRefs={isCurated ? undefined : flow.pluginRefs}
+          onPluginRefsChange={isCurated ? undefined : flow.setPluginRefs}
           skillRefs={isCurated ? undefined : flow.skillRefs}
           onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
           showHarnessSelector={!isGuest}

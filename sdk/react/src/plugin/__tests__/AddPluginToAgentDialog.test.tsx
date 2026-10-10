@@ -1,40 +1,30 @@
 /**
- * The "Add to an agent" dialog over a plugin's offer. The agent picker is
- * stubbed to one pick; the agent client is an in-memory fake. Pins: the
- * offer is listed (each server, and the plugin's hooks in their summary
- * line); once an agent is picked, the variables its hooks read are named
- * with the sentence that the agent will ask for them when a session starts;
- * Add saves once and says what was added, or that the agent had it all; an
- * agent a plugin installed is
- * refused before Add is offered; "Create a new agent with these tools"
- * shows only when the plugin brings servers, and says a new agent gets the
- * tools only when the plugin brings hooks too.
+ * The "Add to an agent" dialog over a plugin. The agent picker is stubbed
+ * to one pick each; the agent client is an in-memory fake. Pins: the
+ * dialog names the plugin and says the agent gets it whole; Add saves once
+ * with the plugin appended to the agent's `plugins` and says it was added;
+ * an agent that already lists it is told so and nothing is saved; an agent
+ * whose tool list leaves the plugin's servers out is told before Add; an
+ * agent a plugin installed is refused before Add is offered; "Open agent"
+ * hands the host the updated agent's reference.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { type Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { HookConfigSchema, HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { AgentInput, ResourceRef } from "@stigmer/sdk";
 
 vi.mock("../../agent/AgentPicker.js", () => ({
   AgentPicker: ({ onChange, disabled }: { onChange: (ref: ResourceRef | null) => void; disabled?: boolean }) => (
     <span>
-      <button type="button" disabled={disabled} onClick={() => onChange({ org: "acme", slug: "reviewer" })}>
-        Pick reviewer
-      </button>
-      <button type="button" disabled={disabled} onClick={() => onChange({ org: "acme", slug: "assistant" })}>
-        Pick assistant
-      </button>
-      <button type="button" disabled={disabled} onClick={() => onChange({ org: "acme", slug: "guarded" })}>
-        Pick guarded
-      </button>
-      <button type="button" disabled={disabled} onClick={() => onChange({ org: "acme", slug: "undeclared" })}>
-        Pick undeclared
-      </button>
+      {["reviewer", "assistant", "listing", "limited"].map((slug) => (
+        <button key={slug} type="button" disabled={disabled} onClick={() => onChange({ org: "acme", slug })}>
+          Pick {slug}
+        </button>
+      ))}
     </span>
   ),
 }));
@@ -45,94 +35,94 @@ import type { PluginOffer } from "../useAddPluginToAgent.js";
 
 afterEach(cleanup);
 
-const HOOKS = create(HookConfigSchema, {
-  format: HookFormat.CLAUDE_CODE,
-  groups: [{ event: "PreToolUse", handlers: [{ command: "python3", args: ["guard.py", "${user_config.API_TOKEN}"] }] }],
-});
+const OFFER: PluginOffer = { plugin: { org: "acme", slug: "linear" }, name: "linear", servers: ["linear"] };
 
-function agent(slug: string, labels: Record<string, string> = {}, guarded: "no" | "declared" | "undeclared" = "no"): Agent {
+function agent(slug: string, extra: { labels?: Record<string, string>; plugins?: string[]; tools?: string[] } = {}): Agent {
   return create(AgentSchema, {
-    metadata: create(ApiResourceMetadataSchema, { id: `agt_${slug}`, org: "acme", slug, name: slug === "reviewer" ? "Reviewer" : slug, labels }),
+    metadata: create(ApiResourceMetadataSchema, {
+      id: `agt_${slug}`,
+      org: "acme",
+      slug,
+      name: slug === "reviewer" ? "Reviewer" : slug,
+      labels: extra.labels ?? {},
+    }),
     spec: create(AgentSpecSchema, {
       instructions: "Review.",
-      ...(guarded !== "no" && { hooks: [{ source: { case: "plugin" as const, value: { org: "acme", slug: "guard" } } }] }),
-      ...(guarded === "declared" && { env: { API_TOKEN: { isSecret: true } } }),
+      plugins: (extra.plugins ?? []).map((plugin) => ({ org: "acme", slug: plugin })),
+      tools: extra.tools ?? [],
     }),
   });
 }
 
-function renderDialog(offer: PluginOffer, onCreateAgent?: () => void) {
-  const agents: Record<string, Agent> = {
-    reviewer: agent("reviewer"),
-    assistant: agent("assistant", { "stigmer.ai/plugin": "plg_1" }),
-    guarded: agent("guarded", {}, "declared"),
-    undeclared: agent("undeclared", {}, "undeclared"),
+const AGENTS: Record<string, Agent> = {
+  reviewer: agent("reviewer"),
+  assistant: agent("assistant", { labels: { "stigmer.ai/plugin": "plg_1" } }),
+  listing: agent("listing", { plugins: ["linear"] }),
+  limited: agent("limited", { tools: ["Read"] }),
+};
+
+function renderDialog(onAgentClick = vi.fn()) {
+  const update = vi.fn(async (input: AgentInput) => {
+    const found = AGENTS[input.slug ?? ""];
+    if (!found) throw new Error("no agent");
+    return found;
+  });
+  const client = {
+    agent: {
+      getByReference: vi.fn(async (ref: ResourceRef) => {
+        const found = AGENTS[ref.slug];
+        if (!found) throw new Error("no agent");
+        return found;
+      }),
+      update,
+    },
   };
-  const update = vi.fn(async (input: AgentInput) => Object.values(agents).find((a) => a.metadata?.name === input.name) ?? agents.reviewer!);
-  const client = { agent: { getByReference: vi.fn(async (ref: ResourceRef) => agents[ref.slug]!), update } };
   const wrapper = ({ children }: { children: ReactNode }) => <StigmerContext.Provider value={client as never}>{children}</StigmerContext.Provider>;
-  render(<AddPluginToAgentDialog org="acme" offer={offer} open onClose={() => {}} onCreateAgent={onCreateAgent} />, { wrapper });
+  render(<AddPluginToAgentDialog org="acme" offer={OFFER} open onClose={vi.fn()} onAgentClick={onAgentClick} />, { wrapper });
   return { update };
 }
 
 describe("AddPluginToAgentDialog", () => {
-  it("lists the servers and the hooks, names the variables once an agent is picked, and saves once", async () => {
-    const { update } = renderDialog(
-      { servers: [{ ref: { org: "acme", slug: "linear" }, name: "Linear" }], hooks: { plugin: { org: "acme", slug: "guard" }, config: HOOKS } },
-      () => {},
-    );
+  it("names the plugin and says the agent gets it whole", () => {
+    renderDialog();
+    expect(screen.getByRole("heading", { name: "Add linear to an agent" })).toBeTruthy();
+    expect(screen.getByText(/gets the whole plugin/)).toBeTruthy();
+  });
 
-    const dialog = await screen.findByRole("dialog", { name: "Add to an agent" });
-    const offer = within(dialog).getByRole("list", { name: "What the agent gets" });
-    expect(offer.textContent).toContain("Linear");
-    expect(offer.textContent).toContain("This plugin's hooks");
-    expect(offer.textContent).toContain("Claude Code format: PreToolUse 1");
-    expect(within(dialog).getByRole("button", { name: "Create a new agent with these tools" })).toBeTruthy();
-    expect(within(dialog).getByText(/A new agent gets the tools only/)).toBeTruthy();
+  it("adds the plugin to the picked agent once and says so, then opens it", async () => {
+    const onAgentClick = vi.fn();
+    const { update } = renderDialog(onAgentClick);
+    fireEvent.click(screen.getByRole("button", { name: "Pick reviewer" }));
+    const add = await screen.findByRole("button", { name: "Add" });
+    await waitFor(() => expect(add).toHaveProperty("disabled", false));
+    fireEvent.click(add);
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "Pick reviewer" }));
-    expect(await within(dialog).findByText(/The hooks read API_TOKEN\. The agent will ask for it when a session starts\./)).toBeTruthy();
-
-    fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
-    expect(await within(dialog).findByText("Added 1 server and this plugin's hooks to Reviewer. It will ask for API_TOKEN when a session starts.")).toBeTruthy();
+    expect(await screen.findByText("Added linear to Reviewer.")).toBeTruthy();
     expect(update).toHaveBeenCalledTimes(1);
-    const input = update.mock.calls[0]![0];
-    expect(input.mcpServerUsages?.map((usage) => usage.mcpServerRef.slug)).toEqual(["linear"]);
-    expect(input.hooks).toEqual([{ plugin: { org: "acme", slug: "guard" } }]);
-    expect(input.env?.["API_TOKEN"]).toEqual({ isSecret: true });
+    expect(update.mock.calls[0]![0].plugins).toEqual([{ org: "acme", slug: "linear" }]);
+    fireEvent.click(screen.getByRole("button", { name: "Open agent" }));
+    expect(onAgentClick).toHaveBeenCalledWith({ org: "acme", slug: "reviewer" });
   });
 
-  it("says when the agent already had everything the plugin adds", async () => {
-    renderDialog({ servers: [], hooks: { plugin: { org: "acme", slug: "guard" }, config: HOOKS } });
-
-    const dialog = await screen.findByRole("dialog", { name: "Add to an agent" });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Pick guarded" }));
-    expect(await within(dialog).findByText("guarded already runs this plugin's hooks.")).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
-    expect(await within(dialog).findByText("guarded already had everything this plugin adds.")).toBeTruthy();
-  });
-
-  it("says it declared the variables when the agent already ran the hooks without them", async () => {
-    const { update } = renderDialog({ servers: [], hooks: { plugin: { org: "acme", slug: "guard" }, config: HOOKS } });
-
-    const dialog = await screen.findByRole("dialog", { name: "Add to an agent" });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Pick undeclared" }));
-    expect(await within(dialog).findByText(/The hooks read API_TOKEN/)).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
-    expect(
-      await within(dialog).findByText("undeclared already runs this plugin's hooks; it now declares what they read. It will ask for API_TOKEN when a session starts."),
-    ).toBeTruthy();
-    expect(update.mock.calls[0]![0].env?.["API_TOKEN"]).toEqual({ isSecret: true });
-  });
-
-  it("refuses an agent a plugin installed before Add is offered, and offers no new agent for hooks alone", async () => {
-    const { update } = renderDialog({ servers: [], hooks: { plugin: { org: "acme", slug: "guard" }, config: HOOKS } }, () => {});
-
-    const dialog = await screen.findByRole("dialog", { name: "Add to an agent" });
-    expect(within(dialog).queryByRole("button", { name: "Create a new agent with these tools" })).toBeNull();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Pick assistant" }));
-    expect(await within(dialog).findByText(/was installed by a plugin/)).toBeTruthy();
-    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Add" })).toHaveProperty("disabled", true));
+  it("tells an agent that already lists the plugin so, and saves nothing", async () => {
+    const { update } = renderDialog();
+    fireEvent.click(screen.getByRole("button", { name: "Pick listing" }));
+    expect(await screen.findByText("listing already uses this plugin.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(await screen.findByText("listing already uses linear.")).toBeTruthy();
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it("says before Add when the agent's tool list leaves the plugin's servers out", async () => {
+    renderDialog();
+    fireEvent.click(screen.getByRole("button", { name: "Pick limited" }));
+    expect(await screen.findByText(/its list leaves this plugin's servers out/)).toBeTruthy();
+  });
+
+  it("refuses an agent a plugin installed before Add is offered", async () => {
+    renderDialog();
+    fireEvent.click(screen.getByRole("button", { name: "Pick assistant" }));
+    expect(await screen.findByText(/was installed by a plugin/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add" })).toHaveProperty("disabled", true);
   });
 });

@@ -1,15 +1,11 @@
 /**
- * Which logins satisfy an agent's OAuth server: whatever a run of it would
- * use, read from the same vaults the run reads (My vault when the
- * conversation includes it, then the vaults it lists). The grant read
- * reports only a sign-in made for that server and kept in My vault, so the
- * composer must count the rest itself, or it refuses an agent the server
- * would run. Pinned: a token pasted at the HTTP tool's own URL in My vault
- * satisfies the server though the grant reports no grant; a sign-in at the
- * server's address kept in a vault the conversation lists satisfies it
- * too; a grant whose token expired keeps it pending whatever else holds a
- * login; a conversation that leaves My vault out counts neither its login
- * nor its grant; an agent of another organization never reads My vault.
+ * Which logins satisfy a plugin server that signs in: whatever a run of
+ * the agent would use, read from the same vaults the run reads (My vault
+ * when the conversation includes it, then the vaults it lists). Pinned: a
+ * token pasted at the server's own URL in My vault satisfies it; a sign-in
+ * at the server's address kept in a vault the conversation lists satisfies
+ * it too; a conversation that leaves My vault out counts none of its
+ * logins; an agent of another organization never reads My vault.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -20,10 +16,8 @@ import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { GetOAuthGrantStatusOutputSchema, OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { VaultSchema, type Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
@@ -41,11 +35,17 @@ const ORG = "org_acme";
 const REF = { org: ORG, slug: "reviewer" };
 const LINEAR_URL = "https://linear.example/mcp";
 
-const linear = create(McpServerSchema, {
-  metadata: { id: "mcp_linear", org: ORG, slug: "linear", name: "Linear" },
-  spec: {
-    serverType: { case: "http", value: { url: LINEAR_URL } },
-    auth: { targetEnvVar: "LINEAR_ACCESS_TOKEN" },
+const linear = create(PluginSchema, {
+  metadata: { id: "plg_linear", org: ORG, slug: "linear", name: "linear" },
+  status: {
+    mcpServers: [
+      {
+        name: "linear",
+        transport: { case: "http", value: { url: LINEAR_URL, headers: { Authorization: "Bearer ${LINEAR_ACCESS_TOKEN}" } } },
+        env: ["LINEAR_ACCESS_TOKEN"],
+        signIn: {},
+      },
+    ],
     env: { LINEAR_ACCESS_TOKEN: create(EnvVarDeclarationSchema, { isSecret: true }) },
   },
 });
@@ -75,8 +75,6 @@ interface World {
   readonly includeMyVault?: boolean;
   /** The organization the agent belongs to. */
   readonly agentOrg?: string;
-  /** What the grant read reports for Linear. */
-  readonly health?: OAuthConnectionHealth;
 }
 
 function client(world: World) {
@@ -91,20 +89,12 @@ function client(world: World) {
             metadata: { id: "agt_1", org: agentOrg, slug: REF.slug, name: "Reviewer" },
             spec: {
               env: { LINEAR_ACCESS_TOKEN: create(EnvVarDeclarationSchema, { isSecret: true }) },
-              mcpServerUsages: [create(McpServerUsageSchema, { mcpServerRef: { org: ORG, slug: "linear" } })],
+              plugins: [{ org: ORG, slug: "linear" }],
             },
           }),
       });
-      service(McpServerQueryController, {
+      service(PluginQueryController, {
         getByReference: () => linear,
-        // The grant reports only a sign-in made for Linear in My vault.
-        getOAuthGrantStatus: () => {
-          const health = world.health ?? OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT;
-          return create(GetOAuthGrantStatusOutputSchema, {
-            connected: health !== OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT,
-            connectionHealth: health,
-          });
-        },
       });
       service(VaultQueryController, {
         getMine: () => {
@@ -148,7 +138,7 @@ async function resolveSettled(world: World) {
 }
 
 describe("useAgentSetup counts the logins a run reads", () => {
-  it("counts a token pasted at the tool's URL in My vault, though the grant reports no grant", async () => {
+  it("counts a token pasted at the server's URL in My vault", async () => {
     const state = await resolveSettled({ mine: vaultWithLogin("mine") });
     expect(state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
   });
@@ -158,34 +148,19 @@ describe("useAgentSetup counts the logins a run reads", () => {
     expect(state).toMatchObject({ status: "ready", resolution: { mode: "direct" } });
   });
 
-  it("keeps the server pending while the grant's token is expired, whatever else holds a login", async () => {
-    const state = await resolveSettled({
-      mine: vaultWithLogin("mine"),
-      health: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED,
-    });
-    expect(state).toMatchObject({
-      status: "needsEnvVars",
-      pendingSignIns: [
-        expect.objectContaining({ id: "mcp_linear", health: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED }),
-      ],
-    });
-  });
-
-  it("counts neither My vault's login nor its grant when the conversation leaves My vault out", async () => {
+  it("counts no login of My vault when the conversation leaves My vault out", async () => {
     const state = await resolveSettled({
       mine: vaultWithLogin("mine", ""),
-      health: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY,
       includeMyVault: false,
     });
-    expect(state).toMatchObject({ status: "needsEnvVars", pendingSignIns: [expect.objectContaining({ id: "mcp_linear" })] });
+    expect(state).toMatchObject({ status: "needsEnvVars", pendingSignIns: [expect.objectContaining({ address: LINEAR_URL })] });
   });
 
   it("counts no login of My vault for an agent of another organization", async () => {
     const state = await resolveSettled({
       mine: vaultWithLogin("mine"),
-      health: OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY,
       agentOrg: "org_globex",
     });
-    expect(state).toMatchObject({ status: "needsEnvVars", pendingSignIns: [expect.objectContaining({ id: "mcp_linear" })] });
+    expect(state).toMatchObject({ status: "needsEnvVars", pendingSignIns: [expect.objectContaining({ address: LINEAR_URL })] });
   });
 });
