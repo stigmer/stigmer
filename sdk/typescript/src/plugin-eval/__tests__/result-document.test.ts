@@ -131,6 +131,18 @@ describe("toResultDocument", () => {
     expect(toResultDocument(evalOf({ phase: PluginEvalPhase.partial, partialReason: PluginEvalPartialReason.cancelled })).partial).toBe(true);
   });
 
+  it("reads a partial reason this client does not know as the phase says, never as a number", () => {
+    const unknown = 99 as PluginEvalPartialReason;
+    expect(toResultDocument(evalOf({ phase: PluginEvalPhase.partial, partialReason: unknown }))).toMatchObject({
+      partial: true,
+      partialReason: "interrupted",
+    });
+    expect(toResultDocument(evalOf({ phase: PluginEvalPhase.completed, partialReason: unknown }))).toMatchObject({
+      partial: false,
+      partialReason: null,
+    });
+  });
+
   it("is interrupted when the person stopped following it before the server recorded the cancel", () => {
     const doc = toResultDocument(evalOf({ phase: PluginEvalPhase.running }), { interrupted: true });
     expect(doc).toMatchObject({ partial: true, partialReason: "interrupted" });
@@ -168,6 +180,13 @@ describe("toResultDocument", () => {
     expect(toResultDocument(running, { durationSeconds: 3 }).durationSeconds).toBe(3);
   });
 
+  it("reports no duration for an eval that has not started", () => {
+    const pending = evalOf({ phase: PluginEvalPhase.pending });
+    pending.status!.startedAt = undefined;
+    pending.status!.finishedAt = undefined;
+    expect(toResultDocument(pending, { nowMs: 9_000_000 }).durationSeconds).toBe(0);
+  });
+
   it("reads the targets from the cases when the eval named none", () => {
     const pluginEval = evalOf();
     pluginEval.spec!.targets = [];
@@ -179,5 +198,9 @@ describe("pluginEvalTargetLabel", () => {
   it("writes harness/model, the native engine for an unspecified one, default for no model", () => {
     expect(pluginEvalTargetLabel({ harness: Harness.CURSOR, modelName: "gpt-5" } as never)).toBe("cursor/gpt-5");
     expect(pluginEvalTargetLabel(undefined)).toBe("native/default");
+  });
+
+  it("names an engine this client does not know by its number", () => {
+    expect(pluginEvalTargetLabel({ harness: 9 as Harness, modelName: "m" } as never)).toBe("9/m");
   });
 });
