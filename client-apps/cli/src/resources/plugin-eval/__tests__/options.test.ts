@@ -50,7 +50,7 @@ describe("readPluginEvalOptions", () => {
       threshold: "0.8",
       maxCostUsd: "20",
       concurrency: "4",
-      allowTools: ["Write", "Bash(npm test *)", "mcp__github__*"],
+      allowTools: ["Write", "Bash(npm test *)", "mcp__github__*", "mcp__plugin_thermos_github__*"],
       judgeModel: "claude-haiku-4-5",
       realMcpServers: true,
       json: "results.json",
@@ -91,7 +91,7 @@ describe("readPluginEvalOptions", () => {
     [{ maxCostUsd: "5000" }, "--max-cost-usd must be more than 0 and at most 1000"],
     [{ ablation: "auto" }, "--ablation must be with-without or none"],
     [{ allowTools: ["bash"] }, "--allow-tools 'bash' is not a tool name"],
-    [{ allowTools: ["mcp__plugin_thermos_github__*"] }, "is not a tool name"],
+    [{ allowTools: ["mcp__plugin__github__*"] }, "is not a tool name"],
     [{ model: ["claude/sonnet"] }, "names no engine Stigmer runs"],
     [{ model: Array.from({ length: 7 }, () => "native/claude-sonnet-4-6") }, "at most 6 times"],
   ])("refuses %o with exit 1", (flags, message) => {

@@ -64,6 +64,7 @@ import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { resolveVersionHash } from "../../pipeline/steps/version-history.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import { stigmerAllowTools } from "./allow-tools.js";
 import {
   PLUGIN_EVAL_CREATE_DENIED_MESSAGE,
   PLUGIN_EVAL_MAX_CASES,
@@ -73,6 +74,7 @@ import {
   pluginEvalNoCasesMessage,
   pluginEvalNotStartedMessage,
   pluginEvalOrgMismatchMessage,
+  pluginEvalOtherPluginToolMessage,
   pluginEvalTooLargeMessage,
   pluginEvalUnknownDigestMessage,
 } from "./constants.js";
@@ -159,7 +161,8 @@ function evaluatedPluginOf(ctx: RequestContext<typeof PluginEvalSchema>): Plugin
  * interceptor covers the lane, and the organization that installed the
  * plugin is the one that pays); the id is minted here so an unnamed eval
  * is named by it; spec.plugin_digest is stamped with the plugin's current
- * version when empty, and refused when it names no version of the plugin.
+ * version when empty, and refused when it names no version of the plugin;
+ * spec.allow_tools is held in Stigmer's names (allow-tools.ts).
  */
 export function newResolvePluginEvalDefaultsStep(
   store: Store,
@@ -194,6 +197,16 @@ export function newResolvePluginEvalDefaultsStep(
         throw failedPreconditionError(pluginEvalNoCasesMessage("evals"));
       }
       spec.pluginDigest = digest;
+      const allowed = stigmerAllowTools(spec.allowTools, {
+        name: plugin.metadata?.name ?? "",
+        slug: plugin.metadata?.slug ?? "",
+      });
+      if (!allowed.ok) {
+        throw invalidArgumentError(
+          pluginEvalOtherPluginToolMessage(allowed.entry, allowed.plugin, plugin.metadata?.slug ?? ""),
+        );
+      }
+      spec.allowTools = [...allowed.tools];
       assignServerId(ctx, generateId("pev"));
       if (metadata.name === "" && metadata.slug === "") {
         metadata.name = metadata.id;
