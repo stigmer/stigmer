@@ -497,7 +497,9 @@ private static final long serialVersionUID = 0L;
    *
    * A specifier in parentheses, as in Bash(npm test *), is accepted and
    * grants the whole tool: every Stigmer tool list reads a specifier that
-   * way. Each try runs in a fresh workspace of its own.
+   * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+   * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+   * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
    * </pre>
    *
    * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -514,7 +516,9 @@ private static final long serialVersionUID = 0L;
    *
    * A specifier in parentheses, as in Bash(npm test *), is accepted and
    * grants the whole tool: every Stigmer tool list reads a specifier that
-   * way. Each try runs in a fresh workspace of its own.
+   * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+   * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+   * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
    * </pre>
    *
    * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -530,7 +534,9 @@ private static final long serialVersionUID = 0L;
    *
    * A specifier in parentheses, as in Bash(npm test *), is accepted and
    * grants the whole tool: every Stigmer tool list reads a specifier that
-   * way. Each try runs in a fresh workspace of its own.
+   * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+   * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+   * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
    * </pre>
    *
    * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -547,7 +553,9 @@ private static final long serialVersionUID = 0L;
    *
    * A specifier in parentheses, as in Bash(npm test *), is accepted and
    * grants the whole tool: every Stigmer tool list reads a specifier that
-   * way. Each try runs in a fresh workspace of its own.
+   * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+   * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+   * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
    * </pre>
    *
    * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -2564,7 +2572,9 @@ private static final long serialVersionUID = 0L;
      *
      * A specifier in parentheses, as in Bash(npm test *), is accepted and
      * grants the whole tool: every Stigmer tool list reads a specifier that
-     * way. Each try runs in a fresh workspace of its own.
+     * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+     * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+     * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
      * </pre>
      *
      * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -2582,7 +2592,9 @@ private static final long serialVersionUID = 0L;
      *
      * A specifier in parentheses, as in Bash(npm test *), is accepted and
      * grants the whole tool: every Stigmer tool list reads a specifier that
-     * way. Each try runs in a fresh workspace of its own.
+     * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+     * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+     * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
      * </pre>
      *
      * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -2598,7 +2610,9 @@ private static final long serialVersionUID = 0L;
      *
      * A specifier in parentheses, as in Bash(npm test *), is accepted and
      * grants the whole tool: every Stigmer tool list reads a specifier that
-     * way. Each try runs in a fresh workspace of its own.
+     * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+     * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+     * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
      * </pre>
      *
      * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -2615,7 +2629,9 @@ private static final long serialVersionUID = 0L;
      *
      * A specifier in parentheses, as in Bash(npm test *), is accepted and
      * grants the whole tool: every Stigmer tool list reads a specifier that
-     * way. Each try runs in a fresh workspace of its own.
+     * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+     * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+     * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
      * </pre>
      *
      * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -2633,7 +2649,9 @@ private static final long serialVersionUID = 0L;
      *
      * A specifier in parentheses, as in Bash(npm test *), is accepted and
      * grants the whole tool: every Stigmer tool list reads a specifier that
-     * way. Each try runs in a fresh workspace of its own.
+     * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+     * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+     * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
      * </pre>
      *
      * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -2657,7 +2675,9 @@ private static final long serialVersionUID = 0L;
      *
      * A specifier in parentheses, as in Bash(npm test *), is accepted and
      * grants the whole tool: every Stigmer tool list reads a specifier that
-     * way. Each try runs in a fresh workspace of its own.
+     * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+     * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+     * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
      * </pre>
      *
      * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -2680,7 +2700,9 @@ private static final long serialVersionUID = 0L;
      *
      * A specifier in parentheses, as in Bash(npm test *), is accepted and
      * grants the whole tool: every Stigmer tool list reads a specifier that
-     * way. Each try runs in a fresh workspace of its own.
+     * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+     * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+     * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
      * </pre>
      *
      * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -2703,7 +2725,9 @@ private static final long serialVersionUID = 0L;
      *
      * A specifier in parentheses, as in Bash(npm test *), is accepted and
      * grants the whole tool: every Stigmer tool list reads a specifier that
-     * way. Each try runs in a fresh workspace of its own.
+     * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+     * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+     * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
      * </pre>
      *
      * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>
@@ -2723,7 +2747,9 @@ private static final long serialVersionUID = 0L;
      *
      * A specifier in parentheses, as in Bash(npm test *), is accepted and
      * grants the whole tool: every Stigmer tool list reads a specifier that
-     * way. Each try runs in a fresh workspace of its own.
+     * way. Each try runs in a fresh workspace of its own. A plugin's MCP tools
+     * are named either way: Claude Code's mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;
+     * or Stigmer's mcp__&lt;server&gt;__&lt;tool&gt;.
      * </pre>
      *
      * <code>repeated string allow_tools = 12 [json_name = "allowTools", (.buf.validate.field) = { ... }</code>

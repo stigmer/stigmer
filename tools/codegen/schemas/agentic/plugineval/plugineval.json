@@ -167,7 +167,7 @@
           "kind": "string"
         }
       },
-      "description": "Tools every try may use beyond each case's own list, in Claude Code's\n names, as Claude Code's --allow-tools.\n\n A specifier in parentheses, as in Bash(npm test *), is accepted and\n grants the whole tool: every Stigmer tool list reads a specifier that\n way. Each try runs in a fresh workspace of its own.",
+      "description": "Tools every try may use beyond each case's own list, in Claude Code's\n names, as Claude Code's --allow-tools.\n\n A specifier in parentheses, as in Bash(npm test *), is accepted and\n grants the whole tool: every Stigmer tool list reads a specifier that\n way. Each try runs in a fresh workspace of its own. A plugin's MCP tools\n are named either way: Claude Code's mcp__plugin_\u003cplugin\u003e_\u003cserver\u003e__\u003ctool\u003e\n or Stigmer's mcp__\u003cserver\u003e__\u003ctool\u003e.",
       "required": false,
       "validation": {
         "maxItems": 64
