@@ -67,10 +67,23 @@ type PlanInput struct {
 
 // PlanTermsInput is the SDK input type for PlanTerms.
 type PlanTermsInput struct {
-	MonthlyMinimumMicros  int64
+	// MonthlyMinimumMicros is not sent when zero: this input cannot tell a
+	// zero you set from none, so zero means unset. The least a subscription
+	// plan bills per month, in micro-USD.
+	MonthlyMinimumMicros int64
+	// UsageShareBasisPoints is not sent when zero: this input cannot tell a
+	// zero you set from none, so zero means unset. The share of monthly usage
+	// a subscription plan bills when it exceeds the minimum, in basis points.
 	UsageShareBasisPoints int32
-	PerExtraOrgMicros     int64
-	AnnualPriceMicros     int64
+	// PerExtraOrgMicros is not sent when zero: this input cannot tell a zero
+	// you set from none, so zero means unset. What a subscription plan bills
+	// per month for each child organization beyond the ones its entitlements
+	// include, in micro-USD.
+	PerExtraOrgMicros int64
+	// AnnualPriceMicros is not sent when zero: this input cannot tell a zero
+	// you set from none, so zero means unset. What a license plan invoices for
+	// a one-year term, in micro-USD.
+	AnnualPriceMicros int64
 }
 
 func (i *PlanInput) toProto() (*planv1.Plan, error) {

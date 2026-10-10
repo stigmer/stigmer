@@ -61,6 +61,53 @@ message PluginStatus {
   // agent runs them when its AgentSpec.hooks references the plugin; install
   // adds that reference to the agent it composes, in either format.
   HookConfig hooks = 7;
+
+  // The plugin's evals/ test cases, as read at install; unset when the
+  // plugin carries none.
+  //
+  // @internal
+  // A summary for the plugin page, derived at push from the archive by the
+  // library's suite reader. A broken suite never refuses an install: each
+  // case that cannot load is a finding here. An eval reads the suite from
+  // the archive itself, which stays authoritative; plugins installed before
+  // this field existed carry it after their next push. The runner reads dir
+  // to keep the cases out of every session's plugin mount.
+  PluginEvalSuite evals = 8;
+}
+
+// PluginEvalSuite summarises a plugin's evals/ test cases.
+message PluginEvalSuite {
+  // The suite's directory relative to the plugin's root: "evals", or the
+  // manifest's experimental.evals.
+  string dir = 1;
+
+  // Cases found in the suite.
+  int32 case_count = 2;
+
+  // The tags the listed cases carry, once each, sorted: at most 200.
+  repeated string case_tags = 3;
+
+  // Each case, in directory order.
+  repeated PluginEvalSuiteCase cases = 4;
+
+  // Problems reading the suite: a case that cannot load, an unknown field.
+  repeated PluginWarning findings = 5;
+}
+
+// PluginEvalSuiteCase is one case of a plugin's eval suite.
+message PluginEvalSuiteCase {
+  // The case's name.
+  string case_name = 1;
+
+  // The case's directory, relative to the plugin's root.
+  string path = 2;
+
+  // The case's tags.
+  repeated string case_tags = 3;
+
+  // Why Stigmer cannot run the case yet, naming the feature, as in
+  // "context.scaffold_script"; empty when it can.
+  string unsupported = 4;
 }
 
 // PluginState is the lifecycle state of a plugin install.

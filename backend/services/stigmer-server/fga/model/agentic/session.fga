@@ -42,6 +42,15 @@ module agentic
 # console message into an unattended run is not observability. Console
 # sessions never get a schedule tuple.
 #
+# PLUGIN EVAL SESSIONS (the channel idiom, third application): the tries of
+# a plugin eval (created by the eval's workflow, owned in the hosted
+# edition by the per-org system-eval account) carry a single
+# session#plugin_eval@plugin_eval:<id> tuple and inherit the eval's viewer
+# set (the plugin's viewers in its own organization) into can_view ONLY,
+# so an author opens the try that failed and cannot add a turn to it.
+# Open source writes no such link: there the tries act as the eval's
+# creator, who owns them as any session's creator does.
+#
 # Deletion cascades to the session's agent runs. The billing trail is
 # unaffected: llm_call_usage_record rows are immutable and carry their own
 # denormalized copies of session/execution/org identifiers (owners may
@@ -52,6 +61,7 @@ module agentic
 # - session:<id>#owner@identity_account:<creator>
 # - session:<id>#channel@agent_channel:<channel>  (channel sessions only)
 # - session:<id>#schedule@schedule:<schedule>     (schedule sessions only)
+# - session:<id>#plugin_eval@plugin_eval:<eval>   (plugin eval tries only)
 
 type session
   relations
@@ -85,6 +95,15 @@ type session
     define schedule: [schedule]
 
     # ========================================
+    # PLUGIN EVAL LINK (Structural Read-Only Inheritance)
+    # ========================================
+    # The schedule link's twin for plugin eval tries — written ONLY from a
+    # validated eval caller's plugin_eval claim, never derived from the
+    # client-suppliable stigmer.ai/plugin-eval label. Composes the eval's
+    # viewers into can_view below, and ONLY can_view.
+    define plugin_eval: [plugin_eval]
+
+    # ========================================
     # OWNERSHIP (Personal Resource)
     # ========================================
     # Org admins explicitly excluded — sessions are personal resources
@@ -99,11 +118,12 @@ type session
     # ========================================
     # PERMISSIONS
     # ========================================
-    # can_view adds `viewer from channel` (channel sessions only) and
-    # `viewer from schedule` (schedule sessions only) WITHOUT widening
+    # can_view adds `viewer from channel` (channel sessions only),
+    # `viewer from schedule` (schedule sessions only) and
+    # `viewer from plugin_eval` (eval tries only) WITHOUT widening
     # `viewer`, because can_create_run_in and can_view_access derive
     # from viewer — runtime-surface observability must stay read-only.
-    define can_view: viewer or viewer from channel or viewer from schedule
+    define can_view: viewer or viewer from channel or viewer from schedule or viewer from plugin_eval
     define can_edit: owner
     define can_delete: owner
     

@@ -850,18 +850,28 @@ export async function resolveMcpServersAndPolicies(
     platformServerSlugs.add(memoryAttachment.slug);
   }
 
-  // Phase 4b: the approval default's MCP half, and the agent's tool scope.
+  // Phase 4b: the approval default's MCP half, and the turn's tool scope:
+  // the agent's lists, then this turn's over them, which can only narrow.
   const leases = deriveActiveLeases(execution);
   const mcpDefault = buildMcpApprovalDefault(servers, leases);
-  const agentSpec = blueprint.agent?.spec;
-  const toolScope = agentSpec
-    ? ToolScope.of("The agent", {
-        tools: agentSpec.tools,
-        disallowedTools: agentSpec.disallowedTools,
-      })
-    : ToolScope.unrestricted();
+  const toolScope = mainToolScope(blueprint, execution.spec);
 
   return { servers, channelMessaging, leases, mcpDefault, platformServerSlugs, toolScope };
+}
+
+/**
+ * The main agent's tool scope for one turn: the agent's two lists, then the
+ * turn's own (`RunSpec.tools`, `RunSpec.disallowed_tools`) as one more layer,
+ * so a turn narrows its agent's tools (or the built-in assistant's, which has
+ * no lists) and never widens them (`shared/tool-lists.ts`). Unrestricted
+ * when neither carries a list.
+ */
+export function mainToolScope(blueprint: ResolvedBlueprint, spec: RunSpec | undefined): ToolScope {
+  const agentSpec = blueprint.agent?.spec;
+  return ToolScope.ofMain([
+    ...(agentSpec ? [{ owner: "The agent", lists: { tools: agentSpec.tools, disallowedTools: agentSpec.disallowedTools } }] : []),
+    { owner: "The turn", lists: { tools: spec?.tools ?? [], disallowedTools: spec?.disallowedTools ?? [] } },
+  ]);
 }
 
 /**
@@ -884,6 +894,12 @@ export async function resolveMcpServersAndPolicies(
  * blueprint's sub-agents are that harness's to compile, so their skills are
  * its to render. One progress label for the whole phase, as before.
  *
+ * A scope that denies `Skill` hides skills (`ToolScope.hidesSkills`): the
+ * root's when the main scope denies it, a sub-agent's when its own lists
+ * narrowed from the main scope do. A hidden owner's skills are neither
+ * fetched nor mounted, so no prompt lists them; the harness's confined read
+ * refuses the skill files an earlier turn mounted.
+ *
  * The `.stigmer` link this and the attachment phase create is removed in
  * the runtime's finally, after the harness's own teardown. Until #1096 the
  * native orchestrator fetched and mounted sub-agent skills itself
@@ -897,16 +913,24 @@ export async function mountSkills(
     readonly sessionId: string;
     readonly primaryDir: string;
     readonly subAgents: boolean;
+    /** The main scope ({@link mainToolScope}), which decides whether skills are hidden. */
+    readonly toolScope: ToolScope;
   },
 ): Promise<TurnSkills> {
   deps.enterPhase("resolve_skills");
   await deps.reportProgress("Resolving skills");
   const options = { sessionId: args.sessionId, primaryWorkspaceDir: args.primaryDir };
-  const root = await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options);
+  const { toolScope } = args;
+  if (toolScope.hidesSkills) {
+    console.log(`[resolveSkills] execution=${deps.input.executionId}: the tool lists deny Skill; no skills this turn`);
+  }
+  const root = toolScope.hidesSkills ? [] : await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options);
   const bySubAgent = new Map<string, readonly SkillMetadata[]>();
   if (args.subAgents) {
     for (const subAgent of args.blueprint.subAgents) {
       if (subAgent.skillRefs.length === 0) continue;
+      const scope = toolScope.narrow(subAgent.name, { tools: subAgent.tools, disallowedTools: subAgent.disallowedTools });
+      if (scope.hidesSkills) continue;
       bySubAgent.set(subAgent.name, await resolveSkills(deps.client, subAgent.skillRefs, options));
     }
   }
@@ -1331,6 +1355,7 @@ export async function resolveTurnContext(
     sessionId,
     primaryDir: workspace.primaryDir,
     subAgents: capabilities.subAgents,
+    toolScope: mcp.toolScope,
   });
   const hookResolution = await resolveHooks(deps, { blueprint, sessionId, servers: mcp.servers });
   if (hookResolution.kind === "settled") return hookResolution;
@@ -1373,6 +1398,7 @@ export async function resolveTurnContext(
       appliedToolCallIds,
       model: resolveModelPreferences(execution.status?.runConfig),
       structuredOutputSchema: structuredOutputSchemaOf(spec),
+      appendSystemPrompt: spec.appendSystemPrompt,
       standing: resolveStandingContext(deps, { execution, spec, blueprint }),
       artifactStorage: deps.artifactStorage,
     },

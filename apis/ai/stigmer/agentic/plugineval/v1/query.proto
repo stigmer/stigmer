@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.plugineval.v1;
+
+import "ai/stigmer/agentic/plugineval/v1/api.proto";
+import "ai/stigmer/agentic/plugineval/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// PluginEvalQueryController handles read operations for plugin evals.
+//
+// @internal
+// An eval's visibility is the plugin's viewers in the plugin's own
+// organization (org_viewer from plugin): a try spends that organization's
+// credit and may act with its connections, so a child organization's
+// viewer of the plugin does not read it.
+service PluginEvalQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = plugin_eval;
+
+  // Get a single eval by ID.
+  rpc get(PluginEvalId) returns (PluginEval) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = plugin_eval;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get plugin eval";
+  }
+
+  // List a plugin's evals, newest first.
+  //
+  // Each eval comes with its scores, aggregates, per-target results and
+  // notes, but with every arm's `tries` list empty, so a list stays small
+  // however many tries its evals ran. Get an eval by its id for its tries.
+  //
+  // @internal
+  // Authorized on the plugin, then each eval is filtered by its own
+  // can_view, so a child organization's viewer of the plugin gets an empty
+  // list rather than a refusal.
+  rpc listByPlugin(ListPluginEvalsByPluginRequest) returns (PluginEvalList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = plugin;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "plugin_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list evals of plugin";
+  }
+}

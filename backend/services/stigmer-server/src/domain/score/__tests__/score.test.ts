@@ -11,7 +11,8 @@
  *     included;
  *   - a check comes from the server alone: refused on the wire, admitted
  *     in process, where a not-graded check keeps the server's reason; a
- *     second run-health score from the same checks version is refused;
+ *     second run-health score from the same checks version is refused,
+ *     as is a second plugin eval score from the same suite version;
  *   - a check's verdict is final on update;
  *   - the run's and the session's lists carry the scores;
  *   - deleting a run removes its scores (its own delete chain), and
@@ -56,6 +57,7 @@ import { generateId } from "../../../pipeline/steps/defaults.js";
 import {
   CHECK_SOURCE_REFUSED_MESSAGE,
   SCORE_UPDATE_HUMAN_ONLY_MESSAGE,
+  evalExistsMessage,
   feedbackExistsMessage,
   runHealthExistsMessage,
 } from "../constants.js";
@@ -245,6 +247,31 @@ describe("a check's verdict", () => {
     const refused = await failureOf(wire.update(edited));
     expect(refused.code).toBe(Code.FailedPrecondition);
     expect(refused.rawMessage).toBe(SCORE_UPDATE_HUMAN_ONLY_MESSAGE);
+  });
+});
+
+describe("a plugin eval's score", () => {
+  function evalScore(runId: string, suiteVersion: string): Score {
+    const score = check(runId);
+    score.spec!.metric = "eval";
+    score.spec!.source = ScoreSource.eval;
+    score.spec!.evaluatorVersion = suiteVersion;
+    return score;
+  }
+
+  it("is recorded once per version of the plugin's suite", async () => {
+    const { runId } = await seedRun(RunPhase.RUN_COMPLETED);
+    const first = await inProcess.create(evalScore(runId, "suite-v1"));
+    const second = await failureOf(
+      inProcess.create(evalScore(runId, "suite-v1")),
+    );
+    expect(second.code).toBe(Code.AlreadyExists);
+    expect(second.rawMessage).toBe(evalExistsMessage(first.metadata!.id));
+    expect(second.rawMessage).toBe(
+      `this run already has an eval score from this suite (score ${first.metadata!.id})`,
+    );
+    const next = await inProcess.create(evalScore(runId, "suite-v2"));
+    expect(next.spec?.evaluatorVersion).toBe("suite-v2");
   });
 });
 

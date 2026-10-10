@@ -247,9 +247,10 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin and every resource it materialised.
+     * Delete a plugin and every resource it materialised, its evals included.
      * Refused when a resource outside the plugin still references a member;
-     * the error names the referencing resources.
+     * the error names the referencing resources. Refused while one of its
+     * evals is pending or running: cancel that eval first.
      * </pre>
      */
     default void delete(ai.stigmer.agentic.plugin.v1.PluginId request,
@@ -336,9 +337,10 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin and every resource it materialised.
+     * Delete a plugin and every resource it materialised, its evals included.
      * Refused when a resource outside the plugin still references a member;
-     * the error names the referencing resources.
+     * the error names the referencing resources. Refused while one of its
+     * evals is pending or running: cancel that eval first.
      * </pre>
      */
     public void delete(ai.stigmer.agentic.plugin.v1.PluginId request,
@@ -409,9 +411,10 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin and every resource it materialised.
+     * Delete a plugin and every resource it materialised, its evals included.
      * Refused when a resource outside the plugin still references a member;
-     * the error names the referencing resources.
+     * the error names the referencing resources. Refused while one of its
+     * evals is pending or running: cancel that eval first.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin delete(ai.stigmer.agentic.plugin.v1.PluginId request) throws io.grpc.StatusException {
@@ -481,9 +484,10 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin and every resource it materialised.
+     * Delete a plugin and every resource it materialised, its evals included.
      * Refused when a resource outside the plugin still references a member;
-     * the error names the referencing resources.
+     * the error names the referencing resources. Refused while one of its
+     * evals is pending or running: cancel that eval first.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin delete(ai.stigmer.agentic.plugin.v1.PluginId request) {
@@ -556,9 +560,10 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin and every resource it materialised.
+     * Delete a plugin and every resource it materialised, its evals included.
      * Refused when a resource outside the plugin still references a member;
-     * the error names the referencing resources.
+     * the error names the referencing resources. Refused while one of its
+     * evals is pending or running: cancel that eval first.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.Plugin> delete(

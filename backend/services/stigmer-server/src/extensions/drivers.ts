@@ -79,6 +79,7 @@ import type { PrincipalDisplay } from "./principal-display.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
 import type { ResourceRowReader } from "./resource-row-reader.js";
 import type { GradingCallerMint } from "./grading-caller.js";
+import type { PluginEvalCallerMint } from "./plugin-eval-caller.js";
 import type { ScheduleFireCallerMint } from "./schedule-fire-caller.js";
 import type { RunLanes } from "./run-lanes.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
@@ -197,6 +198,14 @@ export interface ExtensionDrivers {
    * (bound at the compose.ts consumption site).
    */
   readonly gradingCaller?: GradingCallerMint;
+  /**
+   * The plugin-eval caller mint (single-instance point): the identity a
+   * plugin eval's tries and AI-graded checks act as when the eval's
+   * workflow creates them. When absent, they enter as the `internal`
+   * class, or as the eval's creator under the built-in authorization
+   * posture (bound at the compose.ts consumption site).
+   */
+  readonly pluginEvalCaller?: PluginEvalCallerMint;
   /**
    * The identity-account store driver (single-instance point). The
    * identity-account domain is the first

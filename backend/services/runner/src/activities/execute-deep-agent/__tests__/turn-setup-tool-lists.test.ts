@@ -5,14 +5,21 @@
  *    platform's own servers left out, since no list can name them;
  *  - whose lists are checked (`checkTurnToolLists`): the agent's, and each
  *    declared sub-agent's that the agent's `Agent(type, …)` admits — one it
- *    keeps from compiling can never run, so its lists never refuse the turn.
+ *    keeps from compiling can never run, so its lists never refuse the turn;
+ *  - that a sub-agent's lists are judged against its agent's lists alone: a
+ *    turn's narrower lists never refuse the turn over a sub-agent, and still
+ *    narrow what the sub-agent may use.
  */
 
 import { describe, expect, it, vi } from "vitest";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import { create } from "@bufbuild/protobuf";
-import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { mainToolScope } from "../../../harness/turn-context.js";
+import type { ResolvedBlueprint } from "../../../shared/blueprint-resolver.js";
 import { ToolListResolutionError, ToolScope } from "../../../shared/tool-lists.js";
+import { subAgentScope } from "../subagent-transformer.js";
 import { checkTurnToolLists, turnToolInventory, type DeepAgentTools } from "../turn-setup.js";
 
 const tool = (name: string) => ({ name }) as unknown as DynamicStructuredTool;
@@ -66,5 +73,36 @@ describe("checkTurnToolLists", () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     expect(check(["Read", "Agent(reviewer)"])).toThrow(ToolListResolutionError);
     expect(check(["Read", "Agent(reviewer)"])).toThrow(/Sub-agent "reviewer"/);
+  });
+});
+
+describe("checkTurnToolLists with a turn layer", () => {
+  const writer = create(SubAgentSchema, { name: "writer", tools: ["Bash", "Write"] });
+
+  function turn(agentTools: string[] | undefined, turnTools: string[]): { check: () => void; parentScope: ToolScope } {
+    const agent = agentTools === undefined ? undefined : { spec: create(AgentSpecSchema, { tools: agentTools }) };
+    const blueprint = { agent, subAgents: [writer] } as unknown as ResolvedBlueprint;
+    const parentScope = mainToolScope(blueprint, create(RunSpecSchema, { tools: turnTools }));
+    const input = { mcp: { platformServerSlugs: new Set<string>() }, blueprint } as unknown as Parameters<typeof checkTurnToolLists>[0];
+    return { check: () => checkTurnToolLists(input, tools({}), parentScope, true), parentScope };
+  }
+
+  it.each([
+    ["the assistant", undefined],
+    ["an agent with lists", ["Read", "Bash", "Write", "Agent"]],
+  ])("starts the turn when a sub-agent of %s lists only tools the turn narrows away, and the sub-agent still has none of them", (_, agentTools) => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    for (const turnTools of [["Read"], ["Read", "Agent"]]) {
+      const { check, parentScope } = turn(agentTools, turnTools);
+      expect(check).not.toThrow();
+      const runtime = subAgentScope(parentScope, writer);
+      expect(runtime.allowsClaudeTool("Bash")).toBe(false);
+      expect(runtime.allowsClaudeTool("Write")).toBe(false);
+    }
+  });
+
+  it("still refuses the turn over a sub-agent whose list resolves to nothing under its agent's own lists", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    expect(turn(["Read", "Agent"], ["Read", "Agent"]).check).toThrow(/Sub-agent "writer"/);
   });
 });

@@ -32,6 +32,16 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_plugin_v1_PluginStatus_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginEvalSuite_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_plugin_v1_PluginEvalSuite_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginEvalSuiteCase_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_plugin_v1_PluginEvalSuiteCase_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_plugin_v1_PluginMaterialization_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -54,7 +64,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "oto\022\034ai.stigmer.agentic.plugin.v1\032(ai/st" +
       "igmer/agentic/plugin/v1/hooks.proto\032+ai/" +
       "stigmer/commons/apiresource/status.proto" +
-      "\032\033buf/validate/validate.proto\"\363\003\n\014Plugin" +
+      "\032\033buf/validate/validate.proto\"\270\004\n\014Plugin" +
       "Status\022F\n\005audit\030c \001(\01320.ai.stigmer.commo" +
       "ns.apiresource.ApiResourceAuditR\005audit\0220" +
       "\n\006digest\030\001 \001(\tB\030\272H\025r\0232\021^$|^[a-f0-9]{64}$" +
@@ -67,19 +77,31 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "rnings\030\006 \003(\0132+.ai.stigmer.agentic.plugin" +
       ".v1.PluginWarningR\010warnings\022>\n\005hooks\030\007 \001" +
       "(\0132(.ai.stigmer.agentic.plugin.v1.HookCo" +
-      "nfigR\005hooks\"y\n\025PluginMaterialization\022\026\n\006" +
-      "skills\030\001 \001(\005R\006skills\022\037\n\013mcp_servers\030\002 \001(" +
-      "\005R\nmcpServers\022\026\n\006agents\030\003 \001(\005R\006agentsJ\004\010" +
-      "\004\020\005R\tworkflows\"Q\n\rPluginWarning\022\022\n\004kind\030" +
-      "\001 \001(\tR\004kind\022\030\n\007message\030\002 \001(\tR\007message\022\022\n" +
-      "\004path\030\003 \001(\tR\004path*y\n\013PluginState\022\034\n\030PLUG" +
-      "IN_STATE_UNSPECIFIED\020\000\022\033\n\027PLUGIN_STATE_I" +
-      "NSTALLING\020\001\022\026\n\022PLUGIN_STATE_READY\020\002\022\027\n\023P" +
-      "LUGIN_STATE_FAILED\020\003B\242\001B\013StatusProtoP\001\242\002" +
-      "\004ASAP\252\002\034Ai.Stigmer.Agentic.Plugin.V1\312\002\034A" +
-      "i\\Stigmer\\Agentic\\Plugin\\V1\342\002(Ai\\Stigmer" +
-      "\\Agentic\\Plugin\\V1\\GPBMetadata\352\002 Ai::Sti" +
-      "gmer::Agentic::Plugin::V1b\006proto3"
+      "nfigR\005hooks\022C\n\005evals\030\010 \001(\0132-.ai.stigmer." +
+      "agentic.plugin.v1.PluginEvalSuiteR\005evals" +
+      "\"\361\001\n\017PluginEvalSuite\022\020\n\003dir\030\001 \001(\tR\003dir\022\035" +
+      "\n\ncase_count\030\002 \001(\005R\tcaseCount\022\033\n\tcase_ta" +
+      "gs\030\003 \003(\tR\010caseTags\022G\n\005cases\030\004 \003(\01321.ai.s" +
+      "tigmer.agentic.plugin.v1.PluginEvalSuite" +
+      "CaseR\005cases\022G\n\010findings\030\005 \003(\0132+.ai.stigm" +
+      "er.agentic.plugin.v1.PluginWarningR\010find" +
+      "ings\"\205\001\n\023PluginEvalSuiteCase\022\033\n\tcase_nam" +
+      "e\030\001 \001(\tR\010caseName\022\022\n\004path\030\002 \001(\tR\004path\022\033\n" +
+      "\tcase_tags\030\003 \003(\tR\010caseTags\022 \n\013unsupporte" +
+      "d\030\004 \001(\tR\013unsupported\"y\n\025PluginMaterializ" +
+      "ation\022\026\n\006skills\030\001 \001(\005R\006skills\022\037\n\013mcp_ser" +
+      "vers\030\002 \001(\005R\nmcpServers\022\026\n\006agents\030\003 \001(\005R\006" +
+      "agentsJ\004\010\004\020\005R\tworkflows\"Q\n\rPluginWarning" +
+      "\022\022\n\004kind\030\001 \001(\tR\004kind\022\030\n\007message\030\002 \001(\tR\007m" +
+      "essage\022\022\n\004path\030\003 \001(\tR\004path*y\n\013PluginStat" +
+      "e\022\034\n\030PLUGIN_STATE_UNSPECIFIED\020\000\022\033\n\027PLUGI" +
+      "N_STATE_INSTALLING\020\001\022\026\n\022PLUGIN_STATE_REA" +
+      "DY\020\002\022\027\n\023PLUGIN_STATE_FAILED\020\003B\242\001B\013Status" +
+      "ProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer.Agentic.Plug" +
+      "in.V1\312\002\034Ai\\Stigmer\\Agentic\\Plugin\\V1\342\002(A" +
+      "i\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\352" +
+      "\002 Ai::Stigmer::Agentic::Plugin::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -93,15 +115,27 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_plugin_v1_PluginStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_PluginStatus_descriptor,
-        new java.lang.String[] { "Audit", "Digest", "ArtifactStorageKey", "State", "Error", "Materialized", "Warnings", "Hooks", });
-    internal_static_ai_stigmer_agentic_plugin_v1_PluginMaterialization_descriptor =
+        new java.lang.String[] { "Audit", "Digest", "ArtifactStorageKey", "State", "Error", "Materialized", "Warnings", "Hooks", "Evals", });
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginEvalSuite_descriptor =
       getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginEvalSuite_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_plugin_v1_PluginEvalSuite_descriptor,
+        new java.lang.String[] { "Dir", "CaseCount", "CaseTags", "Cases", "Findings", });
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginEvalSuiteCase_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginEvalSuiteCase_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_plugin_v1_PluginEvalSuiteCase_descriptor,
+        new java.lang.String[] { "CaseName", "Path", "CaseTags", "Unsupported", });
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginMaterialization_descriptor =
+      getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_plugin_v1_PluginMaterialization_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_PluginMaterialization_descriptor,
         new java.lang.String[] { "Skills", "McpServers", "Agents", });
     internal_static_ai_stigmer_agentic_plugin_v1_PluginWarning_descriptor =
-      getDescriptor().getMessageType(2);
+      getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_plugin_v1_PluginWarning_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_PluginWarning_descriptor,

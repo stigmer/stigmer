@@ -3,7 +3,9 @@
  * declared paths that are a skill or a directory of skills, Claude's root
  * single skill) and the frontmatter check's relaxations (name defaulted to
  * the directory, name differing from the directory, description missing),
- * plus the per-skill file listing the installer builds archives from.
+ * plus the per-skill file listing the installer builds archives from, which
+ * leaves the eval suite out and keeps the files of skills declared in
+ * `evals/`, where the suite then is not.
  */
 
 import { describe, expect, it } from "vitest";
@@ -46,6 +48,56 @@ describe("discovery", () => {
     expect(plugin.skills).toHaveLength(1);
     expect(plugin.skills[0]).toMatchObject({ name: "solo-skill", dir: "" });
     expect(plugin.skills[0]?.files).toContain("README.md");
+  });
+
+  it("leaves the eval suite out of a root skill's files: evals/, and the manifest's experimental.evals", () => {
+    const files = claudePlugin({ name: "solo-skill", manifest: { experimental: { evals: "quality/evals" } } });
+    files.set("SKILL.md", "---\nname: solo-skill\ndescription: d\n---\nbody");
+    files.set("README.md", "readme");
+    files.set("evals/c/prompt.md", "the case");
+    files.set("quality/evals/c/prompt.md", "the moved case");
+    files.set("quality/notes.md", "kept");
+    files.set("evalsx/kept.md", "a sibling whose name only starts like the suite");
+    const files0 = accepted(read(files)).skills[0]?.files ?? [];
+    expect(files0).toEqual(expect.arrayContaining(["SKILL.md", "README.md", "quality/notes.md", "evalsx/kept.md"]));
+    expect(files0.filter((path) => path.startsWith("evals/") || path.startsWith("quality/evals/"))).toEqual([]);
+  });
+
+  it("leaves evals/ out of a root skill when the manifest's experimental.evals is unusable", () => {
+    const files = claudePlugin({ name: "solo-skill", manifest: { experimental: { evals: "../outside" } } });
+    files.set("SKILL.md", "---\nname: solo-skill\ndescription: d\n---\nbody");
+    files.set("evals/c/prompt.md", "the case");
+    expect(accepted(read(files)).skills[0]?.files.filter((path) => path.startsWith("evals/"))).toEqual([]);
+  });
+
+  it.each([
+    ["skills", undefined],
+    ["skills/alpha", undefined],
+    ["skills/alpha/references", undefined],
+    ["extra/one", ["./extra/"]],
+  ])("strips nothing from a skill when experimental.evals %j overlaps the skills", (evals, skills) => {
+    const files = claudePlugin({ manifest: { experimental: { evals }, ...(skills !== undefined && { skills }) } });
+    for (const dir of ["skills/alpha", "extra/one"]) {
+      files.set(`${dir}/SKILL.md`, `---\nname: ${dir.split("/")[1] ?? ""}\ndescription: d\n---\nbody`);
+      files.set(`${dir}/references/REF.md`, "ref");
+    }
+    const listed = accepted(read(files)).skills.map((s) => s.files);
+    expect(listed).toContainEqual(["skills/alpha/SKILL.md", "skills/alpha/references/REF.md"]);
+    if (skills !== undefined) expect(listed).toContainEqual(["extra/one/SKILL.md", "extra/one/references/REF.md"]);
+  });
+
+  it("keeps every file of skills declared under evals/ while the suite stays at its default", () => {
+    const files = claudePlugin({ manifest: { skills: ["./evals/", "./evals-solo"] } });
+    files.set("evals/one/SKILL.md", "---\nname: one\ndescription: d\n---\nbody");
+    files.set("evals/one/references/REF.md", "ref");
+    files.set("evals-solo/SKILL.md", "---\nname: evals-solo\ndescription: d\n---\nbody");
+    const skills = accepted(read(files)).skills;
+    expect(skills.find((s) => s.name === "one")?.files).toEqual(["evals/one/SKILL.md", "evals/one/references/REF.md"]);
+  });
+
+  it("leaves a skill's own evals/ directory out of its files", () => {
+    const files = openPlugin({ skills: [{ name: "alpha", description: "A", files: { "evals/evals.json": "{}", "references/REF.md": "ref" } }] });
+    expect(accepted(read(files)).skills[0]?.files).toEqual(["skills/alpha/SKILL.md", "skills/alpha/references/REF.md"]);
   });
 
   it("does not read a root SKILL.md when skills/ exists", () => {

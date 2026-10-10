@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/score/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_score_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvZW51bS5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxKnMKC1Njb3JlU291cmNlEhwKGHNjb3JlX3NvdXJjZV91bnNwZWNpZmllZBAAEhYKEnNjb3JlX3NvdXJjZV9jaGVjaxABEhYKEnNjb3JlX3NvdXJjZV9odW1hbhACEhYKEnNjb3JlX3NvdXJjZV9qdWRnZRADKnYKClNjb3JlU3RhdGUSGwoXc2NvcmVfc3RhdGVfdW5zcGVjaWZpZWQQABIWChJzY29yZV9zdGF0ZV9ncmFkZWQQARIaChZzY29yZV9zdGF0ZV9ub3RfZ3JhZGVkEAISFwoTc2NvcmVfc3RhdGVfcGVuZGluZxADKpIBCg9Dcml0ZXJpb25SZXN1bHQSIAocY3JpdGVyaW9uX3Jlc3VsdF91bnNwZWNpZmllZBAAEhsKF2NyaXRlcmlvbl9yZXN1bHRfcGFzc2VkEAESGwoXY3JpdGVyaW9uX3Jlc3VsdF9mYWlsZWQQAhIjCh9jcml0ZXJpb25fcmVzdWx0X25vdF9hcHBsaWNhYmxlEANiBnByb3RvMw");
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvZW51bS5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxKooBCgtTY29yZVNvdXJjZRIcChhzY29yZV9zb3VyY2VfdW5zcGVjaWZpZWQQABIWChJzY29yZV9zb3VyY2VfY2hlY2sQARIWChJzY29yZV9zb3VyY2VfaHVtYW4QAhIWChJzY29yZV9zb3VyY2VfanVkZ2UQAxIVChFzY29yZV9zb3VyY2VfZXZhbBAEKnYKClNjb3JlU3RhdGUSGwoXc2NvcmVfc3RhdGVfdW5zcGVjaWZpZWQQABIWChJzY29yZV9zdGF0ZV9ncmFkZWQQARIaChZzY29yZV9zdGF0ZV9ub3RfZ3JhZGVkEAISFwoTc2NvcmVfc3RhdGVfcGVuZGluZxADKpIBCg9Dcml0ZXJpb25SZXN1bHQSIAocY3JpdGVyaW9uX3Jlc3VsdF91bnNwZWNpZmllZBAAEhsKF2NyaXRlcmlvbl9yZXN1bHRfcGFzc2VkEAESGwoXY3JpdGVyaW9uX3Jlc3VsdF9mYWlsZWQQAhIjCh9jcml0ZXJpb25fcmVzdWx0X25vdF9hcHBsaWNhYmxlEANiBnByb3RvMw");
 
 /**
  * ScoreSource names who or what gave a score.
@@ -44,6 +44,14 @@ export enum ScoreSource {
    * @generated from enum value: score_source_judge = 3;
    */
   judge = 3,
+
+  /**
+   * A plugin's own eval: one try of one evals/ case, graded by the case's
+   * checks.
+   *
+   * @generated from enum value: score_source_eval = 4;
+   */
+  eval = 4,
 }
 
 /**

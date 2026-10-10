@@ -166,9 +166,9 @@ pages:
       A Score records how good a finished run was, as a person's thumbs with a
       comment, the three free run-health checks with their reasons, or an AI
       judge's verdict on two standard rubrics, switched on per Agent with a
-      sample rate and a monthly limit in its Quality tab, and the not-graded
-      state; whoever sees the run sees its scores, read with
-      `stigmer runs scores`.
+      sample rate and a monthly limit in its Quality tab, or a plugin eval's
+      checks on one try, and the not-graded state; whoever sees the run sees
+      its scores, read with `stigmer runs scores`.
     medium: none
 
   concepts/sessions:
@@ -255,6 +255,16 @@ pages:
       hooks run and the ones Stigmer does not run, switch the hooks on for an
       agent from the console or YAML, write hooks in an agent, remove a plugin
       an agent uses, and what differs from Claude Code.
+    medium: none
+
+  guides/plugins/test-a-plugin-with-evals:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Run a plugin's own evals/ cases on Stigmer from the console or the CLI,
+      with and without the plugin and on several models; read the table, the
+      exit codes and the result file; know what runs, what differs from Claude
+      Code, who sees an eval and who pays; and turn a bad run into a case.
     medium: none
 
   guides/plugins/marketplace-file:

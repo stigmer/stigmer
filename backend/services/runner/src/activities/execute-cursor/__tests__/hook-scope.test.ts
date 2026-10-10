@@ -12,14 +12,8 @@
  */
 
 import { describe, expect, it } from "vitest";
-import {
-  CURSOR_HOOK_TOOL_COVERS,
-  CURSOR_SDK_TOOL_COVERS,
-  ToolScope,
-  type McpScopeTable,
-  type SubAgentTypeTable,
-  type ToolLists,
-} from "../../../shared/tool-lists.js";
+import { CURSOR_HOOK_TOOL_COVERS, CURSOR_SDK_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { ToolScope, type McpScopeTable, type SubAgentTypeTable, type ToolLists } from "../../../shared/tool-lists.js";
 import { compileHookToolScope, scopeKey, TOOL_NAME_PLACEHOLDER, UNRESTRICTED_HOOK_SCOPE } from "../hook-scope.js";
 
 /** The hook's lookup, as the generated script performs it. */
@@ -137,6 +131,22 @@ describe("compileHookToolScope", () => {
     expect(compiled.otherBuiltins).toBe(true);
     expect(compiled.builtins.Shell.allowed).toBe(false);
     expect(compiled.builtins.Read.allowed).toBe(true);
+  });
+
+  it("carries the platform root for the hidden-skill refusal only when the lists deny Skill", () => {
+    const compile = (disallowedTools: string[], platformRoot?: string) =>
+      compileHookToolScope({
+        scope: ToolScope.of('Agent "a"', { tools: [], disallowedTools }),
+        servers: [],
+        platformServerSlugs: new Set(),
+        readRoot: "",
+        ...(platformRoot !== undefined ? { platformRoot } : {}),
+        subAgentTypes: [],
+      });
+    expect(compile(["Skill"], "/real/platform").skillRoot).toBe("/real/platform");
+    expect(compile(["Skill"]).skillRoot, "no platform dir, nothing to refuse").toBe("");
+    expect(compile(["Bash"], "/real/platform").skillRoot).toBe("");
+    expect(UNRESTRICTED_HOOK_SCOPE.skillRoot).toBe("");
   });
 });
 

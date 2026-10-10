@@ -5,7 +5,8 @@
  * byte-pinned INVALID_ARGUMENT copy when the Authorizer denies, the
  * permissive default allows (OSS byte-identity), no kind takes a reserved
  * key from a client (the retired personal-environment marker refuses on a
- * vault like any other), and internal
+ * vault like any other; a client cannot mark a session or run as a
+ * plugin eval's try, which the eval's server-composed requests do), and internal
  * callers skip entirely. The operator question itself
  * (mayWriteReservedLabels) answers allow as yes, deny and not-found as no,
  * and fails closed as a sanitized Internal on an authorizer that throws,
@@ -39,6 +40,8 @@ import { newPermissiveSingleTeamAuthorizer } from "../authorize.js";
 import { recordServerStampedReservedLabels } from "../server-stamped-reserved-labels.js";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { GRADES_RUN_LABEL } from "../../../domain/score/judge/judge-run.js";
+import { PLUGIN_EVAL_LABEL } from "../../../domain/plugin-eval/constants.js";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
 const USER: CallerIdentity = {
   identityId: "ida_alice",
@@ -242,6 +245,38 @@ describe("GuardReservedLabels", () => {
     await expect(Promise.resolve(step.execute(ctx))).rejects.toMatchObject({
       code: Code.InvalidArgument,
     });
+  });
+
+  it("a client cannot mark a conversation or a run as a plugin eval's try; the eval's own requests do", async () => {
+    const labels = { [PLUGIN_EVAL_LABEL]: "pev_someone_elses" };
+    const session = (caller: CallerIdentity) =>
+      new RequestContext(
+        SessionSchema,
+        create(SessionSchema, { metadata: { labels } }),
+        caller,
+        ApiResourceKind.session,
+      );
+    const run = new RequestContext(
+      RunSchema,
+      create(RunSchema, { metadata: { labels } }),
+      USER,
+      ApiResourceKind.run,
+    );
+    await expect(
+      Promise.resolve(newGuardReservedLabelsStep<typeof SessionSchema>(denying()).execute(session(USER))),
+    ).rejects.toMatchObject({ code: Code.InvalidArgument });
+    await expect(
+      Promise.resolve(newGuardReservedLabelsStep<typeof RunSchema>(denying()).execute(run)),
+    ).rejects.toMatchObject({ code: Code.InvalidArgument });
+    // The eval's workflow creates its tries in-process, acting as the
+    // eval's caller (a person or the hosted edition's eval account).
+    await expect(
+      Promise.resolve(
+        newGuardReservedLabelsStep<typeof SessionSchema>(denying()).execute(
+          session({ ...USER, origin: "in-process" }),
+        ),
+      ),
+    ).resolves.toBeUndefined();
   });
 
   it("internal callers skip — server-composed requests stamp by design", async () => {

@@ -6,7 +6,9 @@
  *    conversation participation, memory capture) is recorded as a platform
  *    server, outside every tool list, and marks no tool destructive;
  *  - the agent's tool scope is resolved from its two lists, under its slug;
- *  - the built-in assistant (no agent) is unrestricted.
+ *  - the built-in assistant (no agent) is unrestricted;
+ *  - a turn's own lists (`mainToolScope`) are one more layer, over the
+ *    agent's or over the assistant's nothing.
  * The fetch-and-provision phases around it are pinned end to end by the
  * hermetic goldens.
  */
@@ -21,7 +23,7 @@ import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 
-import { resolveMcpServersAndPolicies, type ResolutionDeps } from "../turn-context.js";
+import { mainToolScope, resolveMcpServersAndPolicies, type ResolutionDeps } from "../turn-context.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { CHANNEL_ATTACHMENT_SLUG } from "../../shared/channel-attachment.js";
@@ -121,5 +123,20 @@ describe("resolveMcpServersAndPolicies — platform servers and the agent's scop
   it("leaves the built-in assistant unrestricted", async () => {
     const mcp = await resolveMcpServersAndPolicies(deps({ channels: false }), args({ attachments: false }));
     expect(mcp.toolScope.restricted).toBe(false);
+  });
+
+  it("layers the turn's own lists over the agent's, and over the assistant's nothing", () => {
+    const agent = { id: "agt", versionHash: "v", spec: create(AgentSpecSchema, { tools: ["Read", "Grep"], disallowedTools: [] }) } as RunAgent;
+    const turn = create(RunSpecSchema, { tools: ["Read"], disallowedTools: ["Skill"] });
+    const withAgent = mainToolScope({ agent } as ResolvedBlueprint, turn);
+    expect(withAgent.depth).toBe(2);
+    expect(withAgent.allowsClaudeTool("Read")).toBe(true);
+    expect(withAgent.allowsClaudeTool("Grep"), "the turn narrows the agent's").toBe(false);
+    expect(withAgent.hidesSkills).toBe(true);
+    expect(withAgent.owner).toBe("The turn");
+    const assistant = mainToolScope({ agent: undefined } as ResolvedBlueprint, turn);
+    expect(assistant.depth).toBe(1);
+    expect(assistant.allowsClaudeTool("Bash")).toBe(false);
+    expect(mainToolScope({ agent: undefined } as ResolvedBlueprint, undefined).restricted).toBe(false);
   });
 });

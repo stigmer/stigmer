@@ -33,21 +33,34 @@ export function readBytes(
   cls: PluginDocumentClass,
   findings: Findings,
 ): Uint8Array | undefined {
+  const read = readCapped(index, path, cls);
+  if (!read.ok) {
+    findings.error("document-too-large", { path, subject: String(read.size), detail: String(read.limit) });
+    return undefined;
+  }
+  return read.bytes;
+}
+
+export type CappedRead =
+  | { readonly ok: true; readonly bytes: Uint8Array }
+  | { readonly ok: false; readonly size: number; readonly limit: number };
+
+/**
+ * One document through its class's cap, the outcome left to the caller:
+ * the declared size is checked before `read`, the returned length after.
+ * `readBytes` turns a refusal into a plugin finding; the eval reader turns
+ * it into a finding of its own vocabulary.
+ */
+export function readCapped(index: PluginFileIndex, path: string, cls: PluginDocumentClass): CappedRead {
   const limit = PLUGIN_DOCUMENT_LIMITS[cls];
   const entry = index.entry(path);
   if (entry === undefined) {
     throw new Error(`plugin file '${path}' is not listed`);
   }
-  if (entry.size > limit) {
-    findings.error("document-too-large", { path, subject: String(entry.size), detail: String(limit) });
-    return undefined;
-  }
+  if (entry.size > limit) return { ok: false, size: entry.size, limit };
   const bytes = index.files.read(path);
-  if (bytes.length > limit) {
-    findings.error("document-too-large", { path, subject: String(bytes.length), detail: String(limit) });
-    return undefined;
-  }
-  return bytes;
+  if (bytes.length > limit) return { ok: false, size: bytes.length, limit };
+  return { ok: true, bytes };
 }
 
 /** A parsed JSON object (non-null, non-array), or `undefined` after a finding of `kind`. */

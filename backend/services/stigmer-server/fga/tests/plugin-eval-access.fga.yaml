@@ -1,0 +1,292 @@
+# Store tests for plugin evals: a plugin's editors start, cancel and delete
+# its evals; its viewers in its own organization read them and, through
+# the session link, open each try's conversation, run and score, read-only.
+# A child organization's viewer of the plugin reads none of it: a try
+# spends the plugin organization's credit and may act with its
+# connections.
+#
+# An eval carries a single parent link
+#   plugin_eval#plugin@plugin:<id>
+# and no owner tuple (OWNER_ATTRIBUTION_TYPE_NONE). A try's session, in the
+# hosted edition, is owned by the organization's system-eval account and
+# carries
+#   session#plugin_eval@plugin_eval:<id>
+# which composes the eval's viewers into the session's can_view only.
+#
+# Run with:
+#   fga model test --tests plugin-eval-access.fga.yaml
+#
+# Scenario: org "acme" has admin alice, member bob (installed the thermos
+# plugin, visible to the organization and shared with child
+# organizations), member carol (no grant, sees thermos through its
+# organization visibility) and member dave (no grant; bob's private plugin
+# "secret" is invisible to him). "acme-labs" is acme's child organization;
+# its member frank sees thermos through the child-organization share.
+# "rival" is another org whose admin eve must see nothing. The try's
+# session is owned by acme's system-eval account.
+name: plugin-eval-access
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- Org roles ---
+  - user: identity_account:alice
+    relation: admin
+    object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:bob
+    relation: member
+    object: organization:acme
+  - user: identity_account:bob
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:carol
+    relation: member
+    object: organization:acme
+  - user: identity_account:carol
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:dave
+    relation: member
+    object: organization:acme
+  - user: identity_account:dave
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:eve
+    relation: admin
+    object: organization:rival
+  - user: identity_account:eve
+    relation: affiliated
+    object: organization:rival
+  - user: organization:acme
+    relation: parent_org
+    object: organization:acme-labs
+  - user: organization:acme-labs
+    relation: child_org
+    object: organization:acme
+  - user: identity_account:frank
+    relation: member
+    object: organization:acme-labs
+  - user: identity_account:frank
+    relation: affiliated
+    object: organization:acme-labs
+
+  # --- bob's thermos plugin: organization-visible and shared with child organizations ---
+  - user: organization:acme
+    relation: organization
+    object: plugin:thermos
+  - user: identity_account:bob
+    relation: owner
+    object: plugin:thermos
+  - user: organization:acme#viewer
+    relation: viewer
+    object: plugin:thermos
+  - user: organization:acme#child_org_viewer
+    relation: child_org_viewer
+    object: plugin:thermos
+  - user: plugin:thermos
+    relation: plugin
+    object: plugin_eval:thermos-eval
+
+  # --- bob's private plugin ---
+  - user: organization:acme
+    relation: organization
+    object: plugin:secret
+  - user: identity_account:bob
+    relation: owner
+    object: plugin:secret
+  - user: plugin:secret
+    relation: plugin
+    object: plugin_eval:secret-eval
+
+  # --- One try of thermos-eval: its session, run and score ---
+  - user: identity_account:sys-eval-acme
+    relation: guest
+    object: organization:acme
+  - user: identity_account:sys-eval-acme
+    relation: affiliated
+    object: organization:acme
+  - user: organization:acme
+    relation: organization
+    object: session:try-1
+  - user: identity_account:sys-eval-acme
+    relation: owner
+    object: session:try-1
+  - user: plugin_eval:thermos-eval
+    relation: plugin_eval
+    object: session:try-1
+  - user: session:try-1
+    relation: session
+    object: run:try-1-run
+  - user: run:try-1-run
+    relation: run
+    object: score:try-1-score
+
+  # --- bob's own console session (no eval link) ---
+  - user: organization:acme
+    relation: organization
+    object: session:bobs-chat
+  - user: identity_account:bob
+    relation: owner
+    object: session:bobs-chat
+
+tests:
+  - name: the plugin's owner and an organization admin start, cancel and delete evals
+    check:
+      - user: identity_account:bob
+        object: plugin_eval:thermos-eval
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+      - user: identity_account:alice
+        object: plugin_eval:thermos-eval
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+      - user: identity_account:alice
+        object: plugin_eval:secret-eval
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+
+  - name: a plugin viewer in the organization reads the eval and cannot change it
+    check:
+      - user: identity_account:carol
+        object: plugin_eval:thermos-eval
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+
+  - name: a plugin viewer in the organization opens a try read-only, with its run and score
+    check:
+      - user: identity_account:carol
+        object: session:try-1
+        assertions:
+          can_view: true
+          can_create_run_in: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+      - user: identity_account:carol
+        object: run:try-1-run
+        assertions:
+          can_view: true
+          can_edit: false
+      - user: identity_account:carol
+        object: score:try-1-score
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+      - user: identity_account:bob
+        object: session:try-1
+        assertions:
+          can_view: true
+          can_create_run_in: false
+
+  - name: a member who cannot see a private plugin sees none of its evals
+    check:
+      - user: identity_account:dave
+        object: plugin_eval:secret-eval
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+      - user: identity_account:carol
+        object: plugin_eval:secret-eval
+        assertions:
+          can_view: false
+
+  - name: a child organization's viewer of the plugin sees neither the eval nor its tries
+    check:
+      - user: identity_account:frank
+        object: plugin_eval:thermos-eval
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+      - user: identity_account:frank
+        object: session:try-1
+        assertions:
+          can_view: false
+          can_create_run_in: false
+      - user: identity_account:frank
+        object: run:try-1-run
+        assertions:
+          can_view: false
+      - user: identity_account:frank
+        object: score:try-1-score
+        assertions:
+          can_view: false
+
+  - name: another organization's admin sees nothing
+    check:
+      - user: identity_account:eve
+        object: plugin_eval:thermos-eval
+        assertions:
+          can_view: false
+          can_edit: false
+      - user: identity_account:eve
+        object: session:try-1
+        assertions:
+          can_view: false
+      - user: identity_account:eve
+        object: run:try-1-run
+        assertions:
+          can_view: false
+
+  - name: the plugin's viewers are exactly who they were before org_viewer was named
+    check:
+      - user: identity_account:bob
+        object: plugin:thermos
+        assertions:
+          viewer: true
+          org_viewer: true
+          can_view: true
+          can_edit: true
+      - user: identity_account:carol
+        object: plugin:thermos
+        assertions:
+          viewer: true
+          org_viewer: true
+          can_view: true
+          can_edit: false
+      - user: identity_account:frank
+        object: plugin:thermos
+        assertions:
+          viewer: true
+          org_viewer: false
+          can_view: true
+          can_edit: false
+      - user: identity_account:dave
+        object: plugin:secret
+        assertions:
+          viewer: false
+          can_view: false
+      - user: identity_account:eve
+        object: plugin:thermos
+        assertions:
+          viewer: false
+          can_view: false
+
+  - name: the system-eval account keeps its tries and an ordinary session gains no eval viewers
+    check:
+      - user: identity_account:sys-eval-acme
+        object: session:try-1
+        assertions:
+          can_view: true
+          can_create_run_in: true
+          can_delete: true
+      - user: identity_account:carol
+        object: session:bobs-chat
+        assertions:
+          can_view: false
+      - user: identity_account:alice
+        object: session:bobs-chat
+        assertions:
+          can_view: false

@@ -25,6 +25,7 @@ contents:
   - agentic/mcp_server.fga
   - agentic/memory.fga
   - agentic/plugin.fga
+  - agentic/plugin_eval.fga
   - agentic/run.fga
   - agentic/schedule.fga
   - agentic/score.fga

@@ -112,6 +112,7 @@ import type { OpenedPluginArchive } from "./archive.js";
 import type { PluginIdentity } from "./materialize/identity.js";
 import { McpServerOverlayError } from "./materialize/mcp-servers.js";
 import { ToolListEmptiedError } from "./materialize/tool-lists.js";
+import { evalSuiteOf } from "./materialize/evals.js";
 import { planMaterialization } from "./materialize/plan.js";
 import type { MaterializationPlan } from "./materialize/plan.js";
 import type { PluginMaterializerProvider } from "./materialize/ports.js";
@@ -904,7 +905,8 @@ export function orderForDeletion(members: readonly Member[]): Member[] {
 
 /**
  * FinalizePluginStatus — the install receipt: counts, every warning (the
- * library's and the plan's), the tool-call hooks recorded, READY.
+ * library's and the plan's), the tool-call hooks recorded, the eval suite
+ * summarised, READY.
  */
 export function newFinalizePluginStatusStep(): PipelineStep<PushDesc> {
   return {
@@ -934,6 +936,8 @@ export function newFinalizePluginStatusStep(): PipelineStep<PushDesc> {
         ...plan.warnings,
       ];
       status.hooks = plan.hooks === undefined ? undefined : hooksOf(plan.hooks);
+      status.evals =
+        plan.evals === undefined ? undefined : evalSuiteOf(plan.evals);
     },
   };
 }

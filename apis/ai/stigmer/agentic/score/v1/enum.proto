@@ -22,6 +22,14 @@ enum ScoreSource {
   // An AI judge grading the run against Stigmer's standard rubrics, switched
   // on per agent by its evaluator.
   score_source_judge = 3;
+
+  // A plugin's own eval: one try of one evals/ case, graded by the case's
+  // checks.
+  //
+  // @internal
+  // Written by the plugin-eval workflow on the try's run, one per try,
+  // with one criterion per check.
+  score_source_eval = 4;
 }
 
 // ScoreState tells whether a score carries a grade.

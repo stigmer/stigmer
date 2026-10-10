@@ -9,7 +9,8 @@
  * and its agents' tool lists, rewritten to Stigmer's names, reach the
  * agent, which references the plugin's hooks and declares the variables
  * they read, with no warning that they do not run; a plugin that is only
- * hooks installs with no members; the archive a plugin was installed from
+ * hooks installs with no members; a plugin's eval suite is summarised on
+ * its status, a case that does not load included, and never refuses it; the archive a plugin was installed from
  * is served back by key, inline and over the transfer lane, and a key
  * outside the plugin store is not found; a
  * re-push of the same archive writes nothing; a client's edit, re-push or
@@ -281,6 +282,7 @@ describe("Plugin push — materialisation", () => {
       mcpServers: 1,
       agents: 1,
     });
+    expect(installed.status?.evals).toBeUndefined();
     // The sub-agent's model hint is recorded, never applied.
     expect(installed.status?.warnings.map((w) => w.kind)).toContain(
       "model-hint-unresolved",
@@ -346,6 +348,42 @@ describe("Plugin push — materialisation", () => {
       isSecret: true,
       optional: false,
     });
+  });
+
+  it("summarises the plugin's eval suite on its status, a case that does not load included, and drops it when the suite goes", async () => {
+    const name = uniqueName("evals");
+    const judge = "---\ntype: llm\n---\nPASS if it reviews.\n";
+    let withSuite = withFile(
+      thermosLike(name),
+      "evals/reviews/prompt.md",
+      "---\ntags: [smoke]\n---\nReview this diff.",
+    );
+    withSuite = withFile(withSuite, "evals/reviews/graders/judge.md", judge);
+    withSuite = withFile(withSuite, "evals/broken/prompt.md", "No graders.");
+    const installed = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(withSuite),
+    });
+    expect(installed.status?.state).toBe(PluginState.READY);
+    expect(installed.status?.warnings.map((w) => w.path)).not.toContain(
+      "evals/",
+    );
+    const evals = installed.status?.evals;
+    expect(evals?.dir).toBe("evals");
+    expect(evals?.caseCount).toBe(1);
+    expect(evals?.caseTags).toEqual(["smoke"]);
+    expect(
+      evals?.cases.map((c) => [c.caseName, c.path, c.unsupported]),
+    ).toEqual([["reviews", "evals/reviews", ""]]);
+    expect(evals?.findings.map((f) => [f.kind, f.path])).toEqual([
+      ["eval-case-invalid", "evals/broken"],
+    ]);
+
+    const upgraded = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(thermosLike(name)),
+    });
+    expect(upgraded.status?.evals).toBeUndefined();
   });
 
   it("installs an MCP-only plugin as its servers and no agent", async () => {

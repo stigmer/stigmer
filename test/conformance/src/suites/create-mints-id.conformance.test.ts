@@ -49,6 +49,7 @@ import {
   ResourceTier,
   kind_meta,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import type { ApiResourceKindMeta } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -62,6 +63,13 @@ import { makeApiKey } from "../support/apikeys";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
 import { makeEvaluator } from "../support/evaluators";
+import {
+  cancelAndDeletePluginEval,
+  installPlugin,
+  lastMessageGrader,
+  makePluginEval,
+  skillPluginWithEvals,
+} from "../support/plugin-evals";
 import { makeMcpServer } from "../support/mcpservers";
 import { enableOrganizationMemory, makeMemory } from "../support/memories";
 import { foreignId, uniqueName, uniqueOrg } from "../support/naming";
@@ -406,6 +414,34 @@ const ROWS: readonly Row[] = [
     },
     async read(id) {
       return (await clients.evaluatorQuery.get({ value: id })).metadata?.id;
+    },
+  },
+  {
+    // On a server with no engine the eval is stored failed (its workflow
+    // cannot start), which still mints and stores its id.
+    title: "[rpc:PluginEvalCommandController.create] PluginEval",
+    key: "PluginEvalCommandController.create",
+    kind: ApiResourceKind.plugin_eval,
+    async send({ org }, chosenId) {
+      const name = uniqueName("mint-pev");
+      const plugin = await installPlugin(
+        clients,
+        fixtures,
+        org,
+        skillPluginWithEvals(name, {
+          skill: `${name}-notes`,
+          cases: [{ name: "only", prompt: "Say DONE.", graders: [lastMessageGrader("says-done", "DONE")] }],
+        }),
+      );
+      const created = await clients.pluginEvalCommand.create({
+        ...makePluginEval({ org, pluginId: plugin.metadata!.id, ablation: PluginEvalAblation.none }),
+        metadata: { id: chosenId, org },
+      });
+      fixtures.defer(() => cancelAndDeletePluginEval(clients, created.metadata!.id));
+      return answerOf(this.key, created.metadata);
+    },
+    async read(id) {
+      return (await clients.pluginEvalQuery.get({ value: id })).metadata?.id;
     },
   },
   {

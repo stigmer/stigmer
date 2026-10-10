@@ -75,7 +75,7 @@ import {
 import { builderOver } from "../__test-utils__/fold.js";
 import { scopeRefusalToken, toolCallIdentityToken } from "../approval-state.js";
 import { scopeKey } from "../hook-scope.js";
-import { CURSOR_HOOK_TOOL_COVERS } from "../../../shared/tool-lists.js";
+import { CURSOR_HOOK_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 import { generateHookScript } from "../hook-script.js";

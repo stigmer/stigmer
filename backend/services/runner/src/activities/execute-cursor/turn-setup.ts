@@ -44,9 +44,9 @@ import { isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { excludeAppliedFromGrants } from "../../shared/exact-apply.js";
 import { executionFingerprintKey } from "../../shared/fingerprint-secret.js";
 import { realpath } from "node:fs/promises";
+import { CURSOR_SDK_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import {
-  CURSOR_SDK_TOOL_COVERS,
-  checkToolListResolution,
+  checkMainToolListResolution,
   claudeToolsOf,
   cursorSdkToolOptions,
   type TurnToolInventory,
@@ -228,8 +228,9 @@ export class CursorToolListRefusal extends Error {
  *    `cursor-hook-protocol.live.test.ts`), so nothing could hold one back.
  *    The native engine enforces the list; bare `Agent` and an excluded
  *    `Agent` need no type check and pass;
- *  - a non-empty `tools` names nothing this turn has (`checkToolListResolution`),
- *    as Claude refuses to launch such an agent.
+ *  - a non-empty `tools`, the agent's or the turn's, names nothing this turn
+ *    has (`checkMainToolListResolution`), as Claude refuses to launch such an
+ *    agent.
  */
 export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentMode }): void {
   const scope = input.mcp.toolScope;
@@ -254,15 +255,21 @@ export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentM
   // Limited to a type list: Agent admitted, yet a type no entry names is not
   // (a bare `Agent` beside a typed one lifts the limit, as in Claude).
   if (scope.allowsClaudeTool("Agent") && !scope.subAgentTypeTable([]).otherTypes) {
-    const typeLists = scope.ownEntries.tools.filter(
-      (e) => e.kind === "builtin" && e.tool === "Agent" && e.agentTypes !== null,
-    );
+    // Each owner whose list types `Agent`: the agent's, the turn's, or both.
+    const named = Array.from({ length: scope.depth }, (_, i) => scope.upTo(i + 1))
+      .map((layer) => ({
+        owner: layer.owner,
+        typeLists: layer.ownEntries.tools.filter((e) => e.kind === "builtin" && e.tool === "Agent" && e.agentTypes !== null),
+      }))
+      .filter((l) => l.typeLists.length > 0)
+      .map((l) => `${l.owner} lists ${l.typeLists.map((e) => e.raw).join(", ")}`)
+      .join("; ");
     throw new CursorToolListRefusal(
-      `${scope.owner} lists ${typeLists.map((e) => e.raw).join(", ")}, which the Cursor engine cannot enforce: ` +
+      `${named}, which the Cursor engine cannot enforce: ` +
         "it cannot limit which sub-agents an agent starts. Run this agent on the native engine, or list Agent without types.",
     );
   }
-  checkToolListResolution(scope, cursorToolInventory(input.mcp.servers, input.mcp.platformServerSlugs), (line) =>
+  checkMainToolListResolution(scope, cursorToolInventory(input.mcp.servers, input.mcp.platformServerSlugs), (line) =>
     console.log(`ExecuteCursor tool lists: execution=${input.executionId}: ${line}`),
   );
 }
@@ -375,6 +382,20 @@ export async function prepareHooks(
 export async function platformReadRoot(primaryDir: string, platformDir: string): Promise<string> {
   if (!(await stigmerSymlinkPointsAt(primaryDir, platformDir))) return "";
   return realpath(platformDir);
+}
+
+/**
+ * The platform dir's real path whatever the link says, for the hidden-skill
+ * refusal (`HookToolScope.skillRoot`): a skill an earlier turn mounted stays
+ * refused even on a turn that made no link. "" when the dir does not exist,
+ * which leaves nothing to refuse.
+ */
+export async function platformRealRoot(platformDir: string): Promise<string> {
+  try {
+    return await realpath(platformDir);
+  } catch {
+    return "";
+  }
 }
 
 /**
@@ -499,6 +520,7 @@ export async function installGate(
       servers: mcp.servers,
       platformServerSlugs: mcp.platformServerSlugs,
       readRoot: mcp.toolScope.restricted ? await platformReadRoot(primaryDir, getPlatformDir(sessionId)) : "",
+      platformRoot: mcp.toolScope.hidesSkills ? await platformRealRoot(getPlatformDir(sessionId)) : "",
       subAgentTypes: subAgentsInScope(input.blueprint.subAgents, mcp.toolScope).map((sa) => sa.name),
     }),
   );
@@ -783,8 +805,8 @@ export async function createFreshAgent(engine: CursorEngine): Promise<AgentResol
 /**
  * Build the prompt in the shape the resolution calls for (`prompt-builder.ts`
  * `buildPrompt`), with the per-turn directives that ride every send this
- * turn makes (the structured-output contract, the implement-plan directive)
- * and the vision payload policy.
+ * turn makes (the structured-output contract, the implement-plan directive,
+ * the turn's appended system prompt) and the vision payload policy.
  */
 export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: CursorEngine, rows: AdjudicatedRows): Promise<CursorPrompt> {
   const { executionId, blueprint, standing, attachments, workspace, approvalDecisions, appliedToolCallIds, structuredOutputSchema } = input;
@@ -803,6 +825,7 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
     workspaceFileRefs: spec.workspaceFileRefs ?? [],
     attachments: attachments.results,
     vision: visionPromptInfoOf(attachments),
+    appendSystemPrompt: input.appendSystemPrompt,
     pendingApprovals: rows.adjudicatedApprovals,
     appliedToolCallIds,
     interactionMode,

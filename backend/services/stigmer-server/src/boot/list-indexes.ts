@@ -24,9 +24,13 @@
  * delete one run's (domain/score/list-index.ts). And `evaluator` joins for
  * its parent: the grading workflow reads one agent's evaluator for every
  * completed run that names an agent (domain/evaluator/list-index.ts).
+ * And `plugin_eval` joins for its parent: a plugin's page lists its evals
+ * newest first, and the plugin's delete reads them
+ * (domain/plugin-eval/list-index.ts).
  */
 import { agentExecutionListIndex } from "../domain/run/list-index.js";
 import { evaluatorListIndex } from "../domain/evaluator/list-index.js";
+import { pluginEvalListIndex } from "../domain/plugin-eval/list-index.js";
 import { iamPolicyListIndex } from "../domain/iampolicy/list-index.js";
 import { memoryListIndex } from "../domain/memory/list-index.js";
 import { organizationListIndex } from "../domain/organization/list-index.js";
@@ -38,6 +42,7 @@ import type { ListIndexDeclaration } from "../store/list-index.js";
 export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   agentExecutionListIndex,
   evaluatorListIndex,
+  pluginEvalListIndex,
   iamPolicyListIndex,
   memoryListIndex,
   organizationListIndex,

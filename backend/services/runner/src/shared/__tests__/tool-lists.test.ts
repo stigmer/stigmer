@@ -10,7 +10,13 @@
  *    extras hidden only by an allow-list;
  *  - the run-time check: an entry naming nothing is logged, a list resolving
  *    to nothing (or fully denied by its own deny-list) throws;
- *  - the Cursor SDK options keep `read` and `mcp`.
+ *  - the Cursor SDK options keep `read` and `mcp`;
+ *  - a turn's lists over the agent's (`ToolScope.ofMain`): a layer that only
+ *    narrows, type lists that intersect, and a check that judges each layer
+ *    against the ones before it;
+ *  - `Skill`: denied by any layer it hides skills, an allow-list that omits
+ *    it does not, and an entry naming it always names something, so a list
+ *    of `Skill` alone resolves under an outer allow-list that omits it.
  */
 
 import { describe, it, expect } from "vitest";
@@ -18,15 +24,18 @@ import {
   CURSOR_SDK_EXTRA_TOOLS,
   CURSOR_SDK_TOOL_COVERS,
   NATIVE_TOOL_COVERS,
+  type ClaudeTool,
+} from "@stigmer/tool-vocabulary";
+import {
   ToolListResolutionError,
   ToolScope,
   normalizeSubAgentType,
+  checkMainToolListResolution,
   checkToolListResolution,
   claudeToolsOf,
   cursorSdkToolOptions,
   outOfScopeMessage,
   parseToolListEntry,
-  type ClaudeTool,
   type ToolLists,
   type TurnToolInventory,
 } from "../tool-lists.js";
@@ -359,5 +368,96 @@ describe("cursorSdkToolOptions", () => {
     expect(deny.disallowedTools).not.toContain("read");
     expect(deny.disallowedTools).toEqual(expect.arrayContaining(["edit", "delete"]));
     expect(deny.tools).toBeUndefined();
+  });
+});
+
+describe("a turn's lists over the agent's (ToolScope.ofMain)", () => {
+  const TURN = "The turn";
+  const main = (agent: ToolLists, turn: ToolLists): ToolScope =>
+    ToolScope.ofMain([
+      { owner: AGENT, lists: agent },
+      { owner: TURN, lists: turn },
+    ]);
+
+  it("narrows and never widens: the turn's allow-list cannot admit what the agent denies", () => {
+    const scope = main(lists([], ["Bash"]), lists(["Bash", "Read"]));
+    expect(scope.allowsClaudeTool("Read")).toBe(true);
+    expect(scope.allowsClaudeTool("Bash"), "the agent denies it").toBe(false);
+    expect(scope.allowsClaudeTool("Grep"), "the turn's allow-list omits it").toBe(false);
+    expect(scope.depth).toBe(2);
+    expect(scope.owner).toBe(TURN);
+  });
+
+  it("adds no layer for empty lists, so an assistant turn without lists stays unrestricted", () => {
+    expect(ToolScope.ofMain([{ owner: TURN, lists: lists([]) }]).restricted).toBe(false);
+    expect(main(lists(["Read"]), lists([])).depth).toBe(1);
+  });
+
+  it("intersects the owners' Agent(type, …) lists, and a layer without one lifts nothing", () => {
+    const both = main(lists(["Agent(explore, plan)"]), lists(["Agent(plan, review)"]));
+    expect(both.allowsSubAgentType("plan")).toBe(true);
+    expect(both.allowsSubAgentType("explore")).toBe(false);
+    expect(both.allowsSubAgentType("review")).toBe(false);
+    const turnOnly = main(lists([]), lists(["Agent(explore)"]));
+    expect(turnOnly.allowsSubAgentType("explore")).toBe(true);
+    expect(turnOnly.allowsSubAgentType("plan"), "the turn's own type list binds").toBe(false);
+    const agentOnly = main(lists(["Agent(explore)"]), lists(["Agent"]));
+    expect(agentOnly.allowsSubAgentType("plan"), "a bare Agent in the turn lifts nothing").toBe(false);
+  });
+
+  it("judges each layer against the ones before it: the agent's list as the agent's, then the turn's", () => {
+    const logs: string[] = [];
+    const inv = inventory(ALL_BUILTINS);
+    expect(() => checkMainToolListResolution(main(lists(["Read", "Bash"]), lists(["Grep"])), inv, (l) => logs.push(l))).toThrow(
+      new ToolListResolutionError(TURN, ["Grep"]),
+    );
+    expect(() => checkMainToolListResolution(main(lists(["Read", "Bash"]), lists(["Read"])), inv, (l) => logs.push(l))).not.toThrow();
+    expect(() => checkMainToolListResolution(main(lists(["NoSuch"]), lists(["Read"])), inv, (l) => logs.push(l))).toThrow(
+      new ToolListResolutionError(AGENT, ["NoSuch"]),
+    );
+    expect(logs).toEqual([`${AGENT}: tool list entry "NoSuch" names no tool this turn has; ignored`]);
+  });
+
+  it("describes every layer in a refusal, owner by owner", () => {
+    const scope = main(lists([], ["Bash"]), lists(["Read"]));
+    expect(outOfScopeMessage("grep", scope)).toContain(`${AGENT}: disallowed_tools [Bash]; ${TURN}: tools [Read]`);
+  });
+});
+
+describe("Skill", () => {
+  it("denied by any layer hides skills; an allow-list that omits it does not", () => {
+    expect(scopeOf([], ["Skill"]).hidesSkills).toBe(true);
+    expect(scopeOf([], ["Skill(alpha)"]).hidesSkills, "a specifier governs the whole tool").toBe(true);
+    expect(scopeOf(["Read"]).hidesSkills).toBe(false);
+    expect(ToolScope.unrestricted().hidesSkills).toBe(false);
+    expect(scopeOf(["Read"]).narrow('Sub-agent "s"', lists([], ["Skill"])).hidesSkills).toBe(true);
+  });
+
+  it("always names something, so a list of Skill alone resolves and a deny of it is never logged", () => {
+    const logs: string[] = [];
+    expect(() => checkToolListResolution(scopeOf(["Skill"]), inventory([]), (l) => logs.push(l))).not.toThrow();
+    checkToolListResolution(scopeOf([], ["Skill"]), inventory(ALL_BUILTINS), (l) => logs.push(l));
+    expect(logs).toEqual([]);
+  });
+
+  it("resolves under an outer allow-list that omits it, which keeps skills, and not under one that denies it", () => {
+    const inv = inventory(ALL_BUILTINS);
+    const over = (agent: ToolLists): ToolScope =>
+      ToolScope.ofMain([
+        { owner: AGENT, lists: agent },
+        { owner: "The turn", lists: lists(["Skill"]) },
+      ]);
+    expect(() => checkMainToolListResolution(over(lists(["Read"])), inv, () => undefined)).not.toThrow();
+    expect(() => checkToolListResolution(scopeOf(["Read"]).narrow('Sub-agent "s"', lists(["Skill"])), inv, () => undefined)).not.toThrow();
+    expect(() => checkMainToolListResolution(over(lists(["Read"], ["Skill"])), inv, () => undefined)).toThrow(
+      new ToolListResolutionError("The turn", ["Skill"]),
+    );
+  });
+
+  it("names tools Stigmer runs nothing for as unknown, ignored with the log line", () => {
+    const logs: string[] = [];
+    checkToolListResolution(scopeOf(["Read", "AskUserQuestion", "NotebookRead", "TaskCreate"]), inventory(ALL_BUILTINS), (l) => logs.push(l));
+    expect(logs).toHaveLength(3);
+    expect(parseToolListEntry("AskUserQuestion").kind).toBe("unknown");
   });
 });

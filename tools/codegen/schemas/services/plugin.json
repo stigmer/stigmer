@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.agentic.plugin.v1.PluginId",
           "outputType": "Plugin",
           "outputFullType": "ai.stigmer.agentic.plugin.v1.Plugin",
-          "description": "Delete a plugin and every resource it materialised.\n Refused when a resource outside the plugin still references a member;\n the error names the referencing resources."
+          "description": "Delete a plugin and every resource it materialised, its evals included.\n Refused when a resource outside the plugin still references a member;\n the error names the referencing resources. Refused while one of its\n evals is pending or running: cancel that eval first."
         }
       ]
     },
@@ -328,6 +328,7 @@
               "vault",
               "score",
               "evaluator",
+              "plugin_eval",
               "plan",
               "subscription",
               "license"
@@ -722,6 +723,11 @@
           "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
         },
         {
+          "name": "plugin_eval",
+          "number": 63,
+          "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
+        },
+        {
           "name": "plan",
           "number": 70,
           "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
@@ -906,6 +912,17 @@
           "messageType": "HookConfig"
         },
         "description": "The plugin's tool-call hooks, as recorded at install; unset when the\n plugin carries none.",
+        "required": false
+      },
+      {
+        "name": "Evals",
+        "jsonName": "evals",
+        "protoField": "evals",
+        "type": {
+          "kind": "message",
+          "messageType": "PluginEvalSuite"
+        },
+        "description": "The plugin's evals/ test cases, as read at install; unset when the\n plugin carries none.",
         "required": false
       }
     ]
@@ -1201,6 +1218,126 @@
             "kind": "bool"
           },
           "description": "Whether a crash, timeout or missing answer blocks the call instead of\n letting it through. Cursor's format only.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalSuite",
+      "description": "PluginEvalSuite summarises a plugin's evals/ test cases.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PluginEvalSuite",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
+      "fields": [
+        {
+          "name": "Dir",
+          "jsonName": "dir",
+          "protoField": "dir",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The suite's directory relative to the plugin's root: \"evals\", or the\n manifest's experimental.evals.",
+          "required": false
+        },
+        {
+          "name": "CaseCount",
+          "jsonName": "caseCount",
+          "protoField": "case_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Cases found in the suite.",
+          "required": false
+        },
+        {
+          "name": "CaseTags",
+          "jsonName": "caseTags",
+          "protoField": "case_tags",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "The tags the listed cases carry, once each, sorted: at most 200.",
+          "required": false
+        },
+        {
+          "name": "Cases",
+          "jsonName": "cases",
+          "protoField": "cases",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginEvalSuiteCase"
+            }
+          },
+          "description": "Each case, in directory order.",
+          "required": false
+        },
+        {
+          "name": "Findings",
+          "jsonName": "findings",
+          "protoField": "findings",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginWarning"
+            }
+          },
+          "description": "Problems reading the suite: a case that cannot load, an unknown field.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalSuiteCase",
+      "description": "PluginEvalSuiteCase is one case of a plugin's eval suite.",
+      "protoType": "ai.stigmer.agentic.plugin.v1.PluginEvalSuiteCase",
+      "protoFile": "apis/ai/stigmer/agentic/plugin/v1/status.proto",
+      "fields": [
+        {
+          "name": "CaseName",
+          "jsonName": "caseName",
+          "protoField": "case_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The case's name.",
+          "required": false
+        },
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The case's directory, relative to the plugin's root.",
+          "required": false
+        },
+        {
+          "name": "CaseTags",
+          "jsonName": "caseTags",
+          "protoField": "case_tags",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "The case's tags.",
+          "required": false
+        },
+        {
+          "name": "Unsupported",
+          "jsonName": "unsupported",
+          "protoField": "unsupported",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Why Stigmer cannot run the case yet, naming the feature, as in\n \"context.scaffold_script\"; empty when it can.",
           "required": false
         }
       ]

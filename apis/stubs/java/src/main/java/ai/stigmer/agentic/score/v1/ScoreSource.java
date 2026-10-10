@@ -45,6 +45,15 @@ public enum ScoreSource
    * <code>score_source_judge = 3;</code>
    */
   score_source_judge(3),
+  /**
+   * <pre>
+   * A plugin's own eval: one try of one evals/ case, graded by the case's
+   * checks.
+   * </pre>
+   *
+   * <code>score_source_eval = 4;</code>
+   */
+  score_source_eval(4),
   UNRECOGNIZED(-1),
   ;
 
@@ -87,6 +96,15 @@ public enum ScoreSource
    * <code>score_source_judge = 3;</code>
    */
   public static final int score_source_judge_VALUE = 3;
+  /**
+   * <pre>
+   * A plugin's own eval: one try of one evals/ case, graded by the case's
+   * checks.
+   * </pre>
+   *
+   * <code>score_source_eval = 4;</code>
+   */
+  public static final int score_source_eval_VALUE = 4;
 
 
   public final int getNumber() {
@@ -117,6 +135,7 @@ public enum ScoreSource
       case 1: return score_source_check;
       case 2: return score_source_human;
       case 3: return score_source_judge;
+      case 4: return score_source_eval;
       default: return null;
     }
   }

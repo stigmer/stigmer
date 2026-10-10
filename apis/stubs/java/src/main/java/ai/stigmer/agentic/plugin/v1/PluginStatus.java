@@ -409,6 +409,47 @@ private static final long serialVersionUID = 0L;
     return hooks_ == null ? ai.stigmer.agentic.plugin.v1.HookConfig.getDefaultInstance() : hooks_;
   }
 
+  public static final int EVALS_FIELD_NUMBER = 8;
+  private ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals_;
+  /**
+   * <pre>
+   * The plugin's evals/ test cases, as read at install; unset when the
+   * plugin carries none.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+   * @return Whether the evals field is set.
+   */
+  @java.lang.Override
+  public boolean hasEvals() {
+    return ((bitField0_ & 0x00000008) != 0);
+  }
+  /**
+   * <pre>
+   * The plugin's evals/ test cases, as read at install; unset when the
+   * plugin carries none.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+   * @return The evals.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugin.v1.PluginEvalSuite getEvals() {
+    return evals_ == null ? ai.stigmer.agentic.plugin.v1.PluginEvalSuite.getDefaultInstance() : evals_;
+  }
+  /**
+   * <pre>
+   * The plugin's evals/ test cases, as read at install; unset when the
+   * plugin carries none.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugin.v1.PluginEvalSuiteOrBuilder getEvalsOrBuilder() {
+    return evals_ == null ? ai.stigmer.agentic.plugin.v1.PluginEvalSuite.getDefaultInstance() : evals_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -443,6 +484,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(7, getHooks());
+    }
+    if (((bitField0_ & 0x00000008) != 0)) {
+      output.writeMessage(8, getEvals());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -485,6 +529,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(7, getHooks());
+    }
+    if (((bitField0_ & 0x00000008) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(8, getEvals());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -529,6 +577,11 @@ private static final long serialVersionUID = 0L;
       if (!getHooks()
           .equals(other.getHooks())) return false;
     }
+    if (hasEvals() != other.hasEvals()) return false;
+    if (hasEvals()) {
+      if (!getEvals()
+          .equals(other.getEvals())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -563,6 +616,10 @@ private static final long serialVersionUID = 0L;
     if (hasHooks()) {
       hash = (37 * hash) + HOOKS_FIELD_NUMBER;
       hash = (53 * hash) + getHooks().hashCode();
+    }
+    if (hasEvals()) {
+      hash = (37 * hash) + EVALS_FIELD_NUMBER;
+      hash = (53 * hash) + getEvals().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -703,6 +760,7 @@ private static final long serialVersionUID = 0L;
         internalGetMaterializedFieldBuilder();
         internalGetWarningsFieldBuilder();
         internalGetHooksFieldBuilder();
+        internalGetEvalsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -734,6 +792,11 @@ private static final long serialVersionUID = 0L;
       if (hooksBuilder_ != null) {
         hooksBuilder_.dispose();
         hooksBuilder_ = null;
+      }
+      evals_ = null;
+      if (evalsBuilder_ != null) {
+        evalsBuilder_.dispose();
+        evalsBuilder_ = null;
       }
       return this;
     }
@@ -812,6 +875,12 @@ private static final long serialVersionUID = 0L;
             : hooksBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.evals_ = evalsBuilder_ == null
+            ? evals_
+            : evalsBuilder_.build();
+        to_bitField0_ |= 0x00000008;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -879,6 +948,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasHooks()) {
         mergeHooks(other.getHooks());
+      }
+      if (other.hasEvals()) {
+        mergeEvals(other.getEvals());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -953,6 +1025,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000080;
               break;
             } // case 58
+            case 66: {
+              input.readMessage(
+                  internalGetEvalsFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 66
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -2133,6 +2212,172 @@ private static final long serialVersionUID = 0L;
         hooks_ = null;
       }
       return hooksBuilder_;
+    }
+
+    private ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.plugin.v1.PluginEvalSuite, ai.stigmer.agentic.plugin.v1.PluginEvalSuite.Builder, ai.stigmer.agentic.plugin.v1.PluginEvalSuiteOrBuilder> evalsBuilder_;
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     * @return Whether the evals field is set.
+     */
+    public boolean hasEvals() {
+      return ((bitField0_ & 0x00000100) != 0);
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     * @return The evals.
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginEvalSuite getEvals() {
+      if (evalsBuilder_ == null) {
+        return evals_ == null ? ai.stigmer.agentic.plugin.v1.PluginEvalSuite.getDefaultInstance() : evals_;
+      } else {
+        return evalsBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    public Builder setEvals(ai.stigmer.agentic.plugin.v1.PluginEvalSuite value) {
+      if (evalsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        evals_ = value;
+      } else {
+        evalsBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    public Builder setEvals(
+        ai.stigmer.agentic.plugin.v1.PluginEvalSuite.Builder builderForValue) {
+      if (evalsBuilder_ == null) {
+        evals_ = builderForValue.build();
+      } else {
+        evalsBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    public Builder mergeEvals(ai.stigmer.agentic.plugin.v1.PluginEvalSuite value) {
+      if (evalsBuilder_ == null) {
+        if (((bitField0_ & 0x00000100) != 0) &&
+          evals_ != null &&
+          evals_ != ai.stigmer.agentic.plugin.v1.PluginEvalSuite.getDefaultInstance()) {
+          getEvalsBuilder().mergeFrom(value);
+        } else {
+          evals_ = value;
+        }
+      } else {
+        evalsBuilder_.mergeFrom(value);
+      }
+      if (evals_ != null) {
+        bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    public Builder clearEvals() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      evals_ = null;
+      if (evalsBuilder_ != null) {
+        evalsBuilder_.dispose();
+        evalsBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginEvalSuite.Builder getEvalsBuilder() {
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return internalGetEvalsFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginEvalSuiteOrBuilder getEvalsOrBuilder() {
+      if (evalsBuilder_ != null) {
+        return evalsBuilder_.getMessageOrBuilder();
+      } else {
+        return evals_ == null ?
+            ai.stigmer.agentic.plugin.v1.PluginEvalSuite.getDefaultInstance() : evals_;
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.plugin.v1.PluginEvalSuite, ai.stigmer.agentic.plugin.v1.PluginEvalSuite.Builder, ai.stigmer.agentic.plugin.v1.PluginEvalSuiteOrBuilder> 
+        internalGetEvalsFieldBuilder() {
+      if (evalsBuilder_ == null) {
+        evalsBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.plugin.v1.PluginEvalSuite, ai.stigmer.agentic.plugin.v1.PluginEvalSuite.Builder, ai.stigmer.agentic.plugin.v1.PluginEvalSuiteOrBuilder>(
+                getEvals(),
+                getParentForChildren(),
+                isClean());
+        evals_ = null;
+      }
+      return evalsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.plugin.v1.PluginStatus)

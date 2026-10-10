@@ -160,6 +160,11 @@ import {
   pluginLiveTag,
 } from "./push.js";
 import { pluginSearchExtractor } from "./search-extractor.js";
+import {
+  newCascadeDeletePluginEvalsStep,
+  newSweepPluginEvalsAfterDeleteStep,
+} from "../plugin-eval/cascade.js";
+import type { PluginEvalCascadeDeps } from "../plugin-eval/cascade.js";
 
 export interface PluginControllerDeps {
   readonly store: Store;
@@ -170,6 +175,8 @@ export interface PluginControllerDeps {
   readonly materializerProvider: PluginMaterializerProvider;
   /** The skill lane's staging port (one upload surface for every archive); absent, the lane answers FailedPrecondition. */
   readonly staging?: ArchiveStaging;
+  /** The plugin's evals, removed by its delete (domain/plugin-eval/cascade.ts); absent, the delete removes none. */
+  readonly pluginEvals?: PluginEvalCascadeDeps;
 }
 
 /** Registers both plugin services on the router (routes stage). */
@@ -509,6 +516,7 @@ async function deletePlugin(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, PluginSchema))
     .addStep(newGuardMembersUnreferencedStep(deps.store))
+    .addStep(newCascadeDeletePluginEvalsStep<DeleteDesc>(deps.pluginEvals))
     .addStep(
       newCascadeDeleteMembersStep(deps.materializerProvider, deps.logger),
     )
@@ -519,6 +527,7 @@ async function deletePlugin(
       }),
     )
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newSweepPluginEvalsAfterDeleteStep<DeleteDesc>(deps.pluginEvals))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

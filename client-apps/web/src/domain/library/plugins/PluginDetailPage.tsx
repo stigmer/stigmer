@@ -17,6 +17,7 @@ import {
 } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { getAgentSessionUrl } from "@/domain/session/session-url";
+import { useRunNavigation } from "@/domain/runs/run-navigation";
 
 interface PluginDetailPageInnerProps {
   readonly org: string;
@@ -26,6 +27,7 @@ interface PluginDetailPageInnerProps {
 export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps) {
   const router = useRouter();
   const { navigateToDetail } = useLibraryNavigation();
+  const { navigateToRun } = useRunNavigation();
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Plugin");
@@ -102,6 +104,7 @@ export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps)
         onCreateAgent={(usages) =>
           router.push(`/library/agents/new?mcp=${usages.map((u) => encodeURIComponent(u.mcpServerRef.slug)).join(",")}`)
         }
+        onNavigateToRun={navigateToRun}
         actions={actions}
       />
       <ConfirmDialog

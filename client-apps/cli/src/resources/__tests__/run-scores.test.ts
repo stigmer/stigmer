@@ -4,6 +4,7 @@
 // reasons as flags, the list asked for by run id, -o json and -o yaml
 // carrying the scores' own envelopes, the table written to stdout by
 // default, and `stigmer get score <id>` reading one score by its id only.
+// A plugin eval's row lists every check of its case with its verdict.
 
 import { clone, create } from "@bufbuild/protobuf";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
@@ -84,7 +85,33 @@ const grading: Score = create(ScoreSchema, {
   status: { state: ScoreState.pending },
 });
 
+const evalScore: Score = create(ScoreSchema, {
+  metadata: { id: "scr_6", org: "acme" },
+  spec: {
+    runId: "run_3",
+    metric: "eval",
+    source: ScoreSource.eval,
+    value: { case: "passed", value: false },
+    criteria: [
+      { name: "criteria", result: CriterionResult.passed, reason: "names fetchUser" },
+      { name: "skill-fired", result: CriterionResult.not_applicable, reason: "indicator only" },
+      { name: "mentions-callers", result: CriterionResult.failed, reason: "no call site\nnamed" },
+    ],
+  },
+  status: { state: ScoreState.graded },
+});
+
 describe("renderScoresTable", () => {
+  it("shows a plugin eval's verdict with every check of its case, passed or not, on one line, given by the platform", () => {
+    const out = renderScoresTable([evalScore]);
+    const row = out.split("\n").find((line) => line.startsWith("eval")) ?? "";
+    expect(row).toMatch(/\beval\b.*\bfail\b/);
+    expect(row).toContain(
+      "criteria: passed (names fetchUser); skill-fired: not applicable (indicator only); mentions-callers: failed (no call site named)",
+    );
+    expect(row).toContain("platform");
+  });
+
   it("shows the judge's verdict, its failed rubric on one line and the model that graded it, and a pending grade as grading", () => {
     const out = renderScoresTable([judged, grading]);
     expect(out).toContain("judge");

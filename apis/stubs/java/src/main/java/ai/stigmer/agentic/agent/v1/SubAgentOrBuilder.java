@@ -198,6 +198,7 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * Tools this sub-agent may never use, in the same names as tools.
+   * Disallowing Skill hides this sub-agent's skills, as on AgentSpec.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -208,6 +209,7 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * Tools this sub-agent may never use, in the same names as tools.
+   * Disallowing Skill hides this sub-agent's skills, as on AgentSpec.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -217,6 +219,7 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * Tools this sub-agent may never use, in the same names as tools.
+   * Disallowing Skill hides this sub-agent's skills, as on AgentSpec.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -227,6 +230,7 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * Tools this sub-agent may never use, in the same names as tools.
+   * Disallowing Skill hides this sub-agent's skills, as on AgentSpec.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 8 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>

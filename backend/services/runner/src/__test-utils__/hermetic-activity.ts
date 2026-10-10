@@ -100,6 +100,8 @@ import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/r
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
+import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { AgentVersionEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import { ExecutionValuesSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -137,6 +139,8 @@ export interface ExecutionRecordInput {
    * is in"). Defaults to UNSPECIFIED: keep going.
    */
   readonly controlSignal?: (status: RunStatus) => RunControlSignal;
+  /** The skills the control plane holds, answered by slug; any other reference is NotFound. */
+  readonly skills?: readonly Skill[];
 }
 
 /**
@@ -167,6 +171,7 @@ export class ExecutionRecord {
   readonly session: Session;
   readonly agent: Agent | undefined;
   private readonly controlSignal: (status: RunStatus) => RunControlSignal;
+  private readonly skills: readonly Skill[];
   /** Every `updateStatus` payload, in order, snapshotted at write time. */
   readonly persisted: RunStatus[] = [];
   /** Fired after every full-status `applyStatusUpdate`; {@link whenToolCallsSettled} subscribes here. */
@@ -185,6 +190,7 @@ export class ExecutionRecord {
     this.session = input.session;
     this.agent = input.agent;
     this.controlSignal = input.controlSignal ?? (() => RunControlSignal.UNSPECIFIED);
+    this.skills = input.skills ?? [];
   }
 
   get executionId(): string {
@@ -442,6 +448,11 @@ export class ExecutionRecord {
       }),
       // A run whose agent and tools declare nothing: the fetch answers no values.
       fetchExecutionValues: vi.fn(async () => create(ExecutionValuesSchema)),
+      getSkillByReference: vi.fn(async (ref: ApiResourceReference) => {
+        const skill = this.skills.find((s) => s.metadata?.slug === ref.slug);
+        if (skill === undefined) throw new ConnectError(`skill not found: ${ref.slug}`, Code.NotFound);
+        return skill;
+      }),
       ...overrides,
     } as Partial<StigmerClient>);
   }

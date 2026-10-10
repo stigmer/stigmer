@@ -61,6 +61,13 @@ normalised types mirror the protos (`SubAgent`, `EnvVarDeclaration`,
   `url` is sent literally (refused), and a stdio `env` can only pass a
   declared variable by its own name, so only `KEY: "${KEY}"` is
   representable (anything else refused).
+- **The eval suite is read, never refused.** `readEvalSuite` reads a
+  plugin's `evals/` folder (or its manifest's `experimental.evals`) in Claude
+  Code's plugin-eval format into cases and findings. A suite is the author's
+  tests rather than something Stigmer installs, so a broken case is a
+  finding beside the others, never a refused install. Its sentences live
+  with it in `src/evals/` and start with the file they name, the shape
+  Claude Code's own loader prints.
 - **The `./testing` entry** builds in-memory plugins in each dialect's exact
   layout, so consumers' tests and this library's own adversarial suite craft
   fixtures from one source.

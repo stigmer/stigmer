@@ -1,0 +1,5 @@
+---
+type: llm
+---
+
+PASS always.

@@ -22,6 +22,7 @@ from ._organization import OrganizationClient
 from ._plan import PlanClient
 from ._platformclient import PlatformClientClient
 from ._plugin import PluginClient
+from ._plugineval import PluginEvalClient
 from ._providerkey import ProviderKeyClient
 from ._run import RunClient
 from ._schedule import ScheduleClient
@@ -55,6 +56,7 @@ class GeneratedClient:
         self.plans = PlanClient(channel)
         self.platformclients = PlatformClientClient(channel)
         self.plugins = PluginClient(channel)
+        self.pluginevals = PluginEvalClient(channel)
         self.providerkeys = ProviderKeyClient(channel)
         self.runs = RunClient(channel)
         self.schedules = ScheduleClient(channel)

@@ -22,7 +22,7 @@ PLUGIN_STATE_READY: PluginState
 PLUGIN_STATE_FAILED: PluginState
 
 class PluginStatus(_message.Message):
-    __slots__ = ("audit", "digest", "artifact_storage_key", "state", "error", "materialized", "warnings", "hooks")
+    __slots__ = ("audit", "digest", "artifact_storage_key", "state", "error", "materialized", "warnings", "hooks", "evals")
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     DIGEST_FIELD_NUMBER: _ClassVar[int]
     ARTIFACT_STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
@@ -31,6 +31,7 @@ class PluginStatus(_message.Message):
     MATERIALIZED_FIELD_NUMBER: _ClassVar[int]
     WARNINGS_FIELD_NUMBER: _ClassVar[int]
     HOOKS_FIELD_NUMBER: _ClassVar[int]
+    EVALS_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     digest: str
     artifact_storage_key: str
@@ -39,7 +40,34 @@ class PluginStatus(_message.Message):
     materialized: PluginMaterialization
     warnings: _containers.RepeatedCompositeFieldContainer[PluginWarning]
     hooks: _hooks_pb2.HookConfig
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., digest: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., state: _Optional[_Union[PluginState, str]] = ..., error: _Optional[str] = ..., materialized: _Optional[_Union[PluginMaterialization, _Mapping]] = ..., warnings: _Optional[_Iterable[_Union[PluginWarning, _Mapping]]] = ..., hooks: _Optional[_Union[_hooks_pb2.HookConfig, _Mapping]] = ...) -> None: ...
+    evals: PluginEvalSuite
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., digest: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., state: _Optional[_Union[PluginState, str]] = ..., error: _Optional[str] = ..., materialized: _Optional[_Union[PluginMaterialization, _Mapping]] = ..., warnings: _Optional[_Iterable[_Union[PluginWarning, _Mapping]]] = ..., hooks: _Optional[_Union[_hooks_pb2.HookConfig, _Mapping]] = ..., evals: _Optional[_Union[PluginEvalSuite, _Mapping]] = ...) -> None: ...
+
+class PluginEvalSuite(_message.Message):
+    __slots__ = ("dir", "case_count", "case_tags", "cases", "findings")
+    DIR_FIELD_NUMBER: _ClassVar[int]
+    CASE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    CASE_TAGS_FIELD_NUMBER: _ClassVar[int]
+    CASES_FIELD_NUMBER: _ClassVar[int]
+    FINDINGS_FIELD_NUMBER: _ClassVar[int]
+    dir: str
+    case_count: int
+    case_tags: _containers.RepeatedScalarFieldContainer[str]
+    cases: _containers.RepeatedCompositeFieldContainer[PluginEvalSuiteCase]
+    findings: _containers.RepeatedCompositeFieldContainer[PluginWarning]
+    def __init__(self, dir: _Optional[str] = ..., case_count: _Optional[int] = ..., case_tags: _Optional[_Iterable[str]] = ..., cases: _Optional[_Iterable[_Union[PluginEvalSuiteCase, _Mapping]]] = ..., findings: _Optional[_Iterable[_Union[PluginWarning, _Mapping]]] = ...) -> None: ...
+
+class PluginEvalSuiteCase(_message.Message):
+    __slots__ = ("case_name", "path", "case_tags", "unsupported")
+    CASE_NAME_FIELD_NUMBER: _ClassVar[int]
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    CASE_TAGS_FIELD_NUMBER: _ClassVar[int]
+    UNSUPPORTED_FIELD_NUMBER: _ClassVar[int]
+    case_name: str
+    path: str
+    case_tags: _containers.RepeatedScalarFieldContainer[str]
+    unsupported: str
+    def __init__(self, case_name: _Optional[str] = ..., path: _Optional[str] = ..., case_tags: _Optional[_Iterable[str]] = ..., unsupported: _Optional[str] = ...) -> None: ...
 
 class PluginMaterialization(_message.Message):
     __slots__ = ("skills", "mcp_servers", "agents")

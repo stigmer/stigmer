@@ -2012,6 +2012,13 @@ function provenReadSql(
   if (query.org !== undefined && query.org !== "") {
     where.push(`r.list_org = ${param(query.org)}`);
   }
+  if (query.withoutKeys !== undefined && query.withoutKeys.length > 0) {
+    // Answered by the key table's primary key (kind, id, key).
+    where.push(
+      `NOT EXISTS (SELECT 1 FROM resource_list_keys w
+         WHERE w.kind = $1 AND w.id = r.id AND w.key = ANY(${param([...query.withoutKeys])}::text[]))`,
+    );
+  }
   if (query.createdAtOrAfter !== undefined) {
     where.push(
       `(${created} >= ${param(query.createdAtOrAfter)} OR ${created} = '')`,

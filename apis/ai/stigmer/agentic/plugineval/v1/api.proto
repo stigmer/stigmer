@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.plugineval.v1;
+
+import "ai/stigmer/agentic/plugineval/v1/spec.proto";
+import "ai/stigmer/agentic/plugineval/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// PluginEval is one run of a plugin's own evals.
+//
+// A plugin author writes test cases in the plugin's evals/ folder, in
+// Claude Code's plugin-eval format: a request a user might type, plus
+// checks such as "the reply mentions the renamed function", "the skill was
+// used" or a rubric for an AI judge. A PluginEval runs every case several
+// times with the plugin and several times without it, on each model it
+// names, and records per case the score with and without the plugin, the
+// difference, and whether every try passed. Every try is a conversation:
+// in Stigmer Cloud the eval's viewers open it, read-only; in open source the
+// eval's creator owns it, and the other viewers read its scores.
+//
+// @internal
+// A child of its plugin (kind_meta: scope PARENT through spec.plugin_id):
+// the plugin's editors start, cancel and delete evals; the plugin's
+// viewers in its own organization read them. Kind number 63, id prefix
+// "pev". The organization that installed the plugin pays for every try
+// and every AI-graded check. The cases run on Stigmer's own engines, so a
+// score measures the plugin on Stigmer, which can differ from Claude
+// Code's own `claude plugin eval` on the same suite.
+message PluginEval {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'PluginEval'];
+
+  // Resource metadata including name, organization, and labels.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Which plugin version runs, on which models, how many times, within
+  // what spend.
+  PluginEvalSpec spec = 4;
+
+  // System-managed state: progress and results.
+  PluginEvalStatus status = 5;
+}

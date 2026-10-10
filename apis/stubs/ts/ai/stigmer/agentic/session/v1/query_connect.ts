@@ -29,6 +29,9 @@ export const SessionQueryController = {
     /**
      * List all sessions with pagination and optional filtering.
      *
+     * A plugin eval's tries are left out: each runs in a session of its own,
+     * read through the eval (PluginEvalQueryController.get) instead.
+     *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.list
      */
     list: {
@@ -40,7 +43,8 @@ export const SessionQueryController = {
     /**
      * List the conversations on one agent, whichever version each runs.
      *
-     * Results are filtered to the sessions the caller can view.
+     * Results are filtered to the sessions the caller can view. A plugin
+     * eval's tries are left out, as in list.
      *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listByAgent
      */

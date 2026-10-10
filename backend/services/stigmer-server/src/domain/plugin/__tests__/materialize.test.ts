@@ -12,7 +12,8 @@
  * `model_override` staying empty while the hint becomes a warning,
  * a built-in name becoming a warning, an MCP-only package planning no
  * agent, the `mcpServers` key-to-slug rule, a skill archive rooted at its
- * SKILL.md with the plugin's labels on the request, a version the tag
+ * SKILL.md with the plugin's labels on the request, a root skill's
+ * archive without the plugin's eval suite, a version the tag
  * pattern rejects becoming a warning, an overlay that redefines the
  * transport refused, the composed agent declaring its tools' variables
  * (OAuth targets excluded, an authored agent left as written), and each
@@ -195,6 +196,22 @@ describe("planMaterialization", () => {
       [[], []],
       [[], []],
     ]);
+  });
+
+  it("packs a root-skill plugin's archive without its eval suite", () => {
+    const fixture = claudePlugin({ name: "solo" });
+    fixture.set("SKILL.md", "---\nname: solo\ndescription: d\n---\nbody");
+    fixture.set("evals/c/prompt.md", "the case");
+    const rootPlan = planMaterialization(
+      read(fixture),
+      inMemoryPluginFiles(fixture),
+      { mcpServers: [] },
+      IDENTITY,
+      "first",
+    );
+    const { entries } = openArchive(rootPlan.skills[0]!.request.artifact);
+    expect(entries.map((e) => e.name)).toContain("SKILL.md");
+    expect(entries.filter((e) => e.name.startsWith("evals/"))).toEqual([]);
   });
 
   it("records a model hint and a built-in name as warnings and never sets model_override", () => {

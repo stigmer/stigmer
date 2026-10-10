@@ -176,6 +176,8 @@ export interface WireTurnInput {
     readonly thinkingMode: EffectiveThinkingMode;
   };
   readonly structuredOutputSchema: Record<string, unknown> | null;
+  /** The turn's `RunSpec.append_system_prompt`; empty when unset. */
+  readonly appendSystemPrompt: string;
   readonly standing: {
     readonly contextBridge: string | null;
     readonly senderIdentity: SenderIdentity | null;
@@ -264,6 +266,7 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
     appliedToolCallIds: [...input.appliedToolCallIds],
     model: { requested: input.model.requested, serviceTier: input.model.serviceTier, thinkingMode: input.model.thinkingMode },
     structuredOutputSchema: input.structuredOutputSchema ?? null,
+    appendSystemPrompt: input.appendSystemPrompt,
     standing: {
       contextBridge: standing.contextBridge ?? null,
       senderIdentity: standing.senderIdentity ?? null,
@@ -372,6 +375,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
     appliedToolCallIds: new Set(wire.appliedToolCallIds),
     model: wire.model,
     structuredOutputSchema: wire.structuredOutputSchema ?? undefined,
+    appendSystemPrompt: wire.appendSystemPrompt,
     standing: {
       contextBridge: wire.standing.contextBridge ?? undefined,
       senderIdentity: wire.standing.senderIdentity ?? undefined,
