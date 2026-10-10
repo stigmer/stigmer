@@ -6,11 +6,13 @@
  * cascade does (domain/evaluator/cascade.ts). An eval still pending or
  * running refuses the delete, naming cancel: its tries may hold an active
  * run, which a conversation's delete refuses. Runs before every other
- * cascade of the plugin's delete, so a refusal removes nothing. A
- * composition that serves no evals passes no deps, and the step does
- * nothing.
+ * cascade of the plugin's delete, so a refusal removes nothing. An eval
+ * created while the delete runs is swept after the plugin's row goes
+ * (SweepPluginEvalsAfterDelete). A composition that serves no evals passes
+ * no deps, and the steps do nothing.
  *
- * Proven by __tests__/plugin-eval.test.ts (the plugin's delete).
+ * Proven by __tests__/plugin-eval.test.ts (the plugin's delete) and
+ * __tests__/cascade.test.ts (the race with a create).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -70,23 +72,70 @@ export function newCascadeDeletePluginEvalsStep<Desc extends DescMessage>(
         );
       }
       for (const pluginEval of evals) {
-        const evalId = pluginEval.metadata?.id ?? "";
-        await deletePluginEvalTries(deps.store, deps.sessions(), deps.logger, evalId);
-        try {
-          await deps.store.deleteResource(ApiResourceKind.plugin_eval, evalId);
-        } catch (error) {
-          throw internalError(
-            error,
-            `failed to cascade-delete plugin eval ${evalId} of plugin ${pluginId}`,
-          );
-        }
-        await cleanUpDeletedResource(deps.authorizationLifecycle, deps.logger, {
-          kind: ApiResourceKind.plugin_eval,
-          resourceId: evalId,
-          orgId: pluginEval.metadata?.org ?? "",
-          caller: ctx.callerIdentity,
-        });
+        await deleteEval(deps, ctx, pluginEval, pluginId);
       }
     },
   };
+}
+
+/**
+ * SweepPluginEvalsAfterDelete: after the plugin's row is gone (and before
+ * its access is cleaned), the plugin's evals are listed again and each one
+ * found is deleted the cascade's way, whatever its phase: an eval created
+ * while the delete ran. With create's own re-read of the plugin after it
+ * stores the eval (steps.ts EnsureEvaluatedPluginStillExists), no eval
+ * outlives its plugin: one stored before this list is found here, and one
+ * stored after it meets a plugin already gone and deletes itself.
+ */
+export function newSweepPluginEvalsAfterDeleteStep<Desc extends DescMessage>(
+  deps: PluginEvalCascadeDeps | undefined,
+): PipelineStep<Desc> {
+  return {
+    name: "SweepPluginEvalsAfterDelete",
+    async execute(ctx: RequestContext<Desc>): Promise<void> {
+      if (deps === undefined) {
+        return;
+      }
+      const plugin = ctx.get(EXISTING_RESOURCE_KEY) as Plugin | undefined;
+      const pluginId = plugin?.metadata?.id ?? "";
+      let evals: PluginEval[];
+      try {
+        evals = await listPluginEvals(deps.store, deps.logger, pluginId);
+      } catch (error) {
+        throw internalError(error, "failed to list the plugin's evals after its delete");
+      }
+      for (const pluginEval of evals) {
+        deps.logger.warn("a plugin eval was created while its plugin was deleted; deleting it", {
+          evalId: pluginEval.metadata?.id ?? "",
+          pluginId,
+        });
+        await deleteEval(deps, ctx, pluginEval, pluginId);
+      }
+    },
+  };
+}
+
+/** One eval of a deleted plugin: its tries' conversations, its row, then its access. */
+async function deleteEval<Desc extends DescMessage>(
+  deps: PluginEvalCascadeDeps,
+  ctx: RequestContext<Desc>,
+  pluginEval: PluginEval,
+  pluginId: string,
+): Promise<void> {
+  const evalId = pluginEval.metadata?.id ?? "";
+  await deletePluginEvalTries(deps.store, deps.sessions(), deps.logger, evalId);
+  try {
+    await deps.store.deleteResource(ApiResourceKind.plugin_eval, evalId);
+  } catch (error) {
+    throw internalError(
+      error,
+      `failed to cascade-delete plugin eval ${evalId} of plugin ${pluginId}`,
+    );
+  }
+  await cleanUpDeletedResource(deps.authorizationLifecycle, deps.logger, {
+    kind: ApiResourceKind.plugin_eval,
+    resourceId: evalId,
+    orgId: pluginEval.metadata?.org ?? "",
+    caller: ctx.callerIdentity,
+  });
 }

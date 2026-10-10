@@ -75,6 +75,7 @@ import {
   PLUGIN_EVAL_RESULT_KEY,
   newCancelPluginEvalStep,
   newDeletePluginEvalTriesStep,
+  newEnsureEvaluatedPluginStillExistsStep,
   newListPluginEvalsByPluginStep,
   newLoadEvaluatedPluginStep,
   newPlanPluginEvalStep,
@@ -131,8 +132,9 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * read; then the plugin's organization and version, the targets, the
  * vaults (the reference rule, then who attached each), the suite and its
  * limits (steps.ts). The tuple step writes the eval's link to its plugin,
- * through which every later question about it is answered; the workflow
- * starts last.
+ * through which every later question about it is answered; the plugin is
+ * read again, so an eval whose plugin was deleted meanwhile goes with it;
+ * the workflow starts last.
  */
 async function createPluginEval(
   deps: PluginEvalControllerDeps,
@@ -169,6 +171,9 @@ async function createPluginEval(
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(deps.authorizationLifecycle, deps.logger),
+    )
+    .addStep(
+      newEnsureEvaluatedPluginStillExistsStep(deps.store, deps.authorizationLifecycle, deps.logger),
     )
     .addStep(newStartPluginEvalWorkflowStep(deps.store, deps.workflows, deps.logger))
     .build()

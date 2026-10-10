@@ -5,8 +5,9 @@
  * wrote; a cancel the workflow takes answers the row unchanged, one with no
  * workflow marks the eval partial "cancelled" unless it finished meanwhile,
  * a finished eval's cancel asks nothing, and a fault is a sanitized
- * INTERNAL; listByPlugin keeps only the evals the caller may view and
- * fails closed when the authorizer cannot answer; the create's question
+ * INTERNAL; listByPlugin keeps only the evals the caller may view,
+ * answers each without its tries (its summaries kept), and fails closed
+ * when the authorizer cannot answer; the create's question
  * is can_edit on the plugin and a server-composed create asks none; a
  * suite source's own refusal passes through while any other fault is
  * INTERNAL; a store fault reading the plugin is INTERNAL. The create's
@@ -30,8 +31,14 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/io_pb";
 import type { PluginEvalList } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/io_pb";
 import {
+  PluginEvalArmSchema,
+  PluginEvalCaseSchema,
+  PluginEvalCaseTargetSchema,
   PluginEvalPartialReason,
   PluginEvalPhase,
+  PluginEvalStatusSchema,
+  PluginEvalTryState,
+  PluginEvalTrySchema,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -237,6 +244,58 @@ describe("ListPluginEvalsByPlugin", () => {
       newListPluginEvalsByPluginStep(temp.store, down, silentLogger).execute(listCtx()),
     );
     expect(fault.code).toBe(Code.Internal);
+  });
+});
+
+describe("ListPluginEvalsByPlugin's answer", () => {
+  it("empties every arm's tries and keeps the summaries", async () => {
+    const row = evalRow("pev_tries", PluginEvalPhase.completed);
+    row.status = create(PluginEvalStatusSchema, {
+      phase: PluginEvalPhase.completed,
+      cases: [
+        create(PluginEvalCaseSchema, {
+          caseName: "a",
+          notes: ["a note"],
+          targets: [
+            create(PluginEvalCaseTargetSchema, {
+              withPlugin: create(PluginEvalArmSchema, {
+                score: 1,
+                gradedTries: 2,
+                tries: [
+                  create(PluginEvalTrySchema, { index: 1, state: PluginEvalTryState.graded, score: 1 }),
+                  create(PluginEvalTrySchema, { index: 2, state: PluginEvalTryState.graded, score: 1 }),
+                ],
+              }),
+              withoutPlugin: create(PluginEvalArmSchema, {
+                score: 0,
+                tries: [create(PluginEvalTrySchema, { index: 1, state: PluginEvalTryState.graded })],
+              }),
+              delta: 1,
+            }),
+            create(PluginEvalCaseTargetSchema, { notRunReason: "not run: model 'x' is not in Stigmer's catalog" }),
+          ],
+        }),
+      ],
+      aggregates: { casesTotal: 1, casesPassed: 1, overallScore: 1 },
+    });
+    await saved(row);
+    const ctx = new RequestContext(
+      ListPluginEvalsByPluginRequestSchema,
+      create(ListPluginEvalsByPluginRequestSchema, { pluginId: "plg_1" }),
+      testCallerIdentity({ origin: "in-process" }),
+      ApiResourceKind.plugin,
+    );
+    await newListPluginEvalsByPluginStep(temp.store, { authorize: () => Promise.resolve({ kind: "allow" }) }, silentLogger).execute(ctx);
+    const listed = (ctx.get(PLUGIN_EVAL_RESULT_KEY) as PluginEvalList).items[0];
+    const target = listed?.status?.cases[0]?.targets[0];
+    expect(target?.withPlugin?.tries).toEqual([]);
+    expect(target?.withoutPlugin?.tries).toEqual([]);
+    expect(target?.withPlugin?.score).toBe(1);
+    expect(target?.withPlugin?.gradedTries).toBe(2);
+    expect(target?.delta).toBe(1);
+    expect(listed?.status?.cases[0]?.notes).toEqual(["a note"]);
+    expect(listed?.status?.aggregates?.casesTotal).toBe(1);
+    expect((await stored("pev_tries")).status?.cases[0]?.targets[0]?.withPlugin?.tries).toHaveLength(2);
   });
 });
 

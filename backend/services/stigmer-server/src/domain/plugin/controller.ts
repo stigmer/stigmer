@@ -160,7 +160,10 @@ import {
   pluginLiveTag,
 } from "./push.js";
 import { pluginSearchExtractor } from "./search-extractor.js";
-import { newCascadeDeletePluginEvalsStep } from "../plugin-eval/cascade.js";
+import {
+  newCascadeDeletePluginEvalsStep,
+  newSweepPluginEvalsAfterDeleteStep,
+} from "../plugin-eval/cascade.js";
 import type { PluginEvalCascadeDeps } from "../plugin-eval/cascade.js";
 
 export interface PluginControllerDeps {
@@ -524,6 +527,7 @@ async function deletePlugin(
       }),
     )
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newSweepPluginEvalsAfterDeleteStep<DeleteDesc>(deps.pluginEvals))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )
