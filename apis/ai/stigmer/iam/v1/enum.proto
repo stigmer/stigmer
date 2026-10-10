@@ -114,6 +114,17 @@ enum IamPermission {
   // questions are always one organization's.
   can_create_agent_share = 30;
 
+  // Organization-level permission to connect an agent to a messaging
+  // channel (Slack, WhatsApp).
+  //
+  // @internal
+  // Asked on every agent-channel create beside can_manage_audience on the
+  // connected agent, the agent share's bar: a channel spends the
+  // organization's credits on outside traffic, an admin-level act,
+  // whichever agent it serves, so owning an agent (which any member may,
+  // while the organization lets members create agents) is not enough.
+  can_create_agent_channel = 54;
+
   // Organization-level permission to register channel apps (customer-owned
   // messaging-platform apps holding webhook and OAuth credentials).
   // Admin-gated like can_create_oauth_app.

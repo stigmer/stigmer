@@ -536,6 +536,34 @@ describe("AgentChannelsPanel", () => {
     expect(await screen.findByRole("button", { name: /connect to slack/i })).toBeTruthy();
   });
 
+  it("offers no connect affordance to a member who owns the agent: connecting also asks can_create_agent_channel on the organization", async () => {
+    // A member owns the agents they create (can_manage_audience), but a
+    // channel spends the organization's credits, an admin's act.
+    const checkMyPermission = vi.fn((input: unknown) => {
+      const { relation } = input as { relation: string };
+      return Promise.resolve({ isAuthorized: relation !== "can_create_agent_channel" });
+    });
+    const client = createMockStigmer({ checkMyPermission });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("No channels yet")).toBeTruthy(),
+    );
+    await waitFor(() =>
+      expect(checkMyPermission).toHaveBeenCalledWith(
+        expect.objectContaining({ relation: "can_create_agent_channel" }),
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /connect to slack/i })).toBeNull(),
+    );
+    expect(screen.queryByRole("button", { name: /connect to whatsapp/i })).toBeNull();
+  });
+
   it("offers no connect affordance to an editor of the agent — connecting asks can_manage_audience, the owner's", async () => {
     // An editor holds can_edit on the agent but not can_manage_audience: a
     // channel puts the agent in front of a wider audience, which is the

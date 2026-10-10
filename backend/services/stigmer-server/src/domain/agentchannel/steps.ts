@@ -194,16 +194,23 @@ export const REFERENCED_AGENT_KEY = "agentChannelReferencedAgent";
 export const CHANNEL_CREATE_DENIED_MESSAGE =
   "You don't have permission to connect this agent to a channel";
 
+/** The deny copy of the organization's bar on connecting a channel. */
+export const CHANNEL_ORGANIZATION_DENIED_MESSAGE =
+  "You don't have permission to connect agents to channels in this organization";
+
 /**
- * The create lane's authorization question, for AuthorizeResolvedTarget
- * after ResolveChannelDefaults: can_manage_audience on the REFERENCED AGENT.
- * The RPC is is_skip_authorization because its target is that agent,
- * resolved from a slug, not a request field. Binding an agent to a channel
- * puts it in front of a wider audience, so it decides who reaches the agent:
- * the owner's act, never an editor's, who may change the definition but not
- * its audience. The same-org invariant the resolve step enforces already
- * binds the channel's organization to the agent's, so there is no separate
- * organization bar (command.proto).
+ * The create lane's authorization questions, for AuthorizeResolvedTarget
+ * after ResolveChannelDefaults, agent first: can_manage_audience on the
+ * REFERENCED AGENT (binding an agent to a channel puts it in front of a
+ * wider audience, so it decides who reaches the agent: the owner's act,
+ * never an editor's, who may change the definition but not its audience),
+ * then can_create_agent_channel on the organization (a channel spends the
+ * organization's credits on outside traffic, an admin-level act; a member
+ * owns the agents they create, so ownership alone is not enough). The
+ * agent share's two bars. The RPC is is_skip_authorization because its
+ * target is that agent, resolved from a slug, not a request field. The
+ * same-org invariant the resolve step enforces binds the channel's
+ * organization to the agent's, so the two bars are one organization's.
  */
 export function resolveChannelCreateTargets(
   ctx: RequestContext<AgentChannelDesc>,
@@ -218,6 +225,12 @@ export function resolveChannelCreateTargets(
       resourceKind: ApiResourceKind.agent,
       resourceId: agent.metadata?.id ?? "",
       deniedMessage: CHANNEL_CREATE_DENIED_MESSAGE,
+    },
+    {
+      permission: IamPermission.can_create_agent_channel,
+      resourceKind: ApiResourceKind.organization,
+      resourceId: ctx.newState.metadata?.org ?? "",
+      deniedMessage: CHANNEL_ORGANIZATION_DENIED_MESSAGE,
     },
   ];
 }

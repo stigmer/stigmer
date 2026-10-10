@@ -119,15 +119,22 @@ export function AgentChannelsPanel({
   // label worth showing.
   const { channelApps } = useChannelAppList(agent.metadata?.org || null);
 
-  // Mirrors the server's create bar (agent can_manage_audience — the
-  // permission the create/apply handlers enforce on the referenced agent:
-  // a channel puts the agent in front of a wider audience, the owner's
-  // decision, not an editor's) so the connect affordance never appears to
-  // someone whose create would be refused.
-  const { allowed: canCreate } = useCheckPermission(
+  // Mirrors the server's two create bars so the connect affordance never
+  // appears to someone whose create would be refused: can_manage_audience
+  // on the agent (a channel puts it in front of a wider audience, the
+  // owner's decision, not an editor's) and can_create_agent_channel on the
+  // organization (a channel spends its credits, an admin's act, so a
+  // member who owns the agent is not enough).
+  const { allowed: canManageAudience } = useCheckPermission(
     agentId ? { kind: "agent", id: agentId } : null,
     "can_manage_audience",
   );
+  const agentOrg = agent.metadata?.org ?? "";
+  const { allowed: canCreateInOrg } = useCheckPermission(
+    agentOrg ? { kind: "organization", id: agentOrg } : null,
+    "can_create_agent_channel",
+  );
+  const canCreate = canManageAudience && canCreateInOrg;
 
   // Installs need a channel delivery runtime, and only Stigmer Cloud
   // composes one today; CRUD needs none. Outside Cloud the cards render and

@@ -74,6 +74,9 @@ const (
 	// Organization-level permission to create agent shares billed to the
 	// organization.
 	IamPermission_can_create_agent_share IamPermission = 30
+	// Organization-level permission to connect an agent to a messaging
+	// channel (Slack, WhatsApp).
+	IamPermission_can_create_agent_channel IamPermission = 54
 	// Organization-level permission to register channel apps (customer-owned
 	// messaging-platform apps holding webhook and OAuth credentials).
 	// Admin-gated like can_create_oauth_app.
@@ -178,6 +181,7 @@ var (
 		28: "can_manage_billing",
 		29: "can_execute_billing_ops",
 		30: "can_create_agent_share",
+		54: "can_create_agent_channel",
 		31: "can_create_channel_app",
 		32: "can_manage_model_pricing",
 		35: "can_manage_cursor_accounts",
@@ -220,6 +224,7 @@ var (
 		"can_manage_billing":          28,
 		"can_execute_billing_ops":     29,
 		"can_create_agent_share":      30,
+		"can_create_agent_channel":    54,
 		"can_create_channel_app":      31,
 		"can_manage_model_pricing":    32,
 		"can_manage_cursor_accounts":  35,
@@ -439,7 +444,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1\x1a google/protobuf/descriptor.proto\"R\n" +
 	"\vIamRoleMeta\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription*\xaa\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription*\xc8\n" +
 	"\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
@@ -465,7 +470,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x10can_view_billing\x10\x1b\x12\x16\n" +
 	"\x12can_manage_billing\x10\x1c\x12\x1b\n" +
 	"\x17can_execute_billing_ops\x10\x1d\x12\x1a\n" +
-	"\x16can_create_agent_share\x10\x1e\x12\x1a\n" +
+	"\x16can_create_agent_share\x10\x1e\x12\x1c\n" +
+	"\x18can_create_agent_channel\x106\x12\x1a\n" +
 	"\x16can_create_channel_app\x10\x1f\x12\x1c\n" +
 	"\x18can_manage_model_pricing\x10 \x12\x1e\n" +
 	"\x1acan_manage_cursor_accounts\x10#\x12\x13\n" +

@@ -31,6 +31,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_manage_billing: _ClassVar[IamPermission]
     can_execute_billing_ops: _ClassVar[IamPermission]
     can_create_agent_share: _ClassVar[IamPermission]
+    can_create_agent_channel: _ClassVar[IamPermission]
     can_create_channel_app: _ClassVar[IamPermission]
     can_manage_model_pricing: _ClassVar[IamPermission]
     can_manage_cursor_accounts: _ClassVar[IamPermission]
@@ -82,6 +83,7 @@ can_view_billing: IamPermission
 can_manage_billing: IamPermission
 can_execute_billing_ops: IamPermission
 can_create_agent_share: IamPermission
+can_create_agent_channel: IamPermission
 can_create_channel_app: IamPermission
 can_manage_model_pricing: IamPermission
 can_manage_cursor_accounts: IamPermission

@@ -156,6 +156,12 @@ type organization
     # the share's own organization since the public level retired
     # (stigmer#1211), so the two questions are always one organization's.
     define can_create_agent_share: admin
+    # Asked on every agent channel create, beside can_manage_audience on the
+    # connected agent, the share's bar: a channel spends THIS org's credits
+    # on outside traffic, an admin-level act, whichever agent it serves. A
+    # member owns the agents they create (can_create_agent), so ownership
+    # alone must not connect one.
+    define can_create_agent_channel: admin
     # Teams are the organization's, managed by its admins (team.fga).
     define can_create_team: admin
     # Creating, finding and listing the organization's children. A child's

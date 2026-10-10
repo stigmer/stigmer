@@ -118,6 +118,7 @@ import {
   MCPSERVER_KIND,
 } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
+import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeOAuthApp } from "../support/oauthapps";
 import { createPlatformClient } from "../support/platformclients";
@@ -453,6 +454,32 @@ describe("role enforcement — agent creation: a member's by the organization's 
 
     // The admin may: child organizations stay an admin's choice.
     await c.admin.agentCommand.updateVisibility({ resourceId: id, visibility: CHILD_ORGS });
+  });
+
+  it("[rpc:AgentChannelCommandController.create] a member may not connect their own agent to a channel; an admin may", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const c = await castOf(lane);
+
+    const created = await c.member.agentCommand.create(agentInput(c.org, PRIVATE));
+    const id = created.metadata!.id;
+    const slug = created.metadata!.slug;
+    fixtures.defer(() => c.owner.agentCommand.delete({ value: id }).catch(() => undefined));
+
+    // Owning the agent is not enough: a channel spends the organization's
+    // credits on outside traffic, the agent share's admin-level bar.
+    await expectGrpcCode(
+      () => c.member.agentChannelCommand.create(makeSlackAgentChannel(c.org, uniqueName("member-channel"), slug)),
+      Code.PermissionDenied,
+      "a member connecting the agent they own to a channel",
+    );
+
+    // An admin, who manages every agent of the organization, may.
+    const channel = await c.admin.agentChannelCommand.create(
+      makeSlackAgentChannel(c.org, uniqueName("admin-channel"), slug),
+    );
+    fixtures.defer(() =>
+      c.owner.agentChannelCommand.delete({ value: channel.metadata!.id }).catch(() => undefined),
+    );
   });
 
   it("[rpc:OrganizationCommandController.updatePolicies] an admin turns member creation off and on; a member may not change it", async (ctx) => {

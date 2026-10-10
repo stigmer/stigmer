@@ -837,6 +837,7 @@
           },
           "can_assign_roles": {},
           "can_create_agent": {},
+          "can_create_agent_channel": {},
           "can_create_agent_share": {},
           "can_create_channel_app": {},
           "can_create_identity_account": {},
@@ -965,6 +966,11 @@
                 }
               }
             ]
+          }
+        },
+        "can_create_agent_channel": {
+          "computedUserset": {
+            "relation": "admin"
           }
         },
         "can_create_agent_share": {
