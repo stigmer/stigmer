@@ -156,7 +156,7 @@ The results of one plugin eval, case by case and target by target.
     className: { type: "string", description: "Additional CSS class names for the root element." },
     evalId: { type: "string", description: "The eval's id.", required: true },
     onChanged: { type: "() => void", description: "Called after a cancel, so a list showing the eval can read it again." },
-    onNavigateToRun: { type: "(runId: string) => void", description: "Called with a try's run id when the person opens it; tries carry no link when omitted." },
+    onNavigateToRun: { type: "(runId: string) => void", description: "Called with a try's run id when the person opens it; tries carry no link when omitted, nor where the viewer cannot open them (outside Stigmer Cloud, anyone but the eval's creator)." },
     pluginName: { type: "string", description: "The evaluated plugin's name, for the heading; \"Eval\" when omitted." },
   }}
 />
