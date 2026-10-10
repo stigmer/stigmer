@@ -11,8 +11,10 @@
  *    changed in place with `lchown`, never followed through a link;
  *  - the directories between the runner's home and a workspace root inside
  *    its state (the chart's `/data/.stigmer/data/workspace`) become 0711,
- *    traversable but not listable, so the agent reaches its workspace and
- *    nothing beside it.
+ *    traversable but not listable, so the agent reaches its workspace but
+ *    cannot list what lies beside it. A sibling whose name it knows stays
+ *    as reachable as its own mode makes it: compose's artifact volume
+ *    (`/data/.stigmer/data/artifacts`, the server's, 0755) among them.
  *
  * A paused session then resumes with its workspace, checkpoints and
  * approvals; the `.stigmer` link is rebuilt each turn (`stigmer-link.ts`).
@@ -52,6 +54,12 @@ export function handOverToAgent(
 
   if (runnerState === agentState) {
     throw new Error(`the agent's home (${identity.home}) is the runner's own; set STIGMER_AGENT_HOME to a directory of the agent's own`);
+  }
+  // The walk hands the agent's home over whole, so it may hold none of the
+  // runner's own files: not the runner's home (an agent home of `/`, or a
+  // volume root above it), and not a place inside the runner's state.
+  if (within(identity.home, paths.runnerHome) || within(runnerState, identity.home)) {
+    throw new Error(`the agent's home (${identity.home}) would hold the runner's own files (${runnerState}); set STIGMER_AGENT_HOME to a directory of the agent's own, outside the runner's state`);
   }
   mkdirSync(paths.workspaceRoot, { recursive: true });
   mkdirSync(identity.home, { recursive: true, mode: 0o700 });
@@ -143,6 +151,12 @@ function refuseUnreachableWorkspace(identity: AgentIdentity, paths: { readonly r
     }
     if (dir === paths.runnerHome || dir === dirname(dir)) return;
   }
+}
+
+/** Whether `path` is `dir` or lies inside it. */
+function within(dir: string, path: string): boolean {
+  const rel = relative(dir, path);
+  return rel === "" || !(rel.startsWith("..") || rel.startsWith(sep));
 }
 
 /** The directories strictly between `home` and `target`, when `target` lies inside `home`'s `.stigmer`. */

@@ -146,7 +146,7 @@ export function prepareAgentSeparation(
 
 function makeAgentHome(identity: AgentIdentity): void {
   // Made as root's: the handover (\`agent-handover.ts\`) moves the agent's
-  // state in while root can still write there, then hands it all over.
+  // state in while nothing there is the agent's, then hands it all over.
   mkdirSync(identity.home, { recursive: true, mode: 0o700 });
 }
 

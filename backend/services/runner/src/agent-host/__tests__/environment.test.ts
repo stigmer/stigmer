@@ -43,6 +43,7 @@ describe("the agent host's environment", () => {
       OTEL_EXPORTER_OTLP_HEADERS: "authorization=Bearer collector-canary",
       OTEL_EXPORTER_OTLP_TRACES_HEADERS: "x-api-key=collector-canary",
       NODE_OPTIONS: "--max-old-space-size=2048",
+      NODE_AUTH_TOKEN: "npm-canary",
       AWS_ACCESS_KEY_ID: "AKIA-canary",
       AWS_SECRET_ACCESS_KEY: "aws-canary",
       GOOGLE_APPLICATION_CREDENTIALS: "/secrets/gcp.json",
@@ -63,5 +64,10 @@ describe("the agent host's environment", () => {
       PIP_INDEX_URL: "https://pypi.internal",
       STIGMER_AGENT_ENV_PASSTHROUGH: "PIP_INDEX_URL, ",
     });
+  });
+
+  it("passes a credential the operator names for the agent", () => {
+    const runner = { PATH: "/usr/bin", NODE_AUTH_TOKEN: "npm-token", STIGMER_AGENT_ENV_PASSTHROUGH: "NODE_AUTH_TOKEN" };
+    expect(agentHostEnvironment(runner, true)).toEqual(runner);
   });
 });

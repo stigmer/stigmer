@@ -7,10 +7,13 @@
  * runner's rights; this fence refuses one outside the list below, each
  * named with why it touches only the runner's own files.
  *
- * The walk starts at `harness/run-turn.ts` and follows static and dynamic
- * imports, stopping at `activities/`: the adapters run in the host, as the
- * agent (`agent-host/`). Pinned also: hosting routes the operations to the
- * host while it runs, and back when it closes.
+ * The walk starts at `harness/run-turn.ts` and at every activity the runner
+ * itself runs (the ones `runner.ts` imports beside the harness registry,
+ * read from its source, so a new one is walked too), and follows static and
+ * dynamic imports, stopping at the rest of `activities/`: the adapters run
+ * in the host, as the agent (`agent-host/`). Pinned also: hosting routes the
+ * operations to the host while it runs, back when it closes, and on a
+ * separating runner refuses them once it has closed.
  */
 
 import { readFileSync } from "node:fs";
@@ -21,7 +24,7 @@ import { describe, expect, it } from "vitest";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { hostHarnesses } from "../../agent-host/hosting.js";
 import { loopbackChannels } from "../../agent-host/channel.js";
-import { agentFs, localAgentFs } from "../../shared/agent-fs.js";
+import { agentFs, installAgentFs, localAgentFs } from "../../shared/agent-fs.js";
 
 const SRC = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const RAW_ACCESS = /^node:(fs|fs\/promises|child_process)$/;
@@ -43,10 +46,16 @@ function importsOf(file: string): string[] {
   return specs;
 }
 
+/** The activities the runner runs in its own process: those `runner.ts` imports to build its activity table. */
+function runnerSideActivities(): string[] {
+  const text = readFileSync(join(SRC, "runner.ts"), "utf8");
+  return [...text.matchAll(/import\(\s*["']\.\/(activities\/[^"']+)\.js["']\s*\)/g)].map((match) => `${match[1]!}.ts`);
+}
+
 function rawAccessInRuntime(): Map<string, string[]> {
   const seen = new Set<string>();
   const found = new Map<string, string[]>();
-  const queue = ["harness/run-turn.ts"];
+  const queue = ["harness/run-turn.ts", ...runnerSideActivities()];
   while (queue.length > 0) {
     const rel = queue.pop()!;
     if (seen.has(rel)) continue;
@@ -64,6 +73,10 @@ function rawAccessInRuntime(): Map<string, string[]> {
 }
 
 describe("the turn runtime and the agent's paths", () => {
+  it("walks every activity the runner runs itself", () => {
+    expect(runnerSideActivities().sort()).toEqual(["activities/attach-session.ts", "activities/discover-mcp-server.ts", "activities/ensure-thread.ts", "activities/generate-session-subject.ts"]);
+  });
+
   it("opens files and starts processes only through the agent's operations, but for the runner's own state", () => {
     const found = rawAccessInRuntime();
     expect([...found.keys()].filter((module) => !RUNNERS_OWN.has(module)).sort()).toEqual([]);
@@ -75,5 +88,17 @@ describe("the turn runtime and the agent's paths", () => {
     expect(agentFs()).not.toBe(localAgentFs);
     await hosted.close();
     expect(agentFs()).toBe(localAgentFs);
+  });
+
+  it("refuses them after the host closes on a runner that separates, never performing them itself", async () => {
+    const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: "/home/stigmer-agent" };
+    const hosted = await hostHarnesses([], testConfig(), { identity, prepareSeparation: () => null, start: async () => ({ channel: loopbackChannels()[0], kill: () => {} }) });
+    await hosted.close();
+    try {
+      await expect(agentFs().readFile("/etc/hostname")).rejects.toThrow("the agent host has closed; the runner performs no operation on the agent's paths itself");
+      await expect(agentFs().execFile("true", [])).rejects.toThrow("the agent host has closed");
+    } finally {
+      installAgentFs(localAgentFs);
+    }
   });
 });
