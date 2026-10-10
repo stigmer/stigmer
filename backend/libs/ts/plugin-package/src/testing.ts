@@ -320,6 +320,7 @@ export const GLOB_VALIDITY_TABLE: ReadonlyArray<readonly [glob: string, error: s
   ["a".repeat(1024), undefined],
   ["a".repeat(1025), "it is longer than 1024 characters"],
   ["é".repeat(1024), undefined],
+  ["😀".repeat(1024), undefined],
   ["😀".repeat(1025), "it is longer than 1024 characters"],
   ["[z-a]" + "a".repeat(1020), "it is longer than 1024 characters"],
   ["{a,b}".repeat(6) + "a".repeat(58), undefined],
