@@ -77,7 +77,7 @@ describe("the host sink's calls to the runner", () => {
     let writes = 0;
     runner.handle("persist", async () => {
       writes += 1;
-      return { runtime: { fields: [], status: encodeMessage(RunStatusSchema, create(RunStatusSchema)) } };
+      return { runtime: { fields: [], status: encodeMessage(RunStatusSchema, create(RunStatusSchema)) }, offloads: [] };
     });
 
     await Promise.all([turn.sink.requestPersist(), turn.sink.requestPersist(), turn.sink.requestPersist()]);

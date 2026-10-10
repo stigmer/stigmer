@@ -10,7 +10,10 @@
  * sink (`host-sink.ts`) forwards what an adapter asks of the runtime back.
  * Data crosses; authority never does. Every value the host sends is the
  * agent's, so the runner validates each one it acts on (`remote-adapter.ts`
- * says how).
+ * says how). Two are not yet confined, and must be before the host runs as
+ * a user of its own (#2079): the paths of the settlement's CAS snapshot,
+ * which the runtime's capture reads under the workspace, and the storage
+ * keys an artifact row of a persisted projection names.
  *
  * Shape: three envelopes over newline-delimited JSON (the manager IPC's
  * framing, `ipc-protocol.ts`), on file descriptor 3 so neither process's
@@ -46,7 +49,7 @@ import type { UsageDelta } from "../harness/types.js";
 import type { TranscriptEvent } from "../harness/transcript/events.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
-import type { RuntimeFieldsWire, WireTurnInput } from "./codec.js";
+import type { RuntimeFieldsWire, WireOffload, WireTurnInput } from "./codec.js";
 
 export const AGENT_HOST_PROTOCOL_VERSION = 1;
 
@@ -175,11 +178,14 @@ export interface RunnerCalls {
   /**
    * `TurnSink.requestPersist`: the adapter-owned fields as of the request.
    * Answered once the runtime's chokepoint has written them, with the
-   * runtime-owned fields that changed since the host last saw them.
+   * runtime-owned fields that changed since the host last saw them, and the
+   * tool outputs the chokepoint's offload has lifted to refs, which the
+   * host's copy takes in place of the outputs (`shared/status-offload.ts`
+   * `adoptOffloadedOutputs`), so it neither carries nor re-sends them.
    */
   readonly persist: {
     readonly args: { readonly turnId: string; readonly projection: string };
-    readonly result: { readonly runtime: RuntimeFieldsWire };
+    readonly result: { readonly runtime: RuntimeFieldsWire; readonly offloads: readonly WireOffload[] };
   };
   readonly reportProgress: { readonly args: { readonly turnId: string; readonly label: string }; readonly result: null };
   /** `TurnSink.bindHarnessState`, with the session spec as the adapter left it (base64 `SessionSpec`). */

@@ -37,12 +37,18 @@
  *    changed, so an adapter that reads one (the Cursor harness reads
  *    `startedAt` and `streamingUsage`) sees the runtime's current value.
  *
- * What does not cross: the runtime's own edits of the adapter's rows
- * during a persist (the secret backstop, the tool-output offload, the size
- * elision, `harness/persist-chokepoint.ts`). Each is a pure function of the
- * rows it is given and is applied again to every snapshot, so the written
- * status is the same; the host simply keeps its full rows, as the engine
- * produced them.
+ * What crosses back from a persist besides those: the runtime's offloads of
+ * large tool outputs (`shared/status-offload.ts`), which the host's copy
+ * takes in place of the outputs it still holds unchanged. The offload
+ * uploads and keeps its dedupe state on the row, so without them the host's
+ * full rows would be uploaded again, and carried across the pipe, on every
+ * persist.
+ *
+ * What does not cross: the runtime's other edits of the adapter's rows
+ * during a persist (the secret backstop, the size elision,
+ * `harness/persist-chokepoint.ts`). Each is a pure function of the rows it
+ * is given with no side effect, so applying it again to every snapshot
+ * writes the same status.
  */
 
 import { create, fromBinary, toBinary, type DescField, type DescMessage, type MessageShape } from "@bufbuild/protobuf";
@@ -57,6 +63,7 @@ import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/e
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ToolCallOutputRefSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 
 import type { TurnInput, TurnHookSource } from "../harness/types.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
@@ -77,6 +84,7 @@ import { ToolScope, type ToolScopeWire } from "../shared/tool-lists.js";
 import type { ToolApprovalCategory } from "../shared/tool-kind.js";
 import { LocalWorkspaceBackend } from "../shared/workspace/local-backend.js";
 import type { ProvisionResult } from "../shared/workspace/types.js";
+import type { OffloadedOutput } from "../shared/status-offload.js";
 import type { WireCasSnapshot } from "./protocol.js";
 
 // ─── Bytes ─────────────────────────────────────────────────────────────────
@@ -445,6 +453,20 @@ export class RuntimeFieldTracker {
 }
 
 /** Assign the changed runtime-owned fields onto the host's copy of the status; a name that is not one is ignored. */
+/** The runtime's offloads of tool outputs (`shared/status-offload.ts`), as they cross: each ref as a base64 `ToolCallOutputRef`. */
+export interface WireOffload {
+  readonly toolCallId: string;
+  readonly outputRef: string;
+}
+
+export function encodeOffloads(offloads: readonly OffloadedOutput[]): WireOffload[] {
+  return offloads.map((o) => ({ toolCallId: o.toolCallId, outputRef: encodeMessage(ToolCallOutputRefSchema, o.outputRef) }));
+}
+
+export function decodeOffloads(wire: readonly WireOffload[]): OffloadedOutput[] {
+  return wire.map((o) => ({ toolCallId: o.toolCallId, outputRef: decodeMessage(ToolCallOutputRefSchema, o.outputRef) }));
+}
+
 export function applyRuntimeFields(target: RunStatus, wire: RuntimeFieldsWire): void {
   const fields = RUNTIME_OWNED_FIELDS.filter((f) => wire.fields.includes(f.localName));
   if (fields.length === 0) return;

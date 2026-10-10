@@ -13,7 +13,10 @@
  *  - an upload outside the turn's own key prefix: refused, nothing stored;
  *  - usage with negative or non-finite counts: clamped to zero;
  *  - a plugin verify for a plugin the turn does not have: refused;
- *  - a notice for a turn that has settled: dropped.
+ *  - a notice for a turn that has settled: dropped;
+ *  - an outcome of a kind the runner does not know, or a failure on a
+ *    surface it does not know: settled as an internal failure, never taken
+ *    as the host named it.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -48,7 +51,7 @@ type HostilePeer = Peer<RunnerCalls, HostCalls, HostNotices, RunnerNotices>;
 /** What the hostile host does inside a turn, before it answers `runTurn`. */
 type Attack = (peer: HostilePeer, turnId: string, args: HostCalls["runTurn"]["args"]) => Promise<void>;
 
-function hostileHarness(attack: Attack): HarnessAdapter {
+function hostileHarness(attack: Attack, outcome: unknown = { kind: "completed" }): HarnessAdapter {
   const proxy = { endpoint: "http://127.0.0.1:9", authorizeHost: () => {}, openTurn: () => () => {} };
   const supervisor = new AgentHostSupervisor({
     proxy,
@@ -60,7 +63,7 @@ function hostileHarness(attack: Attack): HarnessAdapter {
       host.handle("shutdown", async () => null);
       host.handle("runTurn", async (args): Promise<WireSettlement> => {
         await attack(host, args.turnId, args);
-        return { outcome: { kind: "completed" }, thrown: null, projection: encodeMessage(RunStatusSchema, create(RunStatusSchema)), cas: null };
+        return { outcome: outcome as WireSettlement["outcome"], thrown: null, projection: encodeMessage(RunStatusSchema, create(RunStatusSchema)), cas: null };
       });
       host.sendHello(AGENT_HOST_PROTOCOL_VERSION);
       return { channel: runnerEnd, kill: () => hostEnd.close() };
@@ -204,6 +207,17 @@ describe("a host that does not follow the rules", () => {
 
     await adapter.runTurn(input, sink);
     expect(stopped).toBe("kit: the stall watchdog");
+  });
+
+  it("settles an outcome it does not know as an internal failure", async () => {
+    for (const forged of [{ kind: "exfiltrate" }, { kind: "failed", message: "chosen by the host", surface: "root" }, { kind: "failed", message: 42, surface: "engine" }]) {
+      const adapter = hostileHarness(async () => {}, forged);
+      await adapter.boot(testConfig());
+      const input = turnInputFixture();
+      const outcome = await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
+      expect(outcome, JSON.stringify(forged)).toMatchObject({ kind: "failed", surface: "internal" });
+      await adapter.shutdown();
+    }
   });
 
   it("drops a notice for a turn that has settled", async () => {

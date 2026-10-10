@@ -44,7 +44,8 @@ import { TranscriptBuilder } from "../harness/transcript/builder.js";
 import type { TurnInput, TurnSink, UsageDelta } from "../harness/types.js";
 import { TimingRecorder, type TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { CasTouchedReader } from "../shared/filereview/cas-touched.js";
-import { applyRuntimeFields, decodeMessage, encodeAdapterProjection, encodeMessage } from "./codec.js";
+import { adoptOffloadedOutputs } from "../shared/status-offload.js";
+import { applyRuntimeFields, decodeMessage, decodeOffloads, encodeAdapterProjection, encodeMessage } from "./codec.js";
 import type { HostNotices, HostCalls, RunnerCalls, RunnerNotices } from "./protocol.js";
 import type { Peer } from "./channel.js";
 
@@ -137,8 +138,9 @@ export class HostTurn {
 
   private async persistNow(): Promise<void> {
     try {
-      const { runtime } = await this.peer.call("persist", { turnId: this.turnId, projection: encodeAdapterProjection(this.status) });
+      const { runtime, offloads } = await this.peer.call("persist", { turnId: this.turnId, projection: encodeAdapterProjection(this.status) });
       applyRuntimeFields(this.status, runtime);
+      adoptOffloadedOutputs(this.status, decodeOffloads(offloads));
     } catch (err) {
       console.warn(`[agent-host] persist request failed: turn=${this.turnId}, ${describe(err)}`);
     }

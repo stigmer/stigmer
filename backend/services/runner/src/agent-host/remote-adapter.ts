@@ -37,18 +37,18 @@ import { SessionSpecSchema, type SessionSpec } from "@stigmer/protos/ai/stigmer/
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Config } from "../config.js";
 import type { HarnessName } from "../harness/registry.js";
-import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink, UsageDelta } from "../harness/types.js";
+import type { FailureSurface, HarnessAdapter, TurnInput, TurnOutcome, TurnSink, UsageDelta } from "../harness/types.js";
 import { executionFingerprintKey } from "../shared/fingerprint-secret.js";
 import type { CasTouchedSnapshot } from "../shared/filereview/cas-touched.js";
+import { offloadedOutputs } from "../shared/status-offload.js";
 import {
   RuntimeFieldTracker,
   applyAdapterProjection,
   decodeCasSnapshot,
   decodeMessage,
   encodeMessage,
-  encodeTurnInput,
-} from "./codec.js";
-import { fromWireError, type WireOutcome } from "./protocol.js";
+  encodeTurnInput, encodeOffloads } from "./codec.js";
+import { fromWireError, type WireError, type WireOutcome } from "./protocol.js";
 import type { AgentHostSupervisor, RemoteTurnEndpoint } from "./supervisor.js";
 
 /**
@@ -150,7 +150,7 @@ class RemoteTurn {
         persist: async ({ projection }) => {
           applyAdapterProjection(sink.status, projection);
           await sink.requestPersist();
-          return { runtime: this.runtimeFields.changes(sink.status) };
+          return { runtime: this.runtimeFields.changes(sink.status), offloads: encodeOffloads(offloadedOutputs(sink.status)) };
         },
         reportProgress: async ({ label }) => {
           await sink.reportProgress(label);
@@ -230,13 +230,22 @@ function clampUsage(delta: UsageDelta): UsageDelta {
   };
 }
 
+const SETTLED_KINDS: ReadonlySet<string> = new Set(["completed", "cancelled", "awaiting_approval", "tool_call_limit", "interrupted"]);
+const FAILURE_SURFACES: ReadonlySet<string> = new Set(["engine", "actionable", "internal"]);
+
+/** The host's outcome, taken only in a shape the runtime knows: anything else is an internal failure, never the host's own choice. */
 function fromWireOutcome(wire: WireOutcome): TurnOutcome {
-  if (wire.kind !== "failed") return { kind: wire.kind };
+  // Read as the host sent it, not as the type promises: the host is the agent's.
+  const raw = wire as { readonly kind?: unknown; readonly message?: unknown; readonly surface?: unknown; readonly cause?: WireError };
+  if (typeof raw.kind === "string" && SETTLED_KINDS.has(raw.kind)) return { kind: raw.kind as Exclude<TurnOutcome["kind"], "failed"> };
+  if (raw.kind !== "failed" || typeof raw.message !== "string" || typeof raw.surface !== "string" || !FAILURE_SURFACES.has(raw.surface)) {
+    return { kind: "failed", surface: "internal", message: "The agent process answered with an outcome this runner does not know." };
+  }
   return {
     kind: "failed",
-    message: wire.message,
-    surface: wire.surface,
-    ...(wire.cause !== undefined ? { cause: fromWireError(wire.cause) } : {}),
+    message: raw.message,
+    surface: raw.surface as FailureSurface,
+    ...(raw.cause !== undefined ? { cause: fromWireError(raw.cause) } : {}),
   };
 }
 
