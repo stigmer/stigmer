@@ -4,7 +4,7 @@
  *
  * A turn begins with a dozen reads and provisions that have nothing to do
  * with the engine that will run it: the execution and its session, the
- * agent blueprint, the environment, the workspace and its lock, what the
+ * agent blueprint, the run's values, the workspace and its lock, what the
  * previous turn left waiting for approval, the MCP servers with the
  * approval default and the agent's tool scope, the attachments, the standing context. Until #1070
  * that sequence lived inline in the Cursor orchestrator
@@ -77,7 +77,7 @@ import { approvalDecisionsOf } from "./approval-decisions.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-resolver.js";
-import { fetchTurnValues, RunValuesRefusedError, type RepositoryToken } from "../shared/run-values.js";
+import { fetchTurnValues, RunValuesRefusedError, type RepositoryToken, type RunValues } from "../shared/run-values.js";
 import { provisionSessionWorkspace } from "../shared/workspace/session-provision.js";
 import { WriteBackCoordinator } from "../shared/workspace/writeback-coordinator.js";
 import { isGitWorkTree } from "../shared/filereview/git-substrate.js";
@@ -127,7 +127,6 @@ import type { FileReviewIdentity, HarnessCapabilities, PausePrimitive, StateIdSo
 import type { TranscriptBuilder } from "./transcript/builder.js";
 import type {
   TurnAttachments,
-  TurnEnvironment,
   TurnHookSource,
   TurnHooks,
   TurnInput,
@@ -258,9 +257,9 @@ export type TurnSettlement =
       readonly message: string;
     };
 
-/** The environment phase's answer: the run's values, or the settlement a refused fetch produces. */
-export type EnvironmentOutcome =
-  | { readonly kind: "ready"; readonly environment: TurnEnvironment }
+/** The values phase's answer: the run's values, or the settlement a refused fetch produces. */
+export type ValuesOutcome =
+  | { readonly kind: "ready"; readonly values: RunValues }
   | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "values-refused" }> };
 
 /** The lock phase's answer: the release handle (absent when there is no primary tree), or the one settlement a lock can produce. */
@@ -476,20 +475,20 @@ export async function resolveAgentBlueprint(
  * declarer (`shared/run-values.ts`). A fetch refused for a reason the
  * person fixes settles the turn with the server's message.
  */
-export async function resolveEnvironment(deps: ResolutionDeps): Promise<EnvironmentOutcome> {
-  deps.enterPhase("resolve_environment");
-  await deps.reportProgress("Resolving environment");
-  let environment: TurnEnvironment;
+export async function fetchValues(deps: ResolutionDeps): Promise<ValuesOutcome> {
+  deps.enterPhase("fetch_values");
+  await deps.reportProgress("Fetching values from vaults");
+  let values: RunValues;
   try {
-    environment = await fetchTurnValues(deps.client, deps.input.executionId);
+    values = await fetchTurnValues(deps.client, deps.input.executionId);
   } catch (err) {
     if (err instanceof RunValuesRefusedError) {
       return { kind: "settled", settlement: { kind: "values-refused", message: err.message } };
     }
     throw err;
   }
-  deps.timing.mark("resolve_environment");
-  return { kind: "ready", environment };
+  deps.timing.mark("fetch_values");
+  return { kind: "ready", values };
 }
 
 /**
@@ -748,12 +747,12 @@ export async function resolveMcpServersAndPolicies(
     readonly session: Session;
     readonly sessionId: string;
     readonly blueprint: ResolvedBlueprint;
-    readonly environment: TurnEnvironment;
+    readonly values: RunValues;
   },
 ): Promise<TurnMcp> {
   const { client, config } = deps;
   const { executionId } = deps.input;
-  const { execution, session, sessionId, blueprint, environment } = args;
+  const { execution, session, sessionId, blueprint, values } = args;
 
   deps.enterPhase("resolve_mcp_servers");
   await deps.reportProgress("Resolving MCP servers");
@@ -767,14 +766,14 @@ export async function resolveMcpServersAndPolicies(
   );
   const platformServerSlugs = new Set<string>();
   let servers = (await resolveMcpServers(
-    client, blueprint.mergedMcpServerUsages, environment.tools, platformValues, transportPosture, config,
+    client, blueprint.mergedMcpServerUsages, values.tools, platformValues, transportPosture, config,
   )).resolvedServers;
   deps.timing.mark("resolve_mcp_servers");
 
   // Phase 4a: Connect backfill for undiscovered MCP servers.
   const sessionOrg = session.metadata?.org ?? "";
   servers = await backfillMcpServersIfNeeded(
-    client, servers, blueprint.mergedMcpServerUsages, environment.tools, platformValues, sessionOrg,
+    client, servers, blueprint.mergedMcpServerUsages, values.tools, platformValues, sessionOrg,
     executionId, transportPosture, config, deps.heartbeat,
   );
   deps.timing.mark("backfill_mcp");
@@ -1329,10 +1328,10 @@ export async function resolveTurnContext(
   const { session, blueprint } = await resolveAgentBlueprint(deps, execution, sessionId);
   const unrunnable = refuseUnrunnableHooks(blueprint, capabilities);
   if (unrunnable !== undefined) return { kind: "settled", settlement: unrunnable };
-  const fetched = await resolveEnvironment(deps);
+  const fetched = await fetchValues(deps);
   if (fetched.kind === "settled") return { kind: "settled", settlement: fetched.settlement };
-  const { environment } = fetched;
-  const { workspace, writeback } = await provisionWorkspace(deps, { session, sessionId, repositories: environment.repositories });
+  const { values } = fetched;
+  const { workspace, writeback } = await provisionWorkspace(deps, { session, sessionId, repositories: values.repositories });
   frame.primaryDir = workspace.primaryDir;
   frame.writeback = writeback;
 
@@ -1350,7 +1349,7 @@ export async function resolveTurnContext(
   });
   if (reinvoked.kind === "settled") return { kind: "settled", settlement: reinvoked.settlement };
 
-  const mcp = await resolveMcpServersAndPolicies(deps, { execution, session, sessionId, blueprint, environment });
+  const mcp = await resolveMcpServersAndPolicies(deps, { execution, session, sessionId, blueprint, values });
   const skills = await mountSkills(deps, {
     blueprint,
     sessionId,
@@ -1390,7 +1389,7 @@ export async function resolveTurnContext(
       execution,
       session,
       blueprint,
-      environment,
+      values,
       workspace,
       mcp,
       skills,

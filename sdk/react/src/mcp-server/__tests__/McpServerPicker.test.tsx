@@ -200,7 +200,7 @@ function PickerHarness({
 /**
  * Mounts the harness against a real Connect router transport. RPCs a test
  * does not register fall through to Connect's `unimplemented`, which the
- * SDK hooks degrade from (search list and personal-environment lookups
+ * SDK hooks degrade from (search list and My vault lookups
  * are irrelevant here and stay unregistered).
  */
 function renderPicker(

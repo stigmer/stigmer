@@ -5,8 +5,8 @@
  * Stigmer runs an agent turn through one of several engines ("harnesses"):
  * the native LangGraph deep-agent, the Cursor SDK, and in future the Claude
  * Agent SDK and the Codex SDK. Everything about a turn that does NOT touch a
- * vendor SDK — fetching the execution, resolving the blueprint and the
- * environment, provisioning and locking the workspace, mounting skills,
+ * vendor SDK — fetching the execution, resolving the blueprint, fetching the
+ * run's values, provisioning and locking the workspace, mounting skills,
  * resolving MCP servers, the approval default and the tool scope, seeding the transcript, the
  * persist chokepoint, the stall watchdog, the Temporal heartbeat, pause vs
  * shutdown, the cost cap, the terminal mapping — is the RUNTIME's
@@ -180,9 +180,6 @@ export interface HarnessAdapter {
 // The resolved record
 // ---------------------------------------------------------------------------
 
-/** The resolved environment (phase 2b): the run's values, per declarer (`shared/run-values.ts`). */
-export type TurnEnvironment = RunValues;
-
 /** The provisioned workspace (phase 2c) and the capture posture derived from it. */
 export interface TurnWorkspace {
   /** The directories the agent operates in; never empty (`provisionSessionWorkspace` guarantees it). */
@@ -342,7 +339,8 @@ export interface TurnInput extends NormalizedActivityInput {
   /** The same object as `blueprint.session`; `bindHarnessState` writes it. */
   readonly session: Session;
   readonly blueprint: ResolvedBlueprint;
-  readonly environment: TurnEnvironment;
+  /** The run's values (phase 2b), per declarer (`shared/run-values.ts`). */
+  readonly values: RunValues;
   readonly workspace: TurnWorkspace;
   readonly mcp: TurnMcp;
   readonly skills: TurnSkills;

@@ -19,7 +19,7 @@ TypeScript gRPC control plane for local Stigmer deployment.
 **Key responsibilities**:
 
 - gRPC/gRPC-Web/Connect command/query controllers for every API resource
-  (Agent, Skill, Session, Environment, McpServer, …) on one port
+  (Agent, Skill, Session, Vault, McpServer, …) on one port
 - SQLite storage via `node:sqlite` (see [Storage](#storage) below)
 - Temporal workflow orchestration for agent executions, schedules and MCP
   server discovery

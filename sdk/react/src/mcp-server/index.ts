@@ -100,8 +100,8 @@ export type {
 // without driving the stateful McpServerCreationWizard through user events.
 export { IdentityTransportStep } from "./steps/IdentityTransportStep.js";
 export type { IdentityTransportStepProps } from "./steps/IdentityTransportStep.js";
-export { EnvironmentAuthStep } from "./steps/EnvironmentAuthStep.js";
-export type { EnvironmentAuthStepProps } from "./steps/EnvironmentAuthStep.js";
+export { VariablesSignInStep } from "./steps/VariablesSignInStep.js";
+export type { VariablesSignInStepProps } from "./steps/VariablesSignInStep.js";
 export { ReviewStep } from "./steps/ReviewStep.js";
 export type { ReviewStepProps } from "./steps/ReviewStep.js";
 

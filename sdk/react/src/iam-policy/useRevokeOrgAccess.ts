@@ -12,7 +12,7 @@ export interface UseRevokeOrgAccessReturn {
    * Remove a person from an organization.
    *
    * Revokes their roles on the organization and everything they hold on
-   * its resources: what was shared with them (agents, environments,
+   * its resources: what was shared with them (agents, vaults,
    * sessions and the rest) and their team memberships, in a single
    * operation. What they created stays with the organization; it is
    * theirs again only if they are invited back.

@@ -88,7 +88,7 @@ function args(options: { readonly agentLists?: { tools: string[]; disallowedTool
       recalledMemories: options.attachments ? create(RecalledMemoriesSchema, { enabled: true }) : undefined,
     }),
   });
-  return { execution, session, sessionId: "ses_1", blueprint, environment: NO_RUN_VALUES };
+  return { execution, session, sessionId: "ses_1", blueprint, values: NO_RUN_VALUES };
 }
 
 describe("resolveMcpServersAndPolicies — platform servers and the agent's scope", () => {

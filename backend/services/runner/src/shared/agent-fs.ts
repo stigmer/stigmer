@@ -146,6 +146,34 @@ export function installAgentFs(impl: AgentFs): () => void {
   };
 }
 
+/**
+ * Operations that all fail with `reason`: what a separating runner installs
+ * once its host has closed, so a late operation on the agent's paths fails
+ * instead of running with the runner's rights.
+ */
+export function refusingAgentFs(reason: string): AgentFs {
+  const refuse = (): Promise<never> => Promise.reject(new Error(reason));
+  return {
+    readFile: refuse,
+    writeFile: refuse,
+    mkdir: refuse,
+    rm: refuse,
+    rmdir: refuse,
+    unlink: refuse,
+    rename: refuse,
+    cp: refuse,
+    copyFile: refuse,
+    stat: refuse,
+    lstat: refuse,
+    readdir: refuse,
+    readlink: refuse,
+    symlink: refuse,
+    realpath: refuse,
+    access: refuse,
+    execFile: refuse,
+  };
+}
+
 /** Whether `path` exists, following links. */
 export async function agentPathExists(path: string): Promise<boolean> {
   try {

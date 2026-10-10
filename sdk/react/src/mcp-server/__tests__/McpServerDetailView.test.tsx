@@ -487,7 +487,7 @@ describe("McpServerDetailView — credential form gating", () => {
       />,
     );
     expect(await screen.findByText("Credentials Required")).toBeTruthy();
-    // Scope to the credential form — the Environment section also lists
+    // Scope to the credential form — the Environment Variables section also lists
     // API_TOKEN as a declaration.
     const form = screen.getByRole("form", {
       name: /Configure Credentials Required/i,

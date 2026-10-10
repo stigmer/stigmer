@@ -3,8 +3,7 @@
  *
  * A vault holds logins (by a tool's address) and secrets (by name) that
  * runs use. Values are write-only for everyone: every response passes
- * through `redactVault`, and no RPC returns a value. The chains follow the
- * Environment kind's they replace, reshaped:
+ * through `redactVault`, and no RPC returns a value. The chains:
  *
  *   - create makes a shared vault, owned by its organization, empty; My
  *     vault is created by the vault service on its person's first entry

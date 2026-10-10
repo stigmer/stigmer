@@ -459,10 +459,9 @@ ai.stigmer.agentic.vault.v1.VaultSecret defaultValue) {
   }
   /**
    * <pre>
-   * Connections by address. A pasted connection fills the login of an HTTP
-   * tool at that address, whose requests carry the token there, or clones
-   * from a Git host such as github.com; a sign-in fills only the tool that
-   * signed in.
+   * Connections by address. A pasted login or a sign-in fills the login of
+   * every HTTP tool at that address, whose requests carry the token there,
+   * or clones from a Git host such as github.com.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.VaultConnection&gt; connections = 6 [json_name = "connections"];</code>
@@ -483,10 +482,9 @@ ai.stigmer.agentic.vault.v1.VaultSecret defaultValue) {
   }
   /**
    * <pre>
-   * Connections by address. A pasted connection fills the login of an HTTP
-   * tool at that address, whose requests carry the token there, or clones
-   * from a Git host such as github.com; a sign-in fills only the tool that
-   * signed in.
+   * Connections by address. A pasted login or a sign-in fills the login of
+   * every HTTP tool at that address, whose requests carry the token there,
+   * or clones from a Git host such as github.com.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.VaultConnection&gt; connections = 6 [json_name = "connections"];</code>
@@ -497,10 +495,9 @@ ai.stigmer.agentic.vault.v1.VaultSecret defaultValue) {
   }
   /**
    * <pre>
-   * Connections by address. A pasted connection fills the login of an HTTP
-   * tool at that address, whose requests carry the token there, or clones
-   * from a Git host such as github.com; a sign-in fills only the tool that
-   * signed in.
+   * Connections by address. A pasted login or a sign-in fills the login of
+   * every HTTP tool at that address, whose requests carry the token there,
+   * or clones from a Git host such as github.com.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.VaultConnection&gt; connections = 6 [json_name = "connections"];</code>
@@ -518,10 +515,9 @@ ai.stigmer.agentic.vault.v1.VaultConnection defaultValue) {
   }
   /**
    * <pre>
-   * Connections by address. A pasted connection fills the login of an HTTP
-   * tool at that address, whose requests carry the token there, or clones
-   * from a Git host such as github.com; a sign-in fills only the tool that
-   * signed in.
+   * Connections by address. A pasted login or a sign-in fills the login of
+   * every HTTP tool at that address, whose requests carry the token there,
+   * or clones from a Git host such as github.com.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.VaultConnection&gt; connections = 6 [json_name = "connections"];</code>
@@ -1711,10 +1707,9 @@ ai.stigmer.agentic.vault.v1.VaultSecret defaultValue) {
     }
     /**
      * <pre>
-     * Connections by address. A pasted connection fills the login of an HTTP
-     * tool at that address, whose requests carry the token there, or clones
-     * from a Git host such as github.com; a sign-in fills only the tool that
-     * signed in.
+     * Connections by address. A pasted login or a sign-in fills the login of
+     * every HTTP tool at that address, whose requests carry the token there,
+     * or clones from a Git host such as github.com.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.VaultConnection&gt; connections = 6 [json_name = "connections"];</code>
@@ -1735,10 +1730,9 @@ ai.stigmer.agentic.vault.v1.VaultSecret defaultValue) {
     }
     /**
      * <pre>
-     * Connections by address. A pasted connection fills the login of an HTTP
-     * tool at that address, whose requests carry the token there, or clones
-     * from a Git host such as github.com; a sign-in fills only the tool that
-     * signed in.
+     * Connections by address. A pasted login or a sign-in fills the login of
+     * every HTTP tool at that address, whose requests carry the token there,
+     * or clones from a Git host such as github.com.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.VaultConnection&gt; connections = 6 [json_name = "connections"];</code>
@@ -1749,10 +1743,9 @@ ai.stigmer.agentic.vault.v1.VaultSecret defaultValue) {
     }
     /**
      * <pre>
-     * Connections by address. A pasted connection fills the login of an HTTP
-     * tool at that address, whose requests carry the token there, or clones
-     * from a Git host such as github.com; a sign-in fills only the tool that
-     * signed in.
+     * Connections by address. A pasted login or a sign-in fills the login of
+     * every HTTP tool at that address, whose requests carry the token there,
+     * or clones from a Git host such as github.com.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.VaultConnection&gt; connections = 6 [json_name = "connections"];</code>
@@ -1769,10 +1762,9 @@ ai.stigmer.agentic.vault.v1.VaultConnection defaultValue) {
     }
     /**
      * <pre>
-     * Connections by address. A pasted connection fills the login of an HTTP
-     * tool at that address, whose requests carry the token there, or clones
-     * from a Git host such as github.com; a sign-in fills only the tool that
-     * signed in.
+     * Connections by address. A pasted login or a sign-in fills the login of
+     * every HTTP tool at that address, whose requests carry the token there,
+     * or clones from a Git host such as github.com.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.VaultConnection&gt; connections = 6 [json_name = "connections"];</code>
@@ -1794,10 +1786,9 @@ ai.stigmer.agentic.vault.v1.VaultConnection defaultValue) {
     }
     /**
      * <pre>
-     * Connections by address. A pasted connection fills the login of an HTTP
-     * tool at that address, whose requests carry the token there, or clones
-     * from a Git host such as github.com; a sign-in fills only the tool that
-     * signed in.
+     * Connections by address. A pasted login or a sign-in fills the login of
+     * every HTTP tool at that address, whose requests carry the token there,
+     * or clones from a Git host such as github.com.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.VaultConnection&gt; connections = 6 [json_name = "connections"];</code>
@@ -1820,10 +1811,9 @@ ai.stigmer.agentic.vault.v1.VaultConnection defaultValue) {
     }
     /**
      * <pre>
-     * Connections by address. A pasted connection fills the login of an HTTP
-     * tool at that address, whose requests carry the token there, or clones
-     * from a Git host such as github.com; a sign-in fills only the tool that
-     * signed in.
+     * Connections by address. A pasted login or a sign-in fills the login of
+     * every HTTP tool at that address, whose requests carry the token there,
+     * or clones from a Git host such as github.com.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.VaultConnection&gt; connections = 6 [json_name = "connections"];</code>
@@ -1840,10 +1830,9 @@ ai.stigmer.agentic.vault.v1.VaultConnection defaultValue) {
     }
     /**
      * <pre>
-     * Connections by address. A pasted connection fills the login of an HTTP
-     * tool at that address, whose requests carry the token there, or clones
-     * from a Git host such as github.com; a sign-in fills only the tool that
-     * signed in.
+     * Connections by address. A pasted login or a sign-in fills the login of
+     * every HTTP tool at that address, whose requests carry the token there,
+     * or clones from a Git host such as github.com.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.VaultConnection&gt; connections = 6 [json_name = "connections"];</code>
@@ -1862,10 +1851,9 @@ ai.stigmer.agentic.vault.v1.VaultConnection defaultValue) {
     }
     /**
      * <pre>
-     * Connections by address. A pasted connection fills the login of an HTTP
-     * tool at that address, whose requests carry the token there, or clones
-     * from a Git host such as github.com; a sign-in fills only the tool that
-     * signed in.
+     * Connections by address. A pasted login or a sign-in fills the login of
+     * every HTTP tool at that address, whose requests carry the token there,
+     * or clones from a Git host such as github.com.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.vault.v1.VaultConnection&gt; connections = 6 [json_name = "connections"];</code>

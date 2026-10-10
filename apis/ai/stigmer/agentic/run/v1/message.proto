@@ -166,8 +166,7 @@ message ToolCall {
   //
   // Identifies the MCP server that provides this tool. Empty for built-in
   // sandbox tools (read, write, shell, etc.). Populated by the worker when
-  // the tool originates from an MCP server configured in the agent's
-  // execution context.
+  // the tool is a tool of an MCP server the run uses.
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Slug of the MCP server that provides this tool.

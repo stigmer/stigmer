@@ -451,7 +451,8 @@ pages:
     teaches:
       What a vault holds (secrets by name, logins by address), My vault and
       shared vaults with Can use, which vaults a run uses and in what order, how
-      a key is matched, the refusal at create, and a repository's own token.
+      a key is matched, the refusal at create, when the values are read, a
+      repository's own token, and Connect links.
     medium: none
 
   concepts/runners:
@@ -651,6 +652,15 @@ pages:
       playback was a second embed on the same topic (dropped 2026-07-28).
     embeds:
       platform-client-token-flow: keep
+
+  guides/authentication/customer-keys:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Keep each customer's keys in a vault no other customer can name, chosen
+      by how the customers sign in and the edition; put a key in, rotate it,
+      and check where a run's values came from.
+    medium: none
 
   concepts/billing:
     fate: split

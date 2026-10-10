@@ -5,7 +5,7 @@
  *
  * The wizard beats compose the REAL `@stigmer/react` creation surface:
  * `WizardShell` (controlled chrome), `CreationPicker`, and the exported
- * presentational steps (`IdentityTransportStep`, `EnvironmentAuthStep`,
+ * presentational steps (`IdentityTransportStep`, `VariablesSignInStep`,
  * `ReviewStep`). Every state — including the validation failure and the
  * create error — is injected via props from `steps.ts`, so scrubbing and
  * video export reproduce each beat exactly (no synthetic events, ever).
@@ -26,10 +26,10 @@ import { ConnectError, Code } from "@connectrpc/connect";
 import {
   createInitialMcpServerWizardData,
   CreationPicker,
-  EnvironmentAuthStep,
   IdentityTransportStep,
   MCP_SERVER_TEMPLATES,
   ReviewStep,
+  VariablesSignInStep,
   WizardShell,
 } from "@stigmer/react";
 import type { McpServerWizardData, WizardStepDef } from "@stigmer/react";
@@ -137,7 +137,7 @@ const CREATE_CONFLICT_ERROR: Error = new ConnectError(
  */
 const WIZARD_STEPS: WizardStepDef<McpServerWizardData>[] = [
   { id: "identity-transport", label: "Identity & Transport" },
-  { id: "environment-auth", label: "Environment & Auth" },
+  { id: "variables-sign-in", label: "Variables & Sign-in" },
   { id: "review", label: "Review & Create" },
 ];
 
@@ -300,7 +300,7 @@ export function renderStep(data: McpServerCreationTourStep): ReactNode {
         "/library/mcp-servers/new",
         <AppShell activeNav="library" contentKey="wizard">
           <WizardFrame stepIndex={1}>
-            <EnvironmentAuthStep data={WITH_ENV} updateData={noop} />
+            <VariablesSignInStep data={WITH_ENV} updateData={noop} />
           </WizardFrame>
         </AppShell>,
       );

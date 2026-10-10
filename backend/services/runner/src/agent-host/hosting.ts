@@ -34,7 +34,7 @@ import { HOSTED_HARNESSES } from "../harness-adapters.js";
 import type { HarnessRow } from "../harness/registry.js";
 import { AgentProxy } from "../agent-proxy/server.js";
 import { agentHostEnvironment } from "./environment.js";
-import { installAgentFs } from "../shared/agent-fs.js";
+import { installAgentFs, refusingAgentFs } from "../shared/agent-fs.js";
 import { handOverToAgent, type HandoverIo } from "../shared/agent-handover.js";
 import { agentIdentity, prepareAgentSeparation, type AgentIdentity } from "../shared/agent-identity.js";
 import { createRemoteAdapter } from "./remote-adapter.js";
@@ -103,6 +103,8 @@ export async function hostHarnesses(
       supervisor.warmCursorSdk().catch((err: unknown) => ({ warmed: false, durationMs: 0, error: err instanceof Error ? err.message : String(err) })),
     close: async () => {
       restoreFs();
+      // A separating runner never performs them itself: after the host, they fail.
+      if (identity !== null) installAgentFs(refusingAgentFs("the agent host has closed; the runner performs no operation on the agent's paths itself"));
       await proxy.close();
       trust.remove();
     },

@@ -105,7 +105,7 @@ describe("destroySecretBackingState (the SecretValueCleanup port)", () => {
     await destroySecretBackingState(
       secrets,
       captureLogger(errorLines),
-      { kind: "environment", resourceId: "env_1" },
+      { kind: "vault", resourceId: "vlt_1" },
       [a, "", b],
     );
 
@@ -119,7 +119,7 @@ describe("destroySecretBackingState (the SecretValueCleanup port)", () => {
     await destroySecretBackingState(
       secrets,
       captureLogger(errorLines),
-      { kind: "environment", resourceId: "env_2" },
+      { kind: "vault", resourceId: "vlt_2" },
       ["just-plaintext", REDACTED_MARKER],
     );
 
@@ -144,7 +144,7 @@ describe("destroySecretBackingState (the SecretValueCleanup port)", () => {
       destroySecretBackingState(
         secrets,
         captureLogger(errorLines),
-        { kind: "environment", resourceId: "env_3" },
+        { kind: "vault", resourceId: "vlt_3" },
         [a, b],
       ),
     ).resolves.toBeUndefined();
@@ -154,7 +154,7 @@ describe("destroySecretBackingState (the SecretValueCleanup port)", () => {
     expect(errorLines[0]).toContain(
       "secret backing-state destruction failed after persist",
     );
-    expect(errorLines[0]).toContain("env_3");
+    expect(errorLines[0]).toContain("vlt_3");
   });
 
   it("an unregistered version refuses on the unavailable arm and is contained", async () => {
@@ -164,7 +164,7 @@ describe("destroySecretBackingState (the SecretValueCleanup port)", () => {
       destroySecretBackingState(
         secrets,
         captureLogger(errorLines),
-        { kind: "environment", resourceId: "env_4" },
+        { kind: "vault", resourceId: "vlt_4" },
         ["enc:v1:AAAA"],
       ),
     ).resolves.toBeUndefined();

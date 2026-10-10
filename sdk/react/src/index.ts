@@ -586,7 +586,7 @@ export {
   useUpdateMcpServer,
   toServerKey,
   IdentityTransportStep,
-  EnvironmentAuthStep,
+  VariablesSignInStep,
   ReviewStep,
   createInitialMcpServerWizardData,
 } from "./mcp-server/index.js";
@@ -627,7 +627,7 @@ export type {
   McpServerCreationResult,
   McpServerWizardData,
   IdentityTransportStepProps,
-  EnvironmentAuthStepProps,
+  VariablesSignInStepProps,
   ReviewStepProps,
 } from "./mcp-server/index.js";
 

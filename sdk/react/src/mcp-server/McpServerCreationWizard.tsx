@@ -6,7 +6,7 @@ import { useWizardState } from "../resource-creation/useWizardState.js";
 import { WizardShell } from "../resource-creation/WizardShell.js";
 import { useCreateMcpServer } from "./useCreateMcpServer.js";
 import { IdentityTransportStep } from "./steps/IdentityTransportStep.js";
-import { EnvironmentAuthStep } from "./steps/EnvironmentAuthStep.js";
+import { VariablesSignInStep } from "./steps/VariablesSignInStep.js";
 import { ReviewStep, buildMcpServerInput } from "./steps/ReviewStep.js";
 import { createInitialMcpServerWizardData } from "./steps/types.js";
 import type { McpServerWizardData } from "./steps/types.js";
@@ -65,8 +65,8 @@ const STEPS: WizardStepDef<McpServerWizardData>[] = [
     },
   },
   {
-    id: "environment-auth",
-    label: "Environment & Auth",
+    id: "variables-sign-in",
+    label: "Variables & Sign-in",
   },
   {
     id: "review",
@@ -83,7 +83,7 @@ const STEPS: WizardStepDef<McpServerWizardData>[] = [
  *
  * Three steps:
  * 1. **Identity & Transport** — name, slug, description, icon, transport config
- * 2. **Environment & Auth** — env var declarations, OAuth auth configuration (all optional)
+ * 2. **Variables & Sign-in** — env var declarations, OAuth sign-in configuration (all optional)
  * 3. **Review & Create** — YAML preview + submission
  *
  * Uses the shared `WizardShell` layout and `useWizardState` hook for
@@ -161,9 +161,9 @@ export function McpServerCreationWizard({
             validationError={wizard.validationError}
           />
         );
-      case "environment-auth":
+      case "variables-sign-in":
         return (
-          <EnvironmentAuthStep
+          <VariablesSignInStep
             data={wizard.data}
             updateData={wizard.updateData}
           />

@@ -297,7 +297,8 @@ describe("planMaterialization", () => {
       "",
     );
     // The server still declares it (the connect flow reads it there); the
-    // agent does not, because the value comes from a managed environment.
+    // agent does not, because the value is the server's login, filled from
+    // a sign-in saved in a vault.
     expect(withOAuth.mcpServers[0]!.resource.spec?.env).toHaveProperty(
       "GITHUB_TOKEN",
     );

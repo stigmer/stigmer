@@ -399,8 +399,9 @@ export interface SessionComposerProps {
    *
    * When provided, the composer runs the full agent resolution flow
    * on mount — exactly as if the user had picked this agent in the
-   * {@link AgentPicker}. If the agent requires credentials, the
-   * environment form appears automatically.
+   * {@link AgentPicker}. If the agent needs keys no vault of the
+   * conversation holds, the form asking for them (saved in My vault)
+   * appears automatically.
    *
    * One-time: consumed on mount; subsequent changes are ignored.
    * To change the agent after mount, use the picker or
@@ -494,7 +495,7 @@ export interface SessionComposerProps {
    *
    * Locking does not unwire the agent machinery — `initialAgentRef`
    * resolution still runs on mount, and when the agent requires
-   * credentials the environment form stays reachable in the Configure
+   * keys the form asking for them stays reachable in the Configure
    * menu until setup completes (lock ≠ unwire). Pair with
    * `initialAgentRef` to pin a pre-configured agent in end-user-facing
    * embeds (see `SessionViewer` / `NewSessionViewer` `audience`).
@@ -1347,7 +1348,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   );
 
   // ---------------------------------------------------------------------------
-  // Agent setup: state-machine-driven popover + environment resolution
+  // Agent setup: state-machine-driven popover + the agent's key check
   // ---------------------------------------------------------------------------
 
   const showEnvForm = agentSetup.state.status === "needsEnvVars";

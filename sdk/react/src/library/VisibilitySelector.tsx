@@ -64,7 +64,7 @@ export interface VisibilitySelectorProps {
 
 /**
  * The single control for resource visibility across blueprints and
- * environments. Offered levels are pure data ({@link VisibilityLevelOption});
+ * vaults. Offered levels are pure data ({@link VisibilityLevelOption});
  * per-kind level sets live in `visibilityLevels.ts`, so this component
  * carries no kind-specific logic.
  *

@@ -615,7 +615,7 @@ enum ApiResourceKind {
   reserved 52;
   reserved "workflow_run";
 
-  // Agentic - Run environment and context
+  // Agentic - Retired run kinds (Environment, ExecutionContext, Artifact)
 
   // Value 53 held the Environment kind (id prefix "env": a named set of
   // variables and secrets for a run) until vaults replaced it. Reserved so

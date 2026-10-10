@@ -18,8 +18,7 @@
 // redactions (each kind's own suite), and the create-side bars
 // (parent-gated-create-authorization). A vault is read as a shared vault,
 // the organization's; a person's own My vault is pinned by the vault suite.
-// Kinds whose rows are personal (execution context) have no org-visible arm; kinds that carry
-// no visibility (shares, channels, schedules, apps) are read by
+// Kinds that carry no visibility (shares, channels, schedules, apps) are read by
 // their owner and by a member only when the model admits members.
 import { Code } from "@connectrpc/connect";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";

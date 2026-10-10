@@ -284,7 +284,7 @@ parent resources.
 
 Pass `null` as `resource` to skip fetching (stable no-op).
 
-**Generic** — works for organizations, agents, environments, or any
+**Generic** — works for organizations, agents, vaults, or any
 resource kind that has IAM policies.
 
 **Signature**
@@ -343,7 +343,7 @@ function useRevokeOrgAccess(): UseRevokeOrgAccessReturn
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
     error: { type: "Error | null", description: "Error from the last failed revoke, or `null` when healthy." },
     isRevoking: { type: "boolean", description: "`true` while the revoke request is in flight." },
-    revoke: { type: "(accountId: string, org: string) => Promise<void>", description: "Remove a person from an organization.  Revokes their roles on the organization and everything they hold on its resources: what was shared with them (agents, environments, sessions and the rest) and their team memberships, in a single operation. What they created stays with the organization; it is theirs again only if they are invited back." },
+    revoke: { type: "(accountId: string, org: string) => Promise<void>", description: "Remove a person from an organization.  Revokes their roles on the organization and everything they hold on its resources: what was shared with them (agents, vaults, sessions and the rest) and their team memberships, in a single operation. What they created stays with the organization; it is theirs again only if they are invited back." },
   }}
 />
 

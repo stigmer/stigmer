@@ -77,7 +77,7 @@ describe("the turn input across the pipe", () => {
     const leased = new Set(["github"]);
     const input = turnInputFixture({
       approvalDecisions: new Map([["call-1", ApprovalAction.APPROVE]]),
-      environment: {
+      values: {
         agent: { API_TOKEN: "value" },
         tools: new Map([["mcp_linear", { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }]]),
         repositories: [{ name: "app", url: "https://github.com/acme/app.git", token: "ghp_runner_only" }],
@@ -109,12 +109,12 @@ describe("the turn input across the pipe", () => {
     expect(decoded.blueprint.subAgents.map((s) => s.name)).toEqual(["helper"]);
     expect(decoded.mcp.mcpDefault.leasedServers, "one Set of leased servers").toBe(decoded.mcp.leases.servers);
     expect([...decoded.approvalDecisions]).toEqual([["call-1", ApprovalAction.APPROVE]]);
-    expect(decoded.environment.agent).toEqual({ API_TOKEN: "value" });
-    expect([...decoded.environment.tools]).toEqual([
+    expect(decoded.values.agent).toEqual({ API_TOKEN: "value" });
+    expect([...decoded.values.tools]).toEqual([
       ["mcp_linear", { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }],
     ]);
     // A repository's token is the runner's alone: it never crosses the pipe.
-    expect(decoded.environment.repositories).toEqual([]);
+    expect(decoded.values.repositories).toEqual([]);
     expect(JSON.stringify(encodeTurnInput(input))).not.toContain("ghp_runner_only");
     expect([...decoded.appliedToolCallIds]).toEqual(["call-2"]);
     expect([...decoded.mcp.leases.categories]).toEqual(["write"]);

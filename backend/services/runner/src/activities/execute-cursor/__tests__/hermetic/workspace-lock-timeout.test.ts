@@ -134,7 +134,7 @@ describe("ExecuteCursor hermetic — workspace lock timeout", () => {
       expect(record.setupProgress).toEqual([
         "Fetching execution",
         "Resolving agent blueprint",
-        "Resolving environment",
+        "Fetching values from vaults",
         "Provisioning workspace",
         "Waiting for workspace — in use by another session",
       ]);

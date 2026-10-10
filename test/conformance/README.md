@@ -714,7 +714,7 @@ src/
   targets/          target (interface + capabilities), local, local-execution, local-postgres, cloud, cloud-execution, index
   contract/         errors, parity
   support/          naming, run-poll, runs, file-review, stigmer-mcp-stdio, working-agent (the benchmark's
-                    working agent), agents, mcpservers, memories, skills, environments, sessions,
+                    working agent), agents, mcpservers, memories, skills, vaults, sessions,
                     request-shape (the golden renderers), …
   benchmark/        report (the contract a run writes), cells, quality-tasks, run (the direct-mode stack and driver), session
                     (the per-turn driver), the readers stream-watch, status-facts, timing-lines, temporal-history,
