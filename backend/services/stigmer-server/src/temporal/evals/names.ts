@@ -103,6 +103,15 @@ export const PLUGIN_EVAL_BUSY_FAILURE_TYPE = "PluginEvalBusy";
  */
 export const PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE = "PluginEvalCaseFailed";
 
+/**
+ * The failure type the suite workflow fails with on an error that is
+ * neither a cancellation nor one of its steps failing past its retries,
+ * once it has tried to end the eval failed: a plain error would fail only
+ * the workflow task and retry it until the execution timeout, the eval
+ * shown running.
+ */
+export const PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE = "PluginEvalSuiteFailed";
+
 /** The not-graded reasons the workflows give without an activity. */
 export const PLATFORM_BUSY_REASON = "platform busy";
 export const OUT_OF_CREDIT_REASON = "out of credit";
@@ -125,6 +134,9 @@ export const TRY_CANCELLED_REASON = "cancelled";
 
 /** The failed eval's error when the suite workflow could not plan it (its load past every retry). */
 export const EVAL_NOT_PLANNED_ERROR = "the eval could not be planned";
+
+/** The failed eval's error when the suite workflow met an error of its own (PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE). */
+export const EVAL_WORKFLOW_FAILED_ERROR = "the eval's workflow failed";
 
 /** The failed eval's error when a finished try could not be recorded past every retry. */
 export const TRY_NOT_RECORDED_ERROR = "a try's result could not be recorded";

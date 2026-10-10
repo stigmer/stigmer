@@ -23,10 +23,12 @@
  *     of its own, each read and then its session deleted before the next
  *     (two steps, so a retried read reads the same vote; a vote's cost
  *     joins the workflow's tally once its session, which held it, is
- *     deleted). A vote whose read fails past its retries is stopped, and
- *     the try is not graded, "the AI-graded check could not be read", with
- *     what its run and every vote spent (the unread vote's read from its
- *     stored run).
+ *     deleted; a vote whose delete fails past its retries is still stored,
+ *     so where the spend activity is read it counts that vote, and the
+ *     tally only where it is not). A vote whose read fails past its
+ *     retries is stopped, and the try is not graded, "the AI-graded check
+ *     could not be read", with what its run and every vote spent (the
+ *     unread vote's read from its stored run).
  *   - Record: the votes tallied (two of three decide), the try's score,
  *     and its Score on its run.
  *
@@ -199,6 +201,11 @@ interface Known {
   voteRunId: string;
   /** What the votes already read spent: their sessions, and so their runs, are deleted. */
   voteCostUsd: number;
+  /**
+   * What the votes read whose session could not be deleted spent: their
+   * runs are still stored, so a spend read counts them, never this too.
+   */
+  keptVoteCostUsd: number;
 }
 
 export async function runCase(input: CaseInput): Promise<TryResult> {
@@ -207,6 +214,7 @@ export async function runCase(input: CaseInput): Promise<TryResult> {
     runId: "",
     voteRunId: "",
     voteCostUsd: 0,
+    keptVoteCostUsd: 0,
   };
   try {
     return await runTry(input, known);
@@ -330,7 +338,6 @@ async function runTry(input: CaseInput, known: Known): Promise<TryResult> {
         if (read === undefined) {
           return unreadVoteTry(input, known, grade);
         }
-        known.voteCostUsd += read.costUsd;
         cast.push(read.vote);
       }
     }
@@ -339,7 +346,7 @@ async function runTry(input: CaseInput, known: Known): Promise<TryResult> {
 
   const graded: TryGrade = {
     ...grade,
-    costUsd: grade.costUsd + known.voteCostUsd,
+    costUsd: grade.costUsd + known.voteCostUsd + known.keptVoteCostUsd,
   };
   try {
     return await grading[RECORD_SCORE_ACTIVITY_NAME](
@@ -363,8 +370,10 @@ async function runTry(input: CaseInput, known: Known): Promise<TryResult> {
 
 /**
  * One vote: start, wait within its budget, read (graders/llm.ts), delete
- * its session. Undefined when the read fails past its retries; the vote's run is then
- * stopped and left in `known.voteRunId`, its spend still stored.
+ * its session, its cost added to `known`'s tally of deleted votes, or of
+ * kept ones when the delete fails past its retries. Undefined when the
+ * read fails past its retries; the vote's run is then stopped and left in
+ * `known.voteRunId`, its spend still stored.
  */
 async function vote(
   input: CaseInput,
@@ -413,11 +422,13 @@ async function vote(
   }
   try {
     await steps[DELETE_VOTE_ACTIVITY_NAME](start.voteRunId);
+    known.voteCostUsd += read.costUsd;
   } catch (error) {
     if (isCancellation(error)) {
       throw error;
     }
-    // The session is left; the vote was read, and its cost is counted here.
+    // The session, and so the vote's run, is left: a spend read counts it.
+    known.keptVoteCostUsd += read.costUsd;
   }
   known.voteRunId = "";
   return read;
@@ -429,17 +440,18 @@ const UNREAD_VOTE_STOP_REASON = "the vote could not be read";
 /**
  * The try whose vote could not be read (the module header): not graded,
  * with what the try's run and every vote spent. The spend activity reads
- * the try's run and the votes still stored, the unread one included; the
- * votes already read had their sessions deleted, so their spend is the
- * workflow's own tally. A spend read that fails falls back to the grade's
- * cost.
+ * the try's run and the votes still stored, the unread one and any whose
+ * delete failed included; the votes deleted are the workflow's own tally.
+ * A spend read that fails falls back to the grade's cost and the votes
+ * kept.
  */
 async function unreadVoteTry(
   input: CaseInput,
   known: Known,
   grade: TryGrade,
 ): Promise<TryResult> {
-  const stored = (await spendOf(input))?.costUsd ?? grade.costUsd;
+  const stored =
+    (await spendOf(input))?.costUsd ?? grade.costUsd + known.keptVoteCostUsd;
   return {
     ...notGraded(known.sessionId, known.runId, VOTE_NOT_READ_REASON),
     error: grade.error,
@@ -473,7 +485,7 @@ async function cancelledTry(input: CaseInput, known: Known): Promise<TryResult> 
   if (runId !== "") {
     await stopQuietly(runId);
     await awaitRun(runId, STOP_GRACE_MS);
-    costUsd = (await spendOf(input))?.costUsd ?? 0;
+    costUsd = (await spendOf(input))?.costUsd ?? known.keptVoteCostUsd;
   }
   return {
     ...notGraded(sessionId, runId, TRY_CANCELLED_REASON),

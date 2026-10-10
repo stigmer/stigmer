@@ -21,8 +21,10 @@
  * and rethrown;
  * a load or a record failing past its retries ending the eval failed with
  * the reason, that end written even when a cancel lands during it, and the
- * finish retried with no bound of its own; an eval planning nothing ending
- * at once.
+ * finish retried with no bound of its own; any other error, the finish's
+ * own included, ending the eval failed as far as the finish can and
+ * failing the workflow as a non-retryable ApplicationFailure; an eval
+ * planning nothing ending at once.
  *
  * The case: start, wait, grade, three votes per AI-graded check, record;
  * the deadline stopping the run and grading what it produced; each start
@@ -39,8 +41,10 @@
  * a vote that cannot start counted as failed; a vote that cannot be read
  * past its retries stopped, the try not graded with what its run and every
  * vote spent; each read vote's session deleted after its read, a delete
- * that fails leaving the vote counted, a cancellation at the delete
- * counting that vote once, through the spend read.
+ * that fails past its retries leaving the vote counted once, by the
+ * workflow on a graded try and by the spend read, which still holds its
+ * run, on any other, a cancellation at the delete counting that vote
+ * once, through the spend read.
  */
 import {
   ActivityCancellationType,
@@ -70,6 +74,8 @@ import {
   START_VOTE_ACTIVITY_NAME,
   STOP_RUN_ACTIVITY_NAME,
   EVAL_NOT_PLANNED_ERROR,
+  EVAL_WORKFLOW_FAILED_ERROR,
+  PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
   TRY_FAILED_REASON,
   TRY_MIN_BUDGET_USD,
   TRY_NOT_RECORDED_ERROR,
@@ -501,6 +507,66 @@ describe("the suite workflow", () => {
     expect(finished).toEqual([{ phase: "completed" }]);
   });
 
+  it("keeps the cap of a try whose run could not be stopped held for the rest of the eval", async () => {
+    const { recorded, finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(3),
+      maxCostUsd: 1,
+      concurrency: 2,
+    });
+    const budgets: number[] = [];
+    const finishes: Array<(outcome: TryResult) => void> = [];
+    seam.child = async (_type, options) => {
+      budgets.push((options.args[0] as CaseInput).budgetUsd);
+      return new Promise<TryResult>((resolve) => finishes.push(resolve));
+    };
+    const running = runPluginEval({ evalId: "pev_1" });
+    const settle = async () => {
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+    };
+    await settle();
+    expect(budgets).toEqual([0.5, 0.5]);
+    // Its run may still be going: its $0.50 stays held, its $0.10 so far within it.
+    finishes.shift()!(
+      result({
+        state: "not-graded",
+        notGradedReason: TRY_NOT_STOPPED_REASON,
+        costUsd: 0.1,
+      }),
+    );
+    await settle();
+    expect(budgets).toHaveLength(2);
+    finishes.shift()!(result({ costUsd: 0.2 }));
+    await settle();
+    // $1 less the $0.20 spent and the $0.50 still held.
+    expect(budgets[2]).toBeCloseTo(0.3);
+    finishes.shift()!(result({ costUsd: 0.1 }));
+    await settle();
+    await running;
+    expect(recorded).toHaveLength(3);
+    expect(finished).toEqual([{ phase: "completed" }]);
+  });
+
+  it("ends at the cost ceiling once a try whose run could not be stopped holds all that is left", async () => {
+    const { recorded, finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: cells(2),
+      maxCostUsd: 1,
+      concurrency: 1,
+    });
+    seam.child = async () =>
+      result({
+        state: "not-graded",
+        notGradedReason: TRY_NOT_STOPPED_REASON,
+        costUsd: 0.1,
+      });
+    await runPluginEval({ evalId: "pev_1" });
+    expect(recorded).toHaveLength(1);
+    expect(finished).toEqual([{ phase: "partial", reason: "cost_ceiling" }]);
+  });
+
   it("shares what is left among the tries not yet finished when fewer remain than the concurrency", async () => {
     suite({
       kind: "run",
@@ -716,15 +782,53 @@ describe("the suite workflow", () => {
     expect(finished).toEqual([{ phase: "partial", reason: "cancelled" }]);
   });
 
-  it("rethrows a failure of the finish itself", async () => {
+  it("fails outright, non-retryable, when the finish itself fails, after trying to end the eval failed", async () => {
     suite({ kind: "run", org: "acme", cells: cells(1), maxCostUsd: 10, concurrency: 1 });
     seam.child = async () => result();
-    seam.activities[FINISH_EVAL_ACTIVITY_NAME] = vi.fn(() =>
-      Promise.reject(new Error("the store is down")),
+    const ends: unknown[] = [];
+    seam.activities[FINISH_EVAL_ACTIVITY_NAME] = vi.fn((_id: string, end: unknown) => {
+      ends.push(end);
+      return Promise.reject(new Error("the store is down"));
+    });
+    const failure = await runPluginEval({ evalId: "pev_1" }).then(
+      () => undefined,
+      (error: unknown) => error,
     );
-    await expect(runPluginEval({ evalId: "pev_1" })).rejects.toThrow(
-      "the store is down",
+    expect(failure).toBeInstanceOf(ApplicationFailure);
+    expect(failure).toMatchObject({
+      type: PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
+      nonRetryable: true,
+      message: `${EVAL_WORKFLOW_FAILED_ERROR}: the store is down`,
+    });
+    expect(ends).toEqual([
+      { phase: "completed" },
+      { phase: "failed", error: `${EVAL_WORKFLOW_FAILED_ERROR}: the store is down` },
+    ]);
+  });
+
+  it("ends the eval failed and fails outright, non-retryable, on an error of the workflow's own", async () => {
+    const { finished } = suite({
+      kind: "run",
+      org: "acme",
+      cells: null,
+      maxCostUsd: 10,
+      concurrency: 1,
+    });
+    const failure = await runPluginEval({ evalId: "pev_1" }).then(
+      () => undefined,
+      (error: unknown) => error,
     );
+    expect(failure).toBeInstanceOf(ApplicationFailure);
+    expect(failure).toMatchObject({
+      type: PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
+      nonRetryable: true,
+    });
+    expect(finished).toEqual([
+      {
+        phase: "failed",
+        error: expect.stringMatching(new RegExp(`^${EVAL_WORKFLOW_FAILED_ERROR}: `)),
+      },
+    ]);
   });
 
   it("ends at once when the load plans nothing", async () => {
@@ -863,12 +967,63 @@ describe("the case workflow", () => {
   it("counts a read vote whose session cannot be deleted, leaving the session", async () => {
     caseScript({
       [DELETE_VOTE_ACTIVITY_NAME]: vi.fn(() =>
-        Promise.reject(new Error("the store is down")),
+        Promise.reject(stepFailure(DELETE_VOTE_ACTIVITY_NAME, "the store is down")),
       ),
     });
     expect(await runCase(INPUT)).toMatchObject({
       state: "graded",
       costUsd: expect.closeTo(0.23),
+    });
+  });
+
+  it("leaves a vote whose delete failed to the spend read, which still holds it, never counting it twice", async () => {
+    /** The first vote's delete fails past its retries; the third vote cannot be read. */
+    const script = (spend: ReturnType<typeof vi.fn>) =>
+      caseScript({
+        [DELETE_VOTE_ACTIVITY_NAME]: vi
+          .fn()
+          .mockImplementationOnce(() =>
+            Promise.reject(stepFailure(DELETE_VOTE_ACTIVITY_NAME, "the store is down")),
+          )
+          .mockImplementation(() => Promise.resolve()),
+        [READ_VOTE_ACTIVITY_NAME]: vi
+          .fn()
+          .mockImplementationOnce(() =>
+            Promise.resolve({ vote: { kind: "vote", passed: true, reason: "yes" }, costUsd: 0.01 }),
+          )
+          .mockImplementationOnce(() =>
+            Promise.resolve({ vote: { kind: "vote", passed: true, reason: "yes" }, costUsd: 0.01 }),
+          )
+          .mockImplementation(() => Promise.reject(new Error("the store is down"))),
+        [TRY_SPEND_ACTIVITY_NAME]: spend,
+      });
+    // The spend read (0.4) holds the try's run, the undeleted vote and the
+    // unread one; the tally holds only the vote deleted.
+    script(vi.fn(() => Promise.resolve(SPENT)));
+    expect(await runCase(INPUT)).toMatchObject({
+      notGradedReason: VOTE_NOT_READ_REASON,
+      costUsd: expect.closeTo(0.41),
+    });
+    // A spend read that fails too: the grade's cost and both votes read.
+    script(vi.fn(() => Promise.reject(new Error("down"))));
+    expect((await runCase(INPUT)).costUsd).toBeCloseTo(0.22);
+  });
+
+  it("counts a vote whose delete failed once when the try is cancelled and its spend cannot be read", async () => {
+    caseScript({
+      [DELETE_VOTE_ACTIVITY_NAME]: vi
+        .fn()
+        .mockImplementationOnce(() =>
+          Promise.reject(stepFailure(DELETE_VOTE_ACTIVITY_NAME, "the store is down")),
+        )
+        .mockImplementationOnce(() =>
+          Promise.reject(new CancelledFailure("cancelled")),
+        ),
+      [TRY_SPEND_ACTIVITY_NAME]: vi.fn(() => Promise.reject(new Error("down"))),
+    });
+    expect(await runCase(INPUT)).toMatchObject({
+      notGradedReason: TRY_CANCELLED_REASON,
+      costUsd: expect.closeTo(0.01),
     });
   });
 

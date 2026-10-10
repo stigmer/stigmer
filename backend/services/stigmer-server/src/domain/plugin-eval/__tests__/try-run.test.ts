@@ -3,8 +3,8 @@
  * the plugin's composed agent, or the assistant with the plugin's servers
  * when it composed none; the without-arm on the bare assistant; the delta
  * marked provisional. The run: the case's read-only tools plus the eval's
- * grants, Skill disallowed unless listed, every tool disallowed when none
- * is granted, the plugin's servers disallowed unless real servers run,
+ * grants, Skill disallowed unless listed, only the to-do list allowed when
+ * none is granted, the plugin's servers disallowed unless real servers run,
  * names Stigmer runs nothing for left out, a not-granted tool noted;
  * max_turns clamped to the run's 10..1000 with a note; the reserved label
  * on the session and run; the case name as the subject; auto-approve; the
@@ -14,7 +14,6 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import type { EvalCase } from "@stigmer/plugin-package";
-import { CLAUDE_TOOLS } from "@stigmer/tool-vocabulary";
 import { PluginEvalSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -111,10 +110,16 @@ describe("a try's tools", () => {
     expect(tools.disallowedTools).toEqual([]);
   });
 
-  it("disallows every tool when none is granted, and the plugin's servers unless real ones run", () => {
+  it("grants only the to-do list when nothing is granted, as an allow-list, and the plugin's servers unless real ones run", () => {
+    // An empty allow-list is every tool, so the try's list names the one
+    // tool every engine's main loop has that acts on nothing outside the
+    // run: the engines' extras and any other MCP server are out of scope,
+    // as for a read-only case.
     const none = tryToolsOf(evalCase(), spec(), ["github"]);
-    expect(none.tools).toEqual([]);
-    expect(none.disallowedTools).toEqual([...CLAUDE_TOOLS, "mcp__github"]);
+    expect(none.tools).toEqual(["TodoWrite"]);
+    expect(none.disallowedTools).toEqual(["Skill", "mcp__github"]);
+    const read = tryToolsOf(evalCase({ allowedTools: ["Read"] }), spec(), ["github"]);
+    expect(read.disallowedTools).toEqual(none.disallowedTools);
     const real = tryToolsOf(
       evalCase({ allowedTools: ["Skill"] }),
       spec({ realMcpServers: true, allowTools: ["mcp__github__*"] }),
@@ -235,6 +240,22 @@ describe("a try's session and run", () => {
     expect(run.spec?.tools).toEqual(["Read"]);
     expect(run.spec?.disallowedTools).toEqual(["Skill", "mcp__github"]);
     expect(run.spec?.appendSystemPrompt).toBe("Be brief.");
+  });
+
+  it("sends a case that grants nothing an allow-list too, so nothing beyond the to-do list is in scope", () => {
+    const run = tryRunRequest({
+      org: "acme",
+      evalId: "pev_1",
+      cell: { caseIndex: 0, targetIndex: 0, arm: "with", tryIndex: 0 },
+      sessionId: "ses_1",
+      evalCase: evalCase(),
+      spec: spec(),
+      modelName: "claude-sonnet-4-6",
+      budgetUsd: 1,
+      pluginServerSlugs: ["github"],
+    });
+    expect(run.spec?.tools).toEqual(["TodoWrite"]);
+    expect(run.spec?.disallowedTools).toEqual(["Skill", "mcp__github"]);
   });
 
   it("makes a vote a judge run of the try, in a labelled session, at the judge's cap", () => {

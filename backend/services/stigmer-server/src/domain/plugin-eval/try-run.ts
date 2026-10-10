@@ -22,14 +22,20 @@
  *   - the tools, as the format grants them: the case's `allowed_tools`
  *     that are in the read-only set, plus the eval's `allow_tools`, as
  *     `tools`; `Skill` in `disallowed_tools` when the case does not list
- *     it, since an allow-list without `Skill` keeps skills in Stigmer; with
- *     nothing granted, every Claude tool disallowed, since an empty list
- *     means every tool; and, unless the eval runs real servers, each of the
- *     plugin's MCP servers disallowed (`mcp__<server>`), the format's
- *     default of not starting them. Names the read-only set holds that
- *     Stigmer runs nothing for (`AskUserQuestion`, `NotebookRead`, the task
- *     tools) are left out, and a case tool the eval does not grant is named
- *     in a note, as the format prints "not granted";
+ *     it, since an allow-list without `Skill` keeps skills in Stigmer; and,
+ *     unless the eval runs real servers, each of the plugin's MCP servers
+ *     disallowed (`mcp__<server>`), the format's default of not starting
+ *     them. With nothing granted the try still gets an allow-list, so an
+ *     engine's own extras (Cursor's `generateImage`, ...) and every MCP
+ *     server are out of scope exactly as for a read-only case: the runner
+ *     reads an empty `tools` as every tool and refuses one in which nothing
+ *     resolves, so it names `TodoWrite`, the one tool on every engine's
+ *     main loop that acts on nothing outside the run (the format grants no
+ *     tool there; this is the least the runner can run). Names the
+ *     read-only set holds that Stigmer runs nothing for (`AskUserQuestion`,
+ *     `NotebookRead`, the task tools) are left out, and a case tool the
+ *     eval does not grant is named in a note, as the format prints "not
+ *     granted";
  *   - `append_system_prompt` from the case.
  *
  * A vote is a judge run in a session of its own, labelled
@@ -43,11 +49,7 @@ import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
 
 import type { EvalCase } from "@stigmer/plugin-package";
-import {
-  CLAUDE_TOOLS,
-  READ_ONLY_EVAL_TOOLS,
-  isClaudeTool,
-} from "@stigmer/tool-vocabulary";
+import { READ_ONLY_EVAL_TOOLS, isClaudeTool } from "@stigmer/tool-vocabulary";
 import type { PluginEvalSpec } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -103,6 +105,13 @@ function runnable(entry: string): boolean {
   return isClaudeTool(name) || name === "Task" || name.startsWith("mcp__");
 }
 
+/**
+ * The allow-list of a try granted nothing (the module header): an empty
+ * list would be every tool, so it names the one tool that grants nothing
+ * beyond the run's own to-do list.
+ */
+const NOTHING_GRANTED_TOOLS: ReadonlyArray<string> = ["TodoWrite"];
+
 /** A try's two lists and the notes they leave on the case (the module header). */
 export interface TryTools {
   readonly tools: ReadonlyArray<string>;
@@ -138,18 +147,17 @@ export function tryToolsOf(
     add(entry);
   }
   const grantedNames = new Set(granted.map(baseName));
-  const disallowed: string[] =
-    granted.length === 0
-      ? [...CLAUDE_TOOLS]
-      : grantedNames.has("Skill")
-        ? []
-        : ["Skill"];
+  const disallowed: string[] = grantedNames.has("Skill") ? [] : ["Skill"];
   if (!spec.realMcpServers) {
     for (const slug of pluginServerSlugs) {
       disallowed.push(`mcp__${slug}`);
     }
   }
-  return { tools: granted, disallowedTools: disallowed, notes };
+  return {
+    tools: granted.length === 0 ? [...NOTHING_GRANTED_TOOLS] : granted,
+    disallowedTools: disallowed,
+    notes,
+  };
 }
 
 /** Every note a case carries before it runs: the turn clamp and the tool grants. */

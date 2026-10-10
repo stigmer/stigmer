@@ -20,7 +20,10 @@
  *     with the eval's limit. While they reach it no cell starts; a running
  *     try that finishes under its cap frees the rest of it, and once the
  *     finished tries alone reach the limit with none running the eval ends
- *     partial, "cost ceiling". Each try's run is capped, when it starts, at
+ *     partial, "cost ceiling". A try whose run could not be stopped
+ *     (TRY_NOT_STOPPED_REASON) may still be spending: its cap stays held
+ *     for the rest of the eval, the spend it reported counted within it.
+ *     Each try's run is capped, when it starts, at
  *     an equal share of what the eval has left for the tries that may run
  *     at once: (limit less recorded spend) / min(concurrency, the tries not
  *     yet finished, the running ones counted), and never more than the
@@ -52,6 +55,13 @@
  *     bound of its own, so the workflow does not end leaving the eval
  *     running; only the engine ending it (its execution timeout, or a stop
  *     from outside) can, and the eval's reads then answer it failed.
+ *   - Any other error (one of this workflow's own, or the finish failing
+ *     outright) ends the eval failed, "the eval's workflow failed", as far
+ *     as a last finish can, in a non-cancellable scope, and then fails the
+ *     workflow as a non-retryable ApplicationFailure of type
+ *     PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE: Temporal fails only the
+ *     workflow task on a plain error, and would retry that task until the
+ *     execution timeout while the eval shows running.
  *
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this module runs in the deterministic
  * sandbox; imports are limited to @temporalio/workflow and the pure names
@@ -59,6 +69,7 @@
  */
 import {
   ActivityFailure,
+  ApplicationFailure,
   CancellationScope,
   CancelledFailure,
   ParentClosePolicy,
@@ -69,14 +80,17 @@ import {
 
 import {
   EVAL_NOT_PLANNED_ERROR,
+  EVAL_WORKFLOW_FAILED_ERROR,
   FINISH_EVAL_ACTIVITY_NAME,
   LOAD_SUITE_ACTIVITY_NAME,
+  PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
   RECORD_TRY_ACTIVITY_NAME,
   RUN_CASE_WORKFLOW_TYPE,
   TRY_CANCELLED_REASON,
   TRY_FAILED_REASON,
   TRY_MIN_BUDGET_USD,
   TRY_NOT_RECORDED_ERROR,
+  TRY_NOT_STOPPED_REASON,
   TRY_SPEND_ACTIVITY_NAME,
   runCaseWorkflowId,
 } from "../names.js";
@@ -188,7 +202,22 @@ export async function runPluginEval(input: RunPluginEvalInput): Promise<void> {
       );
       return;
     }
-    throw error;
+    const failure = stepFailed(EVAL_WORKFLOW_FAILED_ERROR, error);
+    try {
+      await CancellationScope.nonCancellable(() =>
+        finishing[FINISH_EVAL_ACTIVITY_NAME](evalId, {
+          phase: "failed",
+          error: failure.message,
+        }),
+      );
+    } catch {
+      // The workflow fails either way; an eval its workflow outlived is
+      // answered failed by its reads.
+    }
+    throw ApplicationFailure.nonRetryable(
+      failure.message,
+      PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
+    );
   }
 }
 
@@ -209,7 +238,10 @@ async function runCells(
   let rejected: unknown;
   let next = 0;
   const inFlight = new Map<number, Promise<void>>();
-  /** The cap each try in flight was handed, by cell index. */
+  /**
+   * The cap each try in flight was handed, by cell index, and of each try
+   * whose run could not be stopped, which keeps it.
+   */
   const caps = new Map<number, number>();
   const scope = CancellationScope.current();
 
@@ -246,8 +278,14 @@ async function runCells(
       const settled = runCell(evalId, org, cell, budgetUsd).then(
         (result) => {
           inFlight.delete(index);
-          caps.delete(index);
-          spent += result.costUsd;
+          if (result.notGradedReason === TRY_NOT_STOPPED_REASON) {
+            // Its run may still be going, up to its cap, and what it spent
+            // so far is within that cap: the cap stays held to the end.
+            caps.set(index, Math.max(budgetUsd, result.costUsd));
+          } else {
+            caps.delete(index);
+            spent += result.costUsd;
+          }
           if (result.outOfCredit && stop === undefined) {
             stop = "out_of_credit";
           }
