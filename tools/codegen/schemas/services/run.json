@@ -2701,6 +2701,23 @@
           "description": "Create a branch and pull request from the agent's file changes after the run completes."
         }
       ]
+    },
+    {
+      "name": "PluginEvalMockKind",
+      "description": "PluginEvalMockKind is how a mocked tool answers.",
+      "protoType": "ai.stigmer.agentic.run.v1.PluginEvalMockKind",
+      "values": [
+        {
+          "name": "plugin_eval_mock_kind_fixed",
+          "number": 1,
+          "description": "The mock file's body, with its substitutions."
+        },
+        {
+          "name": "plugin_eval_mock_kind_agent",
+          "number": 2,
+          "description": "A model acting as the server from the mock file's instructions."
+        }
+      ]
     }
   ],
   "resourceDescription": "Run represents a single run instance (conversational).\n Follows the standard pattern: spec contains user inputs, status contains run results.",

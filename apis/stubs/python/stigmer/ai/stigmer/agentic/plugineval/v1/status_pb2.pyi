@@ -89,20 +89,32 @@ class PluginEvalStatus(_message.Message):
     def __init__(self, phase: _Optional[_Union[PluginEvalPhase, str]] = ..., partial_reason: _Optional[_Union[PluginEvalPartialReason, str]] = ..., error: _Optional[str] = ..., cases: _Optional[_Iterable[_Union[PluginEvalCase, _Mapping]]] = ..., aggregates: _Optional[_Union[PluginEvalAggregates, _Mapping]] = ..., cost_usd: _Optional[float] = ..., tries_total: _Optional[int] = ..., tries_finished: _Optional[int] = ..., started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., finished_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., provisional_delta: bool = ..., vault_attachers: _Optional[_Mapping[str, str]] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
 
 class PluginEvalCase(_message.Message):
-    __slots__ = ("case_name", "path", "case_tags", "not_run_reason", "targets", "notes")
+    __slots__ = ("case_name", "path", "case_tags", "not_run_reason", "targets", "notes", "mocked_servers")
     CASE_NAME_FIELD_NUMBER: _ClassVar[int]
     PATH_FIELD_NUMBER: _ClassVar[int]
     CASE_TAGS_FIELD_NUMBER: _ClassVar[int]
     NOT_RUN_REASON_FIELD_NUMBER: _ClassVar[int]
     TARGETS_FIELD_NUMBER: _ClassVar[int]
     NOTES_FIELD_NUMBER: _ClassVar[int]
+    MOCKED_SERVERS_FIELD_NUMBER: _ClassVar[int]
     case_name: str
     path: str
     case_tags: _containers.RepeatedScalarFieldContainer[str]
     not_run_reason: str
     targets: _containers.RepeatedCompositeFieldContainer[PluginEvalCaseTarget]
     notes: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, case_name: _Optional[str] = ..., path: _Optional[str] = ..., case_tags: _Optional[_Iterable[str]] = ..., not_run_reason: _Optional[str] = ..., targets: _Optional[_Iterable[_Union[PluginEvalCaseTarget, _Mapping]]] = ..., notes: _Optional[_Iterable[str]] = ...) -> None: ...
+    mocked_servers: _containers.RepeatedCompositeFieldContainer[PluginEvalMockedServer]
+    def __init__(self, case_name: _Optional[str] = ..., path: _Optional[str] = ..., case_tags: _Optional[_Iterable[str]] = ..., not_run_reason: _Optional[str] = ..., targets: _Optional[_Iterable[_Union[PluginEvalCaseTarget, _Mapping]]] = ..., notes: _Optional[_Iterable[str]] = ..., mocked_servers: _Optional[_Iterable[_Union[PluginEvalMockedServer, _Mapping]]] = ...) -> None: ...
+
+class PluginEvalMockedServer(_message.Message):
+    __slots__ = ("name", "tools", "not_started_reason")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    TOOLS_FIELD_NUMBER: _ClassVar[int]
+    NOT_STARTED_REASON_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    tools: _containers.RepeatedScalarFieldContainer[str]
+    not_started_reason: str
+    def __init__(self, name: _Optional[str] = ..., tools: _Optional[_Iterable[str]] = ..., not_started_reason: _Optional[str] = ...) -> None: ...
 
 class PluginEvalCaseTarget(_message.Message):
     __slots__ = ("target", "not_run_reason", "with_plugin", "without_plugin", "delta", "passed", "pass_k")
@@ -135,7 +147,7 @@ class PluginEvalArm(_message.Message):
     def __init__(self, score: _Optional[float] = ..., perfect_runs: _Optional[int] = ..., graded_tries: _Optional[int] = ..., tries: _Optional[_Iterable[_Union[PluginEvalTry, _Mapping]]] = ...) -> None: ...
 
 class PluginEvalTry(_message.Message):
-    __slots__ = ("index", "session_id", "run_id", "state", "score", "not_graded_reason", "error", "cost_usd", "duration_seconds")
+    __slots__ = ("index", "session_id", "run_id", "state", "score", "not_graded_reason", "error", "cost_usd", "duration_seconds", "aborted")
     INDEX_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
@@ -145,6 +157,7 @@ class PluginEvalTry(_message.Message):
     ERROR_FIELD_NUMBER: _ClassVar[int]
     COST_USD_FIELD_NUMBER: _ClassVar[int]
     DURATION_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    ABORTED_FIELD_NUMBER: _ClassVar[int]
     index: int
     session_id: str
     run_id: str
@@ -154,7 +167,18 @@ class PluginEvalTry(_message.Message):
     error: str
     cost_usd: float
     duration_seconds: float
-    def __init__(self, index: _Optional[int] = ..., session_id: _Optional[str] = ..., run_id: _Optional[str] = ..., state: _Optional[_Union[PluginEvalTryState, str]] = ..., score: _Optional[float] = ..., not_graded_reason: _Optional[str] = ..., error: _Optional[str] = ..., cost_usd: _Optional[float] = ..., duration_seconds: _Optional[float] = ...) -> None: ...
+    aborted: PluginEvalAbort
+    def __init__(self, index: _Optional[int] = ..., session_id: _Optional[str] = ..., run_id: _Optional[str] = ..., state: _Optional[_Union[PluginEvalTryState, str]] = ..., score: _Optional[float] = ..., not_graded_reason: _Optional[str] = ..., error: _Optional[str] = ..., cost_usd: _Optional[float] = ..., duration_seconds: _Optional[float] = ..., aborted: _Optional[_Union[PluginEvalAbort, _Mapping]] = ...) -> None: ...
+
+class PluginEvalAbort(_message.Message):
+    __slots__ = ("server", "tool", "reason")
+    SERVER_FIELD_NUMBER: _ClassVar[int]
+    TOOL_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    server: str
+    tool: str
+    reason: str
+    def __init__(self, server: _Optional[str] = ..., tool: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
 
 class PluginEvalAggregates(_message.Message):
     __slots__ = ("overall_score", "cases_passed", "cases_total", "mean_delta", "cases_not_run")

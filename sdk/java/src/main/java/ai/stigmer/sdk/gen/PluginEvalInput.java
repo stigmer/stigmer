@@ -33,6 +33,8 @@ public final class PluginEvalInput {
     private final java.util.List<String> allowTools;
     private final boolean realMcpServers;
     private final java.util.List<ResourceRef> vaults;
+    private final boolean skipScaffold;
+    private final boolean allowRealServers;
 
     private PluginEvalInput(Builder builder) {
         this.id = builder.id;
@@ -55,6 +57,8 @@ public final class PluginEvalInput {
         this.allowTools = builder.allowTools;
         this.realMcpServers = builder.realMcpServers;
         this.vaults = builder.vaults;
+        this.skipScaffold = builder.skipScaffold;
+        this.allowRealServers = builder.allowRealServers;
     }
 
     PluginEval toProto() {
@@ -98,6 +102,8 @@ public final class PluginEvalInput {
                     .setKind(ApiResourceKind.vault).build());
             }
         }
+        spec.setSkipScaffold(this.skipScaffold);
+        spec.setAllowRealServers(this.allowRealServers);
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
         if (this.org != null) {
@@ -146,6 +152,8 @@ public final class PluginEvalInput {
         private java.util.List<String> allowTools;
         private boolean realMcpServers;
         private java.util.List<ResourceRef> vaults;
+        private boolean skipScaffold;
+        private boolean allowRealServers;
 
         private Builder() {}
 
@@ -174,6 +182,8 @@ public final class PluginEvalInput {
         public Builder allowTools(java.util.List<String> allowTools) { this.allowTools = allowTools; return this; }
         public Builder realMcpServers(boolean realMcpServers) { this.realMcpServers = realMcpServers; return this; }
         public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
+        public Builder skipScaffold(boolean skipScaffold) { this.skipScaffold = skipScaffold; return this; }
+        public Builder allowRealServers(boolean allowRealServers) { this.allowRealServers = allowRealServers; return this; }
 
         public PluginEvalInput build() { return new PluginEvalInput(this); }
     }

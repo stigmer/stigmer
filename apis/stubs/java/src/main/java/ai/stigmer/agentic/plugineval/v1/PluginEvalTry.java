@@ -57,6 +57,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.plugineval.v1.PluginEvalTry.class, ai.stigmer.agentic.plugineval.v1.PluginEvalTry.Builder.class);
   }
 
+  private int bitField0_;
   public static final int INDEX_FIELD_NUMBER = 1;
   private int index_ = 0;
   /**
@@ -327,6 +328,50 @@ private static final long serialVersionUID = 0L;
     return durationSeconds_;
   }
 
+  public static final int ABORTED_FIELD_NUMBER = 10;
+  private ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted_;
+  /**
+   * <pre>
+   * Set when a mock stopped the try: its input guard was violated, its
+   * agent ended the run, or the agent mocks' call budget ran out. The try
+   * scores 0 and error stays empty, as Claude Code reports it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+   * @return Whether the aborted field is set.
+   */
+  @java.lang.Override
+  public boolean hasAborted() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Set when a mock stopped the try: its input guard was violated, its
+   * agent ended the run, or the agent mocks' call budget ran out. The try
+   * scores 0 and error stays empty, as Claude Code reports it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+   * @return The aborted.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugineval.v1.PluginEvalAbort getAborted() {
+    return aborted_ == null ? ai.stigmer.agentic.plugineval.v1.PluginEvalAbort.getDefaultInstance() : aborted_;
+  }
+  /**
+   * <pre>
+   * Set when a mock stopped the try: its input guard was violated, its
+   * agent ended the run, or the agent mocks' call budget ran out. The try
+   * scores 0 and error stays empty, as Claude Code reports it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugineval.v1.PluginEvalAbortOrBuilder getAbortedOrBuilder() {
+    return aborted_ == null ? ai.stigmer.agentic.plugineval.v1.PluginEvalAbort.getDefaultInstance() : aborted_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -367,6 +412,9 @@ private static final long serialVersionUID = 0L;
     }
     if (java.lang.Double.doubleToRawLongBits(durationSeconds_) != 0) {
       output.writeDouble(9, durationSeconds_);
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(10, getAborted());
     }
     getUnknownFields().writeTo(output);
   }
@@ -409,6 +457,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeDoubleSize(9, durationSeconds_);
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(10, getAborted());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -444,6 +496,11 @@ private static final long serialVersionUID = 0L;
     if (java.lang.Double.doubleToLongBits(getDurationSeconds())
         != java.lang.Double.doubleToLongBits(
             other.getDurationSeconds())) return false;
+    if (hasAborted() != other.hasAborted()) return false;
+    if (hasAborted()) {
+      if (!getAborted()
+          .equals(other.getAborted())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -476,6 +533,10 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + DURATION_SECONDS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         java.lang.Double.doubleToLongBits(getDurationSeconds()));
+    if (hasAborted()) {
+      hash = (37 * hash) + ABORTED_FIELD_NUMBER;
+      hash = (53 * hash) + getAborted().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -599,13 +660,19 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.agentic.plugineval.v1.PluginEvalTry.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetAbortedFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -620,6 +687,11 @@ private static final long serialVersionUID = 0L;
       error_ = "";
       costUsd_ = 0D;
       durationSeconds_ = 0D;
+      aborted_ = null;
+      if (abortedBuilder_ != null) {
+        abortedBuilder_.dispose();
+        abortedBuilder_ = null;
+      }
       return this;
     }
 
@@ -680,6 +752,14 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.durationSeconds_ = durationSeconds_;
       }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.aborted_ = abortedBuilder_ == null
+            ? aborted_
+            : abortedBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -728,6 +808,9 @@ private static final long serialVersionUID = 0L;
       }
       if (java.lang.Double.doubleToRawLongBits(other.getDurationSeconds()) != 0) {
         setDurationSeconds(other.getDurationSeconds());
+      }
+      if (other.hasAborted()) {
+        mergeAborted(other.getAborted());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -800,6 +883,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 73
+            case 82: {
+              input.readMessage(
+                  internalGetAbortedFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1422,6 +1512,181 @@ private static final long serialVersionUID = 0L;
       durationSeconds_ = 0D;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.plugineval.v1.PluginEvalAbort, ai.stigmer.agentic.plugineval.v1.PluginEvalAbort.Builder, ai.stigmer.agentic.plugineval.v1.PluginEvalAbortOrBuilder> abortedBuilder_;
+    /**
+     * <pre>
+     * Set when a mock stopped the try: its input guard was violated, its
+     * agent ended the run, or the agent mocks' call budget ran out. The try
+     * scores 0 and error stays empty, as Claude Code reports it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+     * @return Whether the aborted field is set.
+     */
+    public boolean hasAborted() {
+      return ((bitField0_ & 0x00000200) != 0);
+    }
+    /**
+     * <pre>
+     * Set when a mock stopped the try: its input guard was violated, its
+     * agent ended the run, or the agent mocks' call budget ran out. The try
+     * scores 0 and error stays empty, as Claude Code reports it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+     * @return The aborted.
+     */
+    public ai.stigmer.agentic.plugineval.v1.PluginEvalAbort getAborted() {
+      if (abortedBuilder_ == null) {
+        return aborted_ == null ? ai.stigmer.agentic.plugineval.v1.PluginEvalAbort.getDefaultInstance() : aborted_;
+      } else {
+        return abortedBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Set when a mock stopped the try: its input guard was violated, its
+     * agent ended the run, or the agent mocks' call budget ran out. The try
+     * scores 0 and error stays empty, as Claude Code reports it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+     */
+    public Builder setAborted(ai.stigmer.agentic.plugineval.v1.PluginEvalAbort value) {
+      if (abortedBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        aborted_ = value;
+      } else {
+        abortedBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when a mock stopped the try: its input guard was violated, its
+     * agent ended the run, or the agent mocks' call budget ran out. The try
+     * scores 0 and error stays empty, as Claude Code reports it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+     */
+    public Builder setAborted(
+        ai.stigmer.agentic.plugineval.v1.PluginEvalAbort.Builder builderForValue) {
+      if (abortedBuilder_ == null) {
+        aborted_ = builderForValue.build();
+      } else {
+        abortedBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when a mock stopped the try: its input guard was violated, its
+     * agent ended the run, or the agent mocks' call budget ran out. The try
+     * scores 0 and error stays empty, as Claude Code reports it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+     */
+    public Builder mergeAborted(ai.stigmer.agentic.plugineval.v1.PluginEvalAbort value) {
+      if (abortedBuilder_ == null) {
+        if (((bitField0_ & 0x00000200) != 0) &&
+          aborted_ != null &&
+          aborted_ != ai.stigmer.agentic.plugineval.v1.PluginEvalAbort.getDefaultInstance()) {
+          getAbortedBuilder().mergeFrom(value);
+        } else {
+          aborted_ = value;
+        }
+      } else {
+        abortedBuilder_.mergeFrom(value);
+      }
+      if (aborted_ != null) {
+        bitField0_ |= 0x00000200;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when a mock stopped the try: its input guard was violated, its
+     * agent ended the run, or the agent mocks' call budget ran out. The try
+     * scores 0 and error stays empty, as Claude Code reports it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+     */
+    public Builder clearAborted() {
+      bitField0_ = (bitField0_ & ~0x00000200);
+      aborted_ = null;
+      if (abortedBuilder_ != null) {
+        abortedBuilder_.dispose();
+        abortedBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Set when a mock stopped the try: its input guard was violated, its
+     * agent ended the run, or the agent mocks' call budget ran out. The try
+     * scores 0 and error stays empty, as Claude Code reports it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+     */
+    public ai.stigmer.agentic.plugineval.v1.PluginEvalAbort.Builder getAbortedBuilder() {
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return internalGetAbortedFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Set when a mock stopped the try: its input guard was violated, its
+     * agent ended the run, or the agent mocks' call budget ran out. The try
+     * scores 0 and error stays empty, as Claude Code reports it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+     */
+    public ai.stigmer.agentic.plugineval.v1.PluginEvalAbortOrBuilder getAbortedOrBuilder() {
+      if (abortedBuilder_ != null) {
+        return abortedBuilder_.getMessageOrBuilder();
+      } else {
+        return aborted_ == null ?
+            ai.stigmer.agentic.plugineval.v1.PluginEvalAbort.getDefaultInstance() : aborted_;
+      }
+    }
+    /**
+     * <pre>
+     * Set when a mock stopped the try: its input guard was violated, its
+     * agent ended the run, or the agent mocks' call budget ran out. The try
+     * scores 0 and error stays empty, as Claude Code reports it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.plugineval.v1.PluginEvalAbort, ai.stigmer.agentic.plugineval.v1.PluginEvalAbort.Builder, ai.stigmer.agentic.plugineval.v1.PluginEvalAbortOrBuilder> 
+        internalGetAbortedFieldBuilder() {
+      if (abortedBuilder_ == null) {
+        abortedBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.plugineval.v1.PluginEvalAbort, ai.stigmer.agentic.plugineval.v1.PluginEvalAbort.Builder, ai.stigmer.agentic.plugineval.v1.PluginEvalAbortOrBuilder>(
+                getAborted(),
+                getParentForChildren(),
+                isClean());
+        aborted_ = null;
+      }
+      return abortedBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.plugineval.v1.PluginEvalTry)

@@ -134,9 +134,19 @@ type PluginEvalSpec struct {
 	// use. Each is a shared vault: a My vault, the creator's included, is
 	// refused, because every viewer of the plugin may read a try, and a
 	// hook's or server's output can show what a key unlocked.
-	Vaults        []*apiresource.ApiResourceReference `protobuf:"bytes,14,rep,name=vaults,proto3" json:"vaults,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Vaults []*apiresource.ApiResourceReference `protobuf:"bytes,14,rep,name=vaults,proto3" json:"vaults,omitempty"`
+	// Skips each case's scaffold script, as Claude Code's --no-scaffold; a
+	// case that has one is then listed as not run.
+	//
+	// A scaffold runs in the try's own sandbox, as the agent, with none of
+	// the eval's vaults, so no opt-in is asked for it.
+	SkipScaffold bool `protobuf:"varint,15,opt,name=skip_scaffold,json=skipScaffold,proto3" json:"skip_scaffold,omitempty"`
+	// Starts the plugin's real MCP servers for the servers no mock answers,
+	// as Claude Code's --allow-real-servers; mocked tools still answer from
+	// their files. Their tools still need allow_tools.
+	AllowRealServers bool `protobuf:"varint,16,opt,name=allow_real_servers,json=allowRealServers,proto3" json:"allow_real_servers,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *PluginEvalSpec) Reset() {
@@ -267,6 +277,20 @@ func (x *PluginEvalSpec) GetVaults() []*apiresource.ApiResourceReference {
 	return nil
 }
 
+func (x *PluginEvalSpec) GetSkipScaffold() bool {
+	if x != nil {
+		return x.SkipScaffold
+	}
+	return false
+}
+
+func (x *PluginEvalSpec) GetAllowRealServers() bool {
+	if x != nil {
+		return x.AllowRealServers
+	}
+	return false
+}
+
 // PluginEvalTarget is one engine and model a case runs on.
 type PluginEvalTarget struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -327,7 +351,7 @@ var File_ai_stigmer_agentic_plugineval_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_plugineval_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/plugineval/v1/spec.proto\x12 ai.stigmer.agentic.plugineval.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xbd\b\n" +
+	"+ai/stigmer/agentic/plugineval/v1/spec.proto\x12 ai.stigmer.agentic.plugineval.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x90\t\n" +
 	"\x0ePluginEvalSpec\x12$\n" +
 	"\tplugin_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bpluginId\x12=\n" +
 	"\rplugin_digest\x18\x02 \x01(\tB\x18\xbaH\x15r\x132\x11^$|^[a-f0-9]{64}$R\fpluginDigest\x12V\n" +
@@ -348,7 +372,9 @@ const file_ai_stigmer_agentic_plugineval_v1_spec_proto_rawDesc = "" +
 	"allowTools\x12(\n" +
 	"\x10real_mcp_servers\x18\r \x01(\bR\x0erealMcpServers\x12\xae\x01\n" +
 	"\x06vaults\x18\x0e \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB`\xbaHY\x92\x01V\x10\x14\"R\xba\x01O\n" +
-	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaultsB\f\n" +
+	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12#\n" +
+	"\rskip_scaffold\x18\x0f \x01(\bR\fskipScaffold\x12,\n" +
+	"\x12allow_real_servers\x18\x10 \x01(\bR\x10allowRealServersB\f\n" +
 	"\n" +
 	"_threshold\"\x87\x01\n" +
 	"\x10PluginEvalTarget\x12J\n" +

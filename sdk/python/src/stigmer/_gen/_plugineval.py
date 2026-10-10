@@ -79,6 +79,8 @@ class PluginEvalInput:
     allow_tools: list[str] = field(default_factory=list)
     real_mcp_servers: bool = False
     vaults: list[ResourceRef] = field(default_factory=list)
+    skip_scaffold: bool = False
+    allow_real_servers: bool = False
 
     def _to_proto(self) -> api_pb2.PluginEval:
         spec = spec_pb2.PluginEvalSpec(
@@ -91,6 +93,8 @@ class PluginEvalInput:
             max_cost_usd=self.max_cost_usd,
             concurrency=self.concurrency,
             real_mcp_servers=self.real_mcp_servers,
+            skip_scaffold=self.skip_scaffold,
+            allow_real_servers=self.allow_real_servers,
         )
         if self.threshold is not None:
             spec.threshold = self.threshold

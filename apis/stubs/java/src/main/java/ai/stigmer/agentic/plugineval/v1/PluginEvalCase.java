@@ -40,6 +40,7 @@ private static final long serialVersionUID = 0L;
     targets_ = java.util.Collections.emptyList();
     notes_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    mockedServers_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -376,6 +377,72 @@ private static final long serialVersionUID = 0L;
     return notes_.getByteString(index);
   }
 
+  public static final int MOCKED_SERVERS_FIELD_NUMBER = 7;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer> mockedServers_;
+  /**
+   * <pre>
+   * The plugin's MCP servers the case answers with mocks, and those it
+   * leaves unstarted, as Claude Code's mocked: line.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer> getMockedServersList() {
+    return mockedServers_;
+  }
+  /**
+   * <pre>
+   * The plugin's MCP servers the case answers with mocks, and those it
+   * leaves unstarted, as Claude Code's mocked: line.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServerOrBuilder> 
+      getMockedServersOrBuilderList() {
+    return mockedServers_;
+  }
+  /**
+   * <pre>
+   * The plugin's MCP servers the case answers with mocks, and those it
+   * leaves unstarted, as Claude Code's mocked: line.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+   */
+  @java.lang.Override
+  public int getMockedServersCount() {
+    return mockedServers_.size();
+  }
+  /**
+   * <pre>
+   * The plugin's MCP servers the case answers with mocks, and those it
+   * leaves unstarted, as Claude Code's mocked: line.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer getMockedServers(int index) {
+    return mockedServers_.get(index);
+  }
+  /**
+   * <pre>
+   * The plugin's MCP servers the case answers with mocks, and those it
+   * leaves unstarted, as Claude Code's mocked: line.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServerOrBuilder getMockedServersOrBuilder(
+      int index) {
+    return mockedServers_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -407,6 +474,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < notes_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, notes_.getRaw(i));
+    }
+    for (int i = 0; i < mockedServers_.size(); i++) {
+      output.writeMessage(7, mockedServers_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -451,6 +521,15 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 1 * getNotesList().size();
     }
+
+        {
+          final int count = mockedServers_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(mockedServers_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -478,6 +557,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getTargetsList())) return false;
     if (!getNotesList()
         .equals(other.getNotesList())) return false;
+    if (!getMockedServersList()
+        .equals(other.getMockedServersList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -506,6 +587,10 @@ private static final long serialVersionUID = 0L;
     if (getNotesCount() > 0) {
       hash = (37 * hash) + NOTES_FIELD_NUMBER;
       hash = (53 * hash) + getNotesList().hashCode();
+    }
+    if (getMockedServersCount() > 0) {
+      hash = (37 * hash) + MOCKED_SERVERS_FIELD_NUMBER;
+      hash = (53 * hash) + getMockedServersList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -656,6 +741,13 @@ private static final long serialVersionUID = 0L;
       bitField0_ = (bitField0_ & ~0x00000010);
       notes_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      if (mockedServersBuilder_ == null) {
+        mockedServers_ = java.util.Collections.emptyList();
+      } else {
+        mockedServers_ = null;
+        mockedServersBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000040);
       return this;
     }
 
@@ -697,6 +789,15 @@ private static final long serialVersionUID = 0L;
         result.targets_ = targets_;
       } else {
         result.targets_ = targetsBuilder_.build();
+      }
+      if (mockedServersBuilder_ == null) {
+        if (((bitField0_ & 0x00000040) != 0)) {
+          mockedServers_ = java.util.Collections.unmodifiableList(mockedServers_);
+          bitField0_ = (bitField0_ & ~0x00000040);
+        }
+        result.mockedServers_ = mockedServers_;
+      } else {
+        result.mockedServers_ = mockedServersBuilder_.build();
       }
     }
 
@@ -794,6 +895,32 @@ private static final long serialVersionUID = 0L;
         }
         onChanged();
       }
+      if (mockedServersBuilder_ == null) {
+        if (!other.mockedServers_.isEmpty()) {
+          if (mockedServers_.isEmpty()) {
+            mockedServers_ = other.mockedServers_;
+            bitField0_ = (bitField0_ & ~0x00000040);
+          } else {
+            ensureMockedServersIsMutable();
+            mockedServers_.addAll(other.mockedServers_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.mockedServers_.isEmpty()) {
+          if (mockedServersBuilder_.isEmpty()) {
+            mockedServersBuilder_.dispose();
+            mockedServersBuilder_ = null;
+            mockedServers_ = other.mockedServers_;
+            bitField0_ = (bitField0_ & ~0x00000040);
+            mockedServersBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetMockedServersFieldBuilder() : null;
+          } else {
+            mockedServersBuilder_.addAllMessages(other.mockedServers_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -858,6 +985,19 @@ private static final long serialVersionUID = 0L;
               notes_.add(input.readStringRequireUtf8());
               break;
             } // case 50
+            case 58: {
+              ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer m =
+                  input.readMessage(
+                      ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.parser(),
+                      extensionRegistry);
+              if (mockedServersBuilder_ == null) {
+                ensureMockedServersIsMutable();
+                mockedServers_.add(m);
+              } else {
+                mockedServersBuilder_.addMessage(m);
+              }
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1774,6 +1914,336 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00000020;
       onChanged();
       return this;
+    }
+
+    private java.util.List<ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer> mockedServers_ =
+      java.util.Collections.emptyList();
+    private void ensureMockedServersIsMutable() {
+      if (!((bitField0_ & 0x00000040) != 0)) {
+        mockedServers_ = new java.util.ArrayList<ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer>(mockedServers_);
+        bitField0_ |= 0x00000040;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer, ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.Builder, ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServerOrBuilder> mockedServersBuilder_;
+
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer> getMockedServersList() {
+      if (mockedServersBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(mockedServers_);
+      } else {
+        return mockedServersBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public int getMockedServersCount() {
+      if (mockedServersBuilder_ == null) {
+        return mockedServers_.size();
+      } else {
+        return mockedServersBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer getMockedServers(int index) {
+      if (mockedServersBuilder_ == null) {
+        return mockedServers_.get(index);
+      } else {
+        return mockedServersBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public Builder setMockedServers(
+        int index, ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer value) {
+      if (mockedServersBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureMockedServersIsMutable();
+        mockedServers_.set(index, value);
+        onChanged();
+      } else {
+        mockedServersBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public Builder setMockedServers(
+        int index, ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.Builder builderForValue) {
+      if (mockedServersBuilder_ == null) {
+        ensureMockedServersIsMutable();
+        mockedServers_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        mockedServersBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public Builder addMockedServers(ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer value) {
+      if (mockedServersBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureMockedServersIsMutable();
+        mockedServers_.add(value);
+        onChanged();
+      } else {
+        mockedServersBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public Builder addMockedServers(
+        int index, ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer value) {
+      if (mockedServersBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureMockedServersIsMutable();
+        mockedServers_.add(index, value);
+        onChanged();
+      } else {
+        mockedServersBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public Builder addMockedServers(
+        ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.Builder builderForValue) {
+      if (mockedServersBuilder_ == null) {
+        ensureMockedServersIsMutable();
+        mockedServers_.add(builderForValue.build());
+        onChanged();
+      } else {
+        mockedServersBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public Builder addMockedServers(
+        int index, ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.Builder builderForValue) {
+      if (mockedServersBuilder_ == null) {
+        ensureMockedServersIsMutable();
+        mockedServers_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        mockedServersBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public Builder addAllMockedServers(
+        java.lang.Iterable<? extends ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer> values) {
+      if (mockedServersBuilder_ == null) {
+        ensureMockedServersIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, mockedServers_);
+        onChanged();
+      } else {
+        mockedServersBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public Builder clearMockedServers() {
+      if (mockedServersBuilder_ == null) {
+        mockedServers_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000040);
+        onChanged();
+      } else {
+        mockedServersBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public Builder removeMockedServers(int index) {
+      if (mockedServersBuilder_ == null) {
+        ensureMockedServersIsMutable();
+        mockedServers_.remove(index);
+        onChanged();
+      } else {
+        mockedServersBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.Builder getMockedServersBuilder(
+        int index) {
+      return internalGetMockedServersFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServerOrBuilder getMockedServersOrBuilder(
+        int index) {
+      if (mockedServersBuilder_ == null) {
+        return mockedServers_.get(index);  } else {
+        return mockedServersBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServerOrBuilder> 
+         getMockedServersOrBuilderList() {
+      if (mockedServersBuilder_ != null) {
+        return mockedServersBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(mockedServers_);
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.Builder addMockedServersBuilder() {
+      return internalGetMockedServersFieldBuilder().addBuilder(
+          ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.Builder addMockedServersBuilder(
+        int index) {
+      return internalGetMockedServersFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The plugin's MCP servers the case answers with mocks, and those it
+     * leaves unstarted, as Claude Code's mocked: line.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.Builder> 
+         getMockedServersBuilderList() {
+      return internalGetMockedServersFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer, ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.Builder, ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServerOrBuilder> 
+        internalGetMockedServersFieldBuilder() {
+      if (mockedServersBuilder_ == null) {
+        mockedServersBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer, ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.Builder, ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServerOrBuilder>(
+                mockedServers_,
+                ((bitField0_ & 0x00000040) != 0),
+                getParentForChildren(),
+                isClean());
+        mockedServers_ = null;
+      }
+      return mockedServersBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.plugineval.v1.PluginEvalCase)

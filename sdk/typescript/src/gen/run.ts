@@ -12,6 +12,7 @@ import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/
 import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema, type RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
 import { RunIdSchema, RunUpdateStatusInputSchema, UpdateStatusResponseSchema, SubmitApprovalInputSchema, SubmitFileDecisionInputSchema, CancelRunInputSchema, TerminateRunInputSchema, RecoverRunInputSchema, PauseRunInputSchema, ResumeRunInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListRunsRequestSchema, RunListSchema, ListRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetRunSummaryRequestSchema, RunSummarySchema, type RunUpdateStatusInput, type UpdateStatusResponse, type SubmitApprovalInput, type SubmitFileDecisionInput, type CancelRunInput, type TerminateRunInput, type RecoverRunInput, type PauseRunInput, type ResumeRunInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListRunsRequest, type RunList, type ListRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetRunSummaryRequest, type RunSummary } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { PluginEvalMockKind, PluginEvalMockToolSchema, PluginEvalMockServerSchema, PluginEvalCaseContextSchema, type PluginEvalMockTool, type PluginEvalMockServer, type PluginEvalCaseContext } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/query_pb";
 import { RunSpecSchema, AttachmentSchema, ConversationCatchupSchema, type Attachment, type ConversationCatchup } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -201,6 +202,7 @@ export interface RunInput {
   workspaceFileRefs?: string[];
   supersedesRunId?: string;
   conversationCatchup?: ConversationCatchupInput;
+  pluginEvalCase?: PluginEvalCaseContextInput;
 }
 
 /** SDK input type for SessionSpec. */
@@ -276,6 +278,39 @@ export interface AttachmentInput {
 export interface ConversationCatchupInput {
   digest?: string;
   windowEnd?: Date | string;
+}
+
+/** SDK input type for PluginEvalCaseContext. */
+export interface PluginEvalCaseContextInput {
+  pluginId?: string;
+  pluginDigest?: string;
+  suiteDir?: string;
+  caseDir?: string;
+  scaffoldScript?: string;
+  addDirs?: string[];
+  historyFile?: string;
+  env?: Record<string, string>;
+  mocks?: PluginEvalMockServerInput[];
+  agentMockModel?: string;
+  agentMockCallBudget?: number;
+}
+
+/** SDK input type for PluginEvalMockServer. */
+export interface PluginEvalMockServerInput {
+  server?: string;
+  segment?: string;
+  tools?: PluginEvalMockToolInput[];
+  toolsFile?: string;
+}
+
+/** SDK input type for PluginEvalMockTool. */
+export interface PluginEvalMockToolInput {
+  tool?: string;
+  file?: string;
+  kind?: PluginEvalMockKind;
+  error?: boolean;
+  expectJson?: string;
+  abortWhen?: string;
 }
 
 function buildGitRepoSourceProto(input: GitRepoSourceInput) {
@@ -365,10 +400,47 @@ function buildConversationCatchupProto(input: ConversationCatchupInput) {
   return msg;
 }
 
+function buildPluginEvalMockToolProto(input: PluginEvalMockToolInput) {
+  return Object.assign(create(PluginEvalMockToolSchema), stripUndefined({
+    tool: input.tool,
+    file: input.file,
+    kind: input.kind,
+    error: input.error,
+    expectJson: input.expectJson,
+    abortWhen: input.abortWhen,
+  }));
+}
+
+function buildPluginEvalMockServerProto(input: PluginEvalMockServerInput) {
+  const msg = create(PluginEvalMockServerSchema);
+  if (input.server !== undefined) msg.server = input.server;
+  if (input.segment !== undefined) msg.segment = input.segment;
+  if (input.tools) msg.tools = input.tools.map(buildPluginEvalMockToolProto);
+  if (input.toolsFile !== undefined) msg.toolsFile = input.toolsFile;
+  return msg;
+}
+
+function buildPluginEvalCaseContextProto(input: PluginEvalCaseContextInput) {
+  const msg = create(PluginEvalCaseContextSchema);
+  if (input.pluginId !== undefined) msg.pluginId = input.pluginId;
+  if (input.pluginDigest !== undefined) msg.pluginDigest = input.pluginDigest;
+  if (input.suiteDir !== undefined) msg.suiteDir = input.suiteDir;
+  if (input.caseDir !== undefined) msg.caseDir = input.caseDir;
+  if (input.scaffoldScript !== undefined) msg.scaffoldScript = input.scaffoldScript;
+  if (input.addDirs) msg.addDirs = input.addDirs;
+  if (input.historyFile !== undefined) msg.historyFile = input.historyFile;
+  if (input.env) Object.assign(msg.env, input.env);
+  if (input.mocks) msg.mocks = input.mocks.map(buildPluginEvalMockServerProto);
+  if (input.agentMockModel !== undefined) msg.agentMockModel = input.agentMockModel;
+  if (input.agentMockCallBudget !== undefined) msg.agentMockCallBudget = input.agentMockCallBudget;
+  return msg;
+}
+
 export function buildRunProto(input: RunInput): Run {
   const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
   const attachments = input.attachments?.map(buildAttachmentProto);
   const conversationCatchup = input.conversationCatchup ? buildConversationCatchupProto(input.conversationCatchup) : undefined;
+  const pluginEvalCase = input.pluginEvalCase ? buildPluginEvalCaseContextProto(input.pluginEvalCase) : undefined;
   const spec = Object.assign(create(RunSpecSchema), stripUndefined({
     message: input.message,
     runConfig,
@@ -383,6 +455,7 @@ export function buildRunProto(input: RunInput): Run {
     workspaceFileRefs: input.workspaceFileRefs,
     supersedesRunId: input.supersedesRunId,
     conversationCatchup,
+    pluginEvalCase,
   }));
   if (input.sessionId) {
     spec.target = { case: "sessionId", value: input.sessionId };
@@ -488,6 +561,42 @@ function toConversationCatchupInput(msg: ConversationCatchup): ConversationCatch
   };
 }
 
+function toPluginEvalMockToolInput(msg: PluginEvalMockTool): PluginEvalMockToolInput {
+  return {
+    tool: msg.tool || undefined,
+    file: msg.file || undefined,
+    kind: msg.kind || undefined,
+    error: msg.error || undefined,
+    expectJson: msg.expectJson || undefined,
+    abortWhen: msg.abortWhen || undefined,
+  };
+}
+
+function toPluginEvalMockServerInput(msg: PluginEvalMockServer): PluginEvalMockServerInput {
+  return {
+    server: msg.server || undefined,
+    segment: msg.segment || undefined,
+    tools: msg.tools?.length ? msg.tools.map(toPluginEvalMockToolInput) : undefined,
+    toolsFile: msg.toolsFile || undefined,
+  };
+}
+
+function toPluginEvalCaseContextInput(msg: PluginEvalCaseContext): PluginEvalCaseContextInput {
+  return {
+    pluginId: msg.pluginId || undefined,
+    pluginDigest: msg.pluginDigest || undefined,
+    suiteDir: msg.suiteDir || undefined,
+    caseDir: msg.caseDir || undefined,
+    scaffoldScript: msg.scaffoldScript || undefined,
+    addDirs: msg.addDirs?.length ? [...msg.addDirs] : undefined,
+    historyFile: msg.historyFile || undefined,
+    env: Object.keys(msg.env ?? {}).length > 0 ? { ...msg.env } : undefined,
+    mocks: msg.mocks?.length ? msg.mocks.map(toPluginEvalMockServerInput) : undefined,
+    agentMockModel: msg.agentMockModel || undefined,
+    agentMockCallBudget: msg.agentMockCallBudget || undefined,
+  };
+}
+
 /**
  * Maps a fetched {@link Run} to a complete {@link RunInput} for `update()`.
  *
@@ -528,5 +637,6 @@ export function toRunUpdateInput(resource: Run): RunInput {
     workspaceFileRefs: spec.workspaceFileRefs?.length ? [...spec.workspaceFileRefs] : undefined,
     supersedesRunId: spec.supersedesRunId || undefined,
     conversationCatchup: spec.conversationCatchup ? toConversationCatchupInput(spec.conversationCatchup) : undefined,
+    pluginEvalCase: spec.pluginEvalCase ? toPluginEvalCaseContextInput(spec.pluginEvalCase) : undefined,
   };
 }

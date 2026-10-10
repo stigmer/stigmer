@@ -6,6 +6,10 @@ import ai.stigmer.agentic.mcpserver.v1.McpServerUsage;
 import ai.stigmer.agentic.run.v1.Attachment;
 import ai.stigmer.agentic.run.v1.ConversationCatchup;
 import ai.stigmer.agentic.run.v1.InteractionMode;
+import ai.stigmer.agentic.run.v1.PluginEvalCaseContext;
+import ai.stigmer.agentic.run.v1.PluginEvalMockKind;
+import ai.stigmer.agentic.run.v1.PluginEvalMockServer;
+import ai.stigmer.agentic.run.v1.PluginEvalMockTool;
 import ai.stigmer.agentic.run.v1.Run;
 import ai.stigmer.agentic.run.v1.RunConfig;
 import ai.stigmer.agentic.run.v1.RunSpec;
@@ -49,6 +53,7 @@ public final class RunInput {
     private final java.util.List<String> workspaceFileRefs;
     private final String supersedesRunId;
     private final ConversationCatchupInput conversationCatchup;
+    private final PluginEvalCaseContextInput pluginEvalCase;
 
     private RunInput(Builder builder) {
         this.id = builder.id;
@@ -72,6 +77,7 @@ public final class RunInput {
         this.workspaceFileRefs = builder.workspaceFileRefs;
         this.supersedesRunId = builder.supersedesRunId;
         this.conversationCatchup = builder.conversationCatchup;
+        this.pluginEvalCase = builder.pluginEvalCase;
     }
 
     Run toProto() {
@@ -118,6 +124,9 @@ public final class RunInput {
         }
         if (this.conversationCatchup != null) {
             spec.setConversationCatchup(this.conversationCatchup.toProto());
+        }
+        if (this.pluginEvalCase != null) {
+            spec.setPluginEvalCase(this.pluginEvalCase.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -168,6 +177,7 @@ public final class RunInput {
         private java.util.List<String> workspaceFileRefs;
         private String supersedesRunId;
         private ConversationCatchupInput conversationCatchup;
+        private PluginEvalCaseContextInput pluginEvalCase;
 
         private Builder() {}
 
@@ -197,6 +207,7 @@ public final class RunInput {
         public Builder workspaceFileRefs(java.util.List<String> workspaceFileRefs) { this.workspaceFileRefs = workspaceFileRefs; return this; }
         public Builder supersedesRunId(String supersedesRunId) { this.supersedesRunId = supersedesRunId; return this; }
         public Builder conversationCatchup(ConversationCatchupInput conversationCatchup) { this.conversationCatchup = conversationCatchup; return this; }
+        public Builder pluginEvalCase(PluginEvalCaseContextInput pluginEvalCase) { this.pluginEvalCase = pluginEvalCase; return this; }
 
         public RunInput build() { return new RunInput(this); }
     }
@@ -675,6 +686,219 @@ public final class RunInput {
             public Builder windowEnd(String windowEnd) { this.windowEnd = windowEnd; return this; }
 
             public ConversationCatchupInput build() { return new ConversationCatchupInput(this); }
+        }
+    }
+
+    /** SDK input type for PluginEvalCaseContext. */
+    public static final class PluginEvalCaseContextInput {
+        private final String pluginId;
+        private final String pluginDigest;
+        private final String suiteDir;
+        private final String caseDir;
+        private final String scaffoldScript;
+        private final java.util.List<String> addDirs;
+        private final String historyFile;
+        private final java.util.Map<String, String> env;
+        private final java.util.List<PluginEvalMockServerInput> mocks;
+        private final String agentMockModel;
+        private final int agentMockCallBudget;
+
+        private PluginEvalCaseContextInput(Builder builder) {
+            this.pluginId = builder.pluginId;
+            this.pluginDigest = builder.pluginDigest;
+            this.suiteDir = builder.suiteDir;
+            this.caseDir = builder.caseDir;
+            this.scaffoldScript = builder.scaffoldScript;
+            this.addDirs = builder.addDirs;
+            this.historyFile = builder.historyFile;
+            this.env = builder.env;
+            this.mocks = builder.mocks;
+            this.agentMockModel = builder.agentMockModel;
+            this.agentMockCallBudget = builder.agentMockCallBudget;
+        }
+
+        PluginEvalCaseContext toProto() {
+            PluginEvalCaseContext.Builder builder = PluginEvalCaseContext.newBuilder();
+            if (this.pluginId != null) {
+                builder.setPluginId(this.pluginId);
+            }
+            if (this.pluginDigest != null) {
+                builder.setPluginDigest(this.pluginDigest);
+            }
+            if (this.suiteDir != null) {
+                builder.setSuiteDir(this.suiteDir);
+            }
+            if (this.caseDir != null) {
+                builder.setCaseDir(this.caseDir);
+            }
+            if (this.scaffoldScript != null) {
+                builder.setScaffoldScript(this.scaffoldScript);
+            }
+            if (this.addDirs != null) {
+                builder.addAllAddDirs(this.addDirs);
+            }
+            if (this.historyFile != null) {
+                builder.setHistoryFile(this.historyFile);
+            }
+            if (this.env != null && !this.env.isEmpty()) {
+                builder.putAllEnv(this.env);
+            }
+            if (this.mocks != null) {
+                for (PluginEvalMockServerInput item : this.mocks) {
+                    builder.addMocks(item.toProto());
+                }
+            }
+            if (this.agentMockModel != null) {
+                builder.setAgentMockModel(this.agentMockModel);
+            }
+            builder.setAgentMockCallBudget(this.agentMockCallBudget);
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String pluginId;
+            private String pluginDigest;
+            private String suiteDir;
+            private String caseDir;
+            private String scaffoldScript;
+            private java.util.List<String> addDirs;
+            private String historyFile;
+            private java.util.Map<String, String> env;
+            private java.util.List<PluginEvalMockServerInput> mocks;
+            private String agentMockModel;
+            private int agentMockCallBudget;
+
+            private Builder() {}
+
+            public Builder pluginId(String pluginId) { this.pluginId = pluginId; return this; }
+            public Builder pluginDigest(String pluginDigest) { this.pluginDigest = pluginDigest; return this; }
+            public Builder suiteDir(String suiteDir) { this.suiteDir = suiteDir; return this; }
+            public Builder caseDir(String caseDir) { this.caseDir = caseDir; return this; }
+            public Builder scaffoldScript(String scaffoldScript) { this.scaffoldScript = scaffoldScript; return this; }
+            public Builder addDirs(java.util.List<String> addDirs) { this.addDirs = addDirs; return this; }
+            public Builder historyFile(String historyFile) { this.historyFile = historyFile; return this; }
+            public Builder env(java.util.Map<String, String> env) { this.env = env; return this; }
+            public Builder mocks(java.util.List<PluginEvalMockServerInput> mocks) { this.mocks = mocks; return this; }
+            public Builder agentMockModel(String agentMockModel) { this.agentMockModel = agentMockModel; return this; }
+            public Builder agentMockCallBudget(int agentMockCallBudget) { this.agentMockCallBudget = agentMockCallBudget; return this; }
+
+            public PluginEvalCaseContextInput build() { return new PluginEvalCaseContextInput(this); }
+        }
+    }
+
+    /** SDK input type for PluginEvalMockServer. */
+    public static final class PluginEvalMockServerInput {
+        private final String server;
+        private final String segment;
+        private final java.util.List<PluginEvalMockToolInput> tools;
+        private final String toolsFile;
+
+        private PluginEvalMockServerInput(Builder builder) {
+            this.server = builder.server;
+            this.segment = builder.segment;
+            this.tools = builder.tools;
+            this.toolsFile = builder.toolsFile;
+        }
+
+        PluginEvalMockServer toProto() {
+            PluginEvalMockServer.Builder builder = PluginEvalMockServer.newBuilder();
+            if (this.server != null) {
+                builder.setServer(this.server);
+            }
+            if (this.segment != null) {
+                builder.setSegment(this.segment);
+            }
+            if (this.tools != null) {
+                for (PluginEvalMockToolInput item : this.tools) {
+                    builder.addTools(item.toProto());
+                }
+            }
+            if (this.toolsFile != null) {
+                builder.setToolsFile(this.toolsFile);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String server;
+            private String segment;
+            private java.util.List<PluginEvalMockToolInput> tools;
+            private String toolsFile;
+
+            private Builder() {}
+
+            public Builder server(String server) { this.server = server; return this; }
+            public Builder segment(String segment) { this.segment = segment; return this; }
+            public Builder tools(java.util.List<PluginEvalMockToolInput> tools) { this.tools = tools; return this; }
+            public Builder toolsFile(String toolsFile) { this.toolsFile = toolsFile; return this; }
+
+            public PluginEvalMockServerInput build() { return new PluginEvalMockServerInput(this); }
+        }
+    }
+
+    /** SDK input type for PluginEvalMockTool. */
+    public static final class PluginEvalMockToolInput {
+        private final String tool;
+        private final String file;
+        private final PluginEvalMockKind kind;
+        private final boolean error;
+        private final String expectJson;
+        private final String abortWhen;
+
+        private PluginEvalMockToolInput(Builder builder) {
+            this.tool = builder.tool;
+            this.file = builder.file;
+            this.kind = builder.kind;
+            this.error = builder.error;
+            this.expectJson = builder.expectJson;
+            this.abortWhen = builder.abortWhen;
+        }
+
+        PluginEvalMockTool toProto() {
+            PluginEvalMockTool.Builder builder = PluginEvalMockTool.newBuilder();
+            if (this.tool != null) {
+                builder.setTool(this.tool);
+            }
+            if (this.file != null) {
+                builder.setFile(this.file);
+            }
+            if (this.kind != null) {
+                builder.setKind(this.kind);
+            }
+            builder.setError(this.error);
+            if (this.expectJson != null) {
+                builder.setExpectJson(this.expectJson);
+            }
+            if (this.abortWhen != null) {
+                builder.setAbortWhen(this.abortWhen);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String tool;
+            private String file;
+            private PluginEvalMockKind kind;
+            private boolean error;
+            private String expectJson;
+            private String abortWhen;
+
+            private Builder() {}
+
+            public Builder tool(String tool) { this.tool = tool; return this; }
+            public Builder file(String file) { this.file = file; return this; }
+            public Builder kind(PluginEvalMockKind kind) { this.kind = kind; return this; }
+            public Builder error(boolean error) { this.error = error; return this; }
+            public Builder expectJson(String expectJson) { this.expectJson = expectJson; return this; }
+            public Builder abortWhen(String abortWhen) { this.abortWhen = abortWhen; return this; }
+
+            public PluginEvalMockToolInput build() { return new PluginEvalMockToolInput(this); }
         }
     }
 }

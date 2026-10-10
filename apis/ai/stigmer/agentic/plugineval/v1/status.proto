@@ -130,6 +130,24 @@ message PluginEvalCase {
   // Notes about how the case was run, as in "max_turns 4 raised to the
   // run's minimum of 10 tool rounds".
   repeated string notes = 6;
+
+  // The plugin's MCP servers the case answers with mocks, and those it
+  // leaves unstarted, as Claude Code's mocked: line.
+  repeated PluginEvalMockedServer mocked_servers = 7;
+}
+
+// PluginEvalMockedServer is one plugin MCP server as a case's tries see
+// it.
+message PluginEvalMockedServer {
+  // The server's name in the run, as in "plugin_tracker_issues".
+  string name = 1;
+
+  // The tools its mocks answer.
+  repeated string tools = 2;
+
+  // Why the server is not started, as in "not started: no mock"; empty
+  // when its mocks answer.
+  string not_started_reason = 3;
 }
 
 // PluginEvalCaseTarget is one case's results on one target.
@@ -208,6 +226,23 @@ message PluginEvalTry {
 
   // How long the try ran, in seconds.
   double duration_seconds = 9;
+
+  // Set when a mock stopped the try: its input guard was violated, its
+  // agent ended the run, or the agent mocks' call budget ran out. The try
+  // scores 0 and error stays empty, as Claude Code reports it.
+  PluginEvalAbort aborted = 10;
+}
+
+// PluginEvalAbort says which mock stopped a try, and why.
+message PluginEvalAbort {
+  // The mocked server's key in the plugin's MCP configuration.
+  string server = 1;
+
+  // The tool whose call was stopped.
+  string tool = 2;
+
+  // Why, as in "input.priority must be one of low, medium, high".
+  string reason = 3;
 }
 
 // PluginEvalTryState is where a try is.

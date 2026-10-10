@@ -194,6 +194,7 @@ class RunInput:
     workspace_file_refs: list[str] = field(default_factory=list)
     supersedes_run_id: str = ""
     conversation_catchup: ConversationCatchupInput | None = None
+    plugin_eval_case: PluginEvalCaseContextInput | None = None
 
     def _to_proto(self) -> api_pb2.Run:
         spec = spec_pb2.RunSpec(
@@ -218,6 +219,8 @@ class RunInput:
             spec.workspace_file_refs.extend(self.workspace_file_refs)
         if self.conversation_catchup is not None:
             spec.conversation_catchup.CopyFrom(self.conversation_catchup._to_proto())
+        if self.plugin_eval_case is not None:
+            spec.plugin_eval_case.CopyFrom(self.plugin_eval_case._to_proto())
         if self.session_spec is not None:
             spec.session_spec.CopyFrom(self.session_spec._to_proto())
         if self.session_id:
@@ -397,5 +400,84 @@ class ConversationCatchupInput:
         )
         if self.window_end:
             msg.window_end.FromJsonString(self.window_end)
+        return msg
+
+
+@dataclass
+class PluginEvalCaseContextInput:
+    """SDK input type for PluginEvalCaseContext."""
+
+    plugin_id: str = ""
+    plugin_digest: str = ""
+    suite_dir: str = ""
+    case_dir: str = ""
+    scaffold_script: str = ""
+    add_dirs: list[str] = field(default_factory=list)
+    history_file: str = ""
+    env: dict[str, str] = field(default_factory=dict)
+    mocks: list[PluginEvalMockServerInput] = field(default_factory=list)
+    agent_mock_model: str = ""
+    agent_mock_call_budget: int = 0
+
+    def _to_proto(self) -> spec_pb2.PluginEvalCaseContext:
+        msg = spec_pb2.PluginEvalCaseContext(
+            plugin_id=self.plugin_id,
+            plugin_digest=self.plugin_digest,
+            suite_dir=self.suite_dir,
+            case_dir=self.case_dir,
+            scaffold_script=self.scaffold_script,
+            history_file=self.history_file,
+            agent_mock_model=self.agent_mock_model,
+            agent_mock_call_budget=self.agent_mock_call_budget,
+        )
+        if self.add_dirs:
+            msg.add_dirs.extend(self.add_dirs)
+        if self.env:
+            msg.env.update(self.env)
+        for item in self.mocks:
+            msg.mocks.append(item._to_proto())
+        return msg
+
+
+@dataclass
+class PluginEvalMockServerInput:
+    """SDK input type for PluginEvalMockServer."""
+
+    server: str = ""
+    segment: str = ""
+    tools: list[PluginEvalMockToolInput] = field(default_factory=list)
+    tools_file: str = ""
+
+    def _to_proto(self) -> spec_pb2.PluginEvalMockServer:
+        msg = spec_pb2.PluginEvalMockServer(
+            server=self.server,
+            segment=self.segment,
+            tools_file=self.tools_file,
+        )
+        for item in self.tools:
+            msg.tools.append(item._to_proto())
+        return msg
+
+
+@dataclass
+class PluginEvalMockToolInput:
+    """SDK input type for PluginEvalMockTool."""
+
+    tool: str = ""
+    file: str = ""
+    kind: int = 0
+    error: bool = False
+    expect_json: str = ""
+    abort_when: str = ""
+
+    def _to_proto(self) -> spec_pb2.PluginEvalMockTool:
+        msg = spec_pb2.PluginEvalMockTool(
+            tool=self.tool,
+            file=self.file,
+            kind=self.kind,
+            error=self.error,
+            expect_json=self.expect_json,
+            abort_when=self.abort_when,
+        )
         return msg
 

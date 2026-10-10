@@ -4,6 +4,7 @@ package ai.stigmer.agentic.run.v1;
 
 import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/run/v1/invocation.proto";
+import "ai/stigmer/agentic/run/v1/plugin_eval_case.proto";
 import "ai/stigmer/agentic/session/v1/spec.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
@@ -343,6 +344,17 @@ message RunSpec {
   // conversation content is not a setting, and must not vanish with the
   // execution-profile kill-switch.
   ConversationCatchup conversation_catchup = 14;
+
+  // What a plugin-eval case gives this try beyond its message: a starting
+  // folder, reference folders, an earlier conversation, variables and MCP
+  // stand-ins. Absent on every other run.
+  //
+  // @internal
+  // Set only by the server's plugin-eval case workflow; run create refuses
+  // it on a request that is not server-composed (the eval-case guard
+  // step). Top-level rather than inside run_config for the reason
+  // conversation_catchup gives: platform-composed content, not a setting.
+  PluginEvalCaseContext plugin_eval_case = 25;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

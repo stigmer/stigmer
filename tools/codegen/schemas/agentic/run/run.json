@@ -188,6 +188,17 @@
       },
       "description": "Conversation events the agent has not yet seen, composed by the platform\n for this turn (optional).\n\n Set on live channel-conversation turns (WhatsApp, Slack): when a human\n teammate handled the conversation or messages otherwise landed while the\n agent was not watching, the digest carries what happened so the agent\n re-enters informed. Absent on every other run surface.",
       "required": false
+    },
+    {
+      "name": "PluginEvalCase",
+      "jsonName": "pluginEvalCase",
+      "protoField": "plugin_eval_case",
+      "type": {
+        "kind": "message",
+        "messageType": "PluginEvalCaseContext"
+      },
+      "description": "What a plugin-eval case gives this try beyond its message: a starting\n folder, reference folders, an earlier conversation, variables and MCP\n stand-ins. Absent on every other run.",
+      "required": false
     }
   ]
 }

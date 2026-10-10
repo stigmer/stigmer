@@ -22,7 +22,7 @@ from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._plugin import PluginClient, PluginInput, PluginAuthorInput
 from ._plugineval import PluginEvalClient, PluginEvalInput, PluginEvalTargetInput
 from ._providerkey import ProviderKeyClient
-from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput
+from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput, PluginEvalCaseContextInput, PluginEvalMockServerInput, PluginEvalMockToolInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
 from ._score import ScoreClient, ScoreInput, ScoreCriterionInput
 from ._session import SessionClient, SessionInput
@@ -125,6 +125,9 @@ __all__ = [
     "LocalPathSourceInput",
     "AttachmentInput",
     "ConversationCatchupInput",
+    "PluginEvalCaseContextInput",
+    "PluginEvalMockServerInput",
+    "PluginEvalMockToolInput",
     "ScheduleClient",
     "ScheduleInput",
     "AgentInvocationInput",

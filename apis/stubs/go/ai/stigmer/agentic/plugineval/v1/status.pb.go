@@ -382,7 +382,10 @@ type PluginEvalCase struct {
 	Targets []*PluginEvalCaseTarget `protobuf:"bytes,5,rep,name=targets,proto3" json:"targets,omitempty"`
 	// Notes about how the case was run, as in "max_turns 4 raised to the
 	// run's minimum of 10 tool rounds".
-	Notes         []string `protobuf:"bytes,6,rep,name=notes,proto3" json:"notes,omitempty"`
+	Notes []string `protobuf:"bytes,6,rep,name=notes,proto3" json:"notes,omitempty"`
+	// The plugin's MCP servers the case answers with mocks, and those it
+	// leaves unstarted, as Claude Code's mocked: line.
+	MockedServers []*PluginEvalMockedServer `protobuf:"bytes,7,rep,name=mocked_servers,json=mockedServers,proto3" json:"mocked_servers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -459,6 +462,79 @@ func (x *PluginEvalCase) GetNotes() []string {
 	return nil
 }
 
+func (x *PluginEvalCase) GetMockedServers() []*PluginEvalMockedServer {
+	if x != nil {
+		return x.MockedServers
+	}
+	return nil
+}
+
+// PluginEvalMockedServer is one plugin MCP server as a case's tries see
+// it.
+type PluginEvalMockedServer struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The server's name in the run, as in "plugin_tracker_issues".
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// The tools its mocks answer.
+	Tools []string `protobuf:"bytes,2,rep,name=tools,proto3" json:"tools,omitempty"`
+	// Why the server is not started, as in "not started: no mock"; empty
+	// when its mocks answer.
+	NotStartedReason string `protobuf:"bytes,3,opt,name=not_started_reason,json=notStartedReason,proto3" json:"not_started_reason,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *PluginEvalMockedServer) Reset() {
+	*x = PluginEvalMockedServer{}
+	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginEvalMockedServer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginEvalMockedServer) ProtoMessage() {}
+
+func (x *PluginEvalMockedServer) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginEvalMockedServer.ProtoReflect.Descriptor instead.
+func (*PluginEvalMockedServer) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PluginEvalMockedServer) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *PluginEvalMockedServer) GetTools() []string {
+	if x != nil {
+		return x.Tools
+	}
+	return nil
+}
+
+func (x *PluginEvalMockedServer) GetNotStartedReason() string {
+	if x != nil {
+		return x.NotStartedReason
+	}
+	return ""
+}
+
 // PluginEvalCaseTarget is one case's results on one target.
 type PluginEvalCaseTarget struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -485,7 +561,7 @@ type PluginEvalCaseTarget struct {
 
 func (x *PluginEvalCaseTarget) Reset() {
 	*x = PluginEvalCaseTarget{}
-	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -497,7 +573,7 @@ func (x *PluginEvalCaseTarget) String() string {
 func (*PluginEvalCaseTarget) ProtoMessage() {}
 
 func (x *PluginEvalCaseTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -510,7 +586,7 @@ func (x *PluginEvalCaseTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginEvalCaseTarget.ProtoReflect.Descriptor instead.
 func (*PluginEvalCaseTarget) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PluginEvalCaseTarget) GetTarget() *PluginEvalTarget {
@@ -579,7 +655,7 @@ type PluginEvalArm struct {
 
 func (x *PluginEvalArm) Reset() {
 	*x = PluginEvalArm{}
-	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -591,7 +667,7 @@ func (x *PluginEvalArm) String() string {
 func (*PluginEvalArm) ProtoMessage() {}
 
 func (x *PluginEvalArm) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -604,7 +680,7 @@ func (x *PluginEvalArm) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginEvalArm.ProtoReflect.Descriptor instead.
 func (*PluginEvalArm) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PluginEvalArm) GetScore() float64 {
@@ -658,13 +734,17 @@ type PluginEvalTry struct {
 	CostUsd float64 `protobuf:"fixed64,8,opt,name=cost_usd,json=costUsd,proto3" json:"cost_usd,omitempty"`
 	// How long the try ran, in seconds.
 	DurationSeconds float64 `protobuf:"fixed64,9,opt,name=duration_seconds,json=durationSeconds,proto3" json:"duration_seconds,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Set when a mock stopped the try: its input guard was violated, its
+	// agent ended the run, or the agent mocks' call budget ran out. The try
+	// scores 0 and error stays empty, as Claude Code reports it.
+	Aborted       *PluginEvalAbort `protobuf:"bytes,10,opt,name=aborted,proto3" json:"aborted,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PluginEvalTry) Reset() {
 	*x = PluginEvalTry{}
-	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -676,7 +756,7 @@ func (x *PluginEvalTry) String() string {
 func (*PluginEvalTry) ProtoMessage() {}
 
 func (x *PluginEvalTry) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -689,7 +769,7 @@ func (x *PluginEvalTry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginEvalTry.ProtoReflect.Descriptor instead.
 func (*PluginEvalTry) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PluginEvalTry) GetIndex() int32 {
@@ -755,6 +835,77 @@ func (x *PluginEvalTry) GetDurationSeconds() float64 {
 	return 0
 }
 
+func (x *PluginEvalTry) GetAborted() *PluginEvalAbort {
+	if x != nil {
+		return x.Aborted
+	}
+	return nil
+}
+
+// PluginEvalAbort says which mock stopped a try, and why.
+type PluginEvalAbort struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The mocked server's key in the plugin's MCP configuration.
+	Server string `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
+	// The tool whose call was stopped.
+	Tool string `protobuf:"bytes,2,opt,name=tool,proto3" json:"tool,omitempty"`
+	// Why, as in "input.priority must be one of low, medium, high".
+	Reason        string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginEvalAbort) Reset() {
+	*x = PluginEvalAbort{}
+	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginEvalAbort) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginEvalAbort) ProtoMessage() {}
+
+func (x *PluginEvalAbort) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginEvalAbort.ProtoReflect.Descriptor instead.
+func (*PluginEvalAbort) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *PluginEvalAbort) GetServer() string {
+	if x != nil {
+		return x.Server
+	}
+	return ""
+}
+
+func (x *PluginEvalAbort) GetTool() string {
+	if x != nil {
+		return x.Tool
+	}
+	return ""
+}
+
+func (x *PluginEvalAbort) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
 // PluginEvalAggregates are the suite's totals, in Claude Code's names.
 type PluginEvalAggregates struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -775,7 +926,7 @@ type PluginEvalAggregates struct {
 
 func (x *PluginEvalAggregates) Reset() {
 	*x = PluginEvalAggregates{}
-	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -787,7 +938,7 @@ func (x *PluginEvalAggregates) String() string {
 func (*PluginEvalAggregates) ProtoMessage() {}
 
 func (x *PluginEvalAggregates) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -800,7 +951,7 @@ func (x *PluginEvalAggregates) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginEvalAggregates.ProtoReflect.Descriptor instead.
 func (*PluginEvalAggregates) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *PluginEvalAggregates) GetOverallScore() float64 {
@@ -865,14 +1016,19 @@ const file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDesc = "" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x1aA\n" +
 	"\x13VaultAttachersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xec\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcd\x02\n" +
 	"\x0ePluginEvalCase\x12\x1b\n" +
 	"\tcase_name\x18\x01 \x01(\tR\bcaseName\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x1b\n" +
 	"\tcase_tags\x18\x03 \x03(\tR\bcaseTags\x12$\n" +
 	"\x0enot_run_reason\x18\x04 \x01(\tR\fnotRunReason\x12P\n" +
 	"\atargets\x18\x05 \x03(\v26.ai.stigmer.agentic.plugineval.v1.PluginEvalCaseTargetR\atargets\x12\x14\n" +
-	"\x05notes\x18\x06 \x03(\tR\x05notes\"\x86\x03\n" +
+	"\x05notes\x18\x06 \x03(\tR\x05notes\x12_\n" +
+	"\x0emocked_servers\x18\a \x03(\v28.ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServerR\rmockedServers\"p\n" +
+	"\x16PluginEvalMockedServer\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05tools\x18\x02 \x03(\tR\x05tools\x12,\n" +
+	"\x12not_started_reason\x18\x03 \x01(\tR\x10notStartedReason\"\x86\x03\n" +
 	"\x14PluginEvalCaseTarget\x12J\n" +
 	"\x06target\x18\x01 \x01(\v22.ai.stigmer.agentic.plugineval.v1.PluginEvalTargetR\x06target\x12$\n" +
 	"\x0enot_run_reason\x18\x02 \x01(\tR\fnotRunReason\x12P\n" +
@@ -888,7 +1044,7 @@ const file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDesc = "" +
 	"\fperfect_runs\x18\x02 \x01(\x05R\vperfectRuns\x12!\n" +
 	"\fgraded_tries\x18\x03 \x01(\x05R\vgradedTries\x12E\n" +
 	"\x05tries\x18\x04 \x03(\v2/.ai.stigmer.agentic.plugineval.v1.PluginEvalTryR\x05triesB\b\n" +
-	"\x06_score\"\xc5\x02\n" +
+	"\x06_score\"\x92\x03\n" +
 	"\rPluginEvalTry\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\x05R\x05index\x12\x1d\n" +
 	"\n" +
@@ -899,7 +1055,13 @@ const file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDesc = "" +
 	"\x11not_graded_reason\x18\x06 \x01(\tR\x0fnotGradedReason\x12\x14\n" +
 	"\x05error\x18\a \x01(\tR\x05error\x12\x19\n" +
 	"\bcost_usd\x18\b \x01(\x01R\acostUsd\x12)\n" +
-	"\x10duration_seconds\x18\t \x01(\x01R\x0fdurationSeconds\"\xd6\x01\n" +
+	"\x10duration_seconds\x18\t \x01(\x01R\x0fdurationSeconds\x12K\n" +
+	"\aaborted\x18\n" +
+	" \x01(\v21.ai.stigmer.agentic.plugineval.v1.PluginEvalAbortR\aaborted\"U\n" +
+	"\x0fPluginEvalAbort\x12\x16\n" +
+	"\x06server\x18\x01 \x01(\tR\x06server\x12\x12\n" +
+	"\x04tool\x18\x02 \x01(\tR\x04tool\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"\xd6\x01\n" +
 	"\x14PluginEvalAggregates\x12#\n" +
 	"\roverall_score\x18\x01 \x01(\x01R\foverallScore\x12!\n" +
 	"\fcases_passed\x18\x02 \x01(\x05R\vcasesPassed\x12\x1f\n" +
@@ -942,42 +1104,46 @@ func file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_plugineval_v1_status_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_ai_stigmer_agentic_plugineval_v1_status_proto_goTypes = []any{
 	(PluginEvalPhase)(0),                 // 0: ai.stigmer.agentic.plugineval.v1.PluginEvalPhase
 	(PluginEvalPartialReason)(0),         // 1: ai.stigmer.agentic.plugineval.v1.PluginEvalPartialReason
 	(PluginEvalTryState)(0),              // 2: ai.stigmer.agentic.plugineval.v1.PluginEvalTryState
 	(*PluginEvalStatus)(nil),             // 3: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus
 	(*PluginEvalCase)(nil),               // 4: ai.stigmer.agentic.plugineval.v1.PluginEvalCase
-	(*PluginEvalCaseTarget)(nil),         // 5: ai.stigmer.agentic.plugineval.v1.PluginEvalCaseTarget
-	(*PluginEvalArm)(nil),                // 6: ai.stigmer.agentic.plugineval.v1.PluginEvalArm
-	(*PluginEvalTry)(nil),                // 7: ai.stigmer.agentic.plugineval.v1.PluginEvalTry
-	(*PluginEvalAggregates)(nil),         // 8: ai.stigmer.agentic.plugineval.v1.PluginEvalAggregates
-	nil,                                  // 9: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.VaultAttachersEntry
-	(*timestamppb.Timestamp)(nil),        // 10: google.protobuf.Timestamp
-	(*apiresource.ApiResourceAudit)(nil), // 11: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(*PluginEvalTarget)(nil),             // 12: ai.stigmer.agentic.plugineval.v1.PluginEvalTarget
+	(*PluginEvalMockedServer)(nil),       // 5: ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer
+	(*PluginEvalCaseTarget)(nil),         // 6: ai.stigmer.agentic.plugineval.v1.PluginEvalCaseTarget
+	(*PluginEvalArm)(nil),                // 7: ai.stigmer.agentic.plugineval.v1.PluginEvalArm
+	(*PluginEvalTry)(nil),                // 8: ai.stigmer.agentic.plugineval.v1.PluginEvalTry
+	(*PluginEvalAbort)(nil),              // 9: ai.stigmer.agentic.plugineval.v1.PluginEvalAbort
+	(*PluginEvalAggregates)(nil),         // 10: ai.stigmer.agentic.plugineval.v1.PluginEvalAggregates
+	nil,                                  // 11: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.VaultAttachersEntry
+	(*timestamppb.Timestamp)(nil),        // 12: google.protobuf.Timestamp
+	(*apiresource.ApiResourceAudit)(nil), // 13: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*PluginEvalTarget)(nil),             // 14: ai.stigmer.agentic.plugineval.v1.PluginEvalTarget
 }
 var file_ai_stigmer_agentic_plugineval_v1_status_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.phase:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalPhase
 	1,  // 1: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.partial_reason:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalPartialReason
 	4,  // 2: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.cases:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalCase
-	8,  // 3: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.aggregates:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalAggregates
-	10, // 4: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.started_at:type_name -> google.protobuf.Timestamp
-	10, // 5: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.finished_at:type_name -> google.protobuf.Timestamp
-	9,  // 6: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.vault_attachers:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.VaultAttachersEntry
-	11, // 7: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	5,  // 8: ai.stigmer.agentic.plugineval.v1.PluginEvalCase.targets:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalCaseTarget
-	12, // 9: ai.stigmer.agentic.plugineval.v1.PluginEvalCaseTarget.target:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalTarget
-	6,  // 10: ai.stigmer.agentic.plugineval.v1.PluginEvalCaseTarget.with_plugin:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalArm
-	6,  // 11: ai.stigmer.agentic.plugineval.v1.PluginEvalCaseTarget.without_plugin:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalArm
-	7,  // 12: ai.stigmer.agentic.plugineval.v1.PluginEvalArm.tries:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalTry
-	2,  // 13: ai.stigmer.agentic.plugineval.v1.PluginEvalTry.state:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalTryState
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	10, // 3: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.aggregates:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalAggregates
+	12, // 4: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.started_at:type_name -> google.protobuf.Timestamp
+	12, // 5: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.finished_at:type_name -> google.protobuf.Timestamp
+	11, // 6: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.vault_attachers:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.VaultAttachersEntry
+	13, // 7: ai.stigmer.agentic.plugineval.v1.PluginEvalStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	6,  // 8: ai.stigmer.agentic.plugineval.v1.PluginEvalCase.targets:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalCaseTarget
+	5,  // 9: ai.stigmer.agentic.plugineval.v1.PluginEvalCase.mocked_servers:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer
+	14, // 10: ai.stigmer.agentic.plugineval.v1.PluginEvalCaseTarget.target:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalTarget
+	7,  // 11: ai.stigmer.agentic.plugineval.v1.PluginEvalCaseTarget.with_plugin:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalArm
+	7,  // 12: ai.stigmer.agentic.plugineval.v1.PluginEvalCaseTarget.without_plugin:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalArm
+	8,  // 13: ai.stigmer.agentic.plugineval.v1.PluginEvalArm.tries:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalTry
+	2,  // 14: ai.stigmer.agentic.plugineval.v1.PluginEvalTry.state:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalTryState
+	9,  // 15: ai.stigmer.agentic.plugineval.v1.PluginEvalTry.aborted:type_name -> ai.stigmer.agentic.plugineval.v1.PluginEvalAbort
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_plugineval_v1_status_proto_init() }
@@ -986,16 +1152,16 @@ func file_ai_stigmer_agentic_plugineval_v1_status_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_plugineval_v1_spec_proto_init()
-	file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[2].OneofWrappers = []any{}
 	file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[3].OneofWrappers = []any{}
-	file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[5].OneofWrappers = []any{}
+	file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[4].OneofWrappers = []any{}
+	file_ai_stigmer_agentic_plugineval_v1_status_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

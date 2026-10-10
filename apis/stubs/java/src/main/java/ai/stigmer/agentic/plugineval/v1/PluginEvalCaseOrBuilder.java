@@ -203,4 +203,53 @@ public interface PluginEvalCaseOrBuilder extends
    */
   com.google.protobuf.ByteString
       getNotesBytes(int index);
+
+  /**
+   * <pre>
+   * The plugin's MCP servers the case answers with mocks, and those it
+   * leaves unstarted, as Claude Code's mocked: line.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer> 
+      getMockedServersList();
+  /**
+   * <pre>
+   * The plugin's MCP servers the case answers with mocks, and those it
+   * leaves unstarted, as Claude Code's mocked: line.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+   */
+  ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer getMockedServers(int index);
+  /**
+   * <pre>
+   * The plugin's MCP servers the case answers with mocks, and those it
+   * leaves unstarted, as Claude Code's mocked: line.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+   */
+  int getMockedServersCount();
+  /**
+   * <pre>
+   * The plugin's MCP servers the case answers with mocks, and those it
+   * leaves unstarted, as Claude Code's mocked: line.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServerOrBuilder> 
+      getMockedServersOrBuilderList();
+  /**
+   * <pre>
+   * The plugin's MCP servers the case answers with mocks, and those it
+   * leaves unstarted, as Claude Code's mocked: line.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7 [json_name = "mockedServers"];</code>
+   */
+  ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServerOrBuilder getMockedServersOrBuilder(
+      int index);
 }
