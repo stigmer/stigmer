@@ -308,7 +308,8 @@ describe("the eval suite is not mounted", () => {
       ["skills-tests", '{"name":"safety","skills":"./x/../","experimental":{"evals":"skills-tests"}}'],
       ["quality/evals", '{"name":"safety","skills":["./"],"experimental":{"evals":"quality/evals"}}'],
       ["quality/evals", '{"name":"safety","skills":".","experimental":{"evals":"quality/evals"}}'],
-      ["quality/evals", '{"name":"safety","skills":[".//", "*.md", "skills-ish", 3],"experimental":{"evals":"quality/evals"}}'],
+      ["quality/evals", '{"name":"safety","skills":[".//", "./quality*", "quality"],"experimental":{"evals":"quality/evals"}}'],
+      ["quality/evals", '{"name":"safety","skills":["./quality", 3],"experimental":{"evals":"quality/evals"}}'],
       ["quality/evals", '{"name":"safety","skills":{"a":"./quality"},"experimental":{"evals":"quality/evals"}}'],
     ];
     for (const [dir, manifest] of cases) {
