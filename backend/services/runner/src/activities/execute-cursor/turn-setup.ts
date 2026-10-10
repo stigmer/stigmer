@@ -384,6 +384,23 @@ export async function platformReadRoot(primaryDir: string, platformDir: string):
  * holds this session's conversation, so this turn resumes it — the runtime's
  * `isReinvocation` answers its own question and is not consulted here.
  */
+/**
+ * What a Cursor agent create or resume that timed out says, by whether the
+ * retry on a fresh transport was the last attempt. In the agent host every
+ * Cursor call crosses the runner's Cursor lane, so the route it names is the
+ * runner's: the platform's proxy, or Cursor directly.
+ */
+export function resolveTimeoutMessage(facts: { readonly resuming: boolean; readonly timeoutSeconds: number; readonly platformProxied: boolean }): (finalAttempt: boolean) => string {
+  return (finalAttempt) =>
+    `Cursor agent ${facts.resuming ? "resume" : "create"} timed out after ${facts.timeoutSeconds}s ` +
+    `(${facts.platformProxied ? "via the Stigmer platform's proxy" : "direct Cursor API connection"}). ` +
+    `The transport connection is likely dead. ` +
+    (finalAttempt
+      ? `An automatic retry on a fresh transport connection also timed out. ` +
+        `Retry the message later; if this persists, check proxy and network health.`
+      : `Resetting the transport and retrying automatically.`);
+}
+
 export function readAdjudicatedRows(input: TurnInput, status: RunStatus): AdjudicatedRows {
   const reinvoked = input.threadId !== "";
   const adjudicated = reinvoked ? reconstructAdjudicatedApprovals(input.execution.status?.messages ?? []) : undefined;
@@ -691,14 +708,7 @@ export async function resolveEngine(
       createOptions,
       mode: agentMode,
       timeoutMs: config.agentResolveTimeoutMs,
-      buildTimeoutMessage: (finalAttempt) =>
-        `Cursor agent ${threadId ? "resume" : "create"} timed out after ${resolveTimeoutSeconds}s ` +
-        `(${config.proxyEndpoint ? "via the Stigmer platform's proxy" : "direct Cursor API connection"}). ` +
-        `The transport connection is likely dead. ` +
-        (finalAttempt
-          ? `An automatic retry on a fresh transport connection also timed out. ` +
-            `Retry the message later; if this persists, check proxy and network health.`
-          : `Resetting the transport and retrying automatically.`),
+      buildTimeoutMessage: resolveTimeoutMessage({ resuming: !!threadId, timeoutSeconds: resolveTimeoutSeconds, platformProxied: config.proxyEndpoint !== null }),
       resetTransport: closeProxySessions,
     });
   }
