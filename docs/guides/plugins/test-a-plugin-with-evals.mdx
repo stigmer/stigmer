@@ -35,8 +35,8 @@ because the score measures the plugin on Stigmer.
 Each case runs in two **arms**:
 
 - the **with-arm**: the case's tries with the plugin, a chat with the Assistant
-  that lists the plugin, so its Skills, agents, hooks and MCP servers come
-  along whole;
+  that lists the plugin, so its Skills, agents, hooks and MCP servers come along
+  whole;
 - the **without-arm**: the same number of tries with the Assistant and nothing
   attached, the baseline.
 
@@ -208,7 +208,8 @@ Stigmer adds fields beside them, which a script written for Claude Code ignores:
   several models, the top-level `cases[]` are the first model's.
 - `passK` on each case.
 - `provisionalDelta`: `true` only for an eval made before chats listed plugins
-  directly, whose with-arm also carried an Agent Stigmer composed for the plugin.
+  directly, whose with-arm also carried an Agent Stigmer composed for the
+  plugin.
 - `notRun[]`: each case, or case on one model, that was not run, with the
   reason.
 - `runId` and `notGradedReason` on each try, and the eval's `evalId`.

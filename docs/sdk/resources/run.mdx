@@ -2290,6 +2290,7 @@ RunValueDeclarer names who declared a value a turn uses.
     repositoryUrl: { type: "string", description: "The repository's URL; empty for an agent, a tool or a plugin." },
     pluginId: { type: "string", description: "The plugin that declared it: a tool's plugin, or the plugin whose hooks read it; empty for an agent or a repository." },
     server: { type: "string", description: "The tool's server name in its plugin; empty for everything else." },
+    pluginDigest: { type: "string", description: "The archive of the tool's plugin this run planned (the plugin's digest); empty for everything else." },
   }}
 />
 

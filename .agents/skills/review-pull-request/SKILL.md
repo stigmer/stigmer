@@ -72,7 +72,7 @@ checks.
     `backend/services/stigmer-server/src/domain/vault`,
     `backend/services/stigmer-server/src/domain/oauthapp`,
     `backend/services/stigmer-server/src/domain/platformclient`,
-    `backend/services/stigmer-server/src/domain/mcpserver` and
+    `backend/services/stigmer-server/src/domain/plugin` and
     `backend/services/stigmer-server/src/domain/run/approval`;
   - the authorization model, `backend/services/stigmer-server/fga/model`;
   - the outbound guard, `backend/libs/ts/outbound`;

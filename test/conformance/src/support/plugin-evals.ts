@@ -92,10 +92,10 @@ export function pluginEvalActiveDeleteMessage(evalId: string): string {
 
 export function pluginEvalOtherPluginToolMessage(
   entry: string,
-  named: string,
+  server: string,
   plugin: string,
 ): string {
-  return `allow_tools entry '${entry}' names plugin '${named}', but this eval runs '${plugin}'; a try attaches no other plugin`;
+  return `allow_tools entry '${entry}' names MCP server '${server}', which is not one of '${plugin}''s; a try attaches no other plugin`;
 }
 
 /** A failed eval's error when its workflow could not start: a fixed sentence, the cause only logged. */
