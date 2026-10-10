@@ -37,8 +37,9 @@
  * The plugin's eval suite is never mounted: `evals/`, the directory
  * `PluginStatus.evals.dir` names when the manifest moved the suite, and the
  * manifest's own `experimental.evals` read from the archive (a plugin
- * installed before the status carried the directory has none recorded) are
- * left out of the tree, so an agent under test cannot read the cases it is
+ * installed before the status carried the directory has none recorded),
+ * under the library's rule that refuses a directory overlapping the
+ * skills, are left out of the tree, so an agent under test cannot read the cases it is
  * graded on, as Claude Code hides them from its own runs. An entry is
  * judged by its cleaned, root-relative name, the name the server's suite
  * reader gives it, so `./evals/…` or `x/../evals/…` is a suite file here
@@ -206,39 +207,81 @@ function cleanEntryPath(name: string): string {
  */
 const SUITE_MANIFESTS = [".claude-plugin/plugin.json", ".codex-plugin/plugin.json"] as const;
 
+/** The manifests that may declare skill paths: every vendor dialect's (the open format declares none). */
+const SKILL_MANIFESTS = [".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"] as const;
+
+/** The open format's fixed skills directory, read whatever the manifests declare. */
+const DEFAULT_SKILLS_DIR = "skills";
+
 /**
  * The suite directory the archive's own manifest names, by the library's
  * rule (`@stigmer/plugin-package` `evals/eval-dir.ts` `resolveEvalDir`):
  * the first manifest carrying `experimental.evals` decides, and its value
- * is used only when it is a relative path of plain directory names;
- * anything else leaves `evals/` alone, as the library falls back to it. A
- * manifest that does not parse contributes nothing, as the library reads
- * it. Parsed here rather than through the library, which the runner does
- * not depend on (it would bring its YAML and ZIP dependencies into every
- * runner build for one field).
+ * is used only when it is a relative path of plain directory names that
+ * does not overlap the skills (`skills/` or a declared skill path, other
+ * than the plugin's root, being it, holding it or lying inside it);
+ * anything else leaves `evals/` alone, as the library falls back to it, so
+ * a skill is never mounted short of its own files. A manifest that does
+ * not parse contributes nothing, as the library reads it. Parsed here
+ * rather than through the library, which the runner does not depend on (it
+ * would bring its YAML and ZIP dependencies into every runner build for
+ * two fields).
  */
 export function manifestEvalDir(entries: readonly ZipFileEntry[]): string | undefined {
   for (const location of SUITE_MANIFESTS) {
-    const entry = entries.find((candidate) => cleanEntryPath(candidate.path) === location);
-    if (entry === undefined) continue;
-    const value = experimentalEvals(entry.content);
+    const manifest = manifestObject(entries, location);
+    const experimental = manifest?.["experimental"];
+    const value = isObject(experimental) ? experimental["evals"] : undefined;
     if (value === undefined) continue;
-    return typeof value === "string" && isPlainRelativePath(value) ? value : undefined;
+    if (typeof value !== "string" || !isPlainRelativePath(value)) return undefined;
+    const skillDirs = [DEFAULT_SKILLS_DIR, ...declaredSkillDirs(entries)];
+    return skillDirs.some((skillDir) => skillDir !== "" && pathsOverlap(value, skillDir)) ? undefined : value;
   }
   return undefined;
 }
 
-/** A manifest's raw `experimental.evals`; `undefined` when absent or the manifest is not a JSON object. */
-function experimentalEvals(content: Uint8Array): unknown {
+/** A manifest of the archive as a JSON object; `undefined` when absent, unreadable or not an object. */
+function manifestObject(entries: readonly ZipFileEntry[], location: string): Record<string, unknown> | undefined {
+  const entry = entries.find((candidate) => cleanEntryPath(candidate.path) === location);
+  if (entry === undefined) return undefined;
   let parsed: unknown;
   try {
-    parsed = JSON.parse(new TextDecoder().decode(content));
+    parsed = JSON.parse(new TextDecoder().decode(entry.content));
   } catch {
     return undefined;
   }
-  if (!isObject(parsed)) return undefined;
-  const experimental = parsed["experimental"];
-  return isObject(experimental) ? experimental["evals"] : undefined;
+  return isObject(parsed) ? parsed : undefined;
+}
+
+/**
+ * Every skill path the vendor manifests declare, by the library's declared
+ * path rule (`dialects/manifest.ts` `readDeclaredPaths`): a string or an
+ * array of strings, each `./`-relative, `""` for the root; a value the
+ * library would refuse names nothing.
+ */
+function declaredSkillDirs(entries: readonly ZipFileEntry[]): readonly string[] {
+  return SKILL_MANIFESTS.flatMap((location) => {
+    const skills = manifestObject(entries, location)?.["skills"];
+    const values = typeof skills === "string" ? [skills] : Array.isArray(skills) && skills.every((v) => typeof v === "string") ? skills : [];
+    return values.flatMap((value: string) => {
+      const path = declaredPath(value);
+      return path === undefined ? [] : [path];
+    });
+  });
+}
+
+/** The library's `resolveDeclaredPath`: the plugin-relative path, or `undefined` when it would refuse the value. */
+function declaredPath(value: string): string | undefined {
+  if (/[*?[\]{}]/.test(value)) return undefined;
+  if (!value.startsWith("./") && value !== ".") return undefined;
+  const trimmed = value.slice(2).replace(/\/+$/, "");
+  if (trimmed === "") return "";
+  return isPlainRelativePath(trimmed) ? trimmed : undefined;
+}
+
+/** Whether one plugin-relative directory is the other or lies inside it. */
+function pathsOverlap(a: string, b: string): boolean {
+  return a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

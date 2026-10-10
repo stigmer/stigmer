@@ -24,21 +24,21 @@
  * file under the skill directory is listed for the installer's per-skill
  * archive, except an eval suite: the plugin's (`evals/`, or where the
  * manifest's `experimental.evals` moved it, by the suite reader's own rule
- * in `evals/eval-dir.ts`), which a root skill would otherwise carry whole,
- * and a skill's own `evals/`. An agent the skill is mounted for must not
+ * in `evals/eval-dir.ts`, which refuses a directory overlapping the skills,
+ * so only a root skill ever loses the plugin's suite), which a root skill
+ * would otherwise carry whole, and a skill's own `evals/`. An agent the skill is mounted for must not
  * read the cases it is graded on. Only `SKILL.md` is ever read.
  */
 
 import type { ManifestSet } from "../detect.js";
 import { readText } from "../documents.js";
-import { DEFAULT_EVAL_DIR, resolveEvalDir } from "../evals/eval-dir.js";
+import { DEFAULT_EVAL_DIR, DEFAULT_SKILLS_DIR, resolveEvalDir } from "../evals/eval-dir.js";
 import { basename, comparePaths, joinPath, type PluginFileIndex } from "../files.js";
 import { extractFrontmatter, parseFrontmatter, SKILL_NAME_PATTERN } from "../frontmatter.js";
 import type { Findings } from "../messages.js";
 import type { PluginSkill } from "../types.js";
 
 export const SKILL_FILE = "SKILL.md";
-export const DEFAULT_SKILLS_DIR = "skills";
 
 export function normaliseSkills(index: PluginFileIndex, set: ManifestSet, findings: Findings): readonly PluginSkill[] {
   const skills: PluginSkill[] = [];

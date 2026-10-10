@@ -10,11 +10,12 @@
  *
  * The directory is `evals/`, or a Claude-shaped manifest's
  * `experimental.evals` when that is a relative path of plain directory
- * names; any other value is an `eval-dir-invalid` finding and `evals/` is
- * used, the format's rule for an unusable manifest value. The manifest is
- * found by the library's own detection, so the reader and the install never
- * disagree on which manifest a plugin has, and the rule is `eval-dir.ts`'s,
- * which the skill listing shares to leave the suite out of every skill.
+ * names clear of the plugin's skills; any other value is an
+ * `eval-dir-invalid` finding and `evals/` is used, the format's rule for an
+ * unusable manifest value. The manifest is found by the library's own
+ * detection, so the reader and the install never disagree on which manifest
+ * a plugin has, and the rule is `eval-dir.ts`'s, which the skill listing
+ * shares to leave the suite out of every skill.
  *
  * A case is a directory under the suite holding `prompt.md` or `case.yaml`;
  * a directory that is neither may group cases beneath it, and everything
@@ -53,7 +54,7 @@ import {
   unknownKeys,
   wrong,
 } from "./fields.js";
-import { DEFAULT_EVAL_DIR, resolveEvalDir } from "./eval-dir.js";
+import { DEFAULT_EVAL_DIR, type EvalDirResolution, resolveEvalDir } from "./eval-dir.js";
 import { readGrader } from "./graders.js";
 import type { EvalCase, EvalCaseContext, EvalGrader, EvalSuite, EvalSuiteFinding } from "./types.js";
 
@@ -173,15 +174,25 @@ function suiteDir(index: PluginFileIndex, findings: EvalSuiteFinding[]): string 
   // The install reports manifest problems; this read only needs the value.
   const { dir, unusable } = resolveEvalDir(detectManifests(index, new Findings()));
   if (unusable !== undefined) {
-    findings.push({
-      kind: "eval-dir-invalid",
-      path: unusable.manifest,
-      message:
-        `${unusable.manifest}: experimental.evals ${JSON.stringify(unusable.value)} is not a relative path of plain directory names ` +
-        `(such as 'qa' or 'quality/evals'); using ${DEFAULT_EVAL_DIR}/`,
-    });
+    findings.push({ kind: "eval-dir-invalid", path: unusable.manifest, message: evalDirMessage(unusable) });
   }
   return dir;
+}
+
+function evalDirMessage(unusable: NonNullable<EvalDirResolution["unusable"]>): string {
+  const named = `${unusable.manifest}: experimental.evals ${JSON.stringify(unusable.value)}`;
+  switch (unusable.reason) {
+    case "not-a-plain-path":
+      return `${named} is not a relative path of plain directory names (such as 'qa' or 'quality/evals'); using ${DEFAULT_EVAL_DIR}/`;
+    case "overlaps-skills":
+      return `${named} overlaps the plugin's skills; using ${DEFAULT_EVAL_DIR}/`;
+    /* v8 ignore start -- @preserve: the never arm; resolveEvalDir gives only these reasons */
+    default: {
+      const exhaustive: never = unusable.reason;
+      throw new Error(`unknown eval-dir reason ${String(exhaustive)}`);
+    }
+    /* v8 ignore stop */
+  }
 }
 
 /** Every case directory under the suite, sorted by path. */

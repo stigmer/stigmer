@@ -168,6 +168,34 @@ describe("the eval directory", () => {
     },
   );
 
+  it.each([
+    ["skills", undefined],
+    ["skills/alpha", undefined],
+    ["skills/alpha/tests", undefined],
+    ["extra", ["./extra/"]],
+    ["extra/one", ["./extra"]],
+    ["content", ["./content/skills"]],
+  ])("refuses %j, which overlaps the plugin's skills, and falls back to evals/", (value, skills) => {
+    const suite = suiteOf(
+      { "evals/c/prompt.md": "Hello.", "evals/c/graders/judge.md": LLM_GRADER },
+      { experimental: { evals: value }, ...(skills !== undefined && { skills }) },
+    );
+    expect(suite.dir).toBe("evals");
+    expect(suite.cases.map((c) => c.name)).toEqual(["c"]);
+    expect(onlyFinding(suite)).toEqual({
+      kind: "eval-dir-invalid",
+      path: ".claude-plugin/plugin.json",
+      message: `.claude-plugin/plugin.json: experimental.evals ${JSON.stringify(value)} overlaps the plugin's skills; using evals/`,
+    });
+  });
+
+  it("moves beside the skills, and inside a plugin declared as one root skill", () => {
+    expect(suiteOf({ "skills-tests/c/prompt.md": "Hello." }, { experimental: { evals: "skills-tests" } }).dir).toBe("skills-tests");
+    const rootSkill = suiteOf({ "qa/c/prompt.md": "Hello.", "qa/c/graders/judge.md": LLM_GRADER }, { experimental: { evals: "qa" }, skills: "./" });
+    expect(rootSkill.findings).toEqual([]);
+    expect(rootSkill.dir).toBe("qa");
+  });
+
   it("is an empty suite when the plugin has no eval directory", () => {
     expect(suiteOf({})).toEqual({ dir: "evals", cases: [], findings: [] });
   });

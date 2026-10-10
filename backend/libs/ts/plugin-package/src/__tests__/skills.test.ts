@@ -68,6 +68,22 @@ describe("discovery", () => {
     expect(accepted(read(files)).skills[0]?.files.filter((path) => path.startsWith("evals/"))).toEqual([]);
   });
 
+  it.each([
+    ["skills", undefined],
+    ["skills/alpha", undefined],
+    ["skills/alpha/references", undefined],
+    ["extra/one", ["./extra/"]],
+  ])("strips nothing from a skill when experimental.evals %j overlaps the skills", (evals, skills) => {
+    const files = claudePlugin({ manifest: { experimental: { evals }, ...(skills !== undefined && { skills }) } });
+    for (const dir of ["skills/alpha", "extra/one"]) {
+      files.set(`${dir}/SKILL.md`, `---\nname: ${dir.split("/")[1] ?? ""}\ndescription: d\n---\nbody`);
+      files.set(`${dir}/references/REF.md`, "ref");
+    }
+    const listed = accepted(read(files)).skills.map((s) => s.files);
+    expect(listed).toContainEqual(["skills/alpha/SKILL.md", "skills/alpha/references/REF.md"]);
+    if (skills !== undefined) expect(listed).toContainEqual(["extra/one/SKILL.md", "extra/one/references/REF.md"]);
+  });
+
   it("leaves a skill's own evals/ directory out of its files", () => {
     const files = openPlugin({ skills: [{ name: "alpha", description: "A", files: { "evals/evals.json": "{}", "references/REF.md": "ref" } }] });
     expect(accepted(read(files)).skills[0]?.files).toEqual(["skills/alpha/SKILL.md", "skills/alpha/references/REF.md"]);
