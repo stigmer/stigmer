@@ -500,11 +500,15 @@ export class SqliteStore implements Store {
         assertSameSession(kindName, id, sessionId, keyValue(before, scope.sessionKey));
       }
 
-      const others =
+      const outcome = write(
+        previous,
         sessionId === ""
-          ? 0
-          : countOthersWorking(db, declaration, id, scope.workingKey, sessionId);
-      const outcome = write(previous, others);
+          ? { othersWorking: 0, latestStateType: undefined }
+          : {
+              othersWorking: countOthersWorking(db, declaration, id, scope.workingKey, sessionId),
+              latestStateType: latestOfTypes(db, sessionId, scope.stateEventTypes),
+            },
+      );
       if (sessionId === "" && outcome.events.length > 0) {
         throw new Error(`${kindName}/${id} is in no session; it cannot write session events`);
       }
@@ -2307,13 +2311,9 @@ function storedSessionOf(
   sessionKey: string,
 ): string {
   const kindName = apiResourceKindName(declaration.kind);
-  const unproven = db
-    .prepare(UNPROVEN_ROWS_SQL)
-    .all(...unprovenRowsParams(kindName, declaration.revision)) as Array<{
-    id: string;
-    data: Uint8Array;
-  }>;
-  const own = unproven.find((row) => row.id === id);
+  const own = db
+    .prepare(`SELECT data FROM (${UNPROVEN_ROWS_SQL}) WHERE id = ? LIMIT 1`)
+    .get(...unprovenRowsParams(kindName, declaration.revision), id) as { data: Uint8Array } | undefined;
   if (own !== undefined) {
     // A row that does not decode reads as in no session; the write then
     // fails decoding it, before anything is written.
@@ -2365,6 +2365,24 @@ function countOthersWorking(
     }
   }
   return count;
+}
+
+/** The type of the session's newest event among `types` (postgres/store.ts's twin). */
+function latestOfTypes(
+  db: DatabaseSync,
+  sessionId: string,
+  types: ReadonlyArray<string>,
+): string | undefined {
+  if (types.length === 0) {
+    return undefined;
+  }
+  const row = db
+    .prepare(
+      `SELECT type FROM session_events WHERE session_id = ? AND type IN (${types.map(() => "?").join(", ")})
+       ORDER BY seq DESC LIMIT 1`,
+    )
+    .get(sessionId, ...types) as { type: string } | undefined;
+  return row?.type;
 }
 
 /** Appends drafts after the session's newest event, on the caller's open write transaction. */

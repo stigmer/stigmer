@@ -208,7 +208,7 @@ describe("the chain writers and store faults", () => {
       ...deps,
       store: {
         writeResourceAppendingEvents: async (...args: Parameters<Store["writeResourceAppendingEvents"]>) => {
-          args[3](undefined, 0);
+          args[3](undefined, { othersWorking: 0, latestStateType: undefined });
           throw new Error("unreachable");
         },
       } as unknown as Store,
@@ -224,5 +224,18 @@ describe("the chain writers and store faults", () => {
       store: { writeResourceAppendingEvents: () => Promise.reject(new Error("database is locked")) } as unknown as Store,
     };
     await expect(removeRunAppendingEvents(faulty, "a")).rejects.toThrow("database is locked");
+  });
+});
+
+describe("a log that drifted from its runs", () => {
+  it("a run working from before the log holds the session running from the next write on, and the last stop idles it", async () => {
+    // Written before the log existed: working, and no status event.
+    await temp.store.saveResource(ApiResourceKind.run, "old", RunSchema, run("old", "s1", RunPhase.RUN_IN_PROGRESS));
+    await createRunAppendingEvents(deps, run("new", "s1"));
+    expect(await readSessionState(temp.store, "s1")).toBe("running");
+    await updateRunAppendingEvents(deps, "new", setPhase(RunPhase.RUN_COMPLETED));
+    expect(await readSessionState(temp.store, "s1")).toBe("running");
+    await updateRunAppendingEvents(deps, "old", setPhase(RunPhase.RUN_COMPLETED));
+    expect(await log("s1")).toEqual(["new:user.message", "new:session.status_running", "old:session.status_idle"]);
   });
 });

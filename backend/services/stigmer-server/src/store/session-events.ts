@@ -138,6 +138,11 @@ export interface SessionEventScope {
   /** The kind's list key a row holds, valued with its session, while it is working. */
   readonly workingKey: string;
   /**
+   * The event types that state the session's state; the writer is handed
+   * the newest of them (`SessionEventContext.latestStateType`).
+   */
+  readonly stateEventTypes: ReadonlyArray<string>;
+  /**
    * The session of a row not yet stored (a create), which has no key to
    * read it from. A written row whose session differs is refused.
    */
@@ -170,15 +175,22 @@ export interface ResourceEventWriteResult<Desc extends DescMessage> {
   readonly events: ReadonlyArray<SessionEventRecord>;
 }
 
+/** What a resource write's writer is told about its session, as committed, under the session's lock. */
+export interface SessionEventContext {
+  /** The session's other rows holding the working key. */
+  readonly othersWorking: number;
+  /** The type of the session's newest event among `scope.stateEventTypes`; undefined when it has none. */
+  readonly latestStateType: string | undefined;
+}
+
 /**
  * The synchronous half of a resource write that carries events. `previous`
- * is the committed row read under the locks (undefined when absent);
- * `othersWorking` counts the session's other rows holding the working key.
+ * is the committed row read under the locks (undefined when absent).
  * Throwing writes nothing and propagates.
  */
 export type ResourceEventWriter<Desc extends DescMessage> = (
   previous: MessageShape<Desc> | undefined,
-  othersWorking: number,
+  session: SessionEventContext,
 ) => ResourceEventWrite<Desc>;
 
 /** The instant the store stamps: fixed-width UTC with milliseconds, never before the session's newest event. */

@@ -46,6 +46,7 @@ const CONTRACT_CASE_NAMES = [
   "a resource write commits the row with its events and hands the writer the committed row",
   "a resource write that throws commits neither the row nor its events",
   "the working count is the session's other working rows: not the row itself, not another session's, not a stopped one",
+  "the writer is handed the type of the session's newest state event, read under the lock",
   "writers of one session run one after the other, each counting what the other committed",
   "removing a row removes its own events except the kept types, and its list keys",
   "a write that names no session finds it through the row, and a row that is not stored is not found",
@@ -117,7 +118,11 @@ function run(sessionId: string, phase: RunPhase) {
   });
 }
 
-const SCOPE = { sessionKey: "session", workingKey: "working_session" };
+const SCOPE = {
+  sessionKey: "session",
+  workingKey: "working_session",
+  stateEventTypes: ["session.status_running", "session.status_idle"],
+};
 
 afterAll(async () => {
   await postgresDatabase?.drop();
@@ -164,8 +169,8 @@ describe.each([sqliteFixture, postgresFixture])("the session event log ($name)",
           ApiResourceKind.run,
           mine.metadata!.id,
           RunSchema,
-          (_previous, count) => {
-            others = count;
+          (_previous, session) => {
+            others = session.othersWorking;
             return { put: mine, events: [] };
           },
           { ...SCOPE, sessionId },

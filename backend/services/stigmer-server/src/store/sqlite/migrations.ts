@@ -1357,8 +1357,10 @@ function migrateToV25(db: DatabaseSync): void {
 /**
  * v26: each session's ordered event log (../session-events.ts): the
  * Postgres driver's v21 in this engine's terms, with the same keys and
- * indexes. Every write runs under BEGIN IMMEDIATE, so a session's numbers
- * and times are assigned one writer at a time.
+ * indexes. An ordinary rowid table, not WITHOUT ROWID: an event's payload
+ * can be hundreds of kilobytes, past the small rows WITHOUT ROWID suits.
+ * Every write runs under BEGIN IMMEDIATE, so a session's numbers and times
+ * are assigned one writer at a time.
  */
 function migrateToV26(db: DatabaseSync): void {
   db.exec(`
@@ -1373,7 +1375,7 @@ function migrateToV26(db: DatabaseSync): void {
       processed_at  TEXT NOT NULL,
       data          BLOB NOT NULL,
       PRIMARY KEY (session_id, seq)
-    ) WITHOUT ROWID;
+    );
 
     CREATE UNIQUE INDEX idx_session_events_event_id ON session_events (session_id, event_id);
     CREATE INDEX idx_session_events_type ON session_events (session_id, type, seq);

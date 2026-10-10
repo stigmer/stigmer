@@ -50,8 +50,12 @@ export type SessionEventStoreContractFixture = PortContractFixture<Store>;
 
 export type SessionEventStoreContractCase = PortContractCase;
 
-const RUN_SCOPE: SessionEventScope = { sessionKey: "session", workingKey: "working_session" };
 const KEPT = ["session.status_running", "session.status_idle"];
+const RUN_SCOPE: SessionEventScope = {
+  sessionKey: "session",
+  workingKey: "working_session",
+  stateEventTypes: KEPT,
+};
 const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 /** A unique suffix per case, so a fixture over a shared database never meets another case's rows. */
@@ -86,11 +90,12 @@ async function put(
   store: Store,
   row: Run,
   events: ReadonlyArray<SessionEventDraft> = [],
-  seen: { previous?: Run | undefined; others?: number } = {},
+  seen: { previous?: Run | undefined; others?: number; state?: string | undefined } = {},
 ): Promise<void> {
-  const writer: ResourceEventWriter<typeof RunSchema> = (previous, others) => {
+  const writer: ResourceEventWriter<typeof RunSchema> = (previous, session) => {
     seen.previous = previous;
-    seen.others = others;
+    seen.others = session.othersWorking;
+    seen.state = session.latestStateType;
     return { put: row, events };
   };
   const sessionId = row.spec?.target.case === "sessionId" ? row.spec.target.value : "";
@@ -310,6 +315,22 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
     },
   ],
   [
+    "the writer is handed the type of the session's newest state event, read under the lock",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const r = `run_${unique()}`;
+      const seen: { state?: string | undefined } = {};
+      await put(store, run(r, s, RunPhase.RUN_PENDING), [draft("m", r, "user.message")], seen);
+      assert.equal(seen.state, undefined, "a session with no state event yet");
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [draft("on", r, "session.status_running"), draft("say", r, "agent.message")], seen);
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [], seen);
+      assert.equal(seen.state, "session.status_running", "newest of the state types, not the newest event");
+      await put(store, run(r, s, RunPhase.RUN_COMPLETED), [draft("off", r, "session.status_idle")], seen);
+      await put(store, run(r, s, RunPhase.RUN_COMPLETED), [], seen);
+      assert.equal(seen.state, "session.status_idle");
+    },
+  ],
+  [
     "writers of one session run one after the other, each counting what the other committed",
     async ({ store }) => {
       const sessions = Array.from({ length: 8 }, () => `ses_${unique()}`);
@@ -344,9 +365,9 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
         ApiResourceKind.run,
         r,
         RunSchema,
-        (previous, others) => {
+        (previous, session) => {
           assert.equal(previous?.status?.phase, RunPhase.RUN_IN_PROGRESS);
-          assert.equal(others, 1);
+          assert.equal(session.othersWorking, 1);
           return { remove: { keepEventTypes: KEPT }, events: [draft("idle", r, "session.status_idle")] };
         },
         RUN_SCOPE,

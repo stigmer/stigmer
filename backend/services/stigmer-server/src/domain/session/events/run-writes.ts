@@ -39,6 +39,7 @@ import type { Store } from "../../../store/interface.js";
 import type {
   ResourceEventWriteResult,
   ResourceEventWriter,
+  SessionEventContext,
   SessionEventDraft,
   SessionEventScope,
 } from "../../../store/session-events.js";
@@ -63,6 +64,7 @@ function scopeOf(sessionId?: string): SessionEventScope {
   return {
     sessionKey: SESSION_KEY,
     workingKey: WORKING_KEY,
+    stateEventTypes: SESSION_STATUS_TYPES,
     ...(sessionId === undefined ? {} : { sessionId }),
   };
 }
@@ -74,13 +76,16 @@ function phaseOf(run: Run): RunPhase {
 /** A transition's events as store drafts; none for a run in no session, which has no log. */
 function draftsFor(
   transition: RunTransition,
-  others: number,
+  session: SessionEventContext,
   sessionRow: Run | undefined,
 ): SessionEventDraft[] {
   if (sessionRow === undefined || sessionIdOfRun(sessionRow) === "") {
     return [];
   }
-  return sessionEventsForTransition(transition, others).map(draftOf);
+  return sessionEventsForTransition(transition, {
+    othersWorking: session.othersWorking,
+    state: session.latestStateType === "session.status_running" ? "running" : "idle",
+  }).map(draftOf);
 }
 
 /** The run create chain's Persist writer (pipeline/steps/persist.ts). */

@@ -7,24 +7,31 @@
  * session can have more than one turn unfinished at once (a channel user
  * who sends two messages quickly has two runs, the second queued behind
  * the first's workspace lock), and Managed Agents has one status per
- * session: running while any of its work is unfinished. So a run that
- * stops working ends the session's turn only when no other run of the
- * session still works (`othersWorking`, counted under the session's lock
- * by the store, store/session-events.ts).
+ * session: running while any of its work is unfinished.
+ *
+ * So each write compares two facts the store reads under the session's
+ * lock (store/session-events.ts): whether the session works after this
+ * write (this run is working, or `othersWorking` > 0), and what the
+ * session's newest status event says (`state`). A status event is written
+ * exactly when they differ, so the newest status event always equals the
+ * session's state. Comparing states rather than reacting to one run's
+ * transition also repairs a log that drifted: runs that were working when
+ * the log was introduced, or a phase an older binary wrote during a roll,
+ * are put right by the next write in their session.
  *
  * A run is working while pending, in progress or waiting for approval
  * (run/phases.ts `isWorkingPhase`). Waiting for approval writes nothing of
  * its own yet: the requires_action idle names the tool uses that wait, and
  * those events come from the runner.
  *
- *   created ................ user.message; then session.status_running if
- *                            no other run works
- *   stops working, alone ... session.status_idle (end_turn); for FAILED,
- *                            session.error (unknown_error, terminal) then
- *                            session.status_idle (retries_exhausted)
- *   stops working, others .. FAILED's session.error only
- *   works again, alone ..... session.status_running (resume, recover)
- *   removed while working .. as stopping (end_turn)
+ *   created .................. user.message; then running if the session
+ *                              did not read running
+ *   the session stops working  session.status_idle (end_turn), or, when
+ *                              this run just FAILED, retries_exhausted
+ *   this run just FAILED ..... session.error (unknown_error, terminal)
+ *                              first, whether or not others still work
+ *   the session works again .. session.status_running (resume, recover)
+ *   removed while working .... as stopping (end_turn)
  *
  * PAUSED and TERMINATED end the turn as end_turn: a Stigmer client reads
  * the pause and the precise cause from the run. session.status_terminated
@@ -58,13 +65,16 @@ export function sessionIdOfRun(run: Run): string {
   return run.spec?.target.case === "sessionId" ? run.spec.target.value : "";
 }
 
+/** The session's state as its newest status event states it; a session with none reads idle. */
+export type SessionStateNow = "running" | "idle";
+
 /**
- * The events a run transition appends, in order. `othersWorking` counts
- * the session's other working runs as committed.
+ * The events a run transition appends, in order, given the session as
+ * committed: how many of its other runs work, and its stated state.
  */
 export function sessionEventsForTransition(
   transition: RunTransition,
-  othersWorking: number,
+  session: { readonly othersWorking: number; readonly state: SessionStateNow },
 ): SessionEvent[] {
   const runId =
     transition.kind === "remove" ? transition.runId : (transition.run.metadata?.id ?? "");
@@ -88,39 +98,33 @@ export function sessionEventsForTransition(
       ? RunPhase.RUN_PHASE_UNSPECIFIED
       : (transition.run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED);
   const isWorking = transition.kind !== "remove" && isWorkingPhase(nextPhase);
-  const alone = othersWorking === 0;
-
-  if (!wasWorking && isWorking && alone) {
-    events.push(event({ case: "sessionStatusRunning", value: { id: id() } }));
+  const failed = wasWorking && nextPhase === RunPhase.RUN_FAILED;
+  if (failed && transition.kind !== "remove") {
+    events.push(
+      event({
+        case: "sessionError",
+        value: {
+          id: id(),
+          error: {
+            type: "unknown_error",
+            message: transition.run.status?.error ?? "",
+            retryStatus: { type: "terminal" },
+          },
+        },
+      }),
+    );
   }
-  if (wasWorking && !isWorking) {
-    const failed = nextPhase === RunPhase.RUN_FAILED;
-    if (failed) {
-      events.push(
-        event({
-          case: "sessionError",
-          value: {
-            id: id(),
-            error: {
-              type: "unknown_error",
-              message: transition.kind === "remove" ? "" : (transition.run.status?.error ?? ""),
-              retryStatus: { type: "terminal" },
-            },
-          },
-        }),
-      );
-    }
-    if (alone) {
-      events.push(
-        event({
-          case: "sessionStatusIdle",
-          value: {
-            id: id(),
-            stopReason: { type: failed ? "retries_exhausted" : "end_turn" },
-          },
-        }),
-      );
-    }
+
+  const sessionWorks = isWorking || session.othersWorking > 0;
+  if (sessionWorks && session.state !== "running") {
+    events.push(event({ case: "sessionStatusRunning", value: { id: id() } }));
+  } else if (!sessionWorks && session.state === "running") {
+    events.push(
+      event({
+        case: "sessionStatusIdle",
+        value: { id: id(), stopReason: { type: failed ? "retries_exhausted" : "end_turn" } },
+      }),
+    );
   }
   return events;
 }

@@ -25,8 +25,23 @@ function run(phase: RunPhase, extra: { error?: string; message?: string } = {}):
   });
 }
 
+/**
+ * The session as a consistent log states it before the transition: running
+ * when this run was working or another works.
+ */
+function before(transition: RunTransition, othersWorking: number) {
+  const wasWorking =
+    transition.kind !== "create" &&
+    [P.RUN_PENDING, P.RUN_IN_PROGRESS, P.RUN_WAITING_FOR_APPROVAL].includes(transition.previousPhase);
+  return { othersWorking, state: wasWorking || othersWorking > 0 ? ("running" as const) : ("idle" as const) };
+}
+
+function eventsFor(transition: RunTransition, others = 0) {
+  return sessionEventsForTransition(transition, before(transition, others));
+}
+
 function types(transition: RunTransition, others = 0): string[] {
-  return sessionEventsForTransition(transition, others).map(eventTypeOf);
+  return eventsFor(transition, others).map(eventTypeOf);
 }
 
 const update = (from: RunPhase, to: RunPhase, error?: string): RunTransition => ({
@@ -37,7 +52,7 @@ const update = (from: RunPhase, to: RunPhase, error?: string): RunTransition => 
 
 describe("creation", () => {
   it("writes the turn's text as a user message, then running when nothing else works", () => {
-    const events = sessionEventsForTransition({ kind: "create", run: run(P.RUN_PENDING) }, 0);
+    const events = eventsFor({ kind: "create", run: run(P.RUN_PENDING) });
     expect(events.map(eventTypeOf)).toEqual(["user.message", "session.status_running"]);
     const message = events[0]!.event;
     expect(message.case === "userMessage" && message.value.content.map((b) => [b.type, b.text])).toEqual([
@@ -54,7 +69,7 @@ describe("a run that stops working", () => {
   it.each([P.RUN_COMPLETED, P.RUN_CANCELLED, P.RUN_PAUSED, P.RUN_TERMINATED])(
     "%s ends the session's turn as end_turn when it was the last working run",
     (to) => {
-      const events = sessionEventsForTransition(update(P.RUN_IN_PROGRESS, to), 0);
+      const events = eventsFor(update(P.RUN_IN_PROGRESS, to));
       expect(events.map(eventTypeOf)).toEqual(["session.status_idle"]);
       const idle = events[0]!.event;
       expect(idle.case === "sessionStatusIdle" && idle.value.stopReason?.type).toBe("end_turn");
@@ -63,7 +78,7 @@ describe("a run that stops working", () => {
   );
 
   it("FAILED writes a terminal unknown_error with the run's error, then idle as retries_exhausted", () => {
-    const events = sessionEventsForTransition(update(P.RUN_IN_PROGRESS, P.RUN_FAILED, "model refused"), 0);
+    const events = eventsFor(update(P.RUN_IN_PROGRESS, P.RUN_FAILED, "model refused"));
     expect(events.map(eventTypeOf)).toEqual(["session.error", "session.status_idle"]);
     const error = events[0]!.event;
     expect(error.case === "sessionError" && [error.value.error?.type, error.value.error?.message, error.value.error?.retryStatus?.type]).toEqual([
@@ -113,9 +128,32 @@ describe("a run that starts working again, and changes that stay working", () =>
   });
 });
 
+describe("a log that drifted is put right by the next write in its session", () => {
+  it("a session that reads idle while a run works reads running after any write of a working run", () => {
+    expect(
+      sessionEventsForTransition(update(P.RUN_IN_PROGRESS, P.RUN_IN_PROGRESS), { othersWorking: 0, state: "idle" }).map(eventTypeOf),
+    ).toEqual(["session.status_running"]);
+    expect(
+      sessionEventsForTransition({ kind: "create", run: run(P.RUN_PENDING) }, { othersWorking: 1, state: "idle" }).map(eventTypeOf),
+    ).toEqual(["user.message", "session.status_running"]);
+  });
+
+  it("a session that reads running while nothing works reads idle after the next write", () => {
+    expect(
+      sessionEventsForTransition(update(P.RUN_COMPLETED, P.RUN_COMPLETED), { othersWorking: 0, state: "running" }).map(eventTypeOf),
+    ).toEqual(["session.status_idle"]);
+  });
+
+  it("a state already stated is not stated again", () => {
+    expect(
+      sessionEventsForTransition(update(P.RUN_PENDING, P.RUN_IN_PROGRESS), { othersWorking: 0, state: "running" }),
+    ).toEqual([]);
+  });
+});
+
 describe("the events' identity", () => {
   it("each event has its own server-minted id and names the run it belongs to", () => {
-    const events = sessionEventsForTransition({ kind: "create", run: run(P.RUN_PENDING) }, 0);
+    const events = eventsFor({ kind: "create", run: run(P.RUN_PENDING) });
     const ids = events.map((e) => (e.event.case === undefined ? "" : e.event.value.id));
     expect(ids.every((id) => /^sevt_[0-9a-z]{26}$/.test(id))).toBe(true);
     expect(new Set(ids).size).toBe(ids.length);

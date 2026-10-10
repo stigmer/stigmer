@@ -482,11 +482,15 @@ export class PostgresStore implements Store {
         assertSameSession(kindName, id, sessionId, keyValue(before, scope.sessionKey));
       }
 
-      const others =
+      const outcome = write(
+        previous,
         sessionId === ""
-          ? 0
-          : await this.countOthersWorking(client, declaration, id, scope.workingKey, sessionId);
-      const outcome = write(previous, others);
+          ? { othersWorking: 0, latestStateType: undefined }
+          : {
+              othersWorking: await this.countOthersWorking(client, declaration, id, scope.workingKey, sessionId),
+              latestStateType: await latestOfTypes(client, sessionId, scope.stateEventTypes),
+            },
+      );
       if (sessionId === "" && outcome.events.length > 0) {
         throw new Error(`${kindName}/${id} is in no session; it cannot write session events`);
       }
@@ -554,8 +558,11 @@ export class PostgresStore implements Store {
     sessionKey: string,
   ): Promise<string> {
     const kindName = apiResourceKindName(declaration.kind);
-    const unproven = await this.open().query(UNPROVEN_ROWS_SQL, [kindName, declaration.revision]);
-    const own = (unproven.rows as Array<{ id: string; data: Uint8Array }>).find((row) => row.id === id);
+    const unproven = await this.open().query(
+      `SELECT data FROM (${UNPROVEN_ROWS_SQL}) unproven WHERE id = $3 LIMIT 1`,
+      [kindName, declaration.revision, id],
+    );
+    const own = unproven.rows[0] as { data: Uint8Array } | undefined;
     if (own !== undefined) {
       // A row that does not decode reads as in no session; the write then
       // fails decoding it, before anything is written.
@@ -2415,6 +2422,23 @@ async function lockSession(client: PoolClient, sessionId: string): Promise<void>
     `SELECT pg_advisory_xact_lock(hashtextextended('session_events/' || $1, 0))`,
     [sessionId],
   );
+}
+
+/** The type of the session's newest event among `types`, through the (session_id, type, seq) index. */
+async function latestOfTypes(
+  client: PoolClient,
+  sessionId: string,
+  types: ReadonlyArray<string>,
+): Promise<string | undefined> {
+  if (types.length === 0) {
+    return undefined;
+  }
+  const result = await client.query(
+    `SELECT type FROM session_events WHERE session_id = $1 AND type = ANY($2::text[])
+     ORDER BY seq DESC LIMIT 1`,
+    [sessionId, [...types]],
+  );
+  return (result.rows[0] as { type: string } | undefined)?.type;
 }
 
 /** Appends drafts after the session's newest event, under the caller's session lock. */
