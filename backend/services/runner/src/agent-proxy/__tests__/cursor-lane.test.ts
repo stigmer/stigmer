@@ -319,11 +319,15 @@ describe("terminate: a runner that calls Cursor itself", () => {
     expect((await call("/aiserver.v1.DashboardService/GetUserPrivacyMode", { authorization: `Bearer ${first}` })).status).toBe(401);
   });
 
-  it("passes an exchange the upstream refused, or answered without a token, through unchanged", async () => {
+  it("passes an exchange the upstream refused through unchanged, and keeps any other answer without a token from the host", async () => {
     rest.answer = { status: 401, headers: { "content-type": "application/json" }, body: '{"error":"bad key"}' };
     expect(await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION })).toEqual({ status: 401, body: '{"error":"bad key"}' });
-    rest.answer = { status: 200, headers: {}, body: "not json" };
-    expect(await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION })).toEqual({ status: 200, body: "not json" });
+    for (const body of ["not json", '{"accessToken":"","refreshToken":"real-refresh"}', '{"access_token":"real-snake","refresh_token":"real-refresh"}']) {
+      rest.answer = { status: 200, headers: {}, body };
+      const answer = await call(EXCHANGE, { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION });
+      expect(answer.status, body).toBe(502);
+      expect(answer.body, body).not.toContain("real-");
+    }
   });
 
   it("cancels Cursor's stream when the host drops its own, and keeps serving after a drop mid-stream or mid-handshake", async () => {
@@ -337,7 +341,7 @@ describe("terminate: a runner that calls Cursor itself", () => {
     await new Promise((resolve) => dropped.once("data", resolve));
     session.destroy();
 
-    const half = tlsConnect({ host: "127.0.0.1", port: Number(new URL(proxy.cursorEndpoint).port), rejectUnauthorized: false });
+    const half = tlsConnect({ host: "127.0.0.1", port: Number(new URL(proxy.cursorEndpoint).port), ca: proxy.cursorCertificate });
     half.on("error", () => {});
     half.destroy();
 

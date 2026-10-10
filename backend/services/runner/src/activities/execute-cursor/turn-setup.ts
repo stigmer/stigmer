@@ -693,7 +693,7 @@ export async function resolveEngine(
       timeoutMs: config.agentResolveTimeoutMs,
       buildTimeoutMessage: (finalAttempt) =>
         `Cursor agent ${threadId ? "resume" : "create"} timed out after ${resolveTimeoutSeconds}s ` +
-        `(${config.proxyEndpoint ? `via proxy ${config.proxyEndpoint}` : "direct Cursor API connection"}). ` +
+        `(${config.proxyEndpoint ? "via the Stigmer platform's proxy" : "direct Cursor API connection"}). ` +
         `The transport connection is likely dead. ` +
         (finalAttempt
           ? `An automatic retry on a fresh transport connection also timed out. ` +

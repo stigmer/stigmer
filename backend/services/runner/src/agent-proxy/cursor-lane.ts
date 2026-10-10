@@ -192,7 +192,8 @@ export class CursorLane {
     const host = slash === -1 ? hostAndPath : hostAndPath.slice(0, slash);
     const path = slash === -1 ? "" : hostAndPath.slice(slash);
     const rest = `${path}${search}`;
-    if (!isCursorHost(host)) throw new LaneRefusal(403, `the Cursor lane reaches Cursor's own hosts only, not ${host}`);
+    const known = cursorHostNamed(host);
+    if (known === undefined) throw new LaneRefusal(403, `the Cursor lane reaches Cursor's own hosts only, not ${host}`);
     const exchange = path === EXCHANGE_PATH;
     // Custody turns on this one path. Any other spelling that a server could
     // read as the auth API (a trailing or doubled slash, an escape, another
@@ -203,13 +204,13 @@ export class CursorLane {
     const upstream: Upstream =
       forward ?
         {
-          url: laneUrl(this.config.proxyEndpoint!, `/v1/proxy/cursor/${host}${rest}`),
+          url: laneUrl(this.config.proxyEndpoint!, `/v1/proxy/cursor/${known}${rest}`),
           method: req.method ?? "GET",
           headers: { ...forwardableHeaders(req.headers, true), authorization: `Bearer ${this.runnerCredential()}` },
           body,
         }
       : {
-          url: laneUrl(process.env.CURSOR_BACKEND_URL?.trim() || `https://${host}`, rest),
+          url: laneUrl(process.env.CURSOR_BACKEND_URL?.trim() || `https://${known}`, rest),
           method: req.method ?? "GET",
           headers: { ...forwardableHeaders(req.headers, false), authorization: `Bearer ${this.operatorKey()}` },
           body,
@@ -222,11 +223,14 @@ export class CursorLane {
     const answer = await requestWhole(upstream);
     let out = answer.body;
     if (answer.status === 200) {
+      // Custody fails closed: an answer this lane cannot take the token out
+      // of never reaches the host, and no refresh token ever does.
       const parsed = parseJsonObject(answer.body);
-      if (parsed !== undefined && typeof parsed.accessToken === "string" && parsed.accessToken.length > 0) {
-        const { refreshToken: _dropped, ...kept } = parsed;
-        out = Buffer.from(JSON.stringify({ ...kept, accessToken: this.custody.hold(parsed.accessToken) }));
+      if (parsed === undefined || typeof parsed.accessToken !== "string" || parsed.accessToken.length === 0) {
+        throw new LaneRefusal(502, "Cursor's key exchange answered without an access token");
       }
+      const { refreshToken: _dropped, ...kept } = parsed;
+      out = Buffer.from(JSON.stringify({ ...kept, accessToken: this.custody.hold(parsed.accessToken) }));
     }
     const headers: Record<string, string | string[]> = { ...answer.headers, "content-length": String(out.length) };
     res.writeHead(answer.status, headers);
@@ -305,8 +309,6 @@ export class CursorLane {
     });
   }
 
-
-  /** One HTTP/2 session per upstream origin, opened on first use and dropped when it ends. */
   /** The upstream session to `origin` for the host's session `inbound`, opened on first use and ended with it. */
   private session(inbound: Http2Session, origin: string): ClientHttp2Session {
     let byOrigin = this.upstreams.get(inbound);
@@ -350,14 +352,15 @@ export class CursorLane {
 }
 
 /** Is `host` one of Cursor's own, read as a URL parser reads it (no userinfo, port or escape)? */
-function isCursorHost(host: string): boolean {
-  let parsed: string;
-  try {
-    parsed = new URL(`https://${host}`).hostname;
-  } catch {
-    return false;
-  }
-  return parsed === host.toLowerCase() && CURSOR_HOSTS.some((known) => parsed === known || parsed.endsWith(`.${known}`));
+/**
+ * The Cursor host a REST call names, as the lane's own constant, or
+ * `undefined` for anything else. Only the exact host names count: the host's
+ * interceptors name `api2.cursor.sh` or `api.cursor.com` (or the host of a
+ * Cursor URL the SDK fetched), and the upstream URL is built from the
+ * constant, never from the request's text.
+ */
+function cursorHostNamed(host: string): string | undefined {
+  return CURSOR_HOSTS.find((known) => known === host);
 }
 
 /** Does `path` read as the auth API once decoded, lower-cased and stripped of repeated or trailing slashes? */
