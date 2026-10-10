@@ -35,7 +35,7 @@ import type { HarnessRow } from "../harness/registry.js";
 import { AgentProxy } from "../agent-proxy/server.js";
 import { agentHostEnvironment } from "./environment.js";
 import { installAgentFs } from "../shared/agent-fs.js";
-import { handOverToAgent } from "../shared/agent-handover.js";
+import { handOverToAgent, type HandoverIo } from "../shared/agent-handover.js";
 import { agentIdentity, prepareAgentSeparation, type AgentIdentity } from "../shared/agent-identity.js";
 import { createRemoteAdapter } from "./remote-adapter.js";
 import { remoteAgentFs } from "./remote-fs.js";
@@ -114,9 +114,14 @@ export async function hostHarnesses(
  * (`shared/agent-handover.ts`), and its workspace root on every boot;
  * `null` when done, else the line the runner refuses to start with.
  */
-function handOver(identity: AgentIdentity, workspaceRoot: string): string | null {
+export function handOver(
+  identity: AgentIdentity,
+  workspaceRoot: string,
+  runnerHome: string = process.env.HOME || homedir(),
+  io?: HandoverIo,
+): string | null {
   try {
-    const result = handOverToAgent(identity, { runnerHome: process.env.HOME || homedir(), workspaceRoot });
+    const result = handOverToAgent(identity, { runnerHome, workspaceRoot }, io);
     if (result.firstTime) console.log(`[agent-host] handed the agent's files to ${identity.name}${result.moved.length > 0 ? ` (moved ${result.moved.join(", ")})` : ""}`);
     return null;
   } catch (err) {

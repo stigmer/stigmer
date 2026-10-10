@@ -116,7 +116,13 @@ export function prepareAgentSeparation(
   } = {},
 ): string | null {
   const guide = "see docs/guides/self-hosting/runners.mdx (the agent user)";
-  const missing = missingCapabilities((io.processStatus ?? (() => readFileSync("/proc/self/status", "utf8")))());
+  let status: string;
+  try {
+    status = (io.processStatus ?? (() => readFileSync("/proc/self/status", "utf8")))();
+  } catch (err) {
+    return `the runner cannot read its own capabilities (${err instanceof Error ? err.message : String(err)}); ${guide}`;
+  }
+  const missing = missingCapabilities(status);
   if (missing.length > 0) {
     return `the runner lacks the ${missing.join(", ")} capabilit${missing.length === 1 ? "y" : "ies"} it needs to run the agent as its own user (SETUID, SETGID, CHOWN and KILL); ${guide}`;
   }

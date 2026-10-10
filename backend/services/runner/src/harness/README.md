@@ -80,7 +80,7 @@ which holds none of its keys; the runner's own process loads no engine SDK
 - `shared/agent-fs.ts` — the runtime's file and process operations on the
   agent's paths, which the runner routes to the host (`agent-host/remote-fs.ts`,
   `agent-host/fs-service.ts`), so the runtime never acts on them with the
-  runner's rights (`__tests__/runtime-touches-no-agent-path.test.ts`).
+  runner's rights (`harness/__tests__/runtime-touches-no-agent-path.test.ts`).
 - `shared/agent-identity.ts` — who the host runs as: in a container shape the
   agent user, started through `setpriv`; elsewhere the runner's own user.
 
