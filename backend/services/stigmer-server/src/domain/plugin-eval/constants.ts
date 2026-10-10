@@ -20,3 +20,50 @@ export const PLUGIN_EVAL_MAX_CASES = 200;
 
 /** The most tries one eval may run (cases x targets x arms x runs). */
 export const PLUGIN_EVAL_MAX_TRIES = 1000;
+
+/** The create lane's deny copy when the caller cannot edit the plugin. */
+export const PLUGIN_EVAL_CREATE_DENIED_MESSAGE =
+  "unauthorized to run evals of plugin";
+
+/** The refusal of an organization that is not the plugin's. */
+export function pluginEvalOrgMismatchMessage(pluginOrg: string): string {
+  return `metadata.org must be the plugin's organization (${pluginOrg})`;
+}
+
+/** The refusal of a digest that names no version of the plugin. */
+export function pluginEvalUnknownDigestMessage(digest: string): string {
+  return `spec.plugin_digest ${digest} is not a version of this plugin`;
+}
+
+/** The refusal of a plugin version with no cases to run. */
+export function pluginEvalNoCasesMessage(dir: string): string {
+  return `this plugin version has no eval cases: add a case directory under ${dir}/ holding a prompt.md or a case.yaml`;
+}
+
+/** The refusal of a suite larger than an eval may run. */
+export function pluginEvalTooLargeMessage(cases: number, tries: number): string {
+  return (
+    `this eval would run ${cases} case${cases === 1 ? "" : "s"} and ${tries} tr${tries === 1 ? "y" : "ies"}; ` +
+    `an eval runs at most ${PLUGIN_EVAL_MAX_CASES} cases and ${PLUGIN_EVAL_MAX_TRIES} tries: ` +
+    "narrow it with case_glob or case_tags, or lower runs or targets"
+  );
+}
+
+/** The refusal of a delete while the eval may still start tries. */
+export function pluginEvalActiveDeleteMessage(evalId: string): string {
+  return `plugin eval ${evalId} is still running: cancel it first, then delete it`;
+}
+
+/** The refusal of a plugin delete while one of its evals runs. */
+export function pluginEvalActiveOnPluginDeleteMessage(evalId: string): string {
+  return `this plugin has a running eval (${evalId}): cancel it first, then delete the plugin`;
+}
+
+/** The failed eval's error when its workflow could not start. */
+export function pluginEvalNotStartedMessage(cause: string): string {
+  return `the eval could not start: ${cause}`;
+}
+
+/** The cancel's answer when no engine is connected to stop the eval. */
+export const PLUGIN_EVAL_NO_ENGINE_MESSAGE =
+  "the eval cannot be cancelled while the server has no engine connection; try again shortly";

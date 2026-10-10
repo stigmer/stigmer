@@ -442,7 +442,9 @@ function requireSessionId<Desc extends DescMessage>(
 
 /**
  * ListAllSessions — one page of sessions, the request's organization when
- * it names one, newest first. Malformed rows warn and are skipped.
+ * it names one, newest first. Malformed rows warn and are skipped. A
+ * plugin eval's tries are left out (the `plugin_eval` key): they are read
+ * from the eval and by id, never from the conversation list.
  */
 export function newListAllSessionsStep(
   store: Store,
@@ -462,7 +464,7 @@ export function newListAllSessionsStep(
         ctx.callerIdentity,
         ctx.input,
         {
-          query: { org: input.org },
+          query: { org: input.org, withoutKeys: ["plugin_eval"] },
           fingerprint: {
             lane: "session.list",
             org: input.org,
@@ -599,7 +601,7 @@ async function readSessionPage(
   caller: CallerIdentity,
   request: ListPageRequest,
   lane: {
-    readonly query: ListIndexQuery<"agent" | "channel">;
+    readonly query: ListIndexQuery<"agent" | "channel" | "plugin_eval">;
     readonly fingerprint: Readonly<Record<string, unknown>>;
   },
 ): Promise<SessionList> {

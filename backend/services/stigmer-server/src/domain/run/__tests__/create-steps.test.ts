@@ -95,6 +95,7 @@ import type {
   StartInvokeWorkflowInput,
 } from "../engine.js";
 import { stubConnectedEngine } from "./engine-stub.js";
+import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
 import { GRADES_RUN_LABEL } from "../../score/judge/judge-run.js";
 
 const silentLogger = createLogger({
@@ -1233,6 +1234,33 @@ describe("the compose steps where callers are persons", () => {
       expect(preferences.newState.status?.declaredPreferences?.orgContext).toBe("");
       expect(preferences.newState.status?.declaredPreferences?.userContext).toBe("");
       const memories = newContext(judge, carol);
+      await newComposeRecalledMemoriesStep(store, silentLogger, directoryOrNone).execute(memories);
+      expect(memories.newState.status?.recalledMemories?.enabled).toBe(false);
+      expect(memories.newState.status?.recalledMemories?.facts).toEqual([]);
+    });
+  }
+
+  // A plugin eval's try measures the plugin: nothing the organization or
+  // the eval's creator wrote or remembers reaches it, in either posture
+  // (domain/plugin-eval/plugin-eval-run.ts).
+  for (const [posture, accounts] of [
+    ["where callers are persons", "persons"],
+    ["under the single-operator posture", "single"],
+  ] as const) {
+    it(`composes no standing context and recalls nothing for a plugin eval's try ${posture}`, async () => {
+      await seedOrg("test-org", "We deploy to us-east-1.");
+      await seedRecallRows();
+      const directoryOrNone =
+        accounts === "persons"
+          ? directory({ standingContext: "Call me Carol.", memoryEnabled: true })
+          : undefined;
+      const evalTry = newExecution("");
+      evalTry.metadata = { ...evalTry.metadata!, labels: { [PLUGIN_EVAL_LABEL]: "pev_1" } };
+      const preferences = newContext(evalTry, carol);
+      await newComposeDeclaredPreferencesStep(store, silentLogger, directoryOrNone).execute(preferences);
+      expect(preferences.newState.status?.declaredPreferences?.orgContext).toBe("");
+      expect(preferences.newState.status?.declaredPreferences?.userContext).toBe("");
+      const memories = newContext(evalTry, carol);
       await newComposeRecalledMemoriesStep(store, silentLogger, directoryOrNone).execute(memories);
       expect(memories.newState.status?.recalledMemories?.enabled).toBe(false);
       expect(memories.newState.status?.recalledMemories?.facts).toEqual([]);
