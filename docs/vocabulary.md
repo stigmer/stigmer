@@ -1166,6 +1166,10 @@ makes.
 - **Note**: the plugin's editors start, cancel and delete its evals; its viewers
   in its own Organization read them. The Organization that installed the plugin
   pays for every try.
+- **Editions**: in Stigmer Cloud every viewer of the plugin in its Organization
+  opens each try's conversation, read-only. In open source the tries belong to
+  the eval's creator, who opens them; the plugin's other viewers read the eval,
+  its results and each try's scores, and cannot open a try's conversation.
 
 ---
 

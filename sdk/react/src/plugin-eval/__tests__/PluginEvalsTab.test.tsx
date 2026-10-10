@@ -2,7 +2,9 @@
  * Pins the plugin's Evals tab: the suite summary (cases, tags, findings,
  * the cases not run yet with their feature) or the sentence for a plugin
  * with no cases; the Run evals form only for the plugin's editors (asked
- * as `can_edit` on the plugin), whose start sends the plugin's id,
+ * as `can_edit` on the plugin, and shown only once the check answers yes:
+ * neither it nor Cancel shows while the check is pending or after it
+ * failed, nor to a non-editor), whose start sends the plugin's id,
  * organization and the form's settings, no name, and opens the new eval,
  * each eval labelled by the plugin and when it started, its targets added, switched to another engine (which
  * drops the model picked) and removed; a past eval opened from the list;
@@ -88,7 +90,12 @@ const plugin = create(PluginSchema, {
 
 function client(
   evals: PluginEval[],
-  opts: { canEdit?: boolean; started?: PluginEval } = {},
+  opts: {
+    canEdit?: boolean;
+    started?: PluginEval;
+    /** The `can_edit` check never answers, or fails. */
+    check?: "pending" | "fails";
+  } = {},
 ) {
   const byId = new Map(
     evals.map((pluginEval) => [pluginEval.metadata?.id ?? "", pluginEval]),
@@ -105,9 +112,13 @@ function client(
       cancel: vi.fn(async (id: string) => byId.get(id)),
     },
     iamPolicy: {
-      checkMyPermission: vi.fn(async () => ({
-        isAuthorized: opts.canEdit ?? true,
-      })),
+      checkMyPermission: vi.fn(() =>
+        opts.check === "pending"
+          ? new Promise<never>(() => undefined)
+          : opts.check === "fails"
+            ? Promise.reject(new Error("authorization is unavailable"))
+            : Promise.resolve({ isAuthorized: opts.canEdit ?? true }),
+      ),
     },
   };
 }
@@ -289,6 +300,35 @@ describe("PluginEvalsTab", () => {
       expect(mock.plugineval.cancel).toHaveBeenCalledWith("pev_1"),
     );
   });
+
+  it("offers no Cancel to someone who cannot edit the plugin", async () => {
+    const running = evalWith([{ name: "review-fires" }]);
+    running.status!.phase = PluginEvalPhase.running;
+    const mock = client([running], { canEdit: false });
+    render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+    expect(await screen.findByRole("table")).toBeDefined();
+    await vi.waitFor(() =>
+      expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalled(),
+    );
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Run evals" })).toBeNull();
+  });
+
+  it.each(["pending", "fails"] as const)(
+    "shows neither Run evals nor Cancel while the can_edit check %s",
+    async (check) => {
+      const running = evalWith([{ name: "review-fires" }]);
+      running.status!.phase = PluginEvalPhase.running;
+      const mock = client([running], { check });
+      render(<PluginEvalsTab plugin={plugin} />, { wrapper: wrap(mock) });
+      expect(await screen.findByRole("table")).toBeDefined();
+      await vi.waitFor(() =>
+        expect(mock.iamPolicy.checkMyPermission).toHaveBeenCalled(),
+      );
+      expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Run evals" })).toBeNull();
+    },
+  );
 
   it("compares two evals case by case and marks a changed case", async () => {
     const newer = evalWith(

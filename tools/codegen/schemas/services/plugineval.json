@@ -410,7 +410,7 @@
       ]
     }
   ],
-  "resourceDescription": "PluginEval is one run of a plugin's own evals.\n\n A plugin author writes test cases in the plugin's evals/ folder, in\n Claude Code's plugin-eval format: a request a user might type, plus\n checks such as \"the reply mentions the renamed function\", \"the skill was\n used\" or a rubric for an AI judge. A PluginEval runs every case several\n times with the plugin and several times without it, on each model it\n names, and records per case the score with and without the plugin, the\n difference, and whether every try passed. Every try is a conversation\n the eval's viewers can open.",
+  "resourceDescription": "PluginEval is one run of a plugin's own evals.\n\n A plugin author writes test cases in the plugin's evals/ folder, in\n Claude Code's plugin-eval format: a request a user might type, plus\n checks such as \"the reply mentions the renamed function\", \"the skill was\n used\" or a rubric for an AI judge. A PluginEval runs every case several\n times with the plugin and several times without it, on each model it\n names, and records per case the score with and without the plugin, the\n difference, and whether every try passed. Every try is a conversation:\n in Stigmer Cloud the eval's viewers open it, read-only; in open source the\n eval's creator owns it, and the other viewers read its scores.",
   "statusType": {
     "name": "PluginEvalStatus",
     "description": "PluginEvalStatus holds an eval's progress and results: per case, per\n target and per arm, the score, the difference the plugin makes, and\n every try with its run.",
