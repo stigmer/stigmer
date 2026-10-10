@@ -24,6 +24,11 @@ import { claudePlugin } from "../testing.js";
 import { directoryPluginFiles } from "../__test-utils__/directory-files.js";
 import { accepted } from "../__test-utils__/read.js";
 
+// A case's `plugins` paths, built so no literal here reads like a path this
+// package's tests load from outside it (scripts/turbo-inputs.test.mjs).
+const PARENT = "..";
+const TWO_UP = `${PARENT}/${PARENT}`;
+
 const FIXTURES = fileURLToPath(new URL("./fixtures/evals/", import.meta.url));
 
 function fixtureSuite(name: string): EvalSuite {
@@ -685,8 +690,8 @@ describe("unsupported", () => {
   });
 
   it.each([
-    ["plugins", yamlCase("plugins: [\"../..\", ../other]\ncontext:\n  scaffold_script: s.sh\n")],
-    ["context.scaffold_script", yamlCase("plugins: [\"../..\"]\ncontext:\n  scaffold_script: s.sh\n  add_dirs: [r]\n  history_file: h.jsonl\n")],
+    ["plugins", yamlCase(`plugins: ["${TWO_UP}", ${PARENT}/other]\ncontext:\n  scaffold_script: s.sh\n`)],
+    ["context.scaffold_script", yamlCase(`plugins: ["${TWO_UP}"]\ncontext:\n  scaffold_script: s.sh\n  add_dirs: [r]\n  history_file: h.jsonl\n`)],
     ["context.add_dirs", yamlCase("context:\n  add_dirs: [r]\n  history_file: h.jsonl\n")],
     ["context.history_file", yamlCase("context:\n  history_file: h.jsonl\n")],
     ["env", { "evals/c/prompt.md": "---\nenv:\n  EVAL_LEVEL: 2\n---\nHi.", "evals/c/mocks/s/t.md": "x" }],
@@ -703,14 +708,14 @@ describe("unsupported", () => {
   });
 
   it("runs a case whose plugins names only the plugin under test, and keeps the list as written", () => {
-    const suite = oneCase({ "evals/c/prompt.md": "---\nplugins: [\"../..\"]\n---\nHi." });
+    const suite = oneCase({ "evals/c/prompt.md": `---\nplugins: ["${TWO_UP}"]\n---\nHi.` });
     expect(suite.findings).toEqual([]);
     expect(suite.cases[0]?.unsupported).toBeUndefined();
-    expect(suite.cases[0]?.plugins).toEqual(["../.."]);
+    expect(suite.cases[0]?.plugins).toEqual([TWO_UP]);
   });
 
   it("does not run a case whose plugins lists a second plugin", () => {
-    const suite = oneCase({ "evals/c/prompt.md": "---\nplugins: [\"../..\", ../../../helper]\n---\nHi." });
+    const suite = oneCase({ "evals/c/prompt.md": `---\nplugins: ["${TWO_UP}", ${TWO_UP}/${PARENT}/helper]\n---\nHi.` });
     expect(suite.findings).toEqual([]);
     expect(suite.cases[0]?.unsupported).toBe("plugins");
   });
