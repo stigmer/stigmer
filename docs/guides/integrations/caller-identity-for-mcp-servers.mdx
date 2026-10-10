@@ -10,9 +10,10 @@ often needs to know who is asking. A member should see their own membership, not
 someone else's. You cannot trust the model to pass a phone number as a tool
 argument — a persuasive user could talk the Agent into passing someone else's.
 
-Stigmer solves this with reserved environment variable keys. The runner injects
-the verified caller identity into your server's configuration at resolution
-time. The value never passes through the model, so the model cannot change it.
+Stigmer solves this with reserved variables your server's plugin can read in its
+headers. The runner fills them with the verified caller identity when it reaches
+your server. The value never passes through the model, so the model cannot
+change it.
 
 ## The reserved keys
 
@@ -94,52 +95,40 @@ A malformed email (no `@`) is refused at `stigmer setup` time, and a malformed
 typo: the value feeds your binding sheet, so a typo would mint a wrong grantable
 identity.
 
-## Declare the keys and template your headers
+## Template your headers
 
-Declare the reserved keys in your server's `env` — marked `optional: true` — and
-reference them in your headers:
+Reference the reserved keys in your server's headers, in the plugin's MCP
+configuration (its `.mcp.json` or `mcp.json`):
 
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: McpServer
-metadata:
-  name: gym-management
-spec:
-  description: >
-    Membership tools for the gym. Resolves the caller's role from the
-    platform-verified identity on every call.
-  http:
-    url: "https://gym-mcp.example.com/mcp"
-    headers:
-      Authorization: "Bearer ${GYM_MCP_SHARED_SECRET}"
-      X-Stigmer-Caller-Kind: "${STIGMER_CALLER_IDENTITY_KIND}"
-      X-Stigmer-Caller-Value: "${STIGMER_CALLER_IDENTITY_VALUE}"
-  env:
-    GYM_MCP_SHARED_SECRET:
-      is_secret: true
-      description: Shared secret the MCP server requires on every request
-    STIGMER_CALLER_IDENTITY_KIND:
-      optional: true
-      description: Injected by the platform — the caller identity's kind
-    STIGMER_CALLER_IDENTITY_VALUE:
-      optional: true
-      description: Injected by the platform — the caller identity's value
+```json
+{
+  "mcpServers": {
+    "gym-management": {
+      "type": "http",
+      "url": "https://gym-mcp.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${GYM_MCP_SHARED_SECRET}",
+        "X-Stigmer-Caller-Kind": "${STIGMER_CALLER_IDENTITY_KIND}",
+        "X-Stigmer-Caller-Value": "${STIGMER_CALLER_IDENTITY_VALUE}"
+      }
+    }
+  }
+}
 ```
 
-Two rules matter here:
-
-1. **Declare every reserved key you template.** Placeholders resolve against the
-   variables your server declares. An undeclared key in a template fails
-   resolution.
-2. **Mark the reserved keys `optional: true`.** Their values come from the
-   runner at run time, not from a vault. A required declaration fails run
-   creation with a missing-variable error.
+The plugin declares nothing for the reserved keys: Stigmer recognizes them and
+records each as an optional variable the platform fills, so no vault is ever
+asked for one. A fourth key, `STIGMER_SERVER_ADDRESS`, carries the address of
+the Stigmer server the run belongs to, for a server that calls back. Every other
+key you template, such as `GYM_MCP_SHARED_SECRET` here, is the plugin's to
+declare in its manifest; one it does not declare is taken as a required secret,
+which a conversation finds in its vaults by name.
 
 ## Handle the anonymous caller
 
-Tool discovery runs when your server connects, before any conversation exists.
-In that context the reserved keys resolve to the anonymous sentinel: kind
-`anonymous`, empty value.
+Listing a server's tools outside a conversation (**Check tools** on the plugin's
+page, or `stigmer connect plugin`) has no caller to name. In that context the
+reserved keys resolve to the anonymous sentinel: kind `anonymous`, empty value.
 
 Your server must answer `tools/list` for anonymous callers. Gate tool _calls_
 instead: resolve the identity to a role on every call, and refuse calls the role

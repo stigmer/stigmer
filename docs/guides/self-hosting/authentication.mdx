@@ -276,20 +276,20 @@ From the boot that read the issuer, every request needs a credential:
   mint them.
 - **Roles decide what a signed-in person may do.** Every Organization has four
   roles: owner, admin, member and viewer. Owners and admins manage the
-  Organization's Agents, Skills and MCP Servers and its members. Members use
-  what is shared with the Organization and keep their own Sessions, vault and
-  API keys; shared vaults are the admins' to create. Viewers only read what is
-  shared. An Agent or Skill marked Private shows up in the library and opens on
-  its page only for the person who created it and the Organization's admins,
-  whether it is opened by ID or by name (`stigmer get agent acme/helper` answers
-  the same as the page does). Nobody reads another person's conversations, API
-  keys or vault, admins included, and no saved key is ever shown again, even to
-  its owner. These are the same rules Stigmer Cloud enforces, so an Agent
-  behaves the same way wherever it runs.
+  Organization's Agents, Skills and Plugins and its members. Members use what is
+  shared with the Organization and keep their own Sessions, vault and API keys;
+  shared vaults are the admins' to create. Viewers only read what is shared. An
+  Agent or Skill marked Private shows up in the library and opens on its page
+  only for the person who created it and the Organization's admins, whether it
+  is opened by ID or by name (`stigmer get agent acme/helper` answers the same
+  as the page does). Nobody reads another person's conversations, API keys or
+  vault, admins included, and no saved key is ever shown again, even to its
+  owner. These are the same rules Stigmer Cloud enforces, so an Agent behaves
+  the same way wherever it runs.
 - **If authentication was already on before 3.16.0, roles were assigned at the
   first start of that release.** People who signed in under an earlier release
   keep what they had: whoever created an Organization owns it, whoever created
-  an Agent, Skill, MCP Server, Environment or Schedule in it is an admin there,
+  an Agent, Skill, MCP server, Environment or Schedule in it is an admin there,
   the operator email's holder is an admin everywhere, and everyone else is a
   member. This happens once; from then on roles change only when an owner or
   admin changes them.
@@ -301,16 +301,15 @@ From the boot that read the issuer, every request needs a credential:
   holds.** For each run, the server gives the runner a credential for that run
   alone, and everything the runner does for it, including the Sessions and runs
   it creates, the status it reports and the memories its Agent proposes with
-  `remember`, is recorded as that person. Connecting an MCP Server that declares
-  credentials works the same way: the runner reads those credentials as the
-  person who asked for the connect. A run that was already in flight when you
-  turned authentication on belongs to no signed-in person and stops with a
-  message saying so; start it again while signed in. A run's credential is
-  written into the run's Temporal history and stays valid for ten minutes after
-  the run ends, so protect Temporal the way you protect the database. The Helm
-  chart's bundled Temporal admits only the Stigmer pod; a Temporal of your own
-  can require TLS, mutual TLS or an API key, and both the server and the runner
-  can present them
+  `remember`, is recorded as that person. Listing a plugin's MCP server tools
+  works the same way: the runner reads the server's credentials as the person
+  who asked for the listing. A run that was already in flight when you turned
+  authentication on belongs to no signed-in person and stops with a message
+  saying so; start it again while signed in. A run's credential is written into
+  the run's Temporal history and stays valid for ten minutes after the run ends,
+  so protect Temporal the way you protect the database. The Helm chart's bundled
+  Temporal admits only the Stigmer pod; a Temporal of your own can require TLS,
+  mutual TLS or an API key, and both the server and the runner can present them
   ([Bring your own Postgres and Temporal](./kubernetes#bring-your-own-postgres-and-temporal)).
   To end a run's credential, end the run: cancel it and the credential is dead
   ten minutes later. To end every run's credential at once, rotate

@@ -35,33 +35,29 @@ By default there is nothing to configure. Stigmer asks before:
 - any MCP tool whose server marks it destructive, with the MCP annotation
   `destructiveHint: true`
 
-Nothing else asks unless the Agent's hooks do (below). Stigmer reads the
-annotation when you connect the [MCP Server](/docs/concepts/tools), so the
-server's author decides which of its tools are destructive. A server that
-annotates nothing never asks.
+Nothing else asks unless hooks do (below). Stigmer reads the annotation from the
+live [MCP server](/docs/concepts/tools) at the start of every turn, so the
+server's author decides which of its tools are destructive, and a change they
+make holds from the next turn. A server that annotates nothing never asks. A
+server whose tools cannot be listed when the turn starts asks before every one
+of its tools.
 
-Stigmer records the annotations each time a server connects, and reads them from
-that record. Connect a server again after its author changes them. A server
-connected before Stigmer recorded annotations asks for nothing until it is
-connected again, so connect each existing server once after upgrading.
-
-An Agent's hooks can change that, call by call. A hook is a command in Claude
-Code's or Cursor's hooks format, from a plugin or written in the Agent itself,
-that runs before a tool call. It can refuse the call, ask you first, or let it
-run without the approval it would otherwise need; a call it says nothing about
-keeps the default. A hook's refusal holds even when you trust the whole run. A
-hook can also run after a call succeeds (`PostToolUse`, or Cursor's
-`postToolUse` and `afterMCPExecution`) to tell the Agent something about the
-result. Stigmer runs command hooks on tool calls only; a plugin's page lists
-every other hook it carries as not run. To apply a plugin's hooks, reference the
-plugin in the Agent's `hooks`:
+Hooks can change that, call by call. A hook is a command in Claude Code's or
+Cursor's hooks format, from a plugin or written in the Agent itself, that runs
+before a tool call. It can refuse the call, ask you first, or let it run without
+the approval it would otherwise need; a call it says nothing about keeps the
+default. A hook's refusal holds even when you trust the whole run. A hook can
+also run after a call succeeds (`PostToolUse`, or Cursor's `postToolUse` and
+`afterMCPExecution`) to tell the Agent something about the result. Stigmer runs
+command hooks on tool calls only; a plugin's page lists every other hook it
+carries as not run. A plugin's hooks run when the Agent, or the conversation,
+lists the plugin in `plugins`:
 
 ```yaml validate-as="Agent"
 spec:
-  hooks:
-    - plugin:
-        kind: plugin
-        slug: safety
+  plugins:
+    - kind: plugin
+      slug: safety
 ```
 
 [Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks) walks
@@ -85,7 +81,7 @@ Stigmer's own. A few things differ:
   Cursor applies a rewrite: a shell command, its directory or timeout, a file
   path, a search pattern or a URL. A rewrite of a file's content or of an MCP
   tool's arguments is refused, with a sentence the agent reads.
-- Only the Agent's own hooks run. Hook files in a repository
+- Only the hooks of the Agent and its plugins run. Hook files in a repository
   (`.cursor/hooks.json`, `.claude/settings.json`) never run for the Agent: on
   the Cursor engine they are set aside for the run and put back after it.
   Running the Cursor engine on a folder of your own whose `.claude` settings
@@ -107,21 +103,21 @@ asking about it, give the Agent one or both of Claude Code's two lists:
 - `disallowed_tools`: never these tools
 
 Entries use Claude Code's names: `Read`, `Grep`, `Bash(git push *)`,
-`Agent(explore)`, `mcp__<server-slug>` for every tool of one server,
-`mcp__<server-slug>__<tool>` for one tool, and `mcp__*` for every MCP tool. The
-never-list is applied first. A specifier in parentheses is accepted but governs
-the whole tool, as in Claude Code: `tools: [Bash(git status *)]` allows every
-shell command, not only `git status`, and `disallowed_tools: [Bash(git push *)]`
-removes the shell entirely.
+`Agent(explore)`, `mcp__plugin_<plugin>_<server>` for every tool of one plugin's
+server, `mcp__plugin_<plugin>_<server>__<tool>` for one tool, and `mcp__*` for
+every MCP tool. The never-list is applied first. A specifier in parentheses is
+accepted but governs the whole tool, as in Claude Code:
+`tools: [Bash(git status *)]` allows every shell command, not only `git status`,
+and `disallowed_tools: [Bash(git push *)]` removes the shell entirely.
 
 ```yaml validate-as="Agent"
 spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: order-management-api
-  tools: [Read, Grep, mcp__order-management-api]
-  disallowed_tools: [mcp__order-management-api__cancel_order]
+  plugins:
+    - kind: plugin
+      slug: order-management-api
+  tools: [Read, Grep, mcp__plugin_order-management-api_order-management-api]
+  disallowed_tools:
+    [mcp__plugin_order-management-api_order-management-api__cancel_order]
 ```
 
 This Agent can read files and use the order server's tools, but cannot run shell

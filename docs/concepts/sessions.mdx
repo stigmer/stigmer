@@ -167,20 +167,22 @@ both, the Session-level reference takes precedence.
 
 ### Tools
 
-Attach an MCP Server for this conversation only:
+Attach a plugin for this conversation only, with its MCP servers, Skills, agents
+and hooks:
 
 ```yaml validate-as="Session"
 spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: inventory-api
+  plugins:
+    - kind: plugin
+      slug: inventory-api
 ```
 
-Session-level servers merge with the Agent's, one entry per server. The Agent's
-`tools` and `disallowed_tools` lists govern them like the Agent's own servers:
-an Agent whose `tools` list does not name `mcp__inventory-api` cannot use it. To
-narrow what an Agent can do, change its lists.
+Session-level plugins join the Agent's, one entry per plugin; from the CLI,
+`stigmer run --plugin inventory-api` does the same. The Agent's `tools` and
+`disallowed_tools` lists govern them like the Agent's own: an Agent whose
+`tools` list does not name `mcp__plugin_inventory-api_inventory-api` cannot use
+that server. To narrow what an Agent can do, change its lists. A conversation
+with no Agent gets its tools from these plugins alone.
 
 ## Session lifecycle
 

@@ -94,7 +94,7 @@ secrets by name.
 A connection holds:
 
 - **The access token**, sealed at rest. A run fills the tool's login variable
-  (`auth.target_env_var`) from it.
+  (the one its `Authorization: Bearer ${VAR}` header names) from it.
 - **The sign-in record**: when the token expires, the client ID, the token
   endpoint, how the sign-in was performed and which login app it used, with the
   **refresh token** sealed beside them. The refresh token never reaches a run.
@@ -154,10 +154,9 @@ When you click **Sign in**, three steps run:
    described by the account ("GitHub @ana"); otherwise by the host.
 
 Only the person who started a sign-in can complete it, and the vault is checked
-again at completion. After a sign-in from an MCP Server's page, the standard
-connect runs — discovering tools and which of them the server marks destructive,
-the same process described in
-[Connect an MCP Server](/docs/guides/integrations/connect-an-mcp-server#connect-an-mcp-server).
+again at completion. After a sign-in from a plugin's page, **Check tools** lists
+the server's tools and which of them it marks destructive, as described in
+[Connect an MCP server](/docs/guides/integrations/connect-an-mcp-server#see-its-tools).
 
 ### Pre-flight check
 

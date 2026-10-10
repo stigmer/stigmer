@@ -26,7 +26,7 @@ from install to a first Agent in the terminal.
 <Callout type="warn">
   **No sign-in.** Like `stigmer up`, the container trusts every caller. Keep the
   published ports on localhost or a private network you trust, and never expose
-  them to the internet. stdio MCP Servers spawn **inside the container**: they
+  them to the internet. stdio MCP servers spawn **inside the container**: they
   can reach its filesystem and network, not your host's.
 </Callout>
 
@@ -98,9 +98,9 @@ The image is the `stigmer up` composition from the CLI, run in the foreground,
 with everything a laptop's first `up` would download already in the image. The
 data layout under `/data/.stigmer` is byte for byte a laptop's `~/.stigmer`.
 
-MCP Servers that run as a local process (stdio) start inside the container. Ones
+MCP servers that run as a local process (stdio) start inside the container. Ones
 that need `node` or `npx` work. Ones that need `uvx`, Python, or Go do not — the
-image ships Node.js and git only. Remote MCP Servers are unaffected.
+image ships Node.js and git only. Remote MCP servers are unaffected.
 
 Temporal's own web UI is running inside the container but is not published; it
 is not part of the evaluation surface.

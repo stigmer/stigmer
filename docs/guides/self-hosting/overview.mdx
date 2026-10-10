@@ -6,8 +6,8 @@ description:
 ---
 
 Stigmer is open source under Apache 2.0, and the platform behind Stigmer Cloud
-runs on your own machines too. Your Agents, Skills and MCP Servers, the CLI and
-the SDKs work the same way in both places. Whether to run it yourself is the
+runs on your own machines too. Your Agents, Skills and Plugins, the CLI and the
+SDKs work the same way in both places. Whether to run it yourself is the
 question [Cloud vs self-hosted](./cloud-vs-self-hosted) answers; this page is
 for when you have decided to.
 
@@ -72,7 +72,7 @@ ones you already operate.
   stack on a private network until you
   [turn authentication on](./authentication) with your own OIDC provider and API
   keys.
-- **The runner is one trust domain.** MCP Servers that run as a local process
+- **The runner is one trust domain.** MCP servers that run as a local process
   (stdio) start inside the runner. On your laptop that is a process on your
   machine. In a container, they can reach that container's filesystem and
   network, not your host's.

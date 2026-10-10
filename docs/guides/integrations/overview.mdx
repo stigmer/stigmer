@@ -1,12 +1,12 @@
 ---
 title: Tool integrations
 description:
-  Connect the MCP Servers your Agents use, configure authentication with OAuth
+  Connect the MCP servers your Agents use, configure authentication with OAuth
   or API keys, and keep your keys in vaults.
 ---
 
-Your Agents can interact with external systems through MCP Servers — tool
-connections that use the
+Your Agents can interact with external systems through MCP servers — tool
+connections, carried in plugins, that use the
 [Model Context Protocol](https://modelcontextprotocol.io/). This section covers
 the practical side: finding tools, connecting them, and setting up
 authentication.
@@ -21,10 +21,10 @@ If you're new to how tools work in Stigmer, start with the
 <Cards>
   <Card
     href="/docs/guides/integrations/connect-an-mcp-server"
-    title="Connect an MCP Server"
+    title="Connect an MCP server"
   >
-    Open a server in your Library, connect it, and see its discovered tools —
-    all from the web console.
+    Add a server by its address, sign in to it, see its tools, and use it in a
+    chat or an Agent.
   </Card>
   <Card
     href="/docs/guides/integrations/oauth-for-tools"
@@ -61,10 +61,9 @@ If you're new to how tools work in Stigmer, start with the
 ## Who these guides are for
 
 These guides are for **platform builders** adding tool access to their Agents.
-You should be comfortable with MCP Server resources and their `env`
-declarations. If terms like `env_spec`, `mcp_server_usages`, or
-`destructiveHint` aren't familiar yet, the
-[Tools concept page](/docs/concepts/tools) covers them. If you haven't connected
-tools before, start with the
+You should be comfortable with plugins and the variables their MCP servers read.
+If terms like `plugins`, `mcp__plugin_<plugin>_<server>`, or `destructiveHint`
+aren't familiar yet, the [Tools concept page](/docs/concepts/tools) covers them.
+If you haven't connected tools before, start with the
 [Connect your tools](/docs/getting-started/connect-tools) tutorial for a
 hands-on introduction.

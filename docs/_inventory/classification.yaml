@@ -98,12 +98,14 @@ pages:
     fate: keep
     diataxis: tutorial
     teaches:
-      Register and connect an MCP server in the console, then wire its tools and
-      an approval loop into SDK code.
+      Add an MCP server by its address as a plugin of one server, sign in, see
+      its tools and which ask first, then wire the plugin and an approval loop
+      into SDK code.
     medium: screenshot-journey
     why:
-      A three-step console wizard plus a connect flow the reader replays on
-      their own screen; reference journeys read at the reader's pace.
+      The Add MCP server form, the sign-in and the plugin page's Check tools
+      are a console procedure the reader replays on their own screen;
+      reference journeys read at the reader's pace.
     embeds:
       connect-tools-tour: replace
       mcp-server-creation-tour: replace
@@ -113,8 +115,8 @@ pages:
     fate: keep
     diataxis: tutorial
     teaches:
-      Bundle instructions, Skills, and MCP servers into a named Agent and
-      replace per-Session ref lists with one agent lookup.
+      Bundle instructions, Skills, and plugins into a named Agent and replace
+      per-Session ref lists with one agent lookup.
     medium: screenshot-journey
     why:
       The console offers three creation entry points (YAML upload, template,
@@ -200,8 +202,9 @@ pages:
     fate: split
     diataxis: explanation
     teaches:
-      How MCP Servers are declared, connected, authenticated, sandboxed, and
-      referenced from Agents and Sessions.
+      How MCP servers live in plugins, how they are added, authenticated and
+      sandboxed, how their tools are named and listed, and how Agents and
+      Sessions use them by listing plugins.
     medium: animated-tour
     why:
       A tool call firing, streaming results, and returning to the conversation
@@ -216,8 +219,9 @@ pages:
     diataxis: how-to
     teaches:
       Validate a Cursor, Claude Code, Codex or Agent Plugins folder offline,
-      install it as one unit, upgrade it by pushing again, and understand why
-      its members are the plugin's to redefine.
+      install it as one resource, use it whole from a chat or an Agent's
+      `plugins`, upgrade it by pushing again, and know that its `ai.stigmer/`
+      folder is not read.
     medium: none
 
   guides/plugins/install-from-a-marketplace:
@@ -238,9 +242,8 @@ pages:
       or upload a plugin folder or zip from your computer, in the web console
       or the desktop app; understand what the preview states before the act
       (what installs, its hooks, already installed, upgrade); sign in to the
-      tools it brought from the plugin's page; read its hooks; put the tools
-      and hooks on an agent or start a session on the agent it installs, which
-      asks for the variables its tools need.
+      plugin's MCP servers and check their tools from the plugin's page; read
+      its hooks; start a chat with it or add it to an agent.
     medium: none
     why:
       A console how-to is a screenshot journey; the tour follows when the
@@ -252,9 +255,9 @@ pages:
     diataxis: how-to
     teaches:
       Install a plugin whose hooks guard tool calls, read every command its
-      hooks run and the ones Stigmer does not run, switch the hooks on for an
-      agent from the console or YAML, write hooks in an agent, remove a plugin
-      an agent uses, and what differs from Claude Code.
+      hooks run and the ones Stigmer does not run, switch the hooks on by
+      listing the plugin on an agent or a chat, write hooks in an agent, remove
+      a plugin an agent uses, and what differs from Claude Code.
     medium: none
 
   guides/plugins/marketplace-file:
@@ -371,13 +374,13 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      How to find an MCP Server in the Library, whichever way it arrived, and
-      what the single Connect action does — discovery, recording each tool's
-      annotations, storage.
+      How to add an MCP server by its address as a plugin of one server, sign
+      in to it, list its tools and which ask first, and use it in a chat or an
+      Agent.
     medium: animated-tour
     why:
-      One click triggers discovery and records the tools' annotations —
-      cause-and-effect the reader must see firing to trust.
+      Adding a server, signing in and checking its tools is a sequence the
+      reader must see once to trust.
     embeds:
       DemoMarketplaceConnectTour: replace
 
@@ -385,12 +388,13 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      How an MCP server's auth block replaces the credential form with a sign-in
-      button, and what the connection health states mean.
+      How a URL-only server is recognized as one you sign in to at install,
+      how a person signs in once from the plugin's page or the CLI, and how the
+      login is kept and refreshed.
     medium: animated-tour
     why:
-      The popup authorize round-trip and the health state flipping to Connected
-      is a sequence; the timing is the lesson.
+      The popup authorize round-trip and the row flipping to Signed in is a
+      sequence; the timing is the lesson.
     embeds:
       DemoOAuthConnectFlow: replace
 
@@ -420,9 +424,9 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Declare the reserved caller-identity env keys and template them into
-      MCP server headers so the server receives the platform-verified caller,
-      handle the anonymous discovery context, and pair the header with a
+      Template the reserved caller-identity variables into a plugin's MCP
+      server headers so the server receives the platform-verified caller,
+      handle the anonymous tool-listing context, and pair the header with a
       shared secret.
     medium: none
 

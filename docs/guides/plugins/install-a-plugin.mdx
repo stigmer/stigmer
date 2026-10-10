@@ -2,16 +2,16 @@
 title: Install a plugin
 description:
   Install a Cursor, Claude Code, Codex or Agent Plugins folder on Stigmer and
-  get an Agent that uses its skills and tools, or the tools for your own Agents.
+  use its skills, agents, hooks and MCP servers in your chats and Agents.
 ---
 
-A plugin is a folder of skill files, MCP server entries, and sub-agent prompts
-in the layout the Cursor, Claude Code, and Codex communities already publish.
-Installing it on Stigmer creates ordinary Skills and MCP Servers in your
-Organization, as one unit, and when the plugin carries skills or sub-agents, an
-Agent that uses them. A plugin installs as an Agent, as tools for your Agents,
-or both: a plugin that is only MCP servers installs its servers, ready to list
-on any Agent, and no Agent of its own.
+A plugin is a folder of skill files, MCP server entries, sub-agent prompts and
+hooks in the layout the Cursor, Claude Code, and Codex communities already
+publish. Installing it on Stigmer stores the plugin in your Organization as one
+resource, and its page lists what it holds. A chat or an Agent that lists the
+plugin gets all of it: its Skills and hooks, its agents as Sub-Agents, and its
+MCP servers. A plugin is also the only home of an MCP server: to use one server
+at an address, `stigmer mcp add` installs a plugin holding just that server.
 
 Before you start, [sign in](/docs/guides/authentication) with
 `stigmer auth login`. Every command below takes `--org <slug>` if you work in
@@ -74,74 +74,90 @@ Plugin
 
 Installed
   Skills       code-review, triage
-  MCP servers  github
-  Agents       thermos
+  MCP servers  github (http)
+  Agents       reviewer
 
 Next
-  - github needs GITHUB_TOKEN; the agent asks at its first session
+  - Save GITHUB_TOKEN in your vault:  stigmer vault set-secret GITHUB_TOKEN --mine
+  - Use it in a conversation:  stigmer run --plugin thermos
+  - Give it to an agent: add '- slug: thermos' under spec.plugins in the agent's YAML, or from the plugin's page in the console
 ```
 
-The summary names only the kinds the plugin installed, and `Next` says what each
-MCP Server still needs before its first tool call: a variable the Agent asks
-for, a sign-in an OAuth server needs (with the command that runs it), or
-nothing. A plugin that installed servers and no Agent ends with the one thing
-still missing: an Agent that lists them under `mcp_server_usages`.
+The summary names only the kinds the plugin holds, and `Next` says what stands
+between the plugin and its first tool call: a key its servers read, a sign-in a
+server needs (with the command that runs it), then the two ways to use it.
+Install writes the plugin and nothing else, and no other resource appears beside
+it, so two plugins that each carry a Skill named `review` both install, and a
+turn tells them apart as `thermos:review` and `other:review`.
 
 `stigmer apply` pointed at a plugin directory does the same thing, so a
 repository that is a plugin installs with the command you already run.
 
-The Agent it created is `thermos`, named after the plugin. It carries the
-plugin's Skills, uses its MCP Server, and has the plugin's sub-agent prompts as
-its own. Open it in the console or start a Session:
+## Use it
+
+Turn it on for one conversation:
 
 ```bash
-stigmer run thermos
+stigmer run --plugin thermos -m "Review my open pull request"
 ```
+
+With no Agent named, the built-in assistant runs with everything the plugin
+carries. Name an Agent (`stigmer run my-agent --plugin thermos`) and the plugin
+joins that Agent's own. In the console, pick the plugin in the chat's plugin
+picker, or use **Start a chat** on the plugin's page.
+
+To give it to an Agent for good, list it in the Agent's `plugins`:
+
+```yaml validate-as="Agent"
+spec:
+  plugins:
+    - kind: plugin
+      slug: thermos
+```
+
+**Add to an agent** on the plugin's page writes the same entry. In a turn, the
+plugin's Skills are named `thermos:<skill>`, its agents are Sub-Agents named
+`thermos:<agent>`, and its servers' tools are
+`mcp__plugin_thermos_<server>__<tool>`, the names an Agent's `tools` and
+`disallowed_tools` lists use.
 
 ## Give it its secrets
 
-The MCP server declared a variable, `GITHUB_TOKEN`. The MCP Server was created
-with that variable marked secret, and the Agent's Session asks for it the first
-time the tool is used, exactly as it would for an MCP Server you added by hand.
-Save it once in your [vault](/docs/concepts/vaults)
-(`stigmer vault set-secret GITHUB_TOKEN --mine`) and every Session of yours has
-it.
+The MCP server reads a variable, `GITHUB_TOKEN`. The plugin declares it as a
+secret, and a conversation that uses the plugin finds it by name in its vaults
+when a run starts. Save it once in your [vault](/docs/concepts/vaults)
+(`stigmer vault set-secret GITHUB_TOKEN --mine`) and every conversation of yours
+has it.
 
-A server that declares no variable and signs in with OAuth instead (Linear,
-Notion, and most hosted servers) is recognized as such when it is saved: its
-definition is completed with the sign-in, and the server's page, the plugin's
-page and the Session composer carry **Sign in** until you have signed in; the
-sign-in is saved in your own vault, so each person signs in once for themselves.
-The CLI's `Next` line names the command (`stigmer connect mcp-server <server>`).
-How the completion works is in
+A server at an address that names no key and signs in with OAuth instead
+(Linear, Notion, and most hosted servers) is recognized as such at install: the
+plugin records that it signs in, with a login key and the `Authorization` header
+that carries it, and the plugin's page and the chat composer carry **Sign in**
+until you have signed in. The sign-in is saved in your own vault, so each person
+signs in once for themselves. The CLI's `Next` line names the command
+(`stigmer connect plugin <plugin>`), which also lists the server's tools. How
+the sign-in works is in
 [OAuth for tools](/docs/guides/integrations/oauth-for-tools).
 
 ## Upgrade
 
 Edit the folder and push it again. Stigmer compares the new archive with the
 installed one: an unchanged folder changes nothing, a changed one becomes the
-new version. Skills the new version dropped are removed, and the Agent is
-rewritten to match. Every installed version stays in the plugin's history under
-its content digest, and the manifest's `version` is recorded as that version's
-tag, so `1.2.0` names the archive that carried it.
+new version, and every Agent and conversation that lists the plugin without a
+version uses it from its next turn. Every installed version stays in the
+plugin's history under its content digest, and the manifest's `version` is
+recorded as that version's tag, so `1.2.0` names the archive that carried it.
 
 ```bash
 stigmer get plugin thermos
 ```
 
-## What you cannot edit
+## Change it
 
-The Skills, MCP Servers and Agent a plugin installs are the plugin's to define.
-Editing one directly is refused with the plugin's name, because the next upgrade
-would overwrite your change. Two ways forward:
-
-- **Change the plugin.** Edit the folder and push it again; that is what an
-  upgrade is.
-- **Compose over it.** Create your own Agent and give it the plugin's Skills and
-  MCP Servers. Your Agent is yours to edit and survives every upgrade.
-
-Operational actions still work on the plugin's members: running the Agent,
-sharing it, checking a Skill's versions.
+Everything a plugin holds lives in its archive. To change one, edit the folder
+and push it again; that is what an upgrade is. Your own Agent lists the plugin
+and adds its own instructions, Skills and tool lists around it, so it is yours
+to edit and survives every upgrade.
 
 ## Remove it
 
@@ -149,21 +165,18 @@ sharing it, checking a Skill's versions.
 stigmer delete plugin thermos
 ```
 
-This removes the plugin and everything it installed. It is refused while an
-Agent of your own still uses one of the plugin's Skills or MCP Servers; detach
-them first.
+This removes the plugin. It is refused while an Agent of your Organization lists
+it, and the refusal names those Agents; take the plugin out of their `plugins`
+first. A conversation that listed it fails its next turn, naming the plugin.
 
-## Stigmer's own overlay
+## Stigmer settings in the manifest
 
-A plugin can carry a folder named `ai.stigmer/` with Stigmer resources the other
-tools ignore: an `agent.yaml` to author the Agent yourself instead of taking the
-composed one, and `mcp-servers/` overlays that set OAuth or transport details on
-a declared server. Each document names the plugin's own resources and nothing
-else; a document that names something outside the plugin is refused.
-
-The manifest may also carry presentation under `extensions["ai.stigmer"]`, the
+The manifest may carry presentation under `extensions["ai.stigmer"]`, the
 extension slot the Agent Plugins format reserves for a host: `displayName` (the
 name a card and a page show; the plugin's `name` stays its slug), `logo` (a URL
 the Marketplace card renders where the format has no logo field) and `category`
 (a word the catalogue groups by). A Cursor manifest's own `displayName`, `logo`
 and `category` are read the same way; nothing else in the slot is read.
+
+A folder named `ai.stigmer/` in the plugin is not read. Install still succeeds,
+and reports the folder with a warning (`stigmer-folder-ignored`).

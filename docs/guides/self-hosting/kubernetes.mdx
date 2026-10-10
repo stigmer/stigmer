@@ -19,7 +19,7 @@ file. You never edit the chart, and it refuses a value it does not know.
   can reach it, like the compose stack. Keep it behind `kubectl port-forward`
   until you [turn authentication on](./authentication): the chart refuses an
   Ingress, a `NodePort` or `LoadBalancer` Service, or a public address until you
-  do. stdio MCP Servers spawn **inside the runner container**: they can reach
+  do. stdio MCP servers spawn **inside the runner container**: they can reach
   its filesystem and network, not your nodes'.
 </Callout>
 

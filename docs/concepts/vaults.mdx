@@ -6,11 +6,11 @@ description:
   never shown again.
 ---
 
-[Agents](/docs/concepts/agents) and [MCP Servers](/docs/concepts/tools) need
-keys at runtime: an OpenAI API key, a sign-in to Linear, a token that lets a
-private repository clone. Those keys belong to people and teams, not to the
-Agent or MCP Server definition. The same `support-agent` should use Ana's Linear
-sign-in when Ana chats with it and Ben's when Ben does.
+[Agents](/docs/concepts/agents) and the [MCP servers](/docs/concepts/tools) in
+their plugins need keys at runtime: an OpenAI API key, a sign-in to Linear, a
+token that lets a private repository clone. Those keys belong to people and
+teams, never to the definition of an Agent or a plugin. The same `support-agent`
+should use Ana's Linear sign-in when Ana chats with it and Ben's when Ben does.
 
 A **Vault** holds them. It holds two kinds of entry:
 
@@ -50,9 +50,9 @@ stigmer vault create "Support tools"
 stigmer vault set-secret ZENDESK_API_KEY --vault support-tools
 ```
 
-A sign-in starts from an address. Signing in to an MCP Server from the console
-saves the login as a connection at that server's address in your vault (or a
-shared vault you may edit), and it serves every MCP Server reached at that
+A sign-in starts from an address. Signing in to an MCP server from its plugin's
+page saves the login as a connection at that server's address in your vault (or
+a shared vault you may edit), and it serves every MCP server reached at that
 address, as a login you paste there does. GitHub is one more address: connecting
 GitHub signs you in at `github.com` and saves the login there, and the console's
 repository picker reads GitHub through the server with it, so the page never
@@ -61,11 +61,12 @@ holds the token. Which OAuth app signs you in is found from the address
 
 ## Declaring what a run needs
 
-[Agents](/docs/concepts/agents) and [MCP Servers](/docs/concepts/tools) declare
-the variables they need through the `env` map:
+[Agents](/docs/concepts/agents) declare the variables they need through the
+`env` map. A plugin declares the variables its MCP servers and hooks read in its
+manifest, and its page lists them; a variable a server names as `${NAME}`
+without declaring it is taken as a required secret.
 
-```yaml validate-as="McpServer"
-# In the McpServer definition
+```yaml validate-as="Agent"
 spec:
   env:
     ZENDESK_SUBDOMAIN:
@@ -76,10 +77,11 @@ spec:
       description: API key for the Zendesk API
 ```
 
-A declaration describes what the resource needs, never a person's key. A secret
-is found by its name in a vault when a run starts. A plain setting that is not a
-secret carries its value in the declaration (`value`), and a vault secret with
-the same name takes its place. A secret declaration cannot carry a value.
+A declaration describes what the Agent or plugin needs, never a person's key. A
+secret is found by its name in a vault when a run starts. A plain setting that
+is not a secret carries its value in the declaration (`value`), and a vault
+secret with the same name takes its place. A secret declaration cannot carry a
+value.
 
 ## Which vaults a run uses
 
@@ -102,9 +104,9 @@ vault.
 
 An Agent of another Organization, one shared with yours, reads no My vault at
 all: your keys never reach it. A tool of another Organization that your own
-Organization's Agent or conversation uses, such as an MCP Server a parent
+Organization's Agent or conversation uses, such as a plugin a parent
 Organization shares with its child Organizations, still takes keys from your My
-vault, but only the keys that tool itself declares.
+vault, but only the keys that plugin itself declares.
 
 A run that no person sent uses only the vaults its conversation and the surface
 that started it name. The one personal vault such a run can use is a Schedule
@@ -153,14 +155,15 @@ Each key is matched for the one that declared it, the Agent, a tool or a
 repository, and that one alone receives the value. Two tools that declare the
 same name each get their own value.
 
-- **A tool's login** (the variable in its `auth.target_env_var`, or in an
-  `Authorization: Bearer ${VAR}` header) is filled by a connection at the tool's
-  URL, then by a secret with that name. A login saved by signing in and a login
-  pasted into a vault serve the same tools: every HTTP tool whose URL is that
-  address. A new sign-in at an address replaces whatever login was saved there.
-  The `github.com` login also fills the login of a tool on GitHub's own API
-  (`api.github.com`, `api.githubcopilot.com`).
-- **A local program** (an MCP Server that runs a command) has no address and no
+- **A tool's login** (the variable in its `Authorization: Bearer ${VAR}` header,
+  such as the `<SERVER>_ACCESS_TOKEN` a server that signs in records) is filled
+  by a connection at the tool's URL, then by a secret with that name. A login
+  saved by signing in and a login pasted into a vault serve the same tools:
+  every HTTP tool whose URL is that address. A new sign-in at an address
+  replaces whatever login was saved there. The `github.com` login also fills the
+  login of a tool on GitHub's own API (`api.github.com`,
+  `api.githubcopilot.com`).
+- **A local program** (an MCP server that runs a command) has no address and no
   sign-in: it takes its keys from secrets by name.
 - **A tool's other keys** are filled by a secret with their name, then by the
   declaration's own `value`.
@@ -277,7 +280,7 @@ Each part of a run receives only the values declared for it:
 | Surface                                             | What it receives                                                                                                                                                                                                                                                       |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Shell commands and hooks** (the Agent's own code) | The runner's own process variables, minus runner-internal credentials, plus only the Agent's own keys: secrets by name and plain settings, never a login or a repository's token, and never a key one of its tools declares. An Agent that declares nothing gets none. |
-| **MCP stdio servers**                               | Only the keys declared in the MCP server's `env` map, plus a minimal base set (`PATH`, `HOME`, and similar). A server that declares nothing gets only that base set, never the runner's own variables.                                                                 |
+| **MCP stdio servers**                               | Only the keys the server reads (its `env` in the plugin's MCP configuration), plus a minimal base set (`PATH`, `HOME`, and similar). A server that declares nothing gets only that base set, never the runner's own variables.                                         |
 | **MCP HTTP servers**                                | Their own keys and login, sent only to the URL whose address the login was matched for. A server whose URL changed since the run was created gets nothing.                                                                                                             |
 | **A repository's clone**                            | The token, handed to each git command that talks to GitHub for that command alone. Nothing is written into the clone's `.git` folder or its remote URL, so the shell never finds it there. Cloning a private repository needs git 2.31 or newer on the runner.         |
 

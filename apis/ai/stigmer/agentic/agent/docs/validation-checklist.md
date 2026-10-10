@@ -22,19 +22,20 @@ Run through this list before applying an Agent YAML with `stigmer apply -f`.
 ### Resource References
 
 - [ ] All `skill_refs` use `kind: skill` (lowercase string, not `kind: 43`)
-- [ ] All `mcp_server_ref` entries use `kind: mcp_server` (lowercase string, not `kind: 44`)
+- [ ] All `plugins` entries use `kind: plugin` (lowercase string, not `kind: 58`)
 - [ ] All `org` values in references (if set) are valid organization identifiers — omit `org` for same-org references
 - [ ] All `slug` values are lowercase alphanumeric with hyphens, start with a letter, end with a letter or digit, 2 to 63 characters
-- [ ] All referenced MCP servers and skills actually exist — query with `stigmer get mcp-server <slug>` or `stigmer get skill <slug>` before referencing
+- [ ] All referenced plugins and skills actually exist — query with `stigmer get plugin <slug>` or `stigmer get skill <slug>` before referencing
 
-### MCP Server Usages
+### Plugins
 
-- [ ] MCP server slugs are unique within `mcp_server_usages` (no duplicate references)
+- [ ] Each plugin is listed once in `plugins` (apply refuses a plugin listed twice)
+- [ ] A plugin with a local program (stdio) MCP server is meant for conversations on a person's own runner (desktop app, CLI): a conversation hosted in a cloud sandbox is refused at create
 
 ### Tool Lists
 
-- [ ] `tools` and `disallowed_tools` entries use Claude Code's names: `Read`, `Grep`, `Bash(git push *)`, `Agent(explore)`, `mcp__<server-slug>`, `mcp__<server-slug>__<tool>`, `mcp__*`. The shape is checked at apply; a malformed entry is rejected
-- [ ] Each `mcp__<server-slug>` uses the slug from `mcp_server_usages`, and each tool part an exact, case-sensitive name from the server's `discovered_capabilities.tools`. Names are resolved only at run time: a misspelled entry is ignored there, and a `tools` list in which nothing resolves refuses the run
+- [ ] `tools` and `disallowed_tools` entries use Claude Code's names: `Read`, `Grep`, `Bash(git push *)`, `Agent(explore)`, `mcp__plugin_<plugin>_<server>`, `mcp__plugin_<plugin>_<server>__<tool>`, `mcp__*`. The shape is checked at apply; a malformed entry is rejected
+- [ ] Each `mcp__plugin_<plugin>_<server>` names a plugin from `plugins` and a server from its `status.mcp_servers`, and each tool part an exact, case-sensitive name the server lists (`stigmer connect plugin <plugin>`). Names are resolved only at run time: a misspelled entry is ignored there, and a `tools` list in which nothing resolves refuses the run
 - [ ] A `tools` list names everything the agent needs, `Agent` included when it delegates to sub-agents: "only these" is exact
 
 ### Sub-Agents
@@ -53,16 +54,16 @@ Run through this list before applying an Agent YAML with `stigmer apply -f`.
 
 ### Using integers for `kind` in references
 
-The proto enum uses integers internally (`skill = 43`, `mcp_server = 44`), and some proto comments previously showed `kind: 43`. In YAML, always use the lowercase string name.
+The proto enum uses integers internally (`skill = 43`, `plugin = 58`), and some proto comments previously showed `kind: 43`. In YAML, always use the lowercase string name.
 
 ```yaml
 # Wrong
 kind: 43
-kind: 44
+kind: 58
 
 # Correct
 kind: skill
-kind: mcp_server
+kind: plugin
 ```
 
 ### Using uppercase or underscores in slugs
@@ -83,12 +84,12 @@ slug: code-reviewer
 ```yaml
 # Wrong
 kind: Skill
-kind: MCP_SERVER
-kind: McpServer
+kind: PLUGIN
+kind: Plugin
 
 # Correct
 kind: skill
-kind: mcp_server
+kind: plugin
 ```
 
 ### Instructions too short
@@ -109,65 +110,62 @@ A sub-agent starts from the parent's resolved tools. Naming a tool the parent ex
 
 ```yaml
 # Wrong — the parent cannot delete repositories, so neither can the reviewer
-disallowed_tools: [mcp__github__delete_repository]
+disallowed_tools: [mcp__plugin_github_github__delete_repository]
 sub_agents:
   - name: reviewer
     instructions: "Review pull requests for correctness."
-    tools: [Read, mcp__github__delete_repository]
+    tools: [Read, mcp__plugin_github_github__delete_repository]
 
 # Correct — narrow the parent's tools
-disallowed_tools: [mcp__github__delete_repository]
+disallowed_tools: [mcp__plugin_github_github__delete_repository]
 sub_agents:
   - name: reviewer
     instructions: "Review pull requests for correctness."
-    tools: [Read, mcp__github__search_code]
+    tools: [Read, mcp__plugin_github_github__search_code]
 ```
 
-### Duplicate MCP server slugs in one agent
+### Listing a plugin twice
 
-Each MCP server slug must appear only once in `mcp_server_usages`.
+Each plugin appears only once in `plugins`; apply refuses a plugin listed twice.
 
 ```yaml
 # Wrong — github appears twice
-mcp_server_usages:
-  - mcp_server_ref:
-      kind: mcp_server
-      slug: github
-  - mcp_server_ref:
-      kind: mcp_server
-      slug: github
+plugins:
+  - kind: plugin
+    slug: github
+  - kind: plugin
+    slug: github
 
 # Correct — one entry; narrow its tools with the tool lists
-mcp_server_usages:
-  - mcp_server_ref:
-      kind: mcp_server
-      slug: github
-tools: [mcp__github__search_code, mcp__github__create_pull_request]
+plugins:
+  - kind: plugin
+    slug: github
+tools: [mcp__plugin_github_github__search_code, mcp__plugin_github_github__create_pull_request]
 ```
 
 ### Naming MCP resource templates in a tool list
 
-MCP servers expose two types of capabilities: **tools** (callable actions) and **resource templates** (read-only data endpoints). Only tool names belong in an `mcp__<server-slug>__<tool>` entry. A resource template name never matches a tool, so the runner ignores the entry.
+MCP servers expose two types of capabilities: **tools** (callable actions) and **resource templates** (read-only data endpoints). Only tool names belong in an `mcp__plugin_<plugin>_<server>__<tool>` entry. A resource template name never matches a tool, so the runner ignores the entry.
 
 ```yaml
 # Wrong — cloud_resource_schema is a resource template, not a tool
 tools:
-  - mcp__planton__cloud_resource_schema
+  - mcp__plugin_planton_planton__cloud_resource_schema
 
-# Correct — only tool names from discovered_capabilities.tools
+# Correct — only tool names the server lists
 tools:
-  - mcp__planton__get_cloud_resource
+  - mcp__plugin_planton_planton__get_cloud_resource
 ```
 
-When inspecting `stigmer get mcp-server <slug> -oyaml`, check `status.discovered_capabilities` carefully — `tools` and `resource_templates` are separate lists. Only use names from the `tools` list.
+`stigmer connect plugin <plugin>` lists only tools; use names from its output.
 
 ### Guessing resource references
 
-Never write `slug: github` without verifying the MCP server exists. References to nonexistent resources are rejected at apply time.
+Never write `slug: github` without verifying the plugin is installed. References to nonexistent resources are rejected at apply time.
 
 ```bash
 # Verify before referencing
-stigmer get mcp-server github
+stigmer get plugin github
 stigmer get skill code-review-best-practices
 ```
 
@@ -198,13 +196,13 @@ Tool lists are resolved at run time, against the tools the run has. A misspelled
 
 ```yaml
 # Wrong — typo: the agent loses search_code instead of gaining it
-tools: [Read, mcp__github__serach_code]
+tools: [Read, mcp__plugin_github_github__serach_code]
 
 # Correct
-tools: [Read, mcp__github__search_code]
+tools: [Read, mcp__plugin_github_github__search_code]
 ```
 
-Always verify tool names against the MCP server before writing a list.
+Always verify tool names against the MCP server before writing a list (`stigmer connect plugin <plugin>`).
 
 ### Missing `metadata.org`
 

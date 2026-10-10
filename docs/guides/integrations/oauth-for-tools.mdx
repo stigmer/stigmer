@@ -1,118 +1,99 @@
 ---
 title: OAuth for tools
 description:
-  Connect OAuth-protected MCP servers with a single sign-in. Stigmer handles
-  token exchange, secure storage, and credential lifecycle automatically.
+  Sign in once to an OAuth-protected MCP server from its plugin's page. Stigmer
+  handles token exchange, secure storage, and credential lifecycle
+  automatically.
 ---
 
 import { DemoOAuthConnectFlow } from "@/components/docs";
 
 Some MCP servers connect to services that require OAuth — GitHub, Slack, Figma,
-Google Calendar. When a server declares an `auth` section, Stigmer manages the
-entire OAuth flow: sign-in popup, token exchange, encrypted storage, and
-automatic refresh. You never handle tokens directly.
+Linear, Notion. For such a server Stigmer manages the whole sign-in: the login
+window, token exchange, sealed storage in your vault, and automatic refresh. You
+never handle tokens directly.
 
 <Callout type="info">
-  This guide assumes you've read the [Connect an MCP
-  Server](/docs/guides/integrations/connect-an-mcp-server) guide. The connect
-  process (tool discovery) is the same for OAuth and non-OAuth servers — the
+  This guide assumes you've read [Connect an MCP
+  server](/docs/guides/integrations/connect-an-mcp-server). Adding a server and
+  reading its tools work the same for OAuth and non-OAuth servers — the
   difference is how credentials are obtained.
 </Callout>
 
 <DemoOAuthConnectFlow />
 
-## How OAuth tools differ
+## How a server signs in
 
-When you open an MCP server that uses API keys (like PostgreSQL), the detail
-view shows a credential form where you enter the value before connecting. OAuth
-servers skip that form entirely. Instead, the connection section shows a **Sign
-in to connect** button.
+A server's login is the variable in its `Authorization: Bearer ${VAR}` header.
+At run time that variable is filled by a login saved at the server's address in
+your vault, then by a secret with that name. Here is GitHub's server, as
+Stigmer's catalogue plugin declares it in its `mcp.json`:
 
-The difference comes from the `auth` section in the MCP server definition, which
-Stigmer fills in for a standard OAuth server from its URL alone (the next
-section), or which you write yourself. Here is what it looks like for GitHub's
-MCP server:
-
-```yaml validate-as="McpServer"
-spec:
-  http:
-    url: "https://api.githubcopilot.com/mcp"
-    headers:
-      Authorization: "Bearer ${GITHUB_ACCESS_TOKEN}"
-  env:
-    GITHUB_ACCESS_TOKEN:
-      is_secret: true
-      description: "GitHub OAuth token or personal access token"
-  auth:
-    target_env_var: "GITHUB_ACCESS_TOKEN"
-    scope_hints:
-      - "repo"
-      - "read:user"
+```json
+{
+  "mcpServers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    }
+  }
+}
 ```
 
-The `auth` block tells Stigmer two things:
+A personal access token saved in your vault as `GITHUB_PERSONAL_ACCESS_TOKEN`
+fills it, and so does your GitHub sign-in: the `github.com` login also serves a
+tool on GitHub's own API (`api.github.com`, `api.githubcopilot.com`).
 
-- **That the server signs in at its address** — the sign-in is saved at the
-  server's URL, and `target_env_var` names the variable that receives the access
-  token. This variable also appears in `env`, so a run resolves it the same way
-  it resolves any other credential.
-- **What access to expect** — `scope_hints` are shown before you sign in. The
-  scopes actually requested are the ones the login server or the login app
-  publishes.
-
-The definition names no OAuth app. Which OAuth client signs you in is found from
-the address: your Organization's own login app for it, then Stigmer's built-in
-app (GitHub's MCP server and `github.com` use Stigmer's GitHub app), then the
+The plugin names no OAuth app. Which OAuth client signs you in is found from the
+address: your Organization's own login app for it, then Stigmer's built-in app
+(GitHub's MCP server and `github.com` use Stigmer's GitHub app), then the
 server's own login server.
 [OAuth architecture](/docs/guides/integrations/oauth-architecture#a-login-is-found-by-its-address)
 explains the order.
 
-Only an MCP server reached over HTTP has an `auth` block. A local program (an
-MCP server that runs a command) takes its keys as environment variables declared
-in `env`, saved as vault secrets; a definition that gives one an `auth` block is
-refused.
-
-The **Environment Variables** section in the detail view labels the
-OAuth-managed variable with an **OAuth** badge to distinguish it from variables
-you enter manually.
+Only an MCP server reached over HTTP signs in. A local program (an MCP server
+that runs a command) takes its keys as variables, saved as vault secrets.
 
 ## For a standard OAuth server, a URL is enough
 
 Most hosted MCP servers (Linear, Notion, Atlassian, Figma, Stripe and many more)
 publish their sign-in the way the MCP specification describes: an
 unauthenticated request is answered with a challenge that points at the server's
-login metadata. For such a server you write nothing but its address:
+login metadata. For such a server the plugin names nothing but its address,
+which is all `stigmer mcp add linear https://mcp.linear.app/mcp` writes:
 
-```yaml validate-as="McpServer"
-spec:
-  http:
-    url: "https://mcp.linear.app/mcp"
+```json
+{
+  "mcpServers": {
+    "linear": { "type": "http", "url": "https://mcp.linear.app/mcp" }
+  }
+}
 ```
 
-When the server is saved, by `stigmer apply`, by a plugin install or by the
-console's form, Stigmer asks the endpoint once, under a three-second ceiling. If
-it answers with a standard OAuth challenge whose metadata resolves, the
-definition is completed on the spot: `auth.target_env_var` becomes
-`<NAME>_ACCESS_TOKEN`, that variable is declared secret in `env`, the
-`Authorization: Bearer` header that sends it is added, and `auth.oauth_only` is
-set because such an endpoint rejects a pasted token. The row is labelled
-`stigmer.ai/mcp-auth: endpoint` so Stigmer remembers the completion is its own.
-From that moment the server's page, the page of any plugin that installed it,
-and the Session composer carry **Sign in**.
+When the plugin is installed, Stigmer asks each such address once, with one MCP
+`initialize` under a three-second deadline; servers are asked in parallel, and
+the install never fails on the answer. If the server answers with an OAuth
+challenge, the plugin's entry for it is completed on the spot: it records that
+the server signs in and accepts only a sign-in (`sign_in.oauth_only`), gets a
+login variable named `<SERVER>_ACCESS_TOKEN` (`LINEAR_ACCESS_TOKEN` here),
+declared as a secret, and the `Authorization: Bearer` header that sends it. The
+completion lives on the installed plugin; the archive is never rewritten. From
+that moment the plugin's page and the chat composer carry **Sign in** for the
+server.
 
 Three rules keep this honest:
 
-- **A definition you wrote is never overwritten.** A server that already carries
-  `auth`, a header that sends a variable, or declared variables is left exactly
-  as written; the probe only completes what is empty.
-- **Applying the same definition again changes nothing.** The completion is
-  carried across a re-apply, a plugin upgrade and a description edit as long as
-  the URL is unchanged and the incoming definition says nothing about auth. A
-  changed URL is asked again. An `auth` block you add yourself wins, and the
-  label is dropped.
-- **Anything but a standard challenge leaves the definition alone.** An open
-  server, a server that wants an API key, a server that is down: none is
-  changed, and the usual connect runs afterwards.
+- **What the author wrote is never overwritten.** Only a server at an address
+  with no variables, no `Authorization` header and no `${VAR}` in any header is
+  asked. Anything else is the author speaking about authentication, and is left
+  as written.
+- **Installing the same archive again changes nothing.** A push of the version
+  already installed reuses the answers recorded for it and asks nothing.
+- **Anything but an OAuth challenge leaves the entry alone.** An open server, a
+  server that wants an API key, a server that is down: none is changed.
 
 Signing in to such a server needs no setup: Stigmer becomes a client of the
 server's login server on the first sign-in and reuses that client afterwards.
@@ -120,62 +101,55 @@ Some vendors publish their login metadata but do not let a client register
 itself. Their servers are completed like the others, so the page tells the
 truth, but **Sign in** refuses with the reason and the way forward: an admin
 adds a login app for the address
-([Bring Your Own OAuth App](/docs/guides/integrations/bring-your-own-oauth)), or
-you paste a token.
+([Bring Your Own OAuth App](/docs/guides/integrations/bring-your-own-oauth)).
 
-## Connect an OAuth-protected tool
+## Sign in
 
-1. Open the server's detail view from the Library's MCP Servers page.
-2. Click **Sign in to connect**. A popup opens to the provider's authorization
-   page — GitHub, Slack, or whichever service the server integrates with.
+1. Open the plugin's page from **Library → Plugins**.
+2. On the server's row, choose **Sign in**. A window opens to the provider's
+   authorization page — GitHub, Linear, or whichever service the server
+   integrates with.
 3. Review the requested permissions and authorize the application.
-4. The popup closes. Stigmer exchanges the authorization code for an access
-   token, saves it as a connection in your vault, then connects to the server.
-5. Tools are discovered, with the ones the server marks destructive — the same
-   process described in
-   [Connect an MCP Server](/docs/guides/integrations/connect-an-mcp-server#connect-an-mcp-server).
+4. The window closes. Stigmer exchanges the authorization code for an access
+   token and saves it as a connection at the server's address in your vault. The
+   row reads **Signed in**.
+5. Choose **Check tools** to see the server's tools, with the ones it marks
+   destructive, as
+   [Connect an MCP server](/docs/guides/integrations/connect-an-mcp-server#see-its-tools)
+   describes.
+
+From the CLI, `stigmer connect plugin <plugin>` does the same: it opens the
+login page in your browser, waits until the sign-in is saved, then lists the
+tools. Off an interactive terminal it stops and names the ways to sign in
+instead of waiting for a browser.
 
 <Callout type="info">
   You never see or handle the access token. Stigmer keeps it sealed in your own
   vault and hands it to your runs when the Agent calls a tool; a teammate's runs
-  never use it.
+  never use it. **Sign out** on the server's row removes it.
 </Callout>
 
 ## Token lifecycle
 
-After you authorize, Stigmer keeps the credential healthy without further
-action. The connection section in the detail view shows one of four states:
-
-| State              | What it means                                       | What to do                                     |
-| ------------------ | --------------------------------------------------- | ---------------------------------------------- |
-| **Connected**      | The access token is valid. Tools work normally.     | Nothing — you're set                           |
-| **Token expired**  | The token expired but a refresh token is available. | Stigmer refreshes it automatically on next use |
-| **Re-auth needed** | Both the access and refresh tokens have expired.    | Click **Sign in to connect** again             |
-| **Not connected**  | No credential exists yet.                           | Click **Sign in to connect**                   |
-
+After you sign in, Stigmer keeps the credential healthy without further action.
 When the provider supports refresh tokens, Stigmer refreshes the access token
-automatically at run time. You don't need to re-authorize unless the refresh
-token itself expires.
+automatically before each run. You sign in again, from the plugin's page, only
+when the refresh token itself expires or is revoked; a conversation that needs
+the sign-in asks for it before the first message.
 
-The detail view also shows a token lifetime hint when the server's definition
-gives one (`auth.token_lifetime_hint`), so you know how long a token lasts
-before the next automatic refresh.
+## Using a key instead
 
-## Manual override
+A server that accepts a personal access token or a service account key, and is
+not recorded as sign-in only, takes it as a vault secret named after its login
+variable:
 
-If you prefer to use a personal access token or a service account key instead of
-the OAuth flow, you can enter the value directly:
+```bash
+stigmer vault set-secret GITHUB_PERSONAL_ACCESS_TOKEN --mine
+```
 
-1. Click **Enter token manually** in the connection section.
-2. Type or paste the token into the credential form.
-3. Click **Connect**.
-
-The server connects the same way — Stigmer saves the value as a login in your
-vault and uses it for tool execution. The difference is that you manage token
-rotation yourself instead of relying on the automatic OAuth lifecycle.
-
-To switch back to OAuth, click **Sign in with OAuth instead** in the connection
-section.
+You manage that key's rotation yourself instead of relying on the automatic
+OAuth lifecycle. A server recorded as sign-in only refuses a pasted key, so
+Stigmer offers only **Sign in** for it.
 
 ## What's next
 

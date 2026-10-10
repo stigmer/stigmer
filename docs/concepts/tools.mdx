@@ -1,9 +1,9 @@
 ---
 title: Tools
 description:
-  Agents interact with external systems through MCP Servers — tool connections
-  that use the open Model Context Protocol. Learn how tool access works, how
-  it's configured, and how Stigmer keeps it safe.
+  Agents interact with external systems through MCP servers, which live in
+  plugins and use the open Model Context Protocol. Learn how tool access works,
+  how it's configured, and how Stigmer keeps it safe.
 ---
 
 [Skills](/docs/concepts/skills) give an Agent domain knowledge. Tools give it
@@ -48,109 +48,99 @@ fetches to private and internal addresses are refused.
 Reach for an MCP server when you need more than retrieval of a public page —
 authenticated APIs, site-specific extraction, or write operations.
 
-## Where MCP Servers come from
+## MCP servers live in plugins
 
-Most MCP Servers arrive as Plugins. A plugin from Stigmer's catalogue, or from a
-catalogue you add, declares the servers it needs; installing it creates them in
-your Organization, marked as the plugin's, beside the Agent that uses them when
-the plugin carries one, and ready to list on your own Agents when it does not.
-You connect a server once and Stigmer discovers its tools. A server another
-Organization owns is yours to use only through a Plugin, or when that
-Organization is a platform sharing it with the Organizations it manages.
+An MCP server is part of a [plugin](/docs/guides/plugins/install-a-plugin), and
+only of a plugin: the plugin's MCP configuration (its `.mcp.json` or `mcp.json`)
+names each server and how to reach it, beside the plugin's Skills, agents and
+hooks. There is no MCP server to create on its own.
 
-A remote (HTTP) server works in any Session, local or cloud-hosted. A stdio
-server (a local subprocess launched through `npx` or `uvx`) runs only on a local
-runner, so it fits local Sessions and not the hosted product.
+There are two ways to get one:
 
-You can also define your own MCP Servers for internal or proprietary systems. A
-plugin is a starting point, not a constraint: any server that speaks the Model
-Context Protocol works with Stigmer, whether a plugin installed it, or you wrote
-its definition for your Organization.
+- **Install a plugin.** A plugin from Stigmer's catalogue, or from a catalogue
+  you add, carries the servers it needs. Installing it stores the plugin, and
+  its page lists every server it holds.
+- **Add one server by its address.** `stigmer mcp add <name> <url>`, or **Add
+  MCP server** on the console's **Library → Plugins** page, builds a plugin
+  holding that one server and installs it, the way `claude mcp add` adds a
+  server to Claude Code. Use it like any other plugin.
 
-## MCP Server resource
+A server another Organization owns is yours to use only through a plugin you
+install, or when that Organization is a platform sharing the plugin with the
+Organizations it manages.
 
-An MCP Server is a Stigmer resource that defines a tool connection. It describes
-how to reach the tool server and what environment variables it needs:
+Here is a plugin's MCP configuration with one server of each kind:
 
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: McpServer
-metadata:
-  name: order-management-api
-  visibility: visibility_org
-spec:
-  description: >
-    Connects to the order management system. Provides tools for looking up
-    orders, checking inventory, and processing returns.
-  stdio:
-    command: "npx"
-    args: ["@acme/order-mcp-server"]
-  env:
-    ORDER_API_URL:
-      is_secret: false
-      description: Base URL of the order management API
-    ORDER_API_KEY:
-      is_secret: true
-      description: API key for authenticating with the service
+```json
+{
+  "mcpServers": {
+    "orders": {
+      "type": "http",
+      "url": "https://orders.acme.example/mcp",
+      "headers": { "Authorization": "Bearer ${ORDER_API_KEY}" }
+    },
+    "files": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${PROJECT_DIR}"
+      ]
+    }
+  }
+}
 ```
 
 ### Transport options
 
-MCP Servers support two transport modes:
+| Mode      | When to use                                                                      | Configuration                                                            |
+| --------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **stdio** | The tool must run on your own machine: **conversations on your own runner only** | `command` and `args`: the runner launches it and talks over stdin/stdout |
+| **HTTP**  | The tool server is a remote service: works in every conversation, local or cloud | `url` and optional `headers`, with `${VAR}` substitution                 |
 
-| Mode      | When to use                                                                  | Configuration                                                                      |
-| --------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **stdio** | The tool must run on your own machine — **local-runner sessions only**       | `command` and `args` — the local runner launches and communicates via stdin/stdout |
-| **HTTP**  | The tool server is a remote service — works on every session, local or cloud | `url`, optional `headers` and `query_params` with `${VAR}` substitution            |
+A local program (stdio) runs where the person's own runner runs: the desktop app
+or the CLI. A conversation hosted in a cloud sandbox, whose runner runs in cloud
+mode, is refused when it is created if one of its plugins carries a local
+program, with an error naming the server.
 
-Stdio servers spawn a subprocess on the machine executing the agent, so they are
-supported only on sessions that run on a local runner (the desktop app or
-`stigmer server`). Sessions on Stigmer-managed cloud compute refuse stdio
-servers when a run is created, with a clear error naming the server and the
-remediation.
+### Variables
 
-### Variable declarations
+The plugin declares what its servers read at run time in its manifest: API keys,
+service URLs, settings. A `${NAME}` in a server's arguments or headers names a
+variable, and one the plugin does not declare is taken as a required secret; the
+plugin's page lists every variable its servers and hooks read. A secret is found
+by its name in a [vault](/docs/concepts/vaults) when a run starts; a plain
+setting may carry its value in the plugin's declaration. A required variable no
+vault holds refuses the run before it starts, naming the key and who must add
+it.
 
-The `env` map declares what the MCP Server needs at runtime — API keys, service
-URLs, configuration values. A secret is found by its name in a
-[vault](/docs/concepts/vaults) when a run starts; a plain setting may carry its
-value in the declaration.
+The platform fills four optional variables itself, so a server can know who is
+calling without a vault: `STIGMER_CALLER_IDENTITY_KIND`,
+`STIGMER_CALLER_IDENTITY_VALUE`, `STIGMER_SESSION_ID` and
+`STIGMER_SERVER_ADDRESS`. A server reads them in its headers
+([Caller identity for MCP servers](/docs/guides/integrations/caller-identity-for-mcp-servers)).
 
-Each declaration can be marked as `optional`. By default, every declared
-variable is required — a run whose vaults hold no value for it is refused before
-it starts, naming the key and who must add it. Optional variables let the MCP
-Server operate without that value.
+The plugin stays portable: the same plugin works for every person and team that
+uses it, and only the vault values change.
 
-A server's login is matched by its address: signing in to it saves a connection
-at that address in your vault, and a run fills that server's login variable from
-it (only that server's: a sign-in never serves another server at the same
-address). Other keys are matched by name. So a credential on a Schedule's vault
-is the one its runs use, and your own vault serves your own chats.
-[Vaults](/docs/concepts/vaults#which-vaults-a-run-uses) explains the order in
-full.
+## Using a plugin's tools
 
-This separation means the MCP Server definition is portable. The same
-`order-management-api` works for every person and team that uses it — only the
-vault values change.
-
-## Connecting tools to Agents
-
-[Agents](/docs/concepts/agents) reference MCP Servers through
-`mcp_server_usages` in their definition:
+[Agents](/docs/concepts/agents) list the plugins they use in `plugins`. A plugin
+is attached whole: its Skills, its agents (as Sub-Agents), its hooks and its MCP
+servers.
 
 ```yaml validate-as="Agent"
 spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: order-management-api
+  plugins:
+    - kind: plugin
+      slug: orders
   tools:
-    - mcp__order-management-api__get_order
-    - mcp__order-management-api__list_orders
+    - mcp__plugin_orders_orders__get_order
+    - mcp__plugin_orders_orders__list_orders
 ```
 
-Each usage entry names one MCP Server by slug, and the Agent gets every tool it
-reports. To narrow that, the Agent carries Claude Code's two lists:
+The Agent gets every tool its plugins' servers offer. To narrow that, it carries
+Claude Code's two lists:
 
 | Field              | Purpose                                                 |
 | ------------------ | ------------------------------------------------------- |
@@ -158,36 +148,34 @@ reports. To narrow that, the Agent carries Claude Code's two lists:
 | `disallowed_tools` | Never these tools, applied first                        |
 
 Entries use Claude Code's names: built-ins such as `Read`, `Grep` or
-`Bash(git push *)`, `mcp__<server-slug>` for every tool of one server,
-`mcp__<server-slug>__<tool>` for one tool, and `mcp__*` for every MCP tool. A
-specifier such as `(git push *)` is accepted but governs the whole tool: it
-never narrows `Bash` to some commands.
+`Bash(git push *)`; `mcp__plugin_<plugin>_<server>` for every tool of one
+plugin's server; `mcp__plugin_<plugin>_<server>__<tool>` for one tool; and
+`mcp__*` for every MCP tool. Every character outside letters, digits, `_` and
+`-` in the plugin or server name is written as `_`. A specifier such as
+`(git push *)` is accepted but governs the whole tool: it never narrows `Bash`
+to some commands.
 
-This design means you define the tool server once and reference it from multiple
-Agents. Each Agent can keep a different subset — the read-only Agent above only
-gets `get_order` and `list_orders`, while a full-access Agent also gets
+You install the plugin once and list it on as many Agents as you like. Each
+Agent can keep a different subset: the read-only Agent above only gets
+`get_order` and `list_orders`, while a full-access Agent also gets
 `process_return`. [Approval Flows](/docs/concepts/approval-flows) covers what
-the lists guarantee, and how an Agent's `hooks` decide a call the lists allow.
+the lists guarantee, and how hooks decide a call the lists allow.
 
-## Connecting a tool
+## Seeing a server's tools
 
-An MCP Server definition describes _what_ a tool server is. Connecting it tells
-Stigmer _what it can do_.
+Stigmer stores nothing about a server's tools. To see them, ask the live server:
+`stigmer connect plugin <plugin>` (add `--server <name>` when the plugin carries
+several), or **Check tools** on the plugin's page in the console. Either reaches
+the server as you, with the keys and sign-ins in your own vault, and marks the
+tools the server calls destructive.
 
-When you connect an MCP Server, Stigmer performs two steps in a single action:
-
-1. **Discovers tools** — connects to the live server and enumerates every tool
-   and resource template it exposes, with each tool's MCP annotations
-2. **Stores the results** — discovered tools are saved on the MCP Server's
-   status, each marked destructive or not, ready for any Agent that references
-   it
-
-By default, a tool asks for human approval before it runs when its server marks
-it destructive, with the MCP annotation `destructiveHint: true`, and every other
+A tool asks for human approval before it runs when its server marks it
+destructive, with the MCP annotation `destructiveHint: true`, and every other
 tool runs without asking. The server's author makes that call, not Stigmer:
 `process_return` asks if the order server annotates it, and `get_order` does
-not. An Agent's hooks can change that call by call: a hook can refuse a tool,
-ask about it, or let it run
+not. The annotation is read again at the start of every turn, and a server whose
+tools cannot be listed then asks before every one of its tools. Hooks can change
+that call by call: a hook can refuse a tool, ask about it, or let it run
 ([Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks)).
 
 ## Authentication for tools
@@ -197,16 +185,18 @@ three authentication patterns, each suited to a different type of integration:
 
 | Pattern                    | When it applies                                                     | How it works                                                                                           |
 | -------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Environment variables**  | The tool uses API keys or tokens                                    | You declare the variable in `env` and save the value in a vault                                        |
+| **Environment variables**  | The tool uses API keys or tokens                                    | The plugin names the variable in a header or argument, and the value is saved in a vault               |
 | **Automatic OAuth**        | The server implements the MCP Authorization spec                    | Stigmer reads the server's login server from its URL, becomes its client once, and handles the sign-in |
 | **OAuth with a login app** | The vendor requires an OAuth app registered with it (Slack, GitHub) | Stigmer signs in with the app your Organization or the deployment registered for the server's address  |
 
-In every OAuth pattern, the sign-in starts from the server's address, and the
-access token is saved as a connection at that address in the signer's vault,
-where it serves every HTTP tool at that address and is refreshed automatically
-before each run. If a token expires and cannot be refreshed, the user signs in
-again from the MCP Server's connect page. A local program (a tool that runs a
-command) has no sign-in: it takes its keys from secrets.
+A server at an address with no key in its headers is probed when the plugin is
+installed. If it answers with an OAuth challenge, the plugin records that the
+server signs in, with a login variable named `<SERVER>_ACCESS_TOKEN` and the
+`Authorization` header that carries it. A person signs in once, with **Sign in**
+on the plugin's page or `stigmer connect plugin`, and the login is kept in their
+vault as a connection at the server's address, refreshed automatically before
+each run. If it expires and cannot be refreshed, they sign in again from the
+plugin's page. A local program has no sign-in: it takes its keys from secrets.
 
 An Organization that needs its own OAuth app for an address — for a vendor
 Stigmer cannot sign in to on its own, or for tighter control — adds a login app
@@ -217,8 +207,8 @@ For a deeper look at OAuth patterns and configuration, see the
 
 ## Tool discovery
 
-When an Agent runs, Stigmer connects to the referenced MCP Servers and discovers
-their available tools. Each tool has:
+When a turn starts, Stigmer reaches the servers of every plugin the Agent and
+the conversation list, and asks each for its tools. Each tool has:
 
 - A **name** — used to call it (for example, `get_order`)
 - A **description** — helps the LLM decide when to use it
@@ -240,22 +230,24 @@ Tool calls run in a controlled sandbox:
   structured data
 
 HTTP-based MCP servers are isolated by design — Stigmer connects to them as a
-network client, so the tool server runs in its own infrastructure. Stdio-based
-MCP servers run only on local runners, as subprocesses of the runner on your own
-machine — Stigmer-managed cloud compute never launches them.
+network client, so the tool server runs in its own infrastructure. Local
+programs run only on a person's own runner, as subprocesses of the runner on
+their machine — Stigmer-managed cloud compute never launches them.
 
 This sandboxing means the Agent can't bypass the tool server's logic or directly
-access the underlying system. It can only use the tools as the MCP Server
+access the underlying system. It can only use the tools as the MCP server
 exposes them.
 
-## Session-level tools
+## Conversation-level tools
 
 Just as [Skills](/docs/concepts/skills) can be added at the Session level, a
-[Session](/docs/concepts/sessions) can attach MCP Servers of its own.
-Session-level `mcp_server_usages` merge with the Agent's, one entry per server.
+[Session](/docs/concepts/sessions) can list plugins of its own in `plugins`.
+They join the Agent's, one entry per plugin. A chat with the built-in assistant,
+which has no Agent, gets its tools from the plugins its conversation lists, and
+runs their hooks.
 
-The Agent's tool lists govern these servers like its own: an Agent whose `tools`
-list does not name a Session's server cannot use it.
+The Agent's tool lists govern these plugins like its own: an Agent whose `tools`
+list does not name a conversation's plugin server cannot use it.
 
 ## What's next
 

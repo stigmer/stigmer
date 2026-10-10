@@ -23,7 +23,7 @@ spec:
   icon_url: "https://example.com/icon.svg"
   instructions: |
     You are an agent that...
-  mcp_server_usages: []
+  plugins: []
   skill_refs: []
   sub_agents: []
   hooks: []
@@ -61,7 +61,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 
 ### Visibility
 
-Agents take one of three levels. Organization is the default: a blueprint is a shared asset of the organization that owns it. Private is an explicit opt-in. Platform is offered only to an organization that operates an identity provider, and shares the agent with every organization it manages. An agent may not be more visible than the skills, MCP servers and agents it references; the server refuses the save (and the escalation) that would break that.
+Agents take one of three levels. Organization is the default: a blueprint is a shared asset of the organization that owns it. Private is an explicit opt-in. Platform is offered only to an organization that operates an identity provider, and shares the agent with every organization it manages. An agent may not be more visible than the skills, plugins and agents it references; the server refuses the save (and the escalation) that would break that.
 
 ```yaml
 # Organization agent (default) — every member of acme-corp can read and run it
@@ -96,31 +96,30 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 | `spec.description` | Recommended | 1-2 sentence summary for UI and marketplace display. No proto-level validation enforces presence, but agents without descriptions render poorly in the UI and marketplace. |
 | `spec.icon_url` | No | Publicly accessible image URL (SVG, PNG, JPEG) for marketplace and UI. |
 | `spec.instructions` | Yes | System prompt defining the agent's behavior. Minimum 10 characters (enforced by `buf.validate`). |
-| `spec.mcp_server_usages` | No | MCP servers this agent can use. See [mcp-server-integration.md](mcp-server-integration.md). |
+| `spec.plugins` | No | Plugins this agent uses, each whole: their skills, agents, hooks and MCP servers. See [plugin-integration.md](plugin-integration.md). |
 | `spec.skill_refs` | No | Skills providing agent knowledge. See [skill-integration.md](skill-integration.md). |
 | `spec.sub_agents` | No | Specialized sub-agents for delegation. See [sub-agents.md](sub-agents.md). |
-| `spec.tools` | No | Tools this agent may use, in Claude Code's names (`Read`, `Bash(git push *)`, `mcp__<server-slug>`). Empty means every tool it has. See [mcp-server-integration.md](mcp-server-integration.md). |
+| `spec.tools` | No | Tools this agent may use, in Claude Code's names (`Read`, `Bash(git push *)`, `mcp__plugin_<plugin>_<server>`). Empty means every tool it has. See [plugin-integration.md](plugin-integration.md). |
 | `spec.disallowed_tools` | No | Tools this agent may never use, in the same names. Applied before `spec.tools`. |
-| `spec.hooks` | No | Hooks that run around this agent's tool calls and its sub-agents' calls: a plugin whose hooks apply, or a hooks block written in the agent. See [Hooks](#hooks). |
+| `spec.hooks` | No | A hooks block written in the agent, run around its tool calls and its sub-agents' calls after the hooks of the plugins it lists. See [Hooks](#hooks). |
 | `spec.env_spec` | No | Required environment variables (schema only). See below. |
 | `spec.harness` | No | The engine (`HARNESS_NATIVE` or `HARNESS_CURSOR`) the run defaults were chosen for, and the engine a new conversation on this agent starts on when nobody names an engine or a model (a turn naming a model but no engine starts on native). Unspecified: native. See [Run Defaults](#run-defaults). |
 | `spec.run_config` | No | The author's run defaults: model, speed tier, thinking and run limits. Versioned with the agent. See [Run Defaults](#run-defaults). |
 
 ## Hooks
 
-`spec.hooks` lists where the agent's hooks come from. A hook is a command that runs before or after a tool call, in Claude Code's hooks format: before a call (`PreToolUse`) it can refuse it, ask a person first, or let it run without the approval it would otherwise need; after a call succeeds (`PostToolUse`) it can add to what the agent reads. A hook that answers nothing leaves the call to the default (see the Run resource's `hitl-approvals.md`).
+An agent's hooks come from two places: the plugins it lists in `spec.plugins`, each of which brings the hooks it recorded at install, and a block written in the agent under `spec.hooks`. A hook is a command that runs before or after a tool call, in Claude Code's hooks format: before a call (`PreToolUse`) it can refuse it, ask a person first, or let it run without the approval it would otherwise need; after a call succeeds (`PostToolUse`) it can add to what the agent reads. A hook that answers nothing leaves the call to the default (see the Run resource's `hitl-approvals.md`).
 
-Each entry is one of two sources. A plugin reference applies the hooks that plugin recorded at install:
+A plugin's hooks need nothing beyond listing the plugin:
 
 ```yaml
 spec:
-  hooks:
-    - plugin:
-        kind: plugin
-        slug: safety
+  plugins:
+    - kind: plugin
+      slug: safety
 ```
 
-A block written in the agent takes the shape of Claude Code's `hooks.json`, one group per event with an optional matcher and its handlers:
+A block written in the agent takes the shape of Claude Code's `hooks.json`, one group per event with an optional matcher and its handlers. The plugins' hooks run first:
 
 ```yaml
 spec:
@@ -148,14 +147,14 @@ What holds:
 - Both engines, native and Cursor, run hooks in Claude Code's format and in Cursor's, in the Cloud and on a laptop. A Cursor-format `ask` waits for a person on both engines, where Cursor itself lets the call run.
 - On the Cursor engine a hook sees no sub-agent identity (`agent_id`, `agent_type`), web fetch and web search reach no hook (an agent whose `PreToolUse` hooks would match them runs there without them; the sub-agent tool is hidden only when a matcher names it, since a sub-agent's own calls reach every hook), and a hook's rewrite applies only where Cursor applies one (a shell command, its directory or timeout, a file path, a search pattern, a URL); a rewrite of a file's content or of an MCP tool's arguments is refused with a sentence.
 - Workspace hook files never run for the agent. On the Cursor engine a repository's `.cursor/hooks.json` entries are set aside for the turn and restored; `.claude/settings*.json` hooks are set aside in a folder the runner cloned or created, and a turn on a person's own folder whose `.claude` settings carry hooks is refused, naming the file.
-- Apply checks an inline block in either format. In Claude Code's (the default): events `PreToolUse` or `PostToolUse`, every matcher and condition in the shape Claude Code accepts, no `fail_closed`, and `${user_config.KEY}` only in a handler with `args`; an omitted format is filled with Claude Code's. In Cursor's, which the block names (`format: HOOK_FORMAT_CURSOR`): events `preToolUse`, `beforeShellExecution`, `beforeMCPExecution`, `postToolUse` or `afterMCPExecution`, a matcher that is `*` or a regular expression, `fail_closed` allowed, and no `condition`, `args` or `${user_config.KEY}`. Apply also refuses two plugin references with the same slug and more than one inline block.
-- Installing a plugin with hooks, in either format, adds the plugin's own reference to the agent the install composes, and declares in its `env` every variable those hooks read.
+- Apply checks an inline block in either format. In Claude Code's (the default): events `PreToolUse` or `PostToolUse`, every matcher and condition in the shape Claude Code accepts, no `fail_closed`, and `${user_config.KEY}` only in a handler with `args`; an omitted format is filled with Claude Code's. In Cursor's, which the block names (`format: HOOK_FORMAT_CURSOR`): events `preToolUse`, `beforeShellExecution`, `beforeMCPExecution`, `postToolUse` or `afterMCPExecution`, a matcher that is `*` or a regular expression, `fail_closed` allowed, and no `condition`, `args` or `${user_config.KEY}`. Apply also refuses more than one inline block, and a `plugins` list that names a plugin twice.
+- Installing a plugin with hooks, in either format, records them on the plugin and declares in the plugin's `env` every variable those hooks read. A conversation can list plugins of its own (the Session's `spec.plugins`); their hooks run too, in a chat with no agent as well.
 - A plugin reference with no `version` follows the plugin's installed version. A hook that reads a variable the run does not have refuses the turn, naming the variable.
 - A hook reads a plugin setting by passing `${user_config.KEY}` in its `args`; a command without `args` that names one refuses the turn, since the shell would re-read the value. Only a setting passed that way is also exported to the plugin's hooks as `CLAUDE_PLUGIN_OPTION_<KEY>`; a hook whose script reads `CLAUDE_PLUGIN_OPTION_<KEY>` for any other setting finds it unset, where Claude Code would set it.
 
 ## Declared Keys
 
-An agent declares the environment variables it needs in `env`, a map of variable name to `EnvVarDeclaration` (`ai/stigmer/agentic/vault/v1/declaration.proto`, shared with McpServers). A declaration is the **schema**, never a person's value: a secret is found by its name in a vault when a run starts, and a plain setting may carry its value in the declaration.
+An agent declares the environment variables it needs in `env`, a map of variable name to `EnvVarDeclaration` (`ai/stigmer/agentic/vault/v1/declaration.proto`, shared with a plugin's `status.env`). A declaration is the **schema**, never a person's value: a secret is found by its name in a vault when a run starts, and a plain setting may carry its value in the declaration.
 
 ```yaml
 spec:
@@ -239,8 +238,8 @@ stigmer delete agent my-agent
 ## Related Documentation
 
 - [README.md](README.md) — Overview, lifecycle, and table of contents
-- [resource-references.md](resource-references.md) — `ApiResourceReference` format for referencing MCP servers and skills
-- [mcp-server-integration.md](mcp-server-integration.md) — MCP server usage, the two tool lists and which tools ask for approval
+- [resource-references.md](resource-references.md) — `ApiResourceReference` format for referencing plugins and skills
+- [plugin-integration.md](plugin-integration.md) — Plugins, their MCP servers, the two tool lists and which tools ask for approval
 - [skill-integration.md](skill-integration.md) — Skill integration and injection
 - [sub-agents.md](sub-agents.md) — Sub-agent delegation and permission model
 - [examples.md](examples.md) — Complete YAML examples from minimal to full-featured

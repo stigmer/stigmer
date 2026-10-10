@@ -34,7 +34,7 @@ const session = await stigmer.session.create({
   name: `session-${Date.now()}`,
   org: "my-org",
   skillRefs: [{ org: "my-org", slug: "return-policy" }],
-  mcpServerRefs: [{ org: "my-org", slug: "order-management-api" }],
+  plugins: [{ org: "my-org", slug: "order-management-api" }],
 });
 ```
 
@@ -48,7 +48,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
     SkillRefs: []stigmer.ResourceRef{
         {Org: "my-org", Slug: "return-policy"},
     },
-    McpServerRefs: []stigmer.ResourceRef{
+    Plugins: []stigmer.ResourceRef{
         {Org: "my-org", Slug: "order-management-api"},
     },
 })
@@ -62,7 +62,7 @@ session = client.sessions.create(SessionInput(
     name=f"session-{ts}",
     org="my-org",
     skill_refs=[ResourceRef(org="my-org", slug="return-policy")],
-    mcp_server_refs=[ResourceRef(org="my-org", slug="order-management-api")],
+    plugins=[ResourceRef(org="my-org", slug="order-management-api")],
 ))
 ```
 
@@ -77,7 +77,7 @@ var session = client.sessions().create(
         .skillRefs(List.of(
             ResourceRef.of("my-org", "return-policy")
         ))
-        .mcpServerRefs(List.of(
+        .plugins(List.of(
             ResourceRef.of("my-org", "order-management-api")
         ))
         .build()
@@ -108,7 +108,8 @@ adding capabilities per-Session. Now it's time to create your own Agent.
    templates, or an import of an Agent YAML you already have.
 3. In the wizard, name the Agent `support-agent`, write its instructions (its
    role, the rules it follows, its tone), then pick the `return-policy` Skill
-   and the `order-management-api` MCP server from the previous guides.
+   and the `order-management-api` plugin, the MCP server you added in the
+   previous guide.
 4. Review the definition and click **Create** to save it to your Organization's
    library.
 
@@ -131,8 +132,8 @@ command.
 ## See the bundled result
 
 Open the Agent detail page. Everything is in one place: the instructions that
-define the Agent's role, the Skills that provide domain knowledge, and the MCP
-servers that give it tools.
+define the Agent's role, the Skills that provide domain knowledge, and the
+plugins whose MCP servers give it tools.
 
 You can add as many Skills as your Agent needs — product documentation, HR
 policies, technical runbooks. Each one makes the Agent more useful for a
@@ -144,7 +145,7 @@ specific domain.
 ## Simplify your code
 
 Open the code from the previous guides. One change: replace the `skillRefs` and
-`mcpServerRefs` with a single reference to your Agent.
+`plugins` with a single reference to your Agent.
 
 <Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
 <Tab value="TypeScript">
@@ -209,10 +210,10 @@ var session = client.sessions().create(
 Replace `my-org` with your Organization slug and `support-agent` with the slug
 shown on your Agent's detail page.
 
-The Skills and MCP servers are gone from your Session code — they live on the
-Agent definition. Update the Agent in one place, and every new Session starts on
-the change. A Session already under way keeps the version it started on until
-you update it, so a conversation never changes under the person having it.
+The Skills and plugins are gone from your Session code — they live on the Agent
+definition. Update the Agent in one place, and every new Session starts on the
+change. A Session already under way keeps the version it started on until you
+update it, so a conversation never changes under the person having it.
 
 </Step>
 <Step>
@@ -287,9 +288,10 @@ You created a reusable Agent definition that bundles instructions, Skills, and
 tools into one named resource. In your code, one reference replaced a shopping
 list — the Session names the Agent, and the Agent brings the rest.
 
-This is the Stigmer resource model: Skills provide domain knowledge, MCP Servers
-provide tools, and the Agent ties them together with instructions that define
-its role. Create the Agent once, use it from any Session.
+This is the Stigmer resource model: Skills provide domain knowledge, plugins
+provide tools through their MCP servers, and the Agent ties them together with
+instructions that define its role. Create the Agent once, use it from any
+Session.
 
 ## What's next
 
@@ -304,7 +306,7 @@ follows your rules, and has a defined role.
   />
   <Card
     title="Tool Integrations"
-    description="Connect MCP Servers, set up OAuth, and keep your keys in vaults."
+    description="Connect MCP servers, set up OAuth, and keep your keys in vaults."
     href="/docs/guides/integrations/overview"
   />
   <Card

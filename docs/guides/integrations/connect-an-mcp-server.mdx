@@ -1,18 +1,18 @@
 ---
-title: Connect an MCP Server
+title: Connect an MCP server
 description:
-  Open an MCP Server in your Library, connect it, and see its discovered tools
-  and which of them ask for approval — whether a plugin installed the server or
-  you defined it yourself.
+  Add an MCP server by its address as a plugin of its own, sign in to it, see
+  its tools and which of them ask for approval, and use it in a chat or an
+  Agent.
 ---
 
 import { DemoMarketplaceConnectTour } from "@/components/docs";
 
-An MCP Server definition tells Stigmer where a server is and how to reach it.
-Connecting it is how Stigmer learns what the server can do: one action discovers
-every tool the server exposes and decides which of them may run without a
-human's approval. This guide walks through connecting a server from the web
-console and reading what comes back.
+An MCP server lives in a plugin. A plugin from a marketplace may carry the
+servers you need already; to use one server at an address, Stigmer builds a
+plugin holding just that server and installs it, the way `claude mcp add` adds a
+server to Claude Code. This guide adds a server, signs in to it, reads its
+tools, and puts it to work.
 
 <Callout type="info">
   New to tools in Stigmer? Start with the [Tools concept
@@ -22,127 +22,123 @@ console and reading what comes back.
 
 <DemoMarketplaceConnectTour />
 
-## Find the server in your Library
+## Connect an MCP server
 
-Open **Library** in the sidebar and choose **MCP Servers**. The page lists every
-MCP Server your Organization holds, in a card grid: the servers a plugin
-installed and the servers you defined yourself. Each card shows the server's
-name, a short description, and the Organization it belongs to; a server that
-came from a plugin says so at the top of its page, and the plugin's own page
-carries the same **Sign in** for it, so a plugin's servers can be signed in to
-from either place.
+From the console:
 
-If the server you need is not there yet, get it one of two ways. Install a
-plugin that carries it, from the Marketplace or from a folder on your computer
-([Install from the console](/docs/guides/plugins/install-from-the-console); in
-the CLI, [Install a plugin](/docs/guides/plugins/install-a-plugin) or
-[Install from a marketplace](/docs/guides/plugins/install-from-a-marketplace)).
-Or write the definition by hand, as the
-[Connect your tools](/docs/getting-started/connect-tools) tutorial does.
+1. Open **Library** in the sidebar and choose **Plugins**.
+2. Choose **Add MCP server**. Give it a name (lowercase letters, digits, dots
+   and hyphens; the plugin is named after it), the server's URL, an optional
+   description, and the headers it is sent with.
+3. Choose **Add**. Stigmer installs the plugin in your Organization and opens
+   its page.
 
-A remote (HTTP) server works on any session, local or cloud-hosted. A stdio
-server, a local subprocess launched with `npx`, `uvx` or a binary, runs only on
-a local runner; you can still define one for local-runner sessions.
+From the CLI:
 
-## Connect an MCP Server
+```bash
+stigmer mcp add linear https://mcp.linear.app/mcp
+```
 
-When you open a server's detail view and click **Connect**, Stigmer performs two
-steps in a single action:
+A server that takes a key gets it in a header. Name the key as `${NAME}` and
+save its value in your vault; the plugin declares the key, and each conversation
+reads it from the vaults it uses, so the value is never written into the plugin:
 
-1. **Discovers tools** — Connects to the live server and enumerates every tool
-   it exposes, capturing names, descriptions, input schemas, and whether the
-   server marks the tool destructive.
-2. **Stores the results** — Discovered tools are saved on the MCP Server's
-   status, ready for any Agent that references it.
+```bash
+stigmer vault set-secret ACME_TOKEN --mine
+stigmer mcp add acme https://mcp.acme.example/mcp \
+  --header 'Authorization=Bearer ${ACME_TOKEN}'
+```
 
-The whole process takes a few seconds. When it finishes, the detail view updates
-to show the discovered tools.
+`--dry-run` shows the plugin without installing it. Adding again with the same
+name, address and headers changes nothing; a changed address or header upgrades
+the plugin. Remove it with `stigmer delete plugin <name>`, or **Remove** on its
+page. The [`stigmer mcp`](/docs/cli/commands/mcp) reference has every flag.
 
-<Callout type="info">
-  **stdio servers are local-runner-only.** In Stigmer Cloud, connecting a stdio
-  server (launched via `npx`, `uvx`, or a binary) is refused — cloud compute
-  never spawns stdio subprocesses. The server remains fully usable on sessions
-  that run on a local runner (the desktop app or `stigmer server`), where its
-  tools are discovered automatically when the session starts. If a connect
-  fails, the error message names the likely cause for the server's transport.
-</Callout>
+A server that runs as a local program (through `npx`, `uvx` or a binary) has no
+address to add. Write it into a plugin folder's MCP configuration and install
+the folder ([Install a plugin](/docs/guides/plugins/install-a-plugin)). It runs
+only where a person's own runner runs, the desktop app or the CLI; a
+conversation hosted in a cloud sandbox is refused when one of its plugins
+carries a local program.
 
-## What changes after connecting
+## Sign in
 
-### Tools tab
+When you add a server whose headers name no key, Stigmer probes its address. A
+server that answers with an OAuth challenge (Linear, Notion, Atlassian, most
+hosted vendors) is recorded as one you sign in to: the plugin gets a login key
+named `<SERVER>_ACCESS_TOKEN` and the `Authorization` header that carries it.
 
-The tools tab lists every tool the server exposes. Each entry shows the tool's
-name and description — the same information the Agent sees when deciding which
-tool to call. In the demo above, Neon exposes five tools: `list_projects`,
-`get_database_tables`, `describe_table_schema`, `explain_sql_statement`, and
-`run_sql`.
+On the plugin's page the server's row then carries **Sign in**. Choose it, grant
+access in the window that opens, and the row reads **Signed in**. From the CLI,
+`stigmer connect plugin linear` opens the login page in your browser and waits
+until the sign-in is saved. The login is kept in your own
+[vault](/docs/concepts/vaults) as a connection at the server's address, so each
+person signs in once for themselves, and it is refreshed before each run.
+
+A server recorded this way accepts **only** a sign-in: a personal API token
+pasted for it is refused by the vendor, so Stigmer offers only the sign-in. How
+the sign-in works, and what a vendor that refuses automatic registration needs
+instead, is in [OAuth for tools](/docs/guides/integrations/oauth-for-tools).
+
+## See its tools
+
+Stigmer stores nothing about a server's tools. **Check tools** on the server's
+row asks the live server for them now, as you, with the keys and sign-ins in
+your vault, and lists each tool with its description. From the CLI:
+
+```bash
+stigmer connect plugin linear
+stigmer connect plugin acme-tools --server issues
+```
+
+`--server` picks one server when a plugin carries several. A key the server
+needs and none of your vaults hold fails the listing, naming the key.
 
 ### Which tools ask for approval
 
-By default, a tool asks for human approval before it runs when the server marks
-it destructive, with the MCP annotation `destructiveHint: true`. The server's
-author makes that call, and every Agent that uses the server follows it. Every
-other tool runs without asking. There is no approval setting on the server
-itself: an Agent's hooks can refuse, ask about or allow any of its tools
+A tool asks for human approval before it runs when its server marks it
+destructive, with the MCP annotation `destructiveHint: true`; the listing marks
+those tools. The server's author makes that call, and every Agent that uses the
+server follows it. Every other tool runs without asking. The annotation is read
+from the server again at the start of every turn, and a server whose tools
+cannot be listed then asks before every one of its tools. Hooks can refuse, ask
+about or allow any tool
 ([Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks)), and to
 keep an Agent away from a tool such as `run_sql`, leave it out with the Agent's
 tool lists, below.
 
-## Authentication patterns at a glance
+## Use it
 
-Some servers need credentials to reach the systems behind them. Four patterns
-cover the range:
+For one conversation, turn the plugin on with `--plugin`, or pick it in the
+chat's plugin picker in the console:
 
-| Pattern                    | When it applies                                                                                     | What happens on Connect                                                                      |
-| -------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **No credentials**         | The server works without authentication (Context7 without a key)                                    | Connects immediately — no extra steps                                                        |
-| **Environment variables**  | The server uses API keys or connection strings (Tavily, Neon)                                       | You enter the value in the credential form, which saves it in My vault, then connects        |
-| **OAuth from the URL**     | A hosted server that publishes a standard OAuth challenge (Linear, Notion, Atlassian, most vendors) | Saved from its URL alone, the definition is completed with the sign-in; "Sign in" is offered |
-| **OAuth with a login app** | A vendor whose sign-in needs an OAuth app registered with it (GitHub)                               | Stigmer signs you in with the app your Organization or the deployment has for the address    |
+```bash
+stigmer run --plugin linear -m "What's on my plate this week?"
+```
 
-<Callout type="info">
-  A hosted endpoint completed from its URL accepts **only** an OAuth-obtained
-  token and rejects a personal API token or integration secret pasted into the
-  credential form. For these servers Stigmer offers just the "Sign in" flow and
-  hides manual token entry, so you are never sent down a path that cannot
-  succeed. If you connect such a server another way (for example the CLI's
-  `--dry-run`), you will get a clear message explaining that OAuth is required.
-  How the completion works, and what a vendor that refuses automatic
-  registration needs instead, is in [OAuth for
-  tools](/docs/guides/integrations/oauth-for-tools).
-</Callout>
-
-<Callout type="info">
-  OAuth patterns — including automatic discovery and login apps — are covered in
-  depth in the [OAuth for tools](/docs/guides/integrations/oauth-for-tools)
-  guide. Adding your Organization's own OAuth app for an address is in [Bring
-  Your Own OAuth App](/docs/guides/integrations/bring-your-own-oauth).
-</Callout>
-
-## Wire tools to your Agent
-
-Once an MCP Server is connected, reference it from your Agent definition using
-`mcp_server_usages`:
+With no Agent named, the built-in assistant runs with the server's tools. To
+give the server to an Agent, list its plugin in the Agent's `plugins`, or choose
+**Add to an agent** on the plugin's page:
 
 ```yaml validate-as="Agent"
 spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: mcp-server-postgres
-  tools: [Read, mcp__mcp-server-postgres]
-  disallowed_tools: [mcp__mcp-server-postgres__run_sql]
+  plugins:
+    - kind: plugin
+      slug: postgres
+  tools: [Read, mcp__plugin_postgres_postgres]
+  disallowed_tools: [mcp__plugin_postgres_postgres__run_sql]
 ```
 
-The Agent gets every tool of every server it uses, unless its two lists, in
+The Agent gets every tool of every plugin it lists, unless its two lists, in
 Claude Code's names, say otherwise: `tools` keeps only the entries listed, and
-`disallowed_tools` removes entries first. `mcp__<server-slug>` names every tool
-of one server and `mcp__<server-slug>__<tool>` one tool. This Agent can read
-files and use the Postgres server, but never `run_sql`, and cannot run shell
-commands or write files. See [Approval Flows](/docs/concepts/approval-flows) for
-everything the lists cover.
+`disallowed_tools` removes entries first. `mcp__plugin_<plugin>_<server>` names
+every tool of one server and `mcp__plugin_<plugin>_<server>__<tool>` one tool; a
+server added with `stigmer mcp add` has the plugin's name, so `postgres` above
+is both. This Agent can read files and use the Postgres server, but never
+`run_sql`, and cannot run shell commands or write files. See
+[Approval Flows](/docs/concepts/approval-flows) for everything the lists cover.
 
-For a hands-on guide to wiring tools to an Agent and running a Session, see the
+For a hands-on walk through adding a server and running a Session on it, see the
 [Connect your tools](/docs/getting-started/connect-tools) tutorial.
 
 ## What's next

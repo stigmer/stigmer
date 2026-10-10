@@ -53,7 +53,7 @@ Stigmer provides the runtime layer that makes Agents production-ready:
     "  subgraph stigmer [Stigmer Platform]",
     '    runtime["Agent Runtime"]',
     '    runtime --> skillsNode["Skills<br/>(domain knowledge)"]',
-    '    runtime --> mcpServers["MCP Servers<br/>(tool access)"]',
+    '    runtime --> pluginsNode["Plugins<br/>(tools through MCP servers)"]',
     '    runtime --> approvals["Approval Flows<br/>(human oversight)"]',
     '    runtime --> sessionsNode["Sessions<br/>(conversation memory)"]',
     "  end",
@@ -164,7 +164,7 @@ The key resources you'll learn about in the following pages:
 | -------------------------------------------- | --------------------------------------------------------------------------------- |
 | [Agent](/docs/concepts/agents)               | A blueprint that defines what an Agent does — its instructions, Skills, and tools |
 | [Skill](/docs/concepts/skills)               | A piece of domain knowledge that makes an Agent an expert in your business        |
-| [MCP Server](/docs/concepts/tools)           | A tool connection that lets an Agent interact with external systems               |
+| [Plugin](/docs/concepts/tools)               | An installed package of Skills, agents, hooks and the MCP servers that give tools |
 | [Session](/docs/concepts/sessions)           | A conversation context that preserves memory across interactions                  |
 | [Vault](/docs/concepts/vaults)               | The logins and secrets a person's or a team's runs use                            |
 | [Organization](/docs/concepts/organizations) | A tenant boundary that groups resources and teams                                 |

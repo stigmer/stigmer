@@ -73,9 +73,9 @@ keeps its manifest in one): zip the folder and upload the `.zip` instead.
 
 Before anything is pushed, the console reads the plugin's files and shows the
 same description `stigmer validate -f` prints: the plugin's name, version and
-format; the Skills, MCP Servers and Sub-Agents it installs; its hooks, counted
-per event; the variables its tools and hooks need; the reader's warnings, which
-name every hook the plugin carries that Stigmer does not run; and what is not
+format; the Skills, MCP servers and Sub-Agents it holds; its hooks, counted per
+event; the variables its tools and hooks need; the reader's warnings, which name
+every hook the plugin carries that Stigmer does not run; and what is not
 installed (rules, commands and the other components Stigmer does not read). A
 plugin the reader refuses is shown with every problem named, the way the CLI
 prints it.
@@ -85,53 +85,54 @@ The preview also states one fact the CLI states only after the act:
 - **Already installed**: your Organization holds this exact version. Install is
   not offered; there is nothing to do.
 - **Upgrade**: your Organization holds another version, from whichever source it
-  came. Installing replaces the plugin's Skills, MCP Servers and Agent with this
-  version's. The Agent is re-created, so a Session bound to the previous one
-  does not follow it.
+  came. Installing makes this version the installed one: every Agent and
+  conversation that lists the plugin without a version uses it from its next
+  turn.
 
-## Install, sign in, and start a Session
+## Install, sign in, and start a chat
 
 Choose **Install** (or **Upgrade**). The console pushes the archive and opens
-the plugin's page, which is where the install ends: it lists what the install
-produced, each a link to its own page; the plugin's hooks, with every command
-each runs and, under **Not run on Stigmer**, the hooks Stigmer leaves out; the
-manifest's version, format and author; and the server's other install warnings.
+the plugin's page, which is where the install ends. Install stores the plugin
+and nothing beside it, so the page is where everything it holds is listed: its
+MCP servers; its Skills and agents, by the names a turn uses
+(`<plugin>:<skill>`); its hooks, with every command each runs and, under **Not
+run on Stigmer**, the hooks Stigmer leaves out; the keys it reads; the
+manifest's version, format and author; and the push's other warnings.
 
-Each MCP Server the plugin installed says, on its row, what stands between it
+Each MCP server says, on its row, how it is reached and what stands between it
 and its first tool call. A server that signs in with OAuth and has no sign-in in
-your Organization yet carries **Sign in**; choose it, grant access in the window
-that opens, and the row reads **Signed in**. The sign-in is saved in your own
-vault: it serves your Sessions, and each teammate signs in for themselves. A
-server that wants an API key names the variables and where they are asked. A
-server that needs nothing says nothing.
+your vault yet carries **Sign in**; choose it, grant access in the window that
+opens, and the row reads **Signed in**. The sign-in is saved in your own vault:
+it serves your conversations, and each teammate signs in for themselves. A
+server that wants an API key names the keys. **Check tools** asks the server for
+its tools right now, as you, and lists them, marking the ones the server calls
+destructive; nothing is stored, so check again whenever you want the current
+list.
 
-What comes next depends on what the plugin brought. When it carries an Agent,
-**Start session** is the page's primary action; the Agent declares the variables
-its tools need, so the first Session asks for them and saves them to your own
-[vault](/docs/concepts/vaults), and from then on they are supplied to every
-Session on that Agent without asking. When it carries tools and no Agent, or
-hooks, the page offers **Use with an agent**: **Add to an agent** puts the
-servers and switches the hooks on for an Agent you already run (an Agent a
-plugin installed cannot take them; the dialog says so) or, through **Create a
-new agent with these tools**, opens the agent wizard with the servers already
-chosen. [Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks)
-covers the hooks.
+Under **Use this plugin**, the page offers the two ways in. **Start a chat**
+opens a conversation with the built-in assistant that lists the plugin, so its
+Skills, agents, hooks and tools are there from the first message. **Add to an
+agent** lists the plugin in one of your Agents' `plugins` in one save; the
+dialog tells you when that Agent already has it, and when the Agent's own
+`tools` list leaves the plugin's servers out, because the add alone would not
+let it call them.
+[Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks) covers the
+hooks.
 
-A Session on an Agent whose server nobody has signed in to yet asks for the
-sign-in before the first message, the way it asks for a missing variable.
+A conversation whose plugin's server nobody has signed in to yet asks for the
+sign-in before the first message, the way it asks for a missing key.
 
-A Skill, MCP Server or Agent a plugin installed says so at the top of its page
-and is not editable there: the plugin's resources are the plugin's to redefine.
-To change one, change the plugin and install it again; to customise, compose
-your own Agent over the plugin's Skills and MCP Servers.
+A plugin's Skills, agents and servers live in its archive and are not edited in
+the console. To change one, change the plugin and install it again; to
+customise, write your own Agent that lists the plugin and adds its own
+instructions and tool lists.
 
 ## Remove
 
-From the plugin's page, **Remove** deletes the plugin and every Skill, MCP
-Server and Agent it installed, the same act as `stigmer delete plugin`. The
-server refuses when something outside the plugin still references one of them,
-and the console shows that refusal as the server phrases it, naming what still
-uses the member.
+From the plugin's page, **Remove** deletes the plugin, the same act as
+`stigmer delete plugin`. The server refuses while an Agent of your Organization
+lists the plugin, and the console shows that refusal as the server phrases it,
+naming the Agents.
 
 ## What the console does and does not do
 

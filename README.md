@@ -65,7 +65,7 @@ Every capability is exposed via gRPC with public protobuf contracts. Generate ty
 
 ### Agents
 
-An Agent has instructions, optional MCP servers for tool access, and optional model configuration.
+An Agent has instructions, optional plugins for skills and tools (a plugin is the only home of an MCP server), and optional model configuration.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -77,13 +77,13 @@ spec:
     You are a helpful customer support agent.
     Answer questions politely and accurately.
     Check GitHub issues for known problems.
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: github
+  plugins:
+    - kind: plugin
+      slug: github
 ```
 
 ```bash
+stigmer install github          # the plugin that carries GitHub's MCP server
 stigmer apply -f agent.yaml
 stigmer run support-bot "What's the status of issue #42?"
 ```

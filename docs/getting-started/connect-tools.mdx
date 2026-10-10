@@ -8,9 +8,9 @@ description:
 ## What you'll build
 
 An Agent that can **look up real data**, **take actions on your behalf**, and
-**ask for human approval** before doing anything risky. You will connect an MCP
-server, see its tools appear automatically, with the risky ones marked, and wire
-everything into your code.
+**ask for human approval** before doing anything risky. You will add an MCP
+server, see its tools with the risky ones marked, and wire everything into your
+code.
 
 **Time**: ~15 minutes **Prerequisites**: Completed
 [Your first Skill](/docs/getting-started/first-skill)
@@ -36,13 +36,15 @@ and an external system — an API, a database, an internal service. Stigmer
 connects to any server that speaks the
 [Model Context Protocol](https://modelcontextprotocol.io/).
 
+In Stigmer an MCP server always lives in a plugin, the package that can carry
+Skills and hooks as well. A server you add by its address becomes a plugin of
+its own, holding that one server.
+
 <Callout type="info">
-  Many MCP servers arrive ready-made as plugins: install one from a marketplace
-  and its servers are created for you, with the Agent that uses them (see
-  [Install a plugin from a
+  Many MCP servers arrive ready-made in plugins: install one from a marketplace
+  and its servers come with it (see [Install a plugin from a
   marketplace](/docs/guides/plugins/install-from-a-marketplace)). This tutorial
-  walks through creating one from scratch so you understand how MCP server
-  definitions work.
+  adds one server by its address, so you see every step.
 </Callout>
 
 <Steps>
@@ -50,79 +52,71 @@ connects to any server that speaks the
 
 ## Add an MCP server
 
-1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Library → MCP
-   Servers**.
-2. Click **Add MCP Server**. You can start from scratch, pick a pre-built
-   template, or import a YAML file you already have. Choose **Start from
-   scratch** to open the creation wizard.
-3. Walk the wizard's three steps: **Identity & Transport** (name the server and
-   say how Stigmer reaches it), **Variables & Sign-in** (declare the variables
-   and secrets it needs at runtime), and **Review & Create**.
+Your order management service answers MCP at an address, say
+`https://orders.example.com/mcp`.
 
-For an HTTP server, the wizard needs the endpoint URL. For a stdio server (a
-command-line tool), it needs the command — `npx` for an npm package or the path
-to a Go binary. The form validates as you go: skip a required field and the step
-tells you exactly what's missing. If creation fails on the server — a taken
-slug, for example — the exact error appears inline so you can adjust and
-resubmit.
+1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Library →
+   Plugins**.
+2. Click **Add MCP server**. The form asks for a name, the server's URL, what it
+   is for, and optional headers.
+3. Name it `order-management-api`, paste the URL, and click **Add**. Stigmer
+   builds a plugin holding that one server, named after it, installs it in your
+   Organization, and opens the plugin's page.
 
 Here is what that flow looks like:
 
 <ScenarEmbed
   id="mcp-server-creation-tour"
-  title="MCP server creation walkthrough"
+  title="Add an MCP server walkthrough"
 />
 
-4. On **Review & Create**, check the summary and the YAML preview, then click
-   **Create MCP server** to save it to your Organization's library.
+The CLI does the same in one line:
+
+```bash
+stigmer mcp add order-management-api https://orders.example.com/mcp
+```
+
+A server that takes an API key instead of a sign-in gets it in a header, such as
+`Authorization` with the value `Bearer ${ORDER_API_KEY}`. The `${ORDER_API_KEY}`
+names a key in your vault; its value is never written into the plugin.
 
 <Callout type="info">
-  Stigmer supports both **HTTP** servers (REST APIs, webhooks) and **stdio**
-  servers (CLI tools via `npx`, `go run`, or local binaries). The wizard handles
-  either — the transport step adapts to your choice. Stdio servers run only on
-  local runners (the desktop app or `stigmer server`); sessions on
-  Stigmer-managed cloud compute require HTTP servers.
-</Callout>
-
-<Callout type="info">
-  The form is YAML underneath: the review step shows the exact `McpServer`
-  manifest being created. If you already have one, choose **Import from file**
-  instead (the console counterpart of `stigmer apply -f`) — or ask the **MCP
-  Server Creator** agent in your Library to draft it from a description.
+  A server at an address works in local and hosted conversations alike. A server
+  that runs as a local program (through `npx`, `uvx` or a binary) is written
+  into a plugin folder instead (see [Install a
+  plugin](/docs/guides/plugins/install-a-plugin)), and runs only where your own
+  runner runs: the desktop app or the CLI.
 </Callout>
 
 </Step>
 <Step>
 
-## Connect
+## Sign in and see its tools
 
-Your MCP server is registered, but Stigmer doesn't know what tools it provides
-yet. Connecting reaches out to the live server and catalogs every tool, with the
-notes the server keeps about each one — one flow, started from one button.
+The plugin's page shows its one server and what stands before its first tool
+call. This server asks you to sign in: when it was added, Stigmer asked its
+address once, and it answered with an OAuth challenge.
 
-1. Open the MCP server detail page.
-2. Click **Connect**. If the server needs credentials (API keys, tokens),
-   Stigmer asks for them right there — the form appears below the Connect bar
-   before anything is sent.
-3. Enter the credentials and click **Save**. Stigmer saves them in your
-   [My vault](/docs/concepts/vaults), where they are never shown again, connects
-   to the live server, and starts discovery. This takes a few seconds — it's
-   talking to the real endpoint.
-
-When discovery finishes, the Tools tab fills in. A tool the server marks
-destructive (its author set the MCP annotation `destructiveHint: true`) asks for
-human approval before it runs. Every other tool runs without asking, unless an
-Agent's hooks say otherwise:
+1. On the server's row, click **Sign in** and finish the login on the provider's
+   own page. Stigmer never sees your password: the token it gets back is saved
+   in your [My vault](/docs/concepts/vaults), and the row reads **Signed in**.
+2. Click **Check tools**. Stigmer asks the server for its tools right now, as
+   you, and stores nothing.
 
 <ScenarEmbed
   id="mcp-server-connect-tour"
-  title="Connect and discover tools walkthrough"
+  title="Sign in and check tools walkthrough"
 />
 
-In this example, three tools were found: `get_order`, `list_orders`, and
-`process_return`. The server marks `process_return` destructive, so it asks for
-human approval — the Agent will pause and present the action details before
-executing. The first two run automatically.
+From the CLI, `stigmer connect plugin order-management-api` signs in when the
+server needs it and prints the same list.
+
+In this example, three tools come back: `get_order`, `list_orders`, and
+`process_return`. A tool the server marks destructive (its author set the MCP
+annotation `destructiveHint: true`) is shown as **Destructive** and asks for
+human approval before it runs. The server marks `process_return` destructive, so
+the Agent will pause and present the action details before executing it. The
+first two run automatically.
 
 <Callout type="info">
   The server's author decides which tools are destructive, and every Agent that
@@ -136,9 +130,9 @@ executing. The first two run automatically.
 
 ## Connect the tools in your code
 
-Open the code from the previous guides. Add `mcpServerRefs` to your Session
-creation — this tells the Agent which tools are available alongside the domain
-knowledge.
+Open the code from the previous guides. Add the plugin to your Session creation
+with `plugins` — this gives the conversation the server's tools alongside the
+domain knowledge.
 
 <Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
 <Tab value="TypeScript">
@@ -150,7 +144,7 @@ const session = await stigmer.session.create({
   name: `session-${Date.now()}`,
   org: "my-org",
   skillRefs: [{ org: "my-org", slug: "return-policy" }],
-  mcpServerRefs: [{ org: "my-org", slug: "order-management-api" }],
+  plugins: [{ org: "my-org", slug: "order-management-api" }],
 });
 ```
 
@@ -166,7 +160,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
     SkillRefs: []stigmer.ResourceRef{
         {Org: "my-org", Slug: "return-policy"},
     },
-    McpServerRefs: []stigmer.ResourceRef{
+    Plugins: []stigmer.ResourceRef{
         {Org: "my-org", Slug: "order-management-api"},
     },
 })
@@ -185,7 +179,7 @@ session = client.sessions.create(SessionInput(
     name=f"session-{ts}",
     org="my-org",
     skill_refs=[ResourceRef(org="my-org", slug="return-policy")],
-    mcp_server_refs=[ResourceRef(org="my-org", slug="order-management-api")],
+    plugins=[ResourceRef(org="my-org", slug="order-management-api")],
 ))
 ```
 
@@ -202,7 +196,7 @@ var session = client.sessions().create(
         .skillRefs(List.of(
             ResourceRef.of("my-org", "return-policy")
         ))
-        .mcpServerRefs(List.of(
+        .plugins(List.of(
             ResourceRef.of("my-org", "order-management-api")
         ))
         .build()
@@ -212,8 +206,8 @@ var session = client.sessions().create(
 </Tab>
 </Tabs>
 
-Replace `order-management-api` with the slug of the MCP server you created.
-Update the message to ask something that requires a data lookup:
+Replace `order-management-api` with the name you gave the server. Update the
+message to ask something that requires a data lookup:
 
 ```
 "What's the status of order #ORD-4821?"
@@ -451,15 +445,16 @@ The return has been processed.
 
 ## What just happened
 
-You connected tools to your Agent through an MCP server. Connect discovered the
-tools and which of them ask for approval automatically. In your code, two
-changes made the difference: `mcpServerRefs` to give the Agent access to tools,
-and `submitApproval` to handle the human-in-the-loop flow.
+You gave your Agent tools by adding an MCP server, which Stigmer installed as a
+plugin of one server. The server itself says which of its tools ask for
+approval. In your code, two changes made the difference: `plugins` to give the
+conversation the server's tools, and `submitApproval` to handle the
+human-in-the-loop flow.
 
 Your Agent now knows your domain (Skills), uses your tools (MCP servers), and
 asks before risky actions (approvals). But look at your Session creation code —
-every time you create a Session, you list every Skill and every MCP server. Add
-a new feature tomorrow, and you'll copy-paste that list again. A colleague
+every time you create a Session, you list every Skill and every plugin. Add a
+new feature tomorrow, and you'll copy-paste that list again. A colleague
 building the checkout page won't know which references to include. And the Agent
 has no personality — it uses a generic prompt for every interaction.
 
@@ -473,8 +468,8 @@ name, role, and instructions — then reference it with a single line.
     href="/docs/guides/plugins/install-from-a-marketplace"
     title="Install a plugin from a marketplace"
   >
-    Get ready-made MCP servers, and the Agent that uses them, by name from a
-    marketplace instead of writing a definition.
+    Get ready-made MCP servers, with the Skills and agents that use them, by
+    name from a marketplace instead of adding each server yourself.
   </Card>
   <Card
     href="/docs/guides/integrations/oauth-for-tools"

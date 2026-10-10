@@ -60,11 +60,11 @@ definitions, API names, and examples follow below.
 | **Skill**         | domain knowledge | Skill ("domain knowledge")             | Skill               | Skill, `skill_refs`                    | Skill          |
 | **Plugin**        | plugin           | plugin ("what you install")            | Plugin              | Plugin, `kind: Plugin`                 | plugin         |
 | **Marketplace**   | marketplace      | Marketplace ("where you install from") | Marketplace         | Marketplace; source, `stigmer install` | marketplace    |
-| **MCP Server**    | tools            | MCP server ("tool connection")         | MCP Server          | McpServer, `mcp_server_usages`         | MCP server     |
+| **MCP server**    | tools            | MCP server ("tool connection")         | MCP server          | `PluginStatus.mcp_servers`, `plugins`  | MCP server     |
 | **Session**       | conversation     | Session ("conversation")               | Session             | Session, `kind: Session`               | Session        |
 | **Runner**        | compute          | runner ("where your Agent runs")       | Runner              | Runner                                 | runner         |
 | **Harness**       | execution engine | harness ("execution engine")           | Harness             | Harness, `SessionSpec.harness`         | harness        |
-| **Approval flow** | approval flow    | approval flow                          | approval flow, HITL | `destructive_hint`, `submitApproval`   | HITL, approval |
+| **Approval flow** | approval flow    | approval flow                          | approval flow, HITL | `destructiveHint`, `submitApproval`    | HITL, approval |
 | **Organization**  | Organization     | Organization                           | Organization        | Organization, `kind: organization`     | Organization   |
 | **Team**          | teams            | ---                                    | Team                | Team, `kind: team`                     | Team           |
 | **Vault**         | vault            | vault ("your keys and logins")         | Vault               | Vault, `kind: Vault`                   | vault          |
@@ -113,8 +113,8 @@ A reusable definition of what an AI assistant knows and can do.
   `agent/v1/spec.proto`, `agent/v1/api.proto`. CLI:
   `stigmer apply -f agent.yaml`, `stigmer run <name>`,
   `stigmer get agent <name>`, `stigmer list agent`.
-- **YAML fields**: `spec.instructions`, `spec.mcp_server_usages` (repeated
-  `McpServerUsage` entries, each containing `mcp_server_ref`).
+- **YAML fields**: `spec.instructions`, `spec.plugins` (references with
+  `kind: plugin`, each plugin attached whole), `spec.skill_refs`, `spec.tools`.
 
 **Good examples**:
 
@@ -170,10 +170,10 @@ A piece of knowledge you attach to an Agent so it has domain expertise.
 
 #### Plugin
 
-A package you install to add capabilities to your Organization: skills, MCP
-servers, and the agent that uses them, as one unit. A plugin is what you
-install; it installs an agent, tools for your agents, or both (a plugin that is
-only MCP servers installs its servers and no agent of its own).
+A package you install to add capabilities to your Organization: skills, agents,
+hooks and MCP servers, as one unit. A plugin is the only home of an MCP server.
+Installing it stores the plugin alone; an Agent or a conversation that lists it
+in `plugins` gets all of it.
 
 - **User-facing alternative**: none needed. "Plugin" is the word the Cursor,
   Claude Code and Codex communities already use for the same package, and
@@ -182,44 +182,48 @@ only MCP servers installs its servers and no agent of its own).
   kind"); lowercase for the package in the wild ("install a plugin").
 - **API surface**: `kind: Plugin`, prefix `plg`. proto: `plugin/v1/spec.proto`,
   `plugin/v1/command.proto`. CLI: `stigmer push plugin <dir>` (install or
-  upgrade), `stigmer get|list|delete plugin`, `stigmer validate -f <dir>`
-  (offline check). Console: Library > Plugins lists what is installed and offers
-  the two ways in: "Browse Marketplace" opens the Marketplace page, and "Upload
-  plugin" installs a folder or a `.zip` from your computer (the console's
-  `stigmer push plugin`); a plugin's page is where an install ends: it shows
-  what it installed, says per MCP server what stands before its first tool call
-  ("Sign in", "Signed in", the variables it needs, or nothing), starts a session
-  on its agent, lists its hooks with every command each runs beside the ones
-  Stigmer does not run, and offers "Add to an agent" for a plugin with tools and
-  no agent or with hooks; "Remove" is the console's word for `delete plugin`. A
-  plugin is never authored as YAML: its spec is read from the package manifest.
+  upgrade), `stigmer mcp add <name> <url>` (a plugin of one MCP server),
+  `stigmer connect plugin <plugin>` (sign in and list a server's tools),
+  `stigmer run --plugin <ref>`, `stigmer get|list|delete plugin`,
+  `stigmer validate -f <dir>` (offline check). Console: Library > Plugins lists
+  what is installed and offers "Add MCP server" beside the two ways in: "Browse
+  Marketplace" opens the Marketplace page, and "Upload plugin" installs a folder
+  or a `.zip` from your computer (the console's `stigmer push plugin`); a
+  plugin's page is where an install ends: it shows what the plugin holds, says
+  per MCP server what stands before its first tool call ("Sign in", "Signed in",
+  the variables it needs, or nothing), starts a session on its agent, lists its
+  hooks with every command each runs beside the ones Stigmer does not run,
+  offers "Sign in" and "Check tools" per server, and "Start a chat" and "Add to
+  an agent" (the plugin listed in that agent's `plugins`); "Remove" is the
+  console's word for `delete plugin`. A plugin is never authored as YAML: its
+  spec is read from the package manifest.
 - **File structure**: A plugin is a directory holding a manifest (`plugin.json`,
   `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
-  `.codex-plugin/plugin.json`), `skills/`, `mcp.json`, `agents/`, `hooks/`, and
-  Stigmer's own `ai.stigmer/` overlay. Installing it materializes ordinary
-  Skills, MCP Servers and an Agent, each labelled with the plugin's id; those
-  resources are the plugin's to redefine, so you change the plugin and push it
-  again rather than editing them, or compose your own Agent over them.
-- **What it is not**: a plugin does not run on its own. The Agent it installs
-  runs, in a Session, on a Runner, exactly like an Agent you wrote by hand; the
-  plugin's hooks run within the tool calls of each Agent that names the plugin.
+  `.codex-plugin/plugin.json`), `skills/`, `mcp.json`, `agents/` and `hooks/`.
+  Stigmer-only settings go in the manifest's `extensions["ai.stigmer"]`; an
+  `ai.stigmer/` folder is not read, and install warns about it. Installing it
+  writes one resource, whose status lists the skills, agents and MCP servers the
+  archive holds; to change them you change the plugin and push it again.
+- **What it is not**: a plugin does not run on its own. An Agent or a
+  conversation that lists it runs, in a Session, on a Runner; the plugin's
+  skills, agents, hooks and servers join that run.
 
 **Good examples**:
 
 | Context    | Copy                                                                                                                                |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Sales site | "Bring your Cursor, Claude or Codex plugin. Install it on Stigmer and run it remotely."                                             |
-| Quickstart | "Install a plugin---a folder of skills and tools---and you get an agent you can talk to."                                           |
-| Concepts   | "A plugin is a toolbox. An agent is the worker who picks it up. Installing the toolbox gives you a worker who knows how to use it." |
-| Reference  | "`Plugin`---the unit of install. `PluginCommandController.push` materializes its members; `listMembers` lists them."                |
+| Quickstart | "Install a plugin---a folder of skills and tools---and turn it on for your chat."                                                   |
+| Concepts   | "A plugin is a toolbox. An agent is the worker who picks it up. Listing the toolbox on an agent gives the worker everything in it." |
+| Reference  | "`Plugin`---the unit of install. `PluginCommandController.push` stores it; `status` lists the skills, agents and servers it holds." |
 
 **Bad examples**:
 
-| Context    | Copy                                      | Problem                                                              |
-| ---------- | ----------------------------------------- | -------------------------------------------------------------------- |
-| Quickstart | "Run the plugin."                         | Plugins do not run; the agent it installed does.                     |
-| Concepts   | "Edit the plugin's skill in the console." | Members are the plugin's to redefine; the console shows the refusal. |
-| Reference  | "Apply the plugin YAML."                  | A plugin has no YAML; it is pushed as its folder.                    |
+| Context    | Copy                                      | Problem                                                               |
+| ---------- | ----------------------------------------- | --------------------------------------------------------------------- |
+| Quickstart | "Run the plugin."                         | Plugins do not run; the agent or chat that lists it does.             |
+| Concepts   | "Edit the plugin's skill in the console." | A plugin's skills live in its archive; change the plugin, push again. |
+| Reference  | "Apply the plugin YAML."                  | A plugin has no YAML; it is pushed as its folder.                     |
 
 ---
 
@@ -293,46 +297,48 @@ on offer by default.
 
 ---
 
-#### MCP Server
+#### MCP server
 
-An external tool connection that lets an Agent interact with other systems.
+An external tool connection that lets an Agent interact with other systems. In
+Stigmer an MCP server lives only inside a plugin; it is not a resource of its
+own.
 
 - **User-facing alternative**: "tools" or "tool access" on the sales site. "Tool
-  connection" in introductory docs. Use "MCP server" (lowercase "s") in
-  tutorials after first mention. Use "MCP Server" (capitalized) in concept pages
-  and reference docs.
-- **Capitalize**: Yes, when referring to the Stigmer resource. "MCP server"
-  (lowercase "server") is acceptable in casual tutorial prose after the concept
-  has been introduced.
-- **API surface**: `kind: McpServer`, prefix `mcp`. proto:
-  `mcpserver/v1/spec.proto`, `mcpserver/v1/command.proto`. CLI:
-  `stigmer mcp-server` (start the Stigmer MCP server),
-  `stigmer apply -f mcpserver.yaml`, `stigmer get mcp-server <name>`.
-- **YAML fields**: `spec.stdio_server_config`, `spec.http_server_config`,
-  `status.discovered_capabilities.tools[].destructive_hint` (recorded by Connect
-  from the tool's MCP `destructiveHint` annotation). Agent references via:
-  `spec.mcp_server_usages` (repeated `McpServerUsage` entries with
-  `mcp_server_ref`); the Agent narrows a server's tools with `spec.tools` and
-  `spec.disallowed_tools` (`mcp__<server-slug>`, `mcp__<server-slug>__<tool>`).
+  connection" in introductory docs. "MCP server" everywhere else.
+- **Capitalize**: "MCP server", lowercase "server", in every context: it is part
+  of a plugin, not a Stigmer resource kind.
+- **API surface**: `PluginStatus.mcp_servers` (`McpServerEntry`: `name`, `stdio`
+  or `http`, `env`, `sign_in`), `PluginCommandController.listTools`. CLI:
+  `stigmer mcp add <name> <url>` (install one server as a plugin),
+  `stigmer connect plugin <plugin>` (sign in and list its tools). Not to be
+  confused with `stigmer mcp-server`, which starts Stigmer's own MCP server for
+  IDEs. Console: Library > Plugins > "Add MCP server"; a plugin's page shows
+  "Sign in" and "Check tools" per server.
+- **YAML fields**: an Agent or Session lists plugins in `spec.plugins`; the
+  Agent narrows a plugin server's tools with `spec.tools` and
+  `spec.disallowed_tools` (`mcp__plugin_<plugin>_<server>`,
+  `mcp__plugin_<plugin>_<server>__<tool>`). A tool asks first when its server's
+  MCP annotation says `destructiveHint: true`, read live each turn.
 - **Protocol**: MCP stands for Model Context Protocol, an open standard. Spell
   out on first use in any context. Link to `https://modelcontextprotocol.io` in
   docs.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                                                 |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sales site | "Connect your Agent to your systems. It checks inventory, creates tickets, updates records---with the same APIs your team already uses."                                             |
-| Quickstart | "Give your Agent tools by adding an MCP server---a connection to an external system like GitHub, a database, or a file store."                                                       |
-| Concepts   | "An MCP Server is a bridge between your Agent and an external system. The Agent discovers what tools are available, and Stigmer handles input validation and execution sandboxing."  |
-| Reference  | "`McpServer`---a managed resource defining an MCP server connection. Supports `stdio` and `http` transport. Tools are discovered via the MCP protocol when the server is connected." |
+| Context    | Copy                                                                                                                                                  |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Connect your Agent to your systems. It checks inventory, creates tickets, updates records---with the same APIs your team already uses."              |
+| Quickstart | "Give your Agent tools by adding an MCP server---a connection to an external system like GitHub, a database, or a file store."                        |
+| Concepts   | "An MCP server is a bridge between your Agent and an external system. It lives in a plugin; the Agent that lists the plugin gets the server's tools." |
+| Reference  | "`McpServerEntry`---one MCP server a plugin carries, a local program (`stdio`) or an address (`http`). Its tools are listed live, never stored."      |
 
 **Bad examples**:
 
-| Context    | Copy                                             | Problem                                                                                                                |
-| ---------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Configure MCP servers for tool integration."    | Technical jargon. Say "connect your tools."                                                                            |
-| Quickstart | "Set up the McpServerUsage with mcp_server_ref." | proto message names in a tutorial. Say "add an MCP server to your Agent." Show the YAML by example, not by field name. |
+| Context    | Copy                                              | Problem                                                                                                             |
+| ---------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Configure MCP servers for tool integration."     | Technical jargon. Say "connect your tools."                                                                         |
+| Quickstart | "Set up the McpServerEntry in the plugin status." | proto message names in a tutorial. Say "add an MCP server." Show the command or YAML by example, not by field name. |
+| Any        | "Create an MCP Server resource."                  | There is no MCP server kind; a server lives in a plugin. Say "add an MCP server" (`stigmer mcp add`).               |
 
 ---
 
@@ -351,20 +357,20 @@ An ongoing conversation with an Agent across multiple messages.
   conversation runs until someone updates it), `thread_id` (persists across
   runs), `subject` (display title), `workspace_entries`, `sandbox_id`, `vaults`
   (the vaults the conversation uses, in order) and `include_my_vault` (use each
-  sender's own My vault first). Sessions can add `mcp_server_usages` and
-  `skill_refs` to the Agent's; the Agent's tool lists still govern every tool.
+  sender's own My vault first). Sessions can add `plugins` and `skill_refs` to
+  the Agent's; the Agent's tool lists still govern every tool.
 - **Related terms**: A Session contains multiple runs. Each message exchange
   within a Session is one run. The proto also uses `MessageType` (HUMAN, AI,
   TOOL, SYSTEM) for individual messages.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                                    |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Your Agent remembers the conversation. Ask a follow-up question tomorrow---it picks up where you left off."                                                            |
-| Quickstart | "Start a Session---an ongoing conversation where your Agent remembers what was said."                                                                                   |
-| Concepts   | "A Session is a container for a multi-turn conversation. It holds the message history, attached Skills, and tool connections for that conversation."                    |
-| Reference  | "`Session`---a multi-turn conversation container. Persists message history via `thread_id`. Merges Agent-level and Session-level `skill_refs` and `mcp_server_usages`." |
+| Context    | Copy                                                                                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Your Agent remembers the conversation. Ask a follow-up question tomorrow---it picks up where you left off."                                                  |
+| Quickstart | "Start a Session---an ongoing conversation where your Agent remembers what was said."                                                                         |
+| Concepts   | "A Session is a container for a multi-turn conversation. It holds the message history, attached Skills, and tool connections for that conversation."          |
+| Reference  | "`Session`---a multi-turn conversation container. Persists message history via `thread_id`. Merges Agent-level and Session-level `skill_refs` and `plugins`." |
 
 **Bad examples**:
 
@@ -476,7 +482,7 @@ action before proceeding.
 - **API surface**: There is no single `ApprovalFlow` resource. Approval is
   tool-call approval, by default not configured: Stigmer asks before shell
   commands, file writes and deletes, and MCP tools whose server marks them
-  destructive (`destructive_hint`). An Agent's hooks (`hooks`) decide call by
+  destructive (`destructiveHint`). An Agent's hooks (`hooks`) decide call by
   call: refuse, ask, or allow. Its `tools` and `disallowed_tools` lists decide
   which tools it has at all. Submitted via
   `RunCommandController.submitApproval`. Statuses: `TOOL_CALL_WAITING_APPROVAL`,
@@ -484,19 +490,19 @@ action before proceeding.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                                                                                                     |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sales site | "Your Agent handles routine requests on its own. For anything risky, it asks a human first. You decide which tools it can use."                                                                                          |
-| Quickstart | "Your Agent asks before risky actions---shell commands, file changes, and any tool its server marks destructive."                                                                                                        |
-| Concepts   | "An approval flow is a checkpoint. The Agent pauses, presents what it wants to do and why, and waits for a human to approve or reject. The Agent's run is durable---it waits indefinitely without losing state."         |
-| Reference  | "Tool-call approval is required for shell commands, file writes and deletes, and MCP tools with `destructive_hint`. `auto_approve_all` resolves every approval for one run; `tools` and `disallowed_tools` still apply." |
+| Context    | Copy                                                                                                                                                                                                                    |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Your Agent handles routine requests on its own. For anything risky, it asks a human first. You decide which tools it can use."                                                                                         |
+| Quickstart | "Your Agent asks before risky actions---shell commands, file changes, and any tool its server marks destructive."                                                                                                       |
+| Concepts   | "An approval flow is a checkpoint. The Agent pauses, presents what it wants to do and why, and waits for a human to approve or reject. The Agent's run is durable---it waits indefinitely without losing state."        |
+| Reference  | "Tool-call approval is required for shell commands, file writes and deletes, and MCP tools with `destructiveHint`. `auto_approve_all` resolves every approval for one run; `tools` and `disallowed_tools` still apply." |
 
 **Bad examples**:
 
 | Context    | Copy                                    | Problem                                                                    |
 | ---------- | --------------------------------------- | -------------------------------------------------------------------------- |
 | Sales site | "Enable HITL for sensitive operations." | "HITL" is internal jargon.                                                 |
-| Quickstart | "Set `destructive_hint` on the tool."   | API-level detail in a tutorial. Say "the server marks the tool risky."     |
+| Quickstart | "Set `destructiveHint` on the tool."    | API-level detail in a tutorial. Say "the server marks the tool risky."     |
 | Any        | "Set up human-in-the-loop."             | Hyphenated compound used as an instruction. Prefer "add an approval flow." |
 
 ---
@@ -506,18 +512,19 @@ action before proceeding.
 A command that runs around an Agent's tool calls, in Claude Code's or Cursor's
 hooks format. Before a call it can refuse it, ask a person first, or let it run
 without the approval it would otherwise need; after a call it can tell the Agent
-something about the result. A plugin brings hooks, or an Agent carries a block
-written in it.
+something about the result. A plugin brings hooks to every Agent or conversation
+that lists it, or an Agent carries a block written in it.
 
 - **User-facing alternative**: none needed. "Hook" is the word Claude Code and
   Cursor use, and Stigmer runs their plugins' hooks unchanged.
 - **Capitalize**: No. A hook is part of a plugin or an Agent, not a Stigmer
   resource kind: "the plugin's hooks", "switch the hooks on for an Agent".
-- **API surface**: `AgentSpec.hooks` (a plugin reference or an inline block),
-  `PluginStatus.hooks` (what a plugin recorded at install), `HookConfig` in
-  `plugin/v1/hooks.proto`. Console: the plugin's page and the Agent's page list
-  every hook with the command it runs; "Add to an agent" switches a plugin's
-  hooks on. Approvals a hook decides read "decided by the agent's hook" or
+- **API surface**: `AgentSpec.hooks` (an inline block), `AgentSpec.plugins` and
+  `SessionSpec.plugins` (a listed plugin's hooks run), `PluginStatus.hooks`
+  (what a plugin recorded at install), `HookConfig` in `plugin/v1/hooks.proto`.
+  Console: the plugin's page and the Agent's page list every hook with the
+  command it runs; "Add to an agent" switches a plugin's hooks on with the rest
+  of the plugin. Approvals a hook decides read "decided by the agent's hook" or
   "decided by the `<plugin>` plugin's hook".
 - **What it is not**: a webhook, or a React hook in the SDK. Stigmer runs
   command hooks on tool calls only; a plugin's hooks on other events are listed
@@ -877,7 +884,7 @@ whatever roles its person holds elsewhere.
   their Organizations.
 - **Reach**: its Organization's resources; the person's own account, and their
   API keys limited to the same Organization; in a child organization, reading
-  and running the Agents, Skills, MCP Servers and Plugins its parent shares at
+  and running the Agents, Skills and Plugins its parent shares at
   `visibility_child_orgs`; and, for a credential bound to a parent, managing
   that parent's child organizations (never reading what they hold). It cannot
   create an Organization, except a child of its own, or accept an invitation to
@@ -1186,7 +1193,7 @@ conventions. Every resource has four top-level fields: `apiVersion`, `kind`,
 `metadata`, and `spec`.
 
 - **apiVersion**: Always `agentic.stigmer.ai/v1` for current resources.
-- **kind**: The resource type (for example, `Agent`, `Skill`, `McpServer`).
+- **kind**: The resource type (for example, `Agent`, `Skill`, `Plugin`).
 - **metadata**: Contains `name` and optional labels.
 - **spec**: The resource-specific configuration.
 - **Context rule**: Show by example in quickstart (the reader sees the YAML
@@ -1443,7 +1450,9 @@ was a documentation simplification, not a supported alias.
 
 **Resolution**: The README and this vocabulary guide have been updated to show
 the real YAML structure (`mcp_server_usages` with `McpServerUsage` entries). No
-shorthand exists or is planned.
+shorthand exists or is planned. Since the MCP server kind was removed, an Agent
+lists the plugins that carry its servers in `plugins`, and `mcp_server_usages`
+is a reserved field.
 
 ---
 
