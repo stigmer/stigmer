@@ -628,6 +628,10 @@ const EXEMPT_BY_NAME: ReadonlyMap<string, string> = new Map([
     "create is internal: every wire caller is refused PermissionDenied on every edition (suites/identityaccount.conformance.test.ts)",
   ],
   [
+    "PluginEvalCommandController.create",
+    "an eval runs an installed plugin's evals/ cases and its create starts the eval's workflow, which needs an engine; the server's composed suite pins that create mints the eval's own id (backend/services/stigmer-server/src/domain/plugin-eval/__tests__/plugin-eval.test.ts)",
+  ],
+  [
     "ScoreCommandController.create",
     "a score is created only on a completed run, which needs an engine; the execution class pins that a rating never keeps the id its caller sent (suites-execution/run-scores.conformance.test.ts)",
   ],
