@@ -111,6 +111,7 @@ function build(options: { attempt?: number; refuseCaller?: boolean; source?: Ret
     logger: silentLogger,
     contexts,
     tries: () => doubles.lane,
+    sessions: () => doubles.sessions,
     recorder: () => chain.recorder,
     deleter: () => chain.deleter,
     readArtifact: undefined,

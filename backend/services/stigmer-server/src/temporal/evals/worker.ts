@@ -13,7 +13,11 @@ import type { EvalModelCatalog } from "../../domain/plugin-eval/matrix.js";
 import type { PatternRunner } from "../../domain/plugin-eval/graders/patterns.js";
 import { newPatternPool } from "../../domain/plugin-eval/graders/patterns.js";
 import type { EvalSuiteSource } from "../../domain/plugin-eval/suite.js";
-import type { ScoreDeleter, ScoreRecorder } from "../../domain/score/ports.js";
+import type {
+  JudgeSessionDeleter,
+  ScoreDeleter,
+  ScoreRecorder,
+} from "../../domain/score/ports.js";
 import type { PluginEvalCallerMint } from "../../extensions/plugin-eval-caller.js";
 import type { Store } from "../../store/interface.js";
 import type { WorkerFactory } from "../manager.js";
@@ -31,6 +35,8 @@ export interface EvalsWorkerDeps {
   readonly suites: EvalSuiteSource;
   readonly catalog: EvalModelCatalog;
   readonly tries: () => PluginEvalTryLane;
+  /** The try and vote sessions' delete (the judge session's deleter). */
+  readonly sessions: () => JudgeSessionDeleter;
   readonly recorder: () => ScoreRecorder;
   readonly deleter: () => ScoreDeleter;
   /** The run artifact store's read; undefined when none is configured. */
@@ -57,6 +63,7 @@ export function newEvalsWorkerFactory(deps: EvalsWorkerDeps): WorkerFactory {
         logger: deps.logger,
         contexts,
         tries: deps.tries,
+        sessions: deps.sessions,
         recorder: deps.recorder,
         deleter: deps.deleter,
         readArtifact: deps.readArtifact,

@@ -121,8 +121,7 @@ export interface InProcessClients {
    * session, then its run, through their FULL create chains AS THE EVAL'S
    * CALLER when the composition minted one (the asCaller lane), else as
    * the server, so the session may carry the reserved plugin-eval label
-   * by the in-process origin; their stop and their session's delete are
-   * the server's own.
+   * by the in-process origin; a run's stop is the server's own.
    */
   readonly pluginEvalTries: PluginEvalTryLane;
   /**
@@ -316,9 +315,6 @@ export function createInProcessClients(
         await agentExecutionCommand.terminate(
           create(TerminateRunInputSchema, { id: runId, reason }),
         );
-      },
-      deleteSession: async (sessionId) => {
-        await sessionCommand.delete(create(SessionIdSchema, { value: sessionId }));
       },
     },
     // The connect lane's ephemeral EC is created AS THE CONNECTING PERSON

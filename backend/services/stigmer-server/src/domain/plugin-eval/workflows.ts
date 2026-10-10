@@ -22,6 +22,7 @@ import {
   RUN_PLUGIN_EVAL_WORKFLOW_TYPE,
   runPluginEvalWorkflowId,
 } from "../../temporal/evals/names.js";
+import type { RunPluginEvalInput } from "../../temporal/evals/names.js";
 
 /** The bound on a start or a cancel, in milliseconds. */
 export const PLUGIN_EVAL_WORKFLOW_DEADLINE_MS = 5_000;
@@ -34,10 +35,8 @@ export const PLUGIN_EVAL_WORKFLOW_DEADLINE_MS = 5_000;
  */
 const RUN_PLUGIN_EVAL_EXECUTION_TIMEOUT = "30 days";
 
-/** The suite workflow's one argument. */
-export interface RunPluginEvalInput {
-  readonly evalId: string;
-}
+/** The suite workflow's one argument (its wire type lives with its names). */
+export type { RunPluginEvalInput } from "../../temporal/evals/names.js";
 
 /** No engine is connected: nothing can be started or stopped yet. */
 export class PluginEvalEngineUnavailableError extends Error {

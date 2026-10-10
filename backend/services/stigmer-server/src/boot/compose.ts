@@ -88,7 +88,6 @@ import { newGradingWorkerFactory } from "../temporal/grading/worker.js";
 import { newEvalsConfigFromEnv } from "../temporal/evals/config.js";
 import { newEvalsWorkerFactory } from "../temporal/evals/worker.js";
 import { evalModelCatalogOf } from "../domain/plugin-eval/matrix.js";
-import { newPluginArchiveReader } from "../domain/plugin-eval/suite.js";
 import { registerScheduleServices } from "../domain/schedule/controller.js";
 import { registerAgentChannelServices } from "../domain/agentchannel/controller.js";
 import { registerChannelConversationServices } from "../domain/agentchannel/conversation.js";
@@ -1099,12 +1098,13 @@ export async function composeServer(
     deleter: scoreDeleter,
   });
   // Plugin evals: one suite workflow per eval (temporal/evals/), started by
-  // create and cancelled by cancel, on the grading queue its worker polls.
+  // create and cancelled by cancel, on the eval queue its worker polls.
   // A try's conversation is deleted through the session domain's own
   // delete as the server, the judge session's lane.
+  const evalsTemporalConfig = newEvalsConfigFromEnv();
   const pluginEvalWorkflows = newTemporalPluginEvalWorkflows({
     client: () => temporalManager.getClient(),
-    taskQueue: gradingTemporalConfig.stigmerQueue,
+    taskQueue: evalsTemporalConfig.stigmerQueue,
   });
   /* v8 ignore next -- @preserve: called only by an eval's delete, after boot */
   const pluginEvalTrySessions = () => requireInProcess().judgeSessionDeleter;
@@ -1200,7 +1200,7 @@ export async function composeServer(
       // stores below and the routes exist.
       newEvalsWorkerFactory({
         store,
-        config: newEvalsConfigFromEnv(),
+        config: evalsTemporalConfig,
         /* v8 ignore start -- @preserve: called only by an eval activity on a live engine */
         suites: {
           readArchive: (pluginId, digest) =>
@@ -1211,11 +1211,12 @@ export async function composeServer(
         },
         catalog: evalModelCatalogOf(modelCatalog),
         tries: () => requireInProcess().pluginEvalTries,
+        sessions: pluginEvalTrySessions,
         readArtifact: (storageKey) => artifactStorage.download(storageKey),
         /* v8 ignore stop */
         recorder: scoreRecorder,
         deleter: scoreDeleter,
-        pluginEvalCaller: undefined,
+        pluginEvalCaller,
         logger,
       }),
       // Extension workers append after the OSS set — their own queues,

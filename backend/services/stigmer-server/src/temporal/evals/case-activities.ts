@@ -88,7 +88,11 @@ import {
 import type { EvalTrace } from "../../domain/score/eval/trace.js";
 import { evalTraceOf } from "../../domain/score/eval/trace.js";
 import { GRADES_RUN_LABEL } from "../../domain/score/judge/judge-run.js";
-import type { ScoreDeleter, ScoreRecorder } from "../../domain/score/ports.js";
+import type {
+  JudgeSessionDeleter,
+  ScoreDeleter,
+  ScoreRecorder,
+} from "../../domain/score/ports.js";
 import type { PluginEvalCallerMint } from "../../extensions/plugin-eval-caller.js";
 import { PluginEvalCallerRefusedError } from "../../extensions/plugin-eval-caller.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
@@ -140,6 +144,8 @@ export interface CaseActivityDeps {
   readonly contexts: EvalContextLoader;
   /** Resolved at call time: the in-process clients are wired after the routes. */
   readonly tries: () => PluginEvalTryLane;
+  /** A vote's (or a refused try's) session delete, as the server. */
+  readonly sessions: () => JudgeSessionDeleter;
   readonly recorder: () => ScoreRecorder;
   readonly deleter: () => ScoreDeleter;
   /** The run artifact store's read, for offloaded file bodies; undefined when none is configured. */
@@ -541,7 +547,7 @@ async function deleteSession(deps: CaseActivityDeps, sessionId: string): Promise
     return;
   }
   try {
-    await deps.tries().deleteSession(sessionId);
+    await deps.sessions().delete(sessionId);
   } catch (error) {
     if (error instanceof ConnectError && error.code === Code.NotFound) {
       return;

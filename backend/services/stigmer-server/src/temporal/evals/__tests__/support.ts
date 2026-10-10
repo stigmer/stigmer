@@ -30,7 +30,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { EvalModelCatalog } from "../../../domain/plugin-eval/matrix.js";
 import { sessionIdOf } from "../../../domain/run/target.js";
-import type { ScoreDeleter, ScoreRecorder } from "../../../domain/score/ports.js";
+import type { JudgeSessionDeleter, ScoreDeleter, ScoreRecorder } from "../../../domain/score/ports.js";
 import { listRunScores } from "../../../domain/score/queries.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
@@ -163,7 +163,11 @@ export interface LaneRecord {
   phase: RunPhase;
 }
 
-export function lane(store: Store): { lane: PluginEvalTryLane; record: LaneRecord } {
+export function lane(store: Store): {
+  lane: PluginEvalTryLane;
+  sessions: JudgeSessionDeleter;
+  record: LaneRecord;
+} {
   let next = 0;
   const record: LaneRecord = {
     sessions: [],
@@ -210,7 +214,9 @@ export function lane(store: Store): { lane: PluginEvalTryLane; record: LaneRecor
           }
         });
       },
-      async deleteSession(sessionId) {
+    },
+    sessions: {
+      async delete(sessionId) {
         record.deletedSessions.push(sessionId);
         await store.deleteResource(ApiResourceKind.session, sessionId);
       },
