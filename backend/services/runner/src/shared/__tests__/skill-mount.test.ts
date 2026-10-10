@@ -148,9 +148,11 @@ describe("writeSkillMount — marker mechanics", () => {
   });
 
   it("never mounts an eval suite a root skill's archive still carries, by its cleaned name", async () => {
-    // A root skill's archive is the whole plugin; one stored before the
-    // suite was stripped at push still holds `evals/`, which a try must not read.
+    // A root skill's archive is the whole plugin, its manifest included; one
+    // stored before the suite was stripped at push still holds `evals/`,
+    // which a try must not read.
     const artifact = buildZip([
+      { name: "./plugin.json", content: JSON.stringify({ name: "p" }) },
       { name: "references/guide.md", content: "guide" },
       { name: "evals/evals.json", content: "{}" },
       { name: "./evals/basic/case.yaml", content: "prompt: hi" },
@@ -162,6 +164,20 @@ describe("writeSkillMount — marker mechanics", () => {
     expect(existsSync(join(skillDir, "evals"))).toBe(false);
     expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
     expect(readFileSync(join(skillDir, "evalsx", "kept.md"), "utf-8")).toBe("not the suite");
+  });
+
+  it("mounts a standalone skill's own evals/, which holds no plugin manifest", async () => {
+    // skill-creator keeps a skill's tests in `evals/evals.json`; only a
+    // plugin's root skill can carry the plugin's suite.
+    const artifact = buildZip([
+      { name: "references/guide.md", content: "guide" },
+      { name: "evals/evals.json", content: "{}" },
+      { name: "nested/plugin.json", content: "{}" },
+    ]);
+    await writeSkillMount(makeSkillProto({ versionHash: "hash-v1" }), skillDir, artifact);
+
+    expect(readFileSync(join(skillDir, "evals", "evals.json"), "utf-8")).toBe("{}");
+    expect(readFileSync(join(skillDir, "references", "guide.md"), "utf-8")).toBe("guide");
   });
 
   it("never mounts a suite the root skill's own manifest moves", async () => {

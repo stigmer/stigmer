@@ -206,6 +206,23 @@ function cleanEntryPath(name: string): string {
  */
 const SUITE_MANIFESTS = [".claude-plugin/plugin.json", ".codex-plugin/plugin.json"] as const;
 
+/**
+ * Every manifest location a plugin may carry (`@stigmer/plugin-package`
+ * `messages.ts` `MANIFEST_LOCATIONS`); an install refuses a package with
+ * none of them.
+ */
+const PLUGIN_MANIFESTS = ["plugin.json", ".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"] as const;
+
+/**
+ * Whether an archive holds a plugin manifest, by its cleaned name. A
+ * plugin's root skill is the whole package as one skill, manifests
+ * included, so its archive always holds one; a skill pushed on its own
+ * holds none unless its author put one there.
+ */
+export function holdsPluginManifest(entries: readonly ZipFileEntry[]): boolean {
+  return entries.some((entry) => (PLUGIN_MANIFESTS as readonly string[]).includes(cleanEntryPath(entry.path)));
+}
+
 /** The manifests that may declare skill paths: every vendor dialect's (the open format declares none). */
 const SKILL_MANIFESTS = [".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"] as const;
 
