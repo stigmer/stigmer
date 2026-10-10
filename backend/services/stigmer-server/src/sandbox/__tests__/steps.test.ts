@@ -6,9 +6,14 @@
  *     throws), and PRE-STAMPS the root cause onto status.error
  *     first-non-empty-wins — the 2026-07 quota-outage contract;
  *   - a disabled mint lane launches token-less rather than failing;
- *   - the caller splits two ways: the identity id reaches
- *     the credential mint, the caller class reaches the driver's
- *     environment unchanged (a composed lane such as `guest` included).
+ *   - the caller class reaches the driver's environment unchanged (a
+ *     composed lane such as `guest` included);
+ *   - the credential mint names the session's creator, whoever's turn
+ *     creates or restores the sandbox (stigmer#2075): a person the
+ *     conversation is shared with never takes the runner over, and a
+ *     creator stamp that names nobody mints nothing (tokenless, fail
+ *     closed). Under the trusted-local posture (no accounts port) the
+ *     caller, the one operator, is minted for.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -22,6 +27,10 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+
+import type { AccountsByCaller } from "../../domain/identityaccount/resolve.js";
 
 import { createLogger } from "../../boot/logger.js";
 import {
@@ -222,6 +231,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         logger: silentLogger,
         lane: lane(provisioner),
         temporalConfig: sessionRoutingCloudDefault,
+        accounts: undefined,
       },
       execution,
       TEST_CALLER,
@@ -249,6 +259,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         logger: silentLogger,
         lane: lane(provisioner, credentials),
         temporalConfig: sessionRoutingCloudDefault,
+        accounts: undefined,
       },
       execution,
       GUEST_CALLER,
@@ -285,6 +296,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         logger: silentLogger,
         lane: lane(provisioner, credentials),
         temporalConfig: sessionRoutingCloudDefault,
+        accounts: undefined,
       },
       execution,
       TEST_CALLER,
@@ -302,6 +314,73 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
     expect(provisioner.ensured[0]?.env.stigmerToken).toBe("cloud-tok-session");
   });
 
+  describe("whom the runner acts as", () => {
+    const CREATOR = "ida_01jcreatorcreatorcreator0";
+    const SENDER = "ida_01jsendersendersendersen0";
+    const accounts: AccountsByCaller = {
+      findById: (id: string): Promise<IdentityAccount | undefined> =>
+        Promise.resolve(
+          id === CREATOR || id === SENDER
+            ? create(IdentityAccountSchema, { metadata: { id } })
+            : undefined,
+        ),
+      findDirectByIdpId: (): Promise<IdentityAccount | undefined> =>
+        Promise.resolve(undefined),
+    };
+
+    async function seedCreatedBy(creator: string): Promise<Run> {
+      counter += 1;
+      const sessionId = `ses_sbx_${counter}`;
+      await store.saveResource(
+        ApiResourceKind.session,
+        sessionId,
+        SessionSchema,
+        create(SessionSchema, {
+          metadata: { id: sessionId, name: sessionId },
+          spec: { executionTarget: ExecutionTarget.CLOUD },
+          status: { audit: { specAudit: { createdBy: { id: creator } } } },
+        }),
+      );
+      return create(RunSchema, {
+        metadata: { id: `axr_sbx_${counter}`, name: `axr_sbx_${counter}` },
+        spec: { target: { case: "sessionId", value: sessionId } },
+      });
+    }
+
+    async function mintedFor(execution: Run, caller: SandboxCaller): Promise<string | undefined> {
+      const credentials = capabilityCredentials();
+      await ensureSessionSandboxForExecution(
+        {
+          store,
+          logger: silentLogger,
+          lane: lane(fakeProvisioner(), credentials),
+          temporalConfig: sessionRoutingCloudDefault,
+          accounts,
+        },
+        execution,
+        caller,
+      );
+      return credentials.minted[0]?.callerIdentityId;
+    }
+
+    it("mints for the session's creator when another person's turn creates or restores the sandbox", async () => {
+      const execution = await seedCreatedBy(CREATOR);
+      expect(
+        await mintedFor(execution, { identityId: SENDER, callerClass: "user" }),
+      ).toBe(CREATOR);
+      expect(
+        await mintedFor(execution, { identityId: CREATOR, callerClass: "user" }),
+      ).toBe(CREATOR);
+    });
+
+    it("mints nothing when the creator stamp names nobody: the sandbox launches tokenless", async () => {
+      const execution = await seedCreatedBy("system");
+      expect(
+        await mintedFor(execution, { identityId: SENDER, callerClass: "user" }),
+      ).toBe("");
+    });
+  });
+
   it("skips on resolved LOCAL target — the roster fast path", async () => {
     const provisioner = fakeProvisioner();
     const { execution } = await seed(ExecutionTarget.LOCAL);
@@ -311,6 +390,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         logger: silentLogger,
         lane: lane(provisioner),
         temporalConfig: sessionRoutingCloudDefault,
+        accounts: undefined,
       },
       execution,
       TEST_CALLER,
@@ -335,6 +415,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         logger: silentLogger,
         lane: { enabled: false },
         temporalConfig: sessionRoutingCloudDefault,
+        accounts: undefined,
       },
       execution,
       TEST_CALLER,
@@ -355,6 +436,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
           ROUTING_GLOBAL,
           "cloud",
         ),
+        accounts: undefined,
       },
       execution,
       TEST_CALLER,
@@ -371,6 +453,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         logger: silentLogger,
         lane: lane(provisioner, disabledCredentials),
         temporalConfig: sessionRoutingCloudDefault,
+        accounts: undefined,
       },
       execution,
       TEST_CALLER,
@@ -390,6 +473,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         logger: silentLogger,
         lane: lane(provisioner),
         temporalConfig: sessionRoutingCloudDefault,
+        accounts: undefined,
       },
       execution,
       TEST_CALLER,
@@ -428,6 +512,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         logger: silentLogger,
         lane: lane(provisioner),
         temporalConfig: sessionRoutingCloudDefault,
+        accounts: undefined,
       },
       execution,
       TEST_CALLER,

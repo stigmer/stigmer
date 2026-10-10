@@ -275,6 +275,7 @@ export function registerAgentExecutionServices(
     statusObservers: deps.statusObservers,
     sandboxLane: deps.sandboxLane,
     temporalConfig: deps.temporalConfig,
+    personAccounts: deps.personAccounts,
   };
   const artifactDeps = {
     store: deps.store,
@@ -475,6 +476,7 @@ async function createExecution(
         logger: deps.logger,
         lane: deps.sandboxLane,
         temporalConfig: deps.temporalConfig,
+        accounts: deps.personAccounts,
       }),
     )
     .build()

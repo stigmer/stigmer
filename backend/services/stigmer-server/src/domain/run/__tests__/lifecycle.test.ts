@@ -487,6 +487,7 @@ function lifecycleDeps(engineState: ExecutionEngineState): LifecycleDeps {
     // recover chain's EnsureSessionSandbox step short-circuits.
     sandboxLane: { enabled: false },
     temporalConfig: newConfigFromEnv(),
+    personAccounts: undefined,
   };
 }
 
@@ -838,6 +839,7 @@ describe("lifecycle pipelines", () => {
       statusObservers: [],
       sandboxLane: { enabled: false },
       temporalConfig: newConfigFromEnv(),
+      personAccounts: undefined,
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -937,6 +939,7 @@ describe("lifecycle pipelines", () => {
       statusObservers: [],
       sandboxLane: { enabled: false },
       temporalConfig: newConfigFromEnv(),
+      personAccounts: undefined,
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -983,6 +986,7 @@ describe("lifecycle pipelines", () => {
       statusObservers: [],
       sandboxLane: { enabled: false },
       temporalConfig: newConfigFromEnv(),
+      personAccounts: undefined,
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -1036,6 +1040,7 @@ describe("lifecycle pipelines", () => {
       statusObservers: [],
       sandboxLane: { enabled: false },
       temporalConfig: newConfigFromEnv(),
+      personAccounts: undefined,
       engineState: () =>
         connected(
           stubConnectedEngine({
@@ -1267,6 +1272,7 @@ describe("lifecycle pipelines", () => {
       statusObservers: [],
       sandboxLane: { enabled: false },
       temporalConfig: newConfigFromEnv(),
+      personAccounts: undefined,
       engineState: () => connected(stubConnectedEngine()),
       runValuePlanner: {
         ...plannerDeps,
@@ -1642,6 +1648,7 @@ describe("lifecycle persist uses the atomic updateResource", () => {
         statusObservers: [],
         sandboxLane: { enabled: false },
         temporalConfig: newConfigFromEnv(),
+        personAccounts: undefined,
       };
 
       // Seed through the RAW store so the seed write is not counted.
