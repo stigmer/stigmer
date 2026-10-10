@@ -197,7 +197,9 @@ function compareEvals(before: PluginEval, after: PluginEval): readonly EvalCompa
 
 ### DEFAULT_EVAL_FORM
 
-The form's starting settings: one native target on its default model, three tries, compared, $5, one at a time.
+The form's starting settings: each case's own model and runs (one native
+target on its default model ready for when the person picks models),
+compared, $5, one at a time.
 
 
 ### EvalCaseCell
@@ -283,10 +285,11 @@ The Run evals form's settings.
 
 <TypeTable
   type={{
+    caseModels: { type: "boolean", description: "Run each case on its own `model`, sending no targets; `targets` is kept for when this is off.", required: true },
     compare: { type: "boolean", description: "Also run every case without the plugin, for the difference it makes.", required: true },
     concurrency: { type: "number", description: "", required: true },
     maxCostUsd: { type: "number", description: "", required: true },
-    runs: { type: "number", description: "", required: true },
+    runs: { type: "number", description: "Tries per case, arm and target; 0 is each case's own `runs`.", required: true },
     targets: { type: "readonly EvalFormTarget[]", description: "", required: true },
   }}
 />
@@ -346,7 +349,7 @@ One try, as a cell's link lists it.
     arm: { type: "\"with\" | \"without\"", description: "", required: true },
     index: { type: "number", description: "", required: true },
     runId: { type: "string", description: "", required: true },
-    summary: { type: "string", description: "\"1.00\", \"not graded: platform busy\", \"running\", \"waiting\".", required: true },
+    summary: { type: "string", description: "\"1.00\", \"not graded: platform busy\", \"waiting or running\", \"waiting\", \"not run\".", required: true },
   }}
 />
 
