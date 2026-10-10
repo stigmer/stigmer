@@ -27,10 +27,16 @@ function routingExecute(opts: {
   defaultRef?: string;
   fail?: (cmd: string) => Error | undefined;
 } = {}) {
+  // The origin the clone was given, as git would store it.
+  let origin = "";
   return vi.fn(async (cmd: string, _options?: { cwd?: string; env?: Record<string, string> }) => {
     const failErr = opts.fail?.(cmd);
     if (failErr) throw failErr;
+    const setOrigin = /^git remote (?:add|set-url) origin '(.*)'$/.exec(cmd);
+    if (setOrigin !== null) origin = setOrigin[1]!;
     if (cmd === "git --version") return "git version 2.39.5\n";
+    if (cmd === "git config --local --name-only --list") return "remote.origin.url\nremote.origin.fetch\n";
+    if (cmd === "git config --local --get remote.origin.url") return `${origin}\n`;
     if (cmd.includes("rev-parse --abbrev-ref")) return opts.branch ?? "main\n";
     if (cmd.includes("rev-parse HEAD")) return opts.sha ?? "abc123\n";
     if (cmd.includes("symbolic-ref")) return opts.defaultRef ?? "origin/main\n";
@@ -162,10 +168,11 @@ describe("provisionGit", () => {
     expect(withEnv.map((run) => run.cmd)).toEqual(["git fetch --quiet origin", "git remote set-head origin --auto"]);
     const basic = Buffer.from(`x-access-token:${TOKEN}`).toString("base64");
     for (const run of withEnv) {
-      expect(run.env).toEqual({
-        GIT_CONFIG_COUNT: "1",
-        GIT_CONFIG_KEY_0: "http.https://github.com/.extraheader",
-        GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${basic}`,
+      expect(run.env).toMatchObject({
+        GIT_CONFIG_KEY_0: "core.hooksPath",
+        GIT_CONFIG_VALUE_0: "/dev/null",
+        GIT_CONFIG_KEY_2: "http.https://github.com/.extraheader",
+        GIT_CONFIG_VALUE_2: `AUTHORIZATION: basic ${basic}`,
       });
     }
     for (const run of runs(backend)) expect(run.cmd).not.toContain(TOKEN);

@@ -59,6 +59,10 @@ function makeWorkspaceEntry(name: string, writeBackMode: GitWriteBackMode = GitW
 
 function mockWorkspaceBackend(responses: Record<string, string> = {}): WorkspaceBackend {
   const defaultResponses: Record<string, string> = {
+    // The clone a token is handed to: an ordinary configuration, and the
+    // conversation's repository as its origin.
+    "git config --local --name-only --list": "remote.origin.url\nremote.origin.fetch\n",
+    "git config --local --get remote.origin.url": "https://github.com/acme/my-app.git\n",
     "git diff --stat": " 1 file changed, 1 insertion(+)",
     "git diff --cached --stat": "",
     "git ls-files --others --exclude-standard": "",
@@ -267,7 +271,8 @@ describe("WriteBackCoordinator", () => {
     ]);
     const basic = Buffer.from("x-access-token:ghp_entry_token").toString("base64");
     for (const run of runs.filter((r) => r.env !== undefined)) {
-      expect(run.env?.GIT_CONFIG_VALUE_0).toBe(`AUTHORIZATION: basic ${basic}`);
+      expect(run.env?.GIT_CONFIG_VALUE_0).toBe("/dev/null");
+      expect(run.env?.GIT_CONFIG_VALUE_2).toBe(`AUTHORIZATION: basic ${basic}`);
     }
     for (const run of runs) expect(run.cmd).not.toContain("ghp_entry_token");
   });
@@ -398,6 +403,8 @@ describe("WriteBackCoordinator", () => {
       if (cmd.includes("git diff --stat") && !cmd.includes("...HEAD")) return " changed";
       if (cmd.includes("git diff --cached")) return "";
       if (cmd.includes("git branch --show-current")) return "main";
+      if (cmd === "git --version") return "git version 2.39.5";
+      if (cmd === "git config --local --get remote.origin.url") return "https://github.com/acme/my-app.git";
       if (cmd.includes("commit -m")) throw new Error("commit failed: lock");
       return "";
     });

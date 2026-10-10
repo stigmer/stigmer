@@ -115,9 +115,14 @@ describe("WorkspaceProvisioner", () => {
 
   describe("a git entry's token", () => {
     it("is its own repository value, matched by the entry's name and URL together", async () => {
-      const execute = vi.fn(async (cmd: string) => (cmd === "git --version" ? "git version 2.39.5\n" : ""));
-      const backend = mockWorkspaceBackend({ execute });
       const url = "https://github.com/acme/app.git";
+      const execute = vi.fn(async (cmd: string) => {
+        if (cmd === "git --version") return "git version 2.39.5\n";
+        if (cmd === "git config --local --name-only --list") return "remote.origin.url\n";
+        if (cmd === "git config --local --get remote.origin.url") return `${url}\n`;
+        return "";
+      });
+      const backend = mockWorkspaceBackend({ execute });
       const repositories = [
         { name: "app", url: "https://github.com/acme/other.git", token: "ghp_other_url" },
         { name: "web", url, token: "ghp_other_name" },
@@ -130,7 +135,7 @@ describe("WorkspaceProvisioner", () => {
       );
 
       const envs = execute.mock.calls.map((call) => (call as unknown[])[1] as { env?: Record<string, string> } | undefined)
-        .map((options) => options?.env?.GIT_CONFIG_VALUE_0)
+        .map((options) => options?.env?.GIT_CONFIG_VALUE_2)
         .filter((value): value is string => value !== undefined);
       expect(envs.length).toBeGreaterThan(0);
       for (const value of envs) {
