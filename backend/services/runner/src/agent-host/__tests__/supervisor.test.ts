@@ -44,7 +44,7 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
 import { RUNNER_ENTRY_URL } from "../../runner-entry.js";
 import { Peer, loopbackChannels } from "../channel.js";
-import { agentFs } from "../../shared/agent-fs.js";
+import { agentFs, installAgentFs, localAgentFs } from "../../shared/agent-fs.js";
 import { serveAgentHost } from "../host.js";
 import { handOver, hostHarnesses, logCursorWarmup, writeTrustedCertificates } from "../hosting.js";
 import { AGENT_HOST_MODE_ARG, AGENT_HOST_PROTOCOL_VERSION, type HostCalls, type HostNotices, type RunnerCalls, type RunnerNotices } from "../protocol.js";
@@ -357,7 +357,12 @@ describe("the production starter", () => {
     expect(started).toBe(0);
 
     const ready = await hostHarnesses([], testConfig(), { identity, prepareSeparation: () => null, start: inProcessHosts().start });
-    await ready.close();
+    try {
+      await ready.close();
+    } finally {
+      // A separating runner refuses the agent's operations once its host has closed; later tests get the local ones back.
+      installAgentFs(localAgentFs);
+    }
   });
 
   it("starts a real host that announces itself, and ends it when the runner is done", async () => {

@@ -11,9 +11,11 @@
  *    over, a link changed itself and its target never reached;
  *  - a workspace root inside the runner's state has the directories above
  *    it made traversable but not listable;
- *  - root works inside the agent's home only while it is root's (it holds
- *    CHOWN, not DAC_OVERRIDE): the home is taken back before anything is
- *    written in it, and every directory is handed over after its contents;
+ *  - nothing in the agent's home is the agent's while the walk works in it:
+ *    the home is taken back before anything is written in it, and every
+ *    directory is handed over after its contents;
+ *  - an agent home that would hold the runner's own files (its home's
+ *    ancestor, or a place inside its state) is refused before anything moves;
  *  - the marker makes it run once: a later boot only hands over the agent's
  *    home and the workspace root themselves;
  *  - a move across filesystems copies, then removes; a workspace root
@@ -150,6 +152,16 @@ describe("handing over across filesystems and outside the runner's state", () =>
     );
     chmodSync(runnerHome, 0o755);
     expect(handOverToAgent(who, { runnerHome, workspaceRoot }, { chown: () => {} }).firstTime).toBe(true);
+  });
+
+  it("refuses an agent home that would hold the runner's own files, above its home or inside its state", () => {
+    const base = mkdtempSync(join(tmpdir(), "agent-handover-enclosing-"));
+    const runnerHome = join(base, "data");
+    const refusal = `would hold the runner's own files (${join(runnerHome, ".stigmer")}); set STIGMER_AGENT_HOME to a directory of the agent's own, outside the runner's state`;
+    for (const home of ["/", base, join(runnerHome, ".stigmer", "agent"), join(runnerHome, ".stigmer", "..agent")]) {
+      expect(() => handOverToAgent({ ...identity, home }, { runnerHome, workspaceRoot: join(base, "workspace") }, { chown: () => {} }), home).toThrow(refusal);
+    }
+    expect(existsSync(join(base, "workspace")), "refused before anything is made").toBe(false);
   });
 
   it("refuses an agent home that is the runner's own", () => {
