@@ -11,7 +11,14 @@
  *     a token-bearing caller's JWT `sub`; `local|<identityId>` for a caller
  *     with no issuer and no token (the trusted-local posture);
  *   - the byte-pinned copy moved from the cloud's handlers as-is, plus the
- *     two new sentences (the federation refusal, the immutable subject).
+ *     two new sentences (the federation refusal, the immutable subject);
+ *   - the service-account subject namespace: `serviceAccountSubjectFor`
+ *     embeds the organization after `stgm_sa|` and draws a fresh random
+ *     part per call (a re-created service account is a new principal), and
+ *     refuses an empty organization; `reservedSubjectMessage` refuses both
+ *     reserved prefixes (`stgm_pc|`, `stgm_sa|`) and answers nothing for
+ *     any other subject, so every caller-chosen-subject arm keeps the
+ *     namespaces disjoint.
  */
 import { describe, expect, it } from "vitest";
 
@@ -27,7 +34,10 @@ import {
   federationUnimplementedMessage,
   idpIdImmutableMessage,
   idpIdOf,
+  isServiceAccountSubject,
   localIdpIdFor,
+  reservedSubjectMessage,
+  serviceAccountSubjectFor,
 } from "../constants.js";
 
 const CROCKFORD_ID = /^ida_[0-9abcdefghjkmnpqrstvwxyz]{26}$/;
@@ -150,5 +160,53 @@ describe("byte-pinned copy", () => {
     expect(idpIdImmutableMessage("auth0|user123")).toBe(
       "spec.idp_id is immutable (account subject is 'auth0|user123') — create a new account for a different subject",
     );
+  });
+});
+
+describe("the service-account subject namespace", () => {
+  it("serviceAccountSubjectFor embeds the organization after the reserved prefix, then 128 random bits as hex", () => {
+    const subject = serviceAccountSubjectFor("org_acme");
+    expect(subject).toMatch(/^stgm_sa\|org_acme\|[0-9a-f]{32}$/);
+    expect(isServiceAccountSubject(subject)).toBe(true);
+  });
+
+  it("draws a different random part on every call, so a re-created service account is a new principal", () => {
+    const first = serviceAccountSubjectFor("org_acme");
+    const second = serviceAccountSubjectFor("org_acme");
+    expect(first).not.toBe(second);
+    expect(accountIdFor(first)).not.toBe(accountIdFor(second));
+  });
+
+  it("refuses an empty organization", () => {
+    expect(() => serviceAccountSubjectFor("")).toThrow(
+      "a service account's organization must not be empty",
+    );
+  });
+
+  it("isServiceAccountSubject reads the prefix alone", () => {
+    expect(isServiceAccountSubject("stgm_sa|org|abc")).toBe(true);
+    expect(isServiceAccountSubject("stgm_pc|org|user")).toBe(false);
+    expect(isServiceAccountSubject("auth0|stgm_sa|x")).toBe(false);
+    expect(isServiceAccountSubject("")).toBe(false);
+  });
+
+  it("reservedSubjectMessage refuses both reserved prefixes with their own copy", () => {
+    expect(reservedSubjectMessage("stgm_pc|org|user")).toBe(
+      "subject 'stgm_pc|org|user' uses the 'stgm_pc|' prefix reserved for accounts a platform client provisions",
+    );
+    expect(reservedSubjectMessage("stgm_sa|org|abc")).toBe(
+      "subject 'stgm_sa|org|abc' uses the 'stgm_sa|' prefix reserved for an organization's service accounts",
+    );
+  });
+
+  it("reservedSubjectMessage answers nothing for a subject in no reserved namespace", () => {
+    for (const subject of [
+      "auth0|user123",
+      "local|operator@example.com",
+      "client-id@clients",
+      "auth0|stgm_sa|x",
+    ]) {
+      expect(reservedSubjectMessage(subject)).toBeUndefined();
+    }
   });
 });

@@ -135,6 +135,34 @@ function platformClientAccount(overrides: {
   });
 }
 
+/**
+ * An organization's service account as createServiceAccount writes it:
+ * the reserved `stgm_sa|` composite subject, mode `service_account`, its
+ * organization, and the derived id of its subject. The email is set here
+ * though the domain writes none, so the direct-email arm proves its mode
+ * filter rather than an empty column.
+ */
+function serviceAccount(overrides: {
+  idpId: string;
+  email: string;
+  org?: string;
+}): IdentityAccount {
+  return create(IdentityAccountSchema, {
+    apiVersion: "iam.stigmer.ai/v1",
+    kind: "IdentityAccount",
+    metadata: {
+      id: accountIdFor(overrides.idpId),
+      name: "ci-deploy",
+      org: overrides.org ?? "acme",
+    },
+    spec: {
+      idpId: overrides.idpId,
+      email: overrides.email,
+      provisioningMode: IdentityAccountProvisioningMode.service_account,
+    },
+  });
+}
+
 /** A direct account with no subject — the row no lookup could ever reach. */
 function subjectlessDirectAccount(): IdentityAccount {
   return create(IdentityAccountSchema, {
@@ -449,6 +477,37 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
         (await store.findByIdpId("stgm_pc|acme|user-7"))?.spec?.provisioningMode,
         IdentityAccountProvisioningMode.platform_client,
         "the any-mode subject lookup — the mint's — must answer the platform-client account",
+      );
+    },
+  ],
+  [
+    "findDirectByIdpId and findDirectByEmail never answer a service account, while findByIdpId (any mode) and findByOrg do",
+    async ({ store }) => {
+      const account = serviceAccount({
+        idpId: "stgm_sa|acme|0123456789abcdef",
+        email: "ci@example.com",
+      });
+      await store.save(account);
+      assert.equal(
+        await store.findDirectByIdpId("stgm_sa|acme|0123456789abcdef"),
+        undefined,
+        "the direct-subject lookup must not resolve to a service account: it signs in through nothing, so no sign-in's subject may reach it",
+      );
+      assert.equal(
+        await store.findDirectByEmail("ci@example.com"),
+        undefined,
+        "the direct-email lookup must not answer a service account",
+      );
+      assert.equal(
+        (await store.findByIdpId("stgm_sa|acme|0123456789abcdef"))?.spec
+          ?.provisioningMode,
+        IdentityAccountProvisioningMode.service_account,
+        "the any-mode subject lookup must answer the service account",
+      );
+      assert.deepEqual(
+        (await store.findByOrg("acme")).map(idOf),
+        [idOf(account)],
+        "the organization's accounts must include its service account: the organization purge reads them there",
       );
     },
   ],

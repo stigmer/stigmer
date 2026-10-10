@@ -5,7 +5,8 @@
  * scope. Representative lanes from each consumer family:
  *
  *   - session.list (restrict verb, no org intersection),
- *   - apikey.findAll (restrict verb through the direct-read tail),
+ *   - apikey.findAll (restrict verb through the direct-read tail, over
+ *     the caller's own keys: the seeded rows carry the caller's stamp),
  *   - channelapp.listByOrg (restrict verb behind the domain's own org
  *     predicate: the scope is offered the request org's rows only, the
  *     listByOrg family's shape; stigmer/stigmer#1384),
@@ -46,6 +47,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
@@ -192,6 +194,17 @@ describe("list read scope (composed server, fake scope)", () => {
         }),
       );
     }
+    // findAll answers the caller's own keys, so both rows carry the
+    // caller's creator stamp, read from a key the caller creates; the
+    // scope then hides that probe key as it hides key_foreign.
+    const probe = await createClient(ApiKeyCommandController, transport).create({
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "ApiKey",
+      metadata: { name: "owner probe", org: acmeId },
+      spec: {},
+    });
+    const owner = probe.status?.audit?.specAudit?.createdBy?.id ?? "";
+    expect(owner).not.toBe("");
     for (const id of ["key_mine", "key_foreign"]) {
       await server.store.saveResource(
         ApiResourceKind.api_key,
@@ -201,6 +214,7 @@ describe("list read scope (composed server, fake scope)", () => {
           apiVersion: "iam.stigmer.ai/v1",
           kind: "ApiKey",
           metadata: { id, name: id, org: acmeId },
+          status: { audit: { specAudit: { createdBy: { id: owner } } } },
         }),
       );
     }

@@ -27,6 +27,16 @@
  * account holds owner; and the last owner is never revoked or removed,
  * while one of two may be. Both read the organization's owners once per
  * request.
+ *
+ * The service-account steps: RefuseServiceAccountMembershipChange refuses
+ * a service-account caller on an organization's roles (PERMISSION_DENIED,
+ * the refusal copy) and passes it on any other resource, so a share of one
+ * resource stays its to make, and passes a person on an organization;
+ * RefuseServiceAccountOrgAccess refuses a service account and passes a
+ * person; RefuseServiceAccountOwner refuses `owner` on an organization to
+ * a service-account principal (INVALID_ARGUMENT, its copy), admits admin
+ * to it and owner to a person, and reads no account unless the grant is
+ * owner on an organization to an account.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
@@ -63,13 +73,22 @@ import {
   teamRoleNotGrantableMessage,
   unknownResourceKindMessage,
 } from "../constants.js";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+
+import { serviceAccountRefusedMessage } from "../../../pipeline/steps/refuse-service-account.js";
+import type { IdentityAccountStore } from "../../identityaccount/store.js";
 import { newIamPolicyGrantPath } from "../grant-path.js";
 import { newOrganizationOnlyGrantScope } from "../grant-scope.js";
 import {
   POLICY_RESULT_KEY,
+  SERVICE_ACCOUNT_OWNER_MESSAGE,
   newAuthorizeOwnerAssignmentStep,
   newGrantStep,
   newKeepOneOwnerStep,
+  newRefuseServiceAccountMembershipChangeStep,
+  newRefuseServiceAccountOrgAccessStep,
+  newRefuseServiceAccountOwnerStep,
   newRevokeStep,
   newValidateGrantableRoleStep,
   orgAccessOwnerRoleChange,
@@ -643,5 +662,209 @@ describe("owner is assigned by owners", () => {
     await newAuthorizeOwnerAssignmentStep(authorizer(true), change).execute(ctx);
     await newKeepOneOwnerStep(store, change).execute(ctx);
     expect(store.ownerReads()).toBe(1);
+  });
+});
+
+describe("the service-account steps", () => {
+  const MEMBERSHIP_REFUSAL = serviceAccountRefusedMessage(
+    "grant or revoke roles on the organization",
+  );
+  const serviceAccountCaller: CallerIdentity = {
+    identityId: "ida_ci",
+    callerClass: "service_account",
+    issuer: "",
+    rawToken: "stk_x",
+    boundOrg: "acme",
+  };
+  const personCaller: CallerIdentity = {
+    identityId: "ida_alice",
+    callerClass: "user",
+    issuer: "",
+    rawToken: "stk_y",
+  };
+
+  function specContext(spec: IamPolicySpec, identity: CallerIdentity) {
+    return new RequestContext(
+      IamPolicySpecSchema,
+      spec,
+      identity,
+      ApiResourceKind.iam_policy,
+    );
+  }
+
+  describe("RefuseServiceAccountMembershipChange", () => {
+    const step = newRefuseServiceAccountMembershipChangeStep();
+
+    it("refuses a service account on an organization's roles with PERMISSION_DENIED and the refusal copy", async () => {
+      const error = await refusal(() =>
+        step.execute(
+          specContext(orgRole("ida_bob", "member", "acme"), serviceAccountCaller),
+        ),
+      );
+      expect(error.code).toBe(Code.PermissionDenied);
+      expect(error.rawMessage).toBe(MEMBERSHIP_REFUSAL);
+    });
+
+    it("passes a service account sharing one resource that is not the organization", () => {
+      expect(
+        step.execute(
+          specContext(
+            triple({ kind: "identity_account", id: "ida_bob" }, "editor", {
+              kind: "agent",
+              id: "agt_1",
+            }),
+            serviceAccountCaller,
+          ),
+        ),
+      ).toBeUndefined();
+    });
+
+    it("passes a person on an organization's roles", () => {
+      expect(
+        step.execute(
+          specContext(orgRole("ida_bob", "member", "acme"), personCaller),
+        ),
+      ).toBeUndefined();
+    });
+  });
+
+  describe("RefuseServiceAccountOrgAccess", () => {
+    function revokeContext(identity: CallerIdentity) {
+      return new RequestContext(
+        RevokeOrgAccessInputSchema,
+        create(RevokeOrgAccessInputSchema, {
+          identityAccountId: "ida_bob",
+          org: "acme",
+        }),
+        identity,
+        ApiResourceKind.iam_policy,
+      );
+    }
+
+    it("refuses a service account with PERMISSION_DENIED and the refusal copy", async () => {
+      const error = await refusal(() =>
+        newRefuseServiceAccountOrgAccessStep().execute(
+          revokeContext(serviceAccountCaller),
+        ),
+      );
+      expect(error.code).toBe(Code.PermissionDenied);
+      expect(error.rawMessage).toBe(MEMBERSHIP_REFUSAL);
+    });
+
+    it("passes a person", () => {
+      expect(
+        newRefuseServiceAccountOrgAccessStep().execute(
+          revokeContext(personCaller),
+        ),
+      ).toBeUndefined();
+    });
+  });
+
+  describe("RefuseServiceAccountOwner", () => {
+    const SERVICE_ACCOUNT_ID = "ida_service";
+    const PERSON_ID = "ida_person";
+
+    /** The account port's one read, counted. */
+    function countingAccounts(): {
+      accounts: Pick<IdentityAccountStore, "findById">;
+      reads: () => number;
+    } {
+      let reads = 0;
+      const rows = new Map([
+        [
+          SERVICE_ACCOUNT_ID,
+          create(IdentityAccountSchema, {
+            metadata: { id: SERVICE_ACCOUNT_ID, name: "ci", org: "acme" },
+            spec: {
+              idpId: "stgm_sa|acme|0123",
+              provisioningMode: IdentityAccountProvisioningMode.service_account,
+            },
+          }),
+        ],
+        [
+          PERSON_ID,
+          create(IdentityAccountSchema, {
+            metadata: { id: PERSON_ID, name: "alice@example.com" },
+            spec: {
+              idpId: "auth0|alice",
+              provisioningMode: IdentityAccountProvisioningMode.direct,
+            },
+          }),
+        ],
+      ]);
+      return {
+        accounts: {
+          findById: (id) => {
+            reads += 1;
+            return Promise.resolve(rows.get(id));
+          },
+        },
+        reads: () => reads,
+      };
+    }
+
+    it("refuses owner on an organization to a service account with INVALID_ARGUMENT and its copy", async () => {
+      const { accounts } = countingAccounts();
+      const error = await refusal(() =>
+        newRefuseServiceAccountOwnerStep(accounts).execute(
+          specContext(orgRole(SERVICE_ACCOUNT_ID, "owner", "acme"), caller),
+        ),
+      );
+      expect(error.code).toBe(Code.InvalidArgument);
+      expect(error.rawMessage).toBe(SERVICE_ACCOUNT_OWNER_MESSAGE);
+    });
+
+    it("admits owner on an organization to a person", async () => {
+      const { accounts, reads } = countingAccounts();
+      await newRefuseServiceAccountOwnerStep(accounts).execute(
+        specContext(orgRole(PERSON_ID, "owner", "acme"), caller),
+      );
+      expect(reads()).toBe(1);
+    });
+
+    it("admits owner to an account the port does not hold: the grant path decides", async () => {
+      const { accounts } = countingAccounts();
+      await expect(
+        newRefuseServiceAccountOwnerStep(accounts).execute(
+          specContext(orgRole("ida_unknown", "owner", "acme"), caller),
+        ),
+      ).resolves.toBeUndefined();
+    });
+
+    it.each(["admin", "member", "viewer"])(
+      "admits %s on an organization to a service account, reading no account",
+      async (relation) => {
+        const { accounts, reads } = countingAccounts();
+        await newRefuseServiceAccountOwnerStep(accounts).execute(
+          specContext(orgRole(SERVICE_ACCOUNT_ID, relation, "acme"), caller),
+        );
+        expect(reads()).toBe(0);
+      },
+    );
+
+    it("reads no account for owner on another kind, or for a team principal", async () => {
+      const { accounts, reads } = countingAccounts();
+      const step = newRefuseServiceAccountOwnerStep(accounts);
+      await step.execute(
+        specContext(
+          triple({ kind: "identity_account", id: SERVICE_ACCOUNT_ID }, "owner", {
+            kind: "agent",
+            id: "agt_1",
+          }),
+          caller,
+        ),
+      );
+      await step.execute(
+        specContext(
+          triple(
+            { kind: "team", id: "team_1", relation: "member" },
+            "owner",
+            { kind: "organization", id: "acme" },
+          ),
+          caller,
+        ),
+      );
+      expect(reads()).toBe(0);
+    });
   });
 });

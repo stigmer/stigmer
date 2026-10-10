@@ -26,7 +26,11 @@
  *   - nothing, in the reconciliation, for a federated account, whose
  *     subject and email its identity provider chose: one asserting a
  *     founder's subject and the operator's email earns neither `owner`
- *     nor `admin`, nor `member` anywhere.
+ *     nor `admin`, nor `member` anywhere;
+ *   - `isPersonAccount` is an allow-list: a `direct` or legacy
+ *     unspecified-mode row that is not a machine account, and nothing
+ *     else (machine, platform client, federated, service account), so a
+ *     mode added later is not a person until the rule says so.
  *
  *   ensureOperatorOwnership(operator): `owner` on every organization that
  *   has NO owner row (a boot-time write never overrides a recorded
@@ -936,6 +940,50 @@ describe("membership rules", () => {
       federated.spec!.provisioningMode =
         IdentityAccountProvisioningMode.federated;
       expect(isPersonAccount(federated)).toBe(false);
+    });
+
+    it("an organization's service account is not: it holds the one role its admins gave it, never a member's role everywhere", () => {
+      const serviceAccount = account("stgm_sa|acme|0123", OPERATOR_EMAIL);
+      serviceAccount.spec!.provisioningMode =
+        IdentityAccountProvisioningMode.service_account;
+      expect(isPersonAccount(serviceAccount)).toBe(false);
+    });
+
+    it("a legacy row from before modes were recorded is a person, unless it is a machine account", () => {
+      const legacy = account("auth0|legacy", "legacy@example.com");
+      legacy.spec!.provisioningMode =
+        IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified;
+      expect(isPersonAccount(legacy)).toBe(true);
+      legacy.spec!.isMachineAccount = true;
+      expect(isPersonAccount(legacy)).toBe(false);
+    });
+
+    it("is an allow-list: every mode but direct and unspecified is not a person, a mode added later included", () => {
+      const persons = Object.values(IdentityAccountProvisioningMode)
+        .filter((mode): mode is IdentityAccountProvisioningMode =>
+          typeof mode === "number",
+        )
+        .filter((mode) => {
+          const row = account(`auth0|mode-${mode}`, "mode@example.com");
+          row.spec!.provisioningMode = mode;
+          return isPersonAccount(row);
+        });
+      expect(persons.sort()).toEqual(
+        [
+          IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,
+          IdentityAccountProvisioningMode.direct,
+        ].sort(),
+      );
+      const unknown = account("auth0|future", "future@example.com");
+      unknown.spec!.provisioningMode = 99 as IdentityAccountProvisioningMode;
+      expect(isPersonAccount(unknown)).toBe(false);
+    });
+
+    it("an account with no spec is not a person", () => {
+      const bare = create(IdentityAccountSchema, {
+        metadata: { id: "ida_bare", name: "bare" },
+      });
+      expect(isPersonAccount(bare)).toBe(false);
     });
   });
 
