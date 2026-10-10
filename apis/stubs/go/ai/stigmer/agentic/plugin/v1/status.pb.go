@@ -41,6 +41,9 @@ type PluginStatus struct {
 	// The plugin's tool-call hooks, as recorded at install; unset when the
 	// plugin carries none.
 	Hooks *HookConfig `protobuf:"bytes,7,opt,name=hooks,proto3" json:"hooks,omitempty"`
+	// The plugin's evals/ test cases, as read at install; unset when the
+	// plugin carries none.
+	Evals *PluginEvalSuite `protobuf:"bytes,8,opt,name=evals,proto3" json:"evals,omitempty"`
 	// The plugin's skills. A turn names each as <plugin>:<skill>.
 	Skills []*PluginSkill `protobuf:"bytes,9,rep,name=skills,proto3" json:"skills,omitempty"`
 	// The plugin's agents, from its agents folder. A turn names each as
@@ -117,6 +120,13 @@ func (x *PluginStatus) GetWarnings() []*PluginWarning {
 func (x *PluginStatus) GetHooks() *HookConfig {
 	if x != nil {
 		return x.Hooks
+	}
+	return nil
+}
+
+func (x *PluginStatus) GetEvals() *PluginEvalSuite {
+	if x != nil {
+		return x.Evals
 	}
 	return nil
 }
@@ -595,9 +605,9 @@ func (x *McpServerSignIn) GetOauthOnly() bool {
 // PluginWarning is one thing a push noticed but did not refuse.
 type PluginWarning struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
-	// "sub-agent-name-builtin", "tool-list-entry-dropped",
-	// "version-not-taggable".
+	// Stable warning kind, e.g. "agent-not-installed", "component-ignored",
+	// "model-hint-unresolved", "settings-agent-not-applied",
+	// "tool-list-entry-dropped", "version-not-taggable".
 	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
 	// The warning as one user-facing sentence.
 	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
@@ -658,17 +668,175 @@ func (x *PluginWarning) GetPath() string {
 	return ""
 }
 
+// PluginEvalSuite summarises a plugin's evals/ test cases.
+type PluginEvalSuite struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The suite's directory relative to the plugin's root: "evals", or the
+	// manifest's experimental.evals.
+	Dir string `protobuf:"bytes,1,opt,name=dir,proto3" json:"dir,omitempty"`
+	// Cases found in the suite.
+	CaseCount int32 `protobuf:"varint,2,opt,name=case_count,json=caseCount,proto3" json:"case_count,omitempty"`
+	// The tags the listed cases carry, once each, sorted: at most 200.
+	CaseTags []string `protobuf:"bytes,3,rep,name=case_tags,json=caseTags,proto3" json:"case_tags,omitempty"`
+	// Each case, in directory order.
+	Cases []*PluginEvalSuiteCase `protobuf:"bytes,4,rep,name=cases,proto3" json:"cases,omitempty"`
+	// Problems reading the suite: a case that cannot load, an unknown field.
+	Findings      []*PluginWarning `protobuf:"bytes,5,rep,name=findings,proto3" json:"findings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginEvalSuite) Reset() {
+	*x = PluginEvalSuite{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginEvalSuite) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginEvalSuite) ProtoMessage() {}
+
+func (x *PluginEvalSuite) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginEvalSuite.ProtoReflect.Descriptor instead.
+func (*PluginEvalSuite) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *PluginEvalSuite) GetDir() string {
+	if x != nil {
+		return x.Dir
+	}
+	return ""
+}
+
+func (x *PluginEvalSuite) GetCaseCount() int32 {
+	if x != nil {
+		return x.CaseCount
+	}
+	return 0
+}
+
+func (x *PluginEvalSuite) GetCaseTags() []string {
+	if x != nil {
+		return x.CaseTags
+	}
+	return nil
+}
+
+func (x *PluginEvalSuite) GetCases() []*PluginEvalSuiteCase {
+	if x != nil {
+		return x.Cases
+	}
+	return nil
+}
+
+func (x *PluginEvalSuite) GetFindings() []*PluginWarning {
+	if x != nil {
+		return x.Findings
+	}
+	return nil
+}
+
+// PluginEvalSuiteCase is one case of a plugin's eval suite.
+type PluginEvalSuiteCase struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The case's name.
+	CaseName string `protobuf:"bytes,1,opt,name=case_name,json=caseName,proto3" json:"case_name,omitempty"`
+	// The case's directory, relative to the plugin's root.
+	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	// The case's tags.
+	CaseTags []string `protobuf:"bytes,3,rep,name=case_tags,json=caseTags,proto3" json:"case_tags,omitempty"`
+	// Why Stigmer cannot run the case yet, naming the feature, as in
+	// "context.scaffold_script"; empty when it can.
+	Unsupported   string `protobuf:"bytes,4,opt,name=unsupported,proto3" json:"unsupported,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginEvalSuiteCase) Reset() {
+	*x = PluginEvalSuiteCase{}
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginEvalSuiteCase) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginEvalSuiteCase) ProtoMessage() {}
+
+func (x *PluginEvalSuiteCase) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginEvalSuiteCase.ProtoReflect.Descriptor instead.
+func (*PluginEvalSuiteCase) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *PluginEvalSuiteCase) GetCaseName() string {
+	if x != nil {
+		return x.CaseName
+	}
+	return ""
+}
+
+func (x *PluginEvalSuiteCase) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *PluginEvalSuiteCase) GetCaseTags() []string {
+	if x != nil {
+		return x.CaseTags
+	}
+	return nil
+}
+
+func (x *PluginEvalSuiteCase) GetUnsupported() string {
+	if x != nil {
+		return x.Unsupported
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_plugin_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/plugin/v1/status.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xf5\x05\n" +
+	")ai/stigmer/agentic/plugin/v1/status.proto\x12\x1cai.stigmer.agentic.plugin.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xba\x06\n" +
 	"\fPluginStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x120\n" +
 	"\x06digest\x18\x01 \x01(\tB\x18\xbaH\x15r\x132\x11^$|^[a-f0-9]{64}$R\x06digest\x120\n" +
 	"\x14artifact_storage_key\x18\x02 \x01(\tR\x12artifactStorageKey\x12G\n" +
 	"\bwarnings\x18\x06 \x03(\v2+.ai.stigmer.agentic.plugin.v1.PluginWarningR\bwarnings\x12>\n" +
-	"\x05hooks\x18\a \x01(\v2(.ai.stigmer.agentic.plugin.v1.HookConfigR\x05hooks\x12A\n" +
+	"\x05hooks\x18\a \x01(\v2(.ai.stigmer.agentic.plugin.v1.HookConfigR\x05hooks\x12C\n" +
+	"\x05evals\x18\b \x01(\v2-.ai.stigmer.agentic.plugin.v1.PluginEvalSuiteR\x05evals\x12A\n" +
 	"\x06skills\x18\t \x03(\v2).ai.stigmer.agentic.plugin.v1.PluginSkillR\x06skills\x12A\n" +
 	"\x06agents\x18\n" +
 	" \x03(\v2).ai.stigmer.agentic.plugin.v1.PluginAgentR\x06agents\x12M\n" +
@@ -712,7 +880,19 @@ const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\rPluginWarning\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x12\n" +
-	"\x04path\x18\x03 \x01(\tR\x04pathB\x94\x02\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\"\xf1\x01\n" +
+	"\x0fPluginEvalSuite\x12\x10\n" +
+	"\x03dir\x18\x01 \x01(\tR\x03dir\x12\x1d\n" +
+	"\n" +
+	"case_count\x18\x02 \x01(\x05R\tcaseCount\x12\x1b\n" +
+	"\tcase_tags\x18\x03 \x03(\tR\bcaseTags\x12G\n" +
+	"\x05cases\x18\x04 \x03(\v21.ai.stigmer.agentic.plugin.v1.PluginEvalSuiteCaseR\x05cases\x12G\n" +
+	"\bfindings\x18\x05 \x03(\v2+.ai.stigmer.agentic.plugin.v1.PluginWarningR\bfindings\"\x85\x01\n" +
+	"\x13PluginEvalSuiteCase\x12\x1b\n" +
+	"\tcase_name\x18\x01 \x01(\tR\bcaseName\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\x12\x1b\n" +
+	"\tcase_tags\x18\x03 \x03(\tR\bcaseTags\x12 \n" +
+	"\vunsupported\x18\x04 \x01(\tR\vunsupportedB\x94\x02\n" +
 	" com.ai.stigmer.agentic.plugin.v1B\vStatusProtoP\x01ZNgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/plugin/v1;pluginv1\xa2\x02\x04ASAP\xaa\x02\x1cAi.Stigmer.Agentic.Plugin.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Plugin\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Plugin::V1b\x06proto3"
 
 var (
@@ -727,7 +907,7 @@ func file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_plugin_v1_status_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_ai_stigmer_agentic_plugin_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ai_stigmer_agentic_plugin_v1_status_proto_goTypes = []any{
 	(*PluginStatus)(nil),                 // 0: ai.stigmer.agentic.plugin.v1.PluginStatus
 	(*PluginSkill)(nil),                  // 1: ai.stigmer.agentic.plugin.v1.PluginSkill
@@ -737,30 +917,35 @@ var file_ai_stigmer_agentic_plugin_v1_status_proto_goTypes = []any{
 	(*HttpMcpServer)(nil),                // 5: ai.stigmer.agentic.plugin.v1.HttpMcpServer
 	(*McpServerSignIn)(nil),              // 6: ai.stigmer.agentic.plugin.v1.McpServerSignIn
 	(*PluginWarning)(nil),                // 7: ai.stigmer.agentic.plugin.v1.PluginWarning
-	nil,                                  // 8: ai.stigmer.agentic.plugin.v1.PluginStatus.EnvEntry
-	nil,                                  // 9: ai.stigmer.agentic.plugin.v1.HttpMcpServer.HeadersEntry
-	(*apiresource.ApiResourceAudit)(nil), // 10: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(*HookConfig)(nil),                   // 11: ai.stigmer.agentic.plugin.v1.HookConfig
-	(*v1.EnvVarDeclaration)(nil),         // 12: ai.stigmer.agentic.vault.v1.EnvVarDeclaration
+	(*PluginEvalSuite)(nil),              // 8: ai.stigmer.agentic.plugin.v1.PluginEvalSuite
+	(*PluginEvalSuiteCase)(nil),          // 9: ai.stigmer.agentic.plugin.v1.PluginEvalSuiteCase
+	nil,                                  // 10: ai.stigmer.agentic.plugin.v1.PluginStatus.EnvEntry
+	nil,                                  // 11: ai.stigmer.agentic.plugin.v1.HttpMcpServer.HeadersEntry
+	(*apiresource.ApiResourceAudit)(nil), // 12: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*HookConfig)(nil),                   // 13: ai.stigmer.agentic.plugin.v1.HookConfig
+	(*v1.EnvVarDeclaration)(nil),         // 14: ai.stigmer.agentic.vault.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_plugin_v1_status_proto_depIdxs = []int32{
-	10, // 0: ai.stigmer.agentic.plugin.v1.PluginStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	12, // 0: ai.stigmer.agentic.plugin.v1.PluginStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
 	7,  // 1: ai.stigmer.agentic.plugin.v1.PluginStatus.warnings:type_name -> ai.stigmer.agentic.plugin.v1.PluginWarning
-	11, // 2: ai.stigmer.agentic.plugin.v1.PluginStatus.hooks:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
-	1,  // 3: ai.stigmer.agentic.plugin.v1.PluginStatus.skills:type_name -> ai.stigmer.agentic.plugin.v1.PluginSkill
-	2,  // 4: ai.stigmer.agentic.plugin.v1.PluginStatus.agents:type_name -> ai.stigmer.agentic.plugin.v1.PluginAgent
-	3,  // 5: ai.stigmer.agentic.plugin.v1.PluginStatus.mcp_servers:type_name -> ai.stigmer.agentic.plugin.v1.McpServerEntry
-	8,  // 6: ai.stigmer.agentic.plugin.v1.PluginStatus.env:type_name -> ai.stigmer.agentic.plugin.v1.PluginStatus.EnvEntry
-	4,  // 7: ai.stigmer.agentic.plugin.v1.McpServerEntry.stdio:type_name -> ai.stigmer.agentic.plugin.v1.StdioMcpServer
-	5,  // 8: ai.stigmer.agentic.plugin.v1.McpServerEntry.http:type_name -> ai.stigmer.agentic.plugin.v1.HttpMcpServer
-	6,  // 9: ai.stigmer.agentic.plugin.v1.McpServerEntry.sign_in:type_name -> ai.stigmer.agentic.plugin.v1.McpServerSignIn
-	9,  // 10: ai.stigmer.agentic.plugin.v1.HttpMcpServer.headers:type_name -> ai.stigmer.agentic.plugin.v1.HttpMcpServer.HeadersEntry
-	12, // 11: ai.stigmer.agentic.plugin.v1.PluginStatus.EnvEntry.value:type_name -> ai.stigmer.agentic.vault.v1.EnvVarDeclaration
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	13, // 2: ai.stigmer.agentic.plugin.v1.PluginStatus.hooks:type_name -> ai.stigmer.agentic.plugin.v1.HookConfig
+	8,  // 3: ai.stigmer.agentic.plugin.v1.PluginStatus.evals:type_name -> ai.stigmer.agentic.plugin.v1.PluginEvalSuite
+	1,  // 4: ai.stigmer.agentic.plugin.v1.PluginStatus.skills:type_name -> ai.stigmer.agentic.plugin.v1.PluginSkill
+	2,  // 5: ai.stigmer.agentic.plugin.v1.PluginStatus.agents:type_name -> ai.stigmer.agentic.plugin.v1.PluginAgent
+	3,  // 6: ai.stigmer.agentic.plugin.v1.PluginStatus.mcp_servers:type_name -> ai.stigmer.agentic.plugin.v1.McpServerEntry
+	10, // 7: ai.stigmer.agentic.plugin.v1.PluginStatus.env:type_name -> ai.stigmer.agentic.plugin.v1.PluginStatus.EnvEntry
+	4,  // 8: ai.stigmer.agentic.plugin.v1.McpServerEntry.stdio:type_name -> ai.stigmer.agentic.plugin.v1.StdioMcpServer
+	5,  // 9: ai.stigmer.agentic.plugin.v1.McpServerEntry.http:type_name -> ai.stigmer.agentic.plugin.v1.HttpMcpServer
+	6,  // 10: ai.stigmer.agentic.plugin.v1.McpServerEntry.sign_in:type_name -> ai.stigmer.agentic.plugin.v1.McpServerSignIn
+	11, // 11: ai.stigmer.agentic.plugin.v1.HttpMcpServer.headers:type_name -> ai.stigmer.agentic.plugin.v1.HttpMcpServer.HeadersEntry
+	9,  // 12: ai.stigmer.agentic.plugin.v1.PluginEvalSuite.cases:type_name -> ai.stigmer.agentic.plugin.v1.PluginEvalSuiteCase
+	7,  // 13: ai.stigmer.agentic.plugin.v1.PluginEvalSuite.findings:type_name -> ai.stigmer.agentic.plugin.v1.PluginWarning
+	14, // 14: ai.stigmer.agentic.plugin.v1.PluginStatus.EnvEntry.value:type_name -> ai.stigmer.agentic.vault.v1.EnvVarDeclaration
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_plugin_v1_status_proto_init() }
@@ -779,7 +964,7 @@ func file_ai_stigmer_agentic_plugin_v1_status_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

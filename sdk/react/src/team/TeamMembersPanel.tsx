@@ -8,10 +8,14 @@
  * make, so this panel composes the picker and the shared access row
  * directly instead of the resource grant form.
  *
- * Only people are offered: a team cannot be a member of a team. Anyone on
- * the organization's member list is an organization viewer, which the
- * model requires of every member, so the server has nothing to refuse
- * about the people offered here.
+ * Only the organization's people are offered: a team cannot be a member
+ * of a team, and the accounts an integrator's product created for its own
+ * users are not the organization's people, so they are left out
+ * (`includeAppUsers={false}`). People who sign in through their
+ * organization's own identity provider stay. Anyone on the organization's
+ * member list is an organization viewer, which the model requires of every
+ * member, so the server has nothing to refuse about the people offered
+ * here.
  */
 import { useMemo, useState } from "react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -135,6 +139,7 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
             value={adding}
             onChange={setAdding}
             excludeGrantees={members}
+            includeAppUsers={false}
             disabled={isGranting}
             label="Add a person"
             autoFocus={false}

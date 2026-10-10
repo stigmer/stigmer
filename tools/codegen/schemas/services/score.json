@@ -211,6 +211,11 @@
           "name": "score_source_judge",
           "number": 3,
           "description": "An AI judge grading the run against Stigmer's standard rubrics, switched\n on per agent by its evaluator."
+        },
+        {
+          "name": "score_source_eval",
+          "number": 4,
+          "description": "A plugin's own eval: one try of one evals/ case, graded by the case's\n checks."
         }
       ]
     },

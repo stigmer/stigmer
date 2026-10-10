@@ -278,9 +278,10 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin.
+     * Delete a plugin, its evals included.
      * Refused while an agent of the organization lists it; the error names the
-     * agents.
+     * agents. Refused while one of its evals is pending or running: cancel that
+     * eval first.
      * </pre>
      */
     default void delete(ai.stigmer.agentic.plugin.v1.PluginId request,
@@ -382,9 +383,10 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin.
+     * Delete a plugin, its evals included.
      * Refused while an agent of the organization lists it; the error names the
-     * agents.
+     * agents. Refused while one of its evals is pending or running: cancel that
+     * eval first.
      * </pre>
      */
     public void delete(ai.stigmer.agentic.plugin.v1.PluginId request,
@@ -471,9 +473,10 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin.
+     * Delete a plugin, its evals included.
      * Refused while an agent of the organization lists it; the error names the
-     * agents.
+     * agents. Refused while one of its evals is pending or running: cancel that
+     * eval first.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin delete(ai.stigmer.agentic.plugin.v1.PluginId request) throws io.grpc.StatusException {
@@ -558,9 +561,10 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin.
+     * Delete a plugin, its evals included.
      * Refused while an agent of the organization lists it; the error names the
-     * agents.
+     * agents. Refused while one of its evals is pending or running: cancel that
+     * eval first.
      * </pre>
      */
     public ai.stigmer.agentic.plugin.v1.Plugin delete(ai.stigmer.agentic.plugin.v1.PluginId request) {
@@ -648,9 +652,10 @@ public final class PluginCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a plugin.
+     * Delete a plugin, its evals included.
      * Refused while an agent of the organization lists it; the error names the
-     * agents.
+     * agents. Refused while one of its evals is pending or running: cancel that
+     * eval first.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.plugin.v1.Plugin> delete(

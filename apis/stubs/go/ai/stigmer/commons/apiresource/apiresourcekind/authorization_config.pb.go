@@ -491,8 +491,15 @@ type AuthorizationConfig struct {
 	// Enterprise and Cloud feature; the open-source server grants no role to a
 	// team.
 	TeamGrantableRoles []v1.IamRole `protobuf:"varint,8,rep,packed,name=team_grantable_roles,json=teamGrantableRoles,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"team_grantable_roles,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// What each grantable role means on this kind, one sentence per role in
+	// grantable_roles, shown beside the role wherever a person picks or reads
+	// one (the share dialog's role picker, an invitation, an access list).
+	// The role's name is its own `role_meta.display_name`; this is the
+	// kind's meaning of it, because Viewer on an agent and Viewer on a
+	// conversation allow different things.
+	RoleDescriptions []*RoleDescription `protobuf:"bytes,9,rep,name=role_descriptions,json=roleDescriptions,proto3" json:"role_descriptions,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *AuthorizationConfig) Reset() {
@@ -581,6 +588,69 @@ func (x *AuthorizationConfig) GetTeamGrantableRoles() []v1.IamRole {
 	return nil
 }
 
+func (x *AuthorizationConfig) GetRoleDescriptions() []*RoleDescription {
+	if x != nil {
+		return x.RoleDescriptions
+	}
+	return nil
+}
+
+// What one role means on one resource kind (AuthorizationConfig.role_descriptions).
+type RoleDescription struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The role this sentence describes; one of the kind's grantable_roles.
+	Role v1.IamRole `protobuf:"varint,1,opt,name=role,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"role,omitempty"`
+	// One sentence, in the words a person picking the role reads: what the
+	// role lets them do with this kind, and the nearest thing it does not.
+	Description   string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RoleDescription) Reset() {
+	*x = RoleDescription{}
+	mi := &file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RoleDescription) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RoleDescription) ProtoMessage() {}
+
+func (x *RoleDescription) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RoleDescription.ProtoReflect.Descriptor instead.
+func (*RoleDescription) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RoleDescription) GetRole() v1.IamRole {
+	if x != nil {
+		return x.Role
+	}
+	return v1.IamRole(0)
+}
+
+func (x *RoleDescription) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
 var File_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDesc = "" +
@@ -595,7 +665,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_p
 	"\brelation\x18\x02 \x01(\tR\brelation\x12\x1d\n" +
 	"\n" +
 	"spec_field\x18\x03 \x01(\tR\tspecField\x12\x1a\n" +
-	"\boptional\x18\x04 \x01(\bR\boptional\"\xdf\x05\n" +
+	"\boptional\x18\x04 \x01(\bR\boptional\"\xcd\x06\n" +
 	"\x13AuthorizationConfig\x12e\n" +
 	"\n" +
 	"scope_type\x18\x01 \x01(\x0e2F.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationScopeTypeR\tscopeType\x12c\n" +
@@ -608,7 +678,11 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_p
 	"visibility\x124\n" +
 	"\x16requires_creator_tuple\x18\x06 \x01(\bR\x14requiresCreatorTuple\x12C\n" +
 	"\x0fgrantable_roles\x18\a \x03(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\x0egrantableRoles\x12L\n" +
-	"\x14team_grantable_roles\x18\b \x03(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\x12teamGrantableRoles*\x85\x02\n" +
+	"\x14team_grantable_roles\x18\b \x03(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\x12teamGrantableRoles\x12l\n" +
+	"\x11role_descriptions\x18\t \x03(\v2?.ai.stigmer.commons.apiresource.apiresourcekind.RoleDescriptionR\x10roleDescriptions\"c\n" +
+	"\x0fRoleDescription\x12.\n" +
+	"\x04role\x18\x01 \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\x04role\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription*\x85\x02\n" +
 	"\x16AuthorizationScopeType\x12(\n" +
 	"$AUTHORIZATION_SCOPE_TYPE_UNSPECIFIED\x10\x00\x12%\n" +
 	"!AUTHORIZATION_SCOPE_TYPE_PLATFORM\x10\x01\x12)\n" +
@@ -637,14 +711,15 @@ func file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_pr
 }
 
 var file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_goTypes = []any{
 	(AuthorizationScopeType)(0),  // 0: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationScopeType
 	(OwnerAttributionType)(0),    // 1: ai.stigmer.commons.apiresource.apiresourcekind.OwnerAttributionType
 	(*VisibilityConfig)(nil),     // 2: ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig
 	(*ParentRelationConfig)(nil), // 3: ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig
 	(*AuthorizationConfig)(nil),  // 4: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig
-	(v1.IamRole)(0),              // 5: ai.stigmer.iam.v1.IamRole
+	(*RoleDescription)(nil),      // 5: ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription
+	(v1.IamRole)(0),              // 6: ai.stigmer.iam.v1.IamRole
 }
 var file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.scope_type:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationScopeType
@@ -652,13 +727,15 @@ var file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_pro
 	3, // 2: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.parent:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig
 	3, // 3: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.additional_parents:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfig
 	2, // 4: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.visibility:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig
-	5, // 5: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.grantable_roles:type_name -> ai.stigmer.iam.v1.IamRole
-	5, // 6: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.team_grantable_roles:type_name -> ai.stigmer.iam.v1.IamRole
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	6, // 5: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.grantable_roles:type_name -> ai.stigmer.iam.v1.IamRole
+	6, // 6: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.team_grantable_roles:type_name -> ai.stigmer.iam.v1.IamRole
+	5, // 7: ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig.role_descriptions:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription
+	6, // 8: ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.role:type_name -> ai.stigmer.iam.v1.IamRole
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_init() }
@@ -672,7 +749,7 @@ func file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_pr
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDesc), len(file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

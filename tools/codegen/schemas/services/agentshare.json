@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
           "outputType": "AgentShare",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
-          "description": "Update an existing agent share.\n\n Replaces the spec wholesale: a manifest that omits audience resets the\n share to public, and one that omits vaults detaches them (fails\n closed). The slug and referenced agent are immutable."
+          "description": "Update an existing agent share.\n\n Replaces the spec wholesale: a manifest that omits audience makes the\n share organization-only, and one that omits vaults detaches them (both\n fail closed). The slug and referenced agent are immutable."
         },
         {
           "name": "RotateShareLink",
@@ -180,12 +180,13 @@
               "vault",
               "score",
               "evaluator",
+              "plugin_eval",
               "plan",
               "subscription",
               "license"
             ]
           },
-          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).",
           "required": false
         },
         {
@@ -573,6 +574,11 @@
           "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
         },
         {
+          "name": "plugin_eval",
+          "number": 63,
+          "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
+        },
+        {
           "name": "plan",
           "number": 70,
           "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
@@ -618,7 +624,7 @@
     },
     {
       "name": "AgentShareAudience",
-      "description": "AgentShareAudience selects who can chat over a share's hosted link.\n\n Unspecified is treated as public: a share created without an explicit\n audience is an anyone-with-link share.",
+      "description": "AgentShareAudience selects who can chat over a share's hosted link.\n\n Unspecified is treated as org: a share reaches the internet only when\n public is chosen explicitly.",
       "protoType": "ai.stigmer.agentic.agentshare.v1.AgentShareAudience",
       "values": [
         {

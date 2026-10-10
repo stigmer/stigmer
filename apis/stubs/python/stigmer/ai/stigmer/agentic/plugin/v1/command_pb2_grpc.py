@@ -81,9 +81,10 @@ class PluginCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """Delete a plugin.
+        """Delete a plugin, its evals included.
         Refused while an agent of the organization lists it; the error names the
-        agents.
+        agents. Refused while one of its evals is pending or running: cancel that
+        eval first.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

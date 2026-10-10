@@ -15,10 +15,11 @@ from ._invitation import InvitationClient, InvitationInput
 from ._license import LicenseClient, LicenseInput, LicenseCustomerInput, EntitlementsInput, EntitlementLimitsInput
 from ._memory import MemoryClient, MemoryInput, MemoryProvenanceInput
 from ._oauthapp import OAuthAppClient, OAuthAppInput
-from ._organization import OrganizationClient, OrganizationInput, OrganizationPreferencesInput
+from ._organization import OrganizationClient, OrganizationInput, OrganizationPreferencesInput, OrganizationPoliciesInput
 from ._plan import PlanClient, PlanInput, PlanTermsInput
 from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._plugin import PluginClient, PluginInput, PluginAuthorInput
+from ._plugineval import PluginEvalClient, PluginEvalInput, PluginEvalTargetInput
 from ._providerkey import ProviderKeyClient
 from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
@@ -95,6 +96,7 @@ __all__ = [
     "OrganizationClient",
     "OrganizationInput",
     "OrganizationPreferencesInput",
+    "OrganizationPoliciesInput",
     "PlanClient",
     "PlanInput",
     "PlanTermsInput",
@@ -103,6 +105,9 @@ __all__ = [
     "PluginClient",
     "PluginInput",
     "PluginAuthorInput",
+    "PluginEvalClient",
+    "PluginEvalInput",
+    "PluginEvalTargetInput",
     "ProviderKeyClient",
     "RunClient",
     "RunInput",

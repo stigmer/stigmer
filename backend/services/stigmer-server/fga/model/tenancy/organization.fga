@@ -20,6 +20,8 @@ module tenancy
 # and on a child's creation, both edges and no owner:
 # - organization:acme-cust#parent_org@organization:acme
 # - organization:acme#child_org@organization:acme-cust
+# and while spec.policies lets members create agents (the default):
+# - organization:acme#agent_creation_open@organization:acme
 
 type organization
   relations
@@ -92,6 +94,17 @@ type organization
     # grants themselves a role in the child, which the child's members and
     # access history show.
     define parent_admin: admin from parent_org
+
+    # ========================================
+    # POLICIES (spec.policies)
+    # ========================================
+    # An edge from the organization to itself, present exactly while its
+    # policy "Members can create agents" is on (the default). Written and
+    # removed only by the organization's create and updatePolicies, never
+    # granted; open source derives it from the row at check time. Not a
+    # cycle: member never reads it.
+    # FGA tuple: organization:<org_id>#agent_creation_open@organization:<org_id>
+    define agent_creation_open: [organization]
     
     # ========================================
     # CRUD OPERATIONS
@@ -115,7 +128,8 @@ type organization
     # ========================================
     # RESOURCE CREATION PERMISSIONS
     # ========================================
-    define can_create_agent: admin
+    # Admins always; members while the organization's policy lets them.
+    define can_create_agent: admin or member from agent_creation_open
     define can_create_session: member or guest
     # Every member keeps a My vault of their own logins and secrets; a
     # shared vault is the organization's, so only admins create one.
@@ -138,6 +152,12 @@ type organization
     # the share's own organization since the public level retired
     # (stigmer#1211), so the two questions are always one organization's.
     define can_create_agent_share: admin
+    # Asked on every agent channel create, beside can_manage_audience on the
+    # connected agent, the share's bar: a channel spends THIS org's credits
+    # on outside traffic, an admin-level act, whichever agent it serves. A
+    # member owns the agents they create (can_create_agent), so ownership
+    # alone must not connect one.
+    define can_create_agent_channel: admin
     # Teams are the organization's, managed by its admins (team.fga).
     define can_create_team: admin
     # Creating, finding and listing the organization's children. A child's

@@ -1,13 +1,14 @@
 // TypeScript files derived from ApiResourceKind kind_meta options: resource
-// availability (tier) and authorization config (grantable_roles and
-// team_grantable_roles). Port of
+// availability (tier) and authorization config (grantable_roles,
+// team_grantable_roles and role_descriptions, with each IamRole's role_meta
+// name and kindless sentence). Port of
 // sdk_kind_meta_ts.go; the data comes from @stigmer/protos' descriptors via
 // resource-kind.ts.
 
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { iamRoleName, kindMetaEntries, ResourceTier } from "./resource-kind.js";
+import { iamRoleMetaEntries, iamRoleName, kindMetaEntries, ResourceTier } from "./resource-kind.js";
 
 export function generateTSKindMeta(outputDir: string): void {
   const entries = kindMetaEntries();
@@ -87,6 +88,48 @@ function generateTSAuthorizationConfig(outputDir: string, entries: ReturnType<ty
 
   pushRoleMapEntries(buf, entries, (entry) => entry.teamGrantableRoles);
 
+  buf.push("]);\n\n");
+
+  buf.push("/**\n");
+  buf.push(" * What each grantable role means on each resource kind, one sentence per\n");
+  buf.push(" * role, shown beside the role wherever a person picks or reads one.\n");
+  buf.push(" *\n");
+  buf.push(" * Source of truth: api_resource_kind.proto — role_descriptions in each\n");
+  buf.push(" * kind's AuthorizationConfig, one entry per grantable role.\n");
+  buf.push(" */\n");
+  buf.push("export const ROLE_DESCRIPTIONS: ReadonlyMap<ApiResourceKind, ReadonlyMap<IamRole, string>> = new Map([\n");
+  for (const entry of entries) {
+    if (entry.roleDescriptions.length === 0) continue;
+    buf.push(`  [ApiResourceKind.${entry.enumName}, new Map<IamRole, string>([\n`);
+    for (const { role, description } of entry.roleDescriptions) {
+      buf.push(`    [IamRole.${iamRoleName(role)}, ${JSON.stringify(description)}],\n`);
+    }
+    buf.push("  ])],\n");
+  }
+  buf.push("]);\n\n");
+
+  const roles = iamRoleMetaEntries();
+  buf.push("/**\n");
+  buf.push(" * Each role's name as people read it.\n");
+  buf.push(" *\n");
+  buf.push(" * Source of truth: enum.proto — each IamRole value's role_meta.display_name.\n");
+  buf.push(" */\n");
+  buf.push("export const ROLE_DISPLAY_NAMES: ReadonlyMap<IamRole, string> = new Map([\n");
+  for (const role of roles) {
+    buf.push(`  [IamRole.${role.name}, ${JSON.stringify(role.displayName)}],\n`);
+  }
+  buf.push("]);\n\n");
+
+  buf.push("/**\n");
+  buf.push(" * What each role means when no resource kind is known. A picker shows the\n");
+  buf.push(" * kind's own sentence instead (ROLE_DESCRIPTIONS).\n");
+  buf.push(" *\n");
+  buf.push(" * Source of truth: enum.proto — each IamRole value's role_meta.description.\n");
+  buf.push(" */\n");
+  buf.push("export const ROLE_KINDLESS_DESCRIPTIONS: ReadonlyMap<IamRole, string> = new Map([\n");
+  for (const role of roles) {
+    buf.push(`  [IamRole.${role.name}, ${JSON.stringify(role.description)}],\n`);
+  }
   buf.push("]);\n");
 
   fs.writeFileSync(path.join(outputDir, "authorization-config.ts"), buf.join(""));

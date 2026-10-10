@@ -218,9 +218,10 @@ export interface TurnMcp {
    */
   readonly platformServerSlugs: ReadonlySet<string>;
   /**
-   * The main agent's tool scope, from its `tools` and `disallowed_tools`
-   * (`shared/tool-lists.ts`); unrestricted for an agent with no lists and for
-   * the built-in assistant. A sub-agent's scope narrows this one.
+   * The main agent's tool scope, from its `tools` and `disallowed_tools`,
+   * narrowed by the turn's own (`RunSpec.tools`, `RunSpec.disallowed_tools`;
+   * `shared/tool-lists.ts`); unrestricted when neither carries a list. A
+   * sub-agent's scope narrows this one.
    */
   readonly toolScope: ToolScope;
 }
@@ -358,6 +359,14 @@ export interface TurnInput extends NormalizedActivityInput {
   readonly model: TurnModelPreferences;
   /** `spec.structuredOutputSchema`, when this message asks for structured output. */
   readonly structuredOutputSchema: Record<string, unknown> | undefined;
+  /**
+   * `spec.appendSystemPrompt`: text this message appends to the system
+   * prompt, after the agent's instructions and the platform's sections, for
+   * this turn only; "" for none. Each harness places it at the end of what
+   * it sends as the system prompt; on Cursor, which sends it with the
+   * turn's message, a structured-output directive still follows it.
+   */
+  readonly appendSystemPrompt: string;
   readonly standing: TurnStandingContext;
   /** Resolved once by the runtime before any phase; absent when no substrate works. */
   readonly artifactStorage: ArtifactStorage | undefined;

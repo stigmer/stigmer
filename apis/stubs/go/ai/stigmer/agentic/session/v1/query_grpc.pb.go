@@ -34,10 +34,14 @@ type SessionQueryControllerClient interface {
 	// Get a single session by ID.
 	Get(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error)
 	// List all sessions with pagination and optional filtering.
+	//
+	// A plugin eval's tries are left out: each runs in a session of its own,
+	// read through the eval (PluginEvalQueryController.get) instead.
 	List(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*SessionList, error)
 	// List the conversations on one agent, whichever version each runs.
 	//
-	// Results are filtered to the sessions the caller can view.
+	// Results are filtered to the sessions the caller can view. A plugin
+	// eval's tries are left out, as in list.
 	ListByAgent(ctx context.Context, in *ListSessionsByAgentRequest, opts ...grpc.CallOption) (*SessionList, error)
 	// List the conversations an agent channel created.
 	//
@@ -105,10 +109,14 @@ type SessionQueryControllerServer interface {
 	// Get a single session by ID.
 	Get(context.Context, *SessionId) (*Session, error)
 	// List all sessions with pagination and optional filtering.
+	//
+	// A plugin eval's tries are left out: each runs in a session of its own,
+	// read through the eval (PluginEvalQueryController.get) instead.
 	List(context.Context, *ListSessionsRequest) (*SessionList, error)
 	// List the conversations on one agent, whichever version each runs.
 	//
-	// Results are filtered to the sessions the caller can view.
+	// Results are filtered to the sessions the caller can view. A plugin
+	// eval's tries are left out, as in list.
 	ListByAgent(context.Context, *ListSessionsByAgentRequest) (*SessionList, error)
 	// List the conversations an agent channel created.
 	//

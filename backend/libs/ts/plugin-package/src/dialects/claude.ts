@@ -14,14 +14,15 @@
  * is the inline form of the plugin's `settings.json` (only its `agent` key
  * takes effect on Stigmer; `normalise/settings.ts`). LSP servers, channels,
  * output styles, workflows and the experimental components are recorded as
- * ignored.
+ * ignored, except `experimental.evals`, the eval suite's directory, which is
+ * carried raw for the eval reader.
  *
  * The reader is exported with its known-field set so the Codex dialect,
  * whose legacy manifest is this shape plus `apps` and `interface` and minus
  * `settings`, reuses it rather than restating it.
  */
 
-import type { JsonObject } from "../documents.js";
+import { isJsonObject, type JsonObject } from "../documents.js";
 import type { Findings } from "../messages.js";
 import type { PluginDialect } from "../types.js";
 import {
@@ -92,6 +93,10 @@ export function readClaudeShapedManifest(
   if (dialect === "claude" && object["settings"] !== undefined) manifest.settings = object["settings"];
   if (object["userConfig"] !== undefined) {
     manifest.variables = { dialect: "claude", value: object["userConfig"], manifest: path };
+  }
+  const experimental = object["experimental"];
+  if (isJsonObject(experimental) && experimental["evals"] !== undefined) {
+    manifest.evalsDir = { value: experimental["evals"], manifest: path };
   }
   return manifest;
 }

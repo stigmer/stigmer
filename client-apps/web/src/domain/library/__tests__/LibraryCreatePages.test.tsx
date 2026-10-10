@@ -11,6 +11,8 @@ import { act, render, screen } from "@testing-library/react";
 type Props = Record<string, unknown>;
 
 const page = vi.hoisted(() => ({
+  // The server's answer to "may this person create an agent here?".
+  canCreate: { allowed: true, isLoading: false },
   props: new Map<string, Props>(),
   pushed: [] as string[],
 }));
@@ -29,6 +31,8 @@ vi.mock("@stigmer/react", () => {
     SkillUploader: capture("SkillUploader"),
     AGENT_TEMPLATES: [],
     useActiveOrgId: () => "org_acme",
+    useCanCreateAgent: () => page.canCreate,
+    AgentCreationDenied: () => <p>only admins create agents</p>,
     useActiveOrgSlug: () => "acme",
     // The person's organizations: org_acme reads "acme" in a URL.
     useOrgSlugForId: () => (id: string) => (id === "org_acme" ? "acme" : id),
@@ -60,6 +64,7 @@ function call(name: string, prop: string, arg: unknown): void {
 const CREATED = { metadata: { org: "org_acme", slug: "made" } };
 
 beforeEach(() => {
+  page.canCreate = { allowed: true, isLoading: false };
   page.props.clear();
   page.pushed.length = 0;
 });
@@ -100,5 +105,23 @@ describe("web library create pages", () => {
     expect(propsOf("SkillUploader").org).toBe("org_acme");
     call("SkillUploader", "onComplete", CREATED);
     expect(page.pushed).toEqual(["/library/skills/acme/made"]);
+  });
+});
+
+describe("web AgentNewPage — who may create agents", () => {
+  it("shows who can create agents instead of the creation picker to someone the server would refuse", () => {
+    page.canCreate = { allowed: false, isLoading: false };
+    render(<AgentNewPage />);
+
+    expect(screen.getByText("only admins create agents")).toBeTruthy();
+    expect(page.props.has("CreationPicker")).toBe(false);
+  });
+
+  it("shows nothing while the answer is pending", () => {
+    page.canCreate = { allowed: false, isLoading: true };
+    render(<AgentNewPage />);
+
+    expect(screen.queryByText("only admins create agents")).toBeNull();
+    expect(page.props.has("CreationPicker")).toBe(false);
   });
 });

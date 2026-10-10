@@ -93,7 +93,7 @@
           "kind": "string"
         }
       },
-      "description": "Tools this agent may use; empty means every tool it has.\n\n Entries use Claude Code's names: a built-in such as Read, Grep, Bash,\n Write, Edit, Glob, Agent or WebFetch; mcp__\u003cserver\u003e for every tool of one\n MCP server, mcp__\u003cserver\u003e__\u003ctool\u003e for one tool, and mcp__* for every MCP\n tool. A plugin's server is named plugin_\u003cplugin\u003e_\u003cserver\u003e, as Claude Code\n names it, with every character outside letters, digits, _ and - written\n as _. A specifier in parentheses, as in Bash(git push *), is\n accepted and governs the whole tool. Agent(explore, shell) also limits\n which sub-agents this agent may start; the Cursor engine cannot hold its\n built-in sub-agents back, so it refuses a turn whose agent limits Agent to\n types. The lists hold on both engines, and under \"approve everything\"\n too.",
+      "description": "Tools this agent may use; empty means every tool it has.\n\n Entries use Claude Code's names: a built-in such as Read, Grep, Bash,\n Write, Edit, Glob, Agent or WebFetch; mcp__\u003cserver\u003e for every tool of one\n MCP server, mcp__\u003cserver\u003e__\u003ctool\u003e for one tool, and mcp__* for every MCP\n tool. A plugin's server is named plugin_\u003cplugin\u003e_\u003cserver\u003e, as Claude Code\n names it, with every character outside letters, digits, _ and - written\n as _. A specifier in parentheses, as in Bash(git push *), is\n accepted and governs the whole tool. Agent(explore, shell) also limits\n which sub-agents this agent may start; the Cursor engine cannot hold its\n built-in sub-agents back, so it refuses a turn whose agent limits Agent to\n types. The lists hold on both engines, and under \"approve everything\"\n too.\n\n Skill is a name here too, for the agent's skills: a list without Skill\n keeps them, and a list holding only Skill names them, so it does not\n refuse the turn, also under an outer list that omits Skill (a\n sub-agent's under its agent's, a turn's under the agent's). Denying\n Skill in disallowed_tools removes them, and then a list of Skill alone\n in a narrower layer refuses the turn.",
       "required": false
     },
     {
@@ -106,7 +106,7 @@
           "kind": "string"
         }
       },
-      "description": "Tools this agent may never use, in the same names as tools.\n Applied before tools, so a tool named in both is excluded.",
+      "description": "Tools this agent may never use, in the same names as tools.\n Applied before tools, so a tool named in both is excluded.\n\n Disallowing Skill hides every skill from this agent: no skill is listed\n or mounted for its turns, and the Read tool refuses reads of skill and\n plugin-tree files. Grep, Glob and a shell the agent is granted are not\n refused, so they can still reach those files. On a sub-agent it hides\n that sub-agent's skills.",
       "required": false
     },
     {

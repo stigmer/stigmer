@@ -11,14 +11,18 @@
  * the plugin carries them; a version that cannot be a tag; an ignored
  * component; and the refusal of a server whose tool segment
  * `plugin_<plugin>_<server>` would hold `__` or end in `_`, while a name
- * holding a single `_` installs.
+ * holding a single `_` installs; and the eval suite the archive's files
+ * carry, as `evals` (absent when they carry none), which raises no
+ * warning of the plan's own.
  *
  * Packages are built by hand so each case changes one thing; the reader's
  * own behaviour is the library's suite's.
  */
 import { describe, expect, it } from "vitest";
 
+import { inMemoryPluginFiles } from "@stigmer/plugin-package";
 import type {
+  PluginFiles,
   PluginMcpServer,
   PluginPackage,
   PluginSubAgent,
@@ -31,6 +35,14 @@ import {
   ServerNameError,
   variablesRead,
 } from "../plan-status.js";
+
+/** An archive holding nothing beside the package: no eval suite. */
+const NO_FILES: PluginFiles = inMemoryPluginFiles(new Map());
+
+/** The plan of a hand-built package, over files that carry no eval suite unless given. */
+function planOf(plugin: PluginPackage, files: PluginFiles = NO_FILES) {
+  return planPluginStatus(plugin, files);
+}
 
 function pkg(overrides: Partial<PluginPackage> = {}): PluginPackage {
   return {
@@ -75,7 +87,7 @@ const stdioServer: PluginMcpServer = {
 
 describe("planPluginStatus — the lists", () => {
   it("lists skills, agents and both server transports in the contract's shape", () => {
-    const plan = planPluginStatus(
+    const plan = planOf(
       pkg({
         skills: [
           {
@@ -169,7 +181,7 @@ describe("planPluginStatus — the lists", () => {
         },
       ],
     };
-    expect(planPluginStatus(pkg({ hooks })).hooks).toBe(hooks);
+    expect(planOf(pkg({ hooks })).hooks).toBe(hooks);
   });
 });
 
@@ -228,7 +240,7 @@ describe("variablesRead", () => {
 describe("planPluginStatus — the server segment", () => {
   it("refuses a server whose segment holds two underscores in a row, naming the segment", () => {
     const plan = (): unknown =>
-      planPluginStatus(
+      planOf(
         pkg({ mcpServers: [{ ...stdioServer, name: "db__x" }] }),
       );
     expect(plan).toThrow(ServerNameError);
@@ -239,18 +251,18 @@ describe("planPluginStatus — the server segment", () => {
 
   it("refuses a segment that ends in an underscore, whether the name wrote it or a character mapped to it", () => {
     expect(() =>
-      planPluginStatus(pkg({ mcpServers: [{ ...stdioServer, name: "db_" }] })),
+      planOf(pkg({ mcpServers: [{ ...stdioServer, name: "db_" }] })),
     ).toThrow(ServerNameError);
     expect(() =>
-      planPluginStatus(pkg({ mcpServers: [{ ...stdioServer, name: "db." }] })),
+      planOf(pkg({ mcpServers: [{ ...stdioServer, name: "db." }] })),
     ).toThrow(ServerNameError);
     expect(() =>
-      planPluginStatus(pkg({ mcpServers: [{ ...stdioServer, name: "a.:b" }] })),
+      planOf(pkg({ mcpServers: [{ ...stdioServer, name: "a.:b" }] })),
     ).toThrow(ServerNameError);
   });
 
   it("installs plugin and server names that hold a single underscore", () => {
-    const plan = planPluginStatus(
+    const plan = planOf(
       pkg({
         name: "my_plugin",
         mcpServers: [{ ...stdioServer, name: "my_db" }],
@@ -262,7 +274,7 @@ describe("planPluginStatus — the server segment", () => {
 
 describe("planPluginStatus — the agents' judgements", () => {
   it("drops an entry the contract cannot store, with a warning naming it, and keeps the rest", () => {
-    const plan = planPluginStatus(
+    const plan = planOf(
       pkg({
         subAgents: [
           agent({
@@ -287,7 +299,7 @@ describe("planPluginStatus — the agents' judgements", () => {
   });
 
   it("leaves out an agent whose tools list loses every entry, rather than widening it to every tool", () => {
-    const plan = planPluginStatus(
+    const plan = planOf(
       pkg({
         subAgents: [
           agent({
@@ -310,13 +322,13 @@ describe("planPluginStatus — the agents' judgements", () => {
   });
 
   it("keeps an agent with no tools list at all (every tool, as its author wrote)", () => {
-    const plan = planPluginStatus(pkg({ subAgents: [agent()] }));
+    const plan = planOf(pkg({ subAgents: [agent()] }));
     expect(plan.agents[0]?.tools).toEqual([]);
     expect(plan.warnings).toEqual([]);
   });
 
   it("records a model hint as a warning and does not apply it; inherit and an unknown alias add none", () => {
-    const plan = planPluginStatus(
+    const plan = planOf(
       pkg({
         subAgents: [
           agent({ name: "a", modelHint: { raw: "sonnet", alias: "sonnet" } }),
@@ -333,7 +345,7 @@ describe("planPluginStatus — the agents' judgements", () => {
   });
 
   it("keeps a settings main agent as an ordinary plugin agent, with a warning", () => {
-    const plan = planPluginStatus(
+    const plan = planOf(
       pkg({ subAgents: [agent()], mainAgent: "lead" }),
     );
     expect(plan.agents.map((a) => a.name)).toEqual(["lead"]);
@@ -348,9 +360,9 @@ describe("planPluginStatus — the agents' judgements", () => {
 
 describe("planPluginStatus — version and ignored components", () => {
   it("tags a version that fits the tag pattern and warns about one that does not", () => {
-    expect(planPluginStatus(pkg({ version: "1.2.0" })).tag).toBe("1.2.0");
-    expect(planPluginStatus(pkg()).tag).toBe("");
-    const plan = planPluginStatus(pkg({ version: "1.0.0+build.1" }));
+    expect(planOf(pkg({ version: "1.2.0" })).tag).toBe("1.2.0");
+    expect(planOf(pkg()).tag).toBe("");
+    const plan = planOf(pkg({ version: "1.0.0+build.1" }));
     expect(plan.tag).toBe("");
     expect(plan.warnings.map((w) => w.kind)).toEqual([
       SERVER_WARNING_KINDS.versionNotTaggable,
@@ -358,12 +370,35 @@ describe("planPluginStatus — version and ignored components", () => {
   });
 
   it("warns about each ignored component at its path", () => {
-    const plan = planPluginStatus(
+    const plan = planOf(
       pkg({ ignored: [{ kind: "commands", path: "commands/" }] }),
     );
     expect(plan.warnings.map((w) => [w.kind, w.path])).toEqual([
       [SERVER_WARNING_KINDS.componentIgnored, "commands/"],
     ]);
+  });
+});
+
+describe("planPluginStatus — the eval suite", () => {
+  const JUDGE = "---\ntype: llm\n---\nPASS if it greets.\n";
+
+  it("returns the suite the files carry as evals, with no warning of the plan's own", () => {
+    const plan = planOf(
+      pkg(),
+      inMemoryPluginFiles(
+        new Map([
+          ["evals/hi/prompt.md", "Hi."],
+          ["evals/hi/graders/judge.md", JUDGE],
+        ]),
+      ),
+    );
+    expect(plan.evals?.dir).toBe("evals");
+    expect(plan.evals?.cases.map((c) => c.name)).toEqual(["hi"]);
+    expect(plan.warnings).toEqual([]);
+  });
+
+  it("returns no evals when the files carry no eval directory", () => {
+    expect(planOf(pkg()).evals).toBeUndefined();
   });
 });
 

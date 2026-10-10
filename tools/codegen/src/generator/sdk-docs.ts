@@ -12,6 +12,7 @@ import { marshalIndent } from "../gojson.js";
 import { goTrimSpace } from "../internalcomment/internalcomment.js";
 import type { EnumSchema, MethodSchema, ServiceSchemaFile } from "./gen-common.js";
 import {
+  hasExplicitPresence,
   indefiniteArticle,
   isEmptyType,
   isIDType,
@@ -480,7 +481,16 @@ function docWriteMethodSigs(
 interface DocFieldEntry {
   name: string;
   value: string;
+  /** A trailing comment on the field's example line; Go's only. */
+  note?: string;
 }
+
+/**
+ * The note on a Go example's field with explicit presence (a proto3
+ * `optional` scalar): Go's input holds a plain value, so the example's zero
+ * is not sent and reads as unset, unlike the zero the other languages send.
+ */
+const GO_PRESENCE_NOTE = "zero is unset: not sent, so the server's default applies";
 
 // An org-less kind's example shows no org: its metadata.org is always empty,
 // and the server refuses one.
@@ -501,7 +511,11 @@ function docInputFields(
 
   for (const f of specSchema.fields) {
     if (META_FIELD_NAMES.has(f.name)) continue;
-    fields.push({ name: docFieldName(f.protoField, lang), value: docPlaceholder(f.type, lang) });
+    fields.push({
+      name: docFieldName(f.protoField, lang),
+      value: docPlaceholder(f.type, lang),
+      ...(lang === "go" && hasExplicitPresence(f) && { note: GO_PRESENCE_NOTE }),
+    });
   }
   return fields;
 }
@@ -610,7 +624,9 @@ function docFormatInputGo(fields: DocFieldEntry[]): string {
   for (const f of fields) {
     if (f.name.length > maxLen) maxLen = f.name.length;
   }
-  return fields.map((f) => `  ${f.name}:${" ".repeat(maxLen - f.name.length)} ${f.value},`).join("\n");
+  return fields
+    .map((f) => `  ${f.name}:${" ".repeat(maxLen - f.name.length)} ${f.value},${f.note === undefined ? "" : ` // ${f.note}`}`)
+    .join("\n");
 }
 
 function docFormatInputTS(fields: DocFieldEntry[]): string {

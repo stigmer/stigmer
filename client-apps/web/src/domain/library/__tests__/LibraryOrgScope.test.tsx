@@ -5,9 +5,11 @@
  * and count hooks are pinned in @stigmer/react.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 const page = vi.hoisted(() => ({
+  // The server's answer to "may this person create an agent here?".
+  canCreate: { allowed: true, isLoading: false },
   counted: [] as Array<string | null>,
   agentView: [] as Array<Record<string, unknown>>,
 }));
@@ -33,6 +35,7 @@ vi.mock("@stigmer/react", () => {
     useSkillCount: count,
     usePluginCount: count,
     useActiveOrgId: () => "org_acme",
+    useCanCreateAgent: () => page.canCreate,
     useAgent: () => ({ agent: null, refetch: () => undefined }),
     useCopyResource: () => ({
       copyId: () => undefined,
@@ -74,6 +77,7 @@ import { LibraryLanding } from "../LibraryLanding";
 import { AgentDetailPageInner } from "../agents/AgentDetailPage";
 
 beforeEach(() => {
+  page.canCreate = { allowed: true, isLoading: false };
   page.counted.length = 0;
   page.agentView.length = 0;
 });
@@ -91,5 +95,25 @@ describe("web library org scope", () => {
 
     expect(page.agentView.at(-1)).toMatchObject({ org: "other", slug: "helper" });
     expect(page.agentView.at(-1)).not.toHaveProperty("viewerOrg");
+  });
+});
+
+describe("web library Add menu — who may create agents", () => {
+  async function addMenuItems(): Promise<string[]> {
+    render(<LibraryLanding />);
+    fireEvent.click(screen.getByRole("button", { name: "Add a new resource" }));
+    const items = await screen.findAllByRole("menuitem");
+    return items.map((item) => item.textContent ?? "");
+  }
+
+  it("offers Agent to someone the server lets create one", async () => {
+    expect((await addMenuItems()).some((label) => label.includes("Agent"))).toBe(true);
+  });
+
+  it("leaves Agent out for someone the server would refuse, and keeps the other kinds", async () => {
+    page.canCreate = { allowed: false, isLoading: false };
+    const labels = await addMenuItems();
+    expect(labels.some((label) => label.includes("Agent"))).toBe(false);
+    expect(labels.length).toBeGreaterThan(0);
   });
 });

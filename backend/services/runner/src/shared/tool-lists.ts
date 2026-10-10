@@ -1,7 +1,9 @@
 /**
  * An agent's two tool lists — `tools` ("only these") and `disallowed_tools`
  * ("never these") — in Claude Code's vocabulary, resolved the way Claude Code
- * resolves a sub-agent's lists, for both engines.
+ * resolves a sub-agent's lists, for both engines. A turn may carry the same
+ * two lists (`RunSpec.tools`, `RunSpec.disallowed_tools`), which narrow its
+ * agent's (or the assistant's) for that turn only.
  *
  * Pure: no engine import, no I/O. Each harness asks this module one question
  * per tool ("is this in scope?") in its own names, through the name tables
@@ -17,11 +19,13 @@
  *    one normalized form ({@link normalizeSubAgentType}), so Claude's
  *    `general-purpose` and Cursor's `generalPurpose` are one type.
  *  - A sub-agent starts from its parent's resolved set and can only narrow
- *    it: a scope is the conjunction of its layers.
+ *    it: a scope is the conjunction of its layers. A turn's lists are one
+ *    more layer over the agent's ({@link ToolScope.ofMain}), so a turn can
+ *    narrow and never widen; their `Agent(type, …)` lists intersect.
  *  - An entry naming no tool the turn has is ignored with one log line; a
  *    non-empty `tools` in which nothing resolves refuses the turn.
  *
- * Two Stigmer readings, each a trade-off stated once:
+ * Three Stigmer readings, each a trade-off stated once:
  *  - One engine tool can do the work of several Claude tools (Cursor's
  *    `edit` writes and edits; its `Delete` removes a file, which Claude does
  *    through Bash or Write). Such a tool is available when any Claude tool it
@@ -30,113 +34,22 @@
  *  - An engine tool with no Claude name (Cursor's `readLints`, `askQuestion`,
  *    …) is the engine's, not the platform's: an allow-list hides it, because
  *    "only these" is exact; a deny-list leaves it alone.
+ *  - `Skill` names no engine tool: both engines activate a skill by reading
+ *    its `SKILL.md`. Denied by any layer, it hides skills: the turn's prompt
+ *    lists none and a read of a skill's files is refused
+ *    ({@link ToolScope.hidesSkills}). An allow-list that omits it keeps them,
+ *    because skills are platform content, as the confined read already
+ *    treats them, so no stored agent changes behaviour. An entry naming it
+ *    always names something, the way a platform capability does, and is in
+ *    scope unless a layer denies it: a turn or sub-agent `tools: [Skill]`
+ *    under an agent's `tools: [Read]` resolves, since that agent keeps its
+ *    skills.
  * The platform's own tools (the synthesized channel, conversation and memory
  * attachments) are outside both lists: no plugin can name them, and an agent
  * without them cannot answer its channel.
  */
 
-/** Claude Code's built-in tool names a list may carry. */
-export type ClaudeTool =
-  | "Bash"
-  | "Read"
-  | "Write"
-  | "Edit"
-  | "Glob"
-  | "Grep"
-  | "Agent"
-  | "WebFetch"
-  | "WebSearch"
-  | "TodoWrite"
-  | "NotebookEdit";
-
-const CLAUDE_TOOLS: ReadonlySet<string> = new Set<ClaudeTool>([
-  "Bash",
-  "Read",
-  "Write",
-  "Edit",
-  "Glob",
-  "Grep",
-  "Agent",
-  "WebFetch",
-  "WebSearch",
-  "TodoWrite",
-  "NotebookEdit",
-]);
-
-/** Claude Code's older spelling of `Agent`, still accepted there. */
-const CLAUDE_ALIASES: ReadonlyMap<string, ClaudeTool> = new Map([["Task", "Agent"]]);
-
-/**
- * The native engine's tool names and the Claude tools each covers. `delete`
- * is listed for completeness: the runner never binds it (file review needs
- * every removal to go through a reviewable write, `deepagents-profiles.ts`).
- */
-export const NATIVE_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map([
-  ["execute", ["Bash"]],
-  ["read_file", ["Read"]],
-  ["write_file", ["Write"]],
-  ["edit_file", ["Edit"]],
-  ["delete", ["Write"]],
-  ["glob", ["Glob"]],
-  ["ls", ["Glob"]],
-  ["grep", ["Grep"]],
-  ["task", ["Agent"]],
-  ["web_fetch", ["WebFetch"]],
-  ["write_todos", ["TodoWrite"]],
-]);
-
-/**
- * The names the Cursor `preToolUse` hook reports, and the Claude tools each
- * covers. The hook reports every file mutation, create or edit, as `Write`
- * (`tool-kind.ts`), so `Write` covers both.
- */
-export const CURSOR_HOOK_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map([
-  ["Shell", ["Bash"]],
-  ["Read", ["Read"]],
-  ["Write", ["Write", "Edit"]],
-  ["StrReplace", ["Edit"]],
-  ["Delete", ["Write"]],
-  ["Glob", ["Glob"]],
-  ["Grep", ["Grep"]],
-  ["SemanticSearch", ["Grep"]],
-  ["Task", ["Agent"]],
-  ["WebFetch", ["WebFetch"]],
-  ["WebSearch", ["WebSearch"]],
-  ["updateTodos", ["TodoWrite"]],
-  ["TodoWrite", ["TodoWrite"]],
-  ["EditNotebook", ["NotebookEdit"]],
-]);
-
-/**
- * The `@cursor/sdk` `AgentOptions.tools` / `disallowedTools` vocabulary (its
- * `ToolName` literals, 1.0.31) and the Claude tools each covers. `mcp` is
- * absent on purpose: it is the whole MCP family, all-or-nothing, so MCP
- * narrowing is the hook's. A name with no Claude tool is an engine extra.
- */
-export const CURSOR_SDK_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map([
-  ["shell", ["Bash"]],
-  ["read", ["Read"]],
-  ["edit", ["Write", "Edit"]],
-  ["delete", ["Write"]],
-  ["glob", ["Glob"]],
-  ["ls", ["Glob"]],
-  ["grep", ["Grep"]],
-  ["semSearch", ["Grep"]],
-  ["task", ["Agent"]],
-  ["webFetch", ["WebFetch"]],
-  ["webSearch", ["WebSearch"]],
-  ["updateTodos", ["TodoWrite"]],
-  ["readTodos", ["TodoWrite"]],
-]);
-
-/** The SDK's built-in names with no Claude tool: hidden by an allow-list, left alone by a deny-list. */
-export const CURSOR_SDK_EXTRA_TOOLS: readonly string[] = [
-  "readLints",
-  "askQuestion",
-  "await",
-  "generateImage",
-  "applyAgentDiff",
-];
+import { CLAUDE_TOOL_ALIASES, CURSOR_SDK_TOOL_COVERS, isClaudeTool, type ClaudeTool } from "@stigmer/tool-vocabulary";
 
 /** One parsed list entry. */
 export type ToolListEntry =
@@ -164,7 +77,7 @@ export function parseToolListEntry(raw: string): ToolListEntry {
   const open = raw.indexOf("(");
   const name = open === -1 ? raw : raw.slice(0, open);
   const specifier = open === -1 ? null : raw.slice(open + 1, raw.endsWith(")") ? -1 : undefined);
-  const tool = CLAUDE_TOOLS.has(name) ? (name as ClaudeTool) : CLAUDE_ALIASES.get(name);
+  const tool = isClaudeTool(name) ? name : CLAUDE_TOOL_ALIASES.get(name);
   if (!tool) return { kind: "unknown", raw };
   const agentTypes =
     tool === "Agent" && specifier !== null
@@ -275,11 +188,13 @@ function layerAllows(layer: ScopeLayer, subject: Subject): boolean {
 export class ToolScope {
   /**
    * @param layers each owner's lists, the main agent's first when it has any
+   *   (the agent's, then the turn's)
    * @param agentTypes the main agent's `Agent(type, …)` types, normalized
    *   ({@link normalizeSubAgentType});
-   *   `null` when its lists name no type list. Fixed at {@link of} and carried
-   *   unchanged by {@link narrow}: a sub-agent's type list is ignored, and a
-   *   sub-agent's layer can be the first one when the main agent has no lists.
+   *   `null` when its lists name no type list. Fixed at {@link ofMain} and
+   *   carried unchanged by {@link narrow}: a sub-agent's type list is
+   *   ignored, and a sub-agent's layer can be the first one when the main
+   *   agent has no lists.
    */
   private constructor(
     private readonly layers: readonly ScopeLayer[],
@@ -291,10 +206,27 @@ export class ToolScope {
     return new ToolScope([], null);
   }
 
-  /** The main agent's scope. */
+  /** The main agent's scope, from one owner's lists. */
   static of(owner: string, lists: ToolLists): ToolScope {
-    const scope = ToolScope.unrestricted().narrow(owner, lists);
-    return new ToolScope(scope.layers, agentTypesOf(scope.layers[0]?.tools ?? []));
+    return ToolScope.ofMain([{ owner, lists }]);
+  }
+
+  /**
+   * The main agent's scope from several owners' lists, outermost first (the
+   * agent's, then the turn's): each narrows the ones before it, and the
+   * `Agent(type, …)` limit is the intersection of every owner's type list.
+   * An owner with empty lists adds no layer.
+   */
+  static ofMain(owners: readonly { readonly owner: string; readonly lists: ToolLists }[]): ToolScope {
+    let scope = ToolScope.unrestricted();
+    for (const { owner, lists } of owners) scope = scope.narrow(owner, lists);
+    const limits = scope.layers.flatMap((layer) => {
+      const own = agentTypesOf(layer.tools);
+      return own === null ? [] : [own];
+    });
+    const [first, ...rest] = limits;
+    const types = first === undefined ? null : new Set([...first].filter((t) => rest.every((l) => l.has(t))));
+    return new ToolScope(scope.layers, types);
   }
 
   /** A sub-agent's scope: this one, narrowed by its own lists. */
@@ -316,6 +248,15 @@ export class ToolScope {
   /** True when any layer carries a list; an unrestricted scope needs no enforcement installed. */
   get restricted(): boolean {
     return this.layers.length > 0;
+  }
+
+  /**
+   * True when any layer denies `Skill`: the turn's prompt lists no skills
+   * and a read of a skill's files is refused. An allow-list that omits
+   * `Skill` does not hide them (the module header's third reading).
+   */
+  get hidesSkills(): boolean {
+    return this.denies({ kind: "builtin", tool: "Skill" });
   }
 
   /** True when any layer carries a non-empty `tools`, which hides every engine extra. */
@@ -466,6 +407,21 @@ export class ToolScope {
     return { tools: l?.tools ?? [], disallowed: l?.disallowed ?? [] };
   }
 
+  /** How many owners' lists this scope holds. */
+  get depth(): number {
+    return this.layers.length;
+  }
+
+  /**
+   * The scope of this one's first `count` layers: what the layer after them
+   * narrows. Each layer of a main scope is checked against its own prefix
+   * ({@link checkMainToolListResolution}), so a turn's narrower list never
+   * makes the agent's own list look unresolvable.
+   */
+  upTo(count: number): ToolScope {
+    return new ToolScope(this.layers.slice(0, count), this.agentTypes);
+  }
+
   /**
    * This scope as plain data, for the agent host (`agent-host/codec.ts`):
    * every layer's raw entries and the main agent's type list, which is all
@@ -549,7 +505,8 @@ export class ToolListResolutionError extends Error {
 function entryNamesSomething(entry: ToolListEntry, inventory: TurnToolInventory): boolean {
   switch (entry.kind) {
     case "builtin":
-      return inventory.claudeTools.has(entry.tool);
+      // Skills are the platform's, on every turn (the header's third reading).
+      return entry.tool === "Skill" || inventory.claudeTools.has(entry.tool);
     case "mcp":
       return entry.server === null ? inventory.anyMcp : inventory.hasMcp(entry.server, entry.tool);
     case "unknown":
@@ -566,7 +523,8 @@ function entryNamesSomething(entry: ToolListEntry, inventory: TurnToolInventory)
 function entryInScope(entry: ToolListEntry, scope: ToolScope): boolean {
   switch (entry.kind) {
     case "builtin":
-      return scope.allowsClaudeTool(entry.tool);
+      // An allow-list that omits Skill keeps skills, so only a deny takes it out of scope.
+      return entry.tool === "Skill" ? !scope.hidesSkills : scope.allowsClaudeTool(entry.tool);
     case "mcp":
       return entry.tool === null ? scope.allowsMcpFamily(entry.server) : scope.allowsMcpTool(entry.server ?? "", entry.tool);
     /* v8 ignore start -- @preserve: checkToolListResolution asks only an entry that names something, which an unknown one never does */
@@ -602,6 +560,21 @@ export function checkToolListResolution(
   if (tools.length === 0) return;
   const resolves = tools.some((e) => entryNamesSomething(e, inventory) && entryInScope(e, scope));
   if (!resolves) throw new ToolListResolutionError(scope.owner, tools.map((e) => e.raw));
+}
+
+/**
+ * {@link checkToolListResolution} for every layer of a main scope, outermost
+ * first, each against the layers before it and itself: the agent's lists
+ * are judged as the agent's, then the turn's over them, so a turn whose
+ * `tools` resolves to nothing the agent leaves it is refused in the turn's
+ * name.
+ */
+export function checkMainToolListResolution(
+  scope: ToolScope,
+  inventory: TurnToolInventory,
+  log: (line: string) => void,
+): void {
+  for (let count = 1; count <= scope.depth; count++) checkToolListResolution(scope.upTo(count), inventory, log);
 }
 
 /**

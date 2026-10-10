@@ -3,9 +3,10 @@
  * thing: a stored status still carrying the retired fields 3 (state) or 5
  * (materialized) as unknown fields is legacy, and nothing else is; each
  * legacy plugin is read again from its own stored archive exactly as
- * install reads it (skills, agents, server entries, variables, hooks,
- * warnings, and the sign-in probe completing a URL-only server that
- * answers an OAuth challenge) and saved once under the same id and digest,
+ * install reads it (skills, agents, server entries, variables, hooks, the
+ * eval suite's summary, warnings, and the sign-in probe completing a
+ * URL-only server that answers an OAuth challenge) and saved once under
+ * the same id and digest,
  * the retired fields dropped, so a second refresh finds nothing to do; a
  * current plugin is never touched; and a plugin whose archive is missing
  * from the status, cannot be fetched or no longer reads is left as it is,
@@ -44,7 +45,7 @@ import {
 
 const encoder = new TextEncoder();
 
-/** The archive a legacy plugin was installed from: a skill, an agent, a URL-only server, a hook. */
+/** The archive a legacy plugin was installed from: a skill, an agent, a URL-only server, a hook, an eval case. */
 const ARCHIVE = writeArchive(
   [
     ...claudePlugin({
@@ -69,6 +70,10 @@ const ARCHIVE = writeArchive(
       },
       userConfig: {
         WEBHOOK: { type: "string", sensitive: true, required: true },
+      },
+      files: {
+        "evals/hi/prompt.md": "Say hi.",
+        "evals/hi/graders/judge.md": "---\ntype: llm\n---\nPASS if it greets.\n",
       },
       hooks: {
         PostToolUse: [
@@ -333,6 +338,12 @@ describe("refreshLegacyPluginStatuses", () => {
       ["lead", "You lead the review and report back."],
     ]);
     expect(status.hooks?.groups.map((g) => g.event)).toEqual(["PostToolUse"]);
+    // The eval suite is summarised as a push summarises it.
+    expect(status.evals?.dir).toBe("evals");
+    expect(status.evals?.caseCount).toBe(1);
+    expect(status.evals?.cases.map((c) => [c.caseName, c.path])).toEqual([
+      ["hi", "evals/hi"],
+    ]);
     expect(status.env["WEBHOOK"]).toMatchObject({
       isSecret: true,
       optional: false,

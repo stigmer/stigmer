@@ -43,7 +43,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "mmons/rpc/method_options.proto\032,ai/stigm" +
       "er/tenancy/organization/v1/api.proto\032+ai" +
       "/stigmer/tenancy/organization/v1/io.prot" +
-      "o2\376\005\n\035OrganizationCommandController\022k\n\005a" +
+      "o2\310\007\n\035OrganizationCommandController\022k\n\005a" +
       "pply\0220.ai.stigmer.tenancy.organization.v" +
       "1.Organization\0320.ai.stigmer.tenancy.orga" +
       "nization.v1.Organization\022r\n\006create\0220.ai." +
@@ -53,21 +53,26 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "gmer.tenancy.organization.v1.Organizatio" +
       "n\0320.ai.stigmer.tenancy.organization.v1.O" +
       "rganization\":\302\270\0306\010\002\020\036\"\013metadata.id*#unau" +
-      "thorized to update organization\022\243\001\n\006rena" +
-      "me\022+.ai.stigmer.commons.apiresource.Rena" +
-      "meInput\0320.ai.stigmer.tenancy.organizatio" +
-      "n.v1.Organization\":\302\270\0306\010\003\020\036\"\013resource_id" +
-      "*#unauthorized to rename organization\022\244\001" +
-      "\n\006delete\0222.ai.stigmer.tenancy.organizati" +
-      "on.v1.OrganizationId\0320.ai.stigmer.tenanc" +
-      "y.organization.v1.Organization\"4\302\270\0300\010\003\020\036" +
-      "\"\005value*#unauthorized to delete organiza" +
-      "tion\032\004\240\377+\036B\273\001B\014CommandProtoP\001\242\002\004ASTO\252\002\"A" +
-      "i.Stigmer.Tenancy.Organization.V1\312\002\"Ai\\S" +
-      "tigmer\\Tenancy\\Organization\\V1\342\002.Ai\\Stig" +
-      "mer\\Tenancy\\Organization\\V1\\GPBMetadata\352" +
-      "\002&Ai::Stigmer::Tenancy::Organization::V1" +
-      "b\006proto3"
+      "thorized to update organization\022\307\001\n\016upda" +
+      "tePolicies\022C.ai.stigmer.tenancy.organiza" +
+      "tion.v1.UpdateOrganizationPoliciesInput\032" +
+      "0.ai.stigmer.tenancy.organization.v1.Org" +
+      "anization\">\302\270\030:\010\002\020\036\"\006org_id*,unauthorize" +
+      "d to update organization policies\022\243\001\n\006re" +
+      "name\022+.ai.stigmer.commons.apiresource.Re" +
+      "nameInput\0320.ai.stigmer.tenancy.organizat" +
+      "ion.v1.Organization\":\302\270\0306\010\003\020\036\"\013resource_" +
+      "id*#unauthorized to rename organization\022" +
+      "\244\001\n\006delete\0222.ai.stigmer.tenancy.organiza" +
+      "tion.v1.OrganizationId\0320.ai.stigmer.tena" +
+      "ncy.organization.v1.Organization\"4\302\270\0300\010\003" +
+      "\020\036\"\005value*#unauthorized to delete organi" +
+      "zation\032\004\240\377+\036B\273\001B\014CommandProtoP\001\242\002\004ASTO\252\002" +
+      "\"Ai.Stigmer.Tenancy.Organization.V1\312\002\"Ai" +
+      "\\Stigmer\\Tenancy\\Organization\\V1\342\002.Ai\\St" +
+      "igmer\\Tenancy\\Organization\\V1\\GPBMetadat" +
+      "a\352\002&Ai::Stigmer::Tenancy::Organization::" +
+      "V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -15,6 +15,7 @@ import {
   usePluginCount,
   ResourceCountCard,
   useActiveOrgId,
+  useCanCreateAgent,
 } from "@stigmer/react";
 
 function isPlainClick(e: MouseEvent): boolean {
@@ -54,11 +55,13 @@ interface AddMenuItem {
   readonly href: string;
 }
 
+const NEW_AGENT_HREF = "/library/agents/new";
+
 const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
   {
     label: "Agent",
     icon: <Bot className="size-4" aria-hidden="true" />,
-    href: "/library/agents/new",
+    href: NEW_AGENT_HREF,
   },
   {
     label: "Skill",
@@ -175,6 +178,13 @@ export function LibraryLanding() {
 // ---------------------------------------------------------------------------
 
 function AddResourceMenu() {
+  const org = useActiveOrgId();
+  // "Agent" is offered only to someone the server lets create one: admins,
+  // and members while the organization lets members create agents.
+  const { allowed: canCreateAgent } = useCanCreateAgent(org || null);
+  const addMenuItems = canCreateAgent
+    ? ADD_MENU_ITEMS
+    : ADD_MENU_ITEMS.filter((item) => item.href !== NEW_AGENT_HREF);
   const [open, setOpen] = useState(false);
 
   return (
@@ -200,7 +210,7 @@ function AddResourceMenu() {
             )}
           >
             <div className="py-1" role="menu">
-              {ADD_MENU_ITEMS.map((item) => (
+              {addMenuItems.map((item) => (
                 <Link
                   key={item.label}
                   href={item.href}

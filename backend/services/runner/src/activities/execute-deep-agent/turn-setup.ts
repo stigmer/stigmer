@@ -68,8 +68,9 @@ import { buildChatModel } from "../../shared/model-client.js";
 import { graphThinks, toAnthropicThinking } from "../../shared/thinking-mode.js";
 import { buildMcpApprovalDefault, isUnattendedApprovalMode, type McpApprovalDefault } from "../../shared/approval-policy.js";
 import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
+import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import {
-  NATIVE_TOOL_COVERS,
+  checkMainToolListResolution,
   checkToolListResolution,
   claudeToolsOf,
   type ToolScope,
@@ -82,6 +83,7 @@ import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js"
 import { toLangChainImageBlocks } from "../../shared/attachment-vision.js";
 import { backstopRecursionLimit, resolveToolRoundLimit } from "../../shared/tool-rounds.js";
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
+import { skillContentReadCheck } from "../../shared/skill-mount.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
@@ -356,6 +358,7 @@ export function composeSystemPrompt(input: TurnInput, recalledMemories: Recalled
     sessionContext: input.standing.sessionContext,
     declaredPreferences: input.standing.declaredPreferences,
     recalledMemories,
+    appendSystemPrompt: input.appendSystemPrompt,
   });
 }
 
@@ -478,6 +481,7 @@ export async function buildEngine(
     serverToolMap: tools.serverToolMap,
     platformServerSlugs: input.mcp.platformServerSlugs,
     admitsConfinedRead: confinedReadAdmission(primaryDir),
+    readsSkillContent: skillContentReadCheck(workspace.backend.platformDir),
   };
 
   // The agent's hooks, run inside the gate before the default
@@ -700,13 +704,22 @@ export function turnToolInventory(
 }
 
 /**
- * Check the agent's lists and each declared sub-agent's against what its
- * graph binds: an entry naming nothing is logged, and a `tools` list that
+ * Check the agent's lists (and the turn's over them) and each declared
+ * sub-agent's against what its graph binds: an entry naming nothing is logged, and a `tools` list that
  * resolves to nothing throws `ToolListResolutionError`. A sub-agent's graph
  * binds the parent's tools without the to-do list. Only a sub-agent the main
  * agent's `Agent(type, …)` admits is checked: one it keeps from compiling
  * (`transformAndCompileSubagents` applies the same filter) can never run, so
  * its lists cannot refuse the turn.
+ *
+ * A sub-agent's lists are judged against the agent's layers alone, the
+ * prefix of the main scope before the turn's (`mainToolScope` puts the
+ * agent's first, and adds it only when it carries a list): the agent's
+ * definition is what a sub-agent's lists are written against, so a turn
+ * that narrows the agent, as an eval's read-only set does, never refuses
+ * the turn over a sub-agent that lists only write or shell tools. The turn
+ * still narrows what the sub-agent may use, since its graph runs under the
+ * whole scope (`subAgentScope` over the parent's).
  */
 export function checkTurnToolLists(
   input: Pick<TurnInput, "mcp" | "blueprint">,
@@ -717,12 +730,15 @@ export function checkTurnToolLists(
   const log = (line: string): void => console.warn(`[turn-setup] ${line}`);
   const { platformServerSlugs } = input.mcp;
   const parentNames = nativeBoundToolNames({ shellCapable, todos: true });
-  checkToolListResolution(parentScope, turnToolInventory(parentNames, tools, platformServerSlugs), log);
+  checkMainToolListResolution(parentScope, turnToolInventory(parentNames, tools, platformServerSlugs), log);
   const subAgentInventory = turnToolInventory(nativeBoundToolNames({ shellCapable, todos: false }), tools, platformServerSlugs);
+  const agentSpec = input.blueprint.agent?.spec;
+  const agentHasLists = agentSpec !== undefined && (agentSpec.tools.length > 0 || agentSpec.disallowedTools.length > 0);
+  const agentScope = parentScope.upTo(agentHasLists ? 1 : 0);
   for (const subAgent of input.blueprint.subAgents) {
     const hasLists = subAgent.tools.length > 0 || subAgent.disallowedTools.length > 0;
     if (!hasLists || !parentScope.allowsSubAgentType(subAgent.name)) continue;
-    checkToolListResolution(subAgentScope(parentScope, subAgent), subAgentInventory, log);
+    checkToolListResolution(subAgentScope(agentScope, subAgent), subAgentInventory, log);
   }
 }
 

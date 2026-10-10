@@ -17,9 +17,10 @@
  * are listed by the names a turn uses (`<plugin>:<skill>`); the hooks with
  * every command each runs (`HookConfigList`), beside the hooks Stigmer
  * does not run (the warnings of `HOOK_WARNING_KINDS`); the keys the plugin
- * declares; what the manifest said; what else the push warned about; and
- * the version history. Nothing here edits the plugin: it changes by being
- * pushed again.
+ * declares; what the manifest said; what else the push warned about; the
+ * version history; and, on the Evals tab, its own evals/ test cases, run
+ * with and without it (`PluginEvalsTab`). Nothing here edits the plugin:
+ * it changes by being pushed again.
  *
  * The shape is `SkillDetailView`'s: the resource fetched inside, rendered
  * in `ResourceDetailShell` with Manage access folded into the kebab, the
@@ -55,8 +56,10 @@ import { PluginServerRow } from "./PluginServerRow.js";
 import { usePlugin } from "./usePlugin.js";
 import { usePluginVersions } from "./usePluginVersions.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
+import { PluginEvalsTab } from "../plugin-eval/PluginEvalsTab.js";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
+const EVALS_TAB: TabItem = { id: "evals", label: "Evals" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
 
 /** Props for {@link PluginDetailView}. */
@@ -75,9 +78,15 @@ export interface PluginDetailViewProps {
   readonly onStartChat?: (plugin: ResourceRef) => void;
   /** Called from "Open agent" after the plugin was added to one; the host owns the route. */
   readonly onAgentClick?: (ref: ResourceRef) => void;
+  /**
+   * Called with a run id when the user opens one of an eval's tries from
+   * the Evals tab; the host owns the route. Tries are listed without links
+   * when omitted.
+   */
+  readonly onNavigateToRun?: (runId: string) => void;
   /** Secondary actions rendered in the kebab overflow menu (remove lives here). */
   readonly actions?: readonly DetailAction[];
-  /** Additional tabs beside the built-in Overview and Versions. */
+  /** Additional tabs beside the built-in Overview, Evals and Versions. */
   readonly additionalTabs?: readonly AdditionalTab[];
   readonly activeTab?: string;
   readonly onTabChange?: (tabId: string) => void;
@@ -108,6 +117,7 @@ export function PluginDetailView({
   onResourceLoad,
   onStartChat,
   onAgentClick,
+  onNavigateToRun,
   actions,
   additionalTabs,
   activeTab,
@@ -119,7 +129,7 @@ export function PluginDetailView({
   const { versions, isEmpty: noVersions } = usePluginVersions(org, slug);
 
   const builtInTabs = useMemo<readonly TabItem[]>(
-    () => (noVersions ? [OVERVIEW_TAB] : [OVERVIEW_TAB, VERSIONS_TAB]),
+    () => (noVersions ? [OVERVIEW_TAB, EVALS_TAB] : [OVERVIEW_TAB, EVALS_TAB, VERSIONS_TAB]),
     [noVersions],
   );
   const { effectiveTabs, effectiveActiveTab, effectiveOnTabChange, activeAdditionalTab } = useDetailTabs({
@@ -194,6 +204,8 @@ export function PluginDetailView({
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
     tabContent = activeAdditionalTab.content;
+  } else if (effectiveActiveTab === "evals") {
+    tabContent = <PluginEvalsTab plugin={plugin} onNavigateToRun={onNavigateToRun} />;
   } else if (effectiveActiveTab === "versions" && versions.length > 0) {
     tabContent = <VersionTimeline entries={versions} />;
   } else {

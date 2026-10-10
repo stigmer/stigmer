@@ -21,7 +21,9 @@
  * a throw is logged by the notifier and the run is unaffected.
  *
  * A judge run (domain/score/judge/judge-run.ts) is never graded: grading
- * the grader would spend a judge on every judge.
+ * the grader would spend a judge on every judge. Nor is a plugin eval's
+ * run (domain/plugin-eval/plugin-eval-run.ts): the eval grades its own
+ * tries, by the plugin's own checks.
  *
  * Proven by __tests__/grading-observer.test.ts.
  */
@@ -40,6 +42,7 @@ import {
   gradeRunWorkflowId,
 } from "../../temporal/grading/names.js";
 import { GRADING_NOT_STARTED_REASON } from "./constants.js";
+import { isPluginEvalRun } from "../plugin-eval/plugin-eval-run.js";
 import { isJudgeRun } from "./judge/judge-run.js";
 import type { ScoreRecorder } from "./ports.js";
 import { notGradedRunHealthScore } from "./run-health.js";
@@ -75,7 +78,11 @@ export function newGradingObserver(
 ): RunStatusObserver {
   const deadlineMs = deps.startDeadlineMs ?? GRADING_START_DEADLINE_MS;
   return async ({ run, newPhase }) => {
-    if (newPhase !== RunPhase.RUN_COMPLETED || isJudgeRun(run)) {
+    if (
+      newPhase !== RunPhase.RUN_COMPLETED ||
+      isJudgeRun(run) ||
+      isPluginEvalRun(run)
+    ) {
       return;
     }
     const runId = run.metadata?.id ?? "";

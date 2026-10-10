@@ -38,6 +38,9 @@ export type {
   UseSessionConversationReturn,
 } from "./useSessionConversation.js";
 
+export { useSessionAccess } from "./useSessionAccess.js";
+export type { UseSessionAccessReturn } from "./useSessionAccess.js";
+
 export { useExportTranscript } from "./useExportTranscript.js";
 export type {
   UseExportTranscriptOptions,

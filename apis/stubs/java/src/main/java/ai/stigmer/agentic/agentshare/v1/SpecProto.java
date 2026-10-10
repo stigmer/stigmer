@@ -77,11 +77,11 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "$.ai.stigmer.agentic.run.v1.RunConfigR\tr" +
       "unConfig:\222\002\272H\216\002\032\201\001\n\036agent_share.vaults_p" +
       "ublic_only\0220vaults can only be set on pu" +
-      "blic-audience shares\032-this.audience != 2" +
+      "blic-audience shares\032-this.audience == 1" +
       " || this.vaults.size() == 0\032\207\001\n\"agent_sh" +
       "are.run_config_public_only\0224run_config c" +
       "an only be set on public-audience shares" +
-      "\032+this.audience != 2 || !has(this.run_co" +
+      "\032+this.audience == 1 || !has(this.run_co" +
       "nfig)J\004\010\006\020\007R\020environment_refs\"\246\001\n\022AgentS" +
       "hareMessages\022+\n\014rate_limited\030\001 \001(\tB\010\272H\005r" +
       "\003\030\254\002R\013rateLimited\022*\n\013unavailable\030\002 \001(\tB\010" +

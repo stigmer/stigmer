@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/plugin/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_plugin_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL3N0YXR1cy5wcm90bxIcYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MSKUBQoMUGx1Z2luU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSKAoGZGlnZXN0GAEgASgJQhi6SBVyEzIRXiR8XlthLWYwLTldezY0fSQSHAoUYXJ0aWZhY3Rfc3RvcmFnZV9rZXkYAiABKAkSPQoId2FybmluZ3MYBiADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbldhcm5pbmcSNwoFaG9va3MYByABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkhvb2tDb25maWcSOQoGc2tpbGxzGAkgAygLMikuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5Ta2lsbBI5CgZhZ2VudHMYCiADKAsyKS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbkFnZW50EkEKC21jcF9zZXJ2ZXJzGAsgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5NY3BTZXJ2ZXJFbnRyeRJACgNlbnYYDCADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblN0YXR1cy5FbnZFbnRyeRpaCghFbnZFbnRyeRILCgNrZXkYASABKAkSPQoFdmFsdWUYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBSgQIAxAESgQIBBAFSgQIBRAGUgVzdGF0ZVIFZXJyb3JSDG1hdGVyaWFsaXplZCI+CgtQbHVnaW5Ta2lsbBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEgwKBHBhdGgYAyABKAkifwoLUGx1Z2luQWdlbnQSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIUCgxpbnN0cnVjdGlvbnMYAyABKAkSDQoFdG9vbHMYBCADKAkSGAoQZGlzYWxsb3dlZF90b29scxgFIAMoCRIOCgZza2lsbHMYBiADKAki9AEKDk1jcFNlcnZlckVudHJ5EgwKBG5hbWUYASABKAkSPQoFc3RkaW8YAiABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlN0ZGlvTWNwU2VydmVySAASOwoEaHR0cBgDIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuSHR0cE1jcFNlcnZlckgAEgsKA2VudhgEIAMoCRI+CgdzaWduX2luGAUgASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5NY3BTZXJ2ZXJTaWduSW5CCwoJdHJhbnNwb3J0Ii8KDlN0ZGlvTWNwU2VydmVyEg8KB2NvbW1hbmQYASABKAkSDAoEYXJncxgCIAMoCSKwAQoNSHR0cE1jcFNlcnZlchILCgN1cmwYASABKAkSSQoHaGVhZGVycxgCIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuSHR0cE1jcFNlcnZlci5IZWFkZXJzRW50cnkSFwoPdGltZW91dF9zZWNvbmRzGAMgASgFGi4KDEhlYWRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIiUKD01jcFNlcnZlclNpZ25JbhISCgpvYXV0aF9vbmx5GAEgASgIIjwKDVBsdWdpbldhcm5pbmcSDAoEa2luZBgBIAEoCRIPCgdtZXNzYWdlGAIgASgJEgwKBHBhdGgYAyABKAliBnByb3RvMw", [file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_agentic_vault_v1_declaration, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL3N0YXR1cy5wcm90bxIcYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MSLSBQoMUGx1Z2luU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSKAoGZGlnZXN0GAEgASgJQhi6SBVyEzIRXiR8XlthLWYwLTldezY0fSQSHAoUYXJ0aWZhY3Rfc3RvcmFnZV9rZXkYAiABKAkSPQoId2FybmluZ3MYBiADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbldhcm5pbmcSNwoFaG9va3MYByABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkhvb2tDb25maWcSPAoFZXZhbHMYCCABKAsyLS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbkV2YWxTdWl0ZRI5CgZza2lsbHMYCSADKAsyKS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblNraWxsEjkKBmFnZW50cxgKIAMoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luQWdlbnQSQQoLbWNwX3NlcnZlcnMYCyADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLk1jcFNlcnZlckVudHJ5EkAKA2VudhgMIAMoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luU3RhdHVzLkVudkVudHJ5GloKCEVudkVudHJ5EgsKA2tleRgBIAEoCRI9CgV2YWx1ZRgCIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5FbnZWYXJEZWNsYXJhdGlvbjoCOAFKBAgDEARKBAgEEAVKBAgFEAZSBXN0YXRlUgVlcnJvclIMbWF0ZXJpYWxpemVkIj4KC1BsdWdpblNraWxsEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSDAoEcGF0aBgDIAEoCSJ/CgtQbHVnaW5BZ2VudBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEhQKDGluc3RydWN0aW9ucxgDIAEoCRINCgV0b29scxgEIAMoCRIYChBkaXNhbGxvd2VkX3Rvb2xzGAUgAygJEg4KBnNraWxscxgGIAMoCSL0AQoOTWNwU2VydmVyRW50cnkSDAoEbmFtZRgBIAEoCRI9CgVzdGRpbxgCIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuU3RkaW9NY3BTZXJ2ZXJIABI7CgRodHRwGAMgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5IdHRwTWNwU2VydmVySAASCwoDZW52GAQgAygJEj4KB3NpZ25faW4YBSABKAsyLS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLk1jcFNlcnZlclNpZ25JbkILCgl0cmFuc3BvcnQiLwoOU3RkaW9NY3BTZXJ2ZXISDwoHY29tbWFuZBgBIAEoCRIMCgRhcmdzGAIgAygJIrABCg1IdHRwTWNwU2VydmVyEgsKA3VybBgBIAEoCRJJCgdoZWFkZXJzGAIgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5IdHRwTWNwU2VydmVyLkhlYWRlcnNFbnRyeRIXCg90aW1lb3V0X3NlY29uZHMYAyABKAUaLgoMSGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiJQoPTWNwU2VydmVyU2lnbkluEhIKCm9hdXRoX29ubHkYASABKAgiPAoNUGx1Z2luV2FybmluZxIMCgRraW5kGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSDAoEcGF0aBgDIAEoCSLGAQoPUGx1Z2luRXZhbFN1aXRlEgsKA2RpchgBIAEoCRISCgpjYXNlX2NvdW50GAIgASgFEhEKCWNhc2VfdGFncxgDIAMoCRJACgVjYXNlcxgEIAMoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luRXZhbFN1aXRlQ2FzZRI9CghmaW5kaW5ncxgFIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luV2FybmluZyJeChNQbHVnaW5FdmFsU3VpdGVDYXNlEhEKCWNhc2VfbmFtZRgBIAEoCRIMCgRwYXRoGAIgASgJEhEKCWNhc2VfdGFncxgDIAMoCRITCgt1bnN1cHBvcnRlZBgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_agentic_vault_v1_declaration, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
  * PluginStatus is the system-managed state of an installed plugin: the
@@ -63,6 +63,14 @@ export type PluginStatus = Message<"ai.stigmer.agentic.plugin.v1.PluginStatus"> 
    * @generated from field: ai.stigmer.agentic.plugin.v1.HookConfig hooks = 7;
    */
   hooks?: HookConfig;
+
+  /**
+   * The plugin's evals/ test cases, as read at install; unset when the
+   * plugin carries none.
+   *
+   * @generated from field: ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8;
+   */
+  evals?: PluginEvalSuite;
 
   /**
    * The plugin's skills. A turn names each as <plugin>:<skill>.
@@ -352,9 +360,9 @@ export const McpServerSignInSchema: GenMessage<McpServerSignIn> = /*@__PURE__*/
  */
 export type PluginWarning = Message<"ai.stigmer.agentic.plugin.v1.PluginWarning"> & {
   /**
-   * Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
-   * "sub-agent-name-builtin", "tool-list-entry-dropped",
-   * "version-not-taggable".
+   * Stable warning kind, e.g. "agent-not-installed", "component-ignored",
+   * "model-hint-unresolved", "settings-agent-not-applied",
+   * "tool-list-entry-dropped", "version-not-taggable".
    *
    * @generated from field: string kind = 1;
    */
@@ -381,4 +389,97 @@ export type PluginWarning = Message<"ai.stigmer.agentic.plugin.v1.PluginWarning"
  */
 export const PluginWarningSchema: GenMessage<PluginWarning> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 7);
+
+/**
+ * PluginEvalSuite summarises a plugin's evals/ test cases.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.PluginEvalSuite
+ */
+export type PluginEvalSuite = Message<"ai.stigmer.agentic.plugin.v1.PluginEvalSuite"> & {
+  /**
+   * The suite's directory relative to the plugin's root: "evals", or the
+   * manifest's experimental.evals.
+   *
+   * @generated from field: string dir = 1;
+   */
+  dir: string;
+
+  /**
+   * Cases found in the suite.
+   *
+   * @generated from field: int32 case_count = 2;
+   */
+  caseCount: number;
+
+  /**
+   * The tags the listed cases carry, once each, sorted: at most 200.
+   *
+   * @generated from field: repeated string case_tags = 3;
+   */
+  caseTags: string[];
+
+  /**
+   * Each case, in directory order.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.plugin.v1.PluginEvalSuiteCase cases = 4;
+   */
+  cases: PluginEvalSuiteCase[];
+
+  /**
+   * Problems reading the suite: a case that cannot load, an unknown field.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.plugin.v1.PluginWarning findings = 5;
+   */
+  findings: PluginWarning[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.PluginEvalSuite.
+ * Use `create(PluginEvalSuiteSchema)` to create a new message.
+ */
+export const PluginEvalSuiteSchema: GenMessage<PluginEvalSuite> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 8);
+
+/**
+ * PluginEvalSuiteCase is one case of a plugin's eval suite.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.PluginEvalSuiteCase
+ */
+export type PluginEvalSuiteCase = Message<"ai.stigmer.agentic.plugin.v1.PluginEvalSuiteCase"> & {
+  /**
+   * The case's name.
+   *
+   * @generated from field: string case_name = 1;
+   */
+  caseName: string;
+
+  /**
+   * The case's directory, relative to the plugin's root.
+   *
+   * @generated from field: string path = 2;
+   */
+  path: string;
+
+  /**
+   * The case's tags.
+   *
+   * @generated from field: repeated string case_tags = 3;
+   */
+  caseTags: string[];
+
+  /**
+   * Why Stigmer cannot run the case yet, naming the feature, as in
+   * "context.scaffold_script"; empty when it can.
+   *
+   * @generated from field: string unsupported = 4;
+   */
+  unsupported: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.PluginEvalSuiteCase.
+ * Use `create(PluginEvalSuiteCaseSchema)` to create a new message.
+ */
+export const PluginEvalSuiteCaseSchema: GenMessage<PluginEvalSuiteCase> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 9);
 

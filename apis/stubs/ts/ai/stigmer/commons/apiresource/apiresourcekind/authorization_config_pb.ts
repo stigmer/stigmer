@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/apiresourcekind/authorization_config.proto.
  */
 export const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config: GenFile = /*@__PURE__*/
-  fileDesc("CklhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIoABChBWaXNpYmlsaXR5Q29uZmlnEhsKE3N1cHBvcnRzX2NoaWxkX29yZ3MYAiABKAgSFAoMc3VwcG9ydHNfb3JnGAMgASgIEiIKGmRlZmF1bHRzX3RvX29yZ192aXNpYmlsaXR5GAQgASgISgQIARACUg9zdXBwb3J0c19wdWJsaWMiXAoUUGFyZW50UmVsYXRpb25Db25maWcSDAoEa2luZBgBIAEoCRIQCghyZWxhdGlvbhgCIAEoCRISCgpzcGVjX2ZpZWxkGAMgASgJEhAKCG9wdGlvbmFsGAQgASgIIugEChNBdXRob3JpemF0aW9uQ29uZmlnEloKCnNjb3BlX3R5cGUYASABKA4yRi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkF1dGhvcml6YXRpb25TY29wZVR5cGUSWAoKb3duZXJfdHlwZRgCIAEoDjJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuT3duZXJBdHRyaWJ1dGlvblR5cGUSVAoGcGFyZW50GAMgASgLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5QYXJlbnRSZWxhdGlvbkNvbmZpZxJgChJhZGRpdGlvbmFsX3BhcmVudHMYBCADKAsyRC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlBhcmVudFJlbGF0aW9uQ29uZmlnElQKCnZpc2liaWxpdHkYBSABKAsyQC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlZpc2liaWxpdHlDb25maWcSHgoWcmVxdWlyZXNfY3JlYXRvcl90dXBsZRgGIAEoCBIzCg9ncmFudGFibGVfcm9sZXMYByADKA4yGi5haS5zdGlnbWVyLmlhbS52MS5JYW1Sb2xlEjgKFHRlYW1fZ3JhbnRhYmxlX3JvbGVzGAggAygOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZSqFAgoWQXV0aG9yaXphdGlvblNjb3BlVHlwZRIoCiRBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfVU5TUEVDSUZJRUQQABIlCiFBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfUExBVEZPUk0QARIpCiVBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfT1JHQU5JWkFUSU9OEAISIwofQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX1BBUkVOVBADEicKI0FVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9PV05FUl9PTkxZEAQSIQodQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX05PTkUQBSrJAQoUT3duZXJBdHRyaWJ1dGlvblR5cGUSJgoiT1dORVJfQVRUUklCVVRJT05fVFlQRV9VTlNQRUNJRklFRBAAEiEKHU9XTkVSX0FUVFJJQlVUSU9OX1RZUEVfRElSRUNUEAESJAogT1dORVJfQVRUUklCVVRJT05fVFlQRV9JTkhFUklURUQQAhIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX1NFTEYQAxIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX05PTkUQBEIaQhhBdXRob3JpemF0aW9uQ29uZmlnUHJvdG9iBnByb3RvMw", [file_ai_stigmer_iam_v1_enum]);
+  fileDesc("CklhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvYXBpcmVzb3VyY2VraW5kL2F1dGhvcml6YXRpb25fY29uZmlnLnByb3RvEi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kIoABChBWaXNpYmlsaXR5Q29uZmlnEhsKE3N1cHBvcnRzX2NoaWxkX29yZ3MYAiABKAgSFAoMc3VwcG9ydHNfb3JnGAMgASgIEiIKGmRlZmF1bHRzX3RvX29yZ192aXNpYmlsaXR5GAQgASgISgQIARACUg9zdXBwb3J0c19wdWJsaWMiXAoUUGFyZW50UmVsYXRpb25Db25maWcSDAoEa2luZBgBIAEoCRIQCghyZWxhdGlvbhgCIAEoCRISCgpzcGVjX2ZpZWxkGAMgASgJEhAKCG9wdGlvbmFsGAQgASgIIsQFChNBdXRob3JpemF0aW9uQ29uZmlnEloKCnNjb3BlX3R5cGUYASABKA4yRi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkF1dGhvcml6YXRpb25TY29wZVR5cGUSWAoKb3duZXJfdHlwZRgCIAEoDjJELmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuT3duZXJBdHRyaWJ1dGlvblR5cGUSVAoGcGFyZW50GAMgASgLMkQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5QYXJlbnRSZWxhdGlvbkNvbmZpZxJgChJhZGRpdGlvbmFsX3BhcmVudHMYBCADKAsyRC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlBhcmVudFJlbGF0aW9uQ29uZmlnElQKCnZpc2liaWxpdHkYBSABKAsyQC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLlZpc2liaWxpdHlDb25maWcSHgoWcmVxdWlyZXNfY3JlYXRvcl90dXBsZRgGIAEoCBIzCg9ncmFudGFibGVfcm9sZXMYByADKA4yGi5haS5zdGlnbWVyLmlhbS52MS5JYW1Sb2xlEjgKFHRlYW1fZ3JhbnRhYmxlX3JvbGVzGAggAygOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRJaChFyb2xlX2Rlc2NyaXB0aW9ucxgJIAMoCzI/LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5hcGlyZXNvdXJjZWtpbmQuUm9sZURlc2NyaXB0aW9uIlAKD1JvbGVEZXNjcmlwdGlvbhIoCgRyb2xlGAEgASgOMhouYWkuc3RpZ21lci5pYW0udjEuSWFtUm9sZRITCgtkZXNjcmlwdGlvbhgCIAEoCSqFAgoWQXV0aG9yaXphdGlvblNjb3BlVHlwZRIoCiRBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfVU5TUEVDSUZJRUQQABIlCiFBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfUExBVEZPUk0QARIpCiVBVVRIT1JJWkFUSU9OX1NDT1BFX1RZUEVfT1JHQU5JWkFUSU9OEAISIwofQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX1BBUkVOVBADEicKI0FVVEhPUklaQVRJT05fU0NPUEVfVFlQRV9PV05FUl9PTkxZEAQSIQodQVVUSE9SSVpBVElPTl9TQ09QRV9UWVBFX05PTkUQBSrJAQoUT3duZXJBdHRyaWJ1dGlvblR5cGUSJgoiT1dORVJfQVRUUklCVVRJT05fVFlQRV9VTlNQRUNJRklFRBAAEiEKHU9XTkVSX0FUVFJJQlVUSU9OX1RZUEVfRElSRUNUEAESJAogT1dORVJfQVRUUklCVVRJT05fVFlQRV9JTkhFUklURUQQAhIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX1NFTEYQAxIfChtPV05FUl9BVFRSSUJVVElPTl9UWVBFX05PTkUQBEIaQhhBdXRob3JpemF0aW9uQ29uZmlnUHJvdG9iBnByb3RvMw", [file_ai_stigmer_iam_v1_enum]);
 
 /**
  * Visibility configuration: the set of visibility levels a resource kind
@@ -316,6 +316,18 @@ export type AuthorizationConfig = Message<"ai.stigmer.commons.apiresource.apires
    * @generated from field: repeated ai.stigmer.iam.v1.IamRole team_grantable_roles = 8;
    */
   teamGrantableRoles: IamRole[];
+
+  /**
+   * What each grantable role means on this kind, one sentence per role in
+   * grantable_roles, shown beside the role wherever a person picks or reads
+   * one (the share dialog's role picker, an invitation, an access list).
+   * The role's name is its own `role_meta.display_name`; this is the
+   * kind's meaning of it, because Viewer on an agent and Viewer on a
+   * conversation allow different things.
+   *
+   * @generated from field: repeated ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9;
+   */
+  roleDescriptions: RoleDescription[];
 };
 
 /**
@@ -324,6 +336,35 @@ export type AuthorizationConfig = Message<"ai.stigmer.commons.apiresource.apires
  */
 export const AuthorizationConfigSchema: GenMessage<AuthorizationConfig> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config, 2);
+
+/**
+ * What one role means on one resource kind (AuthorizationConfig.role_descriptions).
+ *
+ * @generated from message ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription
+ */
+export type RoleDescription = Message<"ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription"> & {
+  /**
+   * The role this sentence describes; one of the kind's grantable_roles.
+   *
+   * @generated from field: ai.stigmer.iam.v1.IamRole role = 1;
+   */
+  role: IamRole;
+
+  /**
+   * One sentence, in the words a person picking the role reads: what the
+   * role lets them do with this kind, and the nearest thing it does not.
+   *
+   * @generated from field: string description = 2;
+   */
+  description: string;
+};
+
+/**
+ * Describes the message ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.
+ * Use `create(RoleDescriptionSchema)` to create a new message.
+ */
+export const RoleDescriptionSchema: GenMessage<RoleDescription> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config, 3);
 
 /**
  * Primary scope linkage for FGA authorization.

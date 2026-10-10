@@ -1129,8 +1129,8 @@ const (
 	// (write / delete / shell).
 	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY ApprovalPolicySource = 6
 	// The default asked for an MCP tool because its server marks it destructive
-	// (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint
-	// annotation).
+	// (the tool's MCP destructiveHint annotation, read live from the server's
+	// tools each turn), or because its server's tools could not be listed.
 	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN ApprovalPolicySource = 7
 	// The unattended approval mode (RunStatus.approval_mode =
 	// APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:

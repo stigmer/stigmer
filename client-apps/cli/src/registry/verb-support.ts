@@ -101,6 +101,10 @@ export const VERB_SUPPORT: ReadonlyMap<
   // manifest, so an agent's YAML carries no grading criteria; the CLI reads
   // an evaluator by id and deletes it to switch grading off.
   [ApiResourceKind.evaluator, new Set<Verb>([Verb.Get, Verb.Delete])],
+  // A plugin eval is one suite run, started by `stigmer plugin eval` or the
+  // plugin's Evals tab, never applied from a manifest; the CLI reads one by
+  // id and deletes it with its tries.
+  [ApiResourceKind.plugin_eval, new Set<Verb>([Verb.Get, Verb.Delete])],
 ]);
 
 export function verbsForKind(kind: ApiResourceKind): ReadonlySet<Verb> {

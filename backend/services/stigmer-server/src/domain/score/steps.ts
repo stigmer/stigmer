@@ -66,6 +66,8 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
   CHECK_SOURCE_REFUSED_MESSAGE,
+  EVAL_METRIC,
+  EVAL_SOURCE_REFUSED_MESSAGE,
   FEEDBACK_METRIC,
   FEEDBACK_VALUE_REQUIRED_MESSAGE,
   HUMAN_SOURCE_REFUSED_MESSAGE,
@@ -79,12 +81,14 @@ import {
   SCORE_METRIC_SOURCE_MISMATCH_MESSAGE,
   SCORE_UPDATE_FIELDS_MESSAGE,
   SCORE_UPDATE_HUMAN_ONLY_MESSAGE,
+  evalExistsMessage,
   feedbackExistsMessage,
   judgeExistsMessage,
   runHealthExistsMessage,
   runNotCompletedMessage,
   scoreOrgMismatchMessage,
 } from "./constants.js";
+import { isTerminalExecutionPhase } from "../run/phases.js";
 import { sessionIdOf } from "../run/target.js";
 import { listRunScores, listSessionScores } from "./queries.js";
 
@@ -119,10 +123,10 @@ export const SCORE_EXISTS_REASON = "SCORE_EXISTS";
  *     person's rating. An integrator's end user (a PlatformClient token),
  *     a runner, a machine account and the server itself are refused: none
  *     is a person who can own a rating.
- *   - score_source_check and score_source_judge only from the server
- *     itself (the `internal` class only the in-process transport mints),
- *     because a check's or a judge's verdict is the platform's claim about
- *     a run, never a caller's.
+ *   - score_source_check, score_source_judge and score_source_eval only
+ *     from the server itself (the `internal` class only the in-process
+ *     transport mints), because a check's, a judge's or a plugin eval's
+ *     verdict is the platform's claim about a run, never a caller's.
  *
  * The rules are a table keyed by every source but the unspecified one, so
  * a source added to the contract does not compile until it names who may
@@ -166,6 +170,10 @@ const SOURCE_RULES: Readonly<
     admits: (caller) => caller.callerClass === "internal",
     refusal: JUDGE_SOURCE_REFUSED_MESSAGE,
   },
+  [ScoreSource.eval]: {
+    admits: (caller) => caller.callerClass === "internal",
+    refusal: EVAL_SOURCE_REFUSED_MESSAGE,
+  },
 };
 
 /**
@@ -179,6 +187,7 @@ const SOURCE_METRICS: Readonly<
   [ScoreSource.human]: FEEDBACK_METRIC,
   [ScoreSource.check]: RUN_HEALTH_METRIC,
   [ScoreSource.judge]: JUDGE_METRIC,
+  [ScoreSource.eval]: EVAL_METRIC,
 };
 
 /**
@@ -251,17 +260,20 @@ function scoredRunOf(ctx: RequestContext<typeof ScoreSchema>): Run {
  *     lane, and a score lives where its run does.
  *  2. The run must be completed. A completed run never changes phase again
  *     (update-status.ts ignores a phase change on a terminal run), so a
- *     score is never stale against its run.
+ *     score is never stale against its run. A plugin eval's score needs
+ *     the run ended, in any terminal phase: a try that timed out, hit a
+ *     cap or failed is graded on what it produced, as the format grades
+ *     it, and a terminal run never changes phase again either.
  *  3. The metric must agree with the source (SOURCE_METRICS): `feedback`
  *     from a person, `run-health` from the checks, `judge` from the AI
- *     judge. A comment is a person's only, a judge model a judge's only,
+ *     judge, `eval` from a plugin eval. A comment is a person's only, a judge model a judge's only,
  *     and a person's feedback always carries thumbs and never criteria.
  *  4. spec.session_id is the run's, whatever the request carried.
  *  5. The id is minted here so an unnamed score is named by its id.
  *  6. A not-graded reason, or a pending state, carried by the server's
  *     grading code is kept for InitializeScoreState, before BuildNewState
- *     discards the request's status; only a check's or a judge's create
- *     carries one, and only the server gives those (GuardScoreSource).
+ *     discards the request's status; only a check's, a judge's or an
+ *     eval's create carries one, and only the server gives those (GuardScoreSource).
  */
 export function newResolveScoreDefaultsStep(): PipelineStep<
   typeof ScoreSchema
@@ -286,7 +298,12 @@ export function newResolveScoreDefaultsStep(): PipelineStep<
       if (metadata.org !== runOrg) {
         throw failedPreconditionError(scoreOrgMismatchMessage(runOrg));
       }
-      if (run.status?.phase !== RunPhase.RUN_COMPLETED) {
+      const phase = run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
+      const scoreable =
+        spec.source === ScoreSource.eval
+          ? isTerminalExecutionPhase(phase)
+          : phase === RunPhase.RUN_COMPLETED;
+      if (!scoreable) {
         throw failedPreconditionError(runNotCompletedMessage(spec.runId));
       }
 
@@ -330,8 +347,9 @@ export function newResolveScoreDefaultsStep(): PipelineStep<
 
 /**
  * CheckScoreUnique: one rating per person per run, one run-health score
- * per run per version of the checks, and one judge score per run per
- * version of the rubrics. A second rating is refused
+ * per run per version of the checks, one judge score per run per
+ * version of the rubrics, and one eval score per run per version of the
+ * plugin's suite. A second rating is refused
  * with ALREADY_EXISTS carrying SCORE_EXISTS and the existing score's id,
  * so a client switches to update without parsing text. The rule is read
  * before the write, as every slug in the platform is (duplicate.ts): a
@@ -391,6 +409,16 @@ export function newCheckScoreUniqueStep(
           other.evaluatorVersion === spec.evaluatorVersion
         ) {
           throw alreadyExistsWithReasonError(judgeExistsMessage(id), {
+            reason: SCORE_EXISTS_REASON,
+            metadata: { score_id: id },
+          });
+        }
+        if (
+          spec.source === ScoreSource.eval &&
+          other.source === ScoreSource.eval &&
+          other.evaluatorVersion === spec.evaluatorVersion
+        ) {
+          throw alreadyExistsWithReasonError(evalExistsMessage(id), {
             reason: SCORE_EXISTS_REASON,
             metadata: { score_id: id },
           });

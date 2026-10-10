@@ -63,6 +63,19 @@ message OrganizationSpec {
   // child's members and access history show. The edge resolver turns a
   // slug into the parent's id, so the stored value is always an id.
   string parent_org = 8 [(buf.validate.field).string.max_len = 64];
+
+  // What the organization lets its members do. Set when the organization is
+  // created (an omitted message means the defaults: members may create
+  // agents) and changed only through updatePolicies, so an update or apply
+  // of a manifest written before a policy changed neither fails nor
+  // reverts it: a policy carried by update or apply is ignored.
+  //
+  // @internal
+  // A policy decides who may do what, so it is held in the authorization
+  // model, not read from the row at check time: the visibility precedent
+  // (build-update-state.ts; ResourceAuthorizationLifecycle
+  // onOrganizationPoliciesChanged).
+  OrganizationPolicies policies = 9;
 }
 
 // OrganizationPreferences holds organization-declared defaults that apply to
@@ -100,11 +113,22 @@ message OrganizationPreferences {
   // AND first-party human operator. An enablement gate, not a bound —
   // it does not parameterize member behavior, so it lives in
   // preferences legitimately; real bounds
-  // (retention ceilings) would go to a sibling policies message.
+  // (retention ceilings) would go to OrganizationPolicies.
   // Deliberately a bool, not an enum: a genuine on/off switch — finer
   // policy becomes new fields when evidence demands them. Enforced
   // fail-closed at memory create and read at recall compose.
   // OSS local mode: this flag alone governs (single user,
   // no account scope).
   bool memory_enabled = 2;
+}
+
+// OrganizationPolicies holds what an organization lets its members do.
+// Each policy is a switch an admin turns in the organization's settings.
+message OrganizationPolicies {
+  // Members may create agents. On by default: a new organization lets its
+  // members create agents, as a GitHub organization lets its members
+  // create repositories. When off, only admins create agents. A member's
+  // agent is theirs: private or shared with the organization, never with
+  // child organizations, which stays an admin's choice.
+  bool members_can_create_agents = 1;
 }

@@ -107,6 +107,12 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | PluginQueryController.getByReference | org |
 | PluginQueryController.listVersions | org |
 
+## `ai.stigmer.agentic.plugineval.v1`
+
+| Method | Fills |
+|---|---|
+| PluginEvalCommandController.create | metadata.org |
+
 ## `ai.stigmer.agentic.schedule.v1`
 
 | Method | Fills |

@@ -19,7 +19,7 @@
 import { describe, expect, it } from "vitest";
 import { EXCLUDED_BUILTIN_TOOLS } from "../../../activities/execute-deep-agent/deepagents-profiles.js";
 import { normalizeWorkspacePathArg } from "../../../middleware/path-normalization.js";
-import { NATIVE_TOOL_COVERS } from "../../tool-lists.js";
+import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import type { HookFormatName } from "../hook-set.js";
 import { claudeToolResponse, NATIVE_VIEWED_TOOLS, NativeToolViews } from "../tool-view.js";
 

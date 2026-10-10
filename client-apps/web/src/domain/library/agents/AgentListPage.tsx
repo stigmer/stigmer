@@ -10,6 +10,7 @@ import {
   ApplyManifestDialog,
   useStigmer,
   useActiveOrgId,
+  useCanCreateAgent,
   OrgSlugText,
   useOrgSlugForId,
   useConfirmAction,
@@ -56,6 +57,9 @@ const AGENT_COLUMNS: WorkbenchColumnDef<SearchResult>[] = [
 
 export function AgentListPage() {
   const org = useActiveOrgId();
+  // "Create agent" shows only to someone the server lets create one: admins,
+  // and members while the organization lets members create agents.
+  const { allowed: canCreateAgent } = useCanCreateAgent(org || null);
   const slugForOrg = useOrgSlugForId();
   const stigmer = useStigmer();
   const { navigateToDetail } = useLibraryNavigation();
@@ -125,23 +129,27 @@ export function AgentListPage() {
             >
               <Upload className="size-3.5" aria-hidden="true" />
             </button>
+            {canCreateAgent && (
+              <Link
+                href={createUrl}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Plus className="size-3.5" aria-hidden="true" />
+                Create agent
+              </Link>
+            )}
+          </div>
+        }
+        emptyAction={
+          canCreateAgent ? (
             <Link
               href={createUrl}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Plus className="size-3.5" aria-hidden="true" />
               Create agent
             </Link>
-          </div>
-        }
-        emptyAction={
-          <Link
-            href={createUrl}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
-            Create agent
-          </Link>
+          ) : undefined
         }
         onItemClick={(item) => navigateToDetail("agents", item.org, item.slug)}
         renderItemAction={(item) => (

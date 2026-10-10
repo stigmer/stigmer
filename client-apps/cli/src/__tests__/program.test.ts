@@ -92,7 +92,40 @@ describe("buildProgram", () => {
     const program = buildProgram();
     const runs = program.commands.find((command) => command.name() === "runs");
     const subs = runs?.commands.map((command) => command.name()).sort();
-    expect(subs).toEqual(["approve", "cancel", "logs", "pause", "resume", "scores", "terminate", "trace"]);
+    expect(subs).toEqual(["approve", "cancel", "logs", "pause", "resume", "scores", "terminate", "to-eval-case", "trace"]);
+  });
+
+  it("exposes plugin eval, which takes a plugin, and its cancel", () => {
+    const program = buildProgram();
+    const plugin = program.commands.find((command) => command.name() === "plugin");
+    const evalCommand = plugin?.commands.find((command) => command.name() === "eval");
+    expect(plugin?.commands.map((command) => command.name())).toEqual(["eval"]);
+    expect(evalCommand?.registeredArguments.map((argument) => argument.name())).toEqual(["plugin"]);
+    expect(evalCommand?.commands.map((command) => command.name())).toEqual(["cancel"]);
+    expect(evalCommand?.options.map((option) => option.long)).toEqual(
+      expect.arrayContaining(["--case", "--tag", "--runs", "--model", "--ablation", "--threshold", "--max-cost-usd", "--concurrency", "--allow-tools", "--judge-model", "--real-mcp-servers", "--json", "--no-wait"]),
+    );
+  });
+
+  it("lists plugin eval's exit codes in its help: the format's, and the CLI's own 3 and 4", () => {
+    const evalCommand = buildProgram()
+      .commands.find((command) => command.name() === "plugin")
+      ?.commands.find((command) => command.name() === "eval");
+    let help = "";
+    evalCommand?.configureOutput({ writeOut: (text) => void (help += text) });
+    evalCommand?.outputHelp();
+    for (const code of ["0", "1", "2", "3", "4", "130"]) expect(help).toMatch(new RegExp(`^  ${code} +\\S`, "m"));
+  });
+
+  it("routes plugin eval cancel to its subcommand and any other word to the eval itself", async () => {
+    const seen: string[] = [];
+    const program = buildProgram();
+    const evalCommand = program.commands.find((command) => command.name() === "plugin")?.commands.find((command) => command.name() === "eval");
+    evalCommand?.action((target: string) => void seen.push(`eval ${target}`));
+    evalCommand?.commands[0]?.action((id: string) => void seen.push(`cancel ${id}`));
+    await program.parseAsync(["plugin", "eval", "thermos", "--runs", "1"], { from: "user" });
+    await program.parseAsync(["plugin", "eval", "cancel", "pev_1"], { from: "user" });
+    expect(seen).toEqual(["eval thermos", "cancel pev_1"]);
   });
 
   it("has no execution group: runs replaced it, and the old word is not an alias", () => {

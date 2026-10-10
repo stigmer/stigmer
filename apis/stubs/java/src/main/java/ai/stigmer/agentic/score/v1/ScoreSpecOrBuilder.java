@@ -53,7 +53,8 @@ public interface ScoreSpecOrBuilder extends
   /**
    * <pre>
    * What is measured: `feedback` for a person's thumbs, `run-health` for
-   * the free checks, `judge` for an AI judge's verdict.
+   * the free checks, `judge` for an AI judge's verdict, `eval` for a
+   * plugin eval's checks on one try.
    * </pre>
    *
    * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -63,7 +64,8 @@ public interface ScoreSpecOrBuilder extends
   /**
    * <pre>
    * What is measured: `feedback` for a person's thumbs, `run-health` for
-   * the free checks, `judge` for an AI judge's verdict.
+   * the free checks, `judge` for an AI judge's verdict, `eval` for a
+   * plugin eval's checks on one try.
    * </pre>
    *
    * <code>string metric = 3 [json_name = "metric", (.buf.validate.field) = { ... }</code>
@@ -116,7 +118,7 @@ public interface ScoreSpecOrBuilder extends
   /**
    * <pre>
    * True when the run passed: thumbs up, every applicable check passed,
-   * or no rubric failed.
+   * no rubric failed, or every scored eval check passed.
    * </pre>
    *
    * <code>bool passed = 6 [json_name = "passed"];</code>
@@ -126,7 +128,7 @@ public interface ScoreSpecOrBuilder extends
   /**
    * <pre>
    * True when the run passed: thumbs up, every applicable check passed,
-   * or no rubric failed.
+   * no rubric failed, or every scored eval check passed.
    * </pre>
    *
    * <code>bool passed = 6 [json_name = "passed"];</code>

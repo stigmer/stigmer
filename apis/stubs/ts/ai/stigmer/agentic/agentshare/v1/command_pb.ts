@@ -49,9 +49,9 @@ export const AgentShareCommandController: GenService<{
   /**
    * Update an existing agent share.
    *
-   * Replaces the spec wholesale: a manifest that omits audience resets the
-   * share to public, and one that omits vaults detaches them (fails
-   * closed). The slug and referenced agent are immutable.
+   * Replaces the spec wholesale: a manifest that omits audience makes the
+   * share organization-only, and one that omits vaults detaches them (both
+   * fail closed). The slug and referenced agent are immutable.
    *
    * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.update
    */

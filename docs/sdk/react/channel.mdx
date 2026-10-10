@@ -519,7 +519,8 @@ Each row shows the session subject, the external platform user it
 belongs to (an opaque provider id in v1), and the last activity time.
 Rows link to the host's session route, where `SessionViewer` renders the
 transcript read-only (the observer audience — channel viewers hold
-`can_view` only, never `can_create_run_in`).
+`can_view` only, never `can_create_run_in`, which a session grants only
+its owners and participants).
 
 Built on the native `<dialog>` element, matching the SDK's modal
 convention. Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel)'s

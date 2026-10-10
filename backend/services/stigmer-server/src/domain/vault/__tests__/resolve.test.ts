@@ -55,7 +55,11 @@
  *     decryption error, never its ciphertext passed on; a value the run
  *     does not carry is never decrypted;
  *   - the tools listing lane: the listing person's My vault only, none for
- *     a caller who is no person, never a shared vault.
+ *     a caller who is no person, never a shared vault;
+ *   - a participant's turn (no person; a sender who is not the
+ *     conversation's creator): only the conversation's own vaults, checked
+ *     for their attacher; nobody's My vault and never a surface's; told to
+ *     ask the creator by name; recognised from the two creator stamps.
  */
 import { randomBytes } from "node:crypto";
 
@@ -74,6 +78,7 @@ import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vaul
 import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { RunValueDeclarerKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { RunCredentialsSchema, RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
@@ -99,6 +104,7 @@ import {
 import type { Authorizer } from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
 import { newSignInFreshener } from "../sign-in/refresh.js";
 
 import {
@@ -110,6 +116,7 @@ import {
   loginKeyOf,
   newVaultResolver,
   pluginHookRequirements,
+  participantSenderOf,
   runRequirements,
   serversOf,
   toolRequirements,
@@ -296,6 +303,7 @@ function sessionOf(init: {
   repo?: { url: string; token?: string };
   labels?: Record<string, string>;
   attachers?: Record<string, string>;
+  creator?: { id: string; displayName?: string };
 } = {}): Session {
   return create(SessionSchema, {
     metadata: { id: "ses_resolve", org: ORG, labels: init.labels ?? {} },
@@ -317,7 +325,12 @@ function sessionOf(init: {
               },
             ],
     },
-    status: { vaultAttachers: init.attachers ?? {} },
+    status: {
+      vaultAttachers: init.attachers ?? {},
+      ...(init.creator === undefined
+        ? {}
+        : { audit: { specAudit: { createdBy: init.creator } } }),
+    },
   });
 }
 
@@ -325,6 +338,7 @@ function runOf(init: {
   person?: string;
   labels?: Record<string, string>;
   platformClientId?: string;
+  sender?: string;
 } = {}): Run {
   return create(RunSchema, {
     metadata: { id: "run_resolve", org: ORG, labels: init.labels ?? {} },
@@ -332,7 +346,7 @@ function runOf(init: {
       credentials: init.person === undefined ? {} : { person: init.person },
       audit: {
         specAudit: {
-          createdBy: { id: "ida_x", platformClientId: init.platformClientId ?? "" },
+          createdBy: { id: init.sender ?? "ida_x", platformClientId: init.platformClientId ?? "" },
         },
       },
     },
@@ -729,6 +743,66 @@ describe("which vaults a run uses", () => {
     mayUse.add(`${ADMIN}:${team.metadata!.id}`);
     const gone = await refusal(resolve(guestRun));
     expect(gone.rawMessage).toContain(`vault ${ORG}/gone, named by share 'public', no longer exists`);
+  });
+
+  it("a plugin eval's vaults reach its tries, checked against their attacher", async () => {
+    const keys = await seedSharedVault(rig.store, ORG, "eval-keys", { secrets: { A: "from-eval" } });
+    await rig.store.saveResource(
+      ApiResourceKind.plugin_eval,
+      "pev_nightly",
+      PluginEvalSchema,
+      create(PluginEvalSchema, {
+        metadata: { id: "pev_nightly", name: "thermos run", org: ORG },
+        spec: { pluginId: "plg_thermos", vaults: [vaultRef("eval-keys")] },
+        status: { vaultAttachers: { [keys.metadata!.id]: ADMIN } },
+      }),
+    );
+    const evalTry = {
+      run: runOf({ labels: { [PLUGIN_EVAL_LABEL]: "pev_nightly" } }),
+      session: sessionOf({ includeMyVault: false }),
+      agentSpec: agent({ A: KEY }),
+    };
+    const revoked = await refusal(resolve(evalTry));
+    expect(revoked.rawMessage).toContain(
+      "vault 'eval-keys', named by plugin eval 'thermos run', may no longer be used",
+    );
+    mayUse.add(`${ADMIN}:${keys.metadata!.id}`);
+    expect(await resolve(evalTry)).toEqual({ A: "from-eval" });
+
+    // A try acting as a person (open source acts as the eval's creator)
+    // reads its conversation's vaults first, then the eval's.
+    await seedSharedVault(rig.store, ORG, "chat-keys", { secrets: { B: "from-chat" } });
+    mayUse.add(`${ANA}:vlt_acme_chat_keys`);
+    expect(
+      await resolve({
+        run: runOf({ person: ANA, labels: { [PLUGIN_EVAL_LABEL]: "pev_nightly" } }),
+        session: sessionOf({ vaults: ["chat-keys"], includeMyVault: false }),
+        agentSpec: agent({ A: KEY, B: KEY }),
+      }),
+    ).toEqual({ A: "from-eval", B: "from-chat" });
+  });
+
+  it("a plugin eval that is gone, or of another organization, contributes no vaults to its tries", async () => {
+    await seedSharedVault(rig.store, "rival", "rival-keys", { secrets: { API_KEY: "rival" } });
+    await rig.store.saveResource(
+      ApiResourceKind.plugin_eval,
+      "pev_rival",
+      PluginEvalSchema,
+      create(PluginEvalSchema, {
+        metadata: { id: "pev_rival", name: "rival", org: "rival" },
+        spec: { pluginId: "plg_rival", vaults: [{ kind: ApiResourceKind.vault, org: "rival", slug: "rival-keys" }] },
+        status: { vaultAttachers: { "vlt_rival_rival_keys": ADMIN } },
+      }),
+    );
+    mayUse.add(`${ADMIN}:vlt_rival_rival_keys`);
+    for (const evalId of ["pev_gone", "pev_rival"]) {
+      expect(
+        await resolve({
+          run: runOf({ labels: { [PLUGIN_EVAL_LABEL]: evalId } }),
+          agentSpec: agent({ API_KEY: { isSecret: true, optional: true } }),
+        }),
+      ).toEqual({});
+    }
   });
 
   it("a schedule that is gone contributes no vaults to its run", async () => {
@@ -2581,4 +2655,81 @@ describe("a stored value the server cannot open", () => {
       expect(failure.message).not.toContain(SEALED_PLAINTEXT);
     },
   );
+});
+
+describe("a participant's turn", () => {
+  async function bensVault(secrets: Record<string, string>): Promise<void> {
+    const ben = testCallerIdentity({ identityId: BEN });
+    const mine = await rig.vaults.ensureMine(ORG, ben);
+    await rig.vaults.setSecrets(
+      mine.metadata!.id,
+      Object.fromEntries(
+        Object.entries(secrets).map(([name, value]) => [name, { value, description: "" }]),
+      ),
+      ben,
+    );
+  }
+
+  it("reads only the conversation's vaults, checked for their attacher: nobody's My vault and never a surface's", async () => {
+    await anasVault({ A: "ana-mine" });
+    await bensVault({ A: "ben-mine" });
+    const team = await seedSharedVault(rig.store, ORG, "team", { secrets: { B: "team" } });
+    const share = await seedSharedVault(rig.store, ORG, "share-keys", { secrets: { A: "share" } });
+    await rig.store.saveResource(
+      ApiResourceKind.agent_share,
+      "shr_link",
+      AgentShareSchema,
+      create(AgentShareSchema, {
+        metadata: { id: "shr_link", name: "link", org: ORG },
+        spec: { vaults: [vaultRef("share-keys")] },
+        status: { vaultAttachers: { [share.metadata!.id]: ADMIN } },
+      }),
+    );
+    mayUse.add(`${ANA}:${team.metadata!.id}`);
+    mayUse.add(`${ADMIN}:${share.metadata!.id}`);
+    expect(
+      await resolve({
+        run: runOf({ sender: BEN }),
+        session: sessionOf({
+          vaults: ["team"],
+          includeMyVault: true,
+          attachers: { [team.metadata!.id]: ANA },
+          labels: { [SHARE_ID_LABEL_KEY]: "shr_link" },
+          creator: { id: ANA },
+        }),
+        agentSpec: agent({ A: { isSecret: true, optional: true }, B: KEY }),
+      }),
+    ).toEqual({ B: "team" });
+  });
+
+  it("is told to ask the conversation's creator, by name when the row has one", async () => {
+    const named = await refusal(
+      resolve({
+        run: runOf({ sender: BEN }),
+        session: sessionOf({ creator: { id: ANA, displayName: "Ana" } }),
+        agentSpec: agent({ A: KEY }),
+      }),
+    );
+    expect(named.rawMessage).toBe(
+      "the agent Helper needs A: ask Ana to list a vault that holds A on the conversation",
+    );
+    const unnamed = await refusal(
+      resolve({
+        run: runOf({ sender: BEN }),
+        session: sessionOf({ creator: { id: ANA } }),
+        agentSpec: agent({ A: KEY }),
+      }),
+    );
+    expect(unnamed.rawMessage).toBe(
+      "the agent Helper needs A: ask the conversation's owner to list a vault that holds A on the conversation",
+    );
+  });
+
+  it("is recognised from the stamps: a run with no person whose sender is not the conversation's creator", () => {
+    const session = sessionOf({ creator: { id: ANA } });
+    expect(participantSenderOf(runOf({ sender: BEN }), session)).toBe(BEN);
+    expect(participantSenderOf(runOf({ sender: ANA }), session)).toBeUndefined();
+    expect(participantSenderOf(runOf({ sender: BEN, person: BEN }), session)).toBeUndefined();
+    expect(participantSenderOf(runOf({ sender: BEN }), sessionOf())).toBeUndefined();
+  });
 });

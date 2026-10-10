@@ -1,0 +1,385 @@
+---
+title: Test a plugin with evals
+description:
+  Run a plugin's own evals/ test cases on Stigmer, with and without the plugin,
+  on every model you pick; read the table and the result file; know what differs
+  from claude plugin eval, who sees the results and who pays; and turn a bad run
+  into a new case.
+---
+
+A plugin author already writes test cases for Claude Code: a folder `evals/` in
+the plugin, where each case is a request a person might type plus checks such as
+"the reply mentions the renamed function", "the Skill was used" or a pass/fail
+rubric for a judge model. Stigmer reads that folder in
+[Claude Code's plugin-eval format](https://code.claude.com/docs/en/plugin-evals)
+and runs it. There is no Stigmer format to learn: the suite you run with
+`claude plugin eval` is the suite Stigmer runs.
+
+A **Plugin Eval** is one run of that suite against the plugin's installed
+version: the version it was installed or last updated at. Each case runs several
+times with the plugin and several times without it, on each model you name. For
+each case you get the score with the plugin, the score without it, the
+difference the plugin makes, and whether every try passed. Every try is a real
+conversation; who can open it depends on the edition (see
+[Who sees an eval](#who-sees-an-eval-and-who-pays)).
+
+## What Stigmer runs, and what it measures
+
+Stigmer runs the cases on its own engines, never through Claude Code. A model is
+named with its engine, as `<harness>/<model>`: `native/claude-sonnet-4-6` runs
+on Stigmer's native engine, `cursor/gpt-5` on the Cursor engine. So a suite can
+run on models Claude Code cannot run: GPT and Gemini models run through Cursor.
+The same suite can also score differently here than under `claude plugin eval`,
+because the score measures the plugin on Stigmer.
+
+Each case runs in two **arms**:
+
+- the **with-arm**: the case's tries with the plugin, a chat with the Assistant
+  that lists the plugin, so its Skills, agents, hooks and MCP servers come
+  along whole;
+- the **without-arm**: the same number of tries with the Assistant and nothing
+  attached, the baseline.
+
+A try's score is the weighted share of its graders that passed. A case's score
+is the mean over its tries, three by default. `Δ` is the with-arm score minus
+the without-arm score: what the plugin contributed. A case passes when its
+with-arm score reaches the threshold, 1.0 by default. **pass^k** is Stigmer's
+addition: a case passes^k when every one of its k with-arm tries scored 1.0, so
+it tells a plugin that always works from one that works on average.
+
+Graders that cannot pass without the plugin, such as `tool_used: Skill` or any
+grader marked `arm: with-only`, are scored in neither arm and shown in the
+with-arm as indicators, as Claude Code does, so they do not inflate `Δ`.
+
+## Start an eval in the console
+
+On the plugin's page in the console, open the **Evals** tab. It lists the cases
+the plugin's `evals/` folder holds, their tags, any case that failed to load,
+and each case Stigmer cannot run yet with the feature named. Below that are the
+plugin's past evals.
+
+**Run evals** is the form below the cases. It is shown only to people who can
+edit the plugin, and it holds:
+
+- **Use each case's own model**: on by default, it runs each case on the `model`
+  the case names, else on the default model. Off shows **Models**.
+- **Models**: one or more engine and model pairs, at most six, used for every
+  case. **Add a model** adds one; **Default model** is the engine's default.
+- **Tries per case**: tries per case and arm, from 1 to 50. Empty, as it starts,
+  uses each case's own `runs`, else 3.
+- **Cost limit (USD)**: the most the eval may spend, in dollars of estimated
+  model cost, at most $1000; $5 to start. Stigmer requires one.
+- **Tries at once**: tries running at once, from 1 to 8; 1 to start.
+- **Also run each case without the plugin, to see the difference it makes**: on
+  by default, it runs the without-arm too; off runs the with-arm only and halves
+  the cost.
+
+Left as they start, the form runs each case as the CLI does without `--model` or
+`--runs`: on its own `model` and with its own `runs`. Models you pick, or a
+number of tries you enter, apply to every case instead.
+
+An eval runs at most 200 cases and 1000 tries, counting each case on each model
+in each arm for each try. A larger eval is refused when you start it; narrow it
+with `--case` or `--tag`, or choose fewer tries or models.
+
+Each eval is listed by the plugin's name and when it started. The eval's results
+then fill in as tries finish: one row per case, and for each model the `WITH`,
+`W/OUT`, `Δ` and pass^k columns. Each try links to its run. **Compare** puts two
+evals of the plugin side by side, case by case, with the cases whose score
+changed highlighted; that is how you judge a new version against the last one.
+
+## Start an eval from the CLI
+
+Name the installed plugin. The eval runs on its installed version; evaluating an
+earlier version is not supported yet. A digest after the name, the 64-character
+one `stigmer get plugin` shows, makes sure the eval runs that version: it is
+refused when the plugin is installed at another.
+
+```bash
+stigmer plugin eval thermos
+stigmer plugin eval thermos@<digest>
+```
+
+The CLI runs every case with and without the plugin unless you pass
+`--ablation none`, and uses each case's own `runs` and `model` unless you pass
+`--runs` or `--model`.
+
+The command creates the eval, then follows it: a progress line as each try
+finishes (the case, the model, the arm, the try, and its score or why it was not
+graded), then the table and a summary line.
+
+| Option                          | Effect                                                                                                                                 |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `--case <glob>`                 | Runs only the cases whose name matches, as in `review-*`                                                                               |
+| `--tag <tags>`                  | Runs only the cases carrying any of the tags; name several (`--tag smoke fast`) or repeat it                                           |
+| `--runs <n>`                    | Tries per case and arm, 1 to 50; each case's own `runs`, else 3                                                                        |
+| `--model <harness>/<model>`     | A model to run on, as `native/claude-sonnet-4-6` or `cursor/gpt-5`; repeat it for up to six; each case's own `model`, else the default |
+| `--ablation with-without\|none` | `with-without`, the default, runs both arms; `none` runs the with-arm only                                                             |
+| `--threshold <0..1>`            | The score a case needs to pass; 1.0 by default                                                                                         |
+| `--max-cost-usd <usd>`          | The eval's cost limit; Stigmer requires one, so the CLI uses 5 when you give none and says so                                          |
+| `-j, --concurrency <n>`         | Tries running at once, 1 to 8                                                                                                          |
+| `--allow-tools <tools>`         | Tools every try may use beyond the case's own read-only list, in Claude Code's names                                                   |
+| `--judge-model <model>`         | The model for `llm` and `baseline` graders; the platform's default judge model otherwise                                               |
+| `--real-mcp-servers`            | Runs the plugin's MCP servers for real, with the Organization's connections                                                            |
+| `--json [path]`                 | Writes the result file to stdout, or to a path ending in `.json`; the run is quiet: no progress lines and no table                     |
+| `--no-wait`                     | Prints the eval's ID and returns at once                                                                                               |
+
+Put the plugin first: `--tag`, `--allow-tools` and `--json` take values, so a
+plugin name after them is read as one.
+
+An eval keeps running on the server whether or not the CLI follows it. To stop
+one, and to read or delete one later:
+
+```bash
+stigmer plugin eval cancel pev_01j9...
+stigmer get plugin-eval pev_01j9...
+stigmer delete plugin-eval pev_01j9...
+```
+
+Cancelling stops the tries in flight and keeps the results of the tries that
+finished. Delete refuses an eval that is still pending or running; cancel it
+first. Deleting an eval deletes its tries' conversations, runs, and scores.
+
+## Read the table
+
+The table is Claude Code's, with a `PASS^k` column, and one block per model:
+
+```text
+native/claude-sonnet-4-6
+CASE           WITH   W/OUT   Δ       PASS^k   RUNS   COST    NOTES
+------------   ----   -----   -----   ------   ----   -----   -----
+review-fires   1.00   0.33    +0.67   yes      6      $0.41
+
+1 case(s) · mean Δ +0.67 · 74s · $0.41
+```
+
+`WITH` and `W/OUT` are the case's scores in each arm, `RUNS` counts the tries of
+both arms, `COST` is the estimated model cost, and `NOTES` shows why a try went
+wrong. Under `--ablation none` the block shows `SCORE` and `PASS%` instead of
+`WITH`, `W/OUT` and `Δ`. Cases that were not run are listed after the table with
+their reason.
+
+The exit code tells a script or a CI job what happened:
+
+| Exit code | Meaning                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0         | Every case that ran reached the threshold and every case loaded                                                                                                                                                                                                                                                                                                                             |
+| 1         | A case scored below the threshold, a case failed to load, no case was found, a case's with-plugin tries on a model were all not graded (a case that never ran is not a pass), or an option was not valid; or the eval could not start (the plugin was not found, you may not evaluate it, or the server refused the eval), or the CLI could not read it for about a minute and cancelled it |
+| 2         | Partial: the cost limit was reached or the Organization ran out of credit; the results cover what ran                                                                                                                                                                                                                                                                                       |
+| 3         | The server could not be reached (the CLI's own code for a connection failure)                                                                                                                                                                                                                                                                                                               |
+| 4         | You are not signed in, or your sign-in expired (the CLI's own code for a sign-in failure)                                                                                                                                                                                                                                                                                                   |
+| 130       | Interrupted: the eval was cancelled, by Ctrl+C or any other cancel (the console's Cancel, `stigmer plugin eval cancel`); the results cover the tries that finished                                                                                                                                                                                                                          |
+
+`Δ` never changes the exit code, and neither does a case listed as not run.
+
+When the CLI cannot reach the server to cancel, after Ctrl+C or after losing
+track of the eval, the eval may still be running. The CLI prints what it has,
+says so in place of "Cancelled", and names the command that cancels it:
+`stigmer plugin eval cancel <id>`. The exit code stays 130 or 1.
+
+## Read the result file
+
+`--json` writes a result document in the shape of Claude Code's. It carries the
+fields Claude Code's documentation lists for gating scripts, under the same
+names, so a script that gates on them reads Stigmer's file, with one difference:
+`cases[].aggregates.score` is `null` when none of the case's with-arm tries was
+graded, where Claude Code always writes a number, so a check such as
+`score < 0.8` must handle `null`. The listed fields for features Stigmer does
+not have (`aborted`, `skippedPaidGraders`, `claudeVersion`) are absent, and the
+rest of Claude Code's file is not mimicked: its copy of the suite's
+configuration, its grader definitions and each run's grader results. These are
+the fields it carries:
+
+| Field                                                  | Meaning                                                                                                                  |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `schemaVersion`                                        | `1`                                                                                                                      |
+| `partial`, `partialReason`                             | `true` with `cost_ceiling`, `interrupted` (a cancel), or Stigmer's `out_of_credit` when the eval stopped early           |
+| `aggregates.overallScore`                              | Mean with-arm case score across the suite                                                                                |
+| `aggregates.casesPassed`, `aggregates.casesTotal`      | Cases reaching the threshold, and the cases that ran                                                                     |
+| `aggregates.meanDelta`                                 | Mean `Δ` across the cases with a comparison; absent when none had one                                                    |
+| `cases[].name`                                         | Case name                                                                                                                |
+| `cases[].aggregates.score`, `cases[].aggregates.delta` | The case's with-arm score (`null` when no with-arm try was graded), and `Δ`; `delta` is absent when the case ran one arm |
+| `cases[].arms.with[]`, `cases[].arms.without[]`        | Each try, with `error` (`null`, or why the run ended badly) and `score` (`null` when the try was not graded)             |
+| `costUsd`, `durationSeconds`                           | Estimated model cost of every try and judge vote, and wall-clock seconds                                                 |
+
+Stigmer adds fields beside them, which a script written for Claude Code ignores:
+
+- `targets[]`: each model's `label`, `harness`, `model` and full `cases[]`. With
+  several models, the top-level `cases[]` are the first model's.
+- `passK` on each case.
+- `provisionalDelta`: `true` only for an eval made before chats listed plugins
+  directly, whose with-arm also carried an Agent Stigmer composed for the plugin.
+- `notRun[]`: each case, or case on one model, that was not run, with the
+  reason.
+- `runId` and `notGradedReason` on each try, and the eval's `evalId`.
+- `findings[]`: each problem reading the suite, with its `kind`, `path` and
+  `message`, which `stigmer plugin eval` prints to stderr without `--json`.
+- `stillRunning`: `true`, beside `partial: true` and
+  `partialReason: "interrupted"`, when the CLI stopped following the eval and
+  could not cancel it, so it may still be running; absent otherwise.
+
+## What runs, and what is named instead
+
+Stigmer runs every `prompt.md` and `case.yaml` field, except those listed below;
+the six graders `regex`, `tool_used`, `tool_order`, `file_exists`, `llm` and
+`baseline`, with `weight`, `arm`, and every `target` and `focus` value other
+than `mock_calls`; both arms; k tries; and several models.
+
+A case that needs a feature Stigmer does not run yet is never run without it,
+because a degraded run would be a wrong score. It is listed instead, as
+`not run: <feature>`, on the plugin's Evals tab, in the table and in `notRun[]`:
+
+| Not run yet                                    | Claude Code's feature                               |
+| ---------------------------------------------- | --------------------------------------------------- |
+| `context.scaffold_script`                      | A script that prepares the Workspace before the try |
+| `context.add_dirs`                             | Case folders the try may read                       |
+| `context.history_file`                         | A recorded conversation the try resumes             |
+| `env`                                          | Extra environment variables for the try             |
+| A `plugins` entry other than the plugin's root | Other plugins the try loads beside the one tested   |
+| A `mock_calls` target or focus, and mocks      | Fake MCP servers that answer the try's tool calls   |
+| More than 32 graders on one case               | A grade records at most 32 checks                   |
+
+A case with `plugins` runs only when every entry, resolved against the case's
+folder, is the root of the plugin under test; the list then changes nothing,
+because the plugin under test is always the installed one. Any other entry, a
+single one included, makes the case `not run: plugins`.
+
+A case naming a `model` Stigmer's catalogue does not hold, such as `sonnet`, is
+not run on the default model either: name the model with `--model`, or use a
+catalogue ID in the case.
+
+Stigmer reads a case at most 32 folders below the suite's folder, with a name of
+at most 200 characters, a folder path of at most 1024 characters and grader
+weights of at most 1000. A case past any of these is reported as a problem
+reading the suite and not loaded, and the rest of the suite still runs.
+
+## How Stigmer differs from claude plugin eval
+
+- **A tool specifier grants the whole tool.** `--allow-tools "Bash(npm test *)"`
+  grants `Bash`, because every Stigmer tool list reads a specifier that way.
+  Each try runs in a fresh Workspace of its own.
+- **A platform failure is not graded, never 0.** A try that Stigmer could not
+  run or grade, such as one refused for lack of credit, one that waited too long
+  for capacity ("platform busy"), or a judge that failed, is left out of every
+  mean and named on the try. So is a try that would start after the plugin was
+  updated during the eval: it is not graded, with the reason "the plugin was
+  updated during the eval", and the case carries a note, because the try would
+  have measured another version. Claude Code scores such runs 0. A failure of
+  the Agent itself, such as a timeout or the turn cap, is graded on what the run
+  produced, as Claude Code does.
+- **A denied `Skill` hides Skills; an allow-list without `Skill` keeps them.** A
+  case whose `allowed_tools` leaves out `Skill` runs with `Skill` denied, so the
+  try cannot load the plugin's Skills, as in Claude Code. `Grep` and `Glob` are
+  outside that check: a try that lists them can still find a Skill's files by
+  searching the plugin's folder.
+- **A turn cap below 10 runs with 10 tool rounds.** A case's `max_turns` below
+  10 runs with the run's minimum of 10 tool rounds, and the case carries a note
+  saying so. A case that counts on a lower cap can pass here and fail under
+  `claude plugin eval`.
+- **MCP servers are off unless you ask.** A try cannot call the plugin's MCP
+  tools, as in Claude Code without mocks. `--real-mcp-servers` runs them for
+  real with the Organization's connections; Stigmer has no mocks yet. Their
+  tools are granted by Claude Code's names,
+  `mcp__plugin_<plugin>_<server>__<tool>`, which are Stigmer's too.
+- **A `tool_used` with only `max` lowers `min` to it.** Without `min`, the
+  grader's `min` is the smaller of 1 and `max`, so `max: 0` alone passes when
+  the tool is never called. Claude Code keeps `min` at 1, where `max: 0` alone
+  can never pass.
+- **An `llm` grader does not look at images.** A grader whose focus is an image
+  file, or any other binary file, leaves the try not graded. Claude Code shows a
+  PNG, JPEG, GIF or WebP file to the judge as an image.
+- **Created files need artifact storage.** `files` and file targets read what a
+  try created through Stigmer's file review. An install without artifact storage
+  records no created files, so a grader that reads them leaves the try not
+  graded rather than failed.
+
+As in Claude Code, a try never stops to ask for approval, the case definitions
+are hidden from it, and nothing personal loads: no person's preferences and no
+memories, so a score never depends on who started the eval.
+
+## Who sees an eval, and who pays
+
+The plugin's editors start, cancel, and delete its evals. The plugin's viewers
+in its own Organization read them: the results and each try's scores, on the
+eval's page. A viewer in a child Organization, who can see a parent's plugin,
+does not see its evals: a try spends the Organization's credit and may act with
+its connections.
+
+Who opens a try's conversation depends on the edition:
+
+- **Stigmer Cloud**: every viewer of the plugin in its Organization opens each
+  try, read-only: its conversation, run and scores, without adding a turn.
+- **Self-hosted open source**: the tries belong to the eval's creator, who opens
+  them as their own conversations. The plugin's other viewers read the eval, its
+  results and each try's scores on the eval's page, and cannot open a try's
+  conversation.
+
+Tries are kept out of the conversation list, so an eval of 200 tries does not
+bury your conversations. You reach them from the eval's page, or by ID.
+
+The Organization that installed the plugin pays for every try and every vote of
+an AI-graded check, from its own credit. Tries use its own provider keys. The
+vaults an eval names for its tries' logins and secrets are shared vaults; an
+eval refuses a person's own vault, its creator's included, because in Stigmer
+Cloud every viewer of the plugin reads each try, and a hook's or MCP server's
+output can show what a key unlocked. A shared vault is accepted whoever else may
+use it, so in Stigmer Cloud every viewer of the plugin in the Organization can
+read a try whose output shows a value from an attached vault. Whoever attaches a
+vault chooses that audience. The cost limit is an estimate, checked before each
+try starts against what the tries already spent plus the share each running try
+may still spend. Each try may spend at most an equal share of what is left for
+the tries that run at once; a try that needs more than its share is stopped at
+it and shown as not graded. Tries already running when the limit is reached
+finish, and so do their AI-graded checks, each vote capped at $0.25, so the
+spend can pass the limit by those. So can a try whose start failed or whose stop
+failed: it is recorded as not graded, and its run may still spend a little after
+that. So can a second run created by a start that raced its own retry: the try
+keeps the first run and stops the other when it finds it.
+
+## Turn a bad run into a test case
+
+A conversation that went wrong is the best next case. On a run's score row in
+the console, **Make a test case** downloads a zip holding the case folder. From
+the CLI, write it into your local plugin folder:
+
+```bash
+stigmer runs to-eval-case run_01abc123
+stigmer runs to-eval-case run_01abc123 --dir evals/ --name rename-call-sites
+stigmer runs to-eval-case run_01abc123 --skill thermos:code-review
+```
+
+The case holds:
+
+- `prompt.md`: the run's request as the body, with `max_turns: 10` and
+  `allowed_tools: [Read, Glob, Grep, Skill]`;
+- `graders/criteria.md`: an `llm` grader whose FAIL line names what went wrong,
+  from the AI judge's failing reason, else a plugin eval's failing check, else
+  the comment left with a thumbs-down; you write the PASS line, since only you
+  know what a correct reply holds;
+- `graders/skill-fired.md` with `--skill`: a `tool_used: Skill` grader that
+  passes when the try used that Skill.
+
+```md
+---
+type: llm
+---
+
+PASS if <what a correct response contains>. FAIL if the response repeats what
+went wrong in the run this case was made from: said the ticket was assigned, but
+the assign call failed.
+```
+
+The CLI refuses to overwrite a case folder that already exists. A run that
+continued a conversation takes only its last request, and says so, because
+resumed conversations are not run yet. Stigmer never writes into your
+repository: review the case, then commit it with the plugin and push the plugin
+again.
+
+## Next steps
+
+- [Scores](/docs/concepts/scores): the eval score each try records, beside a
+  person's feedback, run health and AI grading.
+- [Install a plugin](/docs/guides/plugins/install-a-plugin): push a new version
+  of the plugin, then compare its eval with the last one.
+- [`stigmer plugin`](/docs/cli/commands/plugin): every option of
+  `stigmer plugin eval`.

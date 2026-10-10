@@ -30,6 +30,7 @@
     "download",
     "install",
     "mcp",
+    "plugin",
     "push",
     "---Server Commands---",
     "mcp-server",

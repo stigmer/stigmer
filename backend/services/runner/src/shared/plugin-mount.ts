@@ -34,6 +34,23 @@
  * `${CLAUDE_PLUGIN_DATA}` is the plugin's writable place, and its hooks run
  * with Python's bytecode cache off (`hooks/evaluate.ts`).
  *
+ * The plugin's eval suite is never mounted: `evals/`, the directory
+ * `PluginStatus.evals.dir` names when the manifest moved the suite, and the
+ * manifest's own `experimental.evals` read from the archive (a plugin
+ * installed before the status carried the directory has none recorded),
+ * under the library's rule that refuses a directory overlapping the
+ * skills, are left out of the tree, so an agent under test cannot read the cases it is
+ * graded on, as Claude Code hides them from its own runs. An entry is
+ * judged by its cleaned, root-relative name, the name the server's suite
+ * reader gives it, so `./evals/…` or `x/../evals/…` is a suite file here
+ * too. Hooks never need
+ * them; the suite is the eval workflow's, which reads the archive itself.
+ * For the same reason an archive that carries a suite is never cached on
+ * disk: the cache must hash to the digest, so it is the whole archive, and
+ * the shell could unzip it. Such an archive is fetched on every turn
+ * instead (plugins are small), and a cached copy an earlier runner left is
+ * removed.
+ *
  * Turns of one workspace are serialised (`harness/turn-context.ts`
  * `acquireWorkspaceTurnLock`), so no two turns mount one tree at once; within
  * a turn, concurrent hook runs share one check in flight.
@@ -41,7 +58,7 @@
 
 import { createHash } from "node:crypto";
 import { agentFs, agentPathExists } from "./agent-fs.js";
-import { join, relative } from "node:path";
+import { join, posix, relative } from "node:path";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import { archiveFileMode, downloadArchive, entryPathIn, resetDirectory, writeArchiveEntries } from "./archive-mount.js";
@@ -126,13 +143,20 @@ export async function mountPlugin(
 
   const pluginsDir = join(platformDir, PLUGINS_SUBDIR);
   await agentFs().mkdir(pluginsDir, { recursive: true });
-  const archive = await cachedArchive(client, join(pluginsDir, `${digest}.zip`), digest, storageKey, slug);
+  const archivePath = join(pluginsDir, `${digest}.zip`);
+  const archive = await cachedArchive(client, archivePath, digest, storageKey, slug);
   const entries = await extractZipFileEntries(archive);
   if (entries.length === 0) {
     throw new PluginMountError(slug, "its archive holds no files");
   }
+  const mountable = withoutEvalSuite(entries, plugin.status?.evals?.dir, manifestEvalDir(entries));
+  if (mountable.length === entries.length) {
+    await agentFs().writeFile(archivePath, archive);
+  } else {
+    await agentFs().rm(archivePath, { force: true });
+  }
 
-  const tree = new PluginTree(join(pluginsDir, digest), entries);
+  const tree = new PluginTree(join(pluginsDir, digest), mountable);
   await tree.verify();
 
   const data = join(platformDir, PLUGIN_DATA_SUBDIR, slug);
@@ -148,7 +172,182 @@ export async function mountPlugin(
   };
 }
 
-/** The archive's bytes, from the session's cache when they still hash to `digest`, else fetched, verified and cached. */
+/** The suite's default directory; always skipped, whatever the status names. */
+const DEFAULT_EVAL_DIR = "evals";
+
+/**
+ * The archive's entries minus the eval suite: everything under `evals/`,
+ * and under each of `dirs` (the directory the install recorded, the one
+ * the manifest names) that is set. An entry is matched by
+ * {@link cleanEntryPath}, the directories are plugin-relative paths of
+ * plain segments.
+ */
+export function withoutEvalSuite(entries: readonly ZipFileEntry[], ...dirs: readonly (string | undefined)[]): readonly ZipFileEntry[] {
+  const prefixes = [DEFAULT_EVAL_DIR, ...dirs]
+    .filter((dir): dir is string => dir !== undefined && dir !== "")
+    .map((dir) => `${dir}/`);
+  return entries.filter((entry) => {
+    const path = cleanEntryPath(entry.path);
+    return !prefixes.some((prefix) => path.startsWith(prefix));
+  });
+}
+
+/**
+ * An entry's name as the server's archive gate sanitises it before the
+ * suite reader sees it (`stigmer-server` `archive/prefilter.ts`
+ * `sanitizePath`): backslashes as slashes, `.` and `..` resolved against
+ * the root, no leading slash.
+ */
+function cleanEntryPath(name: string): string {
+  return posix.normalize(`/${name.replaceAll("\\", "/")}`).slice(1);
+}
+
+/**
+ * The Claude-shaped manifests that may move the suite, in the order the
+ * library ranks them (`@stigmer/plugin-package` `detect.ts`: the root
+ * manifest is the open format's, which carries no `experimental.evals`).
+ */
+const SUITE_MANIFESTS = [".claude-plugin/plugin.json", ".codex-plugin/plugin.json"] as const;
+
+/**
+ * Every manifest location a plugin may carry (`@stigmer/plugin-package`
+ * `messages.ts` `MANIFEST_LOCATIONS`); an install refuses a package with
+ * none of them.
+ */
+const PLUGIN_MANIFESTS = ["plugin.json", ".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"] as const;
+
+/**
+ * Whether an archive holds a plugin manifest, by its cleaned name. A
+ * plugin's root skill is the whole package as one skill, manifests
+ * included, so its archive always holds one; a skill pushed on its own
+ * holds none unless its author put one there.
+ */
+export function holdsPluginManifest(entries: readonly ZipFileEntry[]): boolean {
+  return entries.some((entry) => (PLUGIN_MANIFESTS as readonly string[]).includes(cleanEntryPath(entry.path)));
+}
+
+/** The manifests that may declare skill paths: every vendor dialect's (the open format declares none). */
+const SKILL_MANIFESTS = [".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"] as const;
+
+/** The open format's fixed skills directory, read whatever the manifests declare. */
+const DEFAULT_SKILLS_DIR = "skills";
+
+/**
+ * The suite directory the archive's own manifest names, by the library's
+ * rule (`@stigmer/plugin-package` `evals/eval-dir.ts` `resolveEvalDir`):
+ * the first manifest carrying `experimental.evals` decides (an array by its
+ * first entry, a `./` prefix stripped), and its value
+ * is used only when it is a relative path of plain directory names that
+ * does not overlap the skills (`skills/` or a declared skill path, other
+ * than the plugin's root, being it, holding it or lying inside it);
+ * anything else leaves `evals/` alone, as the library falls back to it, so
+ * a skill is never mounted short of its own files. A manifest that does
+ * not parse contributes nothing, as the library reads it. Parsed here
+ * rather than through the library, which the runner does not depend on (it
+ * would bring its YAML and ZIP dependencies into every runner build for
+ * two fields).
+ */
+export function manifestEvalDir(entries: readonly ZipFileEntry[]): string | undefined {
+  for (const location of SUITE_MANIFESTS) {
+    const manifest = manifestObject(entries, location);
+    const experimental = manifest?.["experimental"];
+    const value = isObject(experimental) ? experimental["evals"] : undefined;
+    if (value === undefined) continue;
+    const dir = declaredEvalDir(value);
+    if (dir === undefined) return undefined;
+    const skillDirs = [DEFAULT_SKILLS_DIR, ...declaredSkillDirs(entries)];
+    return skillDirs.some((skillDir) => skillDir !== "" && pathsOverlap(dir, skillDir)) ? undefined : dir;
+  }
+  return undefined;
+}
+
+/** The library's `EVAL_DIR_MAX_LENGTH`: the longest suite directory a manifest may name, in UTF-16 code units. */
+const EVAL_DIR_MAX_LENGTH = 1024;
+
+/**
+ * The library's `declaredEvalDir`: an array's first entry, one `./`
+ * stripped, a plain relative path no longer than
+ * {@link EVAL_DIR_MAX_LENGTH}, or `undefined`.
+ */
+function declaredEvalDir(value: unknown): string | undefined {
+  const entry: unknown = Array.isArray(value) ? value[0] : value;
+  if (typeof entry !== "string") return undefined;
+  const path = entry.startsWith("./") ? entry.slice(2) : entry;
+  return path.length <= EVAL_DIR_MAX_LENGTH && isPlainRelativePath(path) ? path : undefined;
+}
+
+/** A manifest of the archive as a JSON object; `undefined` when absent, unreadable or not an object. */
+function manifestObject(entries: readonly ZipFileEntry[], location: string): Record<string, unknown> | undefined {
+  const entry = entries.find((candidate) => cleanEntryPath(candidate.path) === location);
+  if (entry === undefined) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(entry.content));
+  } catch {
+    return undefined;
+  }
+  return isObject(parsed) ? parsed : undefined;
+}
+
+/**
+ * Every skill path the vendor manifests declare, by the library's declared
+ * path rule (`dialects/manifest.ts` `readDeclaredPaths`): a string or an
+ * array of strings, each `./`-relative, `""` for the root; a value the
+ * library would refuse names nothing.
+ */
+function declaredSkillDirs(entries: readonly ZipFileEntry[]): readonly string[] {
+  return SKILL_MANIFESTS.flatMap((location) => {
+    const skills = manifestObject(entries, location)?.["skills"];
+    const values = typeof skills === "string" ? [skills] : Array.isArray(skills) && skills.every((v) => typeof v === "string") ? skills : [];
+    return values.flatMap((value: string) => {
+      const path = declaredPath(value);
+      return path === undefined ? [] : [path];
+    });
+  });
+}
+
+/** The library's `resolveDeclaredPath`: the plugin-relative path, or `undefined` when it would refuse the value. */
+function declaredPath(value: string): string | undefined {
+  if (/[*?[\]{}]/.test(value)) return undefined;
+  if (!value.startsWith("./") && value !== ".") return undefined;
+  const trimmed = trimTrailingSlashes(value.slice(2));
+  if (trimmed === "") return "";
+  return isPlainRelativePath(trimmed) ? trimmed : undefined;
+}
+
+/**
+ * `value` without its trailing slashes: the library's `trimTrailing`
+ * (`@stigmer/plugin-package` `trim.ts`), copied since the runner does not
+ * depend on the library. A `/\/+$/` regex rescans the run from every
+ * starting position, quadratic in a long run a manifest can carry; this
+ * walks it once.
+ */
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") end -= 1;
+  return value.slice(0, end);
+}
+
+/** Whether one plugin-relative directory is the other or lies inside it. */
+function pathsOverlap(a: string, b: string): boolean {
+  return a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** The library's `isContainedPath`: relative, forward slashes, no empty, `.` or `..` segment. */
+function isPlainRelativePath(path: string): boolean {
+  if (path === "" || path.startsWith("/") || path.includes("\\")) return false;
+  return path.split("/").every((segment) => segment !== "" && segment !== "." && segment !== "..");
+}
+
+/**
+ * The archive's bytes, from the session's cache when they still hash to
+ * `digest`, else fetched and verified. The caller decides whether to cache
+ * them ({@link mountPlugin}: never an archive carrying an eval suite).
+ */
 async function cachedArchive(
   client: StigmerClient,
   archivePath: string,
@@ -180,7 +379,6 @@ async function cachedArchive(
   if (sha256Hex(fetched) !== digest) {
     throw new PluginMountError(slug, "the fetched archive does not match the installed version's digest");
   }
-  await agentFs().writeFile(archivePath, fetched);
   return fetched;
 }
 

@@ -31,6 +31,7 @@ import type { Store } from "../../store/interface.js";
 import { openPluginArchive } from "./archive.js";
 import { planPluginStatus } from "./plan-status.js";
 import { probeSignIns } from "./probe-sign-in.js";
+import { evalSuiteOf } from "./evals.js";
 import { hooksOf } from "./push.js";
 
 /** The retired PluginStatus fields an install before plugins were whole always wrote (state, materialized). */
@@ -83,7 +84,7 @@ async function refreshOne(deps: LegacyStatusDeps, plugin: Plugin): Promise<void>
   if (!outcome.ok) {
     throw new Error(outcome.errors.map((finding) => finding.message).join("; "));
   }
-  const plan = planPluginStatus(outcome.plugin);
+  const plan = planPluginStatus(outcome.plugin, archive.files);
   const probed = await probeSignIns(deps, plan, archive.digest, undefined);
   delete status.$unknown;
   status.skills = [...plan.skills];
@@ -91,6 +92,7 @@ async function refreshOne(deps: LegacyStatusDeps, plugin: Plugin): Promise<void>
   status.mcpServers = probed.mcpServers;
   status.env = probed.env;
   status.hooks = plan.hooks === undefined ? undefined : hooksOf(plan.hooks);
+  status.evals = plan.evals === undefined ? undefined : evalSuiteOf(plan.evals);
   status.warnings = [
     ...outcome.warnings.map((finding) =>
       create(PluginWarningSchema, { kind: finding.kind, message: finding.message, path: finding.path ?? "" }),

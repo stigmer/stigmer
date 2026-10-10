@@ -181,6 +181,12 @@ async function saveSkill(
 }
 
 /** Minimal canonical share: no slug, no name — both default from the agent. */
+/**
+ * A public share of `agent`: the anonymous-lane cases below are about a
+ * link anyone may open, which is now an explicit choice (an omitted
+ * audience means the organization). Cases about another audience spread
+ * this and set their own.
+ */
 function shareFor(agent: Agent, enabled: boolean) {
   return {
     apiVersion: API_VERSION,
@@ -189,6 +195,7 @@ function shareFor(agent: Agent, enabled: boolean) {
     spec: {
       agentRef: { kind: ApiResourceKind.agent, slug: agent.metadata!.slug },
       enabled,
+      audience: AgentShareAudience.public,
     },
   };
 }
@@ -843,6 +850,61 @@ describe("audience and the member resolution lane", () => {
     );
     expect(err.code).toBe(Code.NotFound);
     expect(err.rawMessage).toBe(`Agent not found: ${share.metadata!.id}`);
+  });
+
+  it("an omitted audience is written out as org on create, update and apply, and reaches no anonymous reader", async () => {
+    const agent = await createTestAgent(
+      uniqueName("Omitted Audience Agent"),
+      ORG,
+    );
+    const omitted = (): ReturnType<typeof shareFor> => {
+      const base = shareFor(agent, true);
+      return {
+        ...base,
+        spec: { ...base.spec, audience: AgentShareAudience.unspecified },
+      };
+    };
+    const created = await shares.create(omitted());
+    expect(created.spec?.audience).toBe(AgentShareAudience.org);
+    const anonymous = await grpcError(() =>
+      query.getSharedProfile({ shareId: created.metadata!.id }),
+    );
+    expect(anonymous.code).toBe(Code.NotFound);
+
+    // A public share updated or applied without an audience narrows to
+    // the organization: update and apply replace the spec whole.
+    created.spec!.audience = AgentShareAudience.public;
+    const opened = await shares.update(created);
+    expect(opened.spec?.audience).toBe(AgentShareAudience.public);
+    opened.spec!.audience = AgentShareAudience.unspecified;
+    const narrowed = await shares.update(opened);
+    expect(narrowed.spec?.audience).toBe(AgentShareAudience.org);
+    narrowed.spec!.audience = AgentShareAudience.unspecified;
+    const applied = await shares.apply(narrowed);
+    expect(applied.spec?.audience).toBe(AgentShareAudience.org);
+  });
+
+  it("a stored row holding no audience reads as organization-only, never public", async () => {
+    const agent = await createTestAgent(
+      uniqueName("Legacy Audience Agent"),
+      ORG,
+    );
+    const created = await shares.create(shareFor(agent, true));
+    created.spec!.audience = AgentShareAudience.unspecified;
+    await server.store.saveResource(
+      ApiResourceKind.agent_share,
+      created.metadata!.id,
+      AgentShareSchema,
+      created,
+    );
+    const anonymous = await grpcError(() =>
+      query.getSharedProfile({ shareId: created.metadata!.id }),
+    );
+    expect(anonymous.code).toBe(Code.NotFound);
+    const member = await query.getSharedProfileForMember({
+      value: created.metadata!.id,
+    });
+    expect(member.slug).toBe(agent.metadata!.slug);
   });
 
   it("the ANONYMOUS path collapses an org-audience share to the uniform NotFound (the proto's audience contract)", async () => {

@@ -71,6 +71,16 @@ export interface UseSessionPageFlowOptions {
    * `"guest"` audience (guests inherit no identity-derived preference).
    */
   readonly accountDefaults?: AccountExecutionDefaults;
+
+  /**
+   * Whether this reader may decide for the conversation (`can_edit`, its
+   * owners; see `useSessionAccess`). Defaults to true. When false (a
+   * participant), a follow-up carries only the message and its own turn
+   * options: it never rewrites the conversation's agent, workspace, tools
+   * or vaults, which is its owners' edit, and never waives their
+   * approvals.
+   */
+  readonly canDecide?: boolean;
 }
 
 /** Return value of {@link useSessionPageFlow}. */
@@ -303,6 +313,7 @@ export function useSessionPageFlow(
 ): UseSessionPageFlowReturn {
   const { sessionId, org } = options;
   const isGuest = options.audience === "guest";
+  const canDecide = options.canDecide ?? true;
   // Guests never carry a client pin: guest run config is owned by
   // the server-side share policy, and the no-modelName guest invariant
   // is test-pinned.
@@ -427,8 +438,11 @@ export function useSessionPageFlow(
   //
   // Read-only surfaces must never auto-submit approvals on a viewer's behalf:
   // the predicate mirrors SessionViewer's read-only derivation (guest audience,
-  // observer audience, channel-origin session) exactly.
+  // observer audience, channel-origin session) exactly. Nor does a reader who
+  // cannot decide for the conversation (a participant): approvals are its
+  // owners'.
   const canRespondToGates =
+    canDecide &&
     !isGuest &&
     options.audience !== "observer" &&
     !isChannelOriginSession(conv.session);
@@ -606,6 +620,23 @@ export function useSessionPageFlow(
         agentRefOverride = null;
       }
 
+      // A participant's follow-up carries the message and its own turn
+      // options only: the conversation's settings are its owners' edit
+      // (session#can_edit), and so is waiving their approvals.
+      if (!canDecide) {
+        await conv.sendFollowUp(message, {
+          modelName: pinnedModelName ?? selectedModel ?? modelId,
+          attachments: context?.attachments,
+          interactionMode: context?.interactionMode,
+          serviceTier: pinnedModelName ? pinnedServiceTier : context?.serviceTier,
+          thinkingMode: pinnedModelName ? pinnedThinkingMode : context?.thinkingMode,
+          buildFromPlan: context?.buildFromPlan,
+          workspaceFileRefs: context?.workspaceFileRefs,
+          supersedesRunId: context?.supersedesRunId,
+        });
+        return;
+      }
+
       await conv.sendFollowUp(message, {
         agentRef: agentRefOverride,
         // The owner pin wins over everything the user or the SDK
@@ -637,7 +668,7 @@ export function useSessionPageFlow(
         supersedesRunId: context?.supersedesRunId,
       });
     },
-    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, pluginRefs, skillRefs, resolution, agentRef, agentCleared, sessionAgentRef, autoApproveAll, isGuest],
+    [conv.sendFollowUp, modelId, pinnedModelName, pinnedServiceTier, pinnedThinkingMode, workspace, pluginRefs, skillRefs, resolution, agentRef, agentCleared, sessionAgentRef, autoApproveAll, isGuest, canDecide],
   );
 
   // -------------------------------------------------------------------------

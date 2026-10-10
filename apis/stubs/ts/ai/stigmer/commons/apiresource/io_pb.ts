@@ -274,7 +274,7 @@ export type ApiResourceReference = Message<"ai.stigmer.commons.apiresource.ApiRe
   org: string;
 
   /**
-   * Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+   * Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).
    *
    * @generated from field: ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2;
    */

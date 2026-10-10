@@ -19,6 +19,15 @@
 // Scripted turns are consumed in order: the graded run's turn, then the
 // judge run's (its session has a subject, so no title call is made), then,
 // when the judge's text carries no JSON, the structured-output extractor's.
+//
+// The two arms whose judge runs gate on CapabilityFlags.runnerActsAsRunCreator.
+// A judge run belongs to the organization's grading account, so it needs a
+// runner that serves each run with that run's own credential. The
+// cloud-execution target's one embedded runner acts as the primary person and
+// is refused the judge run, which then fails before it reaches the model. The
+// hosted edition gives each judge run a grading sandbox of its own, which the
+// composition's sandbox tests prove. The two arms that start no judge run on
+// every target.
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
@@ -120,8 +129,12 @@ async function gradedRun(
   return { org, run, evaluatorId };
 }
 
+// Read once at collection time to gate the judge-running arms (constructing a
+// target is side-effect-free; setup() is what boots processes).
+const runnerServesJudgeRuns = createTarget().capabilities.runnerActsAsRunCreator;
+
 describe("AI grading", () => {
-  it("[rpc:ScoreQueryController.listByRun] [rpc:EvaluatorQueryController.get] a sampled run gets the judge's verdict on both rubrics, and the judge's run is gone", async () => {
+  it.skipIf(!runnerServesJudgeRuns)("[rpc:ScoreQueryController.listByRun] [rpc:EvaluatorQueryController.get] a sampled run gets the judge's verdict on both rubrics, and the judge's run is gone", async () => {
     const { org, run, evaluatorId } = await gradedRun({ sampleRate: 1 }, [
       anthropicText("Release 3.4 ships AI grading."),
       anthropicText(PASSING_VERDICT),
@@ -149,7 +162,7 @@ describe("AI grading", () => {
     expect(evaluator.status?.reservedUsd, "the grade's cap is given back").toBe(0);
   });
 
-  it("[rpc:ScoreQueryController.listByRun] a judge answer that is not the verdict's shape leaves the run not graded", async () => {
+  it.skipIf(!runnerServesJudgeRuns)("[rpc:ScoreQueryController.listByRun] a judge answer that is not the verdict's shape leaves the run not graded", async () => {
     const { run } = await gradedRun({ sampleRate: 1 }, [
       anthropicText("Release 3.4 ships AI grading."),
       anthropicText("I think the agent did fine."),

@@ -12,6 +12,8 @@ import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 const page = vi.hoisted(() => ({
+  // The server's answer to "may this person create an agent here?".
+  canCreate: { allowed: true, isLoading: false },
   props: {} as Record<string, Record<string, unknown>[]>,
 }));
 
@@ -33,6 +35,8 @@ vi.mock("@stigmer/react", () => {
     toast: { success: noop, error: noop },
     useBreadcrumbOverride: () => ({ setLabel: noop }),
     useActiveOrgId: () => "org_acme",
+    useCanCreateAgent: () => page.canCreate,
+    AgentCreationDenied: () => <p>only admins create agents</p>,
     useActiveOrgSlug: () => "acme",
     // The person's organizations: the active one and a second one, so a
     // completion proves it resolves the created resource's own org.
@@ -83,6 +87,7 @@ type MetadataResult = { metadata?: { org?: string; slug?: string } };
 const SHARED = { org: "org_shared", slug: "made" };
 
 beforeEach(() => {
+  page.canCreate = { allowed: true, isLoading: false };
   page.props = {};
 });
 
@@ -151,5 +156,24 @@ describe("desktop MarketplacePage — organizations", () => {
     act(() => catalog.onInstalled({ plugin: { metadata: SHARED } }));
 
     expect(location()).toBe("/library/plugins/shared-team/made");
+  });
+});
+
+describe("desktop AgentNewPage — who may create agents", () => {
+  it("shows who can create agents instead of the wizard to someone the server would refuse", () => {
+    page.canCreate = { allowed: false, isLoading: false };
+    renderPage(AgentNewPage, "/library/agents/new");
+
+    expect(screen.getByText("only admins create agents")).toBeTruthy();
+    expect(page.props.AgentCreationWizard).toBeUndefined();
+    expect(page.props.CreationPicker).toBeUndefined();
+  });
+
+  it("shows nothing while the answer is pending", () => {
+    page.canCreate = { allowed: false, isLoading: true };
+    renderPage(AgentNewPage, "/library/agents/new");
+
+    expect(screen.queryByText("only admins create agents")).toBeNull();
+    expect(page.props.AgentCreationWizard).toBeUndefined();
   });
 });

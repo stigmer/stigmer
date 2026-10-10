@@ -99,6 +99,23 @@ service OrganizationCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update organization";
   }
 
+  // Change what the organization lets its members do (OrganizationPolicies),
+  // the one way to change a policy: update and apply keep the stored
+  // policies. Replaces every policy with the input's.
+  //
+  // @internal
+  // Authorization: Requires can_edit permission on the organization (its
+  // admins), as update does. Fires the authorization lifecycle's
+  // onOrganizationPoliciesChanged: a policy that opens an act is written
+  // after the row persists, one that closes it is removed before, and a
+  // fault fails the request.
+  rpc updatePolicies(UpdateOrganizationPoliciesInput) returns (Organization) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update organization policies";
+  }
+
   // Rename an organization: change its slug, the name people type.
   //
   // Nothing the organization owns moves, because every resource names it by

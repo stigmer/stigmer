@@ -60,9 +60,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object kind_ = "";
   /**
    * <pre>
-   * Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
-   * "sub-agent-name-builtin", "tool-list-entry-dropped",
-   * "version-not-taggable".
+   * Stable warning kind, e.g. "agent-not-installed", "component-ignored",
+   * "model-hint-unresolved", "settings-agent-not-applied",
+   * "tool-list-entry-dropped", "version-not-taggable".
    * </pre>
    *
    * <code>string kind = 1 [json_name = "kind"];</code>
@@ -83,9 +83,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
-   * "sub-agent-name-builtin", "tool-list-entry-dropped",
-   * "version-not-taggable".
+   * Stable warning kind, e.g. "agent-not-installed", "component-ignored",
+   * "model-hint-unresolved", "settings-agent-not-applied",
+   * "tool-list-entry-dropped", "version-not-taggable".
    * </pre>
    *
    * <code>string kind = 1 [json_name = "kind"];</code>
@@ -549,9 +549,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object kind_ = "";
     /**
      * <pre>
-     * Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
-     * "sub-agent-name-builtin", "tool-list-entry-dropped",
-     * "version-not-taggable".
+     * Stable warning kind, e.g. "agent-not-installed", "component-ignored",
+     * "model-hint-unresolved", "settings-agent-not-applied",
+     * "tool-list-entry-dropped", "version-not-taggable".
      * </pre>
      *
      * <code>string kind = 1 [json_name = "kind"];</code>
@@ -571,9 +571,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
-     * "sub-agent-name-builtin", "tool-list-entry-dropped",
-     * "version-not-taggable".
+     * Stable warning kind, e.g. "agent-not-installed", "component-ignored",
+     * "model-hint-unresolved", "settings-agent-not-applied",
+     * "tool-list-entry-dropped", "version-not-taggable".
      * </pre>
      *
      * <code>string kind = 1 [json_name = "kind"];</code>
@@ -594,9 +594,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
-     * "sub-agent-name-builtin", "tool-list-entry-dropped",
-     * "version-not-taggable".
+     * Stable warning kind, e.g. "agent-not-installed", "component-ignored",
+     * "model-hint-unresolved", "settings-agent-not-applied",
+     * "tool-list-entry-dropped", "version-not-taggable".
      * </pre>
      *
      * <code>string kind = 1 [json_name = "kind"];</code>
@@ -613,9 +613,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
-     * "sub-agent-name-builtin", "tool-list-entry-dropped",
-     * "version-not-taggable".
+     * Stable warning kind, e.g. "agent-not-installed", "component-ignored",
+     * "model-hint-unresolved", "settings-agent-not-applied",
+     * "tool-list-entry-dropped", "version-not-taggable".
      * </pre>
      *
      * <code>string kind = 1 [json_name = "kind"];</code>
@@ -629,9 +629,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stable warning kind, e.g. "component-ignored", "model-hint-unresolved",
-     * "sub-agent-name-builtin", "tool-list-entry-dropped",
-     * "version-not-taggable".
+     * Stable warning kind, e.g. "agent-not-installed", "component-ignored",
+     * "model-hint-unresolved", "settings-agent-not-applied",
+     * "tool-list-entry-dropped", "version-not-taggable".
      * </pre>
      *
      * <code>string kind = 1 [json_name = "kind"];</code>

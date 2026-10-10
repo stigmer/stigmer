@@ -89,6 +89,7 @@ private static final long serialVersionUID = 0L;
     additionalParents_ = java.util.Collections.emptyList();
     grantableRoles_ = emptyIntList();
     teamGrantableRoles_ = emptyIntList();
+    roleDescriptions_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -587,6 +588,92 @@ private static final long serialVersionUID = 0L;
   }
   private int teamGrantableRolesMemoizedSerializedSize;
 
+  public static final int ROLE_DESCRIPTIONS_FIELD_NUMBER = 9;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription> roleDescriptions_;
+  /**
+   * <pre>
+   * What each grantable role means on this kind, one sentence per role in
+   * grantable_roles, shown beside the role wherever a person picks or reads
+   * one (the share dialog's role picker, an invitation, an access list).
+   * The role's name is its own `role_meta.display_name`; this is the
+   * kind's meaning of it, because Viewer on an agent and Viewer on a
+   * conversation allow different things.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription> getRoleDescriptionsList() {
+    return roleDescriptions_;
+  }
+  /**
+   * <pre>
+   * What each grantable role means on this kind, one sentence per role in
+   * grantable_roles, shown beside the role wherever a person picks or reads
+   * one (the share dialog's role picker, an invitation, an access list).
+   * The role's name is its own `role_meta.display_name`; this is the
+   * kind's meaning of it, because Viewer on an agent and Viewer on a
+   * conversation allow different things.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.commons.apiresource.apiresourcekind.RoleDescriptionOrBuilder> 
+      getRoleDescriptionsOrBuilderList() {
+    return roleDescriptions_;
+  }
+  /**
+   * <pre>
+   * What each grantable role means on this kind, one sentence per role in
+   * grantable_roles, shown beside the role wherever a person picks or reads
+   * one (the share dialog's role picker, an invitation, an access list).
+   * The role's name is its own `role_meta.display_name`; this is the
+   * kind's meaning of it, because Viewer on an agent and Viewer on a
+   * conversation allow different things.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+   */
+  @java.lang.Override
+  public int getRoleDescriptionsCount() {
+    return roleDescriptions_.size();
+  }
+  /**
+   * <pre>
+   * What each grantable role means on this kind, one sentence per role in
+   * grantable_roles, shown beside the role wherever a person picks or reads
+   * one (the share dialog's role picker, an invitation, an access list).
+   * The role's name is its own `role_meta.display_name`; this is the
+   * kind's meaning of it, because Viewer on an agent and Viewer on a
+   * conversation allow different things.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription getRoleDescriptions(int index) {
+    return roleDescriptions_.get(index);
+  }
+  /**
+   * <pre>
+   * What each grantable role means on this kind, one sentence per role in
+   * grantable_roles, shown beside the role wherever a person picks or reads
+   * one (the share dialog's role picker, an invitation, an access list).
+   * The role's name is its own `role_meta.display_name`; this is the
+   * kind's meaning of it, because Viewer on an agent and Viewer on a
+   * conversation allow different things.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.apiresourcekind.RoleDescriptionOrBuilder getRoleDescriptionsOrBuilder(
+      int index) {
+    return roleDescriptions_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -633,6 +720,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < teamGrantableRoles_.size(); i++) {
       output.writeEnumNoTag(teamGrantableRoles_.getInt(i));
+    }
+    for (int i = 0; i < roleDescriptions_.size(); i++) {
+      output.writeMessage(9, roleDescriptions_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -696,6 +786,15 @@ private static final long serialVersionUID = 0L;
           .computeUInt32SizeNoTag(dataSize);
       }teamGrantableRolesMemoizedSerializedSize = dataSize;
     }
+
+        {
+          final int count = roleDescriptions_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(roleDescriptions_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -729,6 +828,8 @@ private static final long serialVersionUID = 0L;
         != other.getRequiresCreatorTuple()) return false;
     if (!grantableRoles_.equals(other.grantableRoles_)) return false;
     if (!teamGrantableRoles_.equals(other.teamGrantableRoles_)) return false;
+    if (!getRoleDescriptionsList()
+        .equals(other.getRoleDescriptionsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -766,6 +867,10 @@ private static final long serialVersionUID = 0L;
     if (getTeamGrantableRolesCount() > 0) {
       hash = (37 * hash) + TEAM_GRANTABLE_ROLES_FIELD_NUMBER;
       hash = (53 * hash) + teamGrantableRoles_.hashCode();
+    }
+    if (getRoleDescriptionsCount() > 0) {
+      hash = (37 * hash) + ROLE_DESCRIPTIONS_FIELD_NUMBER;
+      hash = (53 * hash) + getRoleDescriptionsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -956,6 +1061,7 @@ private static final long serialVersionUID = 0L;
         internalGetParentFieldBuilder();
         internalGetAdditionalParentsFieldBuilder();
         internalGetVisibilityFieldBuilder();
+        internalGetRoleDescriptionsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -984,6 +1090,13 @@ private static final long serialVersionUID = 0L;
       requiresCreatorTuple_ = false;
       grantableRoles_ = emptyIntList();
       teamGrantableRoles_ = emptyIntList();
+      if (roleDescriptionsBuilder_ == null) {
+        roleDescriptions_ = java.util.Collections.emptyList();
+      } else {
+        roleDescriptions_ = null;
+        roleDescriptionsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000100);
       return this;
     }
 
@@ -1025,6 +1138,15 @@ private static final long serialVersionUID = 0L;
         result.additionalParents_ = additionalParents_;
       } else {
         result.additionalParents_ = additionalParentsBuilder_.build();
+      }
+      if (roleDescriptionsBuilder_ == null) {
+        if (((bitField0_ & 0x00000100) != 0)) {
+          roleDescriptions_ = java.util.Collections.unmodifiableList(roleDescriptions_);
+          bitField0_ = (bitField0_ & ~0x00000100);
+        }
+        result.roleDescriptions_ = roleDescriptions_;
+      } else {
+        result.roleDescriptions_ = roleDescriptionsBuilder_.build();
       }
     }
 
@@ -1138,6 +1260,32 @@ private static final long serialVersionUID = 0L;
         }
         onChanged();
       }
+      if (roleDescriptionsBuilder_ == null) {
+        if (!other.roleDescriptions_.isEmpty()) {
+          if (roleDescriptions_.isEmpty()) {
+            roleDescriptions_ = other.roleDescriptions_;
+            bitField0_ = (bitField0_ & ~0x00000100);
+          } else {
+            ensureRoleDescriptionsIsMutable();
+            roleDescriptions_.addAll(other.roleDescriptions_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.roleDescriptions_.isEmpty()) {
+          if (roleDescriptionsBuilder_.isEmpty()) {
+            roleDescriptionsBuilder_.dispose();
+            roleDescriptionsBuilder_ = null;
+            roleDescriptions_ = other.roleDescriptions_;
+            bitField0_ = (bitField0_ & ~0x00000100);
+            roleDescriptionsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetRoleDescriptionsFieldBuilder() : null;
+          } else {
+            roleDescriptionsBuilder_.addAllMessages(other.roleDescriptions_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1238,6 +1386,19 @@ private static final long serialVersionUID = 0L;
               input.popLimit(limit);
               break;
             } // case 66
+            case 74: {
+              ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription m =
+                  input.readMessage(
+                      ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.parser(),
+                      extensionRegistry);
+              if (roleDescriptionsBuilder_ == null) {
+                ensureRoleDescriptionsIsMutable();
+                roleDescriptions_.add(m);
+              } else {
+                roleDescriptionsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2742,6 +2903,408 @@ private static final long serialVersionUID = 0L;
       }
       onChanged();
       return this;
+    }
+
+    private java.util.List<ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription> roleDescriptions_ =
+      java.util.Collections.emptyList();
+    private void ensureRoleDescriptionsIsMutable() {
+      if (!((bitField0_ & 0x00000100) != 0)) {
+        roleDescriptions_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription>(roleDescriptions_);
+        bitField0_ |= 0x00000100;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription, ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.Builder, ai.stigmer.commons.apiresource.apiresourcekind.RoleDescriptionOrBuilder> roleDescriptionsBuilder_;
+
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription> getRoleDescriptionsList() {
+      if (roleDescriptionsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(roleDescriptions_);
+      } else {
+        return roleDescriptionsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public int getRoleDescriptionsCount() {
+      if (roleDescriptionsBuilder_ == null) {
+        return roleDescriptions_.size();
+      } else {
+        return roleDescriptionsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription getRoleDescriptions(int index) {
+      if (roleDescriptionsBuilder_ == null) {
+        return roleDescriptions_.get(index);
+      } else {
+        return roleDescriptionsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public Builder setRoleDescriptions(
+        int index, ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription value) {
+      if (roleDescriptionsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureRoleDescriptionsIsMutable();
+        roleDescriptions_.set(index, value);
+        onChanged();
+      } else {
+        roleDescriptionsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public Builder setRoleDescriptions(
+        int index, ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.Builder builderForValue) {
+      if (roleDescriptionsBuilder_ == null) {
+        ensureRoleDescriptionsIsMutable();
+        roleDescriptions_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        roleDescriptionsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public Builder addRoleDescriptions(ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription value) {
+      if (roleDescriptionsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureRoleDescriptionsIsMutable();
+        roleDescriptions_.add(value);
+        onChanged();
+      } else {
+        roleDescriptionsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public Builder addRoleDescriptions(
+        int index, ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription value) {
+      if (roleDescriptionsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureRoleDescriptionsIsMutable();
+        roleDescriptions_.add(index, value);
+        onChanged();
+      } else {
+        roleDescriptionsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public Builder addRoleDescriptions(
+        ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.Builder builderForValue) {
+      if (roleDescriptionsBuilder_ == null) {
+        ensureRoleDescriptionsIsMutable();
+        roleDescriptions_.add(builderForValue.build());
+        onChanged();
+      } else {
+        roleDescriptionsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public Builder addRoleDescriptions(
+        int index, ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.Builder builderForValue) {
+      if (roleDescriptionsBuilder_ == null) {
+        ensureRoleDescriptionsIsMutable();
+        roleDescriptions_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        roleDescriptionsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public Builder addAllRoleDescriptions(
+        java.lang.Iterable<? extends ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription> values) {
+      if (roleDescriptionsBuilder_ == null) {
+        ensureRoleDescriptionsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, roleDescriptions_);
+        onChanged();
+      } else {
+        roleDescriptionsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public Builder clearRoleDescriptions() {
+      if (roleDescriptionsBuilder_ == null) {
+        roleDescriptions_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000100);
+        onChanged();
+      } else {
+        roleDescriptionsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public Builder removeRoleDescriptions(int index) {
+      if (roleDescriptionsBuilder_ == null) {
+        ensureRoleDescriptionsIsMutable();
+        roleDescriptions_.remove(index);
+        onChanged();
+      } else {
+        roleDescriptionsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.Builder getRoleDescriptionsBuilder(
+        int index) {
+      return internalGetRoleDescriptionsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public ai.stigmer.commons.apiresource.apiresourcekind.RoleDescriptionOrBuilder getRoleDescriptionsOrBuilder(
+        int index) {
+      if (roleDescriptionsBuilder_ == null) {
+        return roleDescriptions_.get(index);  } else {
+        return roleDescriptionsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.commons.apiresource.apiresourcekind.RoleDescriptionOrBuilder> 
+         getRoleDescriptionsOrBuilderList() {
+      if (roleDescriptionsBuilder_ != null) {
+        return roleDescriptionsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(roleDescriptions_);
+      }
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.Builder addRoleDescriptionsBuilder() {
+      return internalGetRoleDescriptionsFieldBuilder().addBuilder(
+          ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.Builder addRoleDescriptionsBuilder(
+        int index) {
+      return internalGetRoleDescriptionsFieldBuilder().addBuilder(
+          index, ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * What each grantable role means on this kind, one sentence per role in
+     * grantable_roles, shown beside the role wherever a person picks or reads
+     * one (the share dialog's role picker, an invitation, an access list).
+     * The role's name is its own `role_meta.display_name`; this is the
+     * kind's meaning of it, because Viewer on an agent and Viewer on a
+     * conversation allow different things.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription role_descriptions = 9 [json_name = "roleDescriptions"];</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.Builder> 
+         getRoleDescriptionsBuilderList() {
+      return internalGetRoleDescriptionsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription, ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.Builder, ai.stigmer.commons.apiresource.apiresourcekind.RoleDescriptionOrBuilder> 
+        internalGetRoleDescriptionsFieldBuilder() {
+      if (roleDescriptionsBuilder_ == null) {
+        roleDescriptionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription, ai.stigmer.commons.apiresource.apiresourcekind.RoleDescription.Builder, ai.stigmer.commons.apiresource.apiresourcekind.RoleDescriptionOrBuilder>(
+                roleDescriptions_,
+                ((bitField0_ & 0x00000100) != 0),
+                getParentForChildren(),
+                isClean());
+        roleDescriptions_ = null;
+      }
+      return roleDescriptionsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig)

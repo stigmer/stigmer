@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\x1b\x62uf/validate/validate.proto\"\x8b\x04\n\x10OrganizationSpec\x12*\n\x0b\x64\x65scription\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x0b\x64\x65scription\x12#\n\x08logo_url\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10R\x07logoUrl\x12)\n\x0b\x65xternal_id\x18\x05 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x02R\nexternalId\x12]\n\x0bpreferences\x18\x07 \x01(\x0b\x32;.ai.stigmer.tenancy.organization.v1.OrganizationPreferencesR\x0bpreferences\x12&\n\nparent_org\x18\x08 \x01(\tB\x07\xbaH\x04r\x02\x18@R\tparentOrg:\xac\x01\xbaH\xa8\x01\x1a\xa5\x01\n,organization.external_id_requires_parent_org\x12\x44\x65xternal_id is set only on a child organization: name its parent_org\x1a/this.external_id == \'\' || this.parent_org != \'\'J\x04\x08\x03\x10\x04J\x04\x08\x04\x10\x05J\x04\x08\x06\x10\x07R\x0fmanagement_modeR\x15identity_provider_refR\x0bis_personal\"u\n\x17OrganizationPreferences\x12\x33\n\x10standing_context\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12%\n\x0ememory_enabled\x18\x02 \x01(\x08R\rmemoryEnabledB\xe0\x01\n&com.ai.stigmer.tenancy.organization.v1B\tSpecProtoP\x01\xa2\x02\x04\x41STO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a\x1b\x62uf/validate/validate.proto\"\xe1\x04\n\x10OrganizationSpec\x12*\n\x0b\x64\x65scription\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x18\xf4\x03R\x0b\x64\x65scription\x12#\n\x08logo_url\x18\x02 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x10R\x07logoUrl\x12)\n\x0b\x65xternal_id\x18\x05 \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x02R\nexternalId\x12]\n\x0bpreferences\x18\x07 \x01(\x0b\x32;.ai.stigmer.tenancy.organization.v1.OrganizationPreferencesR\x0bpreferences\x12&\n\nparent_org\x18\x08 \x01(\tB\x07\xbaH\x04r\x02\x18@R\tparentOrg\x12T\n\x08policies\x18\t \x01(\x0b\x32\x38.ai.stigmer.tenancy.organization.v1.OrganizationPoliciesR\x08policies:\xac\x01\xbaH\xa8\x01\x1a\xa5\x01\n,organization.external_id_requires_parent_org\x12\x44\x65xternal_id is set only on a child organization: name its parent_org\x1a/this.external_id == \'\' || this.parent_org != \'\'J\x04\x08\x03\x10\x04J\x04\x08\x04\x10\x05J\x04\x08\x06\x10\x07R\x0fmanagement_modeR\x15identity_provider_refR\x0bis_personal\"u\n\x17OrganizationPreferences\x12\x33\n\x10standing_context\x18\x01 \x01(\tB\x08\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12%\n\x0ememory_enabled\x18\x02 \x01(\x08R\rmemoryEnabled\"Q\n\x14OrganizationPolicies\x12\x39\n\x19members_can_create_agents\x18\x01 \x01(\x08R\x16membersCanCreateAgentsB\xe0\x01\n&com.ai.stigmer.tenancy.organization.v1B\tSpecProtoP\x01\xa2\x02\x04\x41STO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -46,7 +46,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_ORGANIZATIONPREFERENCES'].fields_by_name['standing_context']._loaded_options = None
   _globals['_ORGANIZATIONPREFERENCES'].fields_by_name['standing_context']._serialized_options = b'\272H\005r\003\030\320\017'
   _globals['_ORGANIZATIONSPEC']._serialized_start=115
-  _globals['_ORGANIZATIONSPEC']._serialized_end=638
-  _globals['_ORGANIZATIONPREFERENCES']._serialized_start=640
-  _globals['_ORGANIZATIONPREFERENCES']._serialized_end=757
+  _globals['_ORGANIZATIONSPEC']._serialized_end=724
+  _globals['_ORGANIZATIONPREFERENCES']._serialized_start=726
+  _globals['_ORGANIZATIONPREFERENCES']._serialized_end=843
+  _globals['_ORGANIZATIONPOLICIES']._serialized_start=845
+  _globals['_ORGANIZATIONPOLICIES']._serialized_end=926
 # @@protoc_insertion_point(module_scope)

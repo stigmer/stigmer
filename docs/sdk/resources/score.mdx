@@ -417,10 +417,10 @@ Input for creating or updating a Score.
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     runId: { type: "string", description: "ID of the run this score grades." },
     sessionId: { type: "string", description: "ID of the session the run belongs to." },
-    metric: { type: "string", description: "What is measured: `feedback` for a person's thumbs, `run-health` for the free checks, `judge` for an AI judge's verdict." },
+    metric: { type: "string", description: "What is measured: `feedback` for a person's thumbs, `run-health` for the free checks, `judge` for an AI judge's verdict, `eval` for a plugin eval's checks on one try." },
     source: { type: "ScoreSource", description: "Who or what gave the score.", typeDescriptionLink: "#scoresource" },
     evaluatorVersion: { type: "string", description: "Identifies the version of the checks or rubric that produced the score, so scores from different versions are never compared as one." },
-    passed: { type: "boolean", description: "True when the run passed: thumbs up, every applicable check passed, or no rubric failed." },
+    passed: { type: "boolean", description: "True when the run passed: thumbs up, every applicable check passed, no rubric failed, or every scored eval check passed." },
     criteria: { type: "ScoreCriterionInput[]", description: "The criteria behind the value, one per check or rubric item.", typeDescriptionLink: "#scorecriterioninput" },
     comment: { type: "string", description: "A person's optional note on their rating." },
     judgeModel: { type: "string", description: "The model that gave a judge's verdict." },
@@ -515,6 +515,7 @@ ScoreSource names who or what gave a score.
 | `score_source_check` | A free check the platform runs on every completed run, with no model call. |
 | `score_source_human` | A person who can see the run. |
 | `score_source_judge` | An AI judge grading the run against Stigmer's standard rubrics, switched on per agent by its evaluator. |
+| `score_source_eval` | A plugin's own eval: one try of one evals/ case, graded by the case's checks. |
 
 ### CriterionResult
 

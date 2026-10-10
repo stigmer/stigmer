@@ -33,6 +33,14 @@
           "description": "Update an existing organization.\n\n The slug is not changed by an update (it is ignored, as for every\n kind); rename changes it."
         },
         {
+          "name": "UpdatePolicies",
+          "inputType": "UpdateOrganizationPoliciesInput",
+          "inputFullType": "ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput",
+          "outputType": "Organization",
+          "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
+          "description": "Change what the organization lets its members do (OrganizationPolicies),\n the one way to change a policy: update and apply keep the stored\n policies. Replaces every policy with the input's."
+        },
+        {
           "name": "Rename",
           "inputType": "RenameInput",
           "inputFullType": "ai.stigmer.commons.apiresource.RenameInput",
@@ -99,6 +107,42 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "UpdateOrganizationPoliciesInput",
+      "description": "Input for updatePolicies: the organization and the whole set of policies\n it holds from now on.",
+      "protoType": "ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput",
+      "protoFile": "apis/ai/stigmer/tenancy/organization/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The organization's id or slug.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        {
+          "name": "Policies",
+          "jsonName": "policies",
+          "protoField": "policies",
+          "type": {
+            "kind": "message",
+            "messageType": "OrganizationPolicies"
+          },
+          "description": "Every policy, as it should stand: a field left at its zero value\n turns that policy off.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
     {
       "name": "RenameInput",
       "description": "Input for renaming any API resource: changing its slug.\n\n Used by resource-specific command controllers whose kind lets a slug\n change. Each controller's rename RPC accepts this shared input and returns\n the full updated resource. A resource's slug never changes through update\n or apply; rename is its only writer.",

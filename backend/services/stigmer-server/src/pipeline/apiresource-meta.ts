@@ -221,6 +221,25 @@ export function teamGrantableRolesFor(
 }
 
 /**
+ * What each grantable role means on a resource of `kind` —
+ * `kind_meta.authorization.role_descriptions`, one sentence per role in
+ * `grantableRolesFor(kind)` (equality pinned by a test). Empty for a kind
+ * that grants nothing and for the unknown kind; total, never a throw, for
+ * the same reason as `grantableRolesFor`.
+ */
+export function roleDescriptionsFor(
+  kind: ApiResourceKind,
+): ReadonlyMap<IamRole, string> {
+  const valueDesc = kindValueDescriptor(kind);
+  if (valueDesc === undefined || !hasOption(valueDesc, kind_meta)) {
+    return new Map();
+  }
+  const entries =
+    getOption(valueDesc, kind_meta).authorization?.roleDescriptions ?? [];
+  return new Map(entries.map((entry) => [entry.role, entry.description]));
+}
+
+/**
  * Whether an edition serves a tier: the tier names the MINIMUM edition,
  * the editions are ordered oss < enterprise < cloud (each composes the
  * previous one's units), so a tier admits its own edition and every one

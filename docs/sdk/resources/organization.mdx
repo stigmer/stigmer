@@ -56,6 +56,7 @@ Organization organization = client.organizations().get("org_01j5q3k7m8r2s4tnz2hf
 | [`apply`](#apply) | Create or update an organization. |
 | [`create`](#create) | Create an organization. |
 | [`update`](#update) | Update an existing organization. |
+| [`updatePolicies`](#updatepolicies) | Change what the organization lets its members do (OrganizationPolicies), the one way to change a policy: update and apply keep the stored policies. |
 | [`delete`](#delete) | Delete an organization, and everything it owned. |
 | [`rename`](#rename) | Rename an organization: change its slug, the name people type. |
 
@@ -286,6 +287,7 @@ const organization = await stigmer.organization.apply({
   externalId: "...",
   preferences: {},
   parentOrg: "...",
+  policies: {},
 });
 ```
 </Tab>
@@ -300,6 +302,7 @@ organization, err := client.Organization.Apply(ctx, &stigmer.OrganizationInput{
   ExternalId:  "...",
   Preferences: &stigmer.OrganizationPreferencesInput{},
   ParentOrg:   "...",
+  Policies:    &stigmer.OrganizationPoliciesInput{},
 })
 ```
 </Tab>
@@ -314,6 +317,7 @@ organization = client.organizations.apply(OrganizationInput(
     external_id="...",
     preferences=None,
     parent_org="...",
+    policies=None,
 ))
 ```
 </Tab>
@@ -328,6 +332,7 @@ Organization organization = client.organizations().apply(OrganizationInput.build
     .externalId("...")
     .preferences(null)
     .parentOrg("...")
+    .policies(null)
     .build());
 ```
 </Tab>
@@ -373,6 +378,7 @@ const organization = await stigmer.organization.create({
   externalId: "...",
   preferences: {},
   parentOrg: "...",
+  policies: {},
 });
 ```
 </Tab>
@@ -387,6 +393,7 @@ organization, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
   ExternalId:  "...",
   Preferences: &stigmer.OrganizationPreferencesInput{},
   ParentOrg:   "...",
+  Policies:    &stigmer.OrganizationPoliciesInput{},
 })
 ```
 </Tab>
@@ -401,6 +408,7 @@ organization = client.organizations.create(OrganizationInput(
     external_id="...",
     preferences=None,
     parent_org="...",
+    policies=None,
 ))
 ```
 </Tab>
@@ -415,6 +423,7 @@ Organization organization = client.organizations().create(OrganizationInput.buil
     .externalId("...")
     .preferences(null)
     .parentOrg("...")
+    .policies(null)
     .build());
 ```
 </Tab>
@@ -442,6 +451,7 @@ const organization = await stigmer.organization.update({
   externalId: "...",
   preferences: {},
   parentOrg: "...",
+  policies: {},
 });
 ```
 </Tab>
@@ -456,6 +466,7 @@ organization, err := client.Organization.Update(ctx, &stigmer.OrganizationInput{
   ExternalId:  "...",
   Preferences: &stigmer.OrganizationPreferencesInput{},
   ParentOrg:   "...",
+  Policies:    &stigmer.OrganizationPoliciesInput{},
 })
 ```
 </Tab>
@@ -470,6 +481,7 @@ organization = client.organizations.update(OrganizationInput(
     external_id="...",
     preferences=None,
     parent_org="...",
+    policies=None,
 ))
 ```
 </Tab>
@@ -484,12 +496,56 @@ Organization organization = client.organizations().update(OrganizationInput.buil
     .externalId("...")
     .preferences(null)
     .parentOrg("...")
+    .policies(null)
     .build());
 ```
 </Tab>
 </SDKTabs>
 
 **Parameters**: [`OrganizationInput`](#organizationinput)
+
+**Returns**: [`Organization`](#organization)
+
+### updatePolicies
+
+Change what the organization lets its members do (OrganizationPolicies), the one way to change a policy: update and apply keep the stored policies. Replaces every policy with the input's.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const organization = await stigmer.organization.updatePolicies({
+  orgId: "...",
+  policies: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+organization, err := client.Organization.UpdatePolicies(ctx, &stigmer.UpdateOrganizationPoliciesInput{
+  OrgId:    "...",
+  Policies: &stigmer.OrganizationPoliciesInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+organization = client.organizations.update_policies(UpdateOrganizationPoliciesInput(
+    org_id="...",
+    policies=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Organization organization = client.organizations().updatePolicies(UpdateOrganizationPoliciesInput.builder()
+    .orgId("...")
+    .policies(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`UpdateOrganizationPoliciesInput`](#updateorganizationpoliciesinput)
 
 **Returns**: [`Organization`](#organization)
 
@@ -601,6 +657,7 @@ Input for creating or updating an Organization.
     externalId: { type: "string", description: "The parent's own identifier for this organization, such as the customer id an integrator keeps for it (\"cust-4411\")." },
     preferences: { type: "OrganizationPreferencesInput", description: "Standing preferences declared by the organization.", typeDescriptionLink: "#organizationpreferencesinput" },
     parentOrg: { type: "string", description: "The organization this one is a child of, by id or slug; empty for an organization that has no parent." },
+    policies: { type: "OrganizationPoliciesInput", description: "What the organization lets its members do.", typeDescriptionLink: "#organizationpoliciesinput" },
   }}
 />
 
@@ -612,6 +669,27 @@ OrganizationPreferences holds organization-declared defaults that apply to every
   type={{
     standingContext: { type: "string", description: "Free-text standing context injected into eligible runs in this organization." },
     memoryEnabled: { type: "boolean", description: "Whether agents may retain learned facts about members of this organization." },
+  }}
+/>
+
+### OrganizationPoliciesInput
+
+OrganizationPolicies holds what an organization lets its members do.
+
+<TypeTable
+  type={{
+    membersCanCreateAgents: { type: "boolean", description: "Members may create agents." },
+  }}
+/>
+
+### UpdateOrganizationPoliciesInput
+
+Input for updatePolicies: the organization and the whole set of policies it holds from now on.
+
+<TypeTable
+  type={{
+    orgId: { type: "string", description: "The organization's id or slug." },
+    policies: { type: "OrganizationPoliciesInput", description: "Every policy, as it should stand: a field left at its zero value turns that policy off.", typeDescriptionLink: "#organizationpoliciesinput", required: true },
   }}
 />
 

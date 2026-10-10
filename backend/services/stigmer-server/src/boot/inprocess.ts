@@ -48,6 +48,7 @@ import type {
 } from "../domain/score/ports.js";
 import type { ExecutionStatusWriter } from "../temporal/agentexecution/activities.js";
 import type { ScheduleExecutionCreator } from "../temporal/schedule/run-starter.js";
+import type { PluginEvalTryLane } from "../temporal/evals/ports.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
 import type { SharedChainInterceptors } from "../pipeline/chain.js";
 import {
@@ -94,6 +95,14 @@ export interface InProcessClients {
    * sandbox.
    */
   readonly judgeSessionDeleter: JudgeSessionDeleter;
+  /**
+   * A plugin eval's tries and votes (temporal/evals/ports.ts): each
+   * session, then its run, through their FULL create chains AS THE EVAL'S
+   * CALLER when the composition minted one (the asCaller lane), else as
+   * the server, so the session may carry the reserved plugin-eval label
+   * by the in-process origin; a run's stop is the server's own.
+   */
+  readonly pluginEvalTries: PluginEvalTryLane;
   /**
    * The schedule clock's fire edge (server.go 581: the RunStarter's
    * in-process agentexecution client): every fire — cron tick or manual
@@ -237,6 +246,23 @@ export function createInProcessClients(
     judgeSessionDeleter: {
       delete: async (sessionId) => {
         await sessionCommand.delete(create(SessionIdSchema, { value: sessionId }));
+      },
+    },
+    pluginEvalTries: {
+      createSession: (session, caller) =>
+        sessionCommand.create(
+          session,
+          caller === undefined ? undefined : asCaller(caller),
+        ),
+      createRun: (run, caller) =>
+        agentExecutionCommand.create(
+          run,
+          caller === undefined ? undefined : asCaller(caller),
+        ),
+      terminateRun: async (runId, reason) => {
+        await agentExecutionCommand.terminate(
+          create(TerminateRunInputSchema, { id: runId, reason }),
+        );
       },
     },
     // The schedule clock's fire edge — the plain Create RPC (Go's

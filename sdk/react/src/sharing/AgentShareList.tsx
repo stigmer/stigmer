@@ -323,7 +323,7 @@ function ShareRow({
 
       <td className="stg:px-4 stg:py-2.5">
         <span className="stg:text-xs stg:text-muted-foreground">
-          {audience === "org" ? "Org members" : "Public"}
+          {audience === "org" ? "Organization members" : "Anyone with the link"}
         </span>
       </td>
 

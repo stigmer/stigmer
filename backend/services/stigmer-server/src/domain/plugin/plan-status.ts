@@ -42,7 +42,7 @@
 import { create } from "@bufbuild/protobuf";
 
 import { hookVariableReferences, toolServerSegment } from "@stigmer/plugin-package";
-import type { PluginHooks, PluginPackage, PluginSubAgent } from "@stigmer/plugin-package";
+import type { EvalSuite, PluginFiles, PluginHooks, PluginPackage, PluginSubAgent } from "@stigmer/plugin-package";
 import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   HttpMcpServerSchema,
@@ -63,6 +63,7 @@ import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault
 
 import { validator } from "../../pipeline/steps/validation.js";
 import { SERVER_WARNING_KINDS, VERSION_TAG_PATTERN } from "./constants.js";
+import { planEvals } from "./evals.js";
 
 /** Everything install records about the archive, before the sign-in probe. */
 export interface PluginStatusPlan {
@@ -72,6 +73,13 @@ export interface PluginStatusPlan {
   readonly env: Readonly<Record<string, EnvVarDeclaration>>;
   /** The tool-call hooks read, for `PluginStatus.hooks`; absent when there are none. */
   readonly hooks: PluginHooks | undefined;
+  /**
+   * The eval suite read, for `PluginStatus.evals` (evals.ts); absent when
+   * the plugin carries none. Its findings stay on the suite rather than
+   * joining the warnings: they are about the author's tests, not about
+   * what was installed.
+   */
+  readonly evals: EvalSuite | undefined;
   /** The audit tag this push assigns; empty when the version does not fit. */
   readonly tag: string;
   readonly warnings: readonly PluginWarning[];
@@ -112,7 +120,7 @@ export function versionTag(
   return "";
 }
 
-export function planPluginStatus(plugin: PluginPackage): PluginStatusPlan {
+export function planPluginStatus(plugin: PluginPackage, files: PluginFiles): PluginStatusPlan {
   const warnings: PluginWarning[] = [];
   for (const ignored of plugin.ignored) {
     warnings.push(
@@ -191,6 +199,7 @@ export function planPluginStatus(plugin: PluginPackage): PluginStatusPlan {
     }),
     env: variablesRead(plugin),
     hooks: plugin.hooks,
+    evals: planEvals(files),
     tag,
     warnings,
   };

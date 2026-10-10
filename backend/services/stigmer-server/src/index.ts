@@ -133,6 +133,7 @@ export type { ResolvedExtensionDrivers } from "./extensions/registry.js";
 export type {
   ChildOrganizationLinkedEvent,
   OrganizationAffiliationEvent,
+  OrganizationPoliciesChangedEvent,
   PolicyGrantedEvent,
   PolicyRevokedEvent,
   ResourceAuthorizationLifecycle,
@@ -143,6 +144,10 @@ export type {
   ResolvedParentLink,
 } from "./extensions/resource-authorization.js";
 export type { OrganizationDirectory } from "./extensions/organization-directory.js";
+// Who a chat link reaches: the one predicate every edition's guest lane
+// asks (an omitted audience means the organization; only public admits
+// anyone).
+export { shareAdmitsAnyone } from "./domain/agentshare/audience.js";
 // The child-organization lookups (ComposedServices.childOrganizations): a
 // composition's sign-in routing by external id and its billing roll-up.
 export type { ChildOrganizations } from "./extensions/child-organizations.js";
@@ -357,6 +362,17 @@ export { ScheduleFireCallerRefusedError } from "./extensions/schedule-fire-calle
 // retrying.
 export type { GradingCallerMint } from "./extensions/grading-caller.js";
 export { GradingCallerRefusedError } from "./extensions/grading-caller.js";
+// The identity a plugin eval's tries and AI-graded checks act as
+// (drivers.pluginEvalCaller) — the composition mints it per try and per
+// vote; the eval's workflow propagates it through the in-process caller
+// header. A mint that can act as nobody throws the seam's typed refusal,
+// which records the try as not graded instead of retrying.
+export type { PluginEvalCallerMint } from "./extensions/plugin-eval-caller.js";
+export { PluginEvalCallerRefusedError } from "./extensions/plugin-eval-caller.js";
+// The predicate and label that tell a plugin eval's runs apart, for a
+// composition that treats them differently (the hosted edition's lane).
+export { PLUGIN_EVAL_LABEL } from "./domain/plugin-eval/constants.js";
+export { isPluginEvalRun } from "./domain/plugin-eval/plugin-eval-run.js";
 // The one predicate that tells an AI judge run apart (its reserved label),
 // for a composition that treats judge runs differently.
 export { GRADES_RUN_LABEL, isJudgeRun } from "./domain/score/judge/judge-run.js";

@@ -10,7 +10,9 @@
  * appears), and its status lists what the archive holds (skills, agents,
  * MCP server entries, the variables they read, the hooks), so two plugins
  * carrying a skill of the same name both install; a server whose tool
- * segment would hold `__` refuses before any write; an `ai.stigmer/` folder
+ * segment would hold `__` refuses before any write; a plugin's eval suite
+ * is summarised on its status, a case that does not load included, and
+ * never refuses it; an `ai.stigmer/` folder
  * is a warning and is not read; a re-push of the same digest at the same
  * level writes nothing, and at another level reuses the recorded sign-in
  * answers without asking the server again; a URL-only server answering an
@@ -327,6 +329,7 @@ describe("Plugin push — one row", () => {
     expect(status.env["GITHUB_TOKEN"]?.optional).toBe(false);
     expect(status.hooks?.format).toBe(HookFormat.CURSOR);
     expect(status.hooks?.groups.map((g) => g.event)).toEqual(["preToolUse"]);
+    expect(status.evals).toBeUndefined();
     // The sub-agent's model hint is recorded, never applied.
     expect(status.warnings.map((w) => w.kind)).toContain(
       "model-hint-unresolved",
@@ -342,6 +345,41 @@ describe("Plugin push — one row", () => {
     const read = await pluginQuery.get({ value: installed.metadata!.id });
     expect(read.status?.skills.map((s) => s.name)).toEqual([`${name}-review`]);
     expect(read.status?.agents.map((a) => a.name)).toEqual(["reviewer"]);
+  });
+
+  it("summarises the plugin's eval suite on its status, a case that does not load included, and drops it when the suite goes", async () => {
+    const name = uniqueName("evals");
+    const judge = "---\ntype: llm\n---\nPASS if it reviews.\n";
+    let withSuite = withFile(
+      thermosLike(name),
+      "evals/reviews/prompt.md",
+      "---\ntags: [smoke]\n---\nReview this diff.",
+    );
+    withSuite = withFile(withSuite, "evals/reviews/graders/judge.md", judge);
+    withSuite = withFile(withSuite, "evals/broken/prompt.md", "No graders.");
+    const installed = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(withSuite),
+    });
+    expect(installed.status?.warnings.map((w) => w.path)).not.toContain(
+      "evals/",
+    );
+    const evals = installed.status?.evals;
+    expect(evals?.dir).toBe("evals");
+    expect(evals?.caseCount).toBe(1);
+    expect(evals?.caseTags).toEqual(["smoke"]);
+    expect(
+      evals?.cases.map((c) => [c.caseName, c.path, c.unsupported]),
+    ).toEqual([["reviews", "evals/reviews", ""]]);
+    expect(evals?.findings.map((f) => [f.kind, f.path])).toEqual([
+      ["eval-case-invalid", "evals/broken"],
+    ]);
+
+    const upgraded = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(thermosLike(name)),
+    });
+    expect(upgraded.status?.evals).toBeUndefined();
   });
 
   it("installs two plugins that carry a skill of the same name, each listing its own", async () => {

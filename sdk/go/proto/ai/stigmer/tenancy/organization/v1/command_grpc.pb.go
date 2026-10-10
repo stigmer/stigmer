@@ -20,11 +20,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	OrganizationCommandController_Apply_FullMethodName  = "/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/apply"
-	OrganizationCommandController_Create_FullMethodName = "/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create"
-	OrganizationCommandController_Update_FullMethodName = "/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/update"
-	OrganizationCommandController_Rename_FullMethodName = "/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/rename"
-	OrganizationCommandController_Delete_FullMethodName = "/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/delete"
+	OrganizationCommandController_Apply_FullMethodName          = "/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/apply"
+	OrganizationCommandController_Create_FullMethodName         = "/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/create"
+	OrganizationCommandController_Update_FullMethodName         = "/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/update"
+	OrganizationCommandController_UpdatePolicies_FullMethodName = "/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/updatePolicies"
+	OrganizationCommandController_Rename_FullMethodName         = "/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/rename"
+	OrganizationCommandController_Delete_FullMethodName         = "/ai.stigmer.tenancy.organization.v1.OrganizationCommandController/delete"
 )
 
 // OrganizationCommandControllerClient is the client API for OrganizationCommandController service.
@@ -97,6 +98,10 @@ type OrganizationCommandControllerClient interface {
 	// The slug is not changed by an update (it is ignored, as for every
 	// kind); rename changes it.
 	Update(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
+	// Change what the organization lets its members do (OrganizationPolicies),
+	// the one way to change a policy: update and apply keep the stored
+	// policies. Replaces every policy with the input's.
+	UpdatePolicies(ctx context.Context, in *UpdateOrganizationPoliciesInput, opts ...grpc.CallOption) (*Organization, error)
 	// Rename an organization: change its slug, the name people type.
 	//
 	// Nothing the organization owns moves, because every resource names it by
@@ -174,6 +179,16 @@ func (c *organizationCommandControllerClient) Update(ctx context.Context, in *Or
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Organization)
 	err := c.cc.Invoke(ctx, OrganizationCommandController_Update_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *organizationCommandControllerClient) UpdatePolicies(ctx context.Context, in *UpdateOrganizationPoliciesInput, opts ...grpc.CallOption) (*Organization, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Organization)
+	err := c.cc.Invoke(ctx, OrganizationCommandController_UpdatePolicies_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -270,6 +285,10 @@ type OrganizationCommandControllerServer interface {
 	// The slug is not changed by an update (it is ignored, as for every
 	// kind); rename changes it.
 	Update(context.Context, *Organization) (*Organization, error)
+	// Change what the organization lets its members do (OrganizationPolicies),
+	// the one way to change a policy: update and apply keep the stored
+	// policies. Replaces every policy with the input's.
+	UpdatePolicies(context.Context, *UpdateOrganizationPoliciesInput) (*Organization, error)
 	// Rename an organization: change its slug, the name people type.
 	//
 	// Nothing the organization owns moves, because every resource names it by
@@ -330,6 +349,9 @@ func (UnimplementedOrganizationCommandControllerServer) Create(context.Context, 
 }
 func (UnimplementedOrganizationCommandControllerServer) Update(context.Context, *Organization) (*Organization, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedOrganizationCommandControllerServer) UpdatePolicies(context.Context, *UpdateOrganizationPoliciesInput) (*Organization, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdatePolicies not implemented")
 }
 func (UnimplementedOrganizationCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*Organization, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Rename not implemented")
@@ -411,6 +433,24 @@ func _OrganizationCommandController_Update_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OrganizationCommandController_UpdatePolicies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateOrganizationPoliciesInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrganizationCommandControllerServer).UpdatePolicies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrganizationCommandController_UpdatePolicies_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrganizationCommandControllerServer).UpdatePolicies(ctx, req.(*UpdateOrganizationPoliciesInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _OrganizationCommandController_Rename_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(apiresource.RenameInput)
 	if err := dec(in); err != nil {
@@ -465,6 +505,10 @@ var OrganizationCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "update",
 			Handler:    _OrganizationCommandController_Update_Handler,
+		},
+		{
+			MethodName: "updatePolicies",
+			Handler:    _OrganizationCommandController_UpdatePolicies_Handler,
 		},
 		{
 			MethodName: "rename",

@@ -51,6 +51,7 @@ import { NativeToolViews } from "../../../shared/hooks/tool-view.js";
 import { buildShellEnv } from "../../../shared/shell-env.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
 import { PLATFORM_ROUTE_PREFIX, confinedReadAdmission } from "../platform-route.js";
+import { skillContentReadCheck } from "../../../shared/skill-mount.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
 import { ScriptedModel, readPendingInterrupts } from "./scripted-model.js";
 import type {
@@ -252,6 +253,7 @@ async function runListsProbe(
         serverToolMap: new Map(serverSlug ? [[serverSlug, mcpTools]] : []),
         platformServerSlugs: new Set(),
         admitsConfinedRead: confinedReadAdmission(root),
+        readsSkillContent: skillContentReadCheck(undefined),
       }),
     ];
     if (!options.autoApproveAll) {
@@ -382,6 +384,7 @@ async function runHooksProbe(
         serverToolMap: new Map(serverSlug ? [[serverSlug, mcpTools]] : []),
         platformServerSlugs: new Set(),
         admitsConfinedRead: confinedReadAdmission(root),
+        readsSkillContent: skillContentReadCheck(undefined),
       }));
     }
     middleware.push(createApprovalGateMiddleware({

@@ -34,6 +34,9 @@ const (
 	// An AI judge grading the run against Stigmer's standard rubrics, switched
 	// on per agent by its evaluator.
 	ScoreSource_score_source_judge ScoreSource = 3
+	// A plugin's own eval: one try of one evals/ case, graded by the case's
+	// checks.
+	ScoreSource_score_source_eval ScoreSource = 4
 )
 
 // Enum value maps for ScoreSource.
@@ -43,12 +46,14 @@ var (
 		1: "score_source_check",
 		2: "score_source_human",
 		3: "score_source_judge",
+		4: "score_source_eval",
 	}
 	ScoreSource_value = map[string]int32{
 		"score_source_unspecified": 0,
 		"score_source_check":       1,
 		"score_source_human":       2,
 		"score_source_judge":       3,
+		"score_source_eval":        4,
 	}
 )
 
@@ -195,12 +200,13 @@ var File_ai_stigmer_agentic_score_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_score_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/score/v1/enum.proto\x12\x1bai.stigmer.agentic.score.v1*s\n" +
+	"&ai/stigmer/agentic/score/v1/enum.proto\x12\x1bai.stigmer.agentic.score.v1*\x8a\x01\n" +
 	"\vScoreSource\x12\x1c\n" +
 	"\x18score_source_unspecified\x10\x00\x12\x16\n" +
 	"\x12score_source_check\x10\x01\x12\x16\n" +
 	"\x12score_source_human\x10\x02\x12\x16\n" +
-	"\x12score_source_judge\x10\x03*v\n" +
+	"\x12score_source_judge\x10\x03\x12\x15\n" +
+	"\x11score_source_eval\x10\x04*v\n" +
 	"\n" +
 	"ScoreState\x12\x1b\n" +
 	"\x17score_state_unspecified\x10\x00\x12\x16\n" +

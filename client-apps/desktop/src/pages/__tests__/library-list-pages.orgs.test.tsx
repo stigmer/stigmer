@@ -35,6 +35,8 @@ interface WorkbenchProps {
   columns: Column[];
   onItemClick: (item: Item) => void;
   renderItemAction?: (item: Item) => ReactNode;
+  headerAction?: ReactNode;
+  emptyAction?: ReactNode;
 }
 
 interface AddServerDialogProps {
@@ -44,6 +46,8 @@ interface AddServerDialogProps {
 }
 
 const page = vi.hoisted(() => ({
+  // The server's answer to "may this person create an agent here?".
+  canCreate: { allowed: true, isLoading: false },
   workbench: [] as WorkbenchProps[],
   addServer: [] as AddServerDialogProps[],
   confirms: [] as Array<{ title: string; description: string }>,
@@ -117,6 +121,7 @@ vi.mock("@stigmer/react", () => {
     }),
     toast,
     useActiveOrgId: () => "org_acme",
+    useCanCreateAgent: () => page.canCreate,
     // The person's organizations: the active one and the one sharing the row.
     useOrgSlugForId: () => (id: string) =>
       ({ org_acme: "acme", org_shared: "shared-team" })[id] ?? id,
@@ -148,6 +153,7 @@ function location(): string | null {
 }
 
 beforeEach(() => {
+  page.canCreate = { allowed: true, isLoading: false };
   page.workbench.length = 0;
   page.addServer.length = 0;
   page.confirms.length = 0;
@@ -225,5 +231,34 @@ describe("desktop PluginListPage — Add MCP server", () => {
     act(() => page.addServer.at(-1)?.onAdded({ metadata: { org: "org_shared", slug: "linear" } }));
 
     expect(location()).toBe("/library/plugins/shared-team/linear");
+  });
+});
+
+describe("desktop AgentListPage — who may create agents", () => {
+  function renderActions() {
+    const props = page.workbench.at(-1);
+    if (!props) throw new Error("the workbench was not rendered");
+    return render(
+      <MemoryRouter>
+        {props.headerAction}
+        {props.emptyAction}
+      </MemoryRouter>,
+    );
+  }
+
+  it("offers Create agent in the header and the empty list to someone the server lets create one", () => {
+    renderPage(AgentListPage);
+    const { getAllByRole } = renderActions();
+
+    expect(getAllByRole("link", { name: "Create agent" })).toHaveLength(2);
+  });
+
+  it("offers no Create agent to someone the server would refuse", () => {
+    page.canCreate = { allowed: false, isLoading: false };
+    renderPage(AgentListPage);
+    const { queryByRole } = renderActions();
+
+    expect(queryByRole("link", { name: "Create agent" })).toBeNull();
+    expect(page.workbench.at(-1)?.emptyAction).toBeUndefined();
   });
 });

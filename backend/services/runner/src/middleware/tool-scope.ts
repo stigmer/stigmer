@@ -50,11 +50,24 @@
  * which for an offload root checks the real path on disk, so a symlink cannot
  * stretch the confinement over the workspace.
  *
+ * A scope that denies `Skill` (`ToolScope.hidesSkills`) refuses a `read_file`
+ * of a skill's files under `.stigmer/` (`shared/skill-mount.ts`
+ * `skillContentReadCheck`: mounted skills and plugin trees, matched without
+ * regard to case, by the path's text and by the real path it resolves to,
+ * so a link inside the platform dir pointing at a skill is refused too)
+ * whether or not `Read` is in scope: hidden skills are not
+ * read through the one tool that activates them. Only the read is held:
+ * grep, glob and the shell can still reach a skill an earlier turn left on
+ * disk. Denying `Skill` withdraws the turn's skills (none is listed or
+ * mounted) and refuses their activation; it is not a file wall, and a
+ * scope that must keep a file from the agent denies those tools as well.
+ *
  * Pinned by `__tests__/tool-scope.test.ts` on a real deepagents graph.
  */
 
 import { ToolMessage } from "@langchain/core/messages";
-import { NATIVE_TOOL_COVERS, outOfScopeMessage, type ToolScope } from "../shared/tool-lists.js";
+import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { outOfScopeMessage, type ToolScope } from "../shared/tool-lists.js";
 import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
 
 /**
@@ -104,6 +117,13 @@ export interface ToolScopeConfig {
    * by the harness, which knows the workspace root this middleware does not.
    */
   readonly admitsConfinedRead: (virtualPath: string) => Promise<boolean>;
+  /**
+   * Whether `read_file` of this canonical virtual path would open a skill's
+   * files, asked only when the scope denies `Skill`
+   * (`shared/skill-mount.ts` `skillContentReadCheck`). Injected by the
+   * harness, which knows the platform dir the real path is judged in.
+   */
+  readonly readsSkillContent: (virtualPath: string) => Promise<boolean>;
 }
 
 function toolNameOf(tool: unknown): string | undefined {
@@ -114,7 +134,7 @@ function toolNameOf(tool: unknown): string | undefined {
 
 /** The middleware; see the module header. Install only when `scope.restricted`. */
 export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddleware {
-  const { scope, platformServerSlugs, admitsConfinedRead } = config;
+  const { scope, platformServerSlugs, admitsConfinedRead, readsSkillContent } = config;
 
   const serverOfTool = new Map<unknown, string>();
   const serversOfName = new Map<string, string[]>();
@@ -149,9 +169,12 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
     if (objectSlug !== undefined) return mcpToolInScope(objectSlug, name);
     const nameSlugs = serversOfName.get(name);
     if (nameSlugs !== undefined) return nameSlugs.every((slug) => mcpToolInScope(slug, name));
-    if (scope.allowsEngineTool(name, NATIVE_TOOL_COVERS)) return true;
     const path = args[READ_PATH_ARG];
-    return name === READ_TOOL && typeof path === "string" && (await admitsConfinedRead(path));
+    const read = name === READ_TOOL && typeof path === "string";
+    // The read alone: grep, glob and the shell are out of this check's scope (the header says why).
+    if (read && scope.hidesSkills && (await readsSkillContent(path))) return false;
+    if (scope.allowsEngineTool(name, NATIVE_TOOL_COVERS)) return true;
+    return read && (await admitsConfinedRead(path));
   };
 
   return {

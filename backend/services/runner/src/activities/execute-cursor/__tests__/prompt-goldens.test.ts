@@ -37,6 +37,9 @@
  *    that carry sub-agents (`enhanced.everything`, `enhanced.plan-mode`,
  *    `hitl.recovery`): `SubAgent.mcp_access` is reserved, and a sub-agent's
  *    tools are its tool lists' business, enforced rather than prompted.
+ *  - 2026-10-10. Two new goldens for a turn's `append_system_prompt`, which
+ *    ends whichever shape is sent: the enhanced prompt with no instructions
+ *    and a resumed agent's raw follow-up. No existing golden moved.
  *
  * Regenerate with `npx vitest run -u <this file>` only under such a ruling.
  */
@@ -196,6 +199,30 @@ describe("Cursor prompt goldens", () => {
       everything("created_first_execution", { instructions: "", skills: [], subAgents: [] }),
     );
     await expect(prompt).toMatchFileSnapshot("./goldens/prompt.enhanced.no-instructions.prompt.md");
+  });
+
+  it("a turn's appended system prompt ends the enhanced prompt, after the request", async () => {
+    const prompt = buildPrompt(
+      everything("created_first_execution", {
+        instructions: "",
+        skills: [],
+        subAgents: [],
+        appendSystemPrompt: "Always answer in exactly one sentence.\nNever ask a question back.",
+      }),
+    );
+    await expect(prompt).toMatchFileSnapshot("./goldens/prompt.enhanced.append.prompt.md");
+  });
+
+  it("a turn's appended system prompt ends a resumed agent's raw follow-up too", async () => {
+    const prompt = buildPrompt(
+      everything("resumed_successfully", {
+        attachments: [],
+        vision: undefined,
+        conversationCatchup: undefined,
+        appendSystemPrompt: "Always answer in exactly one sentence.",
+      }),
+    );
+    await expect(prompt).toMatchFileSnapshot("./goldens/prompt.resumed.raw.append.prompt.md");
   });
 
   it("the enhanced prompt in plan mode", async () => {

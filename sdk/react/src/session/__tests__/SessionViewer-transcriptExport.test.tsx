@@ -106,6 +106,12 @@ vi.mock("../useSessionPageFlow", () => ({
   }),
 }));
 
+// The reader's own access to the conversation: an owner's, unless a case
+// says otherwise.
+vi.mock("../useSessionAccess", () => ({
+  useSessionAccess: () => ({ canSend: true, canDecide: true }),
+}));
+
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
     session: { get: vi.fn() },

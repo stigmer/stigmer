@@ -8,7 +8,7 @@
  * nothing fires while the rest is removed. The content stage then removes
  * leaves first: a run before the session it belongs to, a blueprint's
  * shares, channels and evaluator
- * before the blueprint, and the vaults and clients a run or a blueprint
+ * before the blueprint, a plugin's evals before the plugin, and the vaults and clients a run or a blueprint
  * reads last. Each kind's purge cascades what its delete chain
  * cascades, so an order that met a parent first would still converge; the
  * order keeps each batch small.
@@ -41,6 +41,8 @@ import { newAgentSharePurge } from "../domain/agentshare/purge.js";
 import { newApiKeyPurge } from "../domain/apikey/purge.js";
 import { newChannelAppPurge } from "../domain/channelapp/purge.js";
 import { newEvaluatorPurge } from "../domain/evaluator/purge.js";
+import { newPluginEvalPurge } from "../domain/plugin-eval/purge.js";
+import type { PluginEvalWorkflows } from "../domain/plugin-eval/workflows.js";
 import { newMemoryPurge } from "../domain/memory/purge.js";
 import { newVaultPurge } from "../domain/vault/purge.js";
 import { newOAuthAppPurge } from "../domain/oauthapp/purge.js";
@@ -85,6 +87,8 @@ export interface CoreKindPurgeDeps extends KindPurgeDeps {
   readonly accountLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** Removes a run's scores; the session purge's run cascade calls it. */
   readonly runScores: RunScoreCascade;
+  /** Stops a purged eval's workflow; absent, the eval purge stops none. */
+  readonly pluginEvalWorkflows?: PluginEvalWorkflows;
 }
 
 /** The core's kind purges, by stage. */
@@ -110,6 +114,9 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newAgentSharePurge(deps),
       newAgentChannelPurge(deps),
       newEvaluatorPurge(deps),
+      // A plugin's evals before the plugin; their tries went with the
+      // sessions above.
+      newPluginEvalPurge(deps),
       newChannelAppPurge(deps),
       newMemoryPurge(deps),
       newAgentPurge(deps),
@@ -143,6 +150,7 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.agent_share,
   ApiResourceKind.agent_channel,
   ApiResourceKind.evaluator,
+  ApiResourceKind.plugin_eval,
   ApiResourceKind.channel_app,
   ApiResourceKind.memory,
   ApiResourceKind.agent,

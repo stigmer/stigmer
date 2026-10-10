@@ -105,6 +105,7 @@ test("the checked-in server's links close over exactly the libs it links, so the
     "@stigmer/plugin-package",
     "@stigmer/protos",
     "@stigmer/temporal-codecs",
+    "@stigmer/tool-vocabulary",
     "@stigmer/zip-structure",
   ]);
   assert.deepEqual(packageClosure(libs), [
@@ -113,5 +114,6 @@ test("the checked-in server's links close over exactly the libs it links, so the
     "backend/libs/ts/zip-structure",
     "backend/libs/ts/plugin-package",
     "backend/libs/ts/outbound",
+    "backend/libs/ts/tool-vocabulary",
   ]);
 });

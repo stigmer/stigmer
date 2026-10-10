@@ -439,7 +439,7 @@ type ApiResourceReference struct {
 	// organization's parent and shares the resource with its children
 	// (visibility_child_orgs).
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+	// Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).
 	Kind apiresourcekind.ApiResourceKind `protobuf:"varint,2,opt,name=kind,proto3,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind" json:"kind,omitempty"`
 	// Resource slug (user-friendly identifier, unique within org).
 	// Format: lowercase alphanumeric with hyphens, must start with a letter

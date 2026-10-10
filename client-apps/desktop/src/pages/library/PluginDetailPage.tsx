@@ -9,6 +9,7 @@ import {
   useBreadcrumbOverride,
   type DetailAction,
   useOrgSlugForId,
+  useResolveRunSession,
 } from "@stigmer/react";
 
 /**
@@ -23,6 +24,8 @@ function pluginChatUrl(org: string, slug: string): string {
 export default function PluginDetailPage() {
   const { org, slug } = useParams<{ org: string; slug: string }>();
   const navigate = useNavigate();
+  // A new agent is created in the active organization: "Create a new agent
+  // with these tools" shows only to someone the server lets create one there.
   const slugForOrg = useOrgSlugForId();
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
@@ -30,6 +33,17 @@ export default function PluginDetailPage() {
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const { deleteResource, isDeleting } = useDeleteResource("plugin", resourceId, resourceName);
+
+  // An eval's try is a run (run_…); on desktop it is viewed through its
+  // parent session, the resolve-then-navigate pattern of the schedule page.
+  const [pendingRunId, setPendingRunId] = useState<string | null>(null);
+  const { sessionId } = useResolveRunSession(pendingRunId);
+
+  useEffect(() => {
+    if (sessionId) {
+      navigate(`/sessions/${sessionId}`);
+    }
+  }, [sessionId, navigate]);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -97,6 +111,7 @@ export default function PluginDetailPage() {
         onResourceLoad={handleResourceLoad}
         onStartChat={({ org: o, slug: s }) => navigate(pluginChatUrl(o, s))}
         onAgentClick={({ org: o, slug: s }) => navigate(`/library/agents/${slugForOrg(o)}/${s}`)}
+        onNavigateToRun={setPendingRunId}
         actions={actions}
       />
       <ConfirmDialog

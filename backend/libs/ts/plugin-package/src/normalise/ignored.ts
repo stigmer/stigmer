@@ -17,7 +17,9 @@
  * (`hooks-not-read`, `normalise/hooks.ts`), so every surface lists it with
  * the plugin's other hooks that do not run. `settings.json` is read
  * for a Claude plugin (`normalise/settings.ts`) and ignored otherwise. `README`, `CHANGELOG`, `LICENSE`
- * and dotfiles are not components and pass silently.
+ * and dotfiles are not components and pass silently. Neither is `evals/`:
+ * it is the plugin's test suite, read by `evals/read-eval-suite.ts` and
+ * summarised on the install rather than reported as left behind.
  */
 
 import type { PluginFileIndex } from "../files.js";
@@ -33,7 +35,6 @@ const IGNORED_DIRECTORIES: Readonly<Record<string, IgnoredComponentKind>> = {
   monitors: "monitors",
   bin: "bin",
   assets: "assets",
-  evals: "evals",
 };
 
 const IGNORED_FILES: Readonly<Record<string, IgnoredComponentKind>> = {

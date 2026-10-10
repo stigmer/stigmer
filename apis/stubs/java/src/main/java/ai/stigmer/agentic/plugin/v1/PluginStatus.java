@@ -312,6 +312,47 @@ private static final long serialVersionUID = 0L;
     return hooks_ == null ? ai.stigmer.agentic.plugin.v1.HookConfig.getDefaultInstance() : hooks_;
   }
 
+  public static final int EVALS_FIELD_NUMBER = 8;
+  private ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals_;
+  /**
+   * <pre>
+   * The plugin's evals/ test cases, as read at install; unset when the
+   * plugin carries none.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+   * @return Whether the evals field is set.
+   */
+  @java.lang.Override
+  public boolean hasEvals() {
+    return ((bitField0_ & 0x00000004) != 0);
+  }
+  /**
+   * <pre>
+   * The plugin's evals/ test cases, as read at install; unset when the
+   * plugin carries none.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+   * @return The evals.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugin.v1.PluginEvalSuite getEvals() {
+    return evals_ == null ? ai.stigmer.agentic.plugin.v1.PluginEvalSuite.getDefaultInstance() : evals_;
+  }
+  /**
+   * <pre>
+   * The plugin's evals/ test cases, as read at install; unset when the
+   * plugin carries none.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.plugin.v1.PluginEvalSuiteOrBuilder getEvalsOrBuilder() {
+    return evals_ == null ? ai.stigmer.agentic.plugin.v1.PluginEvalSuite.getDefaultInstance() : evals_;
+  }
+
   public static final int SKILLS_FIELD_NUMBER = 9;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.agentic.plugin.v1.PluginSkill> skills_;
@@ -629,6 +670,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(7, getHooks());
     }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(8, getEvals());
+    }
     for (int i = 0; i < skills_.size(); i++) {
       output.writeMessage(9, skills_.get(i));
     }
@@ -674,6 +718,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(7, getHooks());
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(8, getEvals());
     }
 
         {
@@ -747,6 +795,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (!getHooks()
           .equals(other.getHooks())) return false;
     }
+    if (hasEvals() != other.hasEvals()) return false;
+    if (hasEvals()) {
+      if (!getEvals()
+          .equals(other.getEvals())) return false;
+    }
     if (!getSkillsList()
         .equals(other.getSkillsList())) return false;
     if (!getAgentsList()
@@ -781,6 +834,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     if (hasHooks()) {
       hash = (37 * hash) + HOOKS_FIELD_NUMBER;
       hash = (53 * hash) + getHooks().hashCode();
+    }
+    if (hasEvals()) {
+      hash = (37 * hash) + EVALS_FIELD_NUMBER;
+      hash = (53 * hash) + getEvals().hashCode();
     }
     if (getSkillsCount() > 0) {
       hash = (37 * hash) + SKILLS_FIELD_NUMBER;
@@ -959,6 +1016,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         internalGetAuditFieldBuilder();
         internalGetWarningsFieldBuilder();
         internalGetHooksFieldBuilder();
+        internalGetEvalsFieldBuilder();
         internalGetSkillsFieldBuilder();
         internalGetAgentsFieldBuilder();
         internalGetMcpServersFieldBuilder();
@@ -987,27 +1045,32 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         hooksBuilder_.dispose();
         hooksBuilder_ = null;
       }
+      evals_ = null;
+      if (evalsBuilder_ != null) {
+        evalsBuilder_.dispose();
+        evalsBuilder_ = null;
+      }
       if (skillsBuilder_ == null) {
         skills_ = java.util.Collections.emptyList();
       } else {
         skills_ = null;
         skillsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000040);
       if (agentsBuilder_ == null) {
         agents_ = java.util.Collections.emptyList();
       } else {
         agents_ = null;
         agentsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000080);
       if (mcpServersBuilder_ == null) {
         mcpServers_ = java.util.Collections.emptyList();
       } else {
         mcpServers_ = null;
         mcpServersBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000100);
       internalGetMutableEnv().clear();
       return this;
     }
@@ -1052,27 +1115,27 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         result.warnings_ = warningsBuilder_.build();
       }
       if (skillsBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0)) {
+        if (((bitField0_ & 0x00000040) != 0)) {
           skills_ = java.util.Collections.unmodifiableList(skills_);
-          bitField0_ = (bitField0_ & ~0x00000020);
+          bitField0_ = (bitField0_ & ~0x00000040);
         }
         result.skills_ = skills_;
       } else {
         result.skills_ = skillsBuilder_.build();
       }
       if (agentsBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0)) {
+        if (((bitField0_ & 0x00000080) != 0)) {
           agents_ = java.util.Collections.unmodifiableList(agents_);
-          bitField0_ = (bitField0_ & ~0x00000040);
+          bitField0_ = (bitField0_ & ~0x00000080);
         }
         result.agents_ = agents_;
       } else {
         result.agents_ = agentsBuilder_.build();
       }
       if (mcpServersBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0)) {
+        if (((bitField0_ & 0x00000100) != 0)) {
           mcpServers_ = java.util.Collections.unmodifiableList(mcpServers_);
-          bitField0_ = (bitField0_ & ~0x00000080);
+          bitField0_ = (bitField0_ & ~0x00000100);
         }
         result.mcpServers_ = mcpServers_;
       } else {
@@ -1101,7 +1164,13 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
             : hooksBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.evals_ = evalsBuilder_ == null
+            ? evals_
+            : evalsBuilder_.build();
+        to_bitField0_ |= 0x00000004;
+      }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.env_ = internalGetEnv().build(EnvDefaultEntryHolder.defaultEntry);
       }
       result.bitField0_ |= to_bitField0_;
@@ -1161,11 +1230,14 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (other.hasHooks()) {
         mergeHooks(other.getHooks());
       }
+      if (other.hasEvals()) {
+        mergeEvals(other.getEvals());
+      }
       if (skillsBuilder_ == null) {
         if (!other.skills_.isEmpty()) {
           if (skills_.isEmpty()) {
             skills_ = other.skills_;
-            bitField0_ = (bitField0_ & ~0x00000020);
+            bitField0_ = (bitField0_ & ~0x00000040);
           } else {
             ensureSkillsIsMutable();
             skills_.addAll(other.skills_);
@@ -1178,7 +1250,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
             skillsBuilder_.dispose();
             skillsBuilder_ = null;
             skills_ = other.skills_;
-            bitField0_ = (bitField0_ & ~0x00000020);
+            bitField0_ = (bitField0_ & ~0x00000040);
             skillsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetSkillsFieldBuilder() : null;
@@ -1191,7 +1263,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         if (!other.agents_.isEmpty()) {
           if (agents_.isEmpty()) {
             agents_ = other.agents_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000080);
           } else {
             ensureAgentsIsMutable();
             agents_.addAll(other.agents_);
@@ -1204,7 +1276,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
             agentsBuilder_.dispose();
             agentsBuilder_ = null;
             agents_ = other.agents_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000080);
             agentsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetAgentsFieldBuilder() : null;
@@ -1217,7 +1289,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         if (!other.mcpServers_.isEmpty()) {
           if (mcpServers_.isEmpty()) {
             mcpServers_ = other.mcpServers_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000100);
           } else {
             ensureMcpServersIsMutable();
             mcpServers_.addAll(other.mcpServers_);
@@ -1230,7 +1302,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
             mcpServersBuilder_.dispose();
             mcpServersBuilder_ = null;
             mcpServers_ = other.mcpServers_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000100);
             mcpServersBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetMcpServersFieldBuilder() : null;
@@ -1241,7 +1313,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       }
       internalGetMutableEnv().mergeFrom(
           other.internalGetEnv());
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1298,6 +1370,13 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
               bitField0_ |= 0x00000010;
               break;
             } // case 58
+            case 66: {
+              input.readMessage(
+                  internalGetEvalsFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 66
             case 74: {
               ai.stigmer.agentic.plugin.v1.PluginSkill m =
                   input.readMessage(
@@ -1343,7 +1422,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
                   EnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableEnv().ensureBuilderMap().put(
                   env__.getKey(), env__.getValue());
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000200;
               break;
             } // case 98
             case 794: {
@@ -2207,12 +2286,178 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       return hooksBuilder_;
     }
 
+    private ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.plugin.v1.PluginEvalSuite, ai.stigmer.agentic.plugin.v1.PluginEvalSuite.Builder, ai.stigmer.agentic.plugin.v1.PluginEvalSuiteOrBuilder> evalsBuilder_;
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     * @return Whether the evals field is set.
+     */
+    public boolean hasEvals() {
+      return ((bitField0_ & 0x00000020) != 0);
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     * @return The evals.
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginEvalSuite getEvals() {
+      if (evalsBuilder_ == null) {
+        return evals_ == null ? ai.stigmer.agentic.plugin.v1.PluginEvalSuite.getDefaultInstance() : evals_;
+      } else {
+        return evalsBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    public Builder setEvals(ai.stigmer.agentic.plugin.v1.PluginEvalSuite value) {
+      if (evalsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        evals_ = value;
+      } else {
+        evalsBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    public Builder setEvals(
+        ai.stigmer.agentic.plugin.v1.PluginEvalSuite.Builder builderForValue) {
+      if (evalsBuilder_ == null) {
+        evals_ = builderForValue.build();
+      } else {
+        evalsBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    public Builder mergeEvals(ai.stigmer.agentic.plugin.v1.PluginEvalSuite value) {
+      if (evalsBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0) &&
+          evals_ != null &&
+          evals_ != ai.stigmer.agentic.plugin.v1.PluginEvalSuite.getDefaultInstance()) {
+          getEvalsBuilder().mergeFrom(value);
+        } else {
+          evals_ = value;
+        }
+      } else {
+        evalsBuilder_.mergeFrom(value);
+      }
+      if (evals_ != null) {
+        bitField0_ |= 0x00000020;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    public Builder clearEvals() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      evals_ = null;
+      if (evalsBuilder_ != null) {
+        evalsBuilder_.dispose();
+        evalsBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginEvalSuite.Builder getEvalsBuilder() {
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return internalGetEvalsFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    public ai.stigmer.agentic.plugin.v1.PluginEvalSuiteOrBuilder getEvalsOrBuilder() {
+      if (evalsBuilder_ != null) {
+        return evalsBuilder_.getMessageOrBuilder();
+      } else {
+        return evals_ == null ?
+            ai.stigmer.agentic.plugin.v1.PluginEvalSuite.getDefaultInstance() : evals_;
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's evals/ test cases, as read at install; unset when the
+     * plugin carries none.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8 [json_name = "evals"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.plugin.v1.PluginEvalSuite, ai.stigmer.agentic.plugin.v1.PluginEvalSuite.Builder, ai.stigmer.agentic.plugin.v1.PluginEvalSuiteOrBuilder> 
+        internalGetEvalsFieldBuilder() {
+      if (evalsBuilder_ == null) {
+        evalsBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.plugin.v1.PluginEvalSuite, ai.stigmer.agentic.plugin.v1.PluginEvalSuite.Builder, ai.stigmer.agentic.plugin.v1.PluginEvalSuiteOrBuilder>(
+                getEvals(),
+                getParentForChildren(),
+                isClean());
+        evals_ = null;
+      }
+      return evalsBuilder_;
+    }
+
     private java.util.List<ai.stigmer.agentic.plugin.v1.PluginSkill> skills_ =
       java.util.Collections.emptyList();
     private void ensureSkillsIsMutable() {
-      if (!((bitField0_ & 0x00000020) != 0)) {
+      if (!((bitField0_ & 0x00000040) != 0)) {
         skills_ = new java.util.ArrayList<ai.stigmer.agentic.plugin.v1.PluginSkill>(skills_);
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000040;
        }
     }
 
@@ -2406,7 +2651,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     public Builder clearSkills() {
       if (skillsBuilder_ == null) {
         skills_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000020);
+        bitField0_ = (bitField0_ & ~0x00000040);
         onChanged();
       } else {
         skillsBuilder_.clear();
@@ -2511,7 +2756,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         skillsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.plugin.v1.PluginSkill, ai.stigmer.agentic.plugin.v1.PluginSkill.Builder, ai.stigmer.agentic.plugin.v1.PluginSkillOrBuilder>(
                 skills_,
-                ((bitField0_ & 0x00000020) != 0),
+                ((bitField0_ & 0x00000040) != 0),
                 getParentForChildren(),
                 isClean());
         skills_ = null;
@@ -2522,9 +2767,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     private java.util.List<ai.stigmer.agentic.plugin.v1.PluginAgent> agents_ =
       java.util.Collections.emptyList();
     private void ensureAgentsIsMutable() {
-      if (!((bitField0_ & 0x00000040) != 0)) {
+      if (!((bitField0_ & 0x00000080) != 0)) {
         agents_ = new java.util.ArrayList<ai.stigmer.agentic.plugin.v1.PluginAgent>(agents_);
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000080;
        }
     }
 
@@ -2729,7 +2974,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     public Builder clearAgents() {
       if (agentsBuilder_ == null) {
         agents_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000080);
         onChanged();
       } else {
         agentsBuilder_.clear();
@@ -2841,7 +3086,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         agentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.plugin.v1.PluginAgent, ai.stigmer.agentic.plugin.v1.PluginAgent.Builder, ai.stigmer.agentic.plugin.v1.PluginAgentOrBuilder>(
                 agents_,
-                ((bitField0_ & 0x00000040) != 0),
+                ((bitField0_ & 0x00000080) != 0),
                 getParentForChildren(),
                 isClean());
         agents_ = null;
@@ -2852,9 +3097,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     private java.util.List<ai.stigmer.agentic.plugin.v1.McpServerEntry> mcpServers_ =
       java.util.Collections.emptyList();
     private void ensureMcpServersIsMutable() {
-      if (!((bitField0_ & 0x00000080) != 0)) {
+      if (!((bitField0_ & 0x00000100) != 0)) {
         mcpServers_ = new java.util.ArrayList<ai.stigmer.agentic.plugin.v1.McpServerEntry>(mcpServers_);
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000100;
        }
     }
 
@@ -3048,7 +3293,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     public Builder clearMcpServers() {
       if (mcpServersBuilder_ == null) {
         mcpServers_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000080);
+        bitField0_ = (bitField0_ & ~0x00000100);
         onChanged();
       } else {
         mcpServersBuilder_.clear();
@@ -3153,7 +3398,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         mcpServersBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.plugin.v1.McpServerEntry, ai.stigmer.agentic.plugin.v1.McpServerEntry.Builder, ai.stigmer.agentic.plugin.v1.McpServerEntryOrBuilder>(
                 mcpServers_,
-                ((bitField0_ & 0x00000080) != 0),
+                ((bitField0_ & 0x00000100) != 0),
                 getParentForChildren(),
                 isClean());
         mcpServers_ = null;
@@ -3189,7 +3434,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (env_ == null) {
         env_ = new com.google.protobuf.MapFieldBuilder<>(envConverter);
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       onChanged();
       return env_;
     }
@@ -3271,7 +3516,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       return envConverter.build(map.get(key));
     }
     public Builder clearEnv() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000200);
       internalGetMutableEnv().clear();
       return this;
     }
@@ -3297,7 +3542,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
         getMutableEnv() {
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       return internalGetMutableEnv().ensureMessageMap();
     }
     /**
@@ -3316,7 +3561,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableEnv().ensureBuilderMap()
           .put(key, value);
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       return this;
     }
     /**
@@ -3337,7 +3582,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       }
       internalGetMutableEnv().ensureBuilderMap()
           .putAll(values);
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       return this;
     }
     /**

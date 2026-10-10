@@ -1090,27 +1090,27 @@ fee reminders every morning at nine.
 #### Score
 
 One grade of a finished run: a person's thumbs up or down on the final answer,
-the free run-health checks Stigmer runs on every completed run, or an AI judge's
-verdict.
+the free run-health checks Stigmer runs on every completed run, an AI judge's
+verdict, or a plugin eval's checks on one try.
 
 - **Capitalize**: As the resource name in labels and reference pages
   (`kind: Score`). In prose say "score" in lower case, as "run".
 - **API surface**: `kind: Score`, prefix `scr`. proto:
   `agentic/score/v1/spec.proto`. Written by a person rating a run in the
-  console, by the platform's checks or by its AI judge; there is no `apply` and
-  no manifest. CLI:
+  console, by the platform's checks, by its AI judge or by a plugin eval; there
+  is no `apply` and no manifest. CLI:
 
   ```bash
   stigmer runs scores <run-id>
   stigmer get score <id>
   ```
 
-- **Key fields**: `run_id`, `metric` (what is measured: `feedback`, `run-health`
-  or `judge`), `source` (`score_source_human`, `score_source_check` or
-  `score_source_judge`), `passed`, `criteria` (one per check or rubric, each
-  with its reason), `comment` (a person's feedback only), `judge_model` (a
-  judge's only), and `status.state` (`graded`, `not_graded` with a reason, or
-  `pending` while a judge grades).
+- **Key fields**: `run_id`, `metric` (what is measured: `feedback`,
+  `run-health`, `judge` or `eval`), `source` (`score_source_human`,
+  `score_source_check`, `score_source_judge` or `score_source_eval`), `passed`,
+  `criteria` (one per check or rubric, each with its reason), `comment` (a
+  person's feedback only), `judge_model` (a judge's only), and `status.state`
+  (`graded`, `not_graded` with a reason, or `pending` while a judge grades).
 - **Boundaries**: a Score is not a usage report (cost and tokens), and a
   not-graded score is never a failing one: it means the run could not be graded.
 - **Note**: a score's visibility is its run's. Whoever can see the run sees its
@@ -1145,6 +1145,92 @@ the monthly spending limit, and the judge's model.
 - **Note**: the name is Langfuse's word for an LLM judge configured to run on
   live data. Access is the Agent's: whoever may edit the Agent configures its
   grading, whoever may view it sees the settings.
+
+---
+
+#### Plugin Eval
+
+One run of a plugin's own test cases: every case in the plugin's evals folder is
+tried several times with the plugin and several times without it, on each model
+the eval names. The eval records both scores and the difference the plugin
+makes.
+
+- **User-facing alternative**: "eval" in prose ("start an eval", "the plugin's
+  evals"), the word Claude Code's `claude plugin eval` uses. The cases are the
+  plugin's "test cases" or its "suite".
+- **Capitalize**: As the resource name in labels and reference pages
+  (`kind: PluginEval`, display name "Plugin Eval"). In prose say "eval" or
+  "plugin eval" in lower case.
+- **API surface**: `kind: PluginEval`, prefix `pev`. proto:
+  `agentic/plugineval/v1/spec.proto`. Started from the plugin's Evals tab in the
+  console or with `stigmer plugin eval`; there is no `apply`, no update and no
+  manifest. CLI:
+
+  ```bash
+  stigmer plugin eval <plugin>
+  stigmer plugin eval cancel <id>
+  stigmer get plugin-eval <id>
+  stigmer delete plugin-eval <id>
+  ```
+
+- **Key fields**: `plugin_id`, `plugin_digest` (the version evaluated),
+  `targets` (engine and model pairs), `runs`, `ablation` (`with_without` or
+  `none`), `threshold`, `max_cost_usd`, and the status's `phase`, per-case
+  results per target and arm, `aggregates` and `cost_usd`.
+- **Boundaries**: a Plugin Eval measures a plugin, an Evaluator grades an
+  Agent's live runs. The criteria live in the plugin's `evals/` folder, in
+  Claude Code's plugin-eval format, never in an Agent's YAML.
+- **Note**: the plugin's editors start, cancel and delete its evals; its viewers
+  in its own Organization read them. The Organization that installed the plugin
+  pays for every try.
+- **Editions**: in Stigmer Cloud every viewer of the plugin in its Organization
+  opens each try's conversation, read-only. In open source the tries belong to
+  the eval's creator, who opens them; the plugin's other viewers read the eval,
+  its results and each try's scores, and cannot open a try's conversation.
+
+---
+
+#### Try
+
+One run of one test case in a plugin eval, in a fresh conversation of its own:
+what Claude Code calls a run of a case.
+
+- **Capitalize**: No.
+- **API surface**: `PluginEvalTry` in `agentic/plugineval/v1/status.proto`, with
+  its `run_id`, `score`, and `not_graded_reason`.
+- **Boundaries**: a try is an ordinary run; "try" names its place in the eval.
+  Say "try" for the eval's unit and "run" for the run itself, so "three tries
+  per case" never reads as three separate commands.
+- **Note**: a try the platform could not run or grade is "not graded" with a
+  reason and left out of every score, never a zero.
+
+---
+
+#### Arm (with-arm, without-arm)
+
+One side of a plugin eval's comparison: the with-arm is a case's tries with the
+plugin, the without-arm the same number of tries with nothing attached.
+
+- **Capitalize**: No. Write "with-arm" and "without-arm" with hyphens.
+- **API surface**: `PluginEvalCaseTarget.with_plugin` and `without_plugin`
+  (`PluginEvalArm`); `ablation: plugin_eval_ablation_none` runs the with-arm
+  only. In the result file: `cases[].arms.with` and `cases[].arms.without`.
+- **Note**: the difference between the two arms' scores is `Δ` ("delta"), what
+  the plugin contributed. The table headers are `WITH` and `W/OUT`, as in Claude
+  Code.
+
+---
+
+#### pass^k
+
+Whether every one of a case's k with-arm tries scored 1.0: a case that passes^k
+works every time, not only on average.
+
+- **Capitalize**: No; written `pass^k` in prose and `PASS^k` as a table header.
+- **API surface**: `PluginEvalCaseTarget.pass_k`; `passK` in the result file.
+- **Boundaries**: Stigmer's addition to Claude Code's format, which reports the
+  mean score and "perfect runs" (the share of with-arm runs where every grader
+  passed) instead.
 
 ---
 

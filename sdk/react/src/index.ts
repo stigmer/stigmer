@@ -153,6 +153,7 @@ export {
   useSessionList,
   useSessionRuns,
   useSessionConversation,
+  useSessionAccess,
   useExportTranscript,
   TranscriptExportMenu,
   useSessionArtifacts,
@@ -206,6 +207,7 @@ export type {
   UseSessionRunsReturn,
   SendFollowUpOptions,
   UseSessionConversationReturn,
+  UseSessionAccessReturn,
   UseExportTranscriptOptions,
   UseExportTranscriptReturn,
   TranscriptExportMenuProps,
@@ -813,6 +815,8 @@ export {
   useCreateAgent,
   useUpdateAgent,
   AgentCreationWizard,
+  AgentCreationDenied,
+  useCanCreateAgent,
   agentHarnessOf,
   agentRunDefaultsFor,
   useRunAgentSpec,
@@ -844,6 +848,8 @@ export type {
   UseCreateAgentReturn,
   UseUpdateAgentReturn,
   AgentCreationWizardProps,
+  AgentCreationDeniedProps,
+  UseCanCreateAgentReturn,
   AgentCreationResult,
   AgentWizardData,
 } from "./agent/index.js";
@@ -1015,8 +1021,8 @@ export type {
 } from "./memory/index.js";
 
 // Scores — a person's thumbs on a run's final answer, the platform's free
-// run-health checks and an AI judge's verdict, shown on every completed run
-// its viewers can see
+// run-health checks, an AI judge's verdict and a plugin eval's checks, shown
+// on every completed run its viewers can see
 export {
   RunScores,
   useSessionScores,
@@ -1044,6 +1050,49 @@ export type {
   UseSaveEvaluatorReturn,
   GradingSettings,
 } from "./evaluator/index.js";
+
+// Plugin evals — a plugin's own evals/ test cases run with and without it
+// on the models an eval names (the plugin's Evals tab), and a run made into
+// a test case
+export {
+  PluginEvalsTab,
+  PluginEvalResults,
+  usePluginEvals,
+  usePluginEval,
+  useStartPluginEval,
+  useCancelPluginEval,
+  PLUGIN_EVAL_POLL_MS,
+  DEFAULT_EVAL_FORM,
+  MAX_EVAL_CONCURRENCY,
+  MAX_EVAL_COST_USD,
+  MAX_EVAL_RUNS,
+  MAX_EVAL_TARGETS,
+  evalCaseRowsOf,
+  compareEvals,
+  evalFormProblem,
+  evalLabelOf,
+  pluginEvalInputOf,
+  evalTargetLabelsOf,
+  testCaseOfRun,
+  zipTestCase,
+} from "./plugin-eval/index.js";
+export type {
+  PluginEvalsTabProps,
+  PluginEvalResultsProps,
+  UsePluginEvalsReturn,
+  UsePluginEvalReturn,
+  UseStartPluginEvalReturn,
+  UseCancelPluginEvalReturn,
+  EvalCaseRow,
+  EvalCaseCell,
+  EvalCompareRow,
+  EvalCompareSide,
+  EvalFormSettings,
+  EvalFormTarget,
+  EvalPluginRef,
+  EvalTryView,
+  RunForTestCase,
+} from "./plugin-eval/index.js";
 
 // IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
 export {
@@ -1129,6 +1178,8 @@ export {
   useOrganization,
   useCreateOrganization,
   useUpdateOrganization,
+  useUpdateOrganizationPolicies,
+  organizationPoliciesOf,
   useRenameOrganization,
   useOrgSlugForId,
   useOrgIdForRef,
@@ -1137,6 +1188,7 @@ export {
   CreateOrganizationForm,
   OrgProfilePanel,
   OrgPreferencesPanel,
+  OrgPoliciesPanel,
   OrgSwitcher,
   useChildOrganizations,
   ChildOrganizationsList,
@@ -1154,6 +1206,9 @@ export type {
   CreateOrganizationFormProps,
   OrgProfilePanelProps,
   OrgPreferencesPanelProps,
+  OrgPoliciesPanelProps,
+  OrganizationPoliciesValue,
+  UseUpdateOrganizationPoliciesReturn,
   OrgSwitcherProps,
   UseChildOrganizationsOptions,
   UseChildOrganizationsReturn,
@@ -1368,7 +1423,7 @@ export type { SettingsNavItem, SettingsNavGroup } from "./settings/index.js";
 export { ApiKeysSection } from "./settings/index.js";
 export { MembersSection } from "./settings/index.js";
 export { OrgProfileSection } from "./settings/index.js";
-export { OrgPreferencesSection } from "./settings/index.js";
+export { OrgPreferencesSection, OrgPoliciesSection } from "./settings/index.js";
 export { AccountPreferencesSection } from "./settings/index.js";
 export { MemorySection } from "./settings/index.js";
 export { VaultsSection } from "./settings/index.js";

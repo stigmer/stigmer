@@ -11,6 +11,7 @@ import (
 	evaluatorv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/evaluator/v1"
 	memoryv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/memory/v1"
 	pluginv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugin/v1"
+	pluginevalv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugineval/v1"
 	runv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/run/v1"
 	schedulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1"
 	scorev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1"
@@ -114,6 +115,11 @@ func PlatformClientInputFromProto(p *platformclientv1.PlatformClient) *PlatformC
 // PluginInputFromProto creates a PluginInput from a proto Plugin resource.
 func PluginInputFromProto(p *pluginv1.Plugin) *PluginInput {
 	return gen.PluginInputFromProto(p)
+}
+
+// PluginEvalInputFromProto creates a PluginEvalInput from a proto PluginEval resource.
+func PluginEvalInputFromProto(p *pluginevalv1.PluginEval) *PluginEvalInput {
+	return gen.PluginEvalInputFromProto(p)
 }
 
 // RunInputFromProto creates a RunInput from a proto Run resource.

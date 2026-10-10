@@ -1,4 +1,5 @@
 from ai.stigmer.tenancy.organization.v1 import api_pb2 as _api_pb2
+from ai.stigmer.tenancy.organization.v1 import spec_pb2 as _spec_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
@@ -53,3 +54,11 @@ class ChildOrgList(_message.Message):
     entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.Organization]
     next_page_token: str
     def __init__(self, entries: _Optional[_Iterable[_Union[_api_pb2.Organization, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
+
+class UpdateOrganizationPoliciesInput(_message.Message):
+    __slots__ = ("org_id", "policies")
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    POLICIES_FIELD_NUMBER: _ClassVar[int]
+    org_id: str
+    policies: _spec_pb2.OrganizationPolicies
+    def __init__(self, org_id: _Optional[str] = ..., policies: _Optional[_Union[_spec_pb2.OrganizationPolicies, _Mapping]] = ...) -> None: ...

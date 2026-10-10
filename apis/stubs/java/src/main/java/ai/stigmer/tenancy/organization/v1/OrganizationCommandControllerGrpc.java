@@ -108,6 +108,37 @@ public final class OrganizationCommandControllerGrpc {
     return getUpdateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput,
+      ai.stigmer.tenancy.organization.v1.Organization> getUpdatePoliciesMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updatePolicies",
+      requestType = ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput.class,
+      responseType = ai.stigmer.tenancy.organization.v1.Organization.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput,
+      ai.stigmer.tenancy.organization.v1.Organization> getUpdatePoliciesMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput, ai.stigmer.tenancy.organization.v1.Organization> getUpdatePoliciesMethod;
+    if ((getUpdatePoliciesMethod = OrganizationCommandControllerGrpc.getUpdatePoliciesMethod) == null) {
+      synchronized (OrganizationCommandControllerGrpc.class) {
+        if ((getUpdatePoliciesMethod = OrganizationCommandControllerGrpc.getUpdatePoliciesMethod) == null) {
+          OrganizationCommandControllerGrpc.getUpdatePoliciesMethod = getUpdatePoliciesMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput, ai.stigmer.tenancy.organization.v1.Organization>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updatePolicies"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.tenancy.organization.v1.Organization.getDefaultInstance()))
+              .setSchemaDescriptor(new OrganizationCommandControllerMethodDescriptorSupplier("updatePolicies"))
+              .build();
+        }
+      }
+    }
+    return getUpdatePoliciesMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
       ai.stigmer.tenancy.organization.v1.Organization> getRenameMethod;
 
@@ -314,6 +345,18 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
+     * Change what the organization lets its members do (OrganizationPolicies),
+     * the one way to change a policy: update and apply keep the stored
+     * policies. Replaces every policy with the input's.
+     * </pre>
+     */
+    default void updatePolicies(ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdatePoliciesMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Rename an organization: change its slug, the name people type.
      * Nothing the organization owns moves, because every resource names it by
      * id. The old slug keeps resolving to the organization for 30 days, during
@@ -479,6 +522,19 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
+     * Change what the organization lets its members do (OrganizationPolicies),
+     * the one way to change a policy: update and apply keep the stored
+     * policies. Replaces every policy with the input's.
+     * </pre>
+     */
+    public void updatePolicies(ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdatePoliciesMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Rename an organization: change its slug, the name people type.
      * Nothing the organization owns moves, because every resource names it by
      * id. The old slug keeps resolving to the organization for 30 days, during
@@ -629,6 +685,18 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
+     * Change what the organization lets its members do (OrganizationPolicies),
+     * the one way to change a policy: update and apply keep the stored
+     * policies. Replaces every policy with the input's.
+     * </pre>
+     */
+    public ai.stigmer.tenancy.organization.v1.Organization updatePolicies(ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdatePoliciesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Rename an organization: change its slug, the name people type.
      * Nothing the organization owns moves, because every resource names it by
      * id. The old slug keeps resolving to the organization for 30 days, during
@@ -773,6 +841,18 @@ public final class OrganizationCommandControllerGrpc {
     public ai.stigmer.tenancy.organization.v1.Organization update(ai.stigmer.tenancy.organization.v1.Organization request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Change what the organization lets its members do (OrganizationPolicies),
+     * the one way to change a policy: update and apply keep the stored
+     * policies. Replaces every policy with the input's.
+     * </pre>
+     */
+    public ai.stigmer.tenancy.organization.v1.Organization updatePolicies(ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdatePoliciesMethod(), getCallOptions(), request);
     }
 
     /**
@@ -928,6 +1008,19 @@ public final class OrganizationCommandControllerGrpc {
 
     /**
      * <pre>
+     * Change what the organization lets its members do (OrganizationPolicies),
+     * the one way to change a policy: update and apply keep the stored
+     * policies. Replaces every policy with the input's.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> updatePolicies(
+        ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdatePoliciesMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Rename an organization: change its slug, the name people type.
      * Nothing the organization owns moves, because every resource names it by
      * id. The old slug keeps resolving to the organization for 30 days, during
@@ -984,8 +1077,9 @@ public final class OrganizationCommandControllerGrpc {
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
-  private static final int METHODID_RENAME = 3;
-  private static final int METHODID_DELETE = 4;
+  private static final int METHODID_UPDATE_POLICIES = 3;
+  private static final int METHODID_RENAME = 4;
+  private static final int METHODID_DELETE = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1014,6 +1108,10 @@ public final class OrganizationCommandControllerGrpc {
           break;
         case METHODID_UPDATE:
           serviceImpl.update((ai.stigmer.tenancy.organization.v1.Organization) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization>) responseObserver);
+          break;
+        case METHODID_UPDATE_POLICIES:
+          serviceImpl.updatePolicies((ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.tenancy.organization.v1.Organization>) responseObserver);
           break;
         case METHODID_RENAME:
@@ -1063,6 +1161,13 @@ public final class OrganizationCommandControllerGrpc {
               ai.stigmer.tenancy.organization.v1.Organization,
               ai.stigmer.tenancy.organization.v1.Organization>(
                 service, METHODID_UPDATE)))
+        .addMethod(
+          getUpdatePoliciesMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.tenancy.organization.v1.UpdateOrganizationPoliciesInput,
+              ai.stigmer.tenancy.organization.v1.Organization>(
+                service, METHODID_UPDATE_POLICIES)))
         .addMethod(
           getRenameMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1128,6 +1233,7 @@ public final class OrganizationCommandControllerGrpc {
               .addMethod(getApplyMethod())
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
+              .addMethod(getUpdatePoliciesMethod())
               .addMethod(getRenameMethod())
               .addMethod(getDeleteMethod())
               .build();

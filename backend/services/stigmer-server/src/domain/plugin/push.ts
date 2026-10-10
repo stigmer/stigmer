@@ -96,6 +96,7 @@ import type { OpenedPluginArchive } from "./archive.js";
 import { planPluginStatus, ServerNameError } from "./plan-status.js";
 import type { PluginStatusPlan } from "./plan-status.js";
 import { probeSignIns } from "./probe-sign-in.js";
+import { evalSuiteOf } from "./evals.js";
 import { pluginSearchExtractor } from "./search-extractor.js";
 
 type PushDesc = typeof PushPluginRequestSchema;
@@ -273,7 +274,8 @@ export function newPlanPluginStatusStep(): PipelineStep<PushDesc> {
     execute(ctx: RequestContext<PushDesc>): void {
       const pkg = ctx.get(PLUGIN_PACKAGE_KEY) as PluginPackage;
       try {
-        ctx.set(PLUGIN_PLAN_KEY, planPluginStatus(pkg));
+        const archive = ctx.get(PLUGIN_ARCHIVE_KEY) as OpenedPluginArchive;
+        ctx.set(PLUGIN_PLAN_KEY, planPluginStatus(pkg, archive.files));
       } catch (error) {
         if (error instanceof ServerNameError) {
           throw invalidArgumentError(error.message);
@@ -434,6 +436,7 @@ export function newPopulatePluginFieldsStep(): PipelineStep<PushDesc> {
       status.mcpServers = [...plan.mcpServers];
       status.env = { ...plan.env };
       status.hooks = plan.hooks === undefined ? undefined : hooksOf(plan.hooks);
+      status.evals = plan.evals === undefined ? undefined : evalSuiteOf(plan.evals);
       status.warnings = [
         ...libraryWarnings.map((finding) =>
           create(PluginWarningSchema, {

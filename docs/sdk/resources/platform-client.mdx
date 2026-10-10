@@ -713,7 +713,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource, by slug or id." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -839,7 +839,7 @@ IamRole defines the roles that can be assigned to principals on resources via IA
 | `admin` | Administrative access. |
 | `member` | Membership-level access. |
 | `viewer` | Read-only access to the resource. |
-| `participant` | Conversation participant on an agent channel: may read the channel's conversations and speak to its customers as the business (reply, take over, hand back, clear attention). |
+| `participant` | A person who takes part in a conversation: reads it and sends messages. |
 | `editor` | Editor of a blueprint (an agent): may change its definition and do whatever a viewer can, and may not delete it, change its visibility, publish it on a share link or a channel, or decide who else has access. |
 | `user` | May use a shared vault: the runs of a person who holds it use the vault's logins and secrets. |
 

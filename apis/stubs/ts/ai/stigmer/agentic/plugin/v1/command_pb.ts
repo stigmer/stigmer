@@ -67,9 +67,10 @@ export const PluginCommandController: GenService<{
     output: typeof PluginSchema;
   },
   /**
-   * Delete a plugin.
+   * Delete a plugin, its evals included.
    * Refused while an agent of the organization lists it; the error names the
-   * agents.
+   * agents. Refused while one of its evals is pending or running: cancel that
+   * eval first.
    *
    * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginCommandController.delete
    */

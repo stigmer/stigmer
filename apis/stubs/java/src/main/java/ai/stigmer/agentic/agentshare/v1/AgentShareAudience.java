@@ -9,8 +9,8 @@ package ai.stigmer.agentic.agentshare.v1;
  * <pre>
  * AgentShareAudience selects who can chat over a share's hosted link.
  *
- * Unspecified is treated as public: a share created without an explicit
- * audience is an anyone-with-link share.
+ * Unspecified is treated as org: a share reaches the internet only when
+ * public is chosen explicitly.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentshare.v1.AgentShareAudience}
@@ -20,7 +20,7 @@ public enum AgentShareAudience
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Treated as public (audience omitted).
+   * Treated as org (audience omitted); the server stores org in its place.
    * </pre>
    *
    * <code>agent_share_audience_unspecified = 0;</code>
@@ -61,7 +61,7 @@ public enum AgentShareAudience
   }
   /**
    * <pre>
-   * Treated as public (audience omitted).
+   * Treated as org (audience omitted); the server stores org in its place.
    * </pre>
    *
    * <code>agent_share_audience_unspecified = 0;</code>

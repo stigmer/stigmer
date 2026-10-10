@@ -1350,6 +1350,14 @@ function provenReadSql(
     where.push(`r.list_org = ?`);
     params.push(query.org);
   }
+  if (query.withoutKeys !== undefined && query.withoutKeys.length > 0) {
+    // Answered by the key table's primary key (kind, id, key).
+    where.push(
+      `NOT EXISTS (SELECT 1 FROM resource_list_keys AS w
+         WHERE w.kind = r.kind AND w.id = r.id AND w.key IN (${query.withoutKeys.map(() => "?").join(", ")}))`,
+    );
+    params.push(...query.withoutKeys);
+  }
   if (query.createdAtOrAfter !== undefined) {
     where.push(`(${created} >= ? OR ${created} = '')`);
     params.push(query.createdAtOrAfter);

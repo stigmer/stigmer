@@ -27,10 +27,11 @@ service AgentChannelCommandController {
   // organization's credits.
   //
   // @internal
-  // Authorization: requires can_edit on the REFERENCED AGENT
-  // (spec.agent_ref), checked in-handler — same bar as AgentShare create,
-  // since connecting a channel broadens who can chat with the agent
-  // runtime. Standard org-scoped create tuples (owner = creator) for the
+  // Authorization: requires can_manage_audience on the REFERENCED AGENT
+  // (spec.agent_ref) and can_create_agent_channel on the organization,
+  // checked in-handler: the AgentShare create bars, since connecting a
+  // channel broadens who can chat with the agent runtime and spends the
+  // organization's credits. Standard org-scoped create tuples (owner = creator) for the
   // channel itself; no visibility tuples (channel admission is app-level).
   // Invariant enforced here: metadata.org must equal spec.agent_ref.org.
   // status.install_state is initialized to pending_install.

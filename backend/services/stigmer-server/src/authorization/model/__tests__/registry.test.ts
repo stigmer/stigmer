@@ -431,11 +431,12 @@ describe("the built-in model", () => {
     }
   });
 
-  it("carries a derived rule only where kind_meta cannot derive the relation: an organization's two edges", () => {
+  it("carries a derived rule only where kind_meta cannot derive the relation: an organization's two edges and its policy edge", () => {
     const derived = builtInModel.declarations
       .flatMap((d) => [...d.derived.keys()].map((r) => `${d.type}#${r}`))
       .sort();
     expect(derived).toEqual([
+      "organization#agent_creation_open",
       "organization#child_org",
       "organization#parent_org",
     ]);

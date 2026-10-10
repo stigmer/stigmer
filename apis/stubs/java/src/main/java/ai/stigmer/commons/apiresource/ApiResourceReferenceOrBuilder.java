@@ -60,7 +60,7 @@ public interface ApiResourceReferenceOrBuilder extends
 
   /**
    * <pre>
-   * Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+   * Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2 [json_name = "kind"];</code>
@@ -69,7 +69,7 @@ public interface ApiResourceReferenceOrBuilder extends
   int getKindValue();
   /**
    * <pre>
-   * Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+   * Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2 [json_name = "kind"];</code>

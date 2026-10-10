@@ -51,6 +51,14 @@ type plugin
     # team#member is an Enterprise team's grant: every member, bounded by
     # the organization in team.fga.
     define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or child_org_viewer
+    # org_viewer is every viewer who holds a role in the plugin's own
+    # organization: the set a plugin's evals are read by (plugin_eval.fga).
+    # It leaves out exactly the members of child organizations who see the
+    # plugin only through its child-organization share, written as an
+    # intersection because the model has no `but not`. viewer itself keeps
+    # its direct type restrictions, so the grants and visibility tuples
+    # written on it are unchanged.
+    define org_viewer: viewer and affiliated from organization
 
     # ========================================
     # PERMISSIONS

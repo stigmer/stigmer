@@ -95,6 +95,10 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     ApiResourceKind.evaluator,
     { name: "Evaluator", displayName: "Evaluator", idPrefix: "evl" },
   ],
+  [
+    ApiResourceKind.plugin_eval,
+    { name: "PluginEval", displayName: "Plugin Eval", idPrefix: "pev" },
+  ],
 ]);
 
 // Kinds that are user-facing in the CLI and therefore registered as addressable
@@ -120,6 +124,7 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.session,
   ApiResourceKind.score,
   ApiResourceKind.evaluator,
+  ApiResourceKind.plugin_eval,
 ];
 
 /**

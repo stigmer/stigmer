@@ -21,7 +21,9 @@
  * and the list scope never lists it.
  *
  * The derived rules: on the organization, `parent_org` and `child_org`,
- * which a child's `spec.parent_org` decides (child-organizations.ts).
+ * which a child's `spec.parent_org` decides (child-organizations.ts), and
+ * `agent_creation_open`, which its `spec.policies` decides
+ * (organization-policies.ts).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 
@@ -33,6 +35,7 @@ import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { MemorySchema } from "@stigmer/protos/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -50,6 +53,7 @@ import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb"
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 import { childOrg, parentOrg } from "./child-organizations.js";
+import { agentCreationOpen } from "./organization-policies.js";
 import type { DerivedRelation } from "./rewrite.js";
 
 /** A type with no stored resource: it resolves over tuples alone (the module header). */
@@ -80,7 +84,11 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
     ApiResourceKind.organization,
     {
       schema: OrganizationSchema,
-      derived: { parent_org: parentOrg, child_org: childOrg },
+      derived: {
+        parent_org: parentOrg,
+        child_org: childOrg,
+        agent_creation_open: agentCreationOpen,
+      },
     },
   ],
   [ApiResourceKind.agent, { schema: AgentSchema }],
@@ -90,6 +98,7 @@ export const KIND_BINDINGS: ReadonlyMap<ApiResourceKind, KindBinding> = new Map<
   [ApiResourceKind.evaluator, { schema: EvaluatorSchema }],
   [ApiResourceKind.memory, { schema: MemorySchema }],
   [ApiResourceKind.plugin, { schema: PluginSchema }],
+  [ApiResourceKind.plugin_eval, { schema: PluginEvalSchema }],
   [ApiResourceKind.run, { schema: RunSchema }],
   [ApiResourceKind.schedule, { schema: ScheduleSchema }],
   [ApiResourceKind.score, { schema: ScoreSchema }],

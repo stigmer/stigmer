@@ -41,6 +41,7 @@ import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import {
   CHECK_SOURCE_REFUSED_MESSAGE,
+  EVAL_SOURCE_REFUSED_MESSAGE,
   FEEDBACK_VALUE_REQUIRED_MESSAGE,
   HUMAN_SOURCE_REFUSED_MESSAGE,
   SCORE_COMMENT_HUMAN_ONLY_MESSAGE,
@@ -124,6 +125,14 @@ function check(
       ? {}
       : { status: { notGradedReason: fields.reason } }),
   });
+}
+
+/** A plugin eval's score on its try. */
+function evalScore(): Score {
+  const score = check();
+  score.spec!.metric = "eval";
+  score.spec!.source = ScoreSource.eval;
+  return score;
 }
 
 function runIn(phase: RunPhase, org = "org_1"): Run {
@@ -217,6 +226,19 @@ describe("GuardScoreSource", () => {
     }
   });
 
+  it("admits a plugin eval's score from the server alone", async () => {
+    expect(() =>
+      guard.execute(
+        ctxFor(evalScore(), testCallerIdentity({ callerClass: "internal" })),
+      ),
+    ).not.toThrow();
+    const failure = await refusal(() =>
+      guard.execute(ctxFor(evalScore(), PERSON)),
+    );
+    expect(failure.code).toBe(Code.PermissionDenied);
+    expect(failure.rawMessage).toBe(EVAL_SOURCE_REFUSED_MESSAGE);
+  });
+
   it("refuses a score with no source", async () => {
     const score = feedback();
     score.spec!.source = ScoreSource.unspecified;
@@ -271,6 +293,32 @@ describe("ResolveScoreDefaults", () => {
       expect(failure.code).toBe(Code.FailedPrecondition);
       expect(failure.rawMessage).toBe(runNotCompletedMessage("run_1"));
     }
+  });
+
+  it("takes a plugin eval's score on any ended run, never on one still going", async () => {
+    const internal = testCallerIdentity({ callerClass: "internal" });
+    for (const phase of [
+      RunPhase.RUN_COMPLETED,
+      RunPhase.RUN_FAILED,
+      RunPhase.RUN_TERMINATED,
+      RunPhase.RUN_CANCELLED,
+    ]) {
+      expect(() =>
+        step.execute(ctxFor(evalScore(), internal, runIn(phase))),
+      ).not.toThrow();
+    }
+    const failure = await refusal(() =>
+      step.execute(
+        ctxFor(evalScore(), internal, runIn(RunPhase.RUN_IN_PROGRESS)),
+      ),
+    );
+    expect(failure.rawMessage).toBe(runNotCompletedMessage("run_1"));
+    const wrong = evalScore();
+    wrong.spec!.metric = "judge";
+    expect(
+      (await refusal(() => step.execute(ctxFor(wrong, internal, completed))))
+        .rawMessage,
+    ).toBe(SCORE_METRIC_SOURCE_MISMATCH_MESSAGE);
   });
 
   it("refuses an organization that is not the run's", async () => {

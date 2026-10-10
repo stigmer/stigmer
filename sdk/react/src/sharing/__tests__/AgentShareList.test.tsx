@@ -131,7 +131,11 @@ function makeShare(overrides?: {
     spec: {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled: overrides?.enabled ?? true,
-      ...(overrides?.audience !== undefined && { audience: overrides.audience }),
+      // A public link unless the case says otherwise; `audience: undefined`
+      // leaves it unset, the omitted case.
+      ...(overrides !== undefined && "audience" in overrides
+        ? overrides.audience !== undefined && { audience: overrides.audience }
+        : { audience: AgentShareAudience.public }),
       ...(overrides?.allowedOrigins && { allowedOrigins: overrides.allowedOrigins }),
     },
     ...(overrides?.shareLinkToken !== undefined
@@ -199,10 +203,20 @@ describe("AgentShareList", () => {
     expect(screen.getByText("Help Desk")).toBeTruthy();
     expect(screen.getByText("/chat/ash_1")).toBeTruthy();
     expect(screen.getByText("/chat/ash_2")).toBeTruthy();
-    expect(screen.getByText("Public")).toBeTruthy();
-    expect(screen.getByText("Org members")).toBeTruthy();
+    expect(screen.getByText("Anyone with the link")).toBeTruthy();
+    expect(screen.getByText("Organization members")).toBeTruthy();
     expect(screen.getByText("Active")).toBeTruthy();
     expect(screen.getByText("Paused")).toBeTruthy();
+  });
+
+  it("reads a share with no audience as the organization's, never public", async () => {
+    const client = createMockStigmer({
+      getByAgent: withShares(makeShare({ audience: undefined })),
+    });
+    await renderList(client);
+
+    expect(screen.getByText("Organization members")).toBeTruthy();
+    expect(screen.queryByText("Anyone with the link")).toBeNull();
   });
 
   it("scopes the list to the agent's own organization — a share lives where its agent lives", async () => {

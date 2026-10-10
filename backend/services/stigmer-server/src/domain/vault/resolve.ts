@@ -27,9 +27,14 @@
  *   4. for a run with no person only, the vaults of the surface it came
  *      through, found from server-stamped facts: the minting platform
  *      client (the run's audit), its schedule (the run's
- *      stigmer.ai/schedule-id), its share or channel (the session's
+ *      stigmer.ai/schedule-id), its plugin eval (the run's
+ *      stigmer.ai/plugin-eval), its share or channel (the session's
  *      stigmer.ai/share-id or stigmer.ai/channel-id). A surface of another
- *      organization than the run's contributes nothing.
+ *      organization than the run's contributes nothing. A plugin eval's
+ *      vaults also serve a try that acts as a person (open source acts as
+ *      the eval's creator), after its conversation's: a try's conversation
+ *      names none, and the eval's vaults are what its hooks and servers
+ *      were given.
  * A conversation uses exactly what it chose: an integrator calling with an
  * admin's key, which leaves include_my_vault off, never reaches the
  * admin's own logins, and an agent carries no vaults of its own.
@@ -46,6 +51,20 @@
  * include_my_vault is the conversation's choice, and each turn's My vault
  * is its own person's: a second person's turn never reads the first's. A
  * turn with no person ignores it.
+ *
+ * A participant's turn (a person the conversation is shared with sends a
+ * message into it) records no person: the run's person is stamped only
+ * for the conversation's creator (domain/run/plan-run-values-step.ts
+ * StampRunCredentials), so nobody's personal logins serve it, neither the
+ * sender's (they would enter the creator's workspace) nor the creator's
+ * (the sender would act as them). It reads only the vaults the
+ * conversation names, each checked for the account that attached it, never
+ * a surface's: a conversation that began through a chat link must not
+ * hand a participant the vaults its owner attached for the link's
+ * visitors. It is told to ask the conversation's creator, who may edit
+ * the conversation, and its value reads are attributed to its sender. A
+ * participant's turn is recognised from the stamps: no person, and the
+ * run's creator is not the conversation's (`participantSenderOf`).
  *
  * Every vault a run names is checked when the run is planned and again
  * when its values are opened: `can_use` for the run's person, or, for a
@@ -114,6 +133,7 @@ import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchan
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { McpServerEntry, PluginStatus } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { RunValueSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
@@ -153,6 +173,7 @@ import { failedPreconditionError, internalError } from "../../pipeline/errors.js
 import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import { PLUGIN_EVAL_LABEL } from "../plugin-eval/constants.js";
 import type { PlatformClientStore } from "../platformclient/store.js";
 import { sessionIdOf } from "../run/target.js";
 
@@ -297,10 +318,19 @@ interface Source {
 }
 
 /** Whose turn it is to act when a required key is nowhere. */
+/** A surface a run came through: what names it, its vaults and who attached each. */
+interface RunSurface {
+  readonly what: string;
+  readonly refs: readonly ApiResourceReference[];
+  readonly attachers: { readonly [id: string]: string };
+  readonly org: string;
+}
+
 type WhoActs =
   | { readonly kind: "person"; readonly includesMyVault: boolean; readonly listsVaults: boolean }
   | { readonly kind: "foreignAgent" }
   | { readonly kind: "surface"; readonly what: string }
+  | { readonly kind: "participant"; readonly creator: string }
   | { readonly kind: "none" };
 
 export interface VaultResolverDeps {
@@ -358,6 +388,33 @@ export function runPersonOfCaller(caller: CallerIdentity): string | undefined {
 /** The person a stored run recorded, or undefined for a run no person sent. */
 export function recordedRunPerson(execution: Run): string | undefined {
   return execution.status?.credentials?.person;
+}
+
+/**
+ * The sender of a participant's turn (the module header), or undefined for
+ * any other run: a run that recorded no person, whose creator stamp names
+ * someone other than the conversation's creator (a conversation that
+ * records no creator has none to compare). A surface's run (a guest,
+ * a channel, a schedule, a platform client's user) is created by the same
+ * account that created its conversation, so it is never one.
+ */
+export function participantSenderOf(
+  execution: Run,
+  session: Session,
+): string | undefined {
+  if (recordedRunPerson(execution) !== undefined) {
+    return undefined;
+  }
+  const sender = execution.status?.audit?.specAudit?.createdBy?.id ?? "";
+  const creator = session.status?.audit?.specAudit?.createdBy?.id ?? "";
+  return sender !== "" && creator !== "" && sender !== creator ? sender : undefined;
+}
+
+/** The conversation's creator in a sentence: their name, or a role when the row has none. */
+function creatorLabel(session: Session): string {
+  const creator = session.status?.audit?.specAudit?.createdBy;
+  const name = creator?.displayName || creator?.email || "";
+  return name === "" ? "the conversation's owner" : name;
 }
 
 // ---------------------------------------------------------------------------
@@ -661,6 +718,8 @@ function whoActsSentence(requirement: Requirement, who: WhoActs): string {
       return `ask the owner of ${who.what} to attach a vault that holds ${requirement.key}`;
     case "none":
       return `list a vault that holds ${requirement.key} on the conversation`;
+    case "participant":
+      return `ask ${who.creator} to list a vault that holds ${requirement.key} on the conversation`;
     case "foreignAgent":
       return `add ${requirement.key} to one of this conversation's vaults: an agent of another organization never reads My vault`;
     case "person":
@@ -867,7 +926,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     session: Session,
   ): Promise<{ what: string; named: NamedVault[] } | undefined> {
     const executionOrg = execution.metadata?.org ?? "";
-    const surfaces: Array<{ what: string; refs: readonly ApiResourceReference[]; attachers: { readonly [id: string]: string }; org: string }> = [];
+    const surfaces: RunSurface[] = [];
 
     const platformClientId =
       execution.status?.audit?.specAudit?.createdBy?.platformClientId ?? "";
@@ -914,6 +973,10 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         });
       }
     }
+    const evalSurface = await pluginEvalSurfaceOf(execution);
+    if (evalSurface !== undefined) {
+      surfaces.push(evalSurface);
+    }
     const shareId = session.metadata?.labels[SHARE_ID_LABEL_KEY] ?? "";
     if (shareId !== "") {
       const share = await loadOptional(ApiResourceKind.agent_share, shareId, AgentShareSchema);
@@ -941,6 +1004,14 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     if (surfaces.length === 0) {
       return undefined;
     }
+    return {
+      what: surfaces.map((surface) => surface.what).join(" and "),
+      named: await namedOf(surfaces),
+    };
+  }
+
+  /** Each surface's vaults, in order, each with the account that attached it. */
+  async function namedOf(surfaces: readonly RunSurface[]): Promise<NamedVault[]> {
     const named: NamedVault[] = [];
     for (const surface of surfaces) {
       for (const ref of surface.refs) {
@@ -954,7 +1025,38 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         });
       }
     }
-    return { what: surfaces.map((surface) => surface.what).join(" and "), named };
+    return named;
+  }
+
+  /**
+   * The plugin eval a try belongs to (the run's stigmer.ai/plugin-eval,
+   * which only the eval's workflow stamps), as a surface; undefined when
+   * the run is no try, or its eval is gone or of another organization.
+   */
+  async function pluginEvalSurfaceOf(execution: Run): Promise<RunSurface | undefined> {
+    const evalId = execution.metadata?.labels[PLUGIN_EVAL_LABEL] ?? "";
+    if (evalId === "") {
+      return undefined;
+    }
+    const executionOrg = execution.metadata?.org ?? "";
+    const pluginEval = await loadOptional(ApiResourceKind.plugin_eval, evalId, PluginEvalSchema);
+    if (pluginEval === undefined) {
+      return undefined;
+    }
+    if ((pluginEval.metadata?.org ?? "") !== executionOrg) {
+      logger.warn("A run's surface belongs to another organization; its vaults are not used", {
+        kind: "plugin eval",
+        id: evalId,
+        executionId: execution.metadata?.id ?? "",
+      });
+      return undefined;
+    }
+    return {
+      what: `plugin eval '${pluginEval.metadata?.name ?? evalId}'`,
+      refs: pluginEval.spec?.vaults ?? [],
+      attachers: pluginEval.status?.vaultAttachers ?? {},
+      org: executionOrg,
+    };
   }
 
   async function loadOptional<Desc extends DescMessage>(
@@ -1043,6 +1145,18 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
         }
       }
       sources.push(...(await namedSources(named, person, RunValueOrigin.VAULT)));
+      // A plugin eval's try acting as its creator: the eval's vaults serve it
+      // after the conversation's, checked against who attached each.
+      const evalSurface = await pluginEvalSurfaceOf(execution);
+      if (evalSurface !== undefined) {
+        sources.push(
+          ...(await namedSources(await namedOf([evalSurface]), person, RunValueOrigin.SURFACE_VAULT)),
+        );
+      }
+    } else if (participantSenderOf(execution, stored) !== undefined) {
+      // A participant's turn: the conversation's own vaults, never a surface's.
+      sources.push(...(await namedSources(named, undefined, RunValueOrigin.VAULT)));
+      who = { kind: "participant", creator: creatorLabel(stored) };
     } else {
       sources.push(...(await namedSources(named, undefined, RunValueOrigin.VAULT)));
       const surface = await surfaceOf(execution, stored);
@@ -1067,7 +1181,8 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
   /**
    * The vaults a stored run may read now, by id: My vault while the
    * conversation still includes it, each vault the conversation (or, for a
-   * run with no person, its surface) still names, each checked again.
+   * run with no person that is no participant's, its surface) still names,
+   * each checked again.
    */
   function runScopeVaults(
     execution: Run,
@@ -1089,12 +1204,21 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
           }
         };
         await add(await sessionNamed(stored, person, executionOrg), RunValueOrigin.VAULT);
-        if (person === undefined) {
+        if (person !== undefined) {
+          // A plugin eval's try acting as its creator: the eval's vaults are
+          // the run's, as the plan found them.
+          const evalSurface = await pluginEvalSurfaceOf(execution);
+          if (evalSurface !== undefined) {
+            await add(await namedOf([evalSurface]), RunValueOrigin.SURFACE_VAULT);
+          }
+        } else if (participantSenderOf(execution, stored) === undefined) {
           const surface = await surfaceOf(execution, stored);
           if (surface !== undefined) {
             await add(surface.named, RunValueOrigin.SURFACE_VAULT);
           }
         }
+        // A participant's turn reads the conversation's own vaults only, as
+        // its plan did.
         return byId;
       })();
       return named;
@@ -1317,7 +1441,11 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     const values = await open(entries, {
       vaultFor: runScopeVaults(execution, stored, person),
       repositoryTokens: own.repositoryTokens,
-      actor: serverActingFor(person ?? "system"),
+      // A participant's turn records no person, yet someone asked: the
+      // decrypt trail names its sender rather than the server.
+      actor: serverActingFor(
+        person ?? participantSenderOf(execution, stored) ?? "system",
+      ),
       retry: "recover the turn",
     });
     logger.info("Opened run values", {

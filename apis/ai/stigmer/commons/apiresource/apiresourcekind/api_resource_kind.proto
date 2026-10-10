@@ -228,6 +228,12 @@ enum ApiResourceKind {
       // A direct grant can only let someone read the provider; managing it
       // is its organization's admins' alone.
       grantable_roles: [viewer]
+      role_descriptions: [
+        {
+          role: viewer
+          description: "See its settings; cannot change them"
+        }
+      ]
     }
   }];
 
@@ -258,6 +264,12 @@ enum ApiResourceKind {
       // A direct grant can only let someone read the app; managing it is its
       // organization's admins' alone.
       grantable_roles: [viewer]
+      role_descriptions: [
+        {
+          role: viewer
+          description: "See its settings; cannot change them"
+        }
+      ]
     }
   }];
 
@@ -289,6 +301,12 @@ enum ApiResourceKind {
       // A direct grant can only let someone read the client; managing it is
       // its organization's admins' alone.
       grantable_roles: [viewer]
+      role_descriptions: [
+        {
+          role: viewer
+          description: "See its settings; cannot change them"
+        }
+      ]
     }
   }];
 
@@ -316,6 +334,12 @@ enum ApiResourceKind {
       // administrators. The creator is recorded in the audit trail.
       owner_type: OWNER_ATTRIBUTION_TYPE_NONE
       grantable_roles: [member]
+      role_descriptions: [
+        {
+          role: member
+          description: "Belongs to the team and holds every role the team is given"
+        }
+      ]
     }
   }];
 
@@ -345,6 +369,24 @@ enum ApiResourceKind {
         admin,
         member,
         viewer
+      ]
+      role_descriptions: [
+        {
+          role: owner
+          description: "Everything, including deleting the organization and choosing its owners"
+        },
+        {
+          role: admin
+          description: "Manage people, settings, billing, and the organization's agents and tools; cannot read private conversations, delete the organization or change its owners"
+        },
+        {
+          role: member
+          description: "Start conversations with the agents shared with them, and create agents when the organization allows it"
+        },
+        {
+          role: viewer
+          description: "See what is shared with the organization; cannot start conversations"
+        }
       ]
     }
   }];
@@ -400,6 +442,20 @@ enum ApiResourceKind {
         editor,
         viewer
       ]
+      role_descriptions: [
+        {
+          role: owner
+          description: "Everything, including deleting it and deciding who has access"
+        },
+        {
+          role: editor
+          description: "Change and run it; cannot delete it or decide who has access"
+        },
+        {
+          role: viewer
+          description: "Run it and see how it is set up; cannot change it"
+        }
+      ]
     }
   }];
 
@@ -438,9 +494,26 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      // A participant reads and sends; a viewer only reads. People only:
+      // a conversation is never granted to a team.
       grantable_roles: [
         owner,
+        participant,
         viewer
+      ]
+      role_descriptions: [
+        {
+          role: owner
+          description: "Everything, including deleting the conversation and deciding who has access"
+        },
+        {
+          role: participant
+          description: "Read the conversation and send messages"
+        },
+        {
+          role: viewer
+          description: "Read the conversation; cannot send messages"
+        }
       ]
     }
   }];
@@ -468,6 +541,16 @@ enum ApiResourceKind {
         viewer
       ]
       team_grantable_roles: [viewer]
+      role_descriptions: [
+        {
+          role: owner
+          description: "Everything, including deleting it and deciding who has access"
+        },
+        {
+          role: viewer
+          description: "Use it and see what it contains; cannot change it"
+        }
+      ]
     }
   }];
 
@@ -504,6 +587,16 @@ enum ApiResourceKind {
         owner,
         viewer
       ]
+      role_descriptions: [
+        {
+          role: owner
+          description: "Everything, including deleting it and deciding who has access"
+        },
+        {
+          role: viewer
+          description: "See the chat link's settings; cannot change it"
+        }
+      ]
     }
   }];
 
@@ -535,6 +628,20 @@ enum ApiResourceKind {
         viewer,
         participant
       ]
+      role_descriptions: [
+        {
+          role: owner
+          description: "Everything, including the channel's connection and who has access"
+        },
+        {
+          role: viewer
+          description: "Read the channel's conversations; cannot reply"
+        },
+        {
+          role: participant
+          description: "Read the channel's conversations and reply to customers as the business"
+        }
+      ]
     }
   }];
 
@@ -562,6 +669,12 @@ enum ApiResourceKind {
       // A direct grant can only let someone read the app; managing it is its
       // organization's admins' alone.
       grantable_roles: [viewer]
+      role_descriptions: [
+        {
+          role: viewer
+          description: "See its settings; cannot change them"
+        }
+      ]
     }
   }];
 
@@ -638,6 +751,16 @@ enum ApiResourceKind {
         viewer
       ]
       team_grantable_roles: [viewer]
+      role_descriptions: [
+        {
+          role: owner
+          description: "Everything, including deleting it and deciding who has access"
+        },
+        {
+          role: viewer
+          description: "See the schedule and its runs; cannot change it"
+        }
+      ]
     }
   }];
 
@@ -708,6 +831,16 @@ enum ApiResourceKind {
         viewer
       ]
       team_grantable_roles: [viewer]
+      role_descriptions: [
+        {
+          role: owner
+          description: "Everything, including deleting it and deciding who has access"
+        },
+        {
+          role: viewer
+          description: "Use it and see what it contains; cannot change it"
+        }
+      ]
     }
   }];
 
@@ -753,6 +886,12 @@ enum ApiResourceKind {
       visibility: {supports_org: true}
       grantable_roles: [user]
       team_grantable_roles: [user]
+      role_descriptions: [
+        {
+          role: user
+          description: "Use this vault's logins and secrets in their runs"
+        }
+      ]
     }
   }];
 
@@ -822,6 +961,37 @@ enum ApiResourceKind {
       }
       // No visibility config and no grantable roles: an evaluator is
       // reached through its agent, never shared on its own.
+    }
+  }];
+
+  // One run of a plugin's own evals/ cases: every case tried with and
+  // without the plugin, on the models the eval names.
+  plugin_eval = 63 [(kind_meta) = {
+    group: agentic
+    version: v1
+    name: "PluginEval"
+    display_name: "Plugin Eval"
+    id_prefix: "pev"
+    is_versioned: false
+    // Not searchable by design: an eval is a result reached through its
+    // plugin's Evals tab, not a library artifact.
+    not_search_indexed: true
+    tier: open_source
+    authorization: {
+      // A child of its plugin: the plugin's editors start and delete
+      // evals; the plugin's viewers in its own organization read them.
+      scope_type: AUTHORIZATION_SCOPE_TYPE_PARENT
+      // No owner of its own, as an evaluator has none: the plugin's owner
+      // (which includes the organization's admins, who hold the purse) is
+      // the eval's.
+      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+      parent: {
+        kind: "plugin"
+        relation: "plugin"
+        spec_field: "plugin_id"
+      }
+      // No visibility config and no grantable roles: an eval is reached
+      // through its plugin, never shared on its own.
     }
   }];
 

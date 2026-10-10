@@ -50,12 +50,13 @@
           "vault",
           "score",
           "evaluator",
+          "plugin_eval",
           "plan",
           "subscription",
           "license"
         ]
       },
-      "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+      "description": "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).",
       "required": false
     },
     {

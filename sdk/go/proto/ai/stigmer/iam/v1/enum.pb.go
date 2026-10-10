@@ -9,6 +9,7 @@ package iamv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -71,6 +72,9 @@ const (
 	// Organization-level permission to create agent shares billed to the
 	// organization.
 	IamPermission_can_create_agent_share IamPermission = 30
+	// Organization-level permission to connect an agent to a messaging
+	// channel (Slack, WhatsApp).
+	IamPermission_can_create_agent_channel IamPermission = 54
 	// Organization-level permission to register channel apps (customer-owned
 	// messaging-platform apps holding webhook and OAuth credentials).
 	// Admin-gated like can_create_oauth_app.
@@ -168,6 +172,7 @@ var (
 		28: "can_manage_billing",
 		29: "can_execute_billing_ops",
 		30: "can_create_agent_share",
+		54: "can_create_agent_channel",
 		31: "can_create_channel_app",
 		32: "can_manage_model_pricing",
 		35: "can_manage_cursor_accounts",
@@ -208,6 +213,7 @@ var (
 		"can_manage_billing":          28,
 		"can_execute_billing_ops":     29,
 		"can_create_agent_share":      30,
+		"can_create_agent_channel":    54,
 		"can_create_channel_app":      31,
 		"can_manage_model_pricing":    32,
 		"can_manage_cursor_accounts":  35,
@@ -263,7 +269,8 @@ func (IamPermission) EnumDescriptor() ([]byte, []int) {
 // (which are internal FGA wiring like organization or session links).
 //
 // Each ApiResourceKind declares which of these roles are grantable via
-// the grantable_roles field in its AuthorizationConfig.
+// the grantable_roles field in its AuthorizationConfig, and what each one
+// means there in role_descriptions.
 type IamRole int32
 
 const (
@@ -276,9 +283,13 @@ const (
 	IamRole_member IamRole = 3
 	// Read-only access to the resource.
 	IamRole_viewer IamRole = 4
-	// Conversation participant on an agent channel: may read the channel's
-	// conversations and speak to its customers as the business (reply, take
-	// over, hand back, clear attention). Not a channel configurator.
+	// A person who takes part in a conversation: reads it and sends messages.
+	// On a conversation (session), a participant's messages run in the
+	// conversation's own workspace, as its creator, using only the vaults the
+	// conversation names; stopping and approving stay with its owners. On an
+	// agent channel, a participant reads the channel's conversations and
+	// speaks to its customers as the business (reply, take over, hand back,
+	// clear attention), and is not a channel configurator.
 	IamRole_participant IamRole = 5
 	// Editor of a blueprint (an agent): may change
 	// its definition and do whatever a viewer can, and may not delete it,
@@ -341,11 +352,87 @@ func (IamRole) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_v1_enum_proto_rawDescGZIP(), []int{1}
 }
 
+// Metadata for one IamRole value.
+type IamRoleMeta struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The role's name as people read it ("Admin", "Can use").
+	DisplayName string `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	// What the role means when no resource kind is known. A picker shows the
+	// kind's own sentence instead (AuthorizationConfig.role_descriptions).
+	Description   string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IamRoleMeta) Reset() {
+	*x = IamRoleMeta{}
+	mi := &file_ai_stigmer_iam_v1_enum_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IamRoleMeta) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IamRoleMeta) ProtoMessage() {}
+
+func (x *IamRoleMeta) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_v1_enum_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IamRoleMeta.ProtoReflect.Descriptor instead.
+func (*IamRoleMeta) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_v1_enum_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *IamRoleMeta) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *IamRoleMeta) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+var file_ai_stigmer_iam_v1_enum_proto_extTypes = []protoimpl.ExtensionInfo{
+	{
+		ExtendedType:  (*descriptorpb.EnumValueOptions)(nil),
+		ExtensionType: (*IamRoleMeta)(nil),
+		Field:         91201,
+		Name:          "ai.stigmer.iam.v1.role_meta",
+		Tag:           "bytes,91201,opt,name=role_meta",
+		Filename:      "ai/stigmer/iam/v1/enum.proto",
+	},
+}
+
+// Extension fields to descriptorpb.EnumValueOptions.
+var (
+	// optional ai.stigmer.iam.v1.IamRoleMeta role_meta = 91201;
+	E_RoleMeta = &file_ai_stigmer_iam_v1_enum_proto_extTypes[0]
+)
+
 var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xae\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1\x1a google/protobuf/descriptor.proto\"R\n" +
+	"\vIamRoleMeta\x12!\n" +
+	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription*\xcc\n" +
 	"\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
@@ -370,7 +457,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x10can_view_billing\x10\x1b\x12\x16\n" +
 	"\x12can_manage_billing\x10\x1c\x12\x1b\n" +
 	"\x17can_execute_billing_ops\x10\x1d\x12\x1a\n" +
-	"\x16can_create_agent_share\x10\x1e\x12\x1a\n" +
+	"\x16can_create_agent_share\x10\x1e\x12\x1c\n" +
+	"\x18can_create_agent_channel\x106\x12\x1a\n" +
 	"\x16can_create_channel_app\x10\x1f\x12\x1c\n" +
 	"\x18can_manage_model_pricing\x10 \x12\x1e\n" +
 	"\x1acan_manage_cursor_accounts\x10#\x12\x13\n" +
@@ -388,19 +476,24 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x17can_create_shared_vault\x104\x12\v\n" +
 	"\acan_use\x105\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x16\x10\x16\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*x\n" +
+	"\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*\xb7\x04\n" +
 	"\aIamRole\x12\x18\n" +
-	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
-	"\x05owner\x10\x01\x12\t\n" +
-	"\x05admin\x10\x02\x12\n" +
-	"\n" +
-	"\x06member\x10\x03\x12\n" +
-	"\n" +
-	"\x06viewer\x10\x04\x12\x0f\n" +
-	"\vparticipant\x10\x05\x12\n" +
-	"\n" +
-	"\x06editor\x10\x06\x12\b\n" +
-	"\x04user\x10\aB\xcd\x01\n" +
+	"\x14iam_role_unspecified\x10\x00\x12U\n" +
+	"\x05owner\x10\x01\x1aJ\x8a\xc4,F\n" +
+	"\x05Owner\x12=Everything, including deleting it and deciding who has access\x12P\n" +
+	"\x05admin\x10\x02\x1aE\x8a\xc4,A\n" +
+	"\x05Admin\x128Manage the organization's people, settings and resources\x12B\n" +
+	"\x06member\x10\x03\x1a6\x8a\xc4,2\n" +
+	"\x06Member\x12(Belongs to it and holds what it is given\x123\n" +
+	"\x06viewer\x10\x04\x1a'\x8a\xc4,#\n" +
+	"\x06Viewer\x12\x19Read it; cannot change it\x12L\n" +
+	"\vparticipant\x10\x05\x1a;\x8a\xc4,7\n" +
+	"\vParticipant\x12(Read the conversations and send messages\x12V\n" +
+	"\x06editor\x10\x06\x1aJ\x8a\xc4,F\n" +
+	"\x06Editor\x12<Change and use it; cannot delete it or decide who has access\x12J\n" +
+	"\x04user\x10\a\x1a@\x8a\xc4,<\n" +
+	"\aCan use\x121Use this vault's logins and secrets in their runs:`\n" +
+	"\trole_meta\x12!.google.protobuf.EnumValueOptions\x18\xc1\xc8\x05 \x01(\v2\x1e.ai.stigmer.iam.v1.IamRoleMetaR\broleMetaB\xcd\x01\n" +
 	"\x15com.ai.stigmer.iam.v1B\tEnumProtoP\x01ZBgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1;iamv1\xa2\x02\x03ASI\xaa\x02\x11Ai.Stigmer.Iam.V1\xca\x02\x11Ai\\Stigmer\\Iam\\V1\xe2\x02\x1dAi\\Stigmer\\Iam\\V1\\GPBMetadata\xea\x02\x14Ai::Stigmer::Iam::V1b\x06proto3"
 
 var (
@@ -416,15 +509,20 @@ func file_ai_stigmer_iam_v1_enum_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_iam_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_ai_stigmer_iam_v1_enum_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_iam_v1_enum_proto_goTypes = []any{
-	(IamPermission)(0), // 0: ai.stigmer.iam.v1.IamPermission
-	(IamRole)(0),       // 1: ai.stigmer.iam.v1.IamRole
+	(IamPermission)(0),                    // 0: ai.stigmer.iam.v1.IamPermission
+	(IamRole)(0),                          // 1: ai.stigmer.iam.v1.IamRole
+	(*IamRoleMeta)(nil),                   // 2: ai.stigmer.iam.v1.IamRoleMeta
+	(*descriptorpb.EnumValueOptions)(nil), // 3: google.protobuf.EnumValueOptions
 }
 var file_ai_stigmer_iam_v1_enum_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
+	3, // 0: ai.stigmer.iam.v1.role_meta:extendee -> google.protobuf.EnumValueOptions
+	2, // 1: ai.stigmer.iam.v1.role_meta:type_name -> ai.stigmer.iam.v1.IamRoleMeta
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	1, // [1:2] is the sub-list for extension type_name
+	0, // [0:1] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
 }
 
@@ -439,13 +537,15 @@ func file_ai_stigmer_iam_v1_enum_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_v1_enum_proto_rawDesc), len(file_ai_stigmer_iam_v1_enum_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   0,
-			NumExtensions: 0,
+			NumMessages:   1,
+			NumExtensions: 1,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_iam_v1_enum_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_iam_v1_enum_proto_depIdxs,
 		EnumInfos:         file_ai_stigmer_iam_v1_enum_proto_enumTypes,
+		MessageInfos:      file_ai_stigmer_iam_v1_enum_proto_msgTypes,
+		ExtensionInfos:    file_ai_stigmer_iam_v1_enum_proto_extTypes,
 	}.Build()
 	File_ai_stigmer_iam_v1_enum_proto = out.File
 	file_ai_stigmer_iam_v1_enum_proto_goTypes = nil

@@ -24,6 +24,7 @@ contents:
   - agentic/evaluator.fga
   - agentic/memory.fga
   - agentic/plugin.fga
+  - agentic/plugin_eval.fga
   - agentic/run.fga
   - agentic/schedule.fga
   - agentic/score.fga

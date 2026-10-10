@@ -41,7 +41,7 @@
           "agent_share_audience_org"
         ]
       },
-      "description": "Who can chat over this share. Unspecified means public (anyone with\n the link), so a manifest that omits audience creates a public share.\n\n To keep a share org-only, audience must be present in every apply:\n update/apply replace the spec wholesale, so a manifest that sets\n enabled without audience resets the share to public.",
+      "description": "Who can chat over this share. Unspecified means the organization's\n members: a link reaches anyone on the internet only when audience is\n set to public. The server writes an omitted audience out as org on\n create, update and apply, so every stored share and every echo says\n what it means.\n\n Update and apply replace the spec wholesale, so a manifest that omits\n audience makes the share organization-only, never public.",
       "required": false
     },
     {

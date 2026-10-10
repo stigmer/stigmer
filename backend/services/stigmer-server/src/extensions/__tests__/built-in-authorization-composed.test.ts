@@ -10,8 +10,9 @@
  *   - OIDC with no unit Authorizer (the self-host's shape): the built-in
  *     drivers install. A private agent is visible to its owner and the
  *     organization's admins and to nobody else; a member reads an
- *     org-visible agent and may not edit it, and may not create one
- *     (`can_create_agent` is `admin`); a target that does not exist
+ *     org-visible agent and may not edit it, creates one while the
+ *     organization lets members (the default) and not once an admin turns
+ *     that off, and never shares one with child organizations; a target that does not exist
  *     answers NOT_FOUND before any permission question (stigmer#224); an
  *     outsider on an EXISTING resource hears PERMISSION_DENIED, the
  *     cloud's answer; `findMyOrganizations` lists what a person may view
@@ -421,16 +422,52 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     expect((await ask(asFounder())).isAuthorized).toBe(true);
   });
 
-  it("a member may not create an agent (`can_create_agent` is `admin`) — the annotation's copy is the wire", async () => {
-    const failure = await failureOf(
-      createClient(AgentCommandController, asMember()).create(
-        agentInput("Member Agent", ApiResourceVisibility.visibility_org),
+  it("a member creates an agent while the organization lets members, and not once an admin turns that off — the annotation's copy is the wire", async () => {
+    const memberAgents = createClient(AgentCommandController, asMember());
+    const created = await memberAgents.create(
+      agentInput("Member Agent", ApiResourceVisibility.visibility_private),
+    );
+    expect(created.metadata?.id).toMatch(/^agt_/);
+    await memberAgents.delete({ value: created.metadata!.id });
+
+    // Sharing with child organizations stays an admin's act.
+    const childOrgs = await failureOf(
+      memberAgents.create(
+        agentInput("Member Child Agent", ApiResourceVisibility.visibility_child_orgs),
       ),
     );
-    expect(failure.code).toBe(Code.PermissionDenied);
-    expect(failure.rawMessage).toBe(
-      "unauthorized to create agent in this organization",
-    );
+    expect(childOrgs.code).toBe(Code.PermissionDenied);
+
+    const policies = createClient(OrganizationCommandController, asFounder());
+    await policies.updatePolicies({
+      orgId,
+      policies: { membersCanCreateAgents: false },
+    });
+    try {
+      const failure = await failureOf(
+        memberAgents.create(
+          agentInput("Member Agent", ApiResourceVisibility.visibility_org),
+        ),
+      );
+      expect(failure.code).toBe(Code.PermissionDenied);
+      expect(failure.rawMessage).toBe(
+        "unauthorized to create agent in this organization",
+      );
+      // A member may not change the policy back.
+      expect(
+        await codeOf(
+          createClient(OrganizationCommandController, asMember()).updatePolicies({
+            orgId,
+            policies: { membersCanCreateAgents: true },
+          }),
+        ),
+      ).toBe(Code.PermissionDenied);
+    } finally {
+      await policies.updatePolicies({
+        orgId,
+        policies: { membersCanCreateAgents: true },
+      });
+    }
   });
 
   it("the retired public level is refused for the founder as an invalid level, before any permission question", async () => {
@@ -601,7 +638,7 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
     });
   });
 
-  it("an unprovisioned subject writes nothing until provisioned — then they are a member and still may not author a blueprint", async () => {
+  it("an unprovisioned subject writes nothing until provisioned — then they are a member and may not author a blueprint once members may not", async () => {
     const strangerAgents = createClient(AgentCommandController, asStranger());
     const before = await failureOf(
       strangerAgents.create(
@@ -614,8 +651,13 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
       IdentityAccountCommandController,
       asStranger(),
     ).provisionMyAccount({});
-    // A member now: reads the org-visible agent, and
-    // `can_create_agent` still says `admin`.
+    // A member now: reads the org-visible agent, and, with the
+    // organization's policy off, `can_create_agent` is its admins'.
+    const policies = createClient(OrganizationCommandController, asFounder());
+    await policies.updatePolicies({
+      orgId,
+      policies: { membersCanCreateAgents: false },
+    });
     expect(
       (
         await createClient(AgentQueryController, asStranger()).get({
@@ -630,6 +672,10 @@ describe("built-in authorizer (composed server, OIDC with no unit Authorizer: th
         ),
       ),
     ).toBe(Code.PermissionDenied);
+    await policies.updatePolicies({
+      orgId,
+      policies: { membersCanCreateAgents: true },
+    });
   });
 });
 

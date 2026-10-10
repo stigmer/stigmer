@@ -30,6 +30,7 @@ import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/ses
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { type Organization, OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+import type { UpdateOrganizationPoliciesInput } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { manifestKinds } from "@stigmer/sdk";
 
 /** Accessor for a raw Connect client over a generated service controller. */
@@ -65,6 +66,13 @@ export interface ApplyHandler {
    * the resource's id declares a different slug than the stored one.
    */
   rename?(controller: ControllerFn, input: RenameInput): Promise<Message>;
+  /**
+   * Drive the organization's `updatePolicies` RPC, the only door for a
+   * policy change (update and apply keep the stored policies). Present only
+   * on the organization; the apply core follows up through it when a
+   * manifest declares policies that differ from the stored ones.
+   */
+  updatePolicies?(controller: ControllerFn, input: UpdateOrganizationPoliciesInput): Promise<Message>;
 }
 
 // The SDK registry's applyOrder values end at schedule = 12; the extras slot
@@ -77,6 +85,7 @@ const CLI_EXTRA_HANDLERS: readonly ApplyHandler[] = [
     applyOrder: 0,
     apply: (c, m) => c(OrganizationCommandController).apply(m as Organization),
     rename: (c, i) => c(OrganizationCommandController).rename(i),
+    updatePolicies: (c, i) => c(OrganizationCommandController).updatePolicies(i),
   },
   {
     kind: ApiResourceKind.session,

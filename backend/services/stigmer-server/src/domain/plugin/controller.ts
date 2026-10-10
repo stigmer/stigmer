@@ -147,6 +147,11 @@ import {
 } from "./push.js";
 import { pluginVersionBinding } from "./versions.js";
 import { pluginSearchExtractor } from "./search-extractor.js";
+import {
+  newCascadeDeletePluginEvalsStep,
+  newSweepPluginEvalsAfterDeleteStep,
+} from "../plugin-eval/cascade.js";
+import type { PluginEvalCascadeDeps } from "../plugin-eval/cascade.js";
 
 export interface PluginControllerDeps {
   readonly store: Store;
@@ -160,6 +165,8 @@ export interface PluginControllerDeps {
   readonly staging?: ArchiveStaging;
   /** The tools listing's lane: a runner reaches the server as the caller. */
   readonly tools: PluginToolsDeps;
+  /** The plugin's evals, removed by its delete (domain/plugin-eval/cascade.ts); absent, the delete removes none. */
+  readonly pluginEvals?: PluginEvalCascadeDeps;
 }
 
 /** Registers both plugin services on the router (routes stage). */
@@ -459,6 +466,7 @@ async function deletePlugin(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, PluginSchema))
     .addStep(newGuardPluginUnlistedStep(deps.store))
+    .addStep(newCascadeDeletePluginEvalsStep<DeleteDesc>(deps.pluginEvals))
     .addStep(
       newDeleteVersionArchivesStep(deps.store, deps.logger, {
         stepName: "DeletePluginArchives",
@@ -466,6 +474,7 @@ async function deletePlugin(
       }),
     )
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newSweepPluginEvalsAfterDeleteStep<DeleteDesc>(deps.pluginEvals))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

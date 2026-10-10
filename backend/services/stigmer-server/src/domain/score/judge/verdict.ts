@@ -1,8 +1,11 @@
 /**
  * The strict reader of a judge run's verdict: its structured output must
- * name exactly the rubrics (rubrics.ts), each with a result of passed,
- * failed or not_applicable and a reason of 1 to 500 characters, and
- * nothing else. Anything else is refused, never read as a lower grade: a
+ * name exactly the rubrics asked (the platform's, rubrics.ts, unless the
+ * caller names its own), each with one of the allowed results (passed,
+ * failed or not_applicable unless the caller narrows them) and a reason of
+ * 1 to 500 characters, and nothing else. A plugin eval's AI-graded check
+ * asks one rubric named after its grader, answered passed or failed only,
+ * since the format's judge votes PASS or FAIL. Anything else is refused, never read as a lower grade: a
  * model's structured reply can still miss its schema (the runner's
  * extraction tiers fall back to the reply's text), and a skipped rubric
  * read as a failure would change what a grade means. The grading activity
@@ -28,17 +31,41 @@ export type VerdictReading =
   | { readonly kind: "read"; readonly verdicts: ReadonlyArray<RubricVerdict> }
   | { readonly kind: "refused"; readonly cause: string };
 
-const RESULTS: Readonly<Record<string, CriterionResult>> = {
+/** A result a verdict may give, as the schema spells it. */
+export type VerdictResultName = "passed" | "failed" | "not_applicable";
+
+const RESULTS: Readonly<Record<VerdictResultName, CriterionResult>> = {
   passed: CriterionResult.passed,
   failed: CriterionResult.failed,
   not_applicable: CriterionResult.not_applicable,
 };
 
-export function readVerdict(output: JsonObject | undefined): VerdictReading {
+/** Every result, as the platform's rubrics allow. */
+export const ALL_VERDICT_RESULTS: ReadonlyArray<VerdictResultName> = [
+  "passed",
+  "failed",
+  "not_applicable",
+];
+
+/** What a reading asks for: the rubric names, and the results each may give. */
+export interface VerdictShape {
+  readonly rubrics: ReadonlyArray<string>;
+  readonly results: ReadonlyArray<VerdictResultName>;
+}
+
+const PLATFORM_SHAPE: VerdictShape = {
+  rubrics: RUBRICS.map((rubric) => rubric.name),
+  results: ALL_VERDICT_RESULTS,
+};
+
+export function readVerdict(
+  output: JsonObject | undefined,
+  shape: VerdictShape = PLATFORM_SHAPE,
+): VerdictReading {
   if (output === undefined) {
     return { kind: "refused", cause: "the judge run delivered no structured output" };
   }
-  const wanted = RUBRICS.map((rubric) => rubric.name);
+  const wanted = shape.rubrics;
   const got = Object.keys(output);
   if (got.length !== wanted.length || !wanted.every((name) => got.includes(name))) {
     return {
@@ -48,7 +75,7 @@ export function readVerdict(output: JsonObject | undefined): VerdictReading {
   }
   const verdicts: RubricVerdict[] = [];
   for (const name of wanted) {
-    const verdict = rubricVerdictOf(name, output[name]);
+    const verdict = rubricVerdictOf(name, output[name], shape.results);
     if (verdict === undefined) {
       return {
         kind: "refused",
@@ -63,6 +90,7 @@ export function readVerdict(output: JsonObject | undefined): VerdictReading {
 function rubricVerdictOf(
   name: string,
   value: JsonValue | undefined,
+  allowed: ReadonlyArray<VerdictResultName>,
 ): RubricVerdict | undefined {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return undefined;
@@ -72,7 +100,8 @@ function rubricVerdictOf(
     return undefined;
   }
   const { result, reason } = value;
-  if (typeof result !== "string" || !Object.hasOwn(RESULTS, result)) {
+  const named = allowed.find((candidate) => candidate === result);
+  if (named === undefined) {
     return undefined;
   }
   if (
@@ -82,6 +111,5 @@ function rubricVerdictOf(
   ) {
     return undefined;
   }
-  const criterion = RESULTS[result];
-  return criterion === undefined ? undefined : { name, result: criterion, reason };
+  return { name, result: RESULTS[named], reason };
 }

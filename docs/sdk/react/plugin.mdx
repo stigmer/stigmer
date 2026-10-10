@@ -797,10 +797,11 @@ declares, what the push warned about, and its versions.
   type={{
     actions: { type: "readonly DetailAction[]", description: "Secondary actions rendered in the kebab overflow menu (remove lives here)." },
     activeTab: { type: "string", description: "" },
-    additionalTabs: { type: "readonly AdditionalTab[]", description: "Additional tabs beside the built-in Overview and Versions." },
+    additionalTabs: { type: "readonly AdditionalTab[]", description: "Additional tabs beside the built-in Overview, Evals and Versions." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "" },
     onAgentClick: { type: "(ref: ResourceRef) => void", description: "Called from \"Open agent\" after the plugin was added to one; the host owns the route." },
+    onNavigateToRun: { type: "(runId: string) => void", description: "Called with a run id when the user opens one of an eval's tries from the Evals tab; the host owns the route. Tries are listed without links when omitted." },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the plugin has been fetched, for breadcrumbs and titles. Not called on error or not-found." },
     onStartChat: { type: "(plugin: ResourceRef) => void", description: "Called from \"Start a chat\" with the plugin's reference: the host opens a new conversation with the assistant whose `plugins` list it. When provided, \"Start a chat\" is the header's primary action." },
     onTabChange: { type: "(tabId: string) => void", description: "" },

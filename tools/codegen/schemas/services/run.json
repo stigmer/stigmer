@@ -1912,7 +1912,7 @@
         {
           "name": "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
           "number": 7,
-          "description": "The default asked for an MCP tool because its server marks it destructive\n (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint\n annotation)."
+          "description": "The default asked for an MCP tool because its server marks it destructive\n (the tool's MCP destructiveHint annotation, read live from the server's\n tools each turn), or because its server's tools could not be listed."
         },
         {
           "name": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
@@ -2667,6 +2667,11 @@
           "name": "evaluator",
           "number": 62,
           "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
+        },
+        {
+          "name": "plugin_eval",
+          "number": 63,
+          "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
         },
         {
           "name": "plan",

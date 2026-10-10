@@ -304,4 +304,25 @@ message AuthorizationConfig {
   // `team#member` beside `identity_account`; the server's model transcripts
   // are held equal to this list by a test.
   repeated ai.stigmer.iam.v1.IamRole team_grantable_roles = 8;
+
+  // What each grantable role means on this kind, one sentence per role in
+  // grantable_roles, shown beside the role wherever a person picks or reads
+  // one (the share dialog's role picker, an invitation, an access list).
+  // The role's name is its own `role_meta.display_name`; this is the
+  // kind's meaning of it, because Viewer on an agent and Viewer on a
+  // conversation allow different things.
+  //
+  // @internal
+  // A server test holds this list equal to grantable_roles, one entry per
+  // role, so a role a kind grants never reaches a picker without its words.
+  repeated RoleDescription role_descriptions = 9;
+}
+
+// What one role means on one resource kind (AuthorizationConfig.role_descriptions).
+message RoleDescription {
+  // The role this sentence describes; one of the kind's grantable_roles.
+  ai.stigmer.iam.v1.IamRole role = 1;
+  // One sentence, in the words a person picking the role reads: what the
+  // role lets them do with this kind, and the nearest thing it does not.
+  string description = 2;
 }

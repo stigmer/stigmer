@@ -12,6 +12,7 @@ export type { BillingSectionProps } from "./BillingSection.js";
 export { MembersSection } from "./MembersSection.js";
 export { OrgProfileSection } from "./OrgProfileSection.js";
 export { OrgPreferencesSection } from "./OrgPreferencesSection.js";
+export { OrgPoliciesSection } from "./OrgPoliciesSection.js";
 export { AccountPreferencesSection } from "./AccountPreferencesSection.js";
 export { MemorySection } from "./MemorySection.js";
 export { VaultsSection } from "./VaultsSection.js";

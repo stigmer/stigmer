@@ -1,0 +1,1136 @@
+{
+  "resource": "plugineval",
+  "package": "ai.stigmer.agentic.plugineval.v1",
+  "goImportPath": "pluginevalv1",
+  "services": [
+    {
+      "name": "PluginEvalCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/plugineval/v1/command.proto",
+      "methods": [
+        {
+          "name": "Create",
+          "inputType": "PluginEval",
+          "inputFullType": "ai.stigmer.agentic.plugineval.v1.PluginEval",
+          "outputType": "PluginEval",
+          "outputFullType": "ai.stigmer.agentic.plugineval.v1.PluginEval",
+          "description": "Start an eval of a plugin's evals/ cases.\n\n The eval lives in its plugin's organization, which pays for every try.\n It returns at once, pending; get it again to follow its progress."
+        },
+        {
+          "name": "Cancel",
+          "inputType": "PluginEvalId",
+          "inputFullType": "ai.stigmer.agentic.plugineval.v1.PluginEvalId",
+          "outputType": "PluginEval",
+          "outputFullType": "ai.stigmer.agentic.plugineval.v1.PluginEval",
+          "description": "Cancel a pending or running eval.\n\n Tries in flight are stopped; the eval ends partial, \"cancelled\", with\n the results of the tries that finished. Cancelling a finished eval\n changes nothing."
+        },
+        {
+          "name": "Delete",
+          "inputType": "PluginEvalId",
+          "inputFullType": "ai.stigmer.agentic.plugineval.v1.PluginEvalId",
+          "outputType": "PluginEval",
+          "outputFullType": "ai.stigmer.agentic.plugineval.v1.PluginEval",
+          "description": "Delete an eval with its tries' conversations, runs and scores.\n\n A pending or running eval is refused: cancel it first."
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/plugineval/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "PluginEvalId",
+          "inputFullType": "ai.stigmer.agentic.plugineval.v1.PluginEvalId",
+          "outputType": "PluginEval",
+          "outputFullType": "ai.stigmer.agentic.plugineval.v1.PluginEval",
+          "description": "Get a single eval by ID."
+        },
+        {
+          "name": "ListByPlugin",
+          "inputType": "ListPluginEvalsByPluginRequest",
+          "inputFullType": "ai.stigmer.agentic.plugineval.v1.ListPluginEvalsByPluginRequest",
+          "outputType": "PluginEvalList",
+          "outputFullType": "ai.stigmer.agentic.plugineval.v1.PluginEvalList",
+          "description": "List a plugin's evals, newest first.\n\n Each eval comes with its scores, aggregates, per-target results and\n notes, but with every arm's `tries` list empty, so a list stays small\n however many tries its evals ran. Get an eval by its id for its tries."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "ListPluginEvalsByPluginRequest",
+      "description": "ListPluginEvalsByPluginRequest names the plugin whose evals to list.",
+      "protoType": "ai.stigmer.agentic.plugineval.v1.ListPluginEvalsByPluginRequest",
+      "protoFile": "apis/ai/stigmer/agentic/plugineval/v1/io.proto",
+      "fields": [
+        {
+          "name": "PluginId",
+          "jsonName": "pluginId",
+          "protoField": "plugin_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the plugin.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalList",
+      "description": "PluginEvalList is a list of plugin evals.",
+      "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalList",
+      "protoFile": "apis/ai/stigmer/agentic/plugineval/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of evals in the list.",
+          "required": false
+        },
+        {
+          "name": "Items",
+          "jsonName": "items",
+          "protoField": "items",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginEval"
+            }
+          },
+          "description": "The evals, newest first.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "PluginEvalPhase",
+      "description": "PluginEvalPhase is where an eval is.",
+      "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalPhase",
+      "values": [
+        {
+          "name": "plugin_eval_phase_pending",
+          "number": 1,
+          "description": "Created; the suite has not started."
+        },
+        {
+          "name": "plugin_eval_phase_running",
+          "number": 2,
+          "description": "Tries are running."
+        },
+        {
+          "name": "plugin_eval_phase_completed",
+          "number": 3,
+          "description": "Every planned try finished."
+        },
+        {
+          "name": "plugin_eval_phase_partial",
+          "number": 4,
+          "description": "The eval stopped before every try ran; partial_reason says why. The\n results cover the tries that ran."
+        },
+        {
+          "name": "plugin_eval_phase_failed",
+          "number": 5,
+          "description": "The eval could not run at all; error says why."
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalPartialReason",
+      "description": "PluginEvalPartialReason is why an eval stopped early.",
+      "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalPartialReason",
+      "values": [
+        {
+          "name": "plugin_eval_partial_reason_cost_ceiling",
+          "number": 1,
+          "description": "The eval's spending limit was reached."
+        },
+        {
+          "name": "plugin_eval_partial_reason_out_of_credit",
+          "number": 2,
+          "description": "The organization ran out of credit."
+        },
+        {
+          "name": "plugin_eval_partial_reason_cancelled",
+          "number": 3,
+          "description": "Someone cancelled the eval."
+        }
+      ]
+    },
+    {
+      "name": "Harness",
+      "description": "Harness identifies the execution engine that processes agent activities\n for a session.\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs engine-native)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.",
+      "protoType": "ai.stigmer.agentic.session.v1.Harness",
+      "values": [
+        {
+          "name": "HARNESS_NATIVE",
+          "number": 1,
+          "description": "Stigmer's native execution engine.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
+        },
+        {
+          "name": "HARNESS_CURSOR",
+          "number": 2,
+          "description": "Cursor SDK execution engine.\n\n Cursor-managed conversation state, Cursor built-in tools + MCP,\n both local and cloud runtimes. Premium billing tier."
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalTryState",
+      "description": "PluginEvalTryState is where a try is.",
+      "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalTryState",
+      "values": [
+        {
+          "name": "plugin_eval_try_state_pending",
+          "number": 1,
+          "description": "Planned; not started."
+        },
+        {
+          "name": "plugin_eval_try_state_running",
+          "number": 2,
+          "description": "Its run is running or being graded."
+        },
+        {
+          "name": "plugin_eval_try_state_graded",
+          "number": 3,
+          "description": "Graded; score holds the result."
+        },
+        {
+          "name": "plugin_eval_try_state_not_graded",
+          "number": 4,
+          "description": "Finished without a score; not_graded_reason says why."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)\n - PUBLIC: retired; see the value's own comment.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Retired. This level made a resource readable to every account on the\n server; it is refused at create and at updateVisibility for every kind,\n and every stored row that held it has been moved to visibility_org.\n Sharing across organizations happens through plugins (a copy is\n installed and owned) or, from a parent organization to its children,\n through visibility_child_orgs."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role SSO auto-provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+        },
+        {
+          "name": "visibility_child_orgs",
+          "number": 4,
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalAblation",
+      "description": "PluginEvalAblation says whether a case also runs without the plugin.",
+      "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalAblation",
+      "values": [
+        {
+          "name": "plugin_eval_ablation_with_without",
+          "number": 1,
+          "description": "Runs with and without the plugin."
+        },
+        {
+          "name": "plugin_eval_ablation_none",
+          "number": 2,
+          "description": "Runs with the plugin only; no comparison is made."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "team",
+          "number": 24,
+          "description": "Named group of an organization's people that access is shared with as one."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "The boundary that holds people, Agents, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "run",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
+        },
+        {
+          "name": "schedule",
+          "number": 56,
+          "description": "Recurring trigger that runs an agent on a cron schedule."
+        },
+        {
+          "name": "memory",
+          "number": 57,
+          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
+        },
+        {
+          "name": "plugin",
+          "number": 58,
+          "description": "An installed Agent Plugins package: one thing holding skills, agents,\n hooks and MCP servers, which agents and conversations list whole."
+        },
+        {
+          "name": "vault",
+          "number": 59,
+          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
+        },
+        {
+          "name": "score",
+          "number": 61,
+          "description": "One grade of a finished run: a person's thumbs or a free run-health\n check."
+        },
+        {
+          "name": "evaluator",
+          "number": 62,
+          "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
+        },
+        {
+          "name": "plugin_eval",
+          "number": 63,
+          "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
+        },
+        {
+          "name": "plan",
+          "number": 70,
+          "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
+        },
+        {
+          "name": "subscription",
+          "number": 71,
+          "description": "An organization's binding to a Plan; at most one active per organization.\n\n System-created: the payment system drives its lifecycle, so it has no\n owner and grants no roles. Its reads and writes authorize on the\n organization through the billing permissions."
+        },
+        {
+          "name": "license",
+          "number": 72,
+          "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "PluginEval is one run of a plugin's own evals.\n\n A plugin author writes test cases in the plugin's evals/ folder, in\n Claude Code's plugin-eval format: a request a user might type, plus\n checks such as \"the reply mentions the renamed function\", \"the skill was\n used\" or a rubric for an AI judge. A PluginEval runs every case several\n times with the plugin and several times without it, on each model it\n names, and records per case the score with and without the plugin, the\n difference, and whether every try passed. Every try is a conversation:\n in Stigmer Cloud the eval's viewers open it, read-only; in open source the\n eval's creator owns it, and the other viewers read its scores.",
+  "statusType": {
+    "name": "PluginEvalStatus",
+    "description": "PluginEvalStatus holds an eval's progress and results: per case, per\n target and per arm, the score, the difference the plugin makes, and\n every try with its run.",
+    "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalStatus",
+    "protoFile": "apis/ai/stigmer/agentic/plugineval/v1/status.proto",
+    "fields": [
+      {
+        "name": "Phase",
+        "jsonName": "phase",
+        "protoField": "phase",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.plugineval.v1.PluginEvalPhase",
+          "enumValues": [
+            "plugin_eval_phase_pending",
+            "plugin_eval_phase_running",
+            "plugin_eval_phase_completed",
+            "plugin_eval_phase_partial",
+            "plugin_eval_phase_failed"
+          ]
+        },
+        "description": "Where the eval is.",
+        "required": false
+      },
+      {
+        "name": "PartialReason",
+        "jsonName": "partialReason",
+        "protoField": "partial_reason",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.plugineval.v1.PluginEvalPartialReason",
+          "enumValues": [
+            "plugin_eval_partial_reason_cost_ceiling",
+            "plugin_eval_partial_reason_out_of_credit",
+            "plugin_eval_partial_reason_cancelled"
+          ]
+        },
+        "description": "Why a partial eval stopped early; unspecified otherwise.",
+        "required": false
+      },
+      {
+        "name": "Error",
+        "jsonName": "error",
+        "protoField": "error",
+        "type": {
+          "kind": "string"
+        },
+        "description": "One sentence naming what failed when the phase is failed, as in\n \"the plugin archive could not be read\"; empty otherwise.",
+        "required": false
+      },
+      {
+        "name": "Cases",
+        "jsonName": "cases",
+        "protoField": "cases",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "PluginEvalCase"
+          }
+        },
+        "description": "The cases the suite holds, in directory order, each with its\n results.",
+        "required": false
+      },
+      {
+        "name": "Aggregates",
+        "jsonName": "aggregates",
+        "protoField": "aggregates",
+        "type": {
+          "kind": "message",
+          "messageType": "PluginEvalAggregates"
+        },
+        "description": "The suite's totals.",
+        "required": false
+      },
+      {
+        "name": "CostUsd",
+        "jsonName": "costUsd",
+        "protoField": "cost_usd",
+        "type": {
+          "kind": "double"
+        },
+        "description": "Estimated model cost so far of every try and every AI-graded check,\n in US dollars.",
+        "required": false
+      },
+      {
+        "name": "TriesTotal",
+        "jsonName": "triesTotal",
+        "protoField": "tries_total",
+        "type": {
+          "kind": "int32"
+        },
+        "description": "Tries the eval plans in all, and tries finished.",
+        "required": false
+      },
+      {
+        "name": "TriesFinished",
+        "jsonName": "triesFinished",
+        "protoField": "tries_finished",
+        "type": {
+          "kind": "int32"
+        },
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "StartedAt",
+        "jsonName": "startedAt",
+        "protoField": "started_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "When the eval started running and when it finished.",
+        "required": false
+      },
+      {
+        "name": "FinishedAt",
+        "jsonName": "finishedAt",
+        "protoField": "finished_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "ProvisionalDelta",
+        "jsonName": "provisionalDelta",
+        "protoField": "provisional_delta",
+        "type": {
+          "kind": "bool"
+        },
+        "description": "True when the comparison with and without the plugin also measured an\n agent Stigmer composed for the plugin at install, not only the plugin:\n an eval made before conversations listed plugins directly. Every eval\n made since runs both arms on the assistant, the with-plugin arm with the\n plugin listed, and records false.",
+        "required": false
+      },
+      {
+        "name": "VaultAttachers",
+        "jsonName": "vaultAttachers",
+        "protoField": "vault_attachers",
+        "type": {
+          "kind": "map",
+          "keyType": {
+            "kind": "string"
+          },
+          "valueType": {
+            "kind": "string"
+          }
+        },
+        "description": "Who attached each of this eval's vaults, by vault id: the account\n whose permission to use the vault each try checks, since a try has no\n person.",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        },
+        {
+          "name": "PlatformClientId",
+          "jsonName": "platformClientId",
+          "protoField": "platform_client_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The PlatformClient whose minted user token the actor acted through.\n Empty for every other credential, and on an actor that records no act\n (an account's profile lookup).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalAggregates",
+      "description": "PluginEvalAggregates are the suite's totals, in Claude Code's names.",
+      "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalAggregates",
+      "protoFile": "apis/ai/stigmer/agentic/plugineval/v1/status.proto",
+      "fields": [
+        {
+          "name": "OverallScore",
+          "jsonName": "overallScore",
+          "protoField": "overall_score",
+          "type": {
+            "kind": "double"
+          },
+          "description": "The mean with-plugin score over the cases that ran.",
+          "required": false
+        },
+        {
+          "name": "CasesPassed",
+          "jsonName": "casesPassed",
+          "protoField": "cases_passed",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Cases whose with-plugin score reached the threshold on every target.",
+          "required": false
+        },
+        {
+          "name": "CasesTotal",
+          "jsonName": "casesTotal",
+          "protoField": "cases_total",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Cases that ran.",
+          "required": false
+        },
+        {
+          "name": "MeanDelta",
+          "jsonName": "meanDelta",
+          "protoField": "mean_delta",
+          "type": {
+            "kind": "double"
+          },
+          "description": "The mean difference the plugin made, over the cases with a\n comparison; unset when none had one.",
+          "required": false,
+          "oneofGroup": "_mean_delta"
+        },
+        {
+          "name": "CasesNotRun",
+          "jsonName": "casesNotRun",
+          "protoField": "cases_not_run",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Cases listed but not run.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalArm",
+      "description": "PluginEvalArm is one arm's tries and their summary.",
+      "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalArm",
+      "protoFile": "apis/ai/stigmer/agentic/plugineval/v1/status.proto",
+      "fields": [
+        {
+          "name": "Score",
+          "jsonName": "score",
+          "protoField": "score",
+          "type": {
+            "kind": "double"
+          },
+          "description": "The mean score of the graded tries; unset when none was graded.",
+          "required": false,
+          "oneofGroup": "_score"
+        },
+        {
+          "name": "PerfectRuns",
+          "jsonName": "perfectRuns",
+          "protoField": "perfect_runs",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Graded tries in which every scored check passed.",
+          "required": false
+        },
+        {
+          "name": "GradedTries",
+          "jsonName": "gradedTries",
+          "protoField": "graded_tries",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Tries that produced a score.",
+          "required": false
+        },
+        {
+          "name": "Tries",
+          "jsonName": "tries",
+          "protoField": "tries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginEvalTry"
+            }
+          },
+          "description": "Every try, in order.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalCase",
+      "description": "PluginEvalCase is one case of the suite and its results.",
+      "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalCase",
+      "protoFile": "apis/ai/stigmer/agentic/plugineval/v1/status.proto",
+      "fields": [
+        {
+          "name": "CaseName",
+          "jsonName": "caseName",
+          "protoField": "case_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The case's name, from its case.yaml or its directory.",
+          "required": false
+        },
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The case's directory, relative to the plugin's root, as in\n \"evals/review-fires\".",
+          "required": false
+        },
+        {
+          "name": "CaseTags",
+          "jsonName": "caseTags",
+          "protoField": "case_tags",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "The case's tags.",
+          "required": false
+        },
+        {
+          "name": "NotRunReason",
+          "jsonName": "notRunReason",
+          "protoField": "not_run_reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Why the case is not run, naming the feature Stigmer does not run yet,\n as in \"not run: context.scaffold_script\"; empty when the case runs.",
+          "required": false
+        },
+        {
+          "name": "Targets",
+          "jsonName": "targets",
+          "protoField": "targets",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginEvalCaseTarget"
+            }
+          },
+          "description": "Results per target, in the eval's target order.",
+          "required": false
+        },
+        {
+          "name": "Notes",
+          "jsonName": "notes",
+          "protoField": "notes",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Notes about how the case was run, as in \"max_turns 4 raised to the\n run's minimum of 10 tool rounds\".",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalCaseTarget",
+      "description": "PluginEvalCaseTarget is one case's results on one target.",
+      "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalCaseTarget",
+      "protoFile": "apis/ai/stigmer/agentic/plugineval/v1/status.proto",
+      "fields": [
+        {
+          "name": "Target",
+          "jsonName": "target",
+          "protoField": "target",
+          "type": {
+            "kind": "message",
+            "messageType": "PluginEvalTarget"
+          },
+          "description": "The engine and model.",
+          "required": false
+        },
+        {
+          "name": "NotRunReason",
+          "jsonName": "notRunReason",
+          "protoField": "not_run_reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Why this case did not run on this target, as in \"not run: model\n 'sonnet' is not in Stigmer's catalog\"; empty when it ran.",
+          "required": false
+        },
+        {
+          "name": "WithPlugin",
+          "jsonName": "withPlugin",
+          "protoField": "with_plugin",
+          "type": {
+            "kind": "message",
+            "messageType": "PluginEvalArm"
+          },
+          "description": "The tries with the plugin.",
+          "required": false
+        },
+        {
+          "name": "WithoutPlugin",
+          "jsonName": "withoutPlugin",
+          "protoField": "without_plugin",
+          "type": {
+            "kind": "message",
+            "messageType": "PluginEvalArm"
+          },
+          "description": "The tries without the plugin; unset when the eval makes no\n comparison.",
+          "required": false
+        },
+        {
+          "name": "Delta",
+          "jsonName": "delta",
+          "protoField": "delta",
+          "type": {
+            "kind": "double"
+          },
+          "description": "The with-plugin score minus the without-plugin score; unset when\n either is missing.",
+          "required": false,
+          "oneofGroup": "_delta"
+        },
+        {
+          "name": "Passed",
+          "jsonName": "passed",
+          "protoField": "passed",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the with-plugin score reached the threshold.",
+          "required": false
+        },
+        {
+          "name": "PassK",
+          "jsonName": "passK",
+          "protoField": "pass_k",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether every with-plugin try scored 1 (pass^k, k being the tries).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalTarget",
+      "description": "PluginEvalTarget is one engine and model a case runs on.",
+      "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalTarget",
+      "protoFile": "apis/ai/stigmer/agentic/plugineval/v1/spec.proto",
+      "fields": [
+        {
+          "name": "Harness",
+          "jsonName": "harness",
+          "protoField": "harness",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.session.v1.Harness",
+            "enumValues": [
+              "HARNESS_NATIVE",
+              "HARNESS_CURSOR"
+            ]
+          },
+          "description": "The engine. Unspecified is the native engine.",
+          "required": false
+        },
+        {
+          "name": "ModelName",
+          "jsonName": "modelName",
+          "protoField": "model_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "A model id from the model catalog for that engine, as in\n \"claude-sonnet-4-6\". Empty uses the engine's default model.",
+          "required": false,
+          "validation": {
+            "maxLength": 128
+          }
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalTry",
+      "description": "PluginEvalTry is one try: one run in a fresh conversation.",
+      "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalTry",
+      "protoFile": "apis/ai/stigmer/agentic/plugineval/v1/status.proto",
+      "fields": [
+        {
+          "name": "Index",
+          "jsonName": "index",
+          "protoField": "index",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The try's number in its arm, from 1.",
+          "required": false
+        },
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The conversation and run of the try; empty until they exist.",
+          "required": false
+        },
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "State",
+          "jsonName": "state",
+          "protoField": "state",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.plugineval.v1.PluginEvalTryState",
+            "enumValues": [
+              "plugin_eval_try_state_pending",
+              "plugin_eval_try_state_running",
+              "plugin_eval_try_state_graded",
+              "plugin_eval_try_state_not_graded"
+            ]
+          },
+          "description": "Where the try is.",
+          "required": false
+        },
+        {
+          "name": "Score",
+          "jsonName": "score",
+          "protoField": "score",
+          "type": {
+            "kind": "double"
+          },
+          "description": "The try's score from 0 to 1 when graded: the weighted share of its\n scored checks that passed.",
+          "required": false
+        },
+        {
+          "name": "NotGradedReason",
+          "jsonName": "notGradedReason",
+          "protoField": "not_graded_reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Why the try produced no score, as in \"platform busy\" or \"out of\n credit\"; empty when graded.",
+          "required": false
+        },
+        {
+          "name": "Error",
+          "jsonName": "error",
+          "protoField": "error",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run's own failure, when it had one, as in \"timed out after 300s\".",
+          "required": false
+        },
+        {
+          "name": "CostUsd",
+          "jsonName": "costUsd",
+          "protoField": "cost_usd",
+          "type": {
+            "kind": "double"
+          },
+          "description": "The try's estimated model cost, AI-graded checks included, in US\n dollars.",
+          "required": false
+        },
+        {
+          "name": "DurationSeconds",
+          "jsonName": "durationSeconds",
+          "protoField": "duration_seconds",
+          "type": {
+            "kind": "double"
+          },
+          "description": "How long the try ran, in seconds.",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

@@ -212,6 +212,18 @@ describe("the turn input across the pipe", () => {
     expect(calls).toEqual(["recall", "upload artifacts/x/a.txt", "verify lint"]);
   });
 
+  it("carries the turn's appended system prompt and a turn layer that hides skills", () => {
+    const input = turnInputFixture();
+    const scope = ToolScope.of("The agent", { tools: [], disallowedTools: [] }).narrow("The turn", {
+      tools: ["Read"],
+      disallowedTools: ["Skill"],
+    });
+    const decoded = crossed({ ...input, appendSystemPrompt: "Answer in one line.", mcp: { ...input.mcp, toolScope: scope } });
+
+    expect(decoded.appendSystemPrompt).toBe("Answer in one line.");
+    expect(decoded.mcp.toolScope.hidesSkills).toBe(true);
+  });
+
   it("carries no artifact store when the runtime resolved none", () => {
     expect(crossed(turnInputFixture()).artifactStorage).toBeUndefined();
   });

@@ -759,7 +759,9 @@ async function getPrincipalResourceRoles(
   const roles = rows
     .map((policy) => policy.spec?.relation ?? "")
     .filter(isAssignableRole)
-    .map(roleInfoFromRelation);
+    .map((relation) =>
+      roleInfoFromRelation(relation, kindByEnumName(resource.kind)),
+    );
   return create(PrincipalResourceRolesSchema, { roles });
 }
 

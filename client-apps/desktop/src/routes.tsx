@@ -15,6 +15,7 @@ import {
   MemorySection,
   OAuthAppsSection,
   OrgPreferencesSection,
+  OrgPoliciesSection,
   OrgProfileSection,
   PlatformClientsSection,
   TeamsSection,
@@ -260,6 +261,7 @@ const routes: RouteObject[] = [
               { path: "teams", element: <TeamsSection /> },
               { path: "org-profile", element: <OrgProfileSection /> },
               { path: "org-preferences", element: <OrgPreferencesSection /> },
+              { path: "org-policies", element: <OrgPoliciesSection /> },
               {
                 path: "account-preferences",
                 element: <AccountPreferencesSection />,

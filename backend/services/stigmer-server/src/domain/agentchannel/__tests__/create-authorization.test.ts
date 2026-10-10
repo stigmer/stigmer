@@ -2,9 +2,10 @@
  * Pins the create lane's authorization question (steps.ts,
  * resolveChannelCreateTargets): can_manage_audience on the REFERENCED AGENT
  * with the Java handler's copy (binding a channel widens who reaches the
- * agent, the owner's decision, so an editor's can_edit is not enough), and
- * nothing on the organization (the same-org invariant already binds the
- * channel to the agent's); a missing referenced agent throws.
+ * agent, the owner's decision, so an editor's can_edit is not enough), then
+ * can_create_agent_channel on the channel's organization (a channel spends
+ * the organization's credits, an admin-level act, and a member owns the
+ * agents they create); a missing referenced agent throws.
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
@@ -18,6 +19,7 @@ import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import {
   CHANNEL_CREATE_DENIED_MESSAGE,
+  CHANNEL_ORGANIZATION_DENIED_MESSAGE,
   REFERENCED_AGENT_KEY,
   resolveChannelCreateTargets,
 } from "../steps.js";
@@ -40,13 +42,19 @@ function ctxFor(stash = true) {
 }
 
 describe("resolveChannelCreateTargets", () => {
-  it("asks can_manage_audience on the referenced agent and nothing else", () => {
+  it("asks can_manage_audience on the referenced agent, then can_create_agent_channel on the organization", () => {
     expect(resolveChannelCreateTargets(ctxFor())).toEqual([
       {
         permission: IamPermission.can_manage_audience,
         resourceKind: ApiResourceKind.agent,
         resourceId: "agt_01target",
         deniedMessage: CHANNEL_CREATE_DENIED_MESSAGE,
+      },
+      {
+        permission: IamPermission.can_create_agent_channel,
+        resourceKind: ApiResourceKind.organization,
+        resourceId: "acme",
+        deniedMessage: CHANNEL_ORGANIZATION_DENIED_MESSAGE,
       },
     ]);
   });

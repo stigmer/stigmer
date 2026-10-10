@@ -1,0 +1,243 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.plugineval.v1;
+
+import "ai/stigmer/agentic/plugineval/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "google/protobuf/timestamp.proto";
+
+// PluginEvalStatus holds an eval's progress and results: per case, per
+// target and per arm, the score, the difference the plugin makes, and
+// every try with its run.
+//
+// @internal
+// Written only by the eval's workflow, one write at a time (the parent
+// workflow is the single writer; each case run reports to it), so no two
+// writers race on the row. Create starts it pending and empty. The shape
+// mirrors Claude Code's plugin-eval result file, whose field names the
+// CLI's --json output keeps.
+message PluginEvalStatus {
+  // Where the eval is.
+  PluginEvalPhase phase = 1;
+
+  // Why a partial eval stopped early; unspecified otherwise.
+  PluginEvalPartialReason partial_reason = 2;
+
+  // One sentence naming what failed when the phase is failed, as in
+  // "the plugin archive could not be read"; empty otherwise.
+  string error = 3;
+
+  // The cases the suite holds, in directory order, each with its
+  // results.
+  repeated PluginEvalCase cases = 4;
+
+  // The suite's totals.
+  PluginEvalAggregates aggregates = 5;
+
+  // Estimated model cost so far of every try and every AI-graded check,
+  // in US dollars.
+  double cost_usd = 6;
+
+  // Tries the eval plans in all, and tries finished.
+  int32 tries_total = 7;
+  int32 tries_finished = 8;
+
+  // When the eval started running and when it finished.
+  google.protobuf.Timestamp started_at = 9;
+  google.protobuf.Timestamp finished_at = 10;
+
+  // True when the comparison with and without the plugin also measured an
+  // agent Stigmer composed for the plugin at install, not only the plugin:
+  // an eval made before conversations listed plugins directly. Every eval
+  // made since runs both arms on the assistant, the with-plugin arm with the
+  // plugin listed, and records false.
+  bool provisional_delta = 11;
+
+  // Who attached each of this eval's vaults, by vault id: the account
+  // whose permission to use the vault each try checks, since a try has no
+  // person.
+  //
+  // @internal
+  // Server-owned, written at create (the schedule's reference rule).
+  map<string, string> vault_attachers = 12;
+
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}
+
+// PluginEvalPhase is where an eval is.
+enum PluginEvalPhase {
+  plugin_eval_phase_unspecified = 0;
+
+  // Created; the suite has not started.
+  plugin_eval_phase_pending = 1;
+
+  // Tries are running.
+  plugin_eval_phase_running = 2;
+
+  // Every planned try finished.
+  plugin_eval_phase_completed = 3;
+
+  // The eval stopped before every try ran; partial_reason says why. The
+  // results cover the tries that ran.
+  plugin_eval_phase_partial = 4;
+
+  // The eval could not run at all; error says why.
+  plugin_eval_phase_failed = 5;
+}
+
+// PluginEvalPartialReason is why an eval stopped early.
+enum PluginEvalPartialReason {
+  plugin_eval_partial_reason_unspecified = 0;
+
+  // The eval's spending limit was reached.
+  plugin_eval_partial_reason_cost_ceiling = 1;
+
+  // The organization ran out of credit.
+  plugin_eval_partial_reason_out_of_credit = 2;
+
+  // Someone cancelled the eval.
+  plugin_eval_partial_reason_cancelled = 3;
+}
+
+// PluginEvalCase is one case of the suite and its results.
+message PluginEvalCase {
+  // The case's name, from its case.yaml or its directory.
+  string case_name = 1;
+
+  // The case's directory, relative to the plugin's root, as in
+  // "evals/review-fires".
+  string path = 2;
+
+  // The case's tags.
+  repeated string case_tags = 3;
+
+  // Why the case is not run, naming the feature Stigmer does not run yet,
+  // as in "not run: context.scaffold_script"; empty when the case runs.
+  //
+  // @internal
+  // A case is never run degraded: one that needs an unsupported feature is
+  // listed here instead of being scored without it.
+  string not_run_reason = 4;
+
+  // Results per target, in the eval's target order.
+  repeated PluginEvalCaseTarget targets = 5;
+
+  // Notes about how the case was run, as in "max_turns 4 raised to the
+  // run's minimum of 10 tool rounds".
+  repeated string notes = 6;
+}
+
+// PluginEvalCaseTarget is one case's results on one target.
+message PluginEvalCaseTarget {
+  // The engine and model.
+  PluginEvalTarget target = 1;
+
+  // Why this case did not run on this target, as in "not run: model
+  // 'sonnet' is not in Stigmer's catalog"; empty when it ran.
+  string not_run_reason = 2;
+
+  // The tries with the plugin.
+  PluginEvalArm with_plugin = 3;
+
+  // The tries without the plugin; unset when the eval makes no
+  // comparison.
+  PluginEvalArm without_plugin = 4;
+
+  // The with-plugin score minus the without-plugin score; unset when
+  // either is missing.
+  optional double delta = 5;
+
+  // Whether the with-plugin score reached the threshold.
+  bool passed = 6;
+
+  // Whether every with-plugin try scored 1 (pass^k, k being the tries).
+  bool pass_k = 7;
+}
+
+// PluginEvalArm is one arm's tries and their summary.
+message PluginEvalArm {
+  // The mean score of the graded tries; unset when none was graded.
+  optional double score = 1;
+
+  // Graded tries in which every scored check passed.
+  int32 perfect_runs = 2;
+
+  // Tries that produced a score.
+  int32 graded_tries = 3;
+
+  // Every try, in order.
+  repeated PluginEvalTry tries = 4;
+}
+
+// PluginEvalTry is one try: one run in a fresh conversation.
+message PluginEvalTry {
+  // The try's number in its arm, from 1.
+  int32 index = 1;
+
+  // The conversation and run of the try; empty until they exist.
+  string session_id = 2;
+  string run_id = 3;
+
+  // Where the try is.
+  PluginEvalTryState state = 4;
+
+  // The try's score from 0 to 1 when graded: the weighted share of its
+  // scored checks that passed.
+  double score = 5;
+
+  // Why the try produced no score, as in "platform busy" or "out of
+  // credit"; empty when graded.
+  //
+  // @internal
+  // A platform failure is never a zero: the try is left out of every mean
+  // and named here. An agent failure (a timeout, a turn cap, a run error)
+  // is graded on what the run produced, with error set.
+  string not_graded_reason = 6;
+
+  // The run's own failure, when it had one, as in "timed out after 300s".
+  string error = 7;
+
+  // The try's estimated model cost, AI-graded checks included, in US
+  // dollars.
+  double cost_usd = 8;
+
+  // How long the try ran, in seconds.
+  double duration_seconds = 9;
+}
+
+// PluginEvalTryState is where a try is.
+enum PluginEvalTryState {
+  plugin_eval_try_state_unspecified = 0;
+
+  // Planned; not started.
+  plugin_eval_try_state_pending = 1;
+
+  // Its run is running or being graded.
+  plugin_eval_try_state_running = 2;
+
+  // Graded; score holds the result.
+  plugin_eval_try_state_graded = 3;
+
+  // Finished without a score; not_graded_reason says why.
+  plugin_eval_try_state_not_graded = 4;
+}
+
+// PluginEvalAggregates are the suite's totals, in Claude Code's names.
+message PluginEvalAggregates {
+  // The mean with-plugin score over the cases that ran.
+  double overall_score = 1;
+
+  // Cases whose with-plugin score reached the threshold on every target.
+  int32 cases_passed = 2;
+
+  // Cases that ran.
+  int32 cases_total = 3;
+
+  // The mean difference the plugin made, over the cases with a
+  // comparison; unset when none had one.
+  optional double mean_delta = 4;
+
+  // Cases listed but not run.
+  int32 cases_not_run = 5;
+}

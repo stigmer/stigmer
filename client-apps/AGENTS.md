@@ -27,8 +27,8 @@ there. This guide is an index; the READMEs and headers it names are the truth.
   errors. `-o json` (and `yaml`, `ndjson`) prints clean, undecorated data.
 - Errors are translated, never leaked: what happened, why, what to do, through
   the one exit point in `cli/src/errors/handle.ts`; exit codes follow
-  `cli/src/errors/exit-codes.ts` so scripts branch on `$?`. Raw stacks appear
-  only in debug mode.
+  `cli/src/errors/exit-codes.ts` so scripts branch on `$?`; `plugin eval`
+  departs, as its header says. Raw stacks appear only in debug mode.
 - Off a TTY there are no colours, spinners or prompts: colour honours the stream
   and `NO_COLOR`, a destructive command without `--force` aborts, and a headless
   run resolves each approval by `--approve-default` (skip when unset), never by
@@ -41,8 +41,8 @@ there. This guide is an index; the READMEs and headers it names are the truth.
   `completion` stay fast.
 - The CLI is verb-first: a resource kind is an argument to a verb (`push skill`,
   `get agent`, `validate -f`), never a noun group of its own. Noun groups exist
-  only for account and infrastructure nouns (`auth`, `apikey`, `config`, `runs`)
-  and `vault`, whose entries are written by its own verbs and never read back.
+  only for account and infrastructure nouns (`auth`, `apikey`, `config`,
+  `runs`), `vault` and `plugin`, each header saying why.
 
 ## Laws, web and desktop
 

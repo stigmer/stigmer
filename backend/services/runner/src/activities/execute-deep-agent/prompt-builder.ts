@@ -207,6 +207,13 @@ export interface PromptBuilderInput {
    * deleted memory is gone from the very next turn.
    */
   recalledMemories?: RecalledMemoriesContent;
+  /**
+   * The turn's own addition to the system prompt (`spec.append_system_prompt`,
+   * Claude Code's `--append-system-prompt`), appended last, after the agent's
+   * instructions and every platform section. Per turn: the system prompt is
+   * rebuilt per invocation, so the next turn's prompt carries its own or none.
+   */
+  appendSystemPrompt?: string;
 }
 
 // The prompt renders the attachment resolver's own result type — a local
@@ -285,6 +292,10 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
     prompt +=
       "\n\n## Implement the approved plan\n\n" +
       buildImplementPlanDirective(input.approvedPlanPath);
+  }
+
+  if (input.appendSystemPrompt) {
+    prompt += "\n\n" + input.appendSystemPrompt;
   }
 
   return prompt;

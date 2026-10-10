@@ -192,6 +192,9 @@ export interface RunInput {
   interactionMode?: InteractionMode;
   buildFromPlan?: boolean;
   structuredOutputSchema?: JsonObject;
+  tools?: string[];
+  disallowedTools?: string[];
+  appendSystemPrompt?: string;
   autoApproveAll?: boolean;
   attachments?: AttachmentInput[];
   workspaceFileRefs?: string[];
@@ -360,6 +363,9 @@ export function buildRunProto(input: RunInput): Run {
     interactionMode: input.interactionMode,
     buildFromPlan: input.buildFromPlan,
     structuredOutputSchema: input.structuredOutputSchema,
+    tools: input.tools,
+    disallowedTools: input.disallowedTools,
+    appendSystemPrompt: input.appendSystemPrompt,
     autoApproveAll: input.autoApproveAll,
     attachments,
     workspaceFileRefs: input.workspaceFileRefs,
@@ -496,6 +502,9 @@ export function toRunUpdateInput(resource: Run): RunInput {
     interactionMode: spec.interactionMode || undefined,
     buildFromPlan: spec.buildFromPlan || undefined,
     structuredOutputSchema: spec.structuredOutputSchema,
+    tools: spec.tools?.length ? [...spec.tools] : undefined,
+    disallowedTools: spec.disallowedTools?.length ? [...spec.disallowedTools] : undefined,
+    appendSystemPrompt: spec.appendSystemPrompt || undefined,
     autoApproveAll: spec.autoApproveAll || undefined,
     attachments: spec.attachments?.length ? spec.attachments.map(toAttachmentInput) : undefined,
     workspaceFileRefs: spec.workspaceFileRefs?.length ? [...spec.workspaceFileRefs] : undefined,

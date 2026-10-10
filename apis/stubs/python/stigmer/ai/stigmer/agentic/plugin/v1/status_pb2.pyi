@@ -11,7 +11,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class PluginStatus(_message.Message):
-    __slots__ = ("audit", "digest", "artifact_storage_key", "warnings", "hooks", "skills", "agents", "mcp_servers", "env")
+    __slots__ = ("audit", "digest", "artifact_storage_key", "warnings", "hooks", "evals", "skills", "agents", "mcp_servers", "env")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -24,6 +24,7 @@ class PluginStatus(_message.Message):
     ARTIFACT_STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
     WARNINGS_FIELD_NUMBER: _ClassVar[int]
     HOOKS_FIELD_NUMBER: _ClassVar[int]
+    EVALS_FIELD_NUMBER: _ClassVar[int]
     SKILLS_FIELD_NUMBER: _ClassVar[int]
     AGENTS_FIELD_NUMBER: _ClassVar[int]
     MCP_SERVERS_FIELD_NUMBER: _ClassVar[int]
@@ -33,11 +34,12 @@ class PluginStatus(_message.Message):
     artifact_storage_key: str
     warnings: _containers.RepeatedCompositeFieldContainer[PluginWarning]
     hooks: _hooks_pb2.HookConfig
+    evals: PluginEvalSuite
     skills: _containers.RepeatedCompositeFieldContainer[PluginSkill]
     agents: _containers.RepeatedCompositeFieldContainer[PluginAgent]
     mcp_servers: _containers.RepeatedCompositeFieldContainer[McpServerEntry]
     env: _containers.MessageMap[str, _declaration_pb2.EnvVarDeclaration]
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., digest: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., warnings: _Optional[_Iterable[_Union[PluginWarning, _Mapping]]] = ..., hooks: _Optional[_Union[_hooks_pb2.HookConfig, _Mapping]] = ..., skills: _Optional[_Iterable[_Union[PluginSkill, _Mapping]]] = ..., agents: _Optional[_Iterable[_Union[PluginAgent, _Mapping]]] = ..., mcp_servers: _Optional[_Iterable[_Union[McpServerEntry, _Mapping]]] = ..., env: _Optional[_Mapping[str, _declaration_pb2.EnvVarDeclaration]] = ...) -> None: ...
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., digest: _Optional[str] = ..., artifact_storage_key: _Optional[str] = ..., warnings: _Optional[_Iterable[_Union[PluginWarning, _Mapping]]] = ..., hooks: _Optional[_Union[_hooks_pb2.HookConfig, _Mapping]] = ..., evals: _Optional[_Union[PluginEvalSuite, _Mapping]] = ..., skills: _Optional[_Iterable[_Union[PluginSkill, _Mapping]]] = ..., agents: _Optional[_Iterable[_Union[PluginAgent, _Mapping]]] = ..., mcp_servers: _Optional[_Iterable[_Union[McpServerEntry, _Mapping]]] = ..., env: _Optional[_Mapping[str, _declaration_pb2.EnvVarDeclaration]] = ...) -> None: ...
 
 class PluginSkill(_message.Message):
     __slots__ = ("name", "description", "path")
@@ -119,3 +121,29 @@ class PluginWarning(_message.Message):
     message: str
     path: str
     def __init__(self, kind: _Optional[str] = ..., message: _Optional[str] = ..., path: _Optional[str] = ...) -> None: ...
+
+class PluginEvalSuite(_message.Message):
+    __slots__ = ("dir", "case_count", "case_tags", "cases", "findings")
+    DIR_FIELD_NUMBER: _ClassVar[int]
+    CASE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    CASE_TAGS_FIELD_NUMBER: _ClassVar[int]
+    CASES_FIELD_NUMBER: _ClassVar[int]
+    FINDINGS_FIELD_NUMBER: _ClassVar[int]
+    dir: str
+    case_count: int
+    case_tags: _containers.RepeatedScalarFieldContainer[str]
+    cases: _containers.RepeatedCompositeFieldContainer[PluginEvalSuiteCase]
+    findings: _containers.RepeatedCompositeFieldContainer[PluginWarning]
+    def __init__(self, dir: _Optional[str] = ..., case_count: _Optional[int] = ..., case_tags: _Optional[_Iterable[str]] = ..., cases: _Optional[_Iterable[_Union[PluginEvalSuiteCase, _Mapping]]] = ..., findings: _Optional[_Iterable[_Union[PluginWarning, _Mapping]]] = ...) -> None: ...
+
+class PluginEvalSuiteCase(_message.Message):
+    __slots__ = ("case_name", "path", "case_tags", "unsupported")
+    CASE_NAME_FIELD_NUMBER: _ClassVar[int]
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    CASE_TAGS_FIELD_NUMBER: _ClassVar[int]
+    UNSUPPORTED_FIELD_NUMBER: _ClassVar[int]
+    case_name: str
+    path: str
+    case_tags: _containers.RepeatedScalarFieldContainer[str]
+    unsupported: str
+    def __init__(self, case_name: _Optional[str] = ..., path: _Optional[str] = ..., case_tags: _Optional[_Iterable[str]] = ..., unsupported: _Optional[str] = ...) -> None: ...

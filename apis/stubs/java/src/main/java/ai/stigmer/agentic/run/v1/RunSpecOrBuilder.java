@@ -356,6 +356,168 @@ public interface RunSpecOrBuilder extends
 
   /**
    * <pre>
+   * Tools this turn may use, in the same names as an agent's tools; empty
+   * leaves the agent's tools as they are.
+   *
+   * A turn can only narrow: a tool its agent (or the assistant) does not
+   * have stays unavailable whatever this lists. Like interaction_mode, it
+   * applies to this message only. Skill is a name here too: listing tools
+   * without Skill keeps the agent's skills, a list of Skill alone resolves
+   * unless the agent denies Skill, and disallowed_tools with Skill removes
+   * them.
+   * </pre>
+   *
+   * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the tools.
+   */
+  java.util.List<java.lang.String>
+      getToolsList();
+  /**
+   * <pre>
+   * Tools this turn may use, in the same names as an agent's tools; empty
+   * leaves the agent's tools as they are.
+   *
+   * A turn can only narrow: a tool its agent (or the assistant) does not
+   * have stays unavailable whatever this lists. Like interaction_mode, it
+   * applies to this message only. Skill is a name here too: listing tools
+   * without Skill keeps the agent's skills, a list of Skill alone resolves
+   * unless the agent denies Skill, and disallowed_tools with Skill removes
+   * them.
+   * </pre>
+   *
+   * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @return The count of tools.
+   */
+  int getToolsCount();
+  /**
+   * <pre>
+   * Tools this turn may use, in the same names as an agent's tools; empty
+   * leaves the agent's tools as they are.
+   *
+   * A turn can only narrow: a tool its agent (or the assistant) does not
+   * have stays unavailable whatever this lists. Like interaction_mode, it
+   * applies to this message only. Skill is a name here too: listing tools
+   * without Skill keeps the agent's skills, a list of Skill alone resolves
+   * unless the agent denies Skill, and disallowed_tools with Skill removes
+   * them.
+   * </pre>
+   *
+   * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The tools at the given index.
+   */
+  java.lang.String getTools(int index);
+  /**
+   * <pre>
+   * Tools this turn may use, in the same names as an agent's tools; empty
+   * leaves the agent's tools as they are.
+   *
+   * A turn can only narrow: a tool its agent (or the assistant) does not
+   * have stays unavailable whatever this lists. Like interaction_mode, it
+   * applies to this message only. Skill is a name here too: listing tools
+   * without Skill keeps the agent's skills, a list of Skill alone resolves
+   * unless the agent denies Skill, and disallowed_tools with Skill removes
+   * them.
+   * </pre>
+   *
+   * <code>repeated string tools = 22 [json_name = "tools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the tools at the given index.
+   */
+  com.google.protobuf.ByteString
+      getToolsBytes(int index);
+
+  /**
+   * <pre>
+   * Tools this turn may never use, in the same names as tools. Applied
+   * before tools, so a tool named in both is excluded. Disallowing Skill
+   * hides every skill from this turn.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the disallowedTools.
+   */
+  java.util.List<java.lang.String>
+      getDisallowedToolsList();
+  /**
+   * <pre>
+   * Tools this turn may never use, in the same names as tools. Applied
+   * before tools, so a tool named in both is excluded. Disallowing Skill
+   * hides every skill from this turn.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @return The count of disallowedTools.
+   */
+  int getDisallowedToolsCount();
+  /**
+   * <pre>
+   * Tools this turn may never use, in the same names as tools. Applied
+   * before tools, so a tool named in both is excluded. Disallowing Skill
+   * hides every skill from this turn.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The disallowedTools at the given index.
+   */
+  java.lang.String getDisallowedTools(int index);
+  /**
+   * <pre>
+   * Tools this turn may never use, in the same names as tools. Applied
+   * before tools, so a tool named in both is excluded. Disallowing Skill
+   * hides every skill from this turn.
+   * </pre>
+   *
+   * <code>repeated string disallowed_tools = 23 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the disallowedTools at the given index.
+   */
+  com.google.protobuf.ByteString
+      getDisallowedToolsBytes(int index);
+
+  /**
+   * <pre>
+   * Text appended to the system prompt for this turn, as Claude Code's
+   * --append-system-prompt.
+   *
+   * A person who may create a run in the session may set it; a visitor (a
+   * share-link guest, a channel sender) may not, as the agent's system
+   * prompt is its owner's to steer. On the native engine it lands after
+   * the agent's instructions and the platform's sections, for this turn
+   * only. On the Cursor engine it is sent with the turn's message, before
+   * the structured-output directive when structured_output_schema is set
+   * (the output contract closes the message), so it stays in that
+   * conversation's history and later turns still see it.
+   * </pre>
+   *
+   * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
+   * @return The appendSystemPrompt.
+   */
+  java.lang.String getAppendSystemPrompt();
+  /**
+   * <pre>
+   * Text appended to the system prompt for this turn, as Claude Code's
+   * --append-system-prompt.
+   *
+   * A person who may create a run in the session may set it; a visitor (a
+   * share-link guest, a channel sender) may not, as the agent's system
+   * prompt is its owner's to steer. On the native engine it lands after
+   * the agent's instructions and the platform's sections, for this turn
+   * only. On the Cursor engine it is sent with the turn's message, before
+   * the structured-output directive when structured_output_schema is set
+   * (the output contract closes the message), so it stays in that
+   * conversation's history and later turns still see it.
+   * </pre>
+   *
+   * <code>string append_system_prompt = 24 [json_name = "appendSystemPrompt", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for appendSystemPrompt.
+   */
+  com.google.protobuf.ByteString
+      getAppendSystemPromptBytes();
+
+  /**
+   * <pre>
    * Auto-approve all tool executions for this run.
    *
    * When true, tools that would normally require approval are automatically

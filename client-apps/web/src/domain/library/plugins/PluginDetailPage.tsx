@@ -17,6 +17,7 @@ import {
 } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { getPluginChatUrl } from "@/domain/session/session-url";
+import { useRunNavigation } from "@/domain/runs/run-navigation";
 
 interface PluginDetailPageInnerProps {
   readonly org: string;
@@ -26,6 +27,9 @@ interface PluginDetailPageInnerProps {
 export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps) {
   const router = useRouter();
   const { navigateToDetail } = useLibraryNavigation();
+  // A new agent is created in the active organization: "Create a new agent
+  // with these tools" shows only to someone the server lets create one there.
+  const { navigateToRun } = useRunNavigation();
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Plugin");
@@ -97,6 +101,7 @@ export function PluginDetailPageInner({ org, slug }: PluginDetailPageInnerProps)
         onResourceLoad={handleResourceLoad}
         onStartChat={({ org: o, slug: s }) => router.push(getPluginChatUrl(o, s))}
         onAgentClick={({ org: o, slug: s }) => navigateToDetail("agents", o, s)}
+        onNavigateToRun={navigateToRun}
         actions={actions}
       />
       <ConfirmDialog

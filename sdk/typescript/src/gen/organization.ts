@@ -10,9 +10,9 @@ import { type RenameInput, type FindApiResourcesRequest } from "@stigmer/protos/
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { OrganizationSchema, type Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
-import { OrganizationIdSchema, OrganizationListSchema, OrganizationsSchema, OrganizationExternalLookupSchema, ListChildOrgsInputSchema, ChildOrgListSchema, type OrganizationList, type Organizations, type OrganizationExternalLookup, type ListChildOrgsInput, type ChildOrgList } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+import { OrganizationIdSchema, UpdateOrganizationPoliciesInputSchema, OrganizationListSchema, OrganizationsSchema, OrganizationExternalLookupSchema, ListChildOrgsInputSchema, ChildOrgListSchema, type UpdateOrganizationPoliciesInput, type OrganizationList, type Organizations, type OrganizationExternalLookup, type ListChildOrgsInput, type ChildOrgList } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
-import { OrganizationSpecSchema, OrganizationPreferencesSchema, type OrganizationPreferences } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
+import { OrganizationSpecSchema, OrganizationPreferencesSchema, OrganizationPoliciesSchema, type OrganizationPreferences, type OrganizationPolicies } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 
 /** Provides operations on organization resources. */
 export class OrganizationClient {
@@ -39,6 +39,12 @@ export class OrganizationClient {
   async update(input: OrganizationInput): Promise<Organization> {
     try {
       return await this.command.update(buildOrganizationProto(input));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async updatePolicies(input: UpdateOrganizationPoliciesInput): Promise<Organization> {
+    try {
+      return await this.command.updatePolicies(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -108,12 +114,18 @@ export interface OrganizationInput {
   externalId?: string;
   preferences?: OrganizationPreferencesInput;
   parentOrg?: string;
+  policies?: OrganizationPoliciesInput;
 }
 
 /** SDK input type for OrganizationPreferences. */
 export interface OrganizationPreferencesInput {
   standingContext?: string;
   memoryEnabled?: boolean;
+}
+
+/** SDK input type for OrganizationPolicies. */
+export interface OrganizationPoliciesInput {
+  membersCanCreateAgents?: boolean;
 }
 
 function buildOrganizationPreferencesProto(input: OrganizationPreferencesInput) {
@@ -123,8 +135,15 @@ function buildOrganizationPreferencesProto(input: OrganizationPreferencesInput) 
   }));
 }
 
+function buildOrganizationPoliciesProto(input: OrganizationPoliciesInput) {
+  return Object.assign(create(OrganizationPoliciesSchema), stripUndefined({
+    membersCanCreateAgents: input.membersCanCreateAgents,
+  }));
+}
+
 export function buildOrganizationProto(input: OrganizationInput): Organization {
   const preferences = input.preferences ? buildOrganizationPreferencesProto(input.preferences) : undefined;
+  const policies = input.policies ? buildOrganizationPoliciesProto(input.policies) : undefined;
   return Object.assign(create(OrganizationSchema), {
     apiVersion: "tenancy.stigmer.ai/v1",
     kind: "Organization",
@@ -142,6 +161,7 @@ export function buildOrganizationProto(input: OrganizationInput): Organization {
       externalId: input.externalId,
       preferences,
       parentOrg: input.parentOrg,
+      policies,
     })),
   }) as Organization;
 }
@@ -150,6 +170,12 @@ function toOrganizationPreferencesInput(msg: OrganizationPreferences): Organizat
   return {
     standingContext: msg.standingContext || undefined,
     memoryEnabled: msg.memoryEnabled || undefined,
+  };
+}
+
+function toOrganizationPoliciesInput(msg: OrganizationPolicies): OrganizationPoliciesInput {
+  return {
+    membersCanCreateAgents: msg.membersCanCreateAgents || undefined,
   };
 }
 
@@ -182,5 +208,6 @@ export function toOrganizationUpdateInput(resource: Organization): OrganizationI
     externalId: spec.externalId || undefined,
     preferences: spec.preferences ? toOrganizationPreferencesInput(spec.preferences) : undefined,
     parentOrg: spec.parentOrg || undefined,
+    policies: spec.policies ? toOrganizationPoliciesInput(spec.policies) : undefined,
   };
 }

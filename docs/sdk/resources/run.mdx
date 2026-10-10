@@ -632,6 +632,9 @@ const run = await stigmer.run.create({
   interactionMode: "...",
   buildFromPlan: false,
   structuredOutputSchema: {},
+  tools: [],
+  disallowedTools: [],
+  appendSystemPrompt: "...",
   autoApproveAll: false,
   attachments: [],
   workspaceFileRefs: [],
@@ -654,6 +657,9 @@ run, err := client.Run.Create(ctx, &stigmer.RunInput{
   InteractionMode:        "...",
   BuildFromPlan:          false,
   StructuredOutputSchema: nil,
+  Tools:                  []string{},
+  DisallowedTools:        []string{},
+  AppendSystemPrompt:     "...",
   AutoApproveAll:         false,
   Attachments:            []stigmer.AttachmentInput{},
   WorkspaceFileRefs:      []string{},
@@ -676,6 +682,9 @@ run = client.runs.create(RunInput(
     interaction_mode="...",
     build_from_plan=False,
     structured_output_schema=None,
+    tools=[],
+    disallowed_tools=[],
+    append_system_prompt="...",
     auto_approve_all=False,
     attachments=[],
     workspace_file_refs=[],
@@ -698,6 +707,9 @@ Run run = client.runs().create(RunInput.builder()
     .interactionMode("...")
     .buildFromPlan(false)
     .structuredOutputSchema(null)
+    .tools(List.of())
+    .disallowedTools(List.of())
+    .appendSystemPrompt("...")
     .autoApproveAll(false)
     .attachments(List.of())
     .workspaceFileRefs(List.of())
@@ -731,6 +743,9 @@ const run = await stigmer.run.update({
   interactionMode: "...",
   buildFromPlan: false,
   structuredOutputSchema: {},
+  tools: [],
+  disallowedTools: [],
+  appendSystemPrompt: "...",
   autoApproveAll: false,
   attachments: [],
   workspaceFileRefs: [],
@@ -753,6 +768,9 @@ run, err := client.Run.Update(ctx, &stigmer.RunInput{
   InteractionMode:        "...",
   BuildFromPlan:          false,
   StructuredOutputSchema: nil,
+  Tools:                  []string{},
+  DisallowedTools:        []string{},
+  AppendSystemPrompt:     "...",
   AutoApproveAll:         false,
   Attachments:            []stigmer.AttachmentInput{},
   WorkspaceFileRefs:      []string{},
@@ -775,6 +793,9 @@ run = client.runs.update(RunInput(
     interaction_mode="...",
     build_from_plan=False,
     structured_output_schema=None,
+    tools=[],
+    disallowed_tools=[],
+    append_system_prompt="...",
     auto_approve_all=False,
     attachments=[],
     workspace_file_refs=[],
@@ -797,6 +818,9 @@ Run run = client.runs().update(RunInput.builder()
     .interactionMode("...")
     .buildFromPlan(false)
     .structuredOutputSchema(null)
+    .tools(List.of())
+    .disallowedTools(List.of())
+    .appendSystemPrompt("...")
     .autoApproveAll(false)
     .attachments(List.of())
     .workspaceFileRefs(List.of())
@@ -1294,6 +1318,9 @@ Input for creating or updating a Run.
     interactionMode: { type: "InteractionMode", description: "Interaction mode for this message.", typeDescriptionLink: "#interactionmode" },
     buildFromPlan: { type: "boolean", description: "Marks this message as a \"Build from plan\" turn: the user approved a plan produced by a prior Plan-mode run and asked the agent to implement it." },
     structuredOutputSchema: { type: "object", description: "JSON Schema that the agent's output must conform to (optional)." },
+    tools: { type: "string[]", description: "Tools this turn may use, in the same names as an agent's tools; empty leaves the agent's tools as they are." },
+    disallowedTools: { type: "string[]", description: "Tools this turn may never use, in the same names as tools." },
+    appendSystemPrompt: { type: "string", description: "Text appended to the system prompt for this turn, as Claude Code's --append-system-prompt." },
     autoApproveAll: { type: "boolean", description: "Auto-approve all tool executions for this run." },
     attachments: { type: "AttachmentInput[]", description: "Files attached to this run.", typeDescriptionLink: "#attachmentinput" },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on." },
@@ -1331,7 +1358,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource, by slug or id." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -2586,7 +2613,7 @@ ApprovalPolicySource is the policy layer that decided a tool call's approval req
 | `APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL` | Layer 4: the pre-armed RunSpec.auto_approve_all whole-run global bypass cleared this call. |
 | `APPROVAL_POLICY_SOURCE_APPROVAL_LEASE` | Layer 4: a run-lifetime scoped lease (the successor to a global "approve all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched the leased class. |
 | `APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY` | The default asked for a built-in tool of an approval class (write / delete / shell). |
-| `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint annotation). |
+| `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (the tool's MCP destructiveHint annotation, read live from the server's tools each turn), or because its server's tools could not be listed. |
 | `APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP` | The unattended approval mode (RunStatus.approval_mode = APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip: the lane the run came through (a schedule's fire, a messaging channel, a guest share) has no approver, so the platform skipped the tool and told the model to adapt. |
 | `APPROVAL_POLICY_SOURCE_HOOK` | A hook decided this call: it refused it, asked a person first, or let it run without the approval it would otherwise need. |
 

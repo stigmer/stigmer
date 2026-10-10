@@ -186,6 +186,9 @@ class RunInput:
     interaction_mode: int = 0
     build_from_plan: bool = False
     structured_output_schema: dict[str, Any] = field(default_factory=dict)
+    tools: list[str] = field(default_factory=list)
+    disallowed_tools: list[str] = field(default_factory=list)
+    append_system_prompt: str = ""
     auto_approve_all: bool = False
     attachments: list[AttachmentInput] = field(default_factory=list)
     workspace_file_refs: list[str] = field(default_factory=list)
@@ -197,6 +200,7 @@ class RunInput:
             message=self.message,
             interaction_mode=self.interaction_mode,
             build_from_plan=self.build_from_plan,
+            append_system_prompt=self.append_system_prompt,
             auto_approve_all=self.auto_approve_all,
             supersedes_run_id=self.supersedes_run_id,
         )
@@ -204,6 +208,10 @@ class RunInput:
             spec.run_config.CopyFrom(self.run_config._to_proto())
         if self.structured_output_schema:
             spec.structured_output_schema.update(self.structured_output_schema)
+        if self.tools:
+            spec.tools.extend(self.tools)
+        if self.disallowed_tools:
+            spec.disallowed_tools.extend(self.disallowed_tools)
         for item in self.attachments:
             spec.attachments.append(item._to_proto())
         if self.workspace_file_refs:

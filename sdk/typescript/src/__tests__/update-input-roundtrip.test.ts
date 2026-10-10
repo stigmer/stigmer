@@ -327,6 +327,9 @@ describe("toAgentExecutionUpdateInput", () => {
         buildFromPlan: true,
         structuredOutputSchema: { type: "object" },
         autoApproveAll: true,
+        tools: ["Read", "Grep"],
+        disallowedTools: ["Skill"],
+        appendSystemPrompt: "Answer in one paragraph.",
         attachments: [
           {
             filename: "spec.pdf",
@@ -649,6 +652,7 @@ describe("toOrganizationUpdateInput (tripwire)", () => {
         externalId: "cust-4411",
         parentOrg: "org_01jaaaaaaaaaaaaaaaaaaaaaaa",
         preferences: { standingContext: "We deploy to us-east-1." },
+        policies: { membersCanCreateAgents: true },
       },
     });
 

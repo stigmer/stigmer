@@ -1,13 +1,14 @@
 /**
  * TeamMembersPanel offers people from the team's organization: its person
- * picker is given the organization as `org`. The share flow, the permission
- * gate and the picker are stubbed.
+ * picker is given the organization as `org`, and leaves out the accounts an
+ * integrator's product created for its own users (`includeAppUsers` false).
+ * The share flow, the permission gate and the picker are stubbed.
  */
 import { cleanup, render } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const picked = vi.hoisted(() => [] as unknown[]);
+const picked = vi.hoisted(() => [] as { org: string; includeAppUsers: boolean | undefined }[]);
 
 vi.mock("../../iam-policy/useShareFlow.js", () => ({
   useShareFlow: () => ({
@@ -28,8 +29,8 @@ vi.mock("../../iam-policy/PermissionGate.js", () => ({
 }));
 
 vi.mock("../../iam-policy/PrincipalPicker.js", () => ({
-  PrincipalPicker: ({ org }: { org: string }) => {
-    picked.push(org);
+  PrincipalPicker: ({ org, includeAppUsers }: { org: string; includeAppUsers?: boolean }) => {
+    picked.push({ org, includeAppUsers });
     return null;
   },
 }));
@@ -44,6 +45,12 @@ afterEach(() => {
 describe("TeamMembersPanel", () => {
   it("offers people from the team's organization", () => {
     render(<TeamMembersPanel teamId="team_1" org="acme" />);
-    expect(picked).toContain("acme");
+    expect(picked.map((p) => p.org)).toContain("acme");
+  });
+
+  it("leaves a product's users out of a team's picker", () => {
+    render(<TeamMembersPanel teamId="team_1" org="acme" />);
+    expect(picked.length).toBeGreaterThan(0);
+    expect(picked.every((p) => p.includeAppUsers === false)).toBe(true);
   });
 });

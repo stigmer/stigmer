@@ -42,15 +42,18 @@
  * source has today. `agent_execution.can_edit` derives from the SESSION's
  * owner, not the execution's stamp, so the person this verifier admits
  * must be the session's owner for the runner to report at all. They
- * coincide because a session's `can_create_run_in` is its viewers,
- * and in open source a session has no viewer but its owner: the contract
- * lists `viewer` as grantable on a session, but open source's grant scope
- * is organization-only (domain/iampolicy/grant-scope.ts) and the session
- * model derives no organization-wide viewer. A scheduled run is created
- * as the schedule's creator, who owns the session the fire creates. The
- * verifier test pins the grant-scope fact by name; an edition that grants
- * `viewer` on sessions (the cloud does) has the cloud's own credential
- * story, and a change to open source's scope must revisit this sentence.
+ * coincide because a session's `can_create_run_in` is its participants,
+ * and in open source a session has no participant but its owner: the
+ * contract lists `participant` and `viewer` as grantable on a session, but
+ * open source's grant scope is organization-only
+ * (domain/iampolicy/grant-scope.ts) and the session model derives no
+ * organization-wide participant. A scheduled run is created as the
+ * schedule's creator, who owns the session the fire creates. The verifier
+ * test pins the grant-scope fact by name; an edition that grants
+ * `participant` on sessions (the cloud does) has the cloud's own
+ * credential story (the session sandbox's runner acts as the session's
+ * creator, sandbox/steps.ts), and a change to open source's scope must
+ * revisit this sentence.
  *
  * Claim rule: exactly `token_type === "execution_scoped"`, read from the
  * UNTRUSTED payload (`peekTokenType`). Everything else passes — the

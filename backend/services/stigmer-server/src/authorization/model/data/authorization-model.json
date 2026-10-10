@@ -828,8 +828,16 @@
               }
             ]
           },
+          "agent_creation_open": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
           "can_assign_roles": {},
           "can_create_agent": {},
+          "can_create_agent_channel": {},
           "can_create_agent_share": {},
           "can_create_channel_app": {},
           "can_create_identity_account": {},
@@ -919,6 +927,9 @@
         "affiliated": {
           "this": {}
         },
+        "agent_creation_open": {
+          "this": {}
+        },
         "can_assign_roles": {
           "union": {
             "child": [
@@ -936,6 +947,27 @@
           }
         },
         "can_create_agent": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "admin"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "member"
+                  },
+                  "tupleset": {
+                    "relation": "agent_creation_open"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "can_create_agent_channel": {
           "computedUserset": {
             "relation": "admin"
           }
@@ -1978,6 +2010,7 @@
               }
             ]
           },
+          "org_viewer": {},
           "organization": {
             "directly_related_user_types": [
               {
@@ -2045,6 +2078,27 @@
         },
         "child_org_viewer": {
           "this": {}
+        },
+        "org_viewer": {
+          "intersection": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "viewer"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
         },
         "organization": {
           "this": {}
@@ -2121,6 +2175,68 @@
         }
       },
       "type": "plugin"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_view": {},
+          "plugin": {
+            "directly_related_user_types": [
+              {
+                "type": "plugin"
+              }
+            ]
+          },
+          "viewer": {}
+        },
+        "source_info": {
+          "file": "agentic/plugin_eval.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "can_edit"
+            },
+            "tupleset": {
+              "relation": "plugin"
+            }
+          }
+        },
+        "can_edit": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "can_edit"
+            },
+            "tupleset": {
+              "relation": "plugin"
+            }
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "plugin": {
+          "this": {}
+        },
+        "viewer": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "org_viewer"
+            },
+            "tupleset": {
+              "relation": "plugin"
+            }
+          }
+        }
+      },
+      "type": "plugin_eval"
     },
     {
       "metadata": {
@@ -2467,6 +2583,20 @@
               }
             ]
           },
+          "participant": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "plugin_eval": {
+            "directly_related_user_types": [
+              {
+                "type": "plugin_eval"
+              }
+            ]
+          },
           "schedule": {
             "directly_related_user_types": [
               {
@@ -2489,7 +2619,7 @@
       "relations": {
         "can_create_run_in": {
           "computedUserset": {
-            "relation": "viewer"
+            "relation": "participant"
           }
         },
         "can_delete": {
@@ -2534,6 +2664,16 @@
                     "relation": "schedule"
                   }
                 }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "viewer"
+                  },
+                  "tupleset": {
+                    "relation": "plugin_eval"
+                  }
+                }
               }
             ]
           }
@@ -2568,6 +2708,39 @@
             ]
           }
         },
+        "participant": {
+          "union": {
+            "child": [
+              {
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              }
+            ]
+          }
+        },
+        "plugin_eval": {
+          "this": {}
+        },
         "schedule": {
           "this": {}
         },
@@ -2595,7 +2768,7 @@
               },
               {
                 "computedUserset": {
-                  "relation": "owner"
+                  "relation": "participant"
                 }
               }
             ]

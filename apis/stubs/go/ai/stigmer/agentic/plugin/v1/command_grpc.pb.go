@@ -50,9 +50,10 @@ type PluginCommandControllerClient interface {
 	// Update the visibility of a plugin.
 	// Only modifies metadata.visibility.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Plugin, error)
-	// Delete a plugin.
+	// Delete a plugin, its evals included.
 	// Refused while an agent of the organization lists it; the error names the
-	// agents.
+	// agents. Refused while one of its evals is pending or running: cancel that
+	// eval first.
 	Delete(ctx context.Context, in *PluginId, opts ...grpc.CallOption) (*Plugin, error)
 	// List the tools one of a plugin's MCP servers offers now, signed in as
 	// the caller. Nothing is stored.
@@ -145,9 +146,10 @@ type PluginCommandControllerServer interface {
 	// Update the visibility of a plugin.
 	// Only modifies metadata.visibility.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Plugin, error)
-	// Delete a plugin.
+	// Delete a plugin, its evals included.
 	// Refused while an agent of the organization lists it; the error names the
-	// agents.
+	// agents. Refused while one of its evals is pending or running: cancel that
+	// eval first.
 	Delete(context.Context, *PluginId) (*Plugin, error)
 	// List the tools one of a plugin's MCP servers offers now, signed in as
 	// the caller. Nothing is stored.

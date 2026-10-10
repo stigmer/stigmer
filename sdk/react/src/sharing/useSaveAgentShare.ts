@@ -70,13 +70,14 @@ export interface AgentShareDraft {
 
 /**
  * Maps a proto {@link AgentShareAudience} to the SDK's string union.
- * Unspecified means public by contract (a share created without an
- * explicit audience is an anyone-with-link share).
+ * Only an explicit public audience is "public": unspecified means the
+ * organization's members by contract, so a share reaches the internet
+ * only when someone chose "Anyone with the link".
  */
 export function sharingAudienceFromProto(
   audience: AgentShareAudience | undefined,
 ): SharingAudience {
-  return audience === AgentShareAudience.org ? "org" : "public";
+  return audience === AgentShareAudience.public ? "public" : "org";
 }
 
 function sharingAudienceToProto(audience: SharingAudience): AgentShareAudience {

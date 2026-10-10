@@ -186,6 +186,14 @@ RUN cd backend/libs/ts/outbound && npm install --ignore-scripts
 COPY backend/libs/ts/outbound/ backend/libs/ts/outbound/
 RUN cd backend/libs/ts/outbound && npm run build
 
+# Build @stigmer/tool-vocabulary (file: dependency of the runner) — Claude
+# Code's tool names and the engine tables the runner's tool lists read, shared
+# with the control plane. Same treatment as the other libs.
+COPY backend/libs/ts/tool-vocabulary/package.json backend/libs/ts/tool-vocabulary/
+RUN cd backend/libs/ts/tool-vocabulary && npm install --ignore-scripts
+COPY backend/libs/ts/tool-vocabulary/ backend/libs/ts/tool-vocabulary/
+RUN cd backend/libs/ts/tool-vocabulary && npm run build
+
 # ---------- The runner, compiled and bundled ----------
 # Built against the real libs (the file: references resolve to libs' tree),
 # with every dependency; only the slim artifact leaves this stage, split in

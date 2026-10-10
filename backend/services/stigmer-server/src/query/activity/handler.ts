@@ -40,6 +40,7 @@ import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import { restrictListByReadScope } from "../../extensions/list-read-scope.js";
+import { PLUGIN_EVAL_LABEL } from "../../domain/plugin-eval/constants.js";
 import { sessionListIndex } from "../../domain/session/list-index.js";
 import type { Store } from "../../store/interface.js";
 
@@ -65,17 +66,18 @@ export const UNTITLED_SESSION_SUBJECT = "Untitled session";
 /**
  * Marks a session as runtime-originated. Recents shows personal sessions
  * only: channel conversations, guest/share
- * sessions, and schedule-triggered sessions are excluded for every caller
- * — each runtime surface owns its own list. Keys match the cloud's
- * RUNTIME_ORIGIN_LABELS exactly; share/guest are cloud-only today but
- * excluded identically so a future OSS share surface cannot silently
- * regress the recents policy.
+ * sessions, schedule-triggered sessions and a plugin eval's tries and
+ * votes are excluded for every caller — each runtime surface owns its own
+ * list (an eval's tries are read through the eval). share/guest are
+ * cloud-only today but excluded identically so a future OSS share surface
+ * cannot silently regress the recents policy.
  */
 export const RUNTIME_ORIGIN_LABELS: readonly string[] = [
   "stigmer.ai/channel-id",
   "stigmer.ai/share-id",
   "stigmer.ai/guest-cookie-id",
   "stigmer.ai/schedule-id",
+  PLUGIN_EVAL_LABEL,
 ];
 
 /** Answers ActivityQueryController.listRecentActivity against the store. */

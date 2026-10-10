@@ -21,7 +21,8 @@ import {
   builtInJudgeSpec,
   isJudgeRunLabels,
 } from "../builtin-judge.js";
-import { NATIVE_TOOL_COVERS, ToolScope } from "../tool-lists.js";
+import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
+import { ToolScope } from "../tool-lists.js";
 
 describe("the built-in judge", () => {
   it("leaves the native engine no built-in tool", () => {

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AgentCreationWizard,
+  AgentCreationDenied,
+  useCanCreateAgent,
   CreationPicker,
   ApplyManifestDialog,
   AGENT_TEMPLATES,
@@ -20,6 +22,10 @@ type PageState =
 
 export default function AgentNewPage() {
   const org = useActiveOrgId();
+  // Someone the server would refuse (a member while the organization keeps
+  // agent creation to admins) sees who can create agents instead of the
+  // creation picker.
+  const { allowed: canCreateAgent, isLoading: isCheckingCreate } = useCanCreateAgent(org || null);
   const slugForOrg = useOrgSlugForId();
   const navigate = useNavigate();
   const { setLabel } = useBreadcrumbOverride();
@@ -64,7 +70,8 @@ export default function AgentNewPage() {
     }
   }, [state.phase, navigate]);
 
-  if (!org) return null;
+  if (!org || isCheckingCreate) return null;
+  if (!canCreateAgent) return <AgentCreationDenied />;
 
   return (
     <>

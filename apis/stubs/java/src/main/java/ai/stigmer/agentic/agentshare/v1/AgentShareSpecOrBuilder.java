@@ -84,12 +84,14 @@ public interface AgentShareSpecOrBuilder extends
 
   /**
    * <pre>
-   * Who can chat over this share. Unspecified means public (anyone with
-   * the link), so a manifest that omits audience creates a public share.
+   * Who can chat over this share. Unspecified means the organization's
+   * members: a link reaches anyone on the internet only when audience is
+   * set to public. The server writes an omitted audience out as org on
+   * create, update and apply, so every stored share and every echo says
+   * what it means.
    *
-   * To keep a share org-only, audience must be present in every apply:
-   * update/apply replace the spec wholesale, so a manifest that sets
-   * enabled without audience resets the share to public.
+   * Update and apply replace the spec wholesale, so a manifest that omits
+   * audience makes the share organization-only, never public.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareAudience audience = 3 [json_name = "audience"];</code>
@@ -98,12 +100,14 @@ public interface AgentShareSpecOrBuilder extends
   int getAudienceValue();
   /**
    * <pre>
-   * Who can chat over this share. Unspecified means public (anyone with
-   * the link), so a manifest that omits audience creates a public share.
+   * Who can chat over this share. Unspecified means the organization's
+   * members: a link reaches anyone on the internet only when audience is
+   * set to public. The server writes an omitted audience out as org on
+   * create, update and apply, so every stored share and every echo says
+   * what it means.
    *
-   * To keep a share org-only, audience must be present in every apply:
-   * update/apply replace the spec wholesale, so a manifest that sets
-   * enabled without audience resets the share to public.
+   * Update and apply replace the spec wholesale, so a manifest that omits
+   * audience makes the share organization-only, never public.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentshare.v1.AgentShareAudience audience = 3 [json_name = "audience"];</code>
