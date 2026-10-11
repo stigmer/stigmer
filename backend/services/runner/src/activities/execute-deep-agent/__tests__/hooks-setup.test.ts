@@ -229,7 +229,10 @@ describe("buildHookEvaluator", () => {
     const agentsOnly = subagent([{ plugin: null, format: "claude-code", groups: reads }], {});
     await expect(
       buildHookEvaluator(input([], { agent: { NOTES_KEY: "agent's" }, subagents: [agentsOnly] }), sink, tools, 180_000, agentsOnly),
-    ).rejects.toThrow("reads the variable NOTES_KEY");
+    ).rejects.toThrow(
+      "A hook in the subagent 'release-notes''s own hooks block reads the variable NOTES_KEY, which this run does not give the subagent 'release-notes'. " +
+        "Declare NOTES_KEY in the subagent 'release-notes''s env and set its value, then run again.",
+    );
   });
 
   it("runs the conversation's hooks first on a subagent's call, in the agent's environment, then the subagent's own in its own", async () => {

@@ -60,6 +60,8 @@ export interface HookSetupInput {
     readonly groups: readonly HookGroup[];
     /** A subagent's source: that subagent's values, which its own block reads and its commands run with (the module header). */
     readonly shellValues?: Readonly<Record<string, string>>;
+    /** A subagent's source: that subagent's name, which a refusal names. */
+    readonly subagent?: string;
   }[];
   /** The run's values, per declarer (`TurnInput.values`). */
   readonly runValues: Pick<RunValues, "agent" | "tools" | "plugins">;
@@ -84,8 +86,11 @@ export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEva
   if (input.sources.length === 0) return null;
   const values = shellRunValues(input.runValues);
 
-  const sources: HookSourceGroups[] = input.sources.map(({ plugin, format, groups, shellValues }) => {
-    const who = plugin === null ? "A hook in the agent's own hooks block" : `A hook of the plugin '${plugin.slug}'`;
+  const sources: HookSourceGroups[] = input.sources.map(({ plugin, format, groups, shellValues, subagent }) => {
+    const owner = subagent === undefined ? "the agent" : `the subagent '${subagent}'`;
+    const who = plugin === null
+      ? subagent === undefined ? "A hook in the agent's own hooks block" : `A hook in ${owner}'s own hooks block`
+      : `A hook of the plugin '${plugin.slug}'`;
     const handlers = groups.filter((group) => isRunEvent(group.event, format)).flatMap((group) => group.handlers);
     if (format === "claude-code" && handlers.some((handler) => handler.args.length === 0 && handler.command.includes("${user_config."))) {
       throw new HookSetupError(
@@ -102,8 +107,8 @@ export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEva
         throw new HookSetupError(
           claimant === undefined
             ? plugin === null
-              ? `${who} reads the variable ${key}, which this run does not give the agent. ` +
-                `Declare ${key} in the agent's env and set its value, then run again.`
+              ? `${who} reads the variable ${key}, which this run does not give ${owner}. ` +
+                `Declare ${key} in ${owner}'s env and set its value, then run again.`
               : `${who} reads the variable ${key}, which none of this conversation's vaults holds. ` +
                 `Save ${key} in one of them, then run again.`
             : `${who} reads the variable ${key}, which this run keeps for its MCP server '${claimant}' ` +

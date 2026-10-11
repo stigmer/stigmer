@@ -46,7 +46,10 @@ export async function buildHookEvaluator(
   return buildEvaluator({
     sources: subagent === undefined
       ? input.hooks.sources
-      : [...input.hooks.sources, ...subagent.hooks.map((source) => ({ ...source, shellValues: subagent.values }))],
+      : [
+          ...input.hooks.sources,
+          ...subagent.hooks.map((source) => ({ ...source, shellValues: subagent.values, subagent: subagent.name })),
+        ],
     runValues: input.values,
     mcpServers: subagent === undefined ? input.mcp.servers : [...input.mcp.servers, ...subagent.servers],
     views: new NativeToolViews({
