@@ -41,6 +41,16 @@ describe("validateDocument", () => {
     ).toThrow(/stigmer mcp add <name> <url>.*`plugins`/);
   });
 
+  it("refuses an agent writing sub_agents, naming the way forward", () => {
+    expect(() =>
+      validateDocument(agentSchema, {
+        kind: "Agent",
+        metadata: { name: "Reviewer" },
+        spec: { sub_agents: [{ inline_spec: { name: "helper" } }] },
+      }),
+    ).toThrow(/^sub_agents is no longer read\. A subagent is now a saved agent:.*`subagents`/);
+  });
+
   it("ignores unknown fields for forward compatibility", () => {
     expect(() =>
       validateDocument(agentSchema, {

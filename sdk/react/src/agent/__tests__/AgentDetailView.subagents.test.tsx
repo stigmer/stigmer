@@ -10,6 +10,8 @@
  * never offers the agent itself or an agent already listed, both of which the
  * server refuses. The search hook is stubbed; each listed agent is read by
  * its slug from the stubbed client.
+ * Closing the picker with Cancel saves nothing, and a section given no save
+ * handler adds nothing when an agent is picked.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within, waitFor } from "@testing-library/react";
@@ -38,6 +40,7 @@ vi.mock("../useAgentSearch.js", () => ({
 }));
 
 import { AgentDetailView } from "../AgentDetailView";
+import { AgentSubagentsSection } from "../AgentSubagentsSection";
 
 const PIN_NOTES = "a".repeat(64);
 const HEAD_NOTES = "b".repeat(64);
@@ -242,5 +245,39 @@ describe("AgentDetailView subagents", () => {
     const tree = await screen.findByRole("tree");
     fireEvent.click(within(tree).getByRole("button", { name: /Subagent.*release-notes/ }));
     expect(onAgentClick).toHaveBeenCalledWith({ org: ACME_ID, slug: "release-notes" });
+  });
+
+  it("closes the picker on Cancel and saves nothing", async () => {
+    const { update } = renderView(
+      parentWith({ subagents: [{ org: ACME_ID, slug: "release-notes", version: PIN_NOTES }] }),
+      [listed("release-notes", PIN_NOTES)],
+      { editable: true },
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit subagents" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add subagent" }));
+    expect(screen.getByRole("listbox", { name: "Agents" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("listbox", { name: "Agents" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Add subagent" })).toBeTruthy();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("adds nothing when an agent is picked and the section has no save handler", async () => {
+    render(
+      <AgentSubagentsSection refs={[]} agentOrg={ACME_ID} self={null} editable />,
+      { wrapper: orgWrapper({}, undefined, true) },
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit subagents" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add subagent" }));
+    fireEvent.click(within(screen.getByRole("listbox", { name: "Agents" })).getByRole("option", { name: /Triager/ }));
+
+    // With nothing to save to, the pick changes nothing: the picker stays open
+    // and the list stays empty.
+    expect(screen.getByRole("listbox", { name: "Agents" })).toBeTruthy();
+    expect(screen.queryByRole("list", { name: "Subagents" })).toBeNull();
   });
 });

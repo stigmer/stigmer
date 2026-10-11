@@ -5,6 +5,7 @@
  * cannot continue, in the same words as the agents list's row Delete, and
  * deletes and returns to the list only once the person confirms. The detail view, the confirm dialog and the delete hook
  * are pinned in @stigmer/react; this file pins only the page's wiring.
+ * A listed subagent opens the agents detail for its org and slug.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render } from "@testing-library/react";
@@ -19,6 +20,11 @@ interface ConfirmRequest {
   description: string;
 }
 
+interface ResourceRef {
+  org: string;
+  slug: string;
+}
+
 const page = vi.hoisted(() => ({
   primary: [] as Action[],
   actions: [] as Action[][],
@@ -26,6 +32,8 @@ const page = vi.hoisted(() => ({
   confirmed: false,
   confirmations: [] as ConfirmRequest[],
   deletes: 0,
+  agentClicks: [] as ((ref: ResourceRef) => void)[],
+  details: [] as string[][],
 }));
 
 vi.mock("@stigmer/react", () => {
@@ -34,9 +42,14 @@ vi.mock("@stigmer/react", () => {
     ConfirmDialog: none,
     EditResourceYamlDialog: none,
     AgentChannelsPanel: none,
-    AgentDetailView: (props: { primaryAction: Action; actions: Action[] }) => {
+    AgentDetailView: (props: {
+      primaryAction: Action;
+      actions: Action[];
+      onAgentClick: (ref: ResourceRef) => void;
+    }) => {
       page.primary.push(props.primaryAction);
       page.actions.push(props.actions);
+      page.agentClicks.push(props.onAgentClick);
       return null;
     },
     useAgent: () => ({ agent: null, refetch: () => undefined }),
@@ -77,7 +90,11 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/domain/library/library-navigation", () => ({
-  useLibraryNavigation: () => ({ navigateToDetail: () => undefined }),
+  useLibraryNavigation: () => ({
+    navigateToDetail: (kind: string, org: string, slug: string) => {
+      page.details.push([kind, org, slug]);
+    },
+  }),
   useRouteDetailYieldsToOverlay: () => false,
 }));
 
@@ -101,6 +118,8 @@ beforeEach(() => {
   page.confirmed = false;
   page.confirmations.length = 0;
   page.deletes = 0;
+  page.agentClicks.length = 0;
+  page.details.length = 0;
 });
 
 describe("web AgentDetailPage actions", () => {
@@ -140,5 +159,15 @@ describe("web AgentDetailPage actions", () => {
 
     expect(page.deletes).toBe(1);
     expect(page.pushed).toEqual(["/library/agents"]);
+  });
+});
+
+describe("web AgentDetailPage subagents", () => {
+  it("opens a listed subagent's agents detail by its org and slug", () => {
+    render(<AgentDetailPageInner org="acme" slug="helper" />);
+
+    act(() => page.agentClicks.at(-1)?.({ org: "org_01jaaaaaaaaaaaaaaaaaaaaaaa", slug: "researcher" }));
+
+    expect(page.details).toEqual([["agents", "org_01jaaaaaaaaaaaaaaaaaaaaaaa", "researcher"]]);
   });
 });

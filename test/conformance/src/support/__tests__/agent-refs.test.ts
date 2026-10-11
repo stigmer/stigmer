@@ -12,6 +12,8 @@
 // that asks for both arms is refused rather than silently dropping one; a
 // stored turn's session is read through the session_id arm alone; channels
 // and shares pin an agent version only when the caller passes one.
+// The slugs a parent lists in `subagents` are read off the agents the server
+// returned, in order, and an agent with no slug is refused.
 // Pure: hand-built resources, no target.
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -21,7 +23,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { describe, expect, it } from "vitest";
 import { makeSlackAgentChannel } from "../agentchannels";
 import { makeAgentExecution, sessionIdOf } from "../runs";
-import { agentRefOf, makeAgentRef } from "../agents";
+import { agentRefOf, makeAgentRef, subagentSlugsOf } from "../agents";
 import { makeAgentShare } from "../agentshares";
 import { makeSessionSpec } from "../sessions";
 
@@ -146,5 +148,20 @@ describe("channel and share agent versions", () => {
       version: "stable",
     });
     expect(makeAgentShare("acme", "code-reviewer").spec?.agentRef).not.toHaveProperty("version");
+  });
+});
+
+describe("subagentSlugsOf", () => {
+  it("answers each returned agent's slug, in order", () => {
+    const agents = [
+      create(AgentSchema, { metadata: { org: "acme", slug: "researcher" } }),
+      create(AgentSchema, { metadata: { org: "acme", slug: "writer" } }),
+    ];
+    expect(subagentSlugsOf(agents)).toEqual(["researcher", "writer"]);
+  });
+
+  it("refuses an agent with no slug, which no server returns", () => {
+    expect(() => subagentSlugsOf([create(AgentSchema, { metadata: { org: "acme" } })])).toThrow("slug set");
+    expect(() => subagentSlugsOf([create(AgentSchema, {})])).toThrow("slug set");
   });
 });
