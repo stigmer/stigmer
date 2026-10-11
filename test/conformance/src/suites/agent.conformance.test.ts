@@ -745,7 +745,7 @@ describe("Agent conformance — subagents, judged at save", () => {
       Code.InvalidArgument,
       "create an agent listing one agent twice",
     );
-    expect(twice.rawMessage).toContain(`subagents lists '${slug}' more than once; list each agent once`);
+    expect(twice.rawMessage).toContain(`subagents lists two agents named '${slug}'; a turn names a subagent by its slug, so list each slug once`);
 
     const parent = await createAgent(org, uniqueName("parent"));
     const self = await expectGrpcCode(

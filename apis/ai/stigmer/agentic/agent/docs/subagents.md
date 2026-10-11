@@ -84,7 +84,8 @@ Each entry is an `ApiResourceReference` (see
 
 Saving refuses:
 
-- more than 20 subagents, or one agent listed twice;
+- more than 20 subagents, or two agents of one slug (a turn names a subagent by
+  its slug);
 - an agent that lists itself;
 - an agent you may not run: you can list only agents you can run yourself;
 - an agent that lists subagents of its own: a subagent cannot hand work on to
