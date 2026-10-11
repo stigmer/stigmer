@@ -2,7 +2,7 @@
  * The session event store PORT-CONTRACT KIT: every behaviour a Store must
  * satisfy for the session event log (session-events.ts), as cases a
  * driver's test iterates over a fresh store. Open source runs them on its
- * SQLite and Postgres drivers (__tests__/session-events.contract.test.ts);
+ * SQLite and Postgres drivers (__tests__/session-events.postgres.test.ts);
  * a composition runs the same cases over the store it serves with (the
  * cloud's Postgres database, where this table sits beside its own schema),
  * so "the log holds" is one statement proven per driver.
