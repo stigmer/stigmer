@@ -2109,10 +2109,9 @@ metrics:
     alerts: [cursor-key-health-reactive-syncs]
   - name: stigmer.proxy.llm.platform_provider_errors
     surface: proxy
-    disposition: ported
-    alerts: [platform-provider-errors, platform-provider-errors-log]
+    disposition: dropped
     note: >-
-      Two rules read this event: the metric rule on the counter and a logs rule on the phrase "platform provider key rejected upstream"; the composition logs the same phrase at ERROR on the same event.
+      The LLM lane serves no call on a platform key, so no upstream failure is the platform's: every failure is relayed as the organization's own key's. The counter, its metric and logs rules and its dashboard retired with the platform key.
   - name: stigmer.http.request.duration
     surface: platform
     disposition: ported
