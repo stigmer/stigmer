@@ -94,7 +94,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -394,11 +394,9 @@ export function newCredentialBinding(
     if (found === undefined) {
       return "missing";
     }
-    if (found === UNREADABLE || !isMessage(found.row, IdentityAccountSchema)) {
-      return "outside";
-    }
-    const row = found.row;
-    if (row.spec?.provisioningMode !== IdentityAccountProvisioningMode.service_account) {
+    // The account port answers accounts only, so the row is one.
+    const row = found === UNREADABLE ? undefined : (found.row as IdentityAccount);
+    if (row?.spec?.provisioningMode !== IdentityAccountProvisioningMode.service_account) {
       return "inside";
     }
     return (row.metadata?.org ?? "") === bound ? "inside" : "outside";

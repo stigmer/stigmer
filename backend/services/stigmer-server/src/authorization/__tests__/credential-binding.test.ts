@@ -42,6 +42,9 @@ import type { Message } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
+import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
@@ -136,6 +139,7 @@ function fixture(
       ApiResourceKind,
       { findById(id: string): Promise<Message | undefined> }
     >;
+    accounts?: ReadonlyArray<IdentityAccount>;
   } = {},
 ): Fixture {
   const byKey = new Map(rows.map((r) => [`${r.kind}:${r.id}`, r.row]));
@@ -171,6 +175,14 @@ function fixture(
           Promise.resolve(ports.clients?.find((c) => c.metadata?.id === id)),
       },
       ...(ports.readers === undefined ? {} : { rowReaders: ports.readers }),
+      ...(ports.accounts === undefined
+        ? {}
+        : {
+            identityAccounts: {
+              findById: (id: string) =>
+                Promise.resolve(ports.accounts?.find((a) => a.metadata?.id === id)),
+            },
+          }),
     },
   };
 }
@@ -178,6 +190,37 @@ function fixture(
 const VIEW = IamPermission[IamPermission.can_view];
 const EDIT = IamPermission[IamPermission.can_edit];
 const EXECUTE = IamPermission[IamPermission.can_execute];
+
+describe("an identity account, for a caller bound to one organization", () => {
+  const serviceAccountOf = (id: string, org: string) =>
+    create(IdentityAccountSchema, {
+      metadata: { id, org },
+      spec: { idpId: `stgm_sa|${org}|0f`, provisioningMode: IdentityAccountProvisioningMode.service_account },
+    });
+  const person = create(IdentityAccountSchema, {
+    metadata: { id: "ida_ana" },
+    spec: { idpId: "auth0|ana", provisioningMode: IdentityAccountProvisioningMode.direct },
+  });
+  const accounts = [serviceAccountOf("ida_ci_alpha", ALPHA), serviceAccountOf("ida_ci_beta", BETA), person];
+  const target = (id: string) => ({ kind: ApiResourceKind.identity_account, id, permission: EDIT });
+
+  it("reaches a service account of its own organization, never another's", async () => {
+    const binding = newCredentialBinding(fixture([], { accounts }).deps);
+    expect(await binding.verdict(boundTo(ALPHA), target("ida_ci_alpha"))).toBe("inside");
+    expect(await binding.verdict(boundTo(ALPHA), target("ida_ci_beta"))).toBe("outside");
+  });
+
+  it("reaches a person's account, which belongs to no organization, and leaves a missing one to the driver", async () => {
+    const binding = newCredentialBinding(fixture([], { accounts }).deps);
+    expect(await binding.verdict(boundTo(ALPHA), target("ida_ana"))).toBe("inside");
+    expect(await binding.verdict(boundTo(ALPHA), target("ida_gone"))).toBe("missing");
+  });
+
+  it("reads every account as a person's when the composition binds no account port", async () => {
+    const binding = newCredentialBinding(fixture([]).deps);
+    expect(await binding.verdict(boundTo(ALPHA), target("ida_ci_beta"))).toBe("inside");
+  });
+});
 
 describe("the rule, for a caller bound to one organization", () => {
   it("answers unbound for a caller that names no organization, and reads nothing", async () => {

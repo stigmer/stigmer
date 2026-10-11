@@ -3,7 +3,7 @@
  * the composed suites cannot reach without breaking a real store.
  *
  * Pins:
- *   - createForServiceAccount and findByAccount answer INTERNAL with the
+ *   - createForServiceAccount, findByAccount and findAll answer INTERNAL with the
  *     lane's own copy when the account read faults, never NOT_FOUND (an
  *     outage must never read as "no account"), and the domain's NOT_FOUND
  *     for an account that does not exist;
@@ -113,6 +113,13 @@ describe("a service account's key lanes when the account read faults", () => {
     const error = await refusal(
       command.createForServiceAccount({ serviceAccountId: "ida_sa", name: "ci", neverExpires: true }),
     );
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toContain("failed to load identity account");
+  });
+
+  it("findAll is INTERNAL with the lane's copy when the caller's account cannot be read, never an empty list", async () => {
+    const { query } = clientsWithFailingAccounts();
+    const error = await refusal(query.findAll({}));
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toContain("failed to load identity account");
   });
