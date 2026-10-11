@@ -7,9 +7,9 @@
  * Two steps:
  *
  *   - ValidateSubagentList runs with ValidateHooks, before any reference is
- *     looked up: an agent may not list itself, and lists each agent once
- *     (by organization and slug, the name a turn gives it). Both are
- *     INVALID_ARGUMENT.
+ *     looked up: an agent may not list itself, and lists each slug once,
+ *     since a turn names a subagent by its slug (two agents of one slug from
+ *     two organizations would share the name). Both are INVALID_ARGUMENT.
  *   - PinSubagents runs after ValidateReferences, which has already judged
  *     each reference's existence, organization and visibility floor
  *     (pipeline/steps/references.ts). For each reference it:
@@ -84,9 +84,9 @@ export function selfListedMessage(slug: string): string {
   return `subagents lists this agent itself ('${slug}'); an agent cannot hand work to itself`;
 }
 
-/** The refusal for an agent listed twice. */
+/** The refusal for a slug listed twice. */
 export function listedTwiceMessage(slug: string): string {
-  return `subagents lists '${slug}' more than once; list each agent once`;
+  return `subagents lists two agents named '${slug}'; a turn names a subagent by its slug, so list each slug once`;
 }
 
 /** The refusal for a version the listed agent does not hold. */
@@ -121,11 +121,6 @@ function namesSelf(
   return ref.slug === slug && (ref.org === "" || ref.org === org);
 }
 
-/** The key a reference is listed once by: its organization (the agent's own when empty) and slug. */
-function listKey(ref: ApiResourceReference, org: string): string {
-  return `${ref.org === "" ? org : ref.org}/${ref.slug}`;
-}
-
 /** ValidateSubagentList — the module header's first step. */
 export function newValidateSubagentListStep(): PipelineStep<AgentDesc> {
   return {
@@ -142,11 +137,10 @@ export function newValidateSubagentListStep(): PipelineStep<AgentDesc> {
         if (slug !== "" && namesSelf(ref, org, slug)) {
           throw invalidArgumentError(selfListedMessage(slug));
         }
-        const key = listKey(ref, org);
-        if (seen.has(key)) {
+        if (seen.has(ref.slug)) {
           throw invalidArgumentError(listedTwiceMessage(ref.slug));
         }
-        seen.add(key);
+        seen.add(ref.slug);
       }
     },
   };
