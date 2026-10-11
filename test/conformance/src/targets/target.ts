@@ -616,20 +616,28 @@ export interface TargetProfile {
   provisionTenancy(): Promise<TenancyContext>;
   cleanupTenancy(context: TenancyContext): Promise<void>;
 
-  // Tenancy WITHOUT the execution-credit seed: the org exists (and on cloud
-  // its billing account exists at the zero balance an org create provisions),
-  // but no credits are added — the precondition the billing-denial suite pins.
-  // Present only on billingGates targets, where the funded/unfunded
-  // distinction is observable; elsewhere provisionTenancy is already unfunded
-  // by construction and the suite skips. cleanupTenancy releases it.
+  // Tenancy WITHOUT the execution-credit seed or provider keys: the org
+  // exists (and on cloud its billing account exists at the zero balance an
+  // org create provisions), but nothing is added — the precondition the
+  // billing ledger and run-admission suites start from. Present only on
+  // billingGates targets; elsewhere provisionTenancy is already bare by
+  // construction and those suites skip. cleanupTenancy releases it.
   provisionUnfundedTenancy?(): Promise<TenancyContext>;
 
-  // Seed the org's billing account with the target's standard execution
-  // credit allowance (the same seed provisionTenancy applies) — the
-  // billing-denial suite's negative control: funding the SAME org must clear
-  // the denial, proving it was credit-driven. Present only on billingGates
-  // targets.
+  // Seed the org's billing account with the target's standard credit
+  // allowance, for the suites that move or read a balance. A native run
+  // needs no credit: it runs on the organization's own provider key.
+  // Present only on billingGates targets.
   fundTenancy?(org: string): Promise<void>;
+
+  // Save an Anthropic and an OpenAI key on the org, as an admin pastes them
+  // in the console: on the hosted edition every native run needs a key for
+  // its model's provider, and a run in an org with none is refused at
+  // create. The keys are this target's fixtures (CONFORMANCE_PROVIDER_KEYS),
+  // so the proxy suite can read them back off the upstream request. Present
+  // only where provider keys exist (the cloud targets); elsewhere a native
+  // run needs none, and callers write `keyTenancy?.(org)`.
+  keyTenancy?(org: string): Promise<void>;
 
   // The clients that may add or remove an org's credits without a purchase
   // (can_manage_credits on the platform, which owning the org never

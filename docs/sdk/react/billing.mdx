@@ -509,8 +509,8 @@ function useProviderKeyActions(): UseProviderKeyActionsReturn
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
     error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
     isSubmitting: { type: "boolean", description: "`true` while a save or a removal is in flight." },
-    removeKey: { type: "(org: string, provider: ProviderKeyProvider) => Promise<ProviderKey>", description: "Remove the organization's key for a provider; allowed on every plan." },
-    setKey: { type: "(org: string, provider: ProviderKeyProvider, apiKey: string) => Promise<ProviderKey>", description: "Save the organization's key for a provider, replacing any it holds. The provider is asked about the key once first, and a key it rejects is refused. Refused with the `PLAN_UPGRADE_REQUIRED` reason when the organization's plan does not include bring-your-own provider keys. Resolves with the saved key, without its secret." },
+    removeKey: { type: "(org: string, provider: ProviderKeyProvider) => Promise<ProviderKey>", description: "Remove the organization's key for a provider." },
+    setKey: { type: "(org: string, provider: ProviderKeyProvider, apiKey: string, baseUrl?: string) => Promise<ProviderKey>", description: "Save the organization's key for a provider, replacing any it holds, optionally against an own endpoint (`baseUrl`: an `https` URL as the provider's SDK takes it; omitted or empty for the provider's own API). The provider (or the endpoint) is asked about the key once first, and a key it rejects is refused, as is an endpoint that is not `https` or not on a public address. Resolves with the saved key, without its secret." },
   }}
 />
 
@@ -520,8 +520,9 @@ function useProviderKeyActions(): UseProviderKeyActionsReturn
 Data hook that lists an organization's own LLM provider keys.
 
 No answer carries a key: each row names the provider, the key's last
-four characters, who saved it and when, when it last served a call, and
-whether the organization's plan still lets it be used. A child
+four characters, the endpoint it is used against (`baseUrl`, empty for
+the provider's own API), who saved it and when, and when it last served
+a call. A child
 organization's list includes its parent's keys for the providers it
 holds none of (`inheritedFromOrg`). Every member may read it
 (`can_view_billing`).
@@ -937,22 +938,42 @@ an edition that serves no subscriptions.
 ```
 
 
+### ProviderKeyNotice
+
+Says a run was not started because the organization has no key for its
+model's provider, and where an admin adds one, in place of a bare
+refusal.
+
+**Props** — `ProviderKeyNoticeProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names." },
+    error: { type: "Error", description: "The refusal: its message is the server's own copy, naming the provider and the model.", required: true },
+    providerKeysHref: { type: "string", description: "Where the provider keys page is, in the host's routing. Defaults to DEFAULT_PROVIDER_KEYS_HREF." },
+  }}
+/>
+
+```tsx
+if (providerKeyRequired(error) !== null) return <ProviderKeyNotice error={error} />;
+```
+
+
 ### ProviderKeysSection
 
 Settings section for an organization's own LLM provider keys.
 
-On a plan that includes bring-your-own provider keys (Business and
-above), an admin saves an Anthropic or OpenAI key, and the organization's
-agents then run on it: the provider bills the organization
-directly, and those tokens carry no Stigmer commission and do not count
-toward the plan's usage share. A saved key is never shown again, only its
-last four characters. A child organization is served by its parent's
-key for a provider it holds none of, shown read-only.
+On Stigmer Cloud every model call runs on a key the organization owns, on
+every plan: an admin saves an Anthropic or OpenAI key, optionally against
+the organization's own Anthropic- or OpenAI-compatible endpoint (a company
+gateway, a model server it runs), and its agents run on it. The provider
+bills the organization directly. A run whose model needs a provider with
+no key is refused until one is added. A saved key is never shown again,
+only its last four characters. A child organization is served by its
+parent's key for a provider it holds none of, shown read-only.
 
-A key the plan no longer allows is kept and listed as not in use, and
-can be removed; the organization's calls run on Stigmer's keys again,
-billed as usage. Every member sees the list; admins
-(`can_manage_billing`) save, replace and remove.
+Every member sees the list; admins (`can_manage_billing`) save, replace
+and remove.
 
 Cloud-only: in local mode the runner already uses the developer's own
 keys directly.
@@ -961,7 +982,6 @@ keys directly.
 
 <TypeTable
   type={{
-    billingHref: { type: "string", description: "Where the plans are, in the host's routing. Defaults to the billing settings route." },
     className: { type: "string", description: "Additional CSS class names." },
   }}
 />
@@ -1049,6 +1069,11 @@ Metadata for a self-serve credit pack.
 ### DEFAULT_BILLING_HREF
 
 The billing page the notice links to by default: the settings route every client serves.
+
+
+### DEFAULT_PROVIDER_KEYS_HREF
+
+The provider keys page the notice links to by default: the settings route every client serves.
 
 
 ### ENTERPRISE_CONTACT_URL
@@ -1194,9 +1219,40 @@ function planUpgradeFeature(error: unknown): Feature | null
 ```
 
 
+### PROVIDER_KEY_REQUIRED
+
+The reason Stigmer Cloud refuses a run whose model needs a provider the
+organization holds no key for (billing/providerkey/v1/api.proto).
+
+
 ### ProviderKeyProvider
 
-The providers an organization may bring its own key for, by their wire names.
+The providers an organization holds a key for, by their wire names. Each
+names a wire protocol: `anthropic` is Anthropic's API or any endpoint that
+speaks it, `openai` is OpenAI's or any endpoint that speaks it.
+
+
+### providerKeyRequired
+
+What a refusal names, when `error` is Stigmer Cloud's
+`PROVIDER_KEY_REQUIRED`; `null` for any other error.
+
+```tsx
+function providerKeyRequired(error: unknown): ProviderKeyRequired | null
+```
+
+
+### ProviderKeyRequired
+
+What a `PROVIDER_KEY_REQUIRED` refusal names.
+
+<TypeTable
+  type={{
+    model: { type: "string", description: "The model the run would have used.", required: true },
+    org: { type: "string", description: "The organization the run was refused in.", required: true },
+    provider: { type: "string", description: "The provider it has no key for: `anthropic` or `openai`.", required: true },
+  }}
+/>
 
 
 ### SetAutoRechargeConfigInput

@@ -5,10 +5,11 @@
 // Domain: proxy.
 //
 // Lanes and what this file asserts:
-//   llm          — relay + provider-key injection, usage landing in the
-//                  ledger, scope authorization, the platform-error rewrite to
-//                  503, verbatim relay of other upstream errors, mid-stream
-//                  abort, hop-by-hop header hygiene
+//   llm          — relay on the organization's own provider key, the
+//                  keyless refusal, usage landing in the ledger, scope
+//                  authorization, verbatim relay of upstream errors marked as
+//                  the organization's key, mid-stream abort, hop-by-hop
+//                  header hygiene
 //   cursor       — the three arms that need no upstream: host allow-list 403,
 //                  scope 403, pool-exhausted 503 (relay rows are `smoke`)
 //   cursor-bidi  — the handshake refusals over raw h2c (relay is `smoke`)
@@ -40,6 +41,7 @@ import { bidiHandshake, HTTP2_REFUSED_STREAM } from "../support/cursor-bidi";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
+import { CONFORMANCE_PROVIDER_KEYS } from "../targets/cloud";
 import type { ConformanceClients } from "../harness/clients";
 import type { TenancyContext } from "../targets/target";
 const proxyServed = createTarget().capabilities.sideChannelProxy;
@@ -52,21 +54,23 @@ let primaryToken: string;
 const fixtures = new FixtureTracker();
 
 const EXECUTION_HEADER = "x-stigmer-execution-id";
-const PLATFORM_CAPACITY_SENTINEL = "STIGMER_PLATFORM_MODEL_CAPACITY";
+const PROVIDER_KEY_REQUIRED_SENTINEL = "STIGMER_PROVIDER_KEY_REQUIRED";
+const ORGANIZATION_PROVIDER_KEY_SENTINEL = "STIGMER_ORGANIZATION_PROVIDER_KEY";
 
-async function fundedOrg(): Promise<TenancyContext> {
-  if (target.provisionUnfundedTenancy === undefined || target.fundTenancy === undefined) {
-    throw new Error(`target ${target.name} declares sideChannelProxy but lacks the billing seams`);
+// An org holding the fixture provider keys (CONFORMANCE_PROVIDER_KEYS): every
+// call the proxy serves for it runs on them, and its runs are admitted.
+async function keyedOrg(): Promise<TenancyContext> {
+  if (target.provisionUnfundedTenancy === undefined || target.keyTenancy === undefined) {
+    throw new Error(`target ${target.name} declares sideChannelProxy but lacks the provider-key seams`);
   }
   const context = await target.provisionUnfundedTenancy();
   fixtures.defer(() => target.cleanupTenancy(context));
-  await target.fundTenancy(context.org);
+  await target.keyTenancy(context.org);
   return context;
 }
 
 // A real, owned agent execution in the org: the scope every proxy lane is
-// authorized against. In a funded org the run's credit reserve authorizes
-// it, so usage recorded against it is metered.
+// authorized against, and the org usage recorded against it lands on.
 async function ownedExecution(org: string): Promise<string> {
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("proxy-agent") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
@@ -159,8 +163,8 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
   });
 
   describe("llm lane", () => {
-    it("[proxy.llm.anthropic.relays-sse-and-injects-provider-key] [proxy.llm.headers.hop-by-hop-stripped] an Anthropic stream is relayed byte for byte with the platform key injected upstream", async () => {
-      const { org } = await fundedOrg();
+    it("[proxy.llm.anthropic.relays-sse-and-injects-provider-key] [proxy.llm.headers.hop-by-hop-stripped] an Anthropic stream is relayed byte for byte with the organization's key injected upstream", async () => {
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       await control.llm.enqueue({
         kind: "anthropic",
@@ -189,13 +193,13 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
 
       const upstream = (await control.llm.requests()).at(-1);
       expect(upstream?.provider).toBe("anthropic");
-      expect(upstream?.headers["x-api-key"]).toBe("sk-ant-conformance-platform-key");
+      expect(upstream?.headers["x-api-key"]).toBe(CONFORMANCE_PROVIDER_KEYS.anthropic);
       expect(upstream?.headers["anthropic-version"]).toBe("2023-06-01");
       expect(upstream?.headers["authorization"], "the caller's Stigmer bearer never reaches the provider").toBeUndefined();
     });
 
-    it("[proxy.llm.openai.injects-bearer-and-include-usage] an OpenAI chat completion reaches the upstream with the platform bearer and stream_options.include_usage injected", async () => {
-      const { org } = await fundedOrg();
+    it("[proxy.llm.openai.injects-bearer-and-include-usage] an OpenAI chat completion reaches the upstream with the organization's key as bearer and stream_options.include_usage injected", async () => {
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       await control.llm.enqueue({ kind: "openai", body: openAiText("ok", { inputTokens: 7, outputTokens: 2 }) });
       const response = await proxyFetch("/v1/proxy/llm/openai/v1/chat/completions", {
@@ -208,12 +212,12 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       await response.text();
       const upstream = (await control.llm.requests()).at(-1);
       expect(upstream?.provider).toBe("openai");
-      expect(upstream?.headers["authorization"]).toBe("Bearer sk-conformance-openai-platform-key");
+      expect(upstream?.headers["authorization"]).toBe(`Bearer ${CONFORMANCE_PROVIDER_KEYS.openai}`);
       expect((upstream?.body as { stream_options?: { include_usage?: boolean } }).stream_options?.include_usage).toBe(true);
     });
 
     it("[proxy.llm.usage.anthropic-sse-usage-lands-in-ledger] [proxy.llm.usage.openai-final-chunk-usage-lands] usage extracted from both providers' wire lands on the org's usage report", async () => {
-      const { org } = await fundedOrg();
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       const before = await usageReport(org);
 
@@ -250,7 +254,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
     });
 
     it("[proxy.llm.unknown-provider-400] an unknown provider answers 400 without touching the upstream", async () => {
-      const { org } = await fundedOrg();
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       const response = await proxyFetch("/v1/proxy/llm/mistral/v1/chat", { method: "POST", scope: { [EXECUTION_HEADER]: executionId }, body: "{}" });
       expect(response.status).toBe(400);
@@ -258,7 +262,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
     });
 
     it("[proxy.llm.scope.foreign-execution-403] a scope naming an execution the caller cannot edit answers 403 and never reaches the upstream", async () => {
-      const { org } = await fundedOrg();
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       const token = await mintOutsiderToken();
       const response = await anthropicCall(executionId, {}, token);
@@ -267,7 +271,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
     });
 
     it("[proxy.llm.scope.missing-scope-header-403-when-required] [proxy.llm.authn.no-bearer-401] [proxy.llm.authn.foreign-or-expired-token-401] [proxy.llm.authn.x-api-key-header-accepted] the edge's authentication and require-scope arms", async () => {
-      const { org } = await fundedOrg();
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       expect((await proxyFetch("/v1/proxy/llm/anthropic/v1/messages", { method: "POST", body: "{}", token: null as unknown as undefined })).status).toBe(401);
       expect((await anthropicCall(executionId, {}, "eyJ.not.a-token")).status).toBe(401);
@@ -281,8 +285,26 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       expect(viaApiKey.status).toBe(200);
     });
 
-    it("[proxy.llm.upstream.platform-auth-rewritten-503] [proxy.llm.upstream.platform-billing-rewritten-503] platform-attributed upstream failures are rewritten to 503 with the sentinel and x-should-retry false", async () => {
-      const { org } = await fundedOrg();
+    it("[proxy.llm.provider-key.keyless-403-sentinel] a call for a provider the organization holds no key for answers 403 with the sentinel and x-should-retry false, and never reaches the upstream", async () => {
+      const { org } = await keyedOrg();
+      const executionId = await ownedExecution(org);
+      // The key is removed after the run was admitted: the proxy is the
+      // backstop for every call the admission check could not see.
+      await clients.providerKeyCommand.delete({ org, provider: "anthropic" });
+      await control.llm.reset();
+
+      const response = await anthropicCall(executionId);
+      expect(response.status).toBe(403);
+      expect(response.headers.get("x-should-retry")).toBe("false");
+      expect(response.headers.get("content-type")).toMatch(/application\/json/);
+      const body = (await response.json()) as { type: string; error: { type: string; message: string } };
+      expect(body.type, "the refusal is Anthropic-shaped, so the provider SDK reads it").toBe("error");
+      expect(body.error.message).toContain(PROVIDER_KEY_REQUIRED_SENTINEL);
+      expect(await control.llm.requests()).toEqual([]);
+    });
+
+    it("[proxy.llm.upstream.organization-key-failures-relayed-marked] an upstream 401, 403, 429 or billing failure on the organization's key is relayed with its status, never rewritten, and marked as the organization's key", async () => {
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       const cases: Array<{ status: number; body: unknown; provider: "anthropic" | "openai" }> = [
         { status: 401, body: { type: "error", error: { type: "authentication_error", message: "invalid x-api-key" } }, provider: "anthropic" },
@@ -296,15 +318,13 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
           c.provider === "anthropic"
             ? await anthropicCall(executionId)
             : await proxyFetch("/v1/proxy/llm/openai/v1/chat/completions", { method: "POST", scope: { [EXECUTION_HEADER]: executionId }, headers: { "content-type": "application/json" }, body: JSON.stringify({ model: "gpt-4.1", stream: true, messages: [] }) });
-        expect(response.status, `${c.provider} ${c.status}`).toBe(503);
-        expect(response.headers.get("x-should-retry"), `${c.provider} ${c.status}`).toBe("false");
-        expect(response.headers.get("content-type")).toMatch(/application\/json/);
-        expect(await response.text()).toContain(PLATFORM_CAPACITY_SENTINEL);
+        expect(response.status, `${c.provider} ${c.status}`).toBe(c.status);
+        expect(await response.text(), `${c.provider} ${c.status}`).toContain(ORGANIZATION_PROVIDER_KEY_SENTINEL);
       }
     });
 
-    it("[proxy.llm.upstream.other-errors-relayed-verbatim] a non-platform upstream error is relayed with its status and body", async () => {
-      const { org } = await fundedOrg();
+    it("[proxy.llm.upstream.other-errors-relayed-verbatim] an upstream error is relayed with its status and the provider's message", async () => {
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       await control.llm.enqueue({ kind: "error", status: 404, body: { type: "error", error: { type: "not_found_error", message: "model not found" } } });
       const notFound = await anthropicCall(executionId);
@@ -316,7 +336,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
     });
 
     it("[proxy.llm.upstream.aborted-mid-stream-truncates-and-records-partial-usage] an upstream cut mid-stream ends the relayed stream early and records the usage seen so far", async () => {
-      const { org } = await fundedOrg();
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       const before = await usageReport(org);
       // message_start (input tokens) and one content_block_start arrive; the
@@ -342,7 +362,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
     });
 
     it("[proxy.cursor.scope.foreign-execution-403] a scoped Cursor call on a foreign execution answers 403", async () => {
-      const { org } = await fundedOrg();
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       const token = await mintOutsiderToken();
       const response = await proxyFetch("/v1/proxy/cursor/api2.cursor.sh/aiserver.v1.AgentService/Run", {
@@ -355,7 +375,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
     });
 
     it("[proxy.cursor.pool-exhausted-503-connect-body] with no Cursor account for the org, an authorized call answers 503 with the Connect-shaped body", async () => {
-      const { org } = await fundedOrg();
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       const response = await proxyFetch("/v1/proxy/cursor/api2.cursor.sh/aiserver.v1.AgentService/Run", {
         method: "POST",
@@ -372,7 +392,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
     it("[proxy.cursor-bidi.missing-token-refused-stream] [proxy.cursor-bidi.authn-failure-401-code-16] [proxy.cursor-bidi.fga-denied-403-code-7] the bidi handshake refuses the three ways it must", async () => {
       if (target.cursorBidiBaseUrl === undefined) throw new Error("cursorBidiBaseUrl missing on a sideChannelProxy target");
       const bidi = target.cursorBidiBaseUrl();
-      const { org } = await fundedOrg();
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
 
       const missing = await bidiHandshake(bidi, {});
@@ -397,7 +417,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
 
   describe("storage lanes", () => {
     it("[proxy.artifact.presign-by-key-shape-and-permission] artifact presigns are authorized by the execution id inside the key; attachments need only authentication", async () => {
-      const { org } = await fundedOrg();
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       const upload = await proxyFetch("/v1/proxy/artifacts/presigned-upload-url", {
         method: "POST",
@@ -428,7 +448,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
     });
 
     it("[proxy.artifact.key-rules-and-mime] artifact keys and content types are validated before authorization", async () => {
-      const { org } = await fundedOrg();
+      const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       const badKeys = ["", `artifacts/${executionId}/../escape`, `artifacts/${executionId}//double`, "other/prefix/x", `artifacts/${executionId}/${"k".repeat(1100)}`, `artifacts/${executionId}/bad char`];
       for (const key of badKeys) {
@@ -448,7 +468,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
     });
 
     it("[proxy.checkpointer.round-trip-by-session-scope] [proxy.checkpointer.foreign-session-403] [proxy.checkpointer.document-over-4mb-413] checkpoints round-trip for the session's owner, refuse outsiders, and refuse oversized documents", async () => {
-      const { org } = await fundedOrg();
+      const { org } = await keyedOrg();
       const sessionId = await ownedSession(org);
       const threadId = `thread-${sessionId}`;
       const checkpointId = uniqueName("ckpt");

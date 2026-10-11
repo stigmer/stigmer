@@ -86,6 +86,7 @@ import {
 } from "../../domain/plugin-eval/arm.js";
 import { gradeChecks } from "../../domain/plugin-eval/graders/grade.js";
 import {
+  describeVoteAnswer,
   isJudgedGrader,
   readVote,
   referenceTranscript,
@@ -592,6 +593,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
             deps.logger.warn("a vote's answer could not be read", {
               voteRunId,
               cause: reading.refused,
+              answer: describeVoteAnswer(vote.status?.structuredOutput, rubric),
             });
             read = { kind: "failed", reason: JUDGE_UNREADABLE_REASON };
           } else {

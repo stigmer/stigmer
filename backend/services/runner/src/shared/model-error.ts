@@ -19,13 +19,17 @@
  *    (BYO-key) mode, attributes billing errors to the user's own account
  *    with actionable wording.
  *
- * 3. On Stigmer Cloud an organization may bring its own provider key, which
- *    the proxy injects upstream in place of the platform's. A failure on
- *    that key is the organization's, not the platform's, yet it reaches the
- *    runner in proxy mode. The proxy keeps the provider's status and message
+ * 3. On Stigmer Cloud the proxy serves a model call on the organization's
+ *    own provider key. A failure on that key is the organization's, not the
+ *    platform's, yet it reaches the runner in proxy mode. The proxy keeps the provider's status and message
  *    and marks the message with ORGANIZATION_PROVIDER_KEY_SENTINEL; this
  *    module words a marked failure as the organization's key, never as a
  *    platform fault.
+ *
+ * 4. On Stigmer Cloud every model call runs on a key the organization owns;
+ *    the proxy refuses a call for a provider the organization holds no key
+ *    for, marking the refusal with PROVIDER_KEY_REQUIRED_SENTINEL. This
+ *    module words it as the missing key and where an admin adds it.
  *
  * Classification order is load-bearing: the sentinel check must precede
  * status mapping, otherwise the proxy's 503 would classify as a provider
@@ -58,6 +62,14 @@ export const PLATFORM_CAPACITY_SENTINEL = "STIGMER_PLATFORM_MODEL_CAPACITY";
  * Duplicated in stigmer-cloud's LLM proxy lane; change both or neither.
  */
 export const ORGANIZATION_PROVIDER_KEY_SENTINEL = "STIGMER_ORGANIZATION_PROVIDER_KEY";
+
+/**
+ * Machine-readable code the cloud proxy embeds in the refusal of a call for
+ * a provider the organization holds no key for. The message text carries it,
+ * as it carries the other sentinels. Duplicated in stigmer-cloud's LLM proxy
+ * lane; change both or neither.
+ */
+export const PROVIDER_KEY_REQUIRED_SENTINEL = "STIGMER_PROVIDER_KEY_REQUIRED";
 
 export interface ClassifiedModelError {
   /** Stable machine-readable code (the `[type]` a failed turn's message leads with). */
@@ -114,7 +126,18 @@ export function classifyModelCallError(
   const root = unwrapModelError(err);
   const message = root instanceof Error ? root.message : String(root);
 
-  // 0. Organization-key sentinel — before everything that reads proxyMode:
+  // 0. No key at all — first: the proxy refused before any provider saw
+  //    the call, so nothing else about it (status, proxy mode) means
+  //    anything but "add a key".
+  if (message.includes(PROVIDER_KEY_REQUIRED_SENTINEL)) {
+    const missing = callerCtx.provider ? `${providerLabel(callerCtx)} key` : "key for this model's provider";
+    return {
+      code: "LLM_PROVIDER_KEY_REQUIRED",
+      message: `This organization has no ${missing}. An admin can add one in Settings → Provider keys.`,
+    };
+  }
+
+  // 0b. Organization-key sentinel — before everything that reads proxyMode:
   //    the call went through the proxy but on the organization's own key,
   //    so its failures are the organization's. The key-specific failures
   //    get key-specific wording; the rest classify as direct mode would.

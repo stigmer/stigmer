@@ -42,7 +42,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n+ai/stigmer/billing/providerkey/v1/api." +
       "proto\022!ai.stigmer.billing.providerkey.v1" +
-      "\032\037google/protobuf/timestamp.proto\"\356\002\n\013Pr" +
+      "\032\037google/protobuf/timestamp.proto\"\211\003\n\013Pr" +
       "oviderKey\022\020\n\003org\030\001 \001(\tR\003org\022\032\n\010provider\030" +
       "\002 \001(\tR\010provider\022\031\n\010key_hint\030\003 \001(\tR\007keyHi" +
       "nt\022\035\n\ncreated_by\030\004 \001(\tR\tcreatedBy\0229\n\ncre" +
@@ -52,11 +52,12 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "used_at\030\007 \001(\0132\032.google.protobuf.Timestam" +
       "pR\nlastUsedAt\022\025\n\006in_use\030\010 \001(\010R\005inUse\022,\n\022" +
       "inherited_from_org\030\t \001(\tR\020inheritedFromO" +
-      "rgB\263\001B\010ApiProtoP\001\242\002\004ASBP\252\002!Ai.Stigmer.Bi" +
-      "lling.Providerkey.V1\312\002!Ai\\Stigmer\\Billin" +
-      "g\\Providerkey\\V1\342\002-Ai\\Stigmer\\Billing\\Pr" +
-      "oviderkey\\V1\\GPBMetadata\352\002%Ai::Stigmer::" +
-      "Billing::Providerkey::V1b\006proto3"
+      "rg\022\031\n\010base_url\030\n \001(\tR\007baseUrlB\263\001B\010ApiPro" +
+      "toP\001\242\002\004ASBP\252\002!Ai.Stigmer.Billing.Provide" +
+      "rkey.V1\312\002!Ai\\Stigmer\\Billing\\Providerkey" +
+      "\\V1\342\002-Ai\\Stigmer\\Billing\\Providerkey\\V1\\" +
+      "GPBMetadata\352\002%Ai::Stigmer::Billing::Prov" +
+      "iderkey::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -68,7 +69,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_providerkey_v1_ProviderKey_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_providerkey_v1_ProviderKey_descriptor,
-        new java.lang.String[] { "Org", "Provider", "KeyHint", "CreatedBy", "CreatedAt", "UpdatedAt", "LastUsedAt", "InUse", "InheritedFromOrg", });
+        new java.lang.String[] { "Org", "Provider", "KeyHint", "CreatedBy", "CreatedAt", "UpdatedAt", "LastUsedAt", "InUse", "InheritedFromOrg", "BaseUrl", });
     descriptor.resolveAllFeaturesImmutable();
     com.google.protobuf.TimestampProto.getDescriptor();
   }

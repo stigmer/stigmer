@@ -189,26 +189,31 @@ export class CloudExecutionTarget implements TargetProfile {
     return this.cloud.stripeWebhook();
   }
 
+  // Every tenancy this target provisions can run: it holds the fixture
+  // provider keys, as an organization whose admin pasted them does. No
+  // credit is seeded; a native run spends none.
   async provisionTenancy(): Promise<TenancyContext> {
     const context = await this.cloud.provisionTenancy();
-    await this.fundTenancy(context.org);
+    await this.keyTenancy(context.org);
     return context;
   }
 
-  // The billing-denial suite's precondition: a real org whose billing account
-  // exists at the zero balance the org create provisions — the funding step
-  // above deliberately skipped. Everything else (FGA tuples, membership) is
-  // identical to provisionTenancy, so a later fundTenancy on the same org
-  // turns it into the funded shape exactly.
+  // The run-admission suite's precondition: a real org with neither credit
+  // nor keys. Everything else (FGA tuples, membership) is identical to
+  // provisionTenancy, so a later keyTenancy on the same org turns it into
+  // the provisioned shape exactly.
   provisionUnfundedTenancy(): Promise<TenancyContext> {
     return this.cloud.provisionUnfundedTenancy();
   }
 
-  // The seed itself lives on the Class A target (so ledger arms can fund
-  // without a runner); this target's provisionTenancy is the one
-  // place that applies it by default.
+  // The seed lives on the Class A target (so ledger arms can fund without a
+  // runner).
   fundTenancy(org: string): Promise<void> {
     return this.cloud.fundTenancy(org);
+  }
+
+  keyTenancy(org: string): Promise<void> {
+    return this.cloud.keyTenancy(org);
   }
 
   creditIssuer(): ConformanceClients {

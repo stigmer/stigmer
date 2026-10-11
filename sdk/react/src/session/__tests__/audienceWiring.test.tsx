@@ -486,6 +486,19 @@ describe("SessionViewer — audience wiring", () => {
     const alert = screen.getByRole("alert");
     expect(alert.textContent).toContain("the run could not start");
   });
+
+  it("renders a provider-key refusal with the link to the provider keys page", async () => {
+    const { refusal } = await import("../../billing/__tests__/fixtures");
+    stubConv.sendError = refusal("This organization has no Anthropic key.", "PROVIDER_KEY_REQUIRED", {
+      org: "acme",
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+    });
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+
+    expect(screen.getByRole("alert").textContent).toContain("This organization has no Anthropic key.");
+    expect(screen.getByRole("link", { name: "Open provider keys" })).toBeTruthy();
+  });
 });
 
 describe("owner-pinned runConfig wiring (#664)", () => {

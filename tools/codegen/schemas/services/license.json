@@ -147,7 +147,7 @@
         {
           "name": "byo_provider_keys",
           "number": 3,
-          "description": "Bringing the customer's own LLM provider keys instead of the platform's\n metered proxy credentials."
+          "description": "No longer used: gates nothing. Every plan serves model calls on the\n organization's own provider keys, and no edition reads this value. It\n stays because plans and licenses already issued carry it and an enum\n value is a wire identifier. A new plan or license does not list it."
         },
         {
           "name": "channels",

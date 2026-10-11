@@ -65,6 +65,15 @@ function requireEnv(name: string): string {
   return value;
 }
 
+/**
+ * The provider keys keyTenancy saves on a tenancy, by provider: what the
+ * proxy injects upstream for that org's calls.
+ */
+export const CONFORMANCE_PROVIDER_KEYS: Readonly<Record<"anthropic" | "openai", string>> = {
+  anthropic: "sk-ant-conformance-org-key",
+  openai: "sk-conformance-openai-org-key",
+};
+
 export class CloudTarget implements TargetProfile {
   readonly name = "cloud";
   // stigmer-cloud's composition declares `cloud` in its first-party unit.
@@ -356,6 +365,15 @@ export class CloudTarget implements TargetProfile {
       reason: "conformance execution tenancy seed",
       idempotencyKey: `conformance-seed-${org}`,
     });
+  }
+
+  // Saves the fixture keys through the org owner's own ProviderKey.set, the
+  // call the console's Provider keys section makes. The key check a save
+  // makes reaches the environment's fake upstream, which answers it.
+  async keyTenancy(org: string): Promise<void> {
+    for (const [provider, apiKey] of Object.entries(CONFORMANCE_PROVIDER_KEYS)) {
+      await this.clients().providerKeyCommand.set({ org, provider, apiKey });
+    }
   }
 
   // The clients that may add credit: the operator's. Exposed for the suites

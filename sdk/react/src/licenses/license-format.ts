@@ -45,7 +45,7 @@ export type PlanOnlyFeature =
  * customer already has. A license issued before the value was ruled
  * ungated may still carry one; the console shows it nowhere.
  */
-export type UngatedFeature = Feature.platform_client;
+export type UngatedFeature = Feature.platform_client | Feature.byo_provider_keys;
 
 /**
  * A feature an operator can grant on a license: every feature but the
@@ -76,7 +76,6 @@ export const FEATURE_LABELS: Readonly<
   Record<GrantableFeature, { readonly label: string; readonly description: string }>
 > = {
   [Feature.sso_enforcement]: FEATURE_COPY[Feature.sso_enforcement],
-  [Feature.byo_provider_keys]: FEATURE_COPY[Feature.byo_provider_keys],
 };
 
 /** Every grantable feature, in contract order (derived from the label map). */
@@ -167,7 +166,7 @@ export function limitPart(limit: number | undefined, noun: string): string {
   return limit === undefined ? `Unlimited ${noun}s` : plural(limit, noun);
 }
 
-/** The granted features by name, in contract order: "SSO enforcement, Bring your own provider keys". */
+/** The granted features by name, in contract order: "SSO enforcement". */
 export function featureNames(features: readonly number[]): string {
   const names = GRANTABLE_FEATURES.filter((f) => features.includes(f)).map((f) => FEATURE_LABELS[f].label);
   return names.length === 0 ? "No features" : names.join(", ");

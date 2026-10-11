@@ -56,7 +56,7 @@ ListProviderKeysOutput listProviderKeysOutput = client.providerkeys().list(ListP
 
 Remove the organization's key for a provider.
 
-Allowed on every plan, so an organization that left the plan can always remove what it saved. NOT_FOUND when the organization holds no key for the provider. Returns the removed key without its secret.
+NOT_FOUND when the organization holds no key for the provider. Returns the removed key without its secret.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -101,7 +101,7 @@ ProviderKey providerKey = client.providerkeys().delete(DeleteProviderKeyInput.bu
 
 Save the organization's key for a provider.
 
-The key is checked once against the provider before it is saved, and a key the provider rejects is refused with INVALID_ARGUMENT. Refused with FAILED_PRECONDITION, reason PLAN_UPGRADE_REQUIRED, when the organization's plan does not include bring-your-own provider keys. Returns the saved key without its secret.
+Allowed on every plan. The key is checked once against the provider (or the base URL, when one is given) before it is saved, and a key the provider rejects is refused with INVALID_ARGUMENT, as is a base URL that is not https or does not resolve to a public address. Returns the saved key without its secret.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -110,6 +110,7 @@ const providerKey = await stigmer.providerkey.set({
   org: "...",
   provider: "...",
   apiKey: "...",
+  baseUrl: "...",
 });
 ```
 </Tab>
@@ -119,6 +120,7 @@ providerKey, err := client.ProviderKey.Set(ctx, &stigmer.SetProviderKeyInput{
   Org:      "...",
   Provider: "...",
   ApiKey:   "...",
+  BaseUrl:  "...",
 })
 ```
 </Tab>
@@ -128,6 +130,7 @@ provider_key = client.providerkeys.set(SetProviderKeyInput(
     org="...",
     provider="...",
     api_key="...",
+    base_url="...",
 ))
 ```
 </Tab>
@@ -137,6 +140,7 @@ ProviderKey providerKey = client.providerkeys().set(SetProviderKeyInput.builder(
     .org("...")
     .provider("...")
     .apiKey("...")
+    .baseUrl("...")
     .build());
 ```
 </Tab>
@@ -157,6 +161,7 @@ Save the organization's key for a provider, replacing any key it holds for that 
     org: { type: "string", description: "" },
     provider: { type: "string", description: "" },
     apiKey: { type: "string", description: "The provider API key." },
+    baseUrl: { type: "string", description: "The endpoint to use the key against, as the provider's own SDK takes it as its base URL: OpenAI's usually ends in /v1, Anthropic's does not." },
   }}
 />
 

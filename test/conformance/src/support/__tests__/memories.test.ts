@@ -1,8 +1,8 @@
 // Pins the memory execution suites' organization helper (support/memories.ts):
-// it creates the organization with memory on, funds it through the hook a
-// credit-gating target passes before any memory is written (a run in an
-// unfunded organization is refused before it reaches the behaviour the
-// suites pin), and works unfunded where no hook is given. The clients are
+// it creates the organization with memory on, prepares it through the hook a
+// target passes before any memory is written (on the hosted edition a run in
+// an organization with no provider key is refused before it reaches the
+// behaviour the suites pin), and works unprepared where no hook is given. The clients are
 // stubbed; nothing here starts a server.
 import { describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
@@ -34,7 +34,7 @@ function recordingClients(steps: string[]): ConformanceClients {
 }
 
 describe("provisionOrgWithConfirmedFacts", () => {
-  it("funds the organization it creates by slug before any memory is written", async () => {
+  it("prepares the organization it creates by slug before any memory is written", async () => {
     const steps: string[] = [];
     const funded: string[] = [];
     const result = await provisionOrgWithConfirmedFacts(
@@ -56,7 +56,7 @@ describe("provisionOrgWithConfirmedFacts", () => {
     expect(result).toEqual({ org: "retrorg", memoryIds: ["mem_1", "mem_2"] });
   });
 
-  it("leaves the organization unfunded where the target passes no hook", async () => {
+  it("leaves the organization unprepared where the target passes no hook", async () => {
     const steps: string[] = [];
     await provisionOrgWithConfirmedFacts(
       recordingClients(steps),

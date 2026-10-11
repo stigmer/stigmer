@@ -9,14 +9,16 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SetProviderKeyInput(_message.Message):
-    __slots__ = ("org", "provider", "api_key")
+    __slots__ = ("org", "provider", "api_key", "base_url")
     ORG_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
     API_KEY_FIELD_NUMBER: _ClassVar[int]
+    BASE_URL_FIELD_NUMBER: _ClassVar[int]
     org: str
     provider: str
     api_key: str
-    def __init__(self, org: _Optional[str] = ..., provider: _Optional[str] = ..., api_key: _Optional[str] = ...) -> None: ...
+    base_url: str
+    def __init__(self, org: _Optional[str] = ..., provider: _Optional[str] = ..., api_key: _Optional[str] = ..., base_url: _Optional[str] = ...) -> None: ...
 
 class DeleteProviderKeyInput(_message.Message):
     __slots__ = ("org", "provider")

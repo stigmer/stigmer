@@ -36,6 +36,7 @@ private static final long serialVersionUID = 0L;
     org_ = "";
     provider_ = "";
     apiKey_ = "";
+    baseUrl_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -181,6 +182,65 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int BASE_URL_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object baseUrl_ = "";
+  /**
+   * <pre>
+   * The endpoint to use the key against, as the provider's own SDK takes it
+   * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+   * Empty means the provider's own API. Otherwise an absolute https URL
+   * with no credentials, query or fragment, that resolves to a public
+   * address; the proxy appends the provider's request path to it, without
+   * repeating a trailing /v1. For example
+   * "https://my-resource.openai.azure.com/openai/v1".
+   * </pre>
+   *
+   * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
+   * @return The baseUrl.
+   */
+  @java.lang.Override
+  public java.lang.String getBaseUrl() {
+    java.lang.Object ref = baseUrl_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      baseUrl_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The endpoint to use the key against, as the provider's own SDK takes it
+   * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+   * Empty means the provider's own API. Otherwise an absolute https URL
+   * with no credentials, query or fragment, that resolves to a public
+   * address; the proxy appends the provider's request path to it, without
+   * repeating a trailing /v1. For example
+   * "https://my-resource.openai.azure.com/openai/v1".
+   * </pre>
+   *
+   * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for baseUrl.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getBaseUrlBytes() {
+    java.lang.Object ref = baseUrl_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      baseUrl_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -204,6 +264,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(apiKey_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, apiKey_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(baseUrl_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, baseUrl_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -221,6 +284,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(apiKey_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, apiKey_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(baseUrl_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, baseUrl_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -243,6 +309,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getProvider())) return false;
     if (!getApiKey()
         .equals(other.getApiKey())) return false;
+    if (!getBaseUrl()
+        .equals(other.getBaseUrl())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -260,6 +328,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getProvider().hashCode();
     hash = (37 * hash) + API_KEY_FIELD_NUMBER;
     hash = (53 * hash) + getApiKey().hashCode();
+    hash = (37 * hash) + BASE_URL_FIELD_NUMBER;
+    hash = (53 * hash) + getBaseUrl().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -399,6 +469,7 @@ private static final long serialVersionUID = 0L;
       org_ = "";
       provider_ = "";
       apiKey_ = "";
+      baseUrl_ = "";
       return this;
     }
 
@@ -441,6 +512,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.apiKey_ = apiKey_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.baseUrl_ = baseUrl_;
+      }
     }
 
     @java.lang.Override
@@ -468,6 +542,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getApiKey().isEmpty()) {
         apiKey_ = other.apiKey_;
         bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      if (!other.getBaseUrl().isEmpty()) {
+        baseUrl_ = other.baseUrl_;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -511,6 +590,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 34: {
+              baseUrl_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -760,6 +844,128 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       apiKey_ = value;
       bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object baseUrl_ = "";
+    /**
+     * <pre>
+     * The endpoint to use the key against, as the provider's own SDK takes it
+     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+     * Empty means the provider's own API. Otherwise an absolute https URL
+     * with no credentials, query or fragment, that resolves to a public
+     * address; the proxy appends the provider's request path to it, without
+     * repeating a trailing /v1. For example
+     * "https://my-resource.openai.azure.com/openai/v1".
+     * </pre>
+     *
+     * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
+     * @return The baseUrl.
+     */
+    public java.lang.String getBaseUrl() {
+      java.lang.Object ref = baseUrl_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        baseUrl_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The endpoint to use the key against, as the provider's own SDK takes it
+     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+     * Empty means the provider's own API. Otherwise an absolute https URL
+     * with no credentials, query or fragment, that resolves to a public
+     * address; the proxy appends the provider's request path to it, without
+     * repeating a trailing /v1. For example
+     * "https://my-resource.openai.azure.com/openai/v1".
+     * </pre>
+     *
+     * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for baseUrl.
+     */
+    public com.google.protobuf.ByteString
+        getBaseUrlBytes() {
+      java.lang.Object ref = baseUrl_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        baseUrl_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The endpoint to use the key against, as the provider's own SDK takes it
+     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+     * Empty means the provider's own API. Otherwise an absolute https URL
+     * with no credentials, query or fragment, that resolves to a public
+     * address; the proxy appends the provider's request path to it, without
+     * repeating a trailing /v1. For example
+     * "https://my-resource.openai.azure.com/openai/v1".
+     * </pre>
+     *
+     * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
+     * @param value The baseUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setBaseUrl(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      baseUrl_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The endpoint to use the key against, as the provider's own SDK takes it
+     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+     * Empty means the provider's own API. Otherwise an absolute https URL
+     * with no credentials, query or fragment, that resolves to a public
+     * address; the proxy appends the provider's request path to it, without
+     * repeating a trailing /v1. For example
+     * "https://my-resource.openai.azure.com/openai/v1".
+     * </pre>
+     *
+     * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearBaseUrl() {
+      baseUrl_ = getDefaultInstance().getBaseUrl();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The endpoint to use the key against, as the provider's own SDK takes it
+     * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+     * Empty means the provider's own API. Otherwise an absolute https URL
+     * with no credentials, query or fragment, that resolves to a public
+     * address; the proxy appends the provider's request path to it, without
+     * repeating a trailing /v1. For example
+     * "https://my-resource.openai.azure.com/openai/v1".
+     * </pre>
+     *
+     * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for baseUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setBaseUrlBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      baseUrl_ = value;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }

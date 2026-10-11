@@ -272,3 +272,21 @@ describe("ModelRegistryStore catalog indexes", () => {
     expect(s.isValidModel("native", "anthropic/claude-4")).toBe(false);
   });
 });
+
+describe("ModelRegistryStore provider and default model", () => {
+  it("delegates providerOf and defaultModel to the current document", () => {
+    const s = new ModelRegistryStore({
+      bundledDocument: JSON.stringify({
+        models: [
+          { id: "claude-a", provider: "anthropic", harness: "native", costTier: "standard", featured: true },
+        ],
+      }),
+      upstreamOrigin: "http://upstream.test",
+      refreshEnabled: false,
+      logger: capturingLogger().logger,
+    });
+    expect(s.providerOf("native", "claude-a")).toBe("anthropic");
+    expect(s.providerOf("native", "openai:own")).toBe("openai");
+    expect(s.defaultModel("native")).toBe("claude-a");
+  });
+});

@@ -47,11 +47,11 @@ class ProviderKeyCommandControllerServicer(object):
     def set(self, request, context):
         """Save the organization's key for a provider.
 
-        The key is checked once against the provider before it is saved, and a
-        key the provider rejects is refused with INVALID_ARGUMENT. Refused with
-        FAILED_PRECONDITION, reason PLAN_UPGRADE_REQUIRED, when the
-        organization's plan does not include bring-your-own provider keys.
-        Returns the saved key without its secret.
+        Allowed on every plan. The key is checked once against the provider
+        (or the base URL, when one is given) before it is saved, and a key the
+        provider rejects is refused with INVALID_ARGUMENT, as is a base URL
+        that is not https or does not resolve to a public address. Returns the
+        saved key without its secret.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -60,8 +60,7 @@ class ProviderKeyCommandControllerServicer(object):
     def delete(self, request, context):
         """Remove the organization's key for a provider.
 
-        Allowed on every plan, so an organization that left the plan can always
-        remove what it saved. NOT_FOUND when the organization holds no key for
+        NOT_FOUND when the organization holds no key for
         the provider. Returns the removed key without its secret.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)

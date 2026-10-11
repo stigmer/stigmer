@@ -76,6 +76,13 @@ export { ChangePlanDialog, PAYMENT_METHOD_REQUIRED } from "./ChangePlanDialog.js
 export type { ChangePlanDialogProps } from "./ChangePlanDialog.js";
 export { UpgradeNotice, planUpgradeFeature, PLAN_UPGRADE_REQUIRED, DEFAULT_BILLING_HREF } from "./UpgradeNotice.js";
 export type { UpgradeNoticeProps } from "./UpgradeNotice.js";
+export {
+  ProviderKeyNotice,
+  providerKeyRequired,
+  PROVIDER_KEY_REQUIRED,
+  DEFAULT_PROVIDER_KEYS_HREF,
+} from "./ProviderKeyNotice.js";
+export type { ProviderKeyNoticeProps, ProviderKeyRequired } from "./ProviderKeyNotice.js";
 
 // Credit pack catalog and formatting utilities
 export { CREDIT_PACKS, formatPackPrice, formatCreditCount } from "./credit-packs.js";

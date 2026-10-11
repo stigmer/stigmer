@@ -55,6 +55,7 @@ const stubEmptyFlow = {
   setAutoApproveAll,
   isSubmitting: false,
   submitError: null,
+  submitFailure: null as Error | null,
   submit: vi.fn(),
 };
 
@@ -219,5 +220,24 @@ describe("NewSessionViewer — removing an attached reference compares orgs by i
     fireEvent.click((await screen.findAllByRole("button", { name: "Remove skill triage" }))[0]);
 
     expect(stubEmptyFlow.setSkillRefs).toHaveBeenCalledExactlyOnceWith([{ org: "globex", slug: "triage" }]);
+  });
+});
+
+describe("NewSessionViewer — a run refused for want of a provider key", () => {
+  it("says where an admin adds the key, and shows nothing for any other failure", async () => {
+    const { refusal } = await import("../../billing/__tests__/fixtures");
+    const copy = "This organization has no OpenAI key for model 'gpt-5', so the run was not started.";
+    mockFlow = {
+      ...stubEmptyFlow,
+      submitFailure: refusal(copy, "PROVIDER_KEY_REQUIRED", { org: "acme", provider: "openai", model: "gpt-5" }),
+    };
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+    expect(screen.getByText(copy)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open provider keys" }).getAttribute("href")).toBe("/settings/provider-keys");
+
+    cleanup();
+    mockFlow = { ...stubEmptyFlow, submitFailure: new Error("something else") };
+    render(<NewSessionViewer org="acme" onSessionCreated={vi.fn()} />);
+    expect(screen.queryByRole("link", { name: "Open provider keys" })).toBeNull();
   });
 });

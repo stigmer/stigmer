@@ -25,6 +25,7 @@ import { RunQueryController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/qu
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
+import { ProviderKeyCommandController } from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/command_pb";
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
 import { PlanCommandController } from "@stigmer/protos/ai/stigmer/billing/plan/v1/command_pb";
 import { PlanQueryController } from "@stigmer/protos/ai/stigmer/billing/plan/v1/query_pb";
@@ -80,6 +81,9 @@ export interface ConformanceClients {
   // `billingLedger` is false.
   billingCommand: Client<typeof BillingCommandController>;
   billingQuery: Client<typeof BillingQueryController>;
+  // An organization's own provider keys, which every native run on the
+  // hosted edition needs. Cloud-only, like billing.
+  providerKeyCommand: Client<typeof ProviderKeyCommandController>;
   // The plan catalog and subscriptions: cloud_only kinds, so the local OSS
   // targets route none of the four and the plans facet pins Unimplemented
   // where `billingPlans` is false.
@@ -218,6 +222,7 @@ export function makeClients(transport: Transport): ConformanceClients {
     apiKeyCommand: createClient(ApiKeyCommandController, transport),
     billingCommand: createClient(BillingCommandController, transport),
     billingQuery: createClient(BillingQueryController, transport),
+    providerKeyCommand: createClient(ProviderKeyCommandController, transport),
     planCommand: createClient(PlanCommandController, transport),
     planQuery: createClient(PlanQueryController, transport),
     subscriptionCommand: createClient(SubscriptionCommandController, transport),

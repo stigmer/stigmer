@@ -15,12 +15,13 @@ import {
 
 describe("GRANTABLE_FEATURES", () => {
   it("offers every license feature and never a plan-only or ungated one", () => {
-    expect(GRANTABLE_FEATURES).toEqual([Feature.sso_enforcement, Feature.byo_provider_keys]);
+    expect(GRANTABLE_FEATURES).toEqual([Feature.sso_enforcement]);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.channels);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.sharing);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.teams);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.child_orgs);
     expect(GRANTABLE_FEATURES).not.toContain(Feature.platform_client);
+    expect(GRANTABLE_FEATURES).not.toContain(Feature.byo_provider_keys);
   });
 });
 
@@ -46,7 +47,7 @@ describe("formatDayFromToday", () => {
 describe("entitlementParts", () => {
   it("names each limit, saying unlimited where the contract reads absence as unlimited", () => {
     expect(
-      entitlementParts(create(EntitlementsSchema, { limits: { maxUsers: 5, maxOrgs: 1 }, features: [Feature.byo_provider_keys] })),
+      entitlementParts(create(EntitlementsSchema, { limits: { maxUsers: 5, maxOrgs: 1 }, features: [Feature.sso_enforcement] })),
     ).toEqual(["5 users", "1 organization", "1 feature"]);
     expect(entitlementParts(create(EntitlementsSchema, {}))).toEqual([
       "Unlimited users",
@@ -57,7 +58,7 @@ describe("entitlementParts", () => {
 
   it("counts only the features the console offers, as the names and the detail list them", () => {
     expect(
-      entitlementParts(create(EntitlementsSchema, { features: [Feature.platform_client, Feature.byo_provider_keys] })),
+      entitlementParts(create(EntitlementsSchema, { features: [Feature.platform_client, Feature.byo_provider_keys, Feature.sso_enforcement] })),
     ).toEqual(["Unlimited users", "Unlimited organizations", "1 feature"]);
     expect(
       entitlementParts(

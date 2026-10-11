@@ -18,7 +18,6 @@ export const DEFAULT_BILLING_HREF = "/settings/billing";
 const FEATURE_BY_WIRE_NAME: Readonly<Record<string, Feature>> = {
   teams: Feature.teams,
   child_orgs: Feature.child_orgs,
-  byo_provider_keys: Feature.byo_provider_keys,
 };
 
 /**

@@ -31,11 +31,11 @@ export const ProviderKeyCommandController: GenService<{
   /**
    * Save the organization's key for a provider.
    *
-   * The key is checked once against the provider before it is saved, and a
-   * key the provider rejects is refused with INVALID_ARGUMENT. Refused with
-   * FAILED_PRECONDITION, reason PLAN_UPGRADE_REQUIRED, when the
-   * organization's plan does not include bring-your-own provider keys.
-   * Returns the saved key without its secret.
+   * Allowed on every plan. The key is checked once against the provider
+   * (or the base URL, when one is given) before it is saved, and a key the
+   * provider rejects is refused with INVALID_ARGUMENT, as is a base URL
+   * that is not https or does not resolve to a public address. Returns the
+   * saved key without its secret.
    *
    * @generated from rpc ai.stigmer.billing.providerkey.v1.ProviderKeyCommandController.set
    */
@@ -47,8 +47,7 @@ export const ProviderKeyCommandController: GenService<{
   /**
    * Remove the organization's key for a provider.
    *
-   * Allowed on every plan, so an organization that left the plan can always
-   * remove what it saved. NOT_FOUND when the organization holds no key for
+   * NOT_FOUND when the organization holds no key for
    * the provider. Returns the removed key without its secret.
    *
    * @generated from rpc ai.stigmer.billing.providerkey.v1.ProviderKeyCommandController.delete

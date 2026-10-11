@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.billing.providerkey.v1.SetProviderKeyInput",
           "outputType": "ProviderKey",
           "outputFullType": "ai.stigmer.billing.providerkey.v1.ProviderKey",
-          "description": "Save the organization's key for a provider.\n\n The key is checked once against the provider before it is saved, and a\n key the provider rejects is refused with INVALID_ARGUMENT. Refused with\n FAILED_PRECONDITION, reason PLAN_UPGRADE_REQUIRED, when the\n organization's plan does not include bring-your-own provider keys.\n Returns the saved key without its secret."
+          "description": "Save the organization's key for a provider.\n\n Allowed on every plan. The key is checked once against the provider\n (or the base URL, when one is given) before it is saved, and a key the\n provider rejects is refused with INVALID_ARGUMENT, as is a base URL\n that is not https or does not resolve to a public address. Returns the\n saved key without its secret."
         },
         {
           "name": "Delete",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.billing.providerkey.v1.DeleteProviderKeyInput",
           "outputType": "ProviderKey",
           "outputFullType": "ai.stigmer.billing.providerkey.v1.ProviderKey",
-          "description": "Remove the organization's key for a provider.\n\n Allowed on every plan, so an organization that left the plan can always\n remove what it saved. NOT_FOUND when the organization holds no key for\n the provider. Returns the removed key without its secret."
+          "description": "Remove the organization's key for a provider.\n\n NOT_FOUND when the organization holds no key for\n the provider. Returns the removed key without its secret."
         }
       ]
     },
@@ -90,6 +90,19 @@
           "validation": {
             "minLength": 8,
             "maxLength": 512
+          }
+        },
+        {
+          "name": "BaseUrl",
+          "jsonName": "baseUrl",
+          "protoField": "base_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The endpoint to use the key against, as the provider's own SDK takes it\n as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.\n Empty means the provider's own API. Otherwise an absolute https URL\n with no credentials, query or fragment, that resolves to a public\n address; the proxy appends the provider's request path to it, without\n repeating a trailing /v1. For example\n \"https://my-resource.openai.azure.com/openai/v1\".",
+          "required": false,
+          "validation": {
+            "maxLength": 2048
           }
         }
       ]
@@ -175,5 +188,5 @@
       ]
     }
   ],
-  "resourceDescription": "An organization's own LLM provider key, as every caller sees it: the key\n itself never leaves the server, only which provider it is for, a hint to\n tell two keys apart, and who saved it and when.\n\n An organization holds at most one key per provider. While its plan\n includes bring-your-own provider keys, the Stigmer Cloud proxy serves the\n organization's calls to that provider on this key: the provider bills the\n organization directly, and Stigmer meters the calls without charging them.\n\n Provider keys are not an API resource. They are keyed by organization and\n provider, and they authorize against the organization, as billing does."
+  "resourceDescription": "An organization's own LLM provider key, as every caller sees it: the key\n itself never leaves the server, only which provider it is for, a hint to\n tell two keys apart, and who saved it and when.\n\n An organization holds at most one key per provider, where the provider\n names the wire protocol: \"anthropic\" is Anthropic's API or any endpoint\n that speaks it, \"openai\" is OpenAI's API or any endpoint that speaks it.\n The Stigmer Cloud proxy serves every one of the organization's calls to\n that provider on this key, on every plan, and on no other: a run whose\n model needs a provider the organization holds no key for is refused with\n FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED. The provider bills the\n organization directly, and Stigmer meters the calls without charging them.\n\n Provider keys are not an API resource. They are keyed by organization and\n provider, and they authorize against the organization, as billing does."
 }

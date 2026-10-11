@@ -22,6 +22,22 @@ message SetProviderKeyInput {
     min_len: 8
     max_len: 512
   }];
+
+  // The endpoint to use the key against, as the provider's own SDK takes it
+  // as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+  // Empty means the provider's own API. Otherwise an absolute https URL
+  // with no credentials, query or fragment, that resolves to a public
+  // address; the proxy appends the provider's request path to it, without
+  // repeating a trailing /v1. For example
+  // "https://my-resource.openai.azure.com/openai/v1".
+  string base_url = 4 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string = {
+      uri: true
+      prefix: "https://"
+      max_len: 2048
+    }
+  ];
 }
 
 // Remove the organization's key for a provider.

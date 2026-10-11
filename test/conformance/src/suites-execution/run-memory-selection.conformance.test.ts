@@ -48,10 +48,11 @@ let clients: ConformanceClients;
 let mock: MockLlmProxy;
 const fixtures = new FixtureTracker();
 
-// Funds an org this file creates where the target gates executions on
-// credits (fundTenancy, targets/target.ts); elsewhere an org needs none.
-async function fund(org: string): Promise<void> {
-  await target.fundTenancy?.(org);
+// Gives an org this file creates the provider keys a native run needs where
+// the target has them (keyTenancy, targets/target.ts); elsewhere an org needs
+// none.
+async function withProviderKeys(org: string): Promise<void> {
+  await target.keyTenancy?.(org);
 }
 
 beforeAll(async () => {
@@ -97,7 +98,7 @@ describe.skipIf(!canSeedMemories)(
   "Run memory retrieval (embedder posture)",
   () => {
     it("at the threshold with an embedder present: wholesale, no embeddings call, selection_active false", async () => {
-      const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD, fund);
+      const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD, withProviderKeys);
       const settled = await runExecution(org);
 
       expect(settled.status?.recalledMemories?.enabled).toBe(true);
@@ -111,7 +112,7 @@ describe.skipIf(!canSeedMemories)(
     });
 
     it("above the threshold: exactly one batched embeddings call, and the first k facts injected in snapshot order", async () => {
-      const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD + 1, fund);
+      const { org } = await provisionOrgWithConfirmedFacts(clients, fixtures, RETRIEVAL_ACTIVATION_THRESHOLD + 1, withProviderKeys);
       const settled = await runExecution(org);
 
       const snapshot = settled.status?.recalledMemories?.facts ?? [];

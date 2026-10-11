@@ -715,14 +715,40 @@ rows:
     lane: >-
       gate.reserve
     behavior: >-
-      An agent-execution create in a zero-balance org is refused synchronously: FAILED_PRECONDITION with the engine's denial reason verbatim ("Insufficient credits to start execution"), and no execution resource exists afterwards.
+      A Cursor agent-execution create in a zero-balance org is refused synchronously: FAILED_PRECONDITION with the engine's denial reason verbatim ("Insufficient credits to start execution"), and no execution resource exists afterwards.
+    class: carve-out
+    disposition: unit
+    observability: none
+    caller: primary
+    needs: [unfunded-org, agent-execution]
+    note: >-
+      Since every native run is served on the organization's own provider key, a native run reserves and spends no credit, and only Cursor runs still draw on the wallet; conformance cannot drive a Cursor run, so the hosted edition's own unit arms on the gate carry this row until the wallet itself is removed.
+  - id: billing.gate.provider-key.keyless-run-refused
+    surface: billing
+    lane: >-
+      gate.providerKey
+    behavior: >-
+      A native agent-execution create in an org holding no provider key for the run's model's provider (the agent's model, or the catalog's default model when none is named) is refused synchronously after the request's own validation: FAILED_PRECONDITION with ErrorInfo reason PROVIDER_KEY_REQUIRED and metadata org, provider and model, the copy "This organization has no <Anthropic|OpenAI> key for model '<model>', so the run was not started. An admin can add one in Settings → Provider keys.", and nothing reaches a model.
     class: carve-out
     disposition: conformance
     observability: launcher
     caller: primary
     needs: [unfunded-org, agent-execution]
     note: >-
-      Asserted by suites-execution/billing-denial.conformance.test.ts, which carries this row's tag.
+      Asserted by suites-execution/run-admission.conformance.test.ts. Guests and channel users get their own copy with no ErrorInfo (the visitor refusal sets); conformance cannot mint those callers, so the hosted edition's unit arms carry their wording.
+  - id: billing.gate.provider-key.keyed-run-completes-without-credit
+    surface: billing
+    lane: >-
+      gate.providerKey
+    behavior: >-
+      The same org, once it saves its provider keys, runs a native execution to completion with a zero credit balance, and its available balance does not move and nothing stays reserved.
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [unfunded-org, keyed-org, agent-execution]
+    note: >-
+      The second arm of suites-execution/run-admission.conformance.test.ts.
   - id: billing.gate.reserve.funding-clears-denial
     surface: billing
     lane: >-
@@ -730,23 +756,25 @@ rows:
     behavior: >-
       Funding the SAME org that was just denied lets its next execution run — the denial was credit-driven (the negative control).
     class: behavior
-    disposition: conformance
-    observability: launcher
+    disposition: unit
+    observability: none
     caller: primary
     needs: [unfunded-org, agent-execution]
     note: >-
-      The second arm of billing-denial.conformance.test.ts.
+      Since every native run is served on the organization's own provider key, a native run reserves and spends no credit, and only Cursor runs still draw on the wallet; conformance cannot drive a Cursor run, so the hosted edition's own unit arms on the gate carry this row until the wallet itself is removed.
   - id: billing.gate.reserve.funded-execution-holds-then-settles
     surface: billing
     lane: >-
       gate.reserve
     behavior: >-
-      A funded org's execution that completes settles its reservation — after completion the balance reflects the metered usage and no reservation remains held (a second execution reserves afresh).
+      A funded org's Cursor execution that completes settles its reservation — after completion the balance reflects the metered usage and no reservation remains held (a second execution reserves afresh).
     class: behavior
-    disposition: conformance
-    observability: launcher
+    disposition: unit
+    observability: none
     caller: primary
     needs: [funded-org, agent-execution]
+    note: >-
+      Since every native run is served on the organization's own provider key, a native run reserves and spends no credit, and only Cursor runs still draw on the wallet; conformance cannot drive a Cursor run, so the hosted edition's own unit arms on the gate carry this row until the wallet itself is removed.
   - id: billing.hook.status-signal.update-status-carries-stop-when-exhausted
     surface: billing
     lane: >-
@@ -767,10 +795,12 @@ rows:
     behavior: >-
       submitApproval on an execution whose billing signal is STOP answers FAILED_PRECONDITION "Insufficient credits to continue this execution. Please add credits before acting on this approval, or cancel the execution."; a non-billed execution's approval is unaffected.
     class: carve-out
-    disposition: conformance
-    observability: launcher
+    disposition: unit
+    observability: none
     caller: primary
     needs: [funded-org, agent-execution]
+    note: >-
+      Since every native run is served on the organization's own provider key, a native run reserves and spends no credit, and only Cursor runs still draw on the wallet; conformance cannot drive a Cursor run, so the hosted edition's own unit arms on the gate carry this row until the wallet itself is removed.
   - id: billing.gate.rearm.recover-refused-when-unfunded
     surface: billing
     lane: >-
@@ -778,10 +808,12 @@ rows:
     behavior: >-
       recover on a failed execution whose org has since been drained answers FAILED_PRECONDITION "Insufficient credits to recover this execution: Insufficient credits to start execution"; with funds the recover re-arms and relaunches.
     class: carve-out
-    disposition: conformance
-    observability: launcher
+    disposition: unit
+    observability: none
     caller: primary
     needs: [funded-org, agent-execution]
+    note: >-
+      Since every native run is served on the organization's own provider key, a native run reserves and spends no credit, and only Cursor runs still draw on the wallet; conformance cannot drive a Cursor run, so the hosted edition's own unit arms on the gate carry this row until the wallet itself is removed.
   - id: billing.gate.visitor-preflight.schedule-fire-refused-when-unfunded
     surface: billing
     lane: >-
@@ -1223,23 +1255,23 @@ rows:
     lane: >-
       llm
     behavior: >-
-      POST /v1/proxy/llm/anthropic/v1/messages with a valid bearer and an execution scope header relays the request to the Anthropic upstream with x-api-key set to the platform key and anthropic-version 2023-06-01, and streams the upstream SSE back byte for byte with content-type text/event-stream.
+      POST /v1/proxy/llm/anthropic/v1/messages with a valid bearer and an execution scope header relays the request to the Anthropic upstream with x-api-key set to the execution's organization's own Anthropic key and anthropic-version 2023-06-01, and streams the upstream SSE back byte for byte with content-type text/event-stream.
     class: behavior
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [fake-llm-upstream, funded-org, agent-execution]
+    needs: [fake-llm-upstream, keyed-org, agent-execution]
   - id: proxy.llm.openai.injects-bearer-and-include-usage
     surface: proxy
     lane: >-
       llm
     behavior: >-
-      POST /v1/proxy/llm/openai/v1/chat/completions with stream true reaches the upstream with Authorization "Bearer <platform key>" and stream_options.include_usage injected into the body.
+      POST /v1/proxy/llm/openai/v1/chat/completions with stream true reaches the upstream with Authorization "Bearer <the organization's own OpenAI key>" and stream_options.include_usage injected into the body.
     class: behavior
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [fake-llm-upstream, funded-org, agent-execution]
+    needs: [fake-llm-upstream, keyed-org, agent-execution]
   - id: proxy.llm.usage.anthropic-sse-usage-lands-in-ledger
     surface: proxy
     lane: >-
@@ -1250,7 +1282,7 @@ rows:
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [fake-llm-upstream, funded-org, agent-execution]
+    needs: [fake-llm-upstream, keyed-org, agent-execution]
   - id: proxy.llm.usage.openai-final-chunk-usage-lands
     surface: proxy
     lane: >-
@@ -1261,7 +1293,7 @@ rows:
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [fake-llm-upstream, funded-org, agent-execution]
+    needs: [fake-llm-upstream, keyed-org, agent-execution]
   - id: proxy.llm.usage.mcp-scope-authorized-not-metered
     surface: proxy
     lane: >-
@@ -1293,12 +1325,25 @@ rows:
     behavior: >-
       A provider whose platform key is not configured answers 502 without touching the upstream.
     class: adversarial
-    disposition: unit
+    disposition: debris
     observability: none
     caller: primary
     needs: [fake-llm-upstream]
     note: >-
-      The conformance environment configures both provider keys whenever the fake upstream is set (the proxy refuses keyless providers before dialing), so the arm is unobservable there; the hosted edition pins it in its own unit arms.
+      Debris: the proxy holds no platform key to be missing; every call is served on the organization's own key, and a call no key serves is refused 403 (proxy.llm.provider-key.keyless-403-sentinel).
+  - id: proxy.llm.provider-key.keyless-403-sentinel
+    surface: proxy
+    lane: >-
+      llm
+    behavior: >-
+      A scoped call for a provider the execution's organization holds no key for (its own or its parent organization's) answers 403, content-type application/json, header x-should-retry false, with a provider-shaped error body whose message carries the sentinel STIGMER_PROVIDER_KEY_REQUIRED, and never reaches the upstream; no call is ever served on a key of Stigmer's own.
+    class: carve-out
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [fake-llm-upstream, keyed-org, agent-execution]
+    note: >-
+      Observed by removing the org's key after its run was admitted: the proxy is the backstop for every call run admission could not see (a sub-agent on another provider, a key removed mid-run). An unscoped call has no organization to serve and is refused the same way; production requires the scope header, so the conformance edge refuses it earlier (proxy.llm.scope.missing-scope-header-403-when-required).
   - id: proxy.llm.scope.foreign-execution-403
     surface: proxy
     lane: >-
@@ -1376,10 +1421,12 @@ rows:
     behavior: >-
       An upstream 401 or 403 is NOT relayed — the caller gets 503, content-type application/json, header x-should-retry false, and a body carrying the sentinel STIGMER_PLATFORM_MODEL_CAPACITY.
     class: carve-out
-    disposition: conformance
+    disposition: debris
     observability: launcher
     caller: primary
     needs: [fake-llm-upstream, agent-execution]
+    note: >-
+      Debris: the LLM lane serves no call on a platform key, so no upstream failure is the platform's to rewrite; every failure is the organization's key's (proxy.llm.upstream.organization-key-failures-relayed-marked). The Cursor lanes keep their own platform-error rewrite until they run on the organization's own Cursor key.
   - id: proxy.llm.upstream.platform-billing-rewritten-503
     surface: proxy
     lane: >-
@@ -1387,16 +1434,29 @@ rows:
     behavior: >-
       An OpenAI 429 whose error type or code is insufficient_quota, and an Anthropic 400 carrying billing text, are rewritten to the same 503 sentinel; a plain 429 is relayed verbatim.
     class: carve-out
-    disposition: conformance
+    disposition: debris
     observability: launcher
     caller: primary
     needs: [fake-llm-upstream, agent-execution]
+    note: >-
+      Debris: the LLM lane serves no call on a platform key, so no upstream failure is the platform's to rewrite; every failure is the organization's key's (proxy.llm.upstream.organization-key-failures-relayed-marked). The Cursor lanes keep their own platform-error rewrite until they run on the organization's own Cursor key.
+  - id: proxy.llm.upstream.organization-key-failures-relayed-marked
+    surface: proxy
+    lane: >-
+      llm
+    behavior: >-
+      An upstream 401, 403, insufficient_quota 429 or billing 400 on the organization's own key is relayed with its own status, never rewritten to 503, in the provider's error envelope with the provider's message kept and marked with the sentinel STIGMER_ORGANIZATION_PROVIDER_KEY.
+    class: carve-out
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [fake-llm-upstream, keyed-org, agent-execution]
   - id: proxy.llm.upstream.other-errors-relayed-verbatim
     surface: proxy
     lane: >-
       llm
     behavior: >-
-      An upstream 400 (non-billing), 404 or 500 is relayed with its status and body unchanged.
+      An upstream 400 (non-billing), 404 or 500 is relayed with its status, the provider's message kept in the body (marked as the organization's key, as every upstream failure is).
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1412,7 +1472,7 @@ rows:
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [fake-llm-upstream, funded-org, agent-execution]
+    needs: [fake-llm-upstream, keyed-org, agent-execution]
     note: >-
       Corrected on the first hermetic run: Java records the partial row (llm_call_count +1); the assumption "records nothing" was wrong.
   - id: proxy.llm.headers.hop-by-hop-stripped
@@ -2049,10 +2109,9 @@ metrics:
     alerts: [cursor-key-health-reactive-syncs]
   - name: stigmer.proxy.llm.platform_provider_errors
     surface: proxy
-    disposition: ported
-    alerts: [platform-provider-errors, platform-provider-errors-log]
+    disposition: dropped
     note: >-
-      Two rules read this event: the metric rule on the counter and a logs rule on the phrase "platform provider key rejected upstream"; the composition logs the same phrase at ERROR on the same event.
+      The LLM lane serves no call on a platform key, so no upstream failure is the platform's: every failure is relayed as the organization's own key's. The counter, its metric and logs rules and its dashboard retired with the platform key.
   - name: stigmer.http.request.duration
     surface: platform
     disposition: ported

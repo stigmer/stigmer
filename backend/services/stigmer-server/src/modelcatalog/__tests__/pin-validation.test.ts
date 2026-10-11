@@ -3,7 +3,8 @@
  * harness-name mapping (unset → native, the edition-honest posture), the
  * write-time existence rule's refusal copy with did-you-mean
  * (oss#774), the any-harness arm for surfaces without a serving harness,
- * the degrade-to-no-op postures, and the suggestion ranking (distance cap
+ * the degrade-to-no-op postures, the explicit `<provider>:<name>` form an
+ * organization's own endpoint serves, and the suggestion ranking (distance cap
  * 5, top 3, name-ascending ties).
  */
 import { describe, expect, it } from "vitest";
@@ -78,6 +79,21 @@ describe("unknownModelPinRefusal", () => {
       "f: model 'openai/gpt-7' is not in the model registry (any harness); " +
         "did you mean 'openai/gpt-6'?",
     );
+  });
+
+  it("accepts an explicit openai: or anthropic: model on the native harness and any harness", () => {
+    expect(unknownModelPinRefusal(STORE, "f", "native", "openai:llama-3.3-70b")).toBe("");
+    expect(unknownModelPinRefusal(STORE, "f", "native", "Anthropic:my-claude")).toBe("");
+    expect(unknownModelPinRefusal(STORE, "f", "", "openai:llama-3.3-70b")).toBe("");
+  });
+
+  it("judges the explicit form like any name on the cursor harness, and refuses a bare or unknown prefix", () => {
+    expect(unknownModelPinRefusal(STORE, "f", "cursor", "openai:gpt-6")).toBe(
+      "f: model 'openai:gpt-6' is not in the model registry (cursor harness); " +
+        "did you mean 'openai/gpt-6'?",
+    );
+    expect(unknownModelPinRefusal(STORE, "f", "native", "openai:")).not.toBe("");
+    expect(unknownModelPinRefusal(STORE, "f", "native", "ollama:llama3")).not.toBe("");
   });
 
   it("omits the suggestion tail when nothing is within the distance cap", () => {

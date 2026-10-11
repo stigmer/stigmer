@@ -166,19 +166,20 @@ export interface OrgWithConfirmedFacts {
 // consent lifecycle: captured via create, confirmed via the consent RPC.
 // Shared by the memory-retrieval (no-embedder) and memory-selection
 // (embedder) execution suites, which differ only in the mock's posture.
-// `fund` is the target's fundTenancy where it gates executions on credits
-// (an org create provisions a zero balance there), absent elsewhere.
+// `prepare` is what the target needs before an org can start a run (its
+// keyTenancy on the hosted edition, where a native run needs the org's own
+// provider key), absent elsewhere.
 export function provisionOrgWithConfirmedFacts(
   clients: ConformanceClients,
   fixtures: FixtureTracker,
   count: number,
-  fund?: (org: string) => Promise<void>,
+  prepare?: (org: string) => Promise<void>,
 ): Promise<OrgWithConfirmedFacts> {
   return provisionOrgWithFacts(
     clients,
     fixtures,
     Array.from({ length: count }, (_, i) => `Durable fact number ${i} about this user.`),
-    fund,
+    prepare,
   );
 }
 
@@ -189,7 +190,7 @@ export async function provisionOrgWithFacts(
   clients: ConformanceClients,
   fixtures: FixtureTracker,
   facts: readonly string[],
-  fund?: (org: string) => Promise<void>,
+  prepare?: (org: string) => Promise<void>,
 ): Promise<OrgWithConfirmedFacts> {
   const org = await clients.organizationCommand.create({
     apiVersion: "tenancy.stigmer.ai/v1",
@@ -199,7 +200,7 @@ export async function provisionOrgWithFacts(
   });
   fixtures.defer(() => clients.organizationCommand.delete({ value: org.metadata!.id }));
   const slug = org.metadata!.slug;
-  await fund?.(slug);
+  await prepare?.(slug);
 
   const memoryIds: string[] = [];
   for (const content of facts) {
