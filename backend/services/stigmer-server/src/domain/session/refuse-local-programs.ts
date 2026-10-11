@@ -3,8 +3,9 @@
  * (domain/run/local-programs.ts): a conversation whose turns would run in
  * a hosted sandbox that cannot start a local program is refused when it is
  * made, naming the plugin and the server, rather than at its first turn.
- * It reads the plugins a turn would read: the pinned agent version's and
- * the conversation's own (domain/run/run-plugins.ts). Run create checks
+ * It reads the plugins a turn would read: the pinned agent version's, the
+ * conversation's own, and each subagent's at its pinned version
+ * (domain/run/run-plugins.ts, run-subagents.ts). Run create checks
  * again, which catches a plugin added to the agent or the conversation
  * later.
  *
@@ -22,6 +23,7 @@ import { agentVersionBinding } from "../agent/versions.js";
 import { refuseLocalPrograms } from "../run/local-programs.js";
 import type { LocalProgramPolicy } from "../run/local-programs.js";
 import { loadRunPlugins, runPluginReferences } from "../run/run-plugins.js";
+import { runSubagents } from "../run/run-subagents.js";
 
 type SessionDesc = typeof SessionSchema;
 
@@ -44,7 +46,8 @@ export function newRefuseLocalProgramsStep(
         agentId === "" || versionHash === ""
           ? undefined
           : (await loadVersion(store, agentVersionBinding, agentId, versionHash)).resource.spec;
-      const plugins = await loadRunPlugins(store, runPluginReferences(agentSpec, session, org), org);
+      const subagents = await runSubagents(store, agentSpec, org);
+      const plugins = await loadRunPlugins(store, runPluginReferences(agentSpec, session, org, subagents), org);
       refuseLocalPrograms(policy, target, plugins);
     },
   };

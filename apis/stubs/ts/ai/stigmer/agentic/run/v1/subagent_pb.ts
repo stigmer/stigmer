@@ -37,9 +37,9 @@ export type SubAgentRun = Message<"ai.stigmer.agentic.run.v1.SubAgentRun"> & {
   id: string;
 
   /**
-   * Name of the sub-agent being invoked.
-   * Examples: "code_editor", "researcher", "debugger"
-   * Extracted from tool call args.subagent_type field.
+   * Name of the subagent being invoked: a listed agent's slug, a plugin
+   * agent's <plugin>:<agent>, or a built-in (explore, shell,
+   * general-purpose).
    *
    * @generated from field: string name = 2;
    */

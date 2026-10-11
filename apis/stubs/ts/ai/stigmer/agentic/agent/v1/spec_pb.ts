@@ -22,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxItIJCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKErABCgpza2lsbF9yZWZzGAUgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQma6SF+SAVwiWroBVwoPc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSOQoKc3ViX2FnZW50cxgGIAMoCzIlLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5TdWJBZ2VudBI8CgNlbnYYByADKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnRTcGVjLkVudkVudHJ5EqIBCgV0b29scxgKIAMoCUKSAbpIjgGSAYoBIocBcoQBGIACMn9eKG1jcF9fXCp8bWNwX18oW2Etel1bYS16MC05LV0qW2EtejAtOV18cGx1Z2luKF9bQS1aYS16MC05LV0rKSspKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEq0BChBkaXNhbGxvd2VkX3Rvb2xzGAsgAygJQpIBukiOAZIBigEihwFyhAEYgAIyf14obWNwX19cKnxtY3BfXyhbYS16XVthLXowLTktXSpbYS16MC05XXxwbHVnaW4oX1tBLVphLXowLTktXSspKykoX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSQSNgoFaG9va3MYDCADKAsyJy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuSG9va1NvdXJjZRI4CgpydW5fY29uZmlnGA0gASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5Db25maWcSNwoHaGFybmVzcxgOIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSqAEKB3BsdWdpbnMYECADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCYbpIWpIBVyJVugFSCgxwbHVnaW5zLmtpbmQSMXBsdWdpbnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1wbHVnaW4aD3RoaXMua2luZCA9PSA1OOCFLDoaWgoIRW52RW50cnkSCwoDa2V5GAEgASgJEj0KBXZhbHVlGAIgASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4AUoECAQQBUoECAgQCUoECAkQCkoECA8QEFIRbWNwX3NlcnZlcl91c2FnZXNSB3NoYXJpbmdSEGRhdGFzdG9yZV91c2FnZXNSBnZhdWx0cyJnCgpIb29rU291cmNlEjoKBmlubGluZRgCIAEoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuSG9va0NvbmZpZ0gAQg8KBnNvdXJjZRIFukgCCAFKBAgBEAJSBnBsdWdpbiKGBQoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJEqIBCgV0b29scxgHIAMoCUKSAbpIjgGSAYoBIocBcoQBGIACMn9eKG1jcF9fXCp8bWNwX18oW2Etel1bYS16MC05LV0qW2EtejAtOV18cGx1Z2luKF9bQS1aYS16MC05LV0rKSspKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEq0BChBkaXNhbGxvd2VkX3Rvb2xzGAggAygJQpIBukiOAZIBigEihwFyhAEYgAIyf14obWNwX19cKnxtY3BfXyhbYS16XVthLXowLTktXSpbYS16MC05XXxwbHVnaW4oX1tBLVphLXowLTktXSspKykoX18oXCp8W0EtWmEtejAtOV8uLV0rKSk/fFtBLVpdW0EtWmEtejAtOV9dKihcKFteKClcclxuXStcKSk/KSRKBAgEEAVSCm1jcF9hY2Nlc3NiBnByb3RvMw", [file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_vault_v1_declaration, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxItsKCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKErABCgpza2lsbF9yZWZzGAUgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQma6SF+SAVwiWroBVwoPc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSPAoDZW52GAcgAygLMi8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U3BlYy5FbnZFbnRyeRKiAQoFdG9vbHMYCiADKAlCkgG6SI4BkgGKASKHAXKEARiAAjJ/XihtY3BfX1wqfG1jcF9fKFthLXpdW2EtejAtOS1dKlthLXowLTldfHBsdWdpbihfW0EtWmEtejAtOS1dKykrKShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJBKtAQoQZGlzYWxsb3dlZF90b29scxgLIAMoCUKSAbpIjgGSAYoBIocBcoQBGIACMn9eKG1jcF9fXCp8bWNwX18oW2Etel1bYS16MC05LV0qW2EtejAtOV18cGx1Z2luKF9bQS1aYS16MC05LV0rKSspKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEjYKBWhvb2tzGAwgAygLMicuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkhvb2tTb3VyY2USOAoKcnVuX2NvbmZpZxgNIAEoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ29uZmlnEjcKB2hhcm5lc3MYDiABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5IYXJuZXNzEqgBCgdwbHVnaW5zGBAgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQmG6SFqSAVciVboBUgoMcGx1Z2lucy5raW5kEjFwbHVnaW5zIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9cGx1Z2luGg90aGlzLmtpbmQgPT0gNTjghSw6Eq8BCglzdWJhZ2VudHMYESADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXBAUIli6AVUKDnN1YmFnZW50cy5raW5kEjJzdWJhZ2VudHMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1hZ2VudBoPdGhpcy5raW5kID09IDQw4IUsKBpaCghFbnZFbnRyeRILCgNrZXkYASABKAkSPQoFdmFsdWUYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuRW52VmFyRGVjbGFyYXRpb246AjgBSgQIBBAFSgQIBhAHSgQICBAJSgQICRAKSgQIDxAQUhFtY3Bfc2VydmVyX3VzYWdlc1IKc3ViX2FnZW50c1IHc2hhcmluZ1IQZGF0YXN0b3JlX3VzYWdlc1IGdmF1bHRzImcKCkhvb2tTb3VyY2USOgoGaW5saW5lGAIgASgLMiguYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5Ib29rQ29uZmlnSABCDwoGc291cmNlEgW6SAIIAUoECAEQAlIGcGx1Z2luYgZwcm90bzM", [file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_vault_v1_declaration, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentSpec defines the configurable properties of an agent.
@@ -60,15 +60,6 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
   skillRefs: ApiResourceReference[];
 
   /**
-   * Sub-agents that can be delegated to.
-   * A sub-agent starts from this agent's tools and may narrow them with its
-   * own tool lists, never widen them.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6;
-   */
-  subAgents: SubAgent[];
-
-  /**
    * Environment variable declarations for this agent.
    * Keys are variable names; values describe their metadata and optionality.
    * A secret is found by its name in a vault when a run starts; a plain
@@ -87,16 +78,16 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * tool. A plugin's server is named plugin_<plugin>_<server>, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start; the Cursor engine cannot hold its
-   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-   * types. The lists hold on both engines, and under "approve everything"
+   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * also limits which subagents this agent may start; the Cursor engine
+   * cannot hold its built-in subagents back, so it refuses a turn whose agent
+   * limits Agent to types. The lists hold on both engines, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
    * keeps them, and a list holding only Skill names them, so it does not
    * refuse the turn, also under an outer list that omits Skill (a
-   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * plugin subagent's under its turn's, a turn's under the agent's). Denying
    * Skill in disallowed_tools removes them, and then a list of Skill alone
    * in a narrower layer refuses the turn.
    *
@@ -111,8 +102,7 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * Disallowing Skill hides every skill from this agent: no skill is listed
    * or mounted for its turns, and the Read tool refuses reads of skill and
    * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-   * refused, so they can still reach those files. On a sub-agent it hides
-   * that sub-agent's skills.
+   * refused, so they can still reach those files.
    *
    * @generated from field: repeated string disallowed_tools = 11;
    */
@@ -120,7 +110,7 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
 
   /**
    * Hooks written in this agent itself, run around its tool calls and its
-   * sub-agents' calls, after the hooks of the plugins it lists.
+   * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
@@ -175,6 +165,21 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16;
    */
   plugins: ApiResourceReference[];
+
+  /**
+   * Saved agents this agent may hand work to, each running its own
+   * instructions, model, tools, plugins, skills, hooks and values.
+   *
+   * A subagent runs as the conversation's person and on its budget, under
+   * the conversation's hooks, and cannot hand work on to another agent: an
+   * agent that lists subagents of its own is refused here. Each reference is
+   * pinned when this agent is saved: a reference without a version takes the
+   * listed agent's latest version, and one naming a tag or a version keeps
+   * that version until a later save sends the list again. At most 20.
+   *
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17;
+   */
+  subagents: ApiResourceReference[];
 };
 
 /**
@@ -210,77 +215,4 @@ export type HookSource = Message<"ai.stigmer.agentic.agent.v1.HookSource"> & {
  */
 export const HookSourceSchema: GenMessage<HookSource> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 1);
-
-/**
- * SubAgent defines a specialized agent that the parent can delegate to.
- *
- * A sub-agent starts from the parent's tools and may narrow them with its own
- * tool lists, never widen them. Skills are independent of the parent.
- *
- * @generated from message ai.stigmer.agentic.agent.v1.SubAgent
- */
-export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
-  /**
-   * Unique name of the sub-agent within the parent agent.
-   *
-   * @generated from field: string name = 1;
-   */
-  name: string;
-
-  /**
-   * What this sub-agent specializes in.
-   *
-   * @generated from field: string description = 2;
-   */
-  description: string;
-
-  /**
-   * System prompt for this sub-agent.
-   *
-   * @generated from field: string instructions = 3;
-   */
-  instructions: string;
-
-  /**
-   * Skill resources for this sub-agent.
-   *
-   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5;
-   */
-  skillRefs: ApiResourceReference[];
-
-  /**
-   * Model override for this sub-agent.
-   * When set, uses this model instead of the model the turn runs.
-   * When empty, inherits the model the turn runs.
-   *
-   * @generated from field: string model_override = 6;
-   */
-  modelOverride: string;
-
-  /**
-   * Tools this sub-agent may use, from what the parent may use; empty means
-   * all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
-   * the type list of an Agent(...) entry is ignored, as in Claude Code. The
-   * Cursor engine cannot tell which sub-agent made a call, so it refuses a
-   * turn whose sub-agent carries its own lists; the native engine runs it.
-   *
-   * @generated from field: repeated string tools = 7;
-   */
-  tools: string[];
-
-  /**
-   * Tools this sub-agent may never use, in the same names as tools.
-   * Disallowing Skill hides this sub-agent's skills, as on AgentSpec.
-   *
-   * @generated from field: repeated string disallowed_tools = 8;
-   */
-  disallowedTools: string[];
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agent.v1.SubAgent.
- * Use `create(SubAgentSchema)` to create a new message.
- */
-export const SubAgentSchema: GenMessage<SubAgent> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
 

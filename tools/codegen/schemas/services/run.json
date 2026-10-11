@@ -2234,6 +2234,11 @@
           "name": "RUN_VALUE_DECLARER_KIND_PLUGIN",
           "number": 4,
           "description": "A plugin the turn uses, for its hooks."
+        },
+        {
+          "name": "RUN_VALUE_DECLARER_KIND_SUBAGENT",
+          "number": 5,
+          "description": "A saved agent the turn's agent lists as a subagent, in its env."
         }
       ]
     },
@@ -5483,7 +5488,8 @@
               "RUN_VALUE_DECLARER_KIND_AGENT",
               "RUN_VALUE_DECLARER_KIND_TOOL",
               "RUN_VALUE_DECLARER_KIND_REPOSITORY",
-              "RUN_VALUE_DECLARER_KIND_PLUGIN"
+              "RUN_VALUE_DECLARER_KIND_PLUGIN",
+              "RUN_VALUE_DECLARER_KIND_SUBAGENT"
             ]
           },
           "description": "Agent, tool, plugin or repository.",
@@ -5853,7 +5859,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Name of the sub-agent being invoked.\n Examples: \"code_editor\", \"researcher\", \"debugger\"\n Extracted from tool call args.subagent_type field.",
+          "description": "Name of the subagent being invoked: a listed agent's slug, a plugin\n agent's \u003cplugin\u003e:\u003cagent\u003e, or a built-in (explore, shell,\n general-purpose).",
           "required": false
         },
         {

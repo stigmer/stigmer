@@ -27,6 +27,8 @@
  *    runtime's CAS observations (`turn.ts`).
  */
 
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+
 import type { HarnessCapabilities } from "../../harness/capabilities.js";
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 
@@ -34,6 +36,7 @@ import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 export const DEEP_AGENT_HARNESS_ID = "deep-agent";
 
 export const DEEP_AGENT_CAPABILITIES: HarnessCapabilities = {
+  harness: Harness.NATIVE,
   pausePrimitive: "interrupt",
   stateIdSource: "deterministic",
   systemPrompt: true,

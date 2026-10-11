@@ -92,7 +92,7 @@ export function claudeCommand(source: HookSource, handler: HookHandler, ctx: For
 
 /** A Claude Code hook's environment. */
 export function claudeEnv(source: HookSource, ctx: FormatContext): Record<string, string> {
-  const env: Record<string, string> = { ...ctx.baseEnv, CLAUDE_PROJECT_DIR: ctx.workspaceRoot };
+  const env: Record<string, string> = { ...(source.env ?? ctx.baseEnv), CLAUDE_PROJECT_DIR: ctx.workspaceRoot };
   if (source.root !== "") {
     env["CLAUDE_PLUGIN_ROOT"] = source.root;
     env["CLAUDE_PLUGIN_DATA"] = source.data;

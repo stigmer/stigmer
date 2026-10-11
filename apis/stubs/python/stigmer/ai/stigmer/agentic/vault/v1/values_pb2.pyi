@@ -15,7 +15,7 @@ class FetchExecutionValuesInput(_message.Message):
     def __init__(self, execution_id: _Optional[str] = ...) -> None: ...
 
 class ExecutionValues(_message.Message):
-    __slots__ = ("agent", "tools", "repositories", "plugins")
+    __slots__ = ("agent", "tools", "repositories", "plugins", "subagents")
     class AgentEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -27,11 +27,13 @@ class ExecutionValues(_message.Message):
     TOOLS_FIELD_NUMBER: _ClassVar[int]
     REPOSITORIES_FIELD_NUMBER: _ClassVar[int]
     PLUGINS_FIELD_NUMBER: _ClassVar[int]
+    SUBAGENTS_FIELD_NUMBER: _ClassVar[int]
     agent: _containers.ScalarMap[str, str]
     tools: _containers.RepeatedCompositeFieldContainer[ToolValues]
     repositories: _containers.RepeatedCompositeFieldContainer[RepositoryValues]
     plugins: _containers.RepeatedCompositeFieldContainer[PluginValues]
-    def __init__(self, agent: _Optional[_Mapping[str, str]] = ..., tools: _Optional[_Iterable[_Union[ToolValues, _Mapping]]] = ..., repositories: _Optional[_Iterable[_Union[RepositoryValues, _Mapping]]] = ..., plugins: _Optional[_Iterable[_Union[PluginValues, _Mapping]]] = ...) -> None: ...
+    subagents: _containers.RepeatedCompositeFieldContainer[SubagentValues]
+    def __init__(self, agent: _Optional[_Mapping[str, str]] = ..., tools: _Optional[_Iterable[_Union[ToolValues, _Mapping]]] = ..., repositories: _Optional[_Iterable[_Union[RepositoryValues, _Mapping]]] = ..., plugins: _Optional[_Iterable[_Union[PluginValues, _Mapping]]] = ..., subagents: _Optional[_Iterable[_Union[SubagentValues, _Mapping]]] = ...) -> None: ...
 
 class ToolValues(_message.Message):
     __slots__ = ("plugin_id", "server", "url", "values")
@@ -66,6 +68,21 @@ class PluginValues(_message.Message):
     plugin_id: str
     values: _containers.ScalarMap[str, str]
     def __init__(self, plugin_id: _Optional[str] = ..., values: _Optional[_Mapping[str, str]] = ...) -> None: ...
+
+class SubagentValues(_message.Message):
+    __slots__ = ("name", "values")
+    class ValuesEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    values: _containers.ScalarMap[str, str]
+    def __init__(self, name: _Optional[str] = ..., values: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class RepositoryValues(_message.Message):
     __slots__ = ("name", "url", "token")

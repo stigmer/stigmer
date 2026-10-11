@@ -36,7 +36,6 @@ private static final long serialVersionUID = 0L;
     iconUrl_ = "";
     instructions_ = "";
     skillRefs_ = java.util.Collections.emptyList();
-    subAgents_ = java.util.Collections.emptyList();
     tools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     disallowedTools_ =
@@ -44,6 +43,7 @@ private static final long serialVersionUID = 0L;
     hooks_ = java.util.Collections.emptyList();
     harness_ = 0;
     plugins_ = java.util.Collections.emptyList();
+    subagents_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -281,77 +281,6 @@ private static final long serialVersionUID = 0L;
     return skillRefs_.get(index);
   }
 
-  public static final int SUB_AGENTS_FIELD_NUMBER = 6;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.agent.v1.SubAgent> subAgents_;
-  /**
-   * <pre>
-   * Sub-agents that can be delegated to.
-   * A sub-agent starts from this agent's tools and may narrow them with its
-   * own tool lists, never widen them.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.agent.v1.SubAgent> getSubAgentsList() {
-    return subAgents_;
-  }
-  /**
-   * <pre>
-   * Sub-agents that can be delegated to.
-   * A sub-agent starts from this agent's tools and may narrow them with its
-   * own tool lists, never widen them.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.agent.v1.SubAgentOrBuilder> 
-      getSubAgentsOrBuilderList() {
-    return subAgents_;
-  }
-  /**
-   * <pre>
-   * Sub-agents that can be delegated to.
-   * A sub-agent starts from this agent's tools and may narrow them with its
-   * own tool lists, never widen them.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-   */
-  @java.lang.Override
-  public int getSubAgentsCount() {
-    return subAgents_.size();
-  }
-  /**
-   * <pre>
-   * Sub-agents that can be delegated to.
-   * A sub-agent starts from this agent's tools and may narrow them with its
-   * own tool lists, never widen them.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agent.v1.SubAgent getSubAgents(int index) {
-    return subAgents_.get(index);
-  }
-  /**
-   * <pre>
-   * Sub-agents that can be delegated to.
-   * A sub-agent starts from this agent's tools and may narrow them with its
-   * own tool lists, never widen them.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agent.v1.SubAgentOrBuilder getSubAgentsOrBuilder(
-      int index) {
-    return subAgents_.get(index);
-  }
-
   public static final int ENV_FIELD_NUMBER = 7;
   private static final class EnvDefaultEntryHolder {
     static final com.google.protobuf.MapEntry<
@@ -473,16 +402,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start; the Cursor engine cannot hold its
-   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-   * types. The lists hold on both engines, and under "approve everything"
+   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * also limits which subagents this agent may start; the Cursor engine
+   * cannot hold its built-in subagents back, so it refuses a turn whose agent
+   * limits Agent to types. The lists hold on both engines, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
    * keeps them, and a list holding only Skill names them, so it does not
    * refuse the turn, also under an outer list that omits Skill (a
-   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * plugin subagent's under its turn's, a turn's under the agent's). Denying
    * Skill in disallowed_tools removes them, and then a list of Skill alone
    * in a narrower layer refuses the turn.
    * </pre>
@@ -504,16 +433,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start; the Cursor engine cannot hold its
-   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-   * types. The lists hold on both engines, and under "approve everything"
+   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * also limits which subagents this agent may start; the Cursor engine
+   * cannot hold its built-in subagents back, so it refuses a turn whose agent
+   * limits Agent to types. The lists hold on both engines, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
    * keeps them, and a list holding only Skill names them, so it does not
    * refuse the turn, also under an outer list that omits Skill (a
-   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * plugin subagent's under its turn's, a turn's under the agent's). Denying
    * Skill in disallowed_tools removes them, and then a list of Skill alone
    * in a narrower layer refuses the turn.
    * </pre>
@@ -534,16 +463,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start; the Cursor engine cannot hold its
-   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-   * types. The lists hold on both engines, and under "approve everything"
+   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * also limits which subagents this agent may start; the Cursor engine
+   * cannot hold its built-in subagents back, so it refuses a turn whose agent
+   * limits Agent to types. The lists hold on both engines, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
    * keeps them, and a list holding only Skill names them, so it does not
    * refuse the turn, also under an outer list that omits Skill (a
-   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * plugin subagent's under its turn's, a turn's under the agent's). Denying
    * Skill in disallowed_tools removes them, and then a list of Skill alone
    * in a narrower layer refuses the turn.
    * </pre>
@@ -565,16 +494,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start; the Cursor engine cannot hold its
-   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-   * types. The lists hold on both engines, and under "approve everything"
+   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * also limits which subagents this agent may start; the Cursor engine
+   * cannot hold its built-in subagents back, so it refuses a turn whose agent
+   * limits Agent to types. The lists hold on both engines, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
    * keeps them, and a list holding only Skill names them, so it does not
    * refuse the turn, also under an outer list that omits Skill (a
-   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * plugin subagent's under its turn's, a turn's under the agent's). Denying
    * Skill in disallowed_tools removes them, and then a list of Skill alone
    * in a narrower layer refuses the turn.
    * </pre>
@@ -600,8 +529,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * Disallowing Skill hides every skill from this agent: no skill is listed
    * or mounted for its turns, and the Read tool refuses reads of skill and
    * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-   * refused, so they can still reach those files. On a sub-agent it hides
-   * that sub-agent's skills.
+   * refused, so they can still reach those files.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -619,8 +547,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * Disallowing Skill hides every skill from this agent: no skill is listed
    * or mounted for its turns, and the Read tool refuses reads of skill and
    * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-   * refused, so they can still reach those files. On a sub-agent it hides
-   * that sub-agent's skills.
+   * refused, so they can still reach those files.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -637,8 +564,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * Disallowing Skill hides every skill from this agent: no skill is listed
    * or mounted for its turns, and the Read tool refuses reads of skill and
    * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-   * refused, so they can still reach those files. On a sub-agent it hides
-   * that sub-agent's skills.
+   * refused, so they can still reach those files.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -656,8 +582,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * Disallowing Skill hides every skill from this agent: no skill is listed
    * or mounted for its turns, and the Read tool refuses reads of skill and
    * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-   * refused, so they can still reach those files. On a sub-agent it hides
-   * that sub-agent's skills.
+   * refused, so they can still reach those files.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -675,7 +600,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
   /**
    * <pre>
    * Hooks written in this agent itself, run around its tool calls and its
-   * sub-agents' calls, after the hooks of the plugins it lists.
+   * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
@@ -694,7 +619,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
   /**
    * <pre>
    * Hooks written in this agent itself, run around its tool calls and its
-   * sub-agents' calls, after the hooks of the plugins it lists.
+   * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
@@ -714,7 +639,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
   /**
    * <pre>
    * Hooks written in this agent itself, run around its tool calls and its
-   * sub-agents' calls, after the hooks of the plugins it lists.
+   * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
@@ -733,7 +658,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
   /**
    * <pre>
    * Hooks written in this agent itself, run around its tool calls and its
-   * sub-agents' calls, after the hooks of the plugins it lists.
+   * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
@@ -752,7 +677,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
   /**
    * <pre>
    * Hooks written in this agent itself, run around its tool calls and its
-   * sub-agents' calls, after the hooks of the plugins it lists.
+   * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
@@ -954,6 +879,107 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     return plugins_.get(index);
   }
 
+  public static final int SUBAGENTS_FIELD_NUMBER = 17;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> subagents_;
+  /**
+   * <pre>
+   * Saved agents this agent may hand work to, each running its own
+   * instructions, model, tools, plugins, skills, hooks and values.
+   *
+   * A subagent runs as the conversation's person and on its budget, under
+   * the conversation's hooks, and cannot hand work on to another agent: an
+   * agent that lists subagents of its own is refused here. Each reference is
+   * pinned when this agent is saved: a reference without a version takes the
+   * listed agent's latest version, and one naming a tag or a version keeps
+   * that version until a later save sends the list again. At most 20.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getSubagentsList() {
+    return subagents_;
+  }
+  /**
+   * <pre>
+   * Saved agents this agent may hand work to, each running its own
+   * instructions, model, tools, plugins, skills, hooks and values.
+   *
+   * A subagent runs as the conversation's person and on its budget, under
+   * the conversation's hooks, and cannot hand work on to another agent: an
+   * agent that lists subagents of its own is refused here. Each reference is
+   * pinned when this agent is saved: a reference without a version takes the
+   * listed agent's latest version, and one naming a tag or a version keeps
+   * that version until a later save sends the list again. At most 20.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getSubagentsOrBuilderList() {
+    return subagents_;
+  }
+  /**
+   * <pre>
+   * Saved agents this agent may hand work to, each running its own
+   * instructions, model, tools, plugins, skills, hooks and values.
+   *
+   * A subagent runs as the conversation's person and on its budget, under
+   * the conversation's hooks, and cannot hand work on to another agent: an
+   * agent that lists subagents of its own is refused here. Each reference is
+   * pinned when this agent is saved: a reference without a version takes the
+   * listed agent's latest version, and one naming a tag or a version keeps
+   * that version until a later save sends the list again. At most 20.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public int getSubagentsCount() {
+    return subagents_.size();
+  }
+  /**
+   * <pre>
+   * Saved agents this agent may hand work to, each running its own
+   * instructions, model, tools, plugins, skills, hooks and values.
+   *
+   * A subagent runs as the conversation's person and on its budget, under
+   * the conversation's hooks, and cannot hand work on to another agent: an
+   * agent that lists subagents of its own is refused here. Each reference is
+   * pinned when this agent is saved: a reference without a version takes the
+   * listed agent's latest version, and one naming a tag or a version keeps
+   * that version until a later save sends the list again. At most 20.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReference getSubagents(int index) {
+    return subagents_.get(index);
+  }
+  /**
+   * <pre>
+   * Saved agents this agent may hand work to, each running its own
+   * instructions, model, tools, plugins, skills, hooks and values.
+   *
+   * A subagent runs as the conversation's person and on its budget, under
+   * the conversation's hooks, and cannot hand work on to another agent: an
+   * agent that lists subagents of its own is refused here. Each reference is
+   * pinned when this agent is saved: a reference without a version takes the
+   * listed agent's latest version, and one naming a tag or a version keeps
+   * that version until a later save sends the list again. At most 20.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getSubagentsOrBuilder(
+      int index) {
+    return subagents_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -980,9 +1006,6 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     for (int i = 0; i < skillRefs_.size(); i++) {
       output.writeMessage(5, skillRefs_.get(i));
     }
-    for (int i = 0; i < subAgents_.size(); i++) {
-      output.writeMessage(6, subAgents_.get(i));
-    }
     com.google.protobuf.GeneratedMessage
       .serializeStringMapTo(
         output,
@@ -1006,6 +1029,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     for (int i = 0; i < plugins_.size(); i++) {
       output.writeMessage(16, plugins_.get(i));
+    }
+    for (int i = 0; i < subagents_.size(); i++) {
+      output.writeMessage(17, subagents_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -1031,15 +1057,6 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
               .computeMessageSizeNoTag(skillRefs_.get(i));
-          }
-          size += 1 * count;
-        }
-
-        {
-          final int count = subAgents_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(subAgents_.get(i));
           }
           size += 1 * count;
         }
@@ -1095,6 +1112,15 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
           }
           size += 2 * count;
         }
+
+        {
+          final int count = subagents_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(subagents_.get(i));
+          }
+          size += 2 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1118,8 +1144,6 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         .equals(other.getInstructions())) return false;
     if (!getSkillRefsList()
         .equals(other.getSkillRefsList())) return false;
-    if (!getSubAgentsList()
-        .equals(other.getSubAgentsList())) return false;
     if (!internalGetEnv().equals(
         other.internalGetEnv())) return false;
     if (!getToolsList()
@@ -1136,6 +1160,8 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     if (harness_ != other.harness_) return false;
     if (!getPluginsList()
         .equals(other.getPluginsList())) return false;
+    if (!getSubagentsList()
+        .equals(other.getSubagentsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1156,10 +1182,6 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     if (getSkillRefsCount() > 0) {
       hash = (37 * hash) + SKILL_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getSkillRefsList().hashCode();
-    }
-    if (getSubAgentsCount() > 0) {
-      hash = (37 * hash) + SUB_AGENTS_FIELD_NUMBER;
-      hash = (53 * hash) + getSubAgentsList().hashCode();
     }
     if (!internalGetEnv().getMap().isEmpty()) {
       hash = (37 * hash) + ENV_FIELD_NUMBER;
@@ -1186,6 +1208,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     if (getPluginsCount() > 0) {
       hash = (37 * hash) + PLUGINS_FIELD_NUMBER;
       hash = (53 * hash) + getPluginsList().hashCode();
+    }
+    if (getSubagentsCount() > 0) {
+      hash = (37 * hash) + SUBAGENTS_FIELD_NUMBER;
+      hash = (53 * hash) + getSubagentsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1344,10 +1370,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetSkillRefsFieldBuilder();
-        internalGetSubAgentsFieldBuilder();
         internalGetHooksFieldBuilder();
         internalGetRunConfigFieldBuilder();
         internalGetPluginsFieldBuilder();
+        internalGetSubagentsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1364,13 +1390,6 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         skillRefsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000008);
-      if (subAgentsBuilder_ == null) {
-        subAgents_ = java.util.Collections.emptyList();
-      } else {
-        subAgents_ = null;
-        subAgentsBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000010);
       internalGetMutableEnv().clear();
       tools_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
@@ -1382,7 +1401,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         hooks_ = null;
         hooksBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       runConfig_ = null;
       if (runConfigBuilder_ != null) {
         runConfigBuilder_.dispose();
@@ -1394,6 +1413,13 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       } else {
         plugins_ = null;
         pluginsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000400);
+      if (subagentsBuilder_ == null) {
+        subagents_ = java.util.Collections.emptyList();
+      } else {
+        subagents_ = null;
+        subagentsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000800);
       return this;
@@ -1438,32 +1464,32 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       } else {
         result.skillRefs_ = skillRefsBuilder_.build();
       }
-      if (subAgentsBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0)) {
-          subAgents_ = java.util.Collections.unmodifiableList(subAgents_);
-          bitField0_ = (bitField0_ & ~0x00000010);
-        }
-        result.subAgents_ = subAgents_;
-      } else {
-        result.subAgents_ = subAgentsBuilder_.build();
-      }
       if (hooksBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0)) {
+        if (((bitField0_ & 0x00000080) != 0)) {
           hooks_ = java.util.Collections.unmodifiableList(hooks_);
-          bitField0_ = (bitField0_ & ~0x00000100);
+          bitField0_ = (bitField0_ & ~0x00000080);
         }
         result.hooks_ = hooks_;
       } else {
         result.hooks_ = hooksBuilder_.build();
       }
       if (pluginsBuilder_ == null) {
-        if (((bitField0_ & 0x00000800) != 0)) {
+        if (((bitField0_ & 0x00000400) != 0)) {
           plugins_ = java.util.Collections.unmodifiableList(plugins_);
-          bitField0_ = (bitField0_ & ~0x00000800);
+          bitField0_ = (bitField0_ & ~0x00000400);
         }
         result.plugins_ = plugins_;
       } else {
         result.plugins_ = pluginsBuilder_.build();
+      }
+      if (subagentsBuilder_ == null) {
+        if (((bitField0_ & 0x00000800) != 0)) {
+          subagents_ = java.util.Collections.unmodifiableList(subagents_);
+          bitField0_ = (bitField0_ & ~0x00000800);
+        }
+        result.subagents_ = subagents_;
+      } else {
+        result.subagents_ = subagentsBuilder_.build();
       }
     }
 
@@ -1478,25 +1504,25 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.instructions_ = instructions_;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.env_ = internalGetEnv().build(EnvDefaultEntryHolder.defaultEntry);
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         tools_.makeImmutable();
         result.tools_ = tools_;
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         disallowedTools_.makeImmutable();
         result.disallowedTools_ = disallowedTools_;
       }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.runConfig_ = runConfigBuilder_ == null
             ? runConfig_
             : runConfigBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.harness_ = harness_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -1555,39 +1581,13 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
           }
         }
       }
-      if (subAgentsBuilder_ == null) {
-        if (!other.subAgents_.isEmpty()) {
-          if (subAgents_.isEmpty()) {
-            subAgents_ = other.subAgents_;
-            bitField0_ = (bitField0_ & ~0x00000010);
-          } else {
-            ensureSubAgentsIsMutable();
-            subAgents_.addAll(other.subAgents_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.subAgents_.isEmpty()) {
-          if (subAgentsBuilder_.isEmpty()) {
-            subAgentsBuilder_.dispose();
-            subAgentsBuilder_ = null;
-            subAgents_ = other.subAgents_;
-            bitField0_ = (bitField0_ & ~0x00000010);
-            subAgentsBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetSubAgentsFieldBuilder() : null;
-          } else {
-            subAgentsBuilder_.addAllMessages(other.subAgents_);
-          }
-        }
-      }
       internalGetMutableEnv().mergeFrom(
           other.internalGetEnv());
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       if (!other.tools_.isEmpty()) {
         if (tools_.isEmpty()) {
           tools_ = other.tools_;
-          bitField0_ |= 0x00000040;
+          bitField0_ |= 0x00000020;
         } else {
           ensureToolsIsMutable();
           tools_.addAll(other.tools_);
@@ -1597,7 +1597,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (!other.disallowedTools_.isEmpty()) {
         if (disallowedTools_.isEmpty()) {
           disallowedTools_ = other.disallowedTools_;
-          bitField0_ |= 0x00000080;
+          bitField0_ |= 0x00000040;
         } else {
           ensureDisallowedToolsIsMutable();
           disallowedTools_.addAll(other.disallowedTools_);
@@ -1608,7 +1608,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         if (!other.hooks_.isEmpty()) {
           if (hooks_.isEmpty()) {
             hooks_ = other.hooks_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+            bitField0_ = (bitField0_ & ~0x00000080);
           } else {
             ensureHooksIsMutable();
             hooks_.addAll(other.hooks_);
@@ -1621,7 +1621,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
             hooksBuilder_.dispose();
             hooksBuilder_ = null;
             hooks_ = other.hooks_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+            bitField0_ = (bitField0_ & ~0x00000080);
             hooksBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetHooksFieldBuilder() : null;
@@ -1640,7 +1640,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         if (!other.plugins_.isEmpty()) {
           if (plugins_.isEmpty()) {
             plugins_ = other.plugins_;
-            bitField0_ = (bitField0_ & ~0x00000800);
+            bitField0_ = (bitField0_ & ~0x00000400);
           } else {
             ensurePluginsIsMutable();
             plugins_.addAll(other.plugins_);
@@ -1653,12 +1653,38 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
             pluginsBuilder_.dispose();
             pluginsBuilder_ = null;
             plugins_ = other.plugins_;
-            bitField0_ = (bitField0_ & ~0x00000800);
+            bitField0_ = (bitField0_ & ~0x00000400);
             pluginsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetPluginsFieldBuilder() : null;
           } else {
             pluginsBuilder_.addAllMessages(other.plugins_);
+          }
+        }
+      }
+      if (subagentsBuilder_ == null) {
+        if (!other.subagents_.isEmpty()) {
+          if (subagents_.isEmpty()) {
+            subagents_ = other.subagents_;
+            bitField0_ = (bitField0_ & ~0x00000800);
+          } else {
+            ensureSubagentsIsMutable();
+            subagents_.addAll(other.subagents_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.subagents_.isEmpty()) {
+          if (subagentsBuilder_.isEmpty()) {
+            subagentsBuilder_.dispose();
+            subagentsBuilder_ = null;
+            subagents_ = other.subagents_;
+            bitField0_ = (bitField0_ & ~0x00000800);
+            subagentsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetSubagentsFieldBuilder() : null;
+          } else {
+            subagentsBuilder_.addAllMessages(other.subagents_);
           }
         }
       }
@@ -1716,26 +1742,13 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
               }
               break;
             } // case 42
-            case 50: {
-              ai.stigmer.agentic.agent.v1.SubAgent m =
-                  input.readMessage(
-                      ai.stigmer.agentic.agent.v1.SubAgent.parser(),
-                      extensionRegistry);
-              if (subAgentsBuilder_ == null) {
-                ensureSubAgentsIsMutable();
-                subAgents_.add(m);
-              } else {
-                subAgentsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 50
             case 58: {
               com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
               env__ = input.readMessage(
                   EnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableEnv().ensureBuilderMap().put(
                   env__.getKey(), env__.getValue());
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 58
             case 82: {
@@ -1765,12 +1778,12 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
               input.readMessage(
                   internalGetRunConfigFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 106
             case 112: {
               harness_ = input.readEnum();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000200;
               break;
             } // case 112
             case 130: {
@@ -1786,6 +1799,19 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
               }
               break;
             } // case 130
+            case 138: {
+              ai.stigmer.commons.apiresource.ApiResourceReference m =
+                  input.readMessage(
+                      ai.stigmer.commons.apiresource.ApiResourceReference.parser(),
+                      extensionRegistry);
+              if (subagentsBuilder_ == null) {
+                ensureSubagentsIsMutable();
+                subagents_.add(m);
+              } else {
+                subagentsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 138
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2396,354 +2422,6 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       return skillRefsBuilder_;
     }
 
-    private java.util.List<ai.stigmer.agentic.agent.v1.SubAgent> subAgents_ =
-      java.util.Collections.emptyList();
-    private void ensureSubAgentsIsMutable() {
-      if (!((bitField0_ & 0x00000010) != 0)) {
-        subAgents_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.SubAgent>(subAgents_);
-        bitField0_ |= 0x00000010;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agent.v1.SubAgent, ai.stigmer.agentic.agent.v1.SubAgent.Builder, ai.stigmer.agentic.agent.v1.SubAgentOrBuilder> subAgentsBuilder_;
-
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.agent.v1.SubAgent> getSubAgentsList() {
-      if (subAgentsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(subAgents_);
-      } else {
-        return subAgentsBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public int getSubAgentsCount() {
-      if (subAgentsBuilder_ == null) {
-        return subAgents_.size();
-      } else {
-        return subAgentsBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.SubAgent getSubAgents(int index) {
-      if (subAgentsBuilder_ == null) {
-        return subAgents_.get(index);
-      } else {
-        return subAgentsBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public Builder setSubAgents(
-        int index, ai.stigmer.agentic.agent.v1.SubAgent value) {
-      if (subAgentsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureSubAgentsIsMutable();
-        subAgents_.set(index, value);
-        onChanged();
-      } else {
-        subAgentsBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public Builder setSubAgents(
-        int index, ai.stigmer.agentic.agent.v1.SubAgent.Builder builderForValue) {
-      if (subAgentsBuilder_ == null) {
-        ensureSubAgentsIsMutable();
-        subAgents_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        subAgentsBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public Builder addSubAgents(ai.stigmer.agentic.agent.v1.SubAgent value) {
-      if (subAgentsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureSubAgentsIsMutable();
-        subAgents_.add(value);
-        onChanged();
-      } else {
-        subAgentsBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public Builder addSubAgents(
-        int index, ai.stigmer.agentic.agent.v1.SubAgent value) {
-      if (subAgentsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureSubAgentsIsMutable();
-        subAgents_.add(index, value);
-        onChanged();
-      } else {
-        subAgentsBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public Builder addSubAgents(
-        ai.stigmer.agentic.agent.v1.SubAgent.Builder builderForValue) {
-      if (subAgentsBuilder_ == null) {
-        ensureSubAgentsIsMutable();
-        subAgents_.add(builderForValue.build());
-        onChanged();
-      } else {
-        subAgentsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public Builder addSubAgents(
-        int index, ai.stigmer.agentic.agent.v1.SubAgent.Builder builderForValue) {
-      if (subAgentsBuilder_ == null) {
-        ensureSubAgentsIsMutable();
-        subAgents_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        subAgentsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public Builder addAllSubAgents(
-        java.lang.Iterable<? extends ai.stigmer.agentic.agent.v1.SubAgent> values) {
-      if (subAgentsBuilder_ == null) {
-        ensureSubAgentsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, subAgents_);
-        onChanged();
-      } else {
-        subAgentsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public Builder clearSubAgents() {
-      if (subAgentsBuilder_ == null) {
-        subAgents_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000010);
-        onChanged();
-      } else {
-        subAgentsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public Builder removeSubAgents(int index) {
-      if (subAgentsBuilder_ == null) {
-        ensureSubAgentsIsMutable();
-        subAgents_.remove(index);
-        onChanged();
-      } else {
-        subAgentsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.SubAgent.Builder getSubAgentsBuilder(
-        int index) {
-      return internalGetSubAgentsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.SubAgentOrBuilder getSubAgentsOrBuilder(
-        int index) {
-      if (subAgentsBuilder_ == null) {
-        return subAgents_.get(index);  } else {
-        return subAgentsBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.agent.v1.SubAgentOrBuilder> 
-         getSubAgentsOrBuilderList() {
-      if (subAgentsBuilder_ != null) {
-        return subAgentsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(subAgents_);
-      }
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.SubAgent.Builder addSubAgentsBuilder() {
-      return internalGetSubAgentsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.agent.v1.SubAgent.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public ai.stigmer.agentic.agent.v1.SubAgent.Builder addSubAgentsBuilder(
-        int index) {
-      return internalGetSubAgentsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.agent.v1.SubAgent.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Sub-agents that can be delegated to.
-     * A sub-agent starts from this agent's tools and may narrow them with its
-     * own tool lists, never widen them.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.agent.v1.SubAgent.Builder> 
-         getSubAgentsBuilderList() {
-      return internalGetSubAgentsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agent.v1.SubAgent, ai.stigmer.agentic.agent.v1.SubAgent.Builder, ai.stigmer.agentic.agent.v1.SubAgentOrBuilder> 
-        internalGetSubAgentsFieldBuilder() {
-      if (subAgentsBuilder_ == null) {
-        subAgentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.agent.v1.SubAgent, ai.stigmer.agentic.agent.v1.SubAgent.Builder, ai.stigmer.agentic.agent.v1.SubAgentOrBuilder>(
-                subAgents_,
-                ((bitField0_ & 0x00000010) != 0),
-                getParentForChildren(),
-                isClean());
-        subAgents_ = null;
-      }
-      return subAgentsBuilder_;
-    }
-
     private static final class EnvConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> {
       @java.lang.Override
       public ai.stigmer.agentic.vault.v1.EnvVarDeclaration build(ai.stigmer.agentic.vault.v1.EnvVarDeclarationOrBuilder val) {
@@ -2772,7 +2450,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (env_ == null) {
         env_ = new com.google.protobuf.MapFieldBuilder<>(envConverter);
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return env_;
     }
@@ -2858,7 +2536,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       return envConverter.build(map.get(key));
     }
     public Builder clearEnv() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       internalGetMutableEnv().clear();
       return this;
     }
@@ -2885,7 +2563,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, ai.stigmer.agentic.vault.v1.EnvVarDeclaration>
         getMutableEnv() {
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       return internalGetMutableEnv().ensureMessageMap();
     }
     /**
@@ -2905,7 +2583,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableEnv().ensureBuilderMap()
           .put(key, value);
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       return this;
     }
     /**
@@ -2927,7 +2605,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       }
       internalGetMutableEnv().ensureBuilderMap()
           .putAll(values);
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       return this;
     }
     /**
@@ -2961,7 +2639,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (!tools_.isModifiable()) {
         tools_ = new com.google.protobuf.LazyStringArrayList(tools_);
       }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
     }
     /**
      * <pre>
@@ -2973,16 +2651,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, shell) also limits
-     * which sub-agents this agent may start; the Cursor engine cannot hold its
-     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-     * types. The lists hold on both engines, and under "approve everything"
+     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * also limits which subagents this agent may start; the Cursor engine
+     * cannot hold its built-in subagents back, so it refuses a turn whose agent
+     * limits Agent to types. The lists hold on both engines, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
      * keeps them, and a list holding only Skill names them, so it does not
      * refuse the turn, also under an outer list that omits Skill (a
-     * sub-agent's under its agent's, a turn's under the agent's). Denying
+     * plugin subagent's under its turn's, a turn's under the agent's). Denying
      * Skill in disallowed_tools removes them, and then a list of Skill alone
      * in a narrower layer refuses the turn.
      * </pre>
@@ -3005,16 +2683,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, shell) also limits
-     * which sub-agents this agent may start; the Cursor engine cannot hold its
-     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-     * types. The lists hold on both engines, and under "approve everything"
+     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * also limits which subagents this agent may start; the Cursor engine
+     * cannot hold its built-in subagents back, so it refuses a turn whose agent
+     * limits Agent to types. The lists hold on both engines, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
      * keeps them, and a list holding only Skill names them, so it does not
      * refuse the turn, also under an outer list that omits Skill (a
-     * sub-agent's under its agent's, a turn's under the agent's). Denying
+     * plugin subagent's under its turn's, a turn's under the agent's). Denying
      * Skill in disallowed_tools removes them, and then a list of Skill alone
      * in a narrower layer refuses the turn.
      * </pre>
@@ -3035,16 +2713,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, shell) also limits
-     * which sub-agents this agent may start; the Cursor engine cannot hold its
-     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-     * types. The lists hold on both engines, and under "approve everything"
+     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * also limits which subagents this agent may start; the Cursor engine
+     * cannot hold its built-in subagents back, so it refuses a turn whose agent
+     * limits Agent to types. The lists hold on both engines, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
      * keeps them, and a list holding only Skill names them, so it does not
      * refuse the turn, also under an outer list that omits Skill (a
-     * sub-agent's under its agent's, a turn's under the agent's). Denying
+     * plugin subagent's under its turn's, a turn's under the agent's). Denying
      * Skill in disallowed_tools removes them, and then a list of Skill alone
      * in a narrower layer refuses the turn.
      * </pre>
@@ -3066,16 +2744,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, shell) also limits
-     * which sub-agents this agent may start; the Cursor engine cannot hold its
-     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-     * types. The lists hold on both engines, and under "approve everything"
+     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * also limits which subagents this agent may start; the Cursor engine
+     * cannot hold its built-in subagents back, so it refuses a turn whose agent
+     * limits Agent to types. The lists hold on both engines, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
      * keeps them, and a list holding only Skill names them, so it does not
      * refuse the turn, also under an outer list that omits Skill (a
-     * sub-agent's under its agent's, a turn's under the agent's). Denying
+     * plugin subagent's under its turn's, a turn's under the agent's). Denying
      * Skill in disallowed_tools removes them, and then a list of Skill alone
      * in a narrower layer refuses the turn.
      * </pre>
@@ -3098,16 +2776,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, shell) also limits
-     * which sub-agents this agent may start; the Cursor engine cannot hold its
-     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-     * types. The lists hold on both engines, and under "approve everything"
+     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * also limits which subagents this agent may start; the Cursor engine
+     * cannot hold its built-in subagents back, so it refuses a turn whose agent
+     * limits Agent to types. The lists hold on both engines, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
      * keeps them, and a list holding only Skill names them, so it does not
      * refuse the turn, also under an outer list that omits Skill (a
-     * sub-agent's under its agent's, a turn's under the agent's). Denying
+     * plugin subagent's under its turn's, a turn's under the agent's). Denying
      * Skill in disallowed_tools removes them, and then a list of Skill alone
      * in a narrower layer refuses the turn.
      * </pre>
@@ -3122,7 +2800,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureToolsIsMutable();
       tools_.set(index, value);
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -3136,16 +2814,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, shell) also limits
-     * which sub-agents this agent may start; the Cursor engine cannot hold its
-     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-     * types. The lists hold on both engines, and under "approve everything"
+     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * also limits which subagents this agent may start; the Cursor engine
+     * cannot hold its built-in subagents back, so it refuses a turn whose agent
+     * limits Agent to types. The lists hold on both engines, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
      * keeps them, and a list holding only Skill names them, so it does not
      * refuse the turn, also under an outer list that omits Skill (a
-     * sub-agent's under its agent's, a turn's under the agent's). Denying
+     * plugin subagent's under its turn's, a turn's under the agent's). Denying
      * Skill in disallowed_tools removes them, and then a list of Skill alone
      * in a narrower layer refuses the turn.
      * </pre>
@@ -3159,7 +2837,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureToolsIsMutable();
       tools_.add(value);
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -3173,16 +2851,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, shell) also limits
-     * which sub-agents this agent may start; the Cursor engine cannot hold its
-     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-     * types. The lists hold on both engines, and under "approve everything"
+     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * also limits which subagents this agent may start; the Cursor engine
+     * cannot hold its built-in subagents back, so it refuses a turn whose agent
+     * limits Agent to types. The lists hold on both engines, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
      * keeps them, and a list holding only Skill names them, so it does not
      * refuse the turn, also under an outer list that omits Skill (a
-     * sub-agent's under its agent's, a turn's under the agent's). Denying
+     * plugin subagent's under its turn's, a turn's under the agent's). Denying
      * Skill in disallowed_tools removes them, and then a list of Skill alone
      * in a narrower layer refuses the turn.
      * </pre>
@@ -3196,7 +2874,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       ensureToolsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, tools_);
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -3210,16 +2888,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, shell) also limits
-     * which sub-agents this agent may start; the Cursor engine cannot hold its
-     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-     * types. The lists hold on both engines, and under "approve everything"
+     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * also limits which subagents this agent may start; the Cursor engine
+     * cannot hold its built-in subagents back, so it refuses a turn whose agent
+     * limits Agent to types. The lists hold on both engines, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
      * keeps them, and a list holding only Skill names them, so it does not
      * refuse the turn, also under an outer list that omits Skill (a
-     * sub-agent's under its agent's, a turn's under the agent's). Denying
+     * plugin subagent's under its turn's, a turn's under the agent's). Denying
      * Skill in disallowed_tools removes them, and then a list of Skill alone
      * in a narrower layer refuses the turn.
      * </pre>
@@ -3230,7 +2908,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     public Builder clearTools() {
       tools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000040);;
+      bitField0_ = (bitField0_ & ~0x00000020);;
       onChanged();
       return this;
     }
@@ -3244,16 +2922,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, shell) also limits
-     * which sub-agents this agent may start; the Cursor engine cannot hold its
-     * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-     * types. The lists hold on both engines, and under "approve everything"
+     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * also limits which subagents this agent may start; the Cursor engine
+     * cannot hold its built-in subagents back, so it refuses a turn whose agent
+     * limits Agent to types. The lists hold on both engines, and under "approve everything"
      * too.
      *
      * Skill is a name here too, for the agent's skills: a list without Skill
      * keeps them, and a list holding only Skill names them, so it does not
      * refuse the turn, also under an outer list that omits Skill (a
-     * sub-agent's under its agent's, a turn's under the agent's). Denying
+     * plugin subagent's under its turn's, a turn's under the agent's). Denying
      * Skill in disallowed_tools removes them, and then a list of Skill alone
      * in a narrower layer refuses the turn.
      * </pre>
@@ -3268,7 +2946,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       checkByteStringIsUtf8(value);
       ensureToolsIsMutable();
       tools_.add(value);
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -3279,7 +2957,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (!disallowedTools_.isModifiable()) {
         disallowedTools_ = new com.google.protobuf.LazyStringArrayList(disallowedTools_);
       }
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
     }
     /**
      * <pre>
@@ -3289,8 +2967,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Disallowing Skill hides every skill from this agent: no skill is listed
      * or mounted for its turns, and the Read tool refuses reads of skill and
      * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-     * refused, so they can still reach those files. On a sub-agent it hides
-     * that sub-agent's skills.
+     * refused, so they can still reach those files.
      * </pre>
      *
      * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -3309,8 +2986,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Disallowing Skill hides every skill from this agent: no skill is listed
      * or mounted for its turns, and the Read tool refuses reads of skill and
      * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-     * refused, so they can still reach those files. On a sub-agent it hides
-     * that sub-agent's skills.
+     * refused, so they can still reach those files.
      * </pre>
      *
      * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -3327,8 +3003,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Disallowing Skill hides every skill from this agent: no skill is listed
      * or mounted for its turns, and the Read tool refuses reads of skill and
      * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-     * refused, so they can still reach those files. On a sub-agent it hides
-     * that sub-agent's skills.
+     * refused, so they can still reach those files.
      * </pre>
      *
      * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -3346,8 +3021,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Disallowing Skill hides every skill from this agent: no skill is listed
      * or mounted for its turns, and the Read tool refuses reads of skill and
      * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-     * refused, so they can still reach those files. On a sub-agent it hides
-     * that sub-agent's skills.
+     * refused, so they can still reach those files.
      * </pre>
      *
      * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -3366,8 +3040,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Disallowing Skill hides every skill from this agent: no skill is listed
      * or mounted for its turns, and the Read tool refuses reads of skill and
      * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-     * refused, so they can still reach those files. On a sub-agent it hides
-     * that sub-agent's skills.
+     * refused, so they can still reach those files.
      * </pre>
      *
      * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -3380,7 +3053,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureDisallowedToolsIsMutable();
       disallowedTools_.set(index, value);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3392,8 +3065,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Disallowing Skill hides every skill from this agent: no skill is listed
      * or mounted for its turns, and the Read tool refuses reads of skill and
      * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-     * refused, so they can still reach those files. On a sub-agent it hides
-     * that sub-agent's skills.
+     * refused, so they can still reach those files.
      * </pre>
      *
      * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -3405,7 +3077,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureDisallowedToolsIsMutable();
       disallowedTools_.add(value);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3417,8 +3089,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Disallowing Skill hides every skill from this agent: no skill is listed
      * or mounted for its turns, and the Read tool refuses reads of skill and
      * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-     * refused, so they can still reach those files. On a sub-agent it hides
-     * that sub-agent's skills.
+     * refused, so they can still reach those files.
      * </pre>
      *
      * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -3430,7 +3101,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       ensureDisallowedToolsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, disallowedTools_);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3442,8 +3113,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Disallowing Skill hides every skill from this agent: no skill is listed
      * or mounted for its turns, and the Read tool refuses reads of skill and
      * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-     * refused, so they can still reach those files. On a sub-agent it hides
-     * that sub-agent's skills.
+     * refused, so they can still reach those files.
      * </pre>
      *
      * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -3452,7 +3122,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     public Builder clearDisallowedTools() {
       disallowedTools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000080);;
+      bitField0_ = (bitField0_ & ~0x00000040);;
       onChanged();
       return this;
     }
@@ -3464,8 +3134,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Disallowing Skill hides every skill from this agent: no skill is listed
      * or mounted for its turns, and the Read tool refuses reads of skill and
      * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-     * refused, so they can still reach those files. On a sub-agent it hides
-     * that sub-agent's skills.
+     * refused, so they can still reach those files.
      * </pre>
      *
      * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -3478,7 +3147,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       checkByteStringIsUtf8(value);
       ensureDisallowedToolsIsMutable();
       disallowedTools_.add(value);
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3486,9 +3155,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     private java.util.List<ai.stigmer.agentic.agent.v1.HookSource> hooks_ =
       java.util.Collections.emptyList();
     private void ensureHooksIsMutable() {
-      if (!((bitField0_ & 0x00000100) != 0)) {
+      if (!((bitField0_ & 0x00000080) != 0)) {
         hooks_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.HookSource>(hooks_);
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000080;
        }
     }
 
@@ -3498,7 +3167,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3520,7 +3189,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3542,7 +3211,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3564,7 +3233,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3593,7 +3262,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3619,7 +3288,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3647,7 +3316,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3676,7 +3345,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3702,7 +3371,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3728,7 +3397,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3755,7 +3424,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3770,7 +3439,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     public Builder clearHooks() {
       if (hooksBuilder_ == null) {
         hooks_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000100);
+        bitField0_ = (bitField0_ & ~0x00000080);
         onChanged();
       } else {
         hooksBuilder_.clear();
@@ -3780,7 +3449,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3805,7 +3474,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3824,7 +3493,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3846,7 +3515,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3869,7 +3538,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3888,7 +3557,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3908,7 +3577,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     /**
      * <pre>
      * Hooks written in this agent itself, run around its tool calls and its
-     * sub-agents' calls, after the hooks of the plugins it lists.
+     * subagents' calls, after the hooks of the plugins it lists.
      *
      * A hook can refuse a call, ask a person first, or let it run
      * without the approval it would otherwise need. Both engines run hooks in
@@ -3931,7 +3600,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         hooksBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agent.v1.HookSource, ai.stigmer.agentic.agent.v1.HookSource.Builder, ai.stigmer.agentic.agent.v1.HookSourceOrBuilder>(
                 hooks_,
-                ((bitField0_ & 0x00000100) != 0),
+                ((bitField0_ & 0x00000080) != 0),
                 getParentForChildren(),
                 isClean());
         hooks_ = null;
@@ -3963,7 +3632,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * @return Whether the runConfig field is set.
      */
     public boolean hasRunConfig() {
-      return ((bitField0_ & 0x00000200) != 0);
+      return ((bitField0_ & 0x00000100) != 0);
     }
     /**
      * <pre>
@@ -4020,7 +3689,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       } else {
         runConfigBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -4050,7 +3719,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       } else {
         runConfigBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -4075,7 +3744,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      */
     public Builder mergeRunConfig(ai.stigmer.agentic.run.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0) &&
+        if (((bitField0_ & 0x00000100) != 0) &&
           runConfig_ != null &&
           runConfig_ != ai.stigmer.agentic.run.v1.RunConfig.getDefaultInstance()) {
           getRunConfigBuilder().mergeFrom(value);
@@ -4086,7 +3755,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         runConfigBuilder_.mergeFrom(value);
       }
       if (runConfig_ != null) {
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       return this;
@@ -4111,7 +3780,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      */
     public Builder clearRunConfig() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       runConfig_ = null;
       if (runConfigBuilder_ != null) {
         runConfigBuilder_.dispose();
@@ -4140,7 +3809,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 13 [json_name = "runConfig"];</code>
      */
     public ai.stigmer.agentic.run.v1.RunConfig.Builder getRunConfigBuilder() {
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return internalGetRunConfigFieldBuilder().getBuilder();
     }
@@ -4246,7 +3915,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      */
     public Builder setHarnessValue(int value) {
       harness_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4292,7 +3961,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      */
     public Builder setHarness(ai.stigmer.agentic.session.v1.Harness value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       harness_ = value.getNumber();
       onChanged();
       return this;
@@ -4315,7 +3984,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearHarness() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       harness_ = 0;
       onChanged();
       return this;
@@ -4324,9 +3993,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> plugins_ =
       java.util.Collections.emptyList();
     private void ensurePluginsIsMutable() {
-      if (!((bitField0_ & 0x00000800) != 0)) {
+      if (!((bitField0_ & 0x00000400) != 0)) {
         plugins_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(plugins_);
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00000400;
        }
     }
 
@@ -4531,7 +4200,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     public Builder clearPlugins() {
       if (pluginsBuilder_ == null) {
         plugins_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000800);
+        bitField0_ = (bitField0_ & ~0x00000400);
         onChanged();
       } else {
         pluginsBuilder_.clear();
@@ -4643,12 +4312,468 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         pluginsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 plugins_,
-                ((bitField0_ & 0x00000800) != 0),
+                ((bitField0_ & 0x00000400) != 0),
                 getParentForChildren(),
                 isClean());
         plugins_ = null;
       }
       return pluginsBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> subagents_ =
+      java.util.Collections.emptyList();
+    private void ensureSubagentsIsMutable() {
+      if (!((bitField0_ & 0x00000800) != 0)) {
+        subagents_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(subagents_);
+        bitField0_ |= 0x00000800;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> subagentsBuilder_;
+
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getSubagentsList() {
+      if (subagentsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(subagents_);
+      } else {
+        return subagentsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public int getSubagentsCount() {
+      if (subagentsBuilder_ == null) {
+        return subagents_.size();
+      } else {
+        return subagentsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference getSubagents(int index) {
+      if (subagentsBuilder_ == null) {
+        return subagents_.get(index);
+      } else {
+        return subagentsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setSubagents(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (subagentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSubagentsIsMutable();
+        subagents_.set(index, value);
+        onChanged();
+      } else {
+        subagentsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setSubagents(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (subagentsBuilder_ == null) {
+        ensureSubagentsIsMutable();
+        subagents_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        subagentsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addSubagents(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (subagentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSubagentsIsMutable();
+        subagents_.add(value);
+        onChanged();
+      } else {
+        subagentsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addSubagents(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (subagentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSubagentsIsMutable();
+        subagents_.add(index, value);
+        onChanged();
+      } else {
+        subagentsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addSubagents(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (subagentsBuilder_ == null) {
+        ensureSubagentsIsMutable();
+        subagents_.add(builderForValue.build());
+        onChanged();
+      } else {
+        subagentsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addSubagents(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (subagentsBuilder_ == null) {
+        ensureSubagentsIsMutable();
+        subagents_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        subagentsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addAllSubagents(
+        java.lang.Iterable<? extends ai.stigmer.commons.apiresource.ApiResourceReference> values) {
+      if (subagentsBuilder_ == null) {
+        ensureSubagentsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, subagents_);
+        onChanged();
+      } else {
+        subagentsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearSubagents() {
+      if (subagentsBuilder_ == null) {
+        subagents_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000800);
+        onChanged();
+      } else {
+        subagentsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removeSubagents(int index) {
+      if (subagentsBuilder_ == null) {
+        ensureSubagentsIsMutable();
+        subagents_.remove(index);
+        onChanged();
+      } else {
+        subagentsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getSubagentsBuilder(
+        int index) {
+      return internalGetSubagentsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getSubagentsOrBuilder(
+        int index) {
+      if (subagentsBuilder_ == null) {
+        return subagents_.get(index);  } else {
+        return subagentsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+         getSubagentsOrBuilderList() {
+      if (subagentsBuilder_ != null) {
+        return subagentsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(subagents_);
+      }
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addSubagentsBuilder() {
+      return internalGetSubagentsFieldBuilder().addBuilder(
+          ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addSubagentsBuilder(
+        int index) {
+      return internalGetSubagentsFieldBuilder().addBuilder(
+          index, ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Saved agents this agent may hand work to, each running its own
+     * instructions, model, tools, plugins, skills, hooks and values.
+     *
+     * A subagent runs as the conversation's person and on its budget, under
+     * the conversation's hooks, and cannot hand work on to another agent: an
+     * agent that lists subagents of its own is refused here. Each reference is
+     * pinned when this agent is saved: a reference without a version takes the
+     * listed agent's latest version, and one naming a tag or a version keeps
+     * that version until a later save sends the list again. At most 20.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference.Builder> 
+         getSubagentsBuilderList() {
+      return internalGetSubagentsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetSubagentsFieldBuilder() {
+      if (subagentsBuilder_ == null) {
+        subagentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                subagents_,
+                ((bitField0_ & 0x00000800) != 0),
+                getParentForChildren(),
+                isClean());
+        subagents_ = null;
+      }
+      return subagentsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentSpec)

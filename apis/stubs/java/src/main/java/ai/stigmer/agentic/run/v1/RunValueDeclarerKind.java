@@ -55,6 +55,14 @@ public enum RunValueDeclarerKind
    * <code>RUN_VALUE_DECLARER_KIND_PLUGIN = 4;</code>
    */
   RUN_VALUE_DECLARER_KIND_PLUGIN(4),
+  /**
+   * <pre>
+   * A saved agent the turn's agent lists as a subagent, in its env.
+   * </pre>
+   *
+   * <code>RUN_VALUE_DECLARER_KIND_SUBAGENT = 5;</code>
+   */
+  RUN_VALUE_DECLARER_KIND_SUBAGENT(5),
   UNRECOGNIZED(-1),
   ;
 
@@ -107,6 +115,14 @@ public enum RunValueDeclarerKind
    * <code>RUN_VALUE_DECLARER_KIND_PLUGIN = 4;</code>
    */
   public static final int RUN_VALUE_DECLARER_KIND_PLUGIN_VALUE = 4;
+  /**
+   * <pre>
+   * A saved agent the turn's agent lists as a subagent, in its env.
+   * </pre>
+   *
+   * <code>RUN_VALUE_DECLARER_KIND_SUBAGENT = 5;</code>
+   */
+  public static final int RUN_VALUE_DECLARER_KIND_SUBAGENT_VALUE = 5;
 
 
   public final int getNumber() {
@@ -138,6 +154,7 @@ public enum RunValueDeclarerKind
       case 2: return RUN_VALUE_DECLARER_KIND_TOOL;
       case 3: return RUN_VALUE_DECLARER_KIND_REPOSITORY;
       case 4: return RUN_VALUE_DECLARER_KIND_PLUGIN;
+      case 5: return RUN_VALUE_DECLARER_KIND_SUBAGENT;
       default: return null;
     }
   }

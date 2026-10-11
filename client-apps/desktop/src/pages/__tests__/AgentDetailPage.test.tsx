@@ -53,6 +53,7 @@ interface DetailProps {
   viewerOrg?: string;
   onSkillClick: (ref: { org: string; slug: string }) => void;
   onPluginClick: (ref: { org: string; slug: string }) => void;
+  onAgentClick: (ref: { org: string; slug: string }) => void;
   buildShareUrl: (shareId: string) => string;
 }
 
@@ -192,6 +193,15 @@ describe("desktop AgentDetailPage — organizations", () => {
     act(() => page.detail.at(-1)?.onPluginClick({ org: ACME_ID, slug: "toolkit" }));
 
     expect(screen.getByTestId("location").textContent).toBe("/library/plugins/acme/toolkit");
+  });
+
+  it("opens a listed subagent at a URL carrying its org's slug", () => {
+    page.agent = AGENT;
+    renderAgent();
+
+    act(() => page.detail.at(-1)?.onAgentClick({ org: ACME_ID, slug: "researcher" }));
+
+    expect(screen.getByTestId("location").textContent).toBe("/library/agents/acme/researcher");
   });
 
   it("builds a share link on the web console from the share's id alone", () => {

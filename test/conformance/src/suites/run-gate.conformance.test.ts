@@ -37,7 +37,11 @@
 //   - a turn in a session the caller may not add to learns nothing about
 //     the session: a forbidden session answers the session's own denial
 //     whatever its agent's state, an unknown one NOT_FOUND naming only the
-//     id (the authorizer's existence probe, stigmer#224).
+//     id (the authorizer's existence probe, stigmer#224);
+//   - whoever runs an agent runs its subagents, so listing one is a choice
+//     only someone who may run it makes: a member's agent may not list as a
+//     subagent an agent the member cannot run (PERMISSION_DENIED with the
+//     field's copy), and may list one they can.
 //
 // Deliberately out of scope: the runtime lanes (guest, channel, schedule),
 // whose admission is decided by their own gate steps and
@@ -65,7 +69,7 @@ import {
 } from "../targets";
 import { FixtureTracker } from "../harness/fixtures";
 import { expectGrpcCode } from "../contract/errors";
-import { agentRefOf, makeAgent } from "../support/agents";
+import { agentRefOf, makeAgent, subagentSlugsOf } from "../support/agents";
 import { makeAgentExecution } from "../support/runs";
 import { policyTriple } from "../support/iampolicies";
 import {
@@ -603,5 +607,59 @@ describe("run gate — a session the caller may not add to discloses nothing (on
       "a member's turn in an unknown session",
     );
     expect(notFound.rawMessage).toContain(missing);
+  });
+});
+
+describe("run gate — a member lists as subagents only agents they may run (on the enforcing lane)", () => {
+  it("[rpc:AgentCommandController.create] a member's agent may not list a private agent the member cannot run, and may list an org-visible one", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const context = await tenancy(lane);
+    const member = await lane.provisionMember(context);
+    const privateAgent = await createAgent(
+      context.org,
+      ApiResourceVisibility.visibility_private,
+      "run-gate-private-subagent",
+    );
+    const orgAgent = await createAgent(
+      context.org,
+      ApiResourceVisibility.visibility_org,
+      "run-gate-org-subagent",
+    );
+
+    // The member's own agent is private, so the visibility floor admits
+    // either listing and only the run question can refuse.
+    function membersAgent(listed: Agent) {
+      const input = makeAgent({
+        org: context.org,
+        name: uniqueName("member-parent"),
+        subagents: subagentSlugsOf([listed]),
+      });
+      input.metadata = {
+        ...input.metadata,
+        visibility: ApiResourceVisibility.visibility_private,
+      };
+      return input;
+    }
+
+    const denied = await expectGrpcCode(
+      () => member.agentCommand.create(membersAgent(privateAgent)),
+      Code.PermissionDenied,
+      "member lists a private agent as a subagent",
+    );
+    expect(denied.rawMessage).toBe(
+      `subagent '${privateAgent.metadata!.slug}' is not an agent you may run; ` +
+        "list an agent you may run, or ask its owner to share it with you",
+    );
+
+    const admitted = await member.agentCommand.create(membersAgent(orgAgent));
+    fixtures.defer(() =>
+      member.agentCommand
+        .delete({ value: admitted.metadata!.id })
+        .catch(() => undefined),
+    );
+    expect(
+      admitted.spec?.subagents.map((ref) => [ref.slug, ref.version]),
+      "the member's agent lists the agent they may run, pinned",
+    ).toEqual([[orgAgent.metadata!.slug, orgAgent.status!.versionHash]]);
   });
 });

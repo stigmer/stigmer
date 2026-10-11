@@ -45,6 +45,35 @@ export function mcpServerWayForward(document: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * The way forward for an agent manifest written while a sub-agent was
+ * written inside its agent: a subagent is now a saved agent the agent
+ * lists. Shared with the CLI's `apply` and `validate`.
+ */
+export const SUBAGENTS_WAY_FORWARD =
+  "A subagent is now a saved agent: write each sub-agent as an Agent of its own, " +
+  "then list it under the agent's `subagents` (`- kind: agent` with `slug: <its slug>`).";
+
+/**
+ * {@link SUBAGENTS_WAY_FORWARD} when `document` is an agent whose spec still
+ * writes sub-agents inside it (`sub_agents`). Undefined for every other
+ * document.
+ */
+export function subagentsWayForward(document: unknown): string | undefined {
+  if (!isRecord(document)) return undefined;
+  const spec = document.spec;
+  return isRecord(spec) && ("sub_agents" in spec || "subAgents" in spec) ? SUBAGENTS_WAY_FORWARD : undefined;
+}
+
+/**
+ * The way forward for any retired shape a document still uses: an MCP
+ * server resource or server usages ({@link mcpServerWayForward}), or
+ * sub-agents written inside an agent ({@link subagentsWayForward}).
+ */
+export function retiredShapeWayForward(document: unknown): string | undefined {
+  return mcpServerWayForward(document) ?? subagentsWayForward(document);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -215,7 +244,7 @@ function parseDocument(
 
 // The retired-shape sentence as a suffix to a refusal, or nothing.
 function wayForwardSuffix(document: Record<string, unknown>): string {
-  const hint = mcpServerWayForward(document);
+  const hint = retiredShapeWayForward(document);
   return hint === undefined ? "" : ` ${hint}`;
 }
 

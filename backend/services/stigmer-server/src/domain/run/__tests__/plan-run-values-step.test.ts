@@ -15,7 +15,11 @@
  * session's (run-plugins.ts: a plugin that is gone is skipped, a store
  * fault reading one fails the plan, the conversation's reference wins
  * where both name one plugin, the very same plugin is listed once, and two
- * plugins of one name refuse the plan before any value is asked for). A
+ * plugins of one name refuse the plan before any value is asked for). The
+ * agent version's subagents are read at their pins (run-subagents.ts) and
+ * handed over, their plugins listed after the agent's and the session's;
+ * a pinned subagent version that is gone, and a subagent's local program
+ * on a hosted conversation, refuse before any value is asked for. A
  * deployment whose hosted sandbox cannot start a local program refuses a
  * listed plugin's stdio server before any value is asked for; one that
  * wires no such rule plans it. The plan it records is exactly the
@@ -537,6 +541,87 @@ describe("a plugin's local program", () => {
       );
       expect(asked[0]?.plugins.map((plugin) => plugin.id), what).toEqual(["plg_notion", "plg_files"]);
     }
+  });
+});
+
+describe("the agent's subagents", () => {
+  const HELPER_HASH = "f".repeat(64);
+  const refusing: LocalProgramPolicy = {
+    refusesLocalPrograms: (target) => target === ExecutionTarget.CLOUD,
+  };
+
+  beforeAll(async () => {
+    for (const [id, slug, plugin] of [
+      ["agt_helper", "helper", "notion"],
+      ["agt_local_helper", "local-helper", "files"],
+    ] as const) {
+      await store.saveResource(
+        ApiResourceKind.agent,
+        id,
+        AgentSchema,
+        create(AgentSchema, {
+          metadata: { id, name: slug, slug, org: ORG },
+          spec: {
+            env: { HELPER_KEY: { isSecret: true } },
+            plugins: [{ org: ORG, slug: plugin }, { org: ORG, slug: "linear", version: "1.0.0" }],
+          },
+          status: { versionHash: HELPER_HASH },
+        }),
+      );
+    }
+  });
+
+  function listing(slug: string, version: string, executionTarget = ExecutionTarget.UNSPECIFIED) {
+    return {
+      session: create(SessionSchema, { metadata: { id: "ses_rec", org: ORG }, spec: { executionTarget } }),
+      version: async () =>
+        create(AgentVersionEntrySchema, {
+          versionHash: RECORDED_HASH,
+          specSnapshot: {
+            plugins: [{ org: ORG, slug: "linear" }],
+            subagents: [{ kind: ApiResourceKind.agent, org: ORG, slug, version }],
+          },
+        }),
+    };
+  }
+
+  it("hands the resolver each subagent at its pin, and lists its plugins after the agent's, the agent's version winning", async () => {
+    const asked: RunCredentialInput[] = [];
+    await planRunValues(
+      deps({ ...listing("helper", HELPER_HASH), asked }),
+      turn("aex_subagents", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
+    );
+    const input = asked[0]!;
+    expect(input.subagents.map((subagent) => [subagent.name, subagent.org, Object.keys(subagent.spec.env)])).toEqual([
+      ["helper", ORG, ["HELPER_KEY"]],
+    ]);
+    expect(input.plugins.map((plugin) => [plugin.id, plugin.status.mcpServers[0]?.name])).toEqual([
+      // The agent's reference names the installed version; the subagent's older one does not win it.
+      ["plg_linear", "linear"],
+      ["plg_notion", "notion"],
+    ]);
+  });
+
+  it("refuses, naming the subagent, when its pinned version is gone, before asking for any value", async () => {
+    const asked: RunCredentialInput[] = [];
+    const failure = await planRunValues(
+      deps({ ...listing("helper", "0".repeat(64)), asked }),
+      turn("aex_subagent_gone", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
+    ).catch((e: unknown) => e);
+    expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((failure as ConnectError).rawMessage).toContain("subagent 'helper'");
+    expect(asked).toEqual([]);
+  });
+
+  it("refuses a hosted conversation whose subagent lists a stdio server, naming the plugin, before asking for any value", async () => {
+    const asked: RunCredentialInput[] = [];
+    const failure = await planRunValues(
+      deps({ ...listing("local-helper", HELPER_HASH, ExecutionTarget.CLOUD), asked, localPrograms: refusing }),
+      turn("aex_subagent_local", { agentId: "agt_rec", agentVersionHash: RECORDED_HASH }),
+    ).catch((e: unknown) => e);
+    expect((failure as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((failure as ConnectError).rawMessage).toContain("plugin 'files'");
+    expect(asked).toEqual([]);
   });
 });
 

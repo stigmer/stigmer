@@ -222,6 +222,9 @@ export default function AgentDetailPage() {
         onPluginClick={(ref) =>
           navigate(`/library/plugins/${slugForOrg(ref.org)}/${ref.slug}`)
         }
+        onAgentClick={(ref) =>
+          navigate(`/library/agents/${slugForOrg(ref.org)}/${ref.slug}`)
+        }
         primaryAction={primaryAction}
         actions={actions}
         buildShareUrl={buildShareUrl}

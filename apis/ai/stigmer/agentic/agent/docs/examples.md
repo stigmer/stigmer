@@ -67,9 +67,41 @@ spec:
   disallowed_tools: [mcp__plugin_github_github__delete_repository]
 ```
 
-## Agent with Sub-Agents
+## Agent with Subagents
 
-A parent agent that delegates to specialized sub-agents, each narrowing the parent's tools.
+A parent agent that hands work to two saved agents. Each subagent is an agent of its own, with its own plugins and tool lists; save them before the agent that lists them. See [subagents.md](subagents.md).
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: code-reviewer
+spec:
+  description: "Reviews code changes for quality and security"
+  instructions: |
+    You review code for quality, security, and best practices.
+    Provide specific, actionable feedback.
+  plugins:
+    - kind: plugin
+      slug: github
+  tools: [Read, Grep, mcp__plugin_github_github__search_code, mcp__plugin_github_github__get_file_contents]
+```
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: pr-creator
+spec:
+  description: "Creates well-formatted pull requests"
+  instructions: |
+    You create pull requests with clear titles and descriptions.
+    Always summarize the changes and their purpose.
+  plugins:
+    - kind: plugin
+      slug: github
+  tools: [mcp__plugin_github_github__create_pull_request, mcp__plugin_github_github__get_file_contents]
+```
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -77,33 +109,27 @@ kind: Agent
 metadata:
   name: engineering-manager
 spec:
-  description: "Coordinates engineering tasks with specialized sub-agents"
+  description: "Coordinates engineering tasks with specialized subagents"
   instructions: |
-    You coordinate engineering work. Delegate to sub-agents based on the task:
-    - Code reviews go to the code-reviewer sub-agent
-    - PR creation goes to the pr-creator sub-agent
+    You coordinate engineering work. Hand work to subagents based on the task:
+    - Code reviews go to the code-reviewer subagent
+    - PR creation goes to the pr-creator subagent
   plugins:
     - kind: plugin
       slug: github
   tools: [Read, Grep, Agent, mcp__plugin_github_github]
-  sub_agents:
-    - name: code-reviewer
-      description: "Reviews code changes for quality and security"
-      instructions: |
-        You review code for quality, security, and best practices.
-        Provide specific, actionable feedback.
-      tools: [Read, Grep, mcp__plugin_github_github__search_code, mcp__plugin_github_github__get_file_contents]
-    - name: pr-creator
-      description: "Creates well-formatted pull requests"
-      instructions: |
-        You create pull requests with clear titles and descriptions.
-        Always summarize the changes and their purpose.
-      tools: [mcp__plugin_github_github__create_pull_request, mcp__plugin_github_github__get_file_contents]
+  subagents:
+    - kind: agent
+      slug: code-reviewer
+    - kind: agent
+      slug: pr-creator
 ```
+
+Each subagent is pinned to its latest version when `engineering-manager` is saved. Apply `engineering-manager` again to take a newer version of either.
 
 ## Full-Featured Agent
 
-An agent using all available features — plugins whose MCP servers the tool lists narrow, skills, sub-agents, and environment variables. Stigmer asks before `deploy_app` runs only if the kubernetes server marks it destructive (`destructiveHint: true`); shell commands and file writes always ask.
+An agent using all available features — plugins whose MCP servers the tool lists narrow, skills, a subagent, and environment variables. Stigmer asks before `deploy_app` runs only if the kubernetes server marks it destructive (`destructiveHint: true`); shell commands and file writes always ask.
 
 Note: `kubernetes` below is the organization's own plugin carrying a local program (stdio), not a marketplace entry. A local program runs only where a person's own runner runs (the desktop app, the CLI); a conversation hosted in a cloud sandbox is refused at create when one of its plugins carries one.
 
@@ -161,13 +187,27 @@ spec:
       SLACK_WEBHOOK:
         description: "Slack webhook for deployment notifications"
         is_secret: true
-  sub_agents:
-    - name: health-checker
-      description: "Monitors deployment health after rollout"
-      instructions: |
-        You monitor deployments after rollout. Check pod status, logs,
-        and health endpoints. Report any issues immediately.
-      tools: [mcp__plugin_kubernetes_kubernetes__get_pod_status]
+  subagents:
+    - kind: agent
+      slug: health-checker
+```
+
+The subagent it lists is a saved agent of its own, applied first:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: health-checker
+spec:
+  description: "Monitors deployment health after rollout"
+  instructions: |
+    You monitor deployments after rollout. Check pod status, logs,
+    and health endpoints. Report any issues immediately.
+  plugins:
+    - kind: plugin
+      slug: kubernetes
+  tools: [mcp__plugin_kubernetes_kubernetes__get_pod_status]
 ```
 
 ## Agent Shared With Child Organizations

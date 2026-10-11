@@ -107,10 +107,6 @@ message PluginAgent {
   string description = 2;
 
   // The agent's system prompt: the body of its file.
-  //
-  // @internal
-  // The agent runs on the model the turn runs: a model the file names is
-  // recorded in PluginStatus.warnings and not applied.
   string instructions = 3;
 
   // Tools this agent may use, in Claude Code's names; empty means all of the
@@ -123,6 +119,14 @@ message PluginAgent {
 
   // The plugin's own skills this agent uses, by name.
   repeated string skills = 6;
+
+  // The model the agent's file names, as written; empty when it names none.
+  //
+  // A turn runs the agent on it when it is a model id the conversation's
+  // engine lists. inherit, an alias such as sonnet, or any other value runs
+  // the turn's model; install records an alias or an unknown value in
+  // PluginStatus.warnings.
+  string model = 7;
 }
 
 // McpServerEntry is one MCP server a plugin carries: a local program or an

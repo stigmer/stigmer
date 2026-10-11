@@ -59,8 +59,8 @@ if (!isEmpty && tree) {
 
 Accessible CSS-based tree visualization of an agent's dependencies.
 
-Renders `MCP Servers`, `Skills`, and `Sub-Agents` (with recursive
-sub-agent children) as a nested tree with visual connector lines.
+Renders the agent's plugins, skills and subagents as a tree with
+visual connector lines; a subagent links to its own page.
 The root node represents the agent itself.
 
 Implements the WAI-ARIA TreeView pattern:
@@ -77,8 +77,8 @@ Zero Console dependencies — safe for platform builder embedding.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS classes for the root container." },
-    defaultExpanded: { type: "boolean", description: "Whether sub-agent subtrees start expanded." },
-    onNodeClick: { type: "(node: DependencyNode) => void", description: "Called when a navigable node is clicked. The `node.ref` field contains the `org` and `slug` for routing. Only fired for nodes where `ref` is defined (plugins and skills)." },
+    defaultExpanded: { type: "boolean", description: "Whether collapsible subtrees start expanded." },
+    onNodeClick: { type: "(node: DependencyNode) => void", description: "Called when a navigable node is clicked. The `node.ref` field contains the `org` and `slug` for routing. Only fired for nodes where `ref` is defined (plugins, skills and subagents)." },
     tree: { type: "DependencyTree", description: "The dependency tree to render.", required: true, typeDescriptionLink: "#dependencytree" },
   }}
 />
@@ -107,24 +107,25 @@ const { tree } = useDependencyGraph({
 
 A single node in the agent dependency tree.
 
-The tree is recursive: sub-agent nodes contain their own children
-(the skills they use). Edges are implicit in the
-parent-child relationship — no separate edge type is needed.
+The tree is rooted at the agent; each dependency is a leaf. A
+subagent is an agent of its own, whose dependencies its own page
+shows, so its node is a link rather than a subtree. Edges are
+implicit in the parent-child relationship — no separate edge type
+is needed.
 
-Nodes are navigable when `ref` is defined (plugins and skills).
-Sub-agent nodes have no `ref` because they are inline definitions
-within the agent spec, not standalone resources.
+Nodes are navigable when `ref` is defined (plugins, skills and
+subagents).
 
 <TypeTable
   type={{
-    children: { type: "readonly DependencyNode[]", description: "Child nodes. Empty array for leaf nodes (plugins, skills).", required: true },
-    description: { type: "string", description: "Short description (sub-agent description, if available)." },
-    id: { type: "string", description: "Deterministic identifier. Format: `{kind}:{slug}` for referenced resources, `sub-agent:{name}` for sub-agents, or `agent:{slug}` for the root.", required: true },
+    children: { type: "readonly DependencyNode[]", description: "Child nodes. Empty array for leaf nodes (plugins, skills, subagents).", required: true },
+    description: { type: "string", description: "Short description, if available." },
+    id: { type: "string", description: "Deterministic identifier. Format: `{kind}:{slug}` for referenced resources (`subagent:{slug}` for a listed agent), or `agent:{slug}` for the root.", required: true },
     kind: { type: "NodeKind", description: "What kind of resource this node represents.", required: true, typeDescriptionLink: "#nodekind" },
-    label: { type: "string", description: "Primary display label (slug for resources, name for sub-agents).", required: true },
-    metadata: { type: "Readonly<Record<string, string>>", description: "Key-value metadata displayed as secondary info. Examples: `{ tools: \"3 tools\" }`, `{ model: \"gpt-4\" }`." },
+    label: { type: "string", description: "Primary display label (the slug for referenced resources, the name for the root).", required: true },
+    metadata: { type: "Readonly<Record<string, string>>", description: "Key-value metadata displayed as secondary info. Examples: `{ tools: \"3 tools\" }`, `{ version: \"1a2b3c4d\" }`." },
     qualifiedLabel: { type: "string", description: "Qualified label shown when the resource belongs to a different org than the agent (e.g., `\"other-org/shared-server\"`). Undefined when the resource is in the same org as the parent agent." },
-    ref: { type: "{ org: string; slug: string }", description: "Navigation reference for clickable nodes. Defined for plugins and skills (standalone resources). Undefined for sub-agents (inline definitions) and the root agent." },
+    ref: { type: "{ org: string; slug: string }", description: "Navigation reference for clickable nodes. Defined for plugins, skills and subagents (standalone resources). Undefined for the root agent." },
   }}
 />
 
@@ -148,7 +149,7 @@ Resource kind in a dependency tree.
 - `"agent"` — the root agent (always the tree root)
 - `"plugin"` — a plugin referenced via `plugins`
 - `"skill"` — a skill referenced via `skillRefs`
-- `"sub-agent"` — an inline sub-agent definition with its own dependencies
+- `"subagent"` — a saved agent referenced via `subagents`, at its pinned version
 
 
 ### UseDependencyGraphOptions
@@ -159,7 +160,7 @@ Options for [`useDependencyGraph`](#usedependencygraph).
   type={{
     agentName: { type: "string", description: "Display name of the agent (used as the root node label).", required: true },
     agentOrg: { type: "string", description: "Id of the agent's organization, as its `metadata.org` stores it (compared with each reference's org for cross-org label detection).", required: true },
-    spec: { type: "{ plugins: readonly { org: string; slug: string }[]; skillRefs: readonly { org: string; slug: string }[]; subAgents: readonly { description: string; modelOverride: string; name: string; skillRefs: readonly { org: string; slug: string }[] }[] } | undefined", description: "The agent's spec containing dependency references. Pass `undefined` while the agent is loading — the hook returns `null` for `tree` and `true` for `isEmpty`.", required: true },
+    spec: { type: "{ plugins: readonly { org: string; slug: string }[]; skillRefs: readonly { org: string; slug: string }[]; subagents: readonly { org: string; slug: string; version: string }[] } | undefined", description: "The agent's spec containing dependency references. Pass `undefined` while the agent is loading — the hook returns `null` for `tree` and `true` for `isEmpty`.", required: true },
   }}
 />
 

@@ -1516,6 +1516,16 @@
           },
           "description": "The plugin's own skills this agent uses, by name.",
           "required": false
+        },
+        {
+          "name": "Model",
+          "jsonName": "model",
+          "protoField": "model",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The model the agent's file names, as written; empty when it names none.\n\n A turn runs the agent on it when it is a model id the conversation's\n engine lists. inherit, an alias such as sonnet, or any other value runs\n the turn's model; install records an alias or an unknown value in\n PluginStatus.warnings.",
+          "required": false
         }
       ]
     },

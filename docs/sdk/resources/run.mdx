@@ -2444,7 +2444,7 @@ Represents a sub-agent invocation within a run.
 <TypeTable
   type={{
     id: { type: "string", description: "Unique identifier for this sub-agent run." },
-    name: { type: "string", description: "Name of the sub-agent being invoked." },
+    name: { type: "string", description: "Name of the subagent being invoked: a listed agent's slug, a plugin agent's <plugin>:<agent>, or a built-in (explore, shell, general-purpose)." },
     input: { type: "string", description: "Task/instruction given to the sub-agent." },
     output: { type: "string", description: "Result returned by the sub-agent when complete." },
     status: { type: "SubAgentStatus", description: "Current lifecycle status of the sub-agent run.", typeDescriptionLink: "#subagentstatus" },
@@ -2836,6 +2836,7 @@ Who declared a value a turn uses.
 | `RUN_VALUE_DECLARER_KIND_TOOL` | A tool (an MCP server) the turn uses, in its env or its login. |
 | `RUN_VALUE_DECLARER_KIND_REPOSITORY` | A repository the turn clones, for its token. |
 | `RUN_VALUE_DECLARER_KIND_PLUGIN` | A plugin the turn uses, for its hooks. |
+| `RUN_VALUE_DECLARER_KIND_SUBAGENT` | A saved agent the turn's agent lists as a subagent, in its env. |
 
 ### RunValueOrigin
 

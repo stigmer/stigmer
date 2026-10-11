@@ -132,7 +132,6 @@ type AgentInput struct {
 	IconUrl         string
 	Instructions    string
 	SkillRefs       []ResourceRef
-	SubAgents       []*SubAgentInput
 	Env             map[string]*EnvVarDeclarationInput
 	Tools           []string
 	DisallowedTools []string
@@ -140,17 +139,7 @@ type AgentInput struct {
 	RunConfig       *RunConfigInput
 	Harness         sessionv1.Harness
 	Plugins         []ResourceRef
-}
-
-// SubAgentInput is the SDK input type for SubAgent.
-type SubAgentInput struct {
-	Name            string
-	Description     string
-	Instructions    string
-	SkillRefs       []ResourceRef
-	ModelOverride   string
-	Tools           []string
-	DisallowedTools []string
+	Subagents       []ResourceRef
 }
 
 // EnvVarDeclarationInput is the SDK input type for EnvVarDeclaration.
@@ -225,13 +214,6 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 		ref.Kind = apiresourcekind.ApiResourceKind_skill
 		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, ref)
 	}
-	for idx, item := range i.SubAgents {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, indexErr("SubAgents", idx, err)
-		}
-		resource.Spec.SubAgents = append(resource.Spec.SubAgents, v)
-	}
 	if len(i.Env) > 0 {
 		resource.Spec.Env = make(map[string]*vaultv1.EnvVarDeclaration, len(i.Env))
 		for k, val := range i.Env {
@@ -264,23 +246,12 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 		ref.Kind = apiresourcekind.ApiResourceKind_plugin
 		resource.Spec.Plugins = append(resource.Spec.Plugins, ref)
 	}
-	return resource, nil
-}
-
-func (i *SubAgentInput) toProto() (*agentv1.SubAgent, error) {
-	p := &agentv1.SubAgent{}
-	p.Name = i.Name
-	p.Description = i.Description
-	p.Instructions = i.Instructions
-	for _, r := range i.SkillRefs {
+	for _, r := range i.Subagents {
 		ref := r.toProto()
-		ref.Kind = apiresourcekind.ApiResourceKind_skill
-		p.SkillRefs = append(p.SkillRefs, ref)
+		ref.Kind = apiresourcekind.ApiResourceKind_agent
+		resource.Spec.Subagents = append(resource.Spec.Subagents, ref)
 	}
-	p.ModelOverride = i.ModelOverride
-	p.Tools = i.Tools
-	p.DisallowedTools = i.DisallowedTools
-	return p, nil
+	return resource, nil
 }
 
 func (i *EnvVarDeclarationInput) toProto() (*vaultv1.EnvVarDeclaration, error) {
@@ -365,9 +336,6 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 		for _, r := range s.GetSkillRefs() {
 			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 		}
-		for _, item := range s.GetSubAgents() {
-			input.SubAgents = append(input.SubAgents, subAgentInputFromProto(item))
-		}
 		if len(s.GetEnv()) > 0 {
 			input.Env = make(map[string]*EnvVarDeclarationInput, len(s.GetEnv()))
 			for k, v := range s.GetEnv() {
@@ -384,24 +352,10 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 		for _, r := range s.GetPlugins() {
 			input.Plugins = append(input.Plugins, resourceRefFromProto(r))
 		}
+		for _, r := range s.GetSubagents() {
+			input.Subagents = append(input.Subagents, resourceRefFromProto(r))
+		}
 	}
-	return input
-}
-
-func subAgentInputFromProto(p *agentv1.SubAgent) *SubAgentInput {
-	if p == nil {
-		return nil
-	}
-	input := &SubAgentInput{}
-	input.Name = p.GetName()
-	input.Description = p.GetDescription()
-	input.Instructions = p.GetInstructions()
-	for _, r := range p.GetSkillRefs() {
-		input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
-	}
-	input.ModelOverride = p.GetModelOverride()
-	input.Tools = p.GetTools()
-	input.DisallowedTools = p.GetDisallowedTools()
 	return input
 }
 

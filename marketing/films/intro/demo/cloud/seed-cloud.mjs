@@ -10,7 +10,8 @@
  * stays off too: its server is a local program (stdio), which runs only in
  * the desktop app or the CLI, and a conversation hosted in a cloud sandbox
  * is refused at session create when a plugin it lists has one. The share's
- * guests are hosted there, so the cloud agent carries no plugin at all; the
+ * guests are hosted there, so the cloud agents (traveler-assist and the
+ * fare-search agent it lists as a subagent) carry no plugin at all; the
  * embed shot never exercises tools, so nothing on screen changes.
  *
  * Idempotent: every step is an apply/push, safe to re-run.
@@ -31,6 +32,9 @@ import { recordShareId } from "../share-id.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const resources = join(here, "../resources");
+// The `plugins:` block of an agent manifest, with the comment lines directly
+// above it (withoutPlugin).
+const PLUGINS_BLOCK = ["plugins block", /\n(?: {2}#.*\n)* {2}plugins:\n(?: {4,}.*\n)+/g];
 const bin = process.env.STIGMER_BIN ?? "stigmer";
 const ORG = "meridian-travel";
 
@@ -53,18 +57,26 @@ stigmer("apply", "-f", join(resources, "organization.yaml"));
 // 2. The rebooking policy the agent pins.
 stigmer("--org", ORG, "push", "skill", join(here, "../skills/rebooking-policy"), "--tag", "stable", "-m", "Initial rebooking policy");
 
-// 3. The agent — the manifest the film's scene 3 walks, rendered without
-// the meridian-ops plugin (see the header): the `plugins` block goes, and so
-// does the fare-search sub-agent's tool list, which names only that
-// plugin's search tool. Rendering from the one manifest keeps the cloud
-// agent's instructions and skills identical to the film's; a manifest edit
-// that moves either block fails here rather than seeding a plugin cloud
-// would refuse.
+// 3. The agents — the manifests the film's scene 3 walks, rendered without
+// the meridian-ops plugin (see the header). fare-search goes first: the
+// hero agent lists it as a subagent, and a listed agent must exist when the
+// agent listing it is saved. fare-search loses its `plugins` block and its
+// tool list, which names only that plugin's search tool; traveler-assist
+// loses its `plugins` block. A subagent's plugins count for the
+// conversation too, so fare-search must carry none either. Rendering from
+// the one set of manifests keeps the cloud agents' instructions and skills
+// identical to the film's; a manifest edit that moves a block fails here
+// rather than seeding a plugin cloud would refuse.
 const rendered = mkdtempSync(join(tmpdir(), "meridian-seed-cloud-"));
 try {
-  const renderedPath = join(rendered, "traveler-assist.yaml");
-  writeFileSync(renderedPath, withoutPlugin(readFileSync(join(resources, "traveler-assist.yaml"), "utf8")));
-  stigmer("apply", "-f", renderedPath);
+  for (const [file, removals] of [
+    ["fare-search.yaml", [PLUGINS_BLOCK, ["fare-search tools", /^ {2}tools: \[mcp__plugin_meridian-ops_[^\]]*\]\n/gm]]],
+    ["traveler-assist.yaml", [PLUGINS_BLOCK]],
+  ]) {
+    const renderedPath = join(rendered, file);
+    writeFileSync(renderedPath, withoutPlugin(file, readFileSync(join(resources, file), "utf8"), removals));
+    stigmer("apply", "-f", renderedPath);
+  }
 } finally {
   rmSync(rendered, { recursive: true, force: true });
 }
@@ -80,20 +92,17 @@ console.log("Embed page: APP_ORIGIN=https://app.stigmer.ai npm run demo:embed");
 console.log("Capture:    S4D_PAGE_URL=http://localhost:4173 npm run capture -- s4d-embed");
 
 /**
- * The agent manifest with the meridian-ops plugin removed: the `plugins:`
- * block with the comment lines directly above it, and every sub-agent
- * `tools:` list that names only that plugin's tools. Each removal must match
- * exactly once, so the render cannot silently keep the plugin.
+ * An agent manifest with the meridian-ops plugin removed: each of
+ * `removals`, such as the `plugins:` block with the comment lines directly
+ * above it, or a `tools:` list that names only that plugin's tools. Each
+ * removal must match exactly once, so the render cannot silently keep the
+ * plugin.
  */
-function withoutPlugin(manifest) {
-  const removals = [
-    ["plugins block", /\n(?: {2}#.*\n)* {2}plugins:\n(?: {4,}.*\n)+/g],
-    ["fare-search tools", /^ {6}tools: \[mcp__plugin_meridian-ops_[^\]]*\]\n/gm],
-  ];
+function withoutPlugin(file, manifest, removals) {
   let out = manifest;
   for (const [what, pattern] of removals) {
     const found = out.match(pattern)?.length ?? 0;
-    if (found !== 1) throw new Error(`traveler-assist.yaml: expected one ${what}, found ${found}`);
+    if (found !== 1) throw new Error(`${file}: expected one ${what}, found ${found}`);
     out = out.replace(pattern, "");
   }
   return out;

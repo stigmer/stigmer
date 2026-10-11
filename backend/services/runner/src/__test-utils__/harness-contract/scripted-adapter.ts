@@ -54,6 +54,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { Config } from "../../config.js";
 import type { HarnessCapabilities, PausePrimitive, StateIdSource } from "../../harness/capabilities.js";
@@ -111,6 +112,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   constructor(options: ScriptedHarnessOptions) {
     this.name = options.name ?? `scripted(${options.pausePrimitive}, ${options.stateIdSource})`;
     this.capabilities = {
+      harness: Harness.NATIVE,
       pausePrimitive: options.pausePrimitive,
       stateIdSource: options.stateIdSource,
       systemPrompt: true,

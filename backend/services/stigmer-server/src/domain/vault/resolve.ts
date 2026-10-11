@@ -9,6 +9,9 @@
  *     tool or plugin of the run declares: an agent saved before plugins were
  *     whole may hold copies of its tools' keys, and a tool's key never
  *     reaches the agent's shell;
+ *   - every key each subagent declares, by the same rule, for that
+ *     subagent's shell and hooks only (its own declarer, matched on its
+ *     own);
  *   - every key each tool it uses reads (each MCP server of each plugin the
  *     agent and the conversation list), and each tool's login key: the
  *     variable its `Authorization: Bearer ${VAR}` header names;
@@ -110,8 +113,9 @@
  * provider refuses (SignInRenewalError) refuses with FAILED_PRECONDITION
  * naming the key, its declarer and the vault, and saying to fix it and
  * recover; any other fault during renewal is INTERNAL. The values are
- * answered grouped by declarer: the agent's, each tool's with the URL the
- * fetch read, each plugin's for its hooks, each repository's token.
+ * answered grouped by declarer: the agent's, each subagent's by its name,
+ * each tool's with the URL the fetch read, each plugin's for its hooks,
+ * each repository's token.
  *
  * A manifest names where a value lives and carries no value, except a
  * plain declaration's own default, a fixed setting of the agent or tool
@@ -151,11 +155,13 @@ import {
   ExecutionValuesSchema,
   PluginValuesSchema,
   RepositoryValuesSchema,
+  SubagentValuesSchema,
   ToolValuesSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import type {
   ExecutionValues,
   PluginValues,
+  SubagentValues,
   ToolValues,
 } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/values_pb";
 import { hookVariableReferences, PLATFORM_VARIABLES } from "@stigmer/plugin-package";
@@ -175,6 +181,7 @@ import { failedPreconditionError, internalError } from "../../pipeline/errors.js
 import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import type { RunSubagent } from "../run/run-subagents.js";
 import { PLUGIN_EVAL_LABEL } from "../plugin-eval/constants.js";
 import type { PlatformClientStore } from "../platformclient/store.js";
 import { sessionIdOf } from "../run/target.js";
@@ -256,7 +263,9 @@ export type Declarer =
       readonly pluginDigest: string;
     }
   | { readonly kind: "plugin"; readonly name: string; readonly pluginId: string }
-  | { readonly kind: "repository"; readonly name: string; readonly url: string };
+  | { readonly kind: "repository"; readonly name: string; readonly url: string }
+  /** A saved agent the run's agent lists, by its name in the turn (its slug). */
+  | { readonly kind: "subagent"; readonly name: string };
 
 /** A plugin a run lists, at the version it resolved to. */
 export interface RunPlugin {
@@ -362,7 +371,9 @@ export interface RunCredentialInput {
    * unreadable one) reads no My vault, for any requirement.
    */
   readonly agentOrg: string | undefined;
-  /** Every plugin the run lists (its agent's and its conversation's), each once. */
+  /** The subagents the agent lists, at their pinned versions (domain/run/run-subagents.ts). */
+  readonly subagents: readonly RunSubagent[];
+  /** Every plugin the run lists (its agent's, its conversation's and its subagents'), each once. */
   readonly plugins: readonly RunPlugin[];
 }
 
@@ -581,6 +592,16 @@ export function runRequirements(input: RunCredentialInput): Requirement[] {
       }).filter((requirement) => !pluginKeys.has(requirement.key)),
     );
   }
+  // Each subagent's own keys, for its shell and its own hooks only: the
+  // agent's rule for a second agent of the run.
+  for (const subagent of input.subagents) {
+    requirements.push(
+      ...declarationRequirements(subagent.spec.env, {
+        kind: "subagent",
+        name: subagent.name,
+      }).filter((requirement) => !pluginKeys.has(requirement.key)),
+    );
+  }
   requirements.push(...tools, ...hooks);
   for (const entry of input.session.spec?.workspaceEntries ?? []) {
     const source = entry.source?.source;
@@ -674,6 +695,7 @@ const DECLARER_KINDS: Readonly<Record<Declarer["kind"], RunValueDeclarerKind>> =
   tool: RunValueDeclarerKind.TOOL,
   plugin: RunValueDeclarerKind.PLUGIN,
   repository: RunValueDeclarerKind.REPOSITORY,
+  subagent: RunValueDeclarerKind.SUBAGENT,
 };
 
 /** A manifest entry for a located requirement. */
@@ -724,6 +746,7 @@ const DECLARER_WORDS: Readonly<Record<Declarer["kind"], (name: string) => string
   tool: (name) => name,
   plugin: (name) => `the hooks of plugin ${name}`,
   repository: (name) => `repository ${name}`,
+  subagent: (name) => `the subagent ${name}`,
 };
 
 function describeDeclarer(declarer: Declarer): string {
@@ -813,6 +836,8 @@ function declarerOfEntry(entry: RunValueSource): Declarer {
       return { kind: "plugin", name: declarer.name, pluginId: declarer.pluginId };
     case RunValueDeclarerKind.REPOSITORY:
       return { kind: "repository", name: declarer.name, url: declarer.repositoryUrl };
+    case RunValueDeclarerKind.SUBAGENT:
+      return { kind: "subagent", name: declarer.name };
     default:
       return { kind: "agent", name: declarer?.name ?? "" };
   }
@@ -1159,12 +1184,14 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     const named = await sessionNamed(stored, person, executionOrg);
 
     // A run of another organization's agent, or of one whose row cannot be
-    // read: every value the run carries reaches that agent's code, so the
-    // person's My vault stays closed to every requirement, its tools' and
-    // its clones' included.
+    // read, or whose agent lists another organization's agent as a
+    // subagent: every value the run carries reaches that agent's code, so
+    // the person's My vault stays closed to every requirement, its tools'
+    // and its clones' included.
     const hasAgent = input.agentSpec !== undefined || input.agentName !== "";
     const foreignAgent =
-      hasAgent && (input.agentOrg === undefined || input.agentOrg !== executionOrg);
+      (hasAgent && (input.agentOrg === undefined || input.agentOrg !== executionOrg)) ||
+      input.subagents.some((subagent) => subagent.org !== executionOrg);
 
     const sources: Source[] = [repositorySource(own)];
     let who: WhoActs;
@@ -1329,6 +1356,7 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
     const renewals = new Map<string, Promise<string>>();
     const tools = new Map<string, ToolValues>();
     const plugins = new Map<string, PluginValues>();
+    const subagents = new Map<string, SubagentValues>();
     const loadedTools = new Map<string, Promise<McpServerEntry | undefined>>();
     const toolOf = (pluginId: string, server: string, digest: string): Promise<McpServerEntry | undefined> => {
       const key = `${pluginId}\u0000${server}\u0000${digest}`;
@@ -1431,6 +1459,18 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
             group = create(PluginValuesSchema, { pluginId: declarer.pluginId });
             plugins.set(declarer.pluginId, group);
             values.plugins.push(group);
+          }
+          group.values[entry.key] = value;
+          break;
+        }
+        case RunValueDeclarerKind.SUBAGENT: {
+          // Before the default arm, which is the agent's: a subagent's key
+          // never reaches the agent's shell.
+          let group = subagents.get(declarer.name);
+          if (group === undefined) {
+            group = create(SubagentValuesSchema, { name: declarer.name });
+            subagents.set(declarer.name, group);
+            values.subagents.push(group);
           }
           group.values[entry.key] = value;
           break;

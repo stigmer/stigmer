@@ -36,9 +36,7 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { HumanMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
-import { create } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -52,6 +50,7 @@ import {
   createHermeticEnvironment,
   type HermeticEnvironment,
 } from "../../../../__test-utils__/hermetic-activity.js";
+import { savedAgentFixture } from "../../../../__test-utils__/execution-record-fixture.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { ADVISORY_LEAD_IN } from "../../../../middleware/advisory-message.js";
 import {
@@ -182,12 +181,8 @@ describe("ExecuteDeepAgent hermetic — the cost advisory", () => {
     // ── Arrange: the root delegates; the helper's one answer crosses the line ─
     const rootTranscripts: BaseMessage[][] = [];
     const helperTranscripts: BaseMessage[][] = [];
-    const helper = create(SubAgentSchema, {
-      name: "helper",
-      description: "Answers a costly question.",
-      instructions: HELPER_INSTRUCTIONS,
-    });
-    const record = deepAgentExecutionRecord({ message: "Ask the helper.", maxCostUsd: MAX_COST_USD, subAgents: [helper] });
+    const helper = savedAgentFixture("helper", { description: "Answers a costly question.", instructions: HELPER_INSTRUCTIONS });
+    const record = deepAgentExecutionRecord({ message: "Ask the helper.", maxCostUsd: MAX_COST_USD, subagents: [helper] });
     const helperPlayer: TurnPlayer = (transcript) => {
       helperTranscripts.push([...transcript]);
       return { text: "The answer is forty-two.", usage: { inputTokens: HELPER_INPUT_TOKENS, outputTokens: 10 } };

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -24,6 +23,7 @@ import { DependencyGraph } from "../dependency-graph/DependencyGraph.js";
 import { useDependencyGraph } from "../dependency-graph/useDependencyGraph.js";
 import { AgentToolLists, hasToolLists } from "./AgentToolLists.js";
 import { AgentHooksSection } from "./AgentHooksSection.js";
+import { AgentSubagentsSection } from "./AgentSubagentsSection.js";
 import { AgentRunDefaultsSection, type AgentRunDefaultsSave } from "./AgentRunDefaultsSection.js";
 import type { DependencyNode } from "../dependency-graph/types.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
@@ -124,6 +124,12 @@ export interface AgentDetailViewProps {
    */
   readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
   /**
+   * Called when an agent this agent lists as a subagent is selected, in its
+   * Subagents section or its dependency graph. The host owns the route to
+   * that agent's page; without it the rows are not links.
+   */
+  readonly onAgentClick?: (ref: { org: string; slug: string }) => void;
+  /**
    * When `true`, fields on the detail view become click-to-edit.
    * Each field saves independently via `stigmer.agent.update()`.
    * @default false
@@ -154,7 +160,7 @@ export interface AgentDetailViewProps {
  * full configuration inside a {@link ResourceDetailShell}: a
  * standardized header with action bar, followed by structured content
  * sections (instructions, plugins, tool lists, hooks, skills,
- * sub-agents, and environment variables). Sections with no data are
+ * subagents, and environment variables). Sections with no data are
  * omitted entirely — reducing visual noise per Nielsen heuristic #8.
  *
  * The action bar transforms this from a read-only view into an
@@ -202,6 +208,7 @@ export function AgentDetailView({
   onResourceUpdated,
   buildShareUrl,
   onPluginClick,
+  onAgentClick,
   className,
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
@@ -306,9 +313,11 @@ export function AgentDetailView({
         onPluginClick?.(node.ref);
       } else if (node.kind === "skill") {
         onSkillClick?.(node.ref);
+      } else if (node.kind === "subagent") {
+        onAgentClick?.(node.ref);
       }
     },
-    [onPluginClick, onSkillClick],
+    [onPluginClick, onSkillClick, onAgentClick],
   );
 
   const onResourceLoadRef = useRef(onResourceLoad);
@@ -434,6 +443,7 @@ export function AgentDetailView({
       <AgentOverview
         spec={spec}
         agentOrg={agentOrg}
+        agentSlug={meta?.slug ?? slug}
         description={spec?.description}
         onSkillClick={onSkillClick}
         editable={editable}
@@ -441,6 +451,7 @@ export function AgentDetailView({
         saveField={saveField}
         saveRunDefaults={saveRunDefaults}
         onPluginClick={onPluginClick}
+        onAgentClick={onAgentClick}
         saveError={saveError}
         clearSaveError={clearSaveError}
       />
@@ -475,6 +486,7 @@ export function AgentDetailView({
 function AgentOverview({
   spec,
   agentOrg,
+  agentSlug,
   description,
   onSkillClick,
   editable,
@@ -482,11 +494,13 @@ function AgentOverview({
   saveField,
   saveRunDefaults,
   onPluginClick,
+  onAgentClick,
   saveError,
   clearSaveError,
 }: {
   readonly spec: NonNullable<ReturnType<typeof useAgent>["agent"]>["spec"];
   readonly agentOrg: string;
+  readonly agentSlug: string;
   readonly description?: string;
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
   readonly editable?: boolean;
@@ -497,6 +511,7 @@ function AgentOverview({
   ) => Promise<boolean>;
   readonly saveRunDefaults?: (save: AgentRunDefaultsSave) => Promise<boolean>;
   readonly onPluginClick?: (ref: { org: string; slug: string }) => void;
+  readonly onAgentClick?: (ref: { org: string; slug: string }) => void;
   readonly saveError?: { field: string; message: string } | null;
   readonly clearSaveError?: () => void;
 }) {
@@ -590,7 +605,7 @@ function AgentOverview({
   const showInstructions = editable || !!spec?.instructions;
   const showPlugins = editable || (spec && spec.plugins.length > 0);
   const showSkills = editable || (spec && spec.skillRefs.length > 0);
-  const showSubAgents = editable || (spec && spec.subAgents.length > 0);
+  const showSubagents = editable || (spec && spec.subagents.length > 0);
   const showToolLists = !!spec && hasToolLists(spec);
   const showEnv = editable || (spec?.env && Object.keys(spec.env).length > 0);
 
@@ -733,13 +748,17 @@ function AgentOverview({
         </Section>
       )}
 
-      {showSubAgents && (
-        <SubAgentsSection
-          subAgents={spec?.subAgents ?? []}
+      {showSubagents && (
+        <AgentSubagentsSection
+          refs={spec?.subagents ?? []}
+          agentOrg={agentOrg}
+          self={{ org: agentOrg, slug: agentSlug }}
           editable={editable}
           isSaving={isSaving}
-          error={errorFor("subAgents")}
-          onSave={(subs) => saveField?.("subAgents", subs.length > 0 ? subs : undefined) ?? Promise.resolve(false)}
+          error={errorFor("subagents")}
+          onSave={(refs) => saveField?.("subagents", refs) ?? Promise.resolve(false)}
+          onEditStart={clearSaveError}
+          onAgentClick={onAgentClick}
         />
       )}
 
@@ -911,302 +930,6 @@ function SkillsContent({
   );
 }
 
-interface SubAgentDraft {
-  name: string;
-  description: string;
-  instructions: string;
-}
-
-function SubAgentsSection({
-  subAgents,
-  editable,
-  isSaving,
-  error,
-  onSave,
-}: {
-  readonly subAgents: readonly SubAgent[];
-  readonly editable?: boolean;
-  readonly isSaving?: boolean;
-  readonly error?: string | null;
-  readonly onSave?: (subs: import("@stigmer/sdk").SubAgentInput[]) => Promise<boolean>;
-}) {
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const [isEditing, setIsEditing] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [addDraft, setAddDraft] = useState<SubAgentDraft>({ name: "", description: "", instructions: "" });
-
-  const toggle = (index: number) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
-  };
-
-  const handleRemove = useCallback(
-    async (index: number) => {
-      if (!onSave) return;
-      const updated = subAgents
-        .filter((_, i) => i !== index)
-        .map((sa) => ({
-          name: sa.name,
-          description: sa.description || undefined,
-          instructions: sa.instructions || undefined,
-          skillRefs: sa.skillRefs.length > 0
-            ? sa.skillRefs.map((r) => ({ org: r.org || "", slug: r.slug }))
-            : undefined,
-          modelOverride: sa.modelOverride || undefined,
-          tools: sa.tools.length > 0 ? [...sa.tools] : undefined,
-          disallowedTools: sa.disallowedTools.length > 0 ? [...sa.disallowedTools] : undefined,
-        }));
-      await onSave(updated);
-    },
-    [subAgents, onSave],
-  );
-
-  const handleAdd = useCallback(async () => {
-    if (!onSave || !addDraft.name.trim()) return;
-    const existing = subAgents.map((sa) => ({
-      name: sa.name,
-      description: sa.description || undefined,
-      instructions: sa.instructions || undefined,
-      skillRefs: sa.skillRefs.length > 0
-        ? sa.skillRefs.map((r) => ({ org: r.org || "", slug: r.slug }))
-        : undefined,
-      modelOverride: sa.modelOverride || undefined,
-      tools: sa.tools.length > 0 ? [...sa.tools] : undefined,
-      disallowedTools: sa.disallowedTools.length > 0 ? [...sa.disallowedTools] : undefined,
-    }));
-    const newSub = {
-      name: addDraft.name.trim(),
-      description: addDraft.description.trim() || undefined,
-      instructions: addDraft.instructions.trim() || undefined,
-    };
-    const ok = await onSave([...existing, newSub]);
-    if (ok) {
-      setAddDraft({ name: "", description: "", instructions: "" });
-      setShowAddForm(false);
-    }
-  }, [subAgents, addDraft, onSave]);
-
-  return (
-    <Section title="Sub-Agents" count={subAgents.length} onEdit={editable ? () => setIsEditing((v) => !v) : undefined}>
-      <div className="stg:flex stg:flex-col">
-        {subAgents.length > 0 ? (
-          <div className="stg:flex stg:flex-col stg:divide-y stg:divide-border">
-            {subAgents.map((sa, index) => {
-              const isOpen = expanded.has(index);
-
-              return (
-                <div key={sa.name || index}>
-                  <div className="stg:flex stg:items-start stg:gap-3 stg:px-3 stg:py-2.5">
-                    <button
-                      type="button"
-                      onClick={() => toggle(index)}
-                      aria-expanded={isOpen}
-                      className={cn(
-                        "stg:flex stg:flex-1 stg:items-start stg:gap-3 stg:text-left",
-                        "stg:focus-visible:outline-none",
-                      )}
-                    >
-                      <ChevronRightIcon
-                        className={cn(
-                          "stg:mt-0.5 stg:size-4 stg:shrink-0 stg:text-muted-foreground stg:transition-transform",
-                          isOpen && "stg:rotate-90",
-                        )}
-                      />
-                      <div className="stg:min-w-0 stg:flex-1">
-                        <span className="stg:text-sm stg:font-medium stg:text-foreground">
-                          {sa.name}
-                        </span>
-                        {sa.description && (
-                          <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
-                            {sa.description}
-                          </p>
-                        )}
-                      </div>
-                    </button>
-                    {isEditing && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemove(index)}
-                        disabled={isSaving}
-                        aria-label={`Remove ${sa.name}`}
-                        className={cn(
-                          "stg:mt-0.5 stg:inline-flex stg:size-6 stg:items-center stg:justify-center stg:rounded-md stg:text-muted-foreground",
-                          "stg:hover:bg-destructive-subtle stg:hover:text-destructive",
-                          "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                        )}
-                      >
-                        <XRemoveIcon className="stg:size-3.5" />
-                      </button>
-                    )}
-                  </div>
-
-                  {isOpen && (
-                    <SubAgentDetails subAgent={sa} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="stg:px-3 stg:py-3 stg:text-xs stg:text-muted-foreground stg:italic">
-            No sub-agents configured
-          </p>
-        )}
-
-        {editable && isEditing && !showAddForm && (
-          <div className="stg:border-t stg:border-border stg:px-3 stg:py-2">
-            <button
-              type="button"
-              onClick={() => setShowAddForm(true)}
-              className={cn(
-                "stg:inline-flex stg:items-center stg:gap-1 stg:rounded-md stg:px-2.5 stg:py-1.5 stg:text-xs stg:font-medium",
-                "stg:border stg:border-dashed stg:border-border stg:text-muted-foreground",
-                "stg:hover:border-muted-foreground stg:hover:text-foreground stg:hover:bg-muted-subtle",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                "stg:transition-colors",
-              )}
-            >
-              <PlusAddIcon className="stg:size-3" />
-              Add sub-agent
-            </button>
-          </div>
-        )}
-
-        {error && (
-          <p className="stg:border-t stg:border-border stg:px-3 stg:py-2 stg:text-xs stg:text-destructive" role="alert">
-            {error}
-          </p>
-        )}
-
-        {editable && showAddForm && (
-          <div className="stg:border-t stg:border-border stg:p-3 stg:space-y-2">
-            <input
-              type="text"
-              value={addDraft.name}
-              onChange={(e) => setAddDraft((d) => ({ ...d, name: e.target.value }))}
-              placeholder="Sub-agent name (required)"
-              className={cn(
-                "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1.5 stg:text-sm stg:text-foreground",
-                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-              )}
-            />
-            <input
-              type="text"
-              value={addDraft.description}
-              onChange={(e) => setAddDraft((d) => ({ ...d, description: e.target.value }))}
-              placeholder="Description (optional)"
-              className={cn(
-                "stg:w-full stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1.5 stg:text-xs stg:text-foreground",
-                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-              )}
-            />
-            <textarea
-              value={addDraft.instructions}
-              onChange={(e) => setAddDraft((d) => ({ ...d, instructions: e.target.value }))}
-              placeholder="Instructions (optional)"
-              rows={2}
-              className={cn(
-                "stg:w-full stg:resize-y stg:rounded-md stg:border stg:border-border stg:bg-input-bg stg:px-2 stg:py-1.5 stg:font-mono stg:text-xs stg:text-foreground",
-                "stg:focus:outline-none stg:focus:ring-2 stg:focus:ring-ring",
-              )}
-            />
-            <div className="stg:flex stg:items-center stg:justify-end stg:gap-1.5">
-              <button
-                type="button"
-                onClick={() => { setShowAddForm(false); setAddDraft({ name: "", description: "", instructions: "" }); }}
-                className={cn(
-                  "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-                  "stg:border stg:border-border stg:bg-background stg:text-foreground stg:hover:bg-accent",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                )}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleAdd}
-                disabled={!addDraft.name.trim() || isSaving}
-                className={cn(
-                  "stg:rounded-md stg:px-2.5 stg:py-1 stg:text-xs stg:font-medium",
-                  "stg:bg-primary stg:text-primary-foreground stg:hover:bg-primary-hover",
-                  "stg:disabled:opacity-50",
-                  "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring",
-                )}
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </Section>
-  );
-}
-
-function SubAgentDetails({
-  subAgent: sa,
-}: {
-  readonly subAgent: SubAgent;
-}) {
-  const slugForOrg = useOrgSlugForId();
-  return (
-    <div className="stg:mb-1 stg:ml-7 stg:space-y-3 stg:border-l stg:border-border stg:pl-4 stg:pt-1">
-      {sa.instructions && (
-        <div>
-          <h4 className="stg:mb-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
-            Instructions
-          </h4>
-          <pre className="stg:whitespace-pre-wrap stg:break-words stg:rounded-md stg:bg-muted-subtle stg:p-2 stg:font-mono stg:text-xs stg:text-foreground">
-            {sa.instructions}
-          </pre>
-        </div>
-      )}
-
-      <AgentToolLists
-        tools={sa.tools}
-        disallowedTools={sa.disallowedTools}
-        density="compact"
-      />
-
-      {sa.skillRefs.length > 0 && (
-        <div>
-          <h4 className="stg:mb-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
-            Skills
-          </h4>
-          <div className="stg:space-y-1">
-            {sa.skillRefs.map((ref) => (
-              <div
-                key={ref.slug}
-                className="stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-foreground"
-              >
-                <SkillIcon className="stg:size-3 stg:shrink-0 stg:text-muted-foreground" />
-                <span>
-                  {ref.org ? `${slugForOrg(ref.org)}/${ref.slug}` : ref.slug}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {sa.modelOverride && (
-        <div>
-          <h4 className="stg:mb-1 stg:text-xs stg:font-medium stg:text-muted-foreground">
-            Model Override
-          </h4>
-          <span className="stg:rounded stg:bg-muted stg:px-1.5 stg:py-0.5 stg:font-mono stg:text-xs stg:text-foreground">
-            {sa.modelOverride}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function EnvContent({
   data,
 }: {
@@ -1332,35 +1055,3 @@ function SkillIcon({ className }: { readonly className?: string }) {
   );
 }
 
-function ChevronRightIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="m6 3 5 5-5 5" />
-    </svg>
-  );
-}
-
-function XRemoveIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m4 4 8 8M12 4l-8 8" />
-    </svg>
-  );
-}
-
-function PlusAddIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M8 3v10M3 8h10" />
-    </svg>
-  );
-}

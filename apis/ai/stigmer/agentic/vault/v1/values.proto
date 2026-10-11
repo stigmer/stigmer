@@ -68,6 +68,10 @@ message ExecutionValues {
 
   // Each plugin's keys, for that plugin's hooks only.
   repeated PluginValues plugins = 4;
+
+  // Each subagent's own keys, for its shell and its own hooks: what
+  // agent holds for the agent, for a saved agent the turn's agent lists.
+  repeated SubagentValues subagents = 5;
 }
 
 // ToolValues are the values of one tool (an MCP server in a plugin) of the
@@ -97,6 +101,15 @@ message ToolValues {
 message PluginValues {
   // The plugin.
   string plugin_id = 1;
+
+  // Its keys and their values.
+  map<string, string> values = 2;
+}
+
+// SubagentValues are the keys one subagent of the execution declared.
+message SubagentValues {
+  // The subagent's name in the turn: the listed agent's slug.
+  string name = 1;
 
   // Its keys and their values.
   map<string, string> values = 2;

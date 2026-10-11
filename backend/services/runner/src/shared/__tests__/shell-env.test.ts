@@ -77,6 +77,7 @@ describe("shellRunValues", () => {
       [toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "mcp-only-token", LINEAR_OAUTH_TOKEN: "oauth-access-token" } }],
     ]),
     plugins: new Map([["plg_linear", { HOOK_ONLY_KEY: "plugin-hook-value" }]]),
+    subagents: new Map([["release-notes", { SUBAGENT_KEY: "subagent-secret" }]]),
     repositories: [{ name: "app", url: "https://github.com/acme/app", token: "ghp-run" }],
   };
 
@@ -94,6 +95,10 @@ describe("shellRunValues", () => {
 
   it("never holds a plugin's hook values: they are that plugin's hooks' alone", () => {
     expect(shellRunValues(RUN_VALUES)).not.toHaveProperty("HOOK_ONLY_KEY");
+  });
+
+  it("never holds a subagent's own values: they are that subagent's shell's alone", () => {
+    expect(shellRunValues(RUN_VALUES)).not.toHaveProperty("SUBAGENT_KEY");
   });
 
   it("never holds a repository's token: an agent whose shell runs gh saves a GITHUB_TOKEN secret", () => {

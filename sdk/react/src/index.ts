@@ -2052,7 +2052,7 @@ export type {
   CreationPath,
 } from "./resource-creation/index.js";
 
-// Dependency Graph — visual tree of agent dependencies (plugins, skills, sub-agents)
+// Dependency Graph — visual tree of agent dependencies (plugins, skills, subagents)
 export {
   DependencyGraph,
   useDependencyGraph,

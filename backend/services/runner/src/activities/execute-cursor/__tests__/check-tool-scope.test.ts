@@ -3,7 +3,9 @@
  * (`turn-setup.ts` `checkToolScope`) and how the turn classifies them: each
  * is a typed refusal the adapter settles on the `actionable` surface with its
  * own sentence (`turn.ts`), never the internal-error copy, for the agent's
- * lists and a turn's over them alike. Also the read root an excluded `Read`
+ * lists and a turn's over them alike, a plugin subagent's own lists, and a
+ * saved subagent that brings its own plugins, hooks or tool lists (one
+ * sentence, naming it). Also the read root an excluded `Read`
  * is confined to (`platformReadRoot`) and the root a hidden skill's read is
  * refused under (`platformRealRoot`). The hermetic
  * tool-lists test pins the settled status for the two refusals a local
@@ -12,11 +14,9 @@
  */
 
 import { describe, expect, it, onTestFinished } from "vitest";
-import { create } from "@bufbuild/protobuf";
-import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { TurnInput } from "../../../harness/types.js";
+import type { TurnInput, TurnSubagent } from "../../../harness/types.js";
 import { ToolListResolutionError, ToolScope, type ToolLists } from "../../../shared/tool-lists.js";
-import { CursorToolListRefusal, checkToolScope, platformReadRoot, platformRealRoot } from "../turn-setup.js";
+import { CursorToolListRefusal, checkToolScope, platformReadRoot, platformRealRoot, subagentBringsOwnMessage } from "../turn-setup.js";
 import { mkdtempSync, mkdirSync, realpathSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -27,19 +27,44 @@ interface ServerFacts {
   readonly listedTools: readonly string[] | null;
 }
 
-/** The four fields `checkToolScope` reads, as a turn input. */
+/** A saved subagent's context bringing what `own` says. */
+function saved(name: string, own: TurnSubagent["bringsOwn"]): TurnSubagent {
+  return {
+    name,
+    description: `${name} agent`,
+    instructions: `You are ${name}.`,
+    model: undefined,
+    toolScope: ToolScope.unrestricted(),
+    servers: [],
+    skills: [],
+    hooks: [],
+    values: {},
+    bringsOwn: own,
+  };
+}
+
+const BRINGS_NOTHING = { plugins: false, hooks: false, lists: false } as const;
+
+/** The fields `checkToolScope` reads, as a turn input: plugin subagents `sub-<i>` with these lists, and saved subagents. */
 function input(
   lists: ToolLists,
   subAgentLists: ToolLists[] = [],
   servers: readonly ServerFacts[] = [],
   platformServerSlugs: readonly string[] = [],
+  subagents: TurnSubagent[] = [],
 ): TurnInput {
-  const subAgents = subAgentLists.map((l, i) =>
-    create(SubAgentSchema, { name: `sub-${i}`, tools: [...l.tools], disallowedTools: [...l.disallowedTools] }),
-  );
+  const pluginAgents = subAgentLists.map((l, i) => ({
+    name: `sub-${i}`,
+    description: "",
+    instructions: "",
+    tools: [...l.tools],
+    disallowedTools: [...l.disallowedTools],
+    model: "",
+  }));
   return {
     executionId: "aex-1",
-    blueprint: { subAgents },
+    blueprint: { pluginAgents },
+    subagents,
     mcp: {
       toolScope: ToolScope.of('Agent "a"', lists),
       servers: servers.map(({ slug }) => ({ slug })),
@@ -62,6 +87,43 @@ describe("checkToolScope", () => {
     const run = () => checkToolScope(input({ tools: ["Read"], disallowedTools: [] }), { agentMode: "cloud" });
     expect(run).toThrow(CursorToolListRefusal);
     expect(run).toThrow('Agent "a" has tool lists, which a cloud Cursor agent cannot enforce');
+  });
+
+  it.each([
+    ["its own plugins", { ...BRINGS_NOTHING, plugins: true }],
+    ["its own hooks", { ...BRINGS_NOTHING, hooks: true }],
+    ["its own tool lists", { ...BRINGS_NOTHING, lists: true }],
+  ])("refuses a saved subagent that brings %s, in one sentence naming it", (_label, own) => {
+    const run = () =>
+      checkToolScope(input({ tools: [], disallowedTools: [] }, [], [], [], [saved("plain", BRINGS_NOTHING), saved("release-notes", own)]), {
+        agentMode: "local",
+      });
+    expect(run).toThrow(CursorToolListRefusal);
+    expect(run).toThrow(
+      new CursorToolListRefusal(
+        "Subagent 'release-notes' brings its own plugins, hooks or tool lists, which the Cursor engine cannot keep to it: " +
+          "it cannot tell a subagent's tool call from the main agent's. Run this agent on the native engine, or remove them from 'release-notes'.",
+      ),
+    );
+    expect(subagentBringsOwnMessage("release-notes")).toBe(
+      "Subagent 'release-notes' brings its own plugins, hooks or tool lists, which the Cursor engine cannot keep to it: " +
+        "it cannot tell a subagent's tool call from the main agent's. Run this agent on the native engine, or remove them from 'release-notes'.",
+    );
+  });
+
+  it("passes a saved subagent that brings only its instructions, model and skills", () => {
+    expect(() =>
+      checkToolScope(input({ tools: [], disallowedTools: [] }, [], [], [], [saved("plain", BRINGS_NOTHING)]), { agentMode: "local" }),
+    ).not.toThrow();
+  });
+
+  it("does not refuse over a saved subagent the agent's Agent(type, …) keeps from starting: the type list is the refusal", () => {
+    const run = () =>
+      checkToolScope(input({ tools: ["Read", "Agent(explore)"], disallowedTools: [] }, [], [], [], [saved("release-notes", { ...BRINGS_NOTHING, hooks: true })]), {
+        agentMode: "local",
+      });
+    expect(run).toThrow("lists Agent(explore), which the Cursor engine cannot enforce");
+    expect(run).not.toThrow("release-notes");
   });
 
   it("refuses a sub-agent with lists of its own on a local agent", () => {

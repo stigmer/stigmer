@@ -36,13 +36,17 @@ Run through this list before applying an Agent YAML with `stigmer apply -f`.
 
 - [ ] `tools` and `disallowed_tools` entries use Claude Code's names: `Read`, `Grep`, `Bash(git push *)`, `Agent(explore)`, `mcp__plugin_<plugin>_<server>`, `mcp__plugin_<plugin>_<server>__<tool>`, `mcp__*`. The shape is checked at apply; a malformed entry is rejected
 - [ ] Each `mcp__plugin_<plugin>_<server>` names a plugin from `plugins` and a server from its `status.mcp_servers`, and each tool part an exact, case-sensitive name the server lists (`stigmer connect plugin <plugin>`). Names are resolved only at run time: a misspelled entry is ignored there, and a `tools` list in which nothing resolves refuses the run
-- [ ] A `tools` list names everything the agent needs, `Agent` included when it delegates to sub-agents: "only these" is exact
+- [ ] A `tools` list names everything the agent needs, `Agent` included when it hands work to subagents: "only these" is exact
 
-### Sub-Agents
+### Subagents
 
-- [ ] Sub-agent names are unique within `sub_agents`
-- [ ] Sub-agent `instructions` are at least 10 characters
-- [ ] Sub-agent `tools` name only tools the parent keeps: a sub-agent narrows the parent's tools and never widens them
+- [ ] Every `subagents` entry uses `kind: agent` and names a saved agent that exists before this agent is saved: apply the listed agents first
+- [ ] Each agent is listed once, at most 20, and not this agent itself
+- [ ] No listed agent has `subagents` of its own: a subagent cannot hand work on
+- [ ] You can run every agent you list, and none is more private than this agent
+- [ ] Each listed agent carries what its work needs — its own plugins, tool lists, skills and `env` — since it gets none of this agent's
+- [ ] No `sub_agents` block remains: apply refuses it; write each one as an Agent of its own and list it
+- [ ] On the Cursor engine, a listed agent brings no plugins, hooks or tool lists of its own, or the turn is refused
 
 ### YAML Syntax
 
@@ -104,24 +108,45 @@ instructions: "Helper"
 instructions: "You are a helpful assistant that answers questions clearly."
 ```
 
-### Sub-agent tools exceeding parent's tools
+### Expecting a subagent to borrow the parent's tools
 
-A sub-agent starts from the parent's resolved tools. Naming a tool the parent excluded does not give it back.
+A saved subagent runs with its own plugins and tool lists, never the parent's. A subagent that names a plugin's tool without listing the plugin finds no such tool.
 
 ```yaml
-# Wrong — the parent cannot delete repositories, so neither can the reviewer
-disallowed_tools: [mcp__plugin_github_github__delete_repository]
-sub_agents:
-  - name: reviewer
-    instructions: "Review pull requests for correctness."
-    tools: [Read, mcp__plugin_github_github__delete_repository]
+# Wrong — the reviewer lists no plugin, so it has no GitHub tools
+kind: Agent
+metadata:
+  name: reviewer
+spec:
+  instructions: "Review pull requests for correctness."
+  tools: [Read, mcp__plugin_github_github__search_code]
 
-# Correct — narrow the parent's tools
-disallowed_tools: [mcp__plugin_github_github__delete_repository]
+# Correct — the reviewer lists the plugin its tools come from
+kind: Agent
+metadata:
+  name: reviewer
+spec:
+  instructions: "Review pull requests for correctness."
+  plugins:
+    - kind: plugin
+      slug: github
+  tools: [Read, mcp__plugin_github_github__search_code]
+```
+
+### Writing sub-agents inside an agent
+
+The `sub_agents` field is gone, and apply refuses a manifest that uses it. Save each one as an Agent and list it.
+
+```yaml
+# Wrong — refused at apply
 sub_agents:
   - name: reviewer
     instructions: "Review pull requests for correctness."
-    tools: [Read, mcp__plugin_github_github__search_code]
+
+# Correct — reviewer is an Agent of its own, saved first
+subagents:
+  - kind: agent
+    slug: reviewer
 ```
 
 ### Listing a plugin twice

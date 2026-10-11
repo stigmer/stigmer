@@ -542,7 +542,7 @@ Fetches the agent via [`useAgent`](#useagent) internally and renders its
 full configuration inside a [`ResourceDetailShell`](/docs/sdk/react/resource-detail#resourcedetailshell): a
 standardized header with action bar, followed by structured content
 sections (instructions, plugins, tool lists, hooks, skills,
-sub-agents, and environment variables). Sections with no data are
+subagents, and environment variables). Sections with no data are
 omitted entirely — reducing visual noise per Nielsen heuristic #8.
 
 The action bar transforms this from a read-only view into an
@@ -564,6 +564,7 @@ All visual properties flow through `--stgm-*` design tokens.
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "Default active tab ID when in uncontrolled mode." },
     editable: { type: "boolean", description: "When `true`, fields on the detail view become click-to-edit. Each field saves independently via `stigmer.agent.update()`." },
+    onAgentClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when an agent this agent lists as a subagent is selected, in its Subagents section or its dependency graph. The host owns the route to that agent's page; without it the rows are not links." },
     onPluginClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when a plugin is selected: one the agent lists in its Plugins section or its dependency graph, or the one named in the \"installed by a plugin\" notice. The host owns the route to the plugin's page. The notice shows when this resource carries a live plugin's label, and `editable` is then narrowed to `false`: the server refuses a client edit of a plugin's resource, so no edit form is offered." },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the agent resource has been fetched successfully. Provides the resource display name for use cases like breadcrumbs, document titles, or analytics — without requiring the consumer to also call useAgent.  Not called on error or not-found states." },
     onResourceUpdated: { type: "(agent: Agent) => void", description: "Called after a successful inline field save with the updated agent. Consumers can use this to refresh breadcrumbs, sync URL state, etc." },
@@ -660,6 +661,7 @@ All visual properties flow through `--stgm-*` tokens.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     disabled: { type: "boolean", description: "Prevents interaction with the picker when `true`." },
+    exclude: { type: "readonly ResourceRef[]", description: "Agents never offered, compared by organization identity: an agent's page listing subagents leaves out the agent itself and those it already lists." },
     onChange: { type: "(ref: ResourceRef | null) => void", description: "Called when the selection changes. Pass null to deselect.", required: true },
     onDisplayNameResolved: { type: "(key: string, name: string) => void", description: "Called with the display name when an agent is selected (for chip rendering)." },
     org: { type: "string", description: "Organization whose agents the picker searches.", required: true },

@@ -9,9 +9,9 @@
  *  - an `Agent(type, …)` type list fails the turn before any agent is created,
  *    naming the entry: Cursor's own sub-agent types start through a `task`
  *    call no hook sees, so the list could not bind; bare `Agent` runs;
- *  - a sub-agent carrying lists of its own fails the turn before any agent is
- *    created, naming the sub-agent: the hook cannot tell a sub-agent's call
- *    from the main agent's, so its lists could not bind;
+ *  - a saved subagent carrying lists of its own fails the turn before any
+ *    agent is created, in one sentence naming it: the hook cannot tell a
+ *    subagent's call from the main agent's, so its lists could not bind;
  *  - a `tools` list naming nothing the turn has fails the turn the same way;
  *    both refusals settle as the native engine settles them: RUN_FAILED
  *    on the actionable surface, the refusal's own sentence as `status.error`
@@ -39,8 +39,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { create } from "@bufbuild/protobuf";
-import { SubAgentSchema, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 
 vi.mock("@cursor/sdk", async () =>
   (await import("../../__test-utils__/scripted-sdk.js")).scriptedCursorSdkModule(),
@@ -75,7 +74,9 @@ import {
   sessionWorkspaceDir,
   type CursorRecordOptions,
 } from "../../__test-utils__/hermetic-cursor.js";
+import { savedAgentFixture } from "../../../../__test-utils__/execution-record-fixture.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { subagentBringsOwnMessage } from "../../turn-setup.js";
 import { getPlatformDir } from "../../../../shared/workspace/platform-dir.js";
 
 const USER_MESSAGE = "Summarise the README.";
@@ -109,9 +110,9 @@ function systemRows(status: { messages: { type: MessageType; content: string }[]
   return status.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content);
 }
 
-function subAgent(name: string, lists: { tools?: string[]; disallowedTools?: string[] } = {}): SubAgent {
-  return create(SubAgentSchema, {
-    name,
+/** A saved agent the record's agent lists as a subagent, with these lists of its own. */
+function subAgent(name: string, lists: { tools?: string[]; disallowedTools?: string[] } = {}): Agent {
+  return savedAgentFixture(name, {
     description: `${name} sub-agent`,
     instructions: "Do the delegated thing thoroughly.",
     tools: lists.tools ?? [],
@@ -185,7 +186,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
   it("refuses an Agent(type, …) type list, naming the entry, before any agent exists", async () => {
     const neverUsed = new ScriptedCursorAgent({ agentId: "agent-lists-never-types", turns: [] });
     const { scenario, phase, final } = await run(
-      { message: USER_MESSAGE, tools: ["Read", "Agent(explore)"], subAgents: [subAgent("researcher")] },
+      { message: USER_MESSAGE, tools: ["Read", "Agent(explore)"], subagents: [subAgent("researcher")] },
       neverUsed,
     );
     expect(phase).toBe("RUN_FAILED");
@@ -196,25 +197,29 @@ describe("ExecuteCursor hermetic — tool lists", () => {
 
   it("runs an agent that lists bare Agent, registering its sub-agents and keeping task", async () => {
     const { scenario, phase } = await run(
-      { message: USER_MESSAGE, tools: ["Read", "Agent"], subAgents: [subAgent("researcher"), subAgent("writer")] },
+      { message: USER_MESSAGE, tools: ["Read", "Agent"], subagents: [subAgent("researcher"), subAgent("writer")] },
       answeringAgent("agent-lists-types", "run-lists-types", clock),
     );
     expect(phase).toBe("RUN_COMPLETED");
     const options = scenario.sdk.resolutions[0].options!;
     expect(Object.keys(options.agents ?? {}).sort()).toEqual(["researcher", "writer"]);
+    expect(options.agents!.researcher, "a saved subagent registers with its own instructions, on the turn's model").toEqual({
+      description: "researcher sub-agent",
+      prompt: "Do the delegated thing thoroughly.",
+      model: "inherit",
+    });
     expect(options.tools).toContain("task");
   });
 
   it("refuses the turn when a sub-agent carries its own lists, naming it, before any agent exists", async () => {
     const neverUsed = new ScriptedCursorAgent({ agentId: "agent-lists-never-1", turns: [] });
     const { scenario, phase, final } = await run(
-      { message: USER_MESSAGE, subAgents: [subAgent("helper", { tools: ["Read"] }), subAgent("plain")] },
+      { message: USER_MESSAGE, subagents: [subAgent("helper", { tools: ["Read"] }), subAgent("plain")] },
       neverUsed,
     );
     expect(phase).toBe("RUN_FAILED");
-    expect(final.error.startsWith('Sub-agent "helper" carries its own tool lists'), "the refusal's own sentence, unprefixed").toBe(true);
-    expect(final.error).toContain("native engine");
-    expect(final.error).not.toContain('"plain"');
+    expect(final.error, "the refusal's own sentence, unprefixed").toBe(subagentBringsOwnMessage("helper"));
+    expect(final.error).not.toContain("plain");
     expect(systemRows(final)).toEqual([`Execution failed: ${final.error}`]);
     expect(scenario.sdk.resolutions, "the SDK was never reached").toHaveLength(0);
   });
@@ -259,7 +264,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
       ],
     });
     const lists = { tools: ["Read", "Agent"], disallowedTools: [] };
-    const { phase, final } = await run({ message: USER_MESSAGE, ...lists, subAgents: [subAgent("helper")] }, agent);
+    const { phase, final } = await run({ message: USER_MESSAGE, ...lists, subagents: [subAgent("helper")] }, agent);
 
     expect(hookDecisions, "the real hook refused both").toEqual(["deny", "deny"]);
     expect(phase, "a refused call never fails the turn").toBe("RUN_COMPLETED");

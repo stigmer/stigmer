@@ -9,6 +9,11 @@
 // and MCP servers), which composes the Agent->Plugin reference rule
 // exercised by ValidateReferencesStep.
 //
+// A subagent is a saved agent the parent lists in `subagents` by
+// reference. `createSubagents` saves each one first, so the parent's save
+// can pin it: a reference sent without a version pins the subagent's
+// current version, and the turn names it by its slug (`subagent_type`).
+//
 // A conversation names its agent by reference (`AgentRefInit`, projected by
 // `makeAgentRef` into an ApiResourceReference of kind agent): a Session's
 // spec.agent_ref, or a turn's new-conversation session_spec.agent_ref. The
@@ -25,6 +30,8 @@ import type { InitShape } from "./init-shape";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema, type HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { ConformanceClients } from "../harness/clients";
+import type { FixtureTracker } from "../harness/fixtures";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { type EnvVarDeclarationInit, makeEnvDeclarations } from "./vaults";
@@ -39,23 +46,16 @@ export const AGENT_KIND = "Agent";
 // copy. Changing it moves the goldens and the benchmark's baseline together.
 export const BARE_AGENT_INSTRUCTIONS = "Answer in one short sentence.";
 
-// A sub-agent the root agent may delegate to through the built-in `task` tool
-// (spec.sub_agents). Mirrors the proto SubAgent's three authored fields; the
-// name is what a tool_use turn names as `subagent_type`.
-export interface SubAgentOption {
-  name: string;
-  description?: string;
-  // Sub-agent system prompt; the proto's min_len=10 floor applies.
-  instructions: string;
-}
-
 export interface AgentSpecOptions {
   // Human-readable description; defaults to a stable placeholder.
   description?: string;
   // System prompt; defaults to a value comfortably above the min_len=10 floor.
   instructions?: string;
-  // Sub-agents projected into spec.sub_agents (the delegation arms).
-  subAgents?: SubAgentOption[];
+  // Saved agents the agent lists as its subagents (spec.subagents), by
+  // slug, each with kind=agent and no version, so the save pins each one's
+  // current version. Org is left empty so the server normalizes it to the
+  // agent's org; an arm that pins a version writes the reference inline.
+  subagents?: string[];
   // Plugin slugs the agent uses (spec.plugins), each with kind=plugin (the
   // CEL constraint the agent spec enforces). Org is left empty so the server
   // normalizes it to the agent's org; an arm that names another
@@ -95,14 +95,8 @@ export function makeAgentSpec(opts: AgentSpecOptions = {}): InitShape<typeof Age
     ...(opts.skillRefs !== undefined
       ? { skillRefs: opts.skillRefs.map((slug) => ({ slug, kind: ApiResourceKind.skill })) }
       : {}),
-    ...(opts.subAgents !== undefined
-      ? {
-          subAgents: opts.subAgents.map((sub) => ({
-            name: sub.name,
-            description: sub.description ?? `${sub.name} sub-agent`,
-            instructions: sub.instructions,
-          })),
-        }
+    ...(opts.subagents !== undefined
+      ? { subagents: opts.subagents.map((slug) => ({ slug, kind: ApiResourceKind.agent })) }
       : {}),
     ...(opts.env !== undefined ? { env: makeEnvDeclarations(opts.env) } : {}),
     ...(opts.tools !== undefined ? { tools: opts.tools } : {}),
@@ -160,4 +154,40 @@ export function makeAgentRef(ref: AgentRefInit): InitShape<typeof ApiResourceRef
     slug: ref.slug,
     ...(ref.version !== undefined ? { version: ref.version } : {}),
   };
+}
+
+// One saved agent an arm lists as a subagent: its name (its slug, and so its
+// name in the turn, derives from it) and the spec it runs with.
+export interface SubagentOption extends Omit<AgentSpecOptions, "subagents"> {
+  name: string;
+}
+
+// Saves each subagent in `org`, in order, deferring its delete on the
+// caller's tracker. Create the parent after this call: the tracker runs in
+// reverse, so the parent is deleted first and the delete guard never holds
+// a subagent. Answers the saved agents, whose slugs the parent lists.
+export async function createSubagents(
+  clients: Pick<ConformanceClients, "agentCommand">,
+  fixtures: FixtureTracker,
+  org: string,
+  subagents: readonly SubagentOption[],
+): Promise<Agent[]> {
+  const saved: Agent[] = [];
+  for (const sub of subagents) {
+    const agent = await clients.agentCommand.create(makeAgent({ org, ...sub }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    saved.push(agent);
+  }
+  return saved;
+}
+
+// The slugs a parent lists in `subagents` for agents the server returned.
+export function subagentSlugsOf(agents: readonly Agent[]): string[] {
+  return agents.map((agent) => {
+    const slug = agent.metadata?.slug ?? "";
+    if (slug === "") {
+      throw new Error("subagentSlugsOf needs agents the server returned (slug set)");
+    }
+    return slug;
+  });
 }

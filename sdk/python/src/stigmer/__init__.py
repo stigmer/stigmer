@@ -34,7 +34,6 @@ from ._gen._agent import (
     AgentClient,
     AgentInput,
     RunConfigInput,
-    SubAgentInput,
 )
 from ._gen._apikey import ApiKeyClient, ApiKeyInput
 from ._gen._iampolicy import ApiResourceRefInput, IamPolicyClient, IamPolicyInput
@@ -154,7 +153,6 @@ __all__ = [
     "RunConfigInput",
     "SessionInput",
     "SkillInput",
-    "SubAgentInput",
     "VaultConnectionInput",
     "VaultConnectionSignInInput",
     "VaultInput",

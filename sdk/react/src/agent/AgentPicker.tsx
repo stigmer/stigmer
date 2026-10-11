@@ -28,6 +28,12 @@ export interface AgentPickerProps {
   readonly onChange: (ref: ResourceRef | null) => void;
   /** Called with the display name when an agent is selected (for chip rendering). */
   readonly onDisplayNameResolved?: (key: string, name: string) => void;
+  /**
+   * Agents never offered, compared by organization identity: an agent's
+   * page listing subagents leaves out the agent itself and those it
+   * already lists.
+   */
+  readonly exclude?: readonly ResourceRef[];
   /** Prevents interaction with the picker when `true`. */
   readonly disabled?: boolean;
   /** Additional CSS class names for the root container. */
@@ -74,6 +80,7 @@ export function AgentPicker({
   value,
   onChange,
   onDisplayNameResolved,
+  exclude,
   disabled,
   className,
 }: AgentPickerProps) {
@@ -91,12 +98,19 @@ export function AgentPicker({
     [value, orgIdFor],
   );
 
+  const hiddenKeys = useMemo(() => {
+    const keys = new Set<string>();
+    if (selectedKey) keys.add(selectedKey);
+    for (const ref of exclude ?? []) keys.add(refKey({ ...ref, org: orgIdFor(ref.org) }));
+    return keys;
+  }, [selectedKey, exclude, orgIdFor]);
+
   const availableResults = useMemo(
     () =>
-      selectedKey
-        ? results.filter((r) => `${orgIdFor(r.org)}/${r.slug}` !== selectedKey)
+      hiddenKeys.size > 0
+        ? results.filter((r) => !hiddenKeys.has(`${orgIdFor(r.org)}/${r.slug}`))
         : results,
-    [results, selectedKey, orgIdFor],
+    [results, hiddenKeys, orgIdFor],
   );
 
   useEffect(() => {

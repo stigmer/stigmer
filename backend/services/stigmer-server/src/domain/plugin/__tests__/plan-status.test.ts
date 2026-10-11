@@ -6,10 +6,12 @@
  * and never a declared variable nothing reads); the agents' tool lists
  * checked entry by entry, an unstorable entry dropped with a warning and
  * an agent whose `tools` list loses every entry left out (an empty list
- * would widen it to every tool); a model hint and a settings main agent
- * recorded as warnings and not applied; an agent's skills kept only when
- * the plugin carries them; a version that cannot be a tag; an ignored
- * component; and the refusal of a server whose tool segment
+ * would widen it to every tool); the model an agent's file names kept as
+ * written (a bare alias warned about, a model id, `inherit` and an
+ * unclassified value not: the library speaks for the last); a settings
+ * main agent recorded as a warning and not applied; an agent's skills
+ * kept only when the plugin carries them; a version that cannot be a
+ * tag; an ignored component; and the refusal of a server whose tool segment
  * `plugin_<plugin>_<server>` would hold `__` or end in `_`, while a name
  * holding a single `_` installs; and the eval suite the archive's files
  * carry, as `evals` (absent when they carry none), which raises no
@@ -334,21 +336,39 @@ describe("planPluginStatus — the agents' judgements", () => {
     expect(plan.warnings).toEqual([]);
   });
 
-  it("records a model hint as a warning and does not apply it; inherit and an unknown alias add none", () => {
+  it("keeps the model an agent's file names as written, and warns only for a bare alias", () => {
     const plan = planOf(
       pkg({
         subAgents: [
           agent({ name: "a", modelHint: { raw: "sonnet", alias: "sonnet" } }),
           agent({ name: "b", modelHint: { raw: "inherit", alias: "inherit" } }),
-          agent({ name: "c", modelHint: { raw: "gpt-9", alias: "unknown" } }),
+          agent({ name: "c", modelHint: { raw: " claude-sonnet-4-5 ", alias: "sonnet" } }),
+          agent({ name: "f", modelHint: { raw: "grok-4.6", alias: "unknown" } }),
+          agent({ name: "d" }),
+          agent({ name: "e", modelHint: { raw: "Fast", alias: "fast" } }),
         ],
       }),
     );
-    expect(plan.agents.map((a) => a.name)).toEqual(["a", "b", "c"]);
-    expect(plan.warnings.map((w) => w.kind)).toEqual([
-      SERVER_WARNING_KINDS.modelHintUnresolved,
+    expect(plan.agents.map((a) => [a.name, a.model])).toEqual([
+      ["a", "sonnet"],
+      ["b", "inherit"],
+      // A full model id is stored trimmed: a turn runs it where the engine lists it.
+      ["c", "claude-sonnet-4-5"],
+      ["f", "grok-4.6"],
+      ["d", ""],
+      ["e", "Fast"],
     ]);
-    expect(plan.warnings[0]?.message).toContain("names model 'sonnet'");
+    // A full id, inherit, no model and a value the library already warned
+    // about add no warning of the plan's own.
+    expect(plan.warnings.map((w) => [w.kind, w.path])).toEqual([
+      [SERVER_WARNING_KINDS.modelHintUnresolved, "agents/lead.md"],
+      [SERVER_WARNING_KINDS.modelHintUnresolved, "agents/lead.md"],
+    ]);
+    expect(plan.warnings[0]?.message).toBe(
+      "agent 'a' names model 'sonnet', an alias; Stigmer runs a plugin agent on the model its file names " +
+        "only when it is a model id the conversation's engine lists, so it runs on the conversation's model",
+    );
+    expect(plan.warnings[1]?.message).toContain("agent 'e' names model 'Fast', an alias");
   });
 
   it("keeps a settings main agent as an ordinary plugin agent, with a warning", () => {

@@ -22,12 +22,11 @@
  */
 import { posix } from "node:path";
 
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
@@ -72,6 +71,10 @@ import {
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import {
+  UNLISTED_PLUGIN,
+  newGuardUnlistedStep,
+} from "../../pipeline/steps/guard-unlisted.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import {
@@ -92,7 +95,6 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
-import { collectSpecReferences } from "../../pipeline/steps/references.js";
 import { newResolveArtifactSourceStep } from "../../pipeline/steps/resolve-artifact-source.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import {
@@ -111,7 +113,6 @@ import {
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
 } from "../../pipeline/steps/authorize-resolved-target.js";
-import { metadataOf } from "../../pipeline/steps/shapes.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type {
@@ -465,7 +466,7 @@ async function deletePlugin(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, PluginSchema))
-    .addStep(newGuardPluginUnlistedStep(deps.store))
+    .addStep(newGuardUnlistedStep<DeleteDesc>(deps.store, UNLISTED_PLUGIN))
     .addStep(newCascadeDeletePluginEvalsStep<DeleteDesc>(deps.pluginEvals))
     .addStep(
       newDeleteVersionArchivesStep(deps.store, deps.logger, {
@@ -489,54 +490,6 @@ async function deletePlugin(
     );
   }
   return deleted as Plugin;
-}
-
-/**
- * GuardPluginUnlisted — an agent of the plugin's organization that lists
- * the plugin blocks the uninstall, naming the agents: an agent whose next
- * turn is refused for a plugin that is gone is the worse outcome. The scan
- * covers the plugin's own organization (stigmer#1956).
- */
-function newGuardPluginUnlistedStep(store: Store): PipelineStep<DeleteDesc> {
-  return {
-    name: "GuardPluginUnlisted",
-    async execute(ctx: RequestContext<DeleteDesc>): Promise<void> {
-      const plugin = ctx.get(EXISTING_RESOURCE_KEY) as Plugin;
-      const org = plugin.metadata?.org ?? "";
-      const slug = plugin.metadata?.slug ?? "";
-      let rows: Uint8Array[];
-      try {
-        rows = await store.listResources(ApiResourceKind.agent);
-      } catch (error) {
-        throw internalError(
-          error,
-          "failed to list agents for the plugin reference check",
-        );
-      }
-      const referrers: string[] = [];
-      for (const raw of rows) {
-        const agent = fromBinary(AgentSchema, raw);
-        const metadata = metadataOf(agent);
-        if (metadata === undefined || metadata.org !== org) {
-          continue;
-        }
-        const lists = collectSpecReferences(AgentSchema, agent).some(
-          (ref) =>
-            ref.kind === ApiResourceKind.plugin &&
-            ref.slug === slug &&
-            (ref.org === "" || ref.org === org),
-        );
-        if (lists) {
-          referrers.push(`agent '${metadata.slug}'`);
-        }
-      }
-      if (referrers.length > 0) {
-        throw failedPreconditionError(
-          `plugin '${slug}' is still used by ${referrers.sort().join(", ")}; remove it from their plugins first`,
-        );
-      }
-    },
-  };
 }
 
 // ─── queries ─────────────────────────────────────────────────────────────

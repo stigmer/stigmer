@@ -1,8 +1,10 @@
 /**
- * SubAgent transformation and compilation.
+ * Subagent transformation and compilation.
  *
- * Transforms proto SubAgent definitions into CompiledSubAgent instances for
- * the deepagents JS runtime. Each compiled subagent is a runnable that builds
+ * Transforms the turn's subagents into CompiledSubAgent instances for the
+ * deepagents JS runtime: the saved agents the turn's agent lists, each from
+ * its own context (`TurnSubagent`), the plugins' agents
+ * (`PluginSubagent`), and the built-ins. Each compiled subagent is a runnable that builds
  * a fresh graph on a fresh middleware stack (loop detection, budget,
  * truncation, cost view) for every invocation, so concurrent invocations of
  * one sub-agent never share a conversation's state, and is gated for
@@ -10,12 +12,20 @@
  *
  * Design decisions:
  * - CompiledSubAgent format: full middleware control, no unwanted deepagents defaults
- * - Every declared sub-agent and the built-in general-purpose bind the parent's
- *   MCP tools (no reconnection overhead, stateless servers are the norm); what
- *   a sub-agent may see and call is its tool scope — the parent's, narrowed by
- *   the sub-agent's own `tools` / `disallowed_tools` and never widened —
- *   enforced inside its graph by the tool-scope middleware (`subagent-wiring.ts`)
- * - The main agent's `Agent(type, …)` entry limits which sub-agents compile;
+ * - A saved subagent runs its own definition: its own plugins' MCP tools (a
+ *   server the parent also has is the one connection), its own scope, model,
+ *   skills, shell values and hooks, the conversation's hooks running first
+ *   (its gate config is its own, built by turn-setup.ts). It gets none of the
+ *   parent's MCP tools and none of the platform's own servers.
+ * - A plugin subagent and the built-in general-purpose bind the parent's MCP
+ *   tools (no reconnection overhead, stateless servers are the norm); what one
+ *   may see and call is its tool scope — the parent's, narrowed by the plugin's
+ *   lists for it and never widened — enforced inside its graph by the
+ *   tool-scope middleware (`subagent-wiring.ts`)
+ * - One level: every subagent's scope denies `Agent`, so the tool-scope
+ *   middleware takes deepagents' `task` tool out of what its model sees and
+ *   refuses a call to it; no subagent hands work on
+ * - The main agent's `Agent(type, …)` entry limits which subagents compile;
  *   the built-in explore, shell and general-purpose count as types
  * - Prompt injection for skills: FilesystemBackend incompatible with native skills field
  * - Built-in explore/shell subagents use prompt-based tool restriction
@@ -37,7 +47,7 @@ import type { StructuredTool } from "@langchain/core/tools";
 import type { RunnableConfig } from "@langchain/core/runnables";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 
-import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
@@ -50,8 +60,10 @@ import type { CostAdvisoryMiddleware, StigmerMiddleware } from "../../middleware
 import { createWebFetchTool, type GuardPosture } from "../../tools/index.js";
 import { buildSubAgentMiddleware } from "./subagent-wiring.js";
 import { SubAgentGate } from "../../shared/subagent-gate.js";
-import { isModelRegistered } from "../../shared/model-registry.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
+import type { PluginSubagent } from "../../shared/blueprint-resolver.js";
+import type { TurnSubagent } from "../../harness/types.js";
+import { ONE_LEVEL_LAYER, pluginSubagentScope, subagentModel } from "../../shared/subagents.js";
 import { renderSkillsSection } from "./prompt-builder.js";
 import { ENGINE_TOOL } from "./engine-tools.js";
 
@@ -151,43 +163,52 @@ export interface TransformedSubagent {
   readonly systemPrompt: string;
   readonly tools: StructuredTool[];
   readonly model?: string;
-  /** What this sub-agent may see and call: the parent's scope, narrowed by its own lists. */
+  /** What this subagent may see and call (the module header). */
   readonly scope: ToolScope;
+  /** A saved subagent's own gate and shell; absent, the parent's. */
+  readonly own?: {
+    readonly approvalGate: ApprovalGateConfig | null;
+    readonly shellEnv: Record<string, string> | undefined;
+  };
+}
+
+/** What a saved subagent's graph is built from: its context, and what this engine made of it. */
+export interface SavedSubagentGraph {
+  readonly subagent: TurnSubagent;
+  /** The MCP tools of its own servers. */
+  readonly mcpTools: readonly StructuredTool[];
+  /** Its gate: the parent's posture with its own hook evaluator (turn-setup.ts). */
+  readonly approvalGate: ApprovalGateConfig | null;
+  /** Its shell's environment: its own values only; undefined in plan mode, as the parent's. */
+  readonly shellEnv: Record<string, string> | undefined;
 }
 
 /** Everything a sub-agent's tool scope needs besides the scope itself; shared with the parent's. */
 export type SubagentScopeBase = Omit<ToolScopeConfig, "scope">;
 
-/** The name a sub-agent's lists are reported under, in a log line or a refusal. */
-export function subAgentOwner(name: string): string {
-  return `Sub-agent "${name}"`;
-}
-
-/** A declared sub-agent's scope: the parent's, narrowed by its own two lists. */
-export function subAgentScope(parentScope: ToolScope, subAgent: SubAgent): ToolScope {
-  return parentScope.narrow(subAgentOwner(subAgent.name), {
-    tools: subAgent.tools,
-    disallowedTools: subAgent.disallowedTools,
-  });
+/** A built-in's scope: the parent's, with `Agent` denied (one level). */
+function builtinScope(parentScope: ToolScope): ToolScope {
+  return parentScope.narrow(ONE_LEVEL_LAYER.owner, ONE_LEVEL_LAYER.lists);
 }
 
 /**
  * Options for the full subagent transformation and compilation pipeline.
  */
 export interface SubagentTransformOptions {
-  readonly subAgents: readonly SubAgent[];
-  /** Every MCP tool the parent binds; each sub-agent binds them all and its scope narrows them. */
+  /** The plugins' agents, which bind the parent's MCP tools under the parent's scope narrowed. */
+  readonly pluginAgents: readonly PluginSubagent[];
+  /** The saved agents the turn's agent lists, each with what its graph is built from. */
+  readonly subagents: readonly SavedSubagentGraph[];
+  /** Every MCP tool the parent binds; a plugin subagent binds them all and its scope narrows them. */
   readonly parentMcpTools: readonly StructuredTool[];
-  /** The main agent's tool scope; a sub-agent's narrows it, and its `Agent(type, …)` picks which compile. */
+  /** The main agent's tool scope; a plugin subagent's narrows it, and its `Agent(type, …)` picks which compile. */
   readonly parentScope: ToolScope;
   /** The attribution and confinement every sub-agent's scope middleware reads. */
   readonly scopeBase: SubagentScopeBase;
   /**
-   * Each sub-agent's mounted skills, keyed by the sub-agent's name — the
-   * runtime's `TurnSkills.bySubAgent` (resolved and mounted by its skills
-   * phase, since #1096). A sub-agent with no entry renders no skills
-   * section. Until then this module fetched and mounted them itself with
-   * a control-plane client; the compile step is client-free now.
+   * Each plugin subagent's mounted skills, keyed by its name — the
+   * runtime's `TurnSkills.bySubAgent`. One with no entry renders no skills
+   * section. A saved subagent's are on its context.
    */
   readonly skills: ReadonlyMap<string, readonly SkillMetadata[]>;
   readonly workspaceBackend: WorkspaceBackend;
@@ -263,8 +284,8 @@ export interface SubagentTransformOptions {
  * upstream's while the goal was parity with the suppressed original, and
  * upstream's invites the delegation the parent's rules advise against. It
  * receives the parent's MCP tools for capability parity with the injected
- * original. Every built-in runs under the parent's own tool scope: it
- * declares no lists of its own. Conscious simplification: the parent's
+ * original. Every built-in runs under the parent's own tool scope with
+ * `Agent` denied: it declares no lists of its own and hands no work on. Conscious simplification: the parent's
  * skills prompt is NOT inherited — a sub-agent needing skills should be
  * declared explicitly in the Agent spec.
  *
@@ -298,7 +319,7 @@ export function createBuiltinSubagents(
             ? [createWebFetchTool({ posture: webFetchPosture }) as unknown as StructuredTool]
             : []),
         ],
-        scope: parentScope,
+        scope: builtinScope(parentScope),
       });
       continue;
     }
@@ -312,7 +333,7 @@ export function createBuiltinSubagents(
       description,
       systemPrompt: prompt + RESPONSE_RULES,
       tools: [],
-      scope: parentScope,
+      scope: builtinScope(parentScope),
     });
   }
 
@@ -324,68 +345,69 @@ export function createBuiltinSubagents(
 // =========================================================================
 
 /**
- * Transform a single SubAgent proto into the intermediate representation.
- *
- * Handles: proto field extraction, model override validation, the runner's
- * own tools, the sub-agent's tool scope, and response rules appending. The
- * parent's MCP tools and skill resolution are composed by the caller.
- *
- * Returns null if the subagent should be skipped (e.g., invalid model override).
+ * A plugin subagent in the intermediate representation: its plugin's
+ * instructions, the model its file names where this engine lists it (else
+ * the turn's), the runner's own tools, and the parent's scope narrowed by
+ * its lists. The parent's MCP tools are composed by the caller.
  */
-export async function transformSingleSubagent(
-  subAgent: SubAgent,
+export async function transformPluginSubagent(
+  agent: PluginSubagent,
   opts: {
     readonly parentScope: ToolScope;
-    readonly parentModelName: string;
     readonly webFetchPosture: GuardPosture;
+    readonly skills: ReadonlyMap<string, readonly SkillMetadata[]>;
   },
-): Promise<TransformedSubagent | null> {
-  const name = subAgent.name;
-  const description = subAgent.description || `Sub-agent: ${name}`;
-  let systemPrompt = subAgent.instructions || "";
-
-  // Validate model_override if specified
-  let model: string | undefined;
-  if (subAgent.modelOverride) {
-    const isKnown = await isModelRegistered(subAgent.modelOverride);
-    if (!isKnown) {
-      console.error(
-        `[subagent-transformer] Sub-agent '${name}' specifies model_override='${subAgent.modelOverride}' ` +
-        `which is not recognised by the ModelRegistry. Skipping this sub-agent. ` +
-        `Use a registered model name (e.g. 'claude-haiku-4.5') or a valid API model ID.`,
-      );
-      return null;
-    }
-    model = subAgent.modelOverride;
+): Promise<TransformedSubagent> {
+  const model = await subagentModel(agent.model, Harness.NATIVE);
+  if (agent.model !== "" && model === undefined) {
+    console.log(
+      `[subagent-transformer] Plugin subagent '${agent.name}' names model '${agent.model}', which this engine does not list; it runs on the turn's model`,
+    );
   }
-
-  // The runner's own tools; the caller prepends the parent's MCP tools.
-  // web_fetch is unconditional: the parent always has it (turn-setup.ts
-  // `buildEngine`), and a sub-agent silently lacking web access the parent
-  // has would recreate the harness-parity gap of issue #214 one level down.
-  // No tool stands in for reasoning: the sub-agent's model thinks in the
-  // execution's thinking mode (#1976).
-  const tools: StructuredTool[] = [createWebFetchTool({ posture: opts.webFetchPosture }) as unknown as StructuredTool];
-
-  // Append response rules
-  systemPrompt += RESPONSE_RULES;
-
-  return { name, description, systemPrompt, tools, model, scope: subAgentScope(opts.parentScope, subAgent) };
+  return {
+    name: agent.name,
+    description: agent.description || `Sub-agent: ${agent.name}`,
+    systemPrompt: withSkills(agent.instructions, opts.skills.get(agent.name) ?? []),
+    tools: [webFetch(opts.webFetchPosture)],
+    ...(model !== undefined ? { model } : {}),
+    scope: pluginSubagentScope(opts.parentScope, agent),
+  };
 }
 
-// =========================================================================
-// Skill resolution for subagents
-// =========================================================================
+/**
+ * A saved subagent in the intermediate representation, from its context:
+ * its instructions and skills, its model (the runtime resolved it), its own
+ * servers' tools and the runner's, its own scope, and its own gate and
+ * shell.
+ */
+export function transformSavedSubagent(graph: SavedSubagentGraph, webFetchPosture: GuardPosture): TransformedSubagent {
+  const { subagent } = graph;
+  return {
+    name: subagent.name,
+    description: subagent.description || `Subagent: ${subagent.name}`,
+    systemPrompt: withSkills(subagent.instructions, subagent.skills),
+    tools: [...graph.mcpTools, webFetch(webFetchPosture)],
+    ...(subagent.model !== undefined ? { model: subagent.model } : {}),
+    scope: subagent.toolScope,
+    own: { approvalGate: graph.approvalGate, shellEnv: graph.shellEnv },
+  };
+}
 
 /**
- * The `## Skills` section of one sub-agent's system prompt, from the skills
- * the runtime mounted for it. Empty when it has none.
+ * The runner's own tool every subagent binds. web_fetch is unconditional:
+ * the parent always has it (turn-setup.ts `buildEngine`), and a subagent
+ * silently lacking web access the parent has would recreate the
+ * harness-parity gap of issue #214 one level down. No tool stands in for
+ * reasoning: a subagent's model thinks in the execution's thinking mode
+ * (#1976).
  */
-export function resolveSubagentSkillPrompt(
-  subAgent: SubAgent,
-  skills: ReadonlyMap<string, readonly SkillMetadata[]>,
-): string {
-  return renderSkillsSection(skills.get(subAgent.name) ?? []);
+function webFetch(posture: GuardPosture): StructuredTool {
+  return createWebFetchTool({ posture }) as unknown as StructuredTool;
+}
+
+/** A subagent's system prompt: its instructions, its `## Skills` section, then the response rules. */
+function withSkills(instructions: string, skills: readonly SkillMetadata[]): string {
+  return instructions + renderSkillsSection(skills) + RESPONSE_RULES;
 }
 
 // =========================================================================
@@ -496,7 +518,11 @@ export async function compileSubagents(
       // no-proxy paths).
       const model = opts.modelFactory ? await opts.modelFactory(modelName) : modelName;
 
-      const backend = await buildSubagentBackend(opts);
+      // A saved subagent's gate and shell are its own (its hooks, its
+      // values); every other subagent's are the parent's.
+      const approvalGate = spec.own ? spec.own.approvalGate : opts.approvalGate;
+      const shellEnv = spec.own ? spec.own.shellEnv : opts.shellEnv;
+      const backend = await buildSubagentBackend({ ...opts, shellEnv });
 
       // One graph on one middleware stack per INVOCATION (stigmer/stigmer#1699).
       // Loop detection, the periodic budget and the cost view keep one
@@ -524,9 +550,9 @@ export async function compileSubagents(
         tools: spec.tools.length > 0 ? spec.tools : undefined,
         middleware: buildSubAgentMiddleware({
           costAdvisory: opts.costAdvisory,
-          approvalGate: opts.approvalGate
-            ? { ...opts.approvalGate, subAgent: { type: spec.name, id: invocationId } }
-            : opts.approvalGate,
+          approvalGate: approvalGate
+            ? { ...approvalGate, subAgent: { type: spec.name, id: invocationId } }
+            : approvalGate,
           captureIgnored: !!opts.casObserver,
           pathNormalization: { rootDir: opts.workspaceRootDir },
           ...(opts.scopeBase ? { toolScope: { ...opts.scopeBase, scope: spec.scope } } : {}),
@@ -574,15 +600,15 @@ export async function compileSubagents(
 // =========================================================================
 
 /**
- * Transform proto SubAgents and compile into CompiledSubAgent instances.
+ * Transform the turn's subagents and compile them into CompiledSubAgent
+ * instances.
  *
  * This is the main entry point called from turn-setup.ts. It orchestrates:
  * 1. Built-in subagent creation (explore, shell, general-purpose)
- * 2. Per-subagent transformation (proto → TransformedSubagent), each with
- *    the parent's MCP tools and its own narrowed scope
- * 3. Skill resolution and prompt injection
- * 4. The main agent's `Agent(type, …)` filter
- * 5. Compilation with middleware + gate wrapping
+ * 2. Each plugin subagent, with the parent's MCP tools under its narrowed
+ *    scope, and each saved subagent, from its own context
+ * 3. The main agent's `Agent(type, …)` filter
+ * 4. Compilation with middleware + gate wrapping
  *
  * Returns null if no valid subagents after transformation.
  */
@@ -590,7 +616,8 @@ export async function transformAndCompileSubagents(
   options: SubagentTransformOptions,
 ): Promise<CompiledSubAgent[] | null> {
   const {
-    subAgents,
+    pluginAgents,
+    subagents,
     parentMcpTools,
     parentScope,
     scopeBase,
@@ -606,16 +633,15 @@ export async function transformAndCompileSubagents(
     permissions,
   } = options;
 
-  if (subAgents.length === 0 && !workspaceBackend.rootDir) {
+  if (pluginAgents.length === 0 && subagents.length === 0 && !workspaceBackend.rootDir) {
     return null;
   }
 
   console.log(
-    `[subagent-transformer] Transforming ${subAgents.length} proto sub-agent(s)` +
+    `[subagent-transformer] Transforming ${subagents.length} subagent(s) and ${pluginAgents.length} plugin subagent(s)` +
     (workspaceBackend.rootDir ? " + built-in types" : ""),
   );
 
-  // Step 1: Create built-in subagents
   const builtins = createBuiltinSubagents(
     !!workspaceBackend.rootDir,
     parentScope,
@@ -623,69 +649,25 @@ export async function transformAndCompileSubagents(
     webFetchPosture,
   );
 
-  // Step 2: Transform proto subagents
   const transformed: TransformedSubagent[] = [];
-
-  for (const subAgent of subAgents) {
-    if (BUILTIN_SUBAGENT_TYPES.has(subAgent.name)) {
+  for (const agent of pluginAgents) {
+    const result = await transformPluginSubagent(agent, { parentScope, webFetchPosture, skills });
+    transformed.push({ ...result, tools: [...parentMcpTools, ...result.tools] });
+  }
+  for (const graph of subagents) {
+    if (BUILTIN_SUBAGENT_TYPES.has(graph.subagent.name)) {
       console.warn(
-        `[subagent-transformer] Sub-agent name '${subAgent.name}' conflicts with ` +
-        "built-in type. The proto definition will override the built-in.",
+        `[subagent-transformer] Subagent '${graph.subagent.name}' has a built-in type's name; it overrides the built-in.`,
       );
     }
-
-    try {
-      const result = await transformSingleSubagent(subAgent, {
-        parentScope,
-        parentModelName,
-        webFetchPosture,
-      });
-
-      if (result) {
-        // Resolve skills prompt section for this subagent
-        const skillsSection = resolveSubagentSkillPrompt(subAgent, skills);
-        const enhancedPrompt = skillsSection
-          ? result.systemPrompt.replace(
-              RESPONSE_RULES,
-              skillsSection + RESPONSE_RULES,
-            )
-          : result.systemPrompt;
-
-        transformed.push({
-          ...result,
-          systemPrompt: enhancedPrompt,
-          tools: [...parentMcpTools, ...result.tools],
-        });
-      }
-    } catch (err) {
-      console.error(
-        `[subagent-transformer] Failed to transform sub-agent '${subAgent.name}': ${err}`,
-      );
-    }
+    transformed.push(transformSavedSubagent(graph, webFetchPosture));
   }
 
-  // Step 3: Merge built-ins with transformed (proto overrides take precedence).
-  // Names are unique by the time deepagents sees them: since 1.14 it refuses
-  // a duplicate sub-agent name and fails the turn, where it used to let the
-  // later one win. Nothing upstream of the runner validates the names, so the
-  // runner keeps the behaviour agents were written against — a later
-  // declaration overrides an earlier one of the same name, as a proto
-  // definition overrides a built-in.
-  const declared = new Map<string, TransformedSubagent>();
-  for (const spec of transformed) {
-    if (declared.has(spec.name)) {
-      console.warn(
-        `[subagent-transformer] Sub-agent name '${spec.name}' is declared more than once. ` +
-        "The later declaration overrides the earlier one.",
-      );
-      declared.delete(spec.name);
-    }
-    declared.set(spec.name, spec);
-  }
-  const candidates = [
-    ...builtins.filter((b) => !declared.has(b.name)),
-    ...declared.values(),
-  ];
+  // Names are unique by the time deepagents sees them, which refuses a
+  // duplicate since 1.14: a saved subagent's slug holds no ':' and a plugin
+  // subagent's name always does, and a declared name overrides a built-in.
+  const declared = new Set(transformed.map((spec) => spec.name));
+  const candidates = [...builtins.filter((b) => !declared.has(b.name)), ...transformed];
   // The main agent's `Agent(type, …)`: a type it does not name never compiles,
   // so the `task` tool cannot offer it.
   const allSpecs = candidates.filter((spec) => {
@@ -699,7 +681,6 @@ export async function transformAndCompileSubagents(
     return null;
   }
 
-  // Step 4: Compile all subagents
   const compiled = await compileSubagents(allSpecs, {
     costAdvisory,
     approvalGate,

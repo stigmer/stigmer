@@ -179,6 +179,7 @@ async function seedRun(
     agentSpec: create(AgentSpecSchema, { env: { AGENT_KEY: { isSecret: true } } }),
     agentName: "Helper",
     agentOrg: ORG,
+    subagents: [],
     plugins: [{ id: PLUGIN_ID, name: "tools", status: TOOLS.status! }],
   });
   run.status!.credentials = create(RunCredentialsSchema, { person: ANA, sources });

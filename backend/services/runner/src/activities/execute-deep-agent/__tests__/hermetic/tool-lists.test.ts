@@ -8,7 +8,7 @@
  *    failed tool row whose result is the lists' message: no approval card, no
  *    provenance, no engine version, the handler never ran, and the turn
  *    completes. It holds under auto-approve-all, where no gate is installed,
- *    and inside a sub-agent whose own lists narrow the agent's.
+ *    and inside a saved subagent, under its own lists.
  *  - A `tools` list that names nothing the turn has refuses the turn before
  *    a model is asked: RUN_FAILED on the actionable surface, with the
  *    resolution error's own sentence (naming the agent and its entries) as
@@ -27,8 +27,6 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { create } from "@bufbuild/protobuf";
-import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   ApprovalPolicySource,
   RunPhase,
@@ -48,6 +46,7 @@ import {
   createHermeticEnvironment,
   type HermeticEnvironment,
 } from "../../../../__test-utils__/hermetic-activity.js";
+import { savedAgentFixture } from "../../../../__test-utils__/execution-record-fixture.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { ToolListResolutionError, ToolScope, outOfScopeMessage } from "../../../../shared/tool-lists.js";
 import {
@@ -122,10 +121,10 @@ describe("ExecuteDeepAgent hermetic — tool lists", () => {
 
   it("a sub-agent's own lists refuse its call: one failed row in its transcript, nothing ran", async () => {
     const WORKER = "You are the hermetic worker.";
-    const worker = create(SubAgentSchema, { name: "worker", description: "Works.", instructions: WORKER, tools: ["Read"] });
-    // A second sub-agent with no lists of its own: it is not checked, and runs under the agent's scope.
-    const helper = create(SubAgentSchema, { name: "helper", description: "Helps.", instructions: "You help." });
-    const record = deepAgentExecutionRecord({ message: "Delegate.", subAgents: [worker, helper] });
+    const worker = savedAgentFixture("worker", { description: "Works.", instructions: WORKER, tools: ["Read"] });
+    // A second subagent with no lists of its own: it is not checked, and runs unrestricted but for Agent.
+    const helper = savedAgentFixture("helper", { description: "Helps.", instructions: "You help." });
+    const record = deepAgentExecutionRecord({ message: "Delegate.", subagents: [worker, helper] });
     const scenario = beginDeepAgentScenario({
       env,
       clock,
@@ -154,7 +153,7 @@ describe("ExecuteDeepAgent hermetic — tool lists", () => {
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const subRows = record.lastFullStatus!.subAgentRuns.flatMap((sa) => sa.messages.flatMap((m) => m.toolCalls));
     expect(subRows.map((r) => [r.id, r.status])).toEqual([["call-sub-shell", ToolCallStatus.TOOL_CALL_FAILED]]);
-    expect(subRows[0].error).toContain('Sub-agent "worker": tools [Read]');
+    expect(subRows[0].error).toContain('Subagent "worker": tools [Read]');
     expect(subRows[0].approvalPolicySource).toBe(ApprovalPolicySource.UNSPECIFIED);
     expect(() => readFileSync(join(workspace, "marker.txt")), "the shell never ran").toThrow();
   });

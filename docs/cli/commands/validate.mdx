@@ -16,7 +16,7 @@ It also validates a plugin directory: a folder with a `plugin.json`,
 `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
 `.codex-plugin/plugin.json` manifest, in the open Agent Plugins format or the
 Cursor, Claude Code or Codex dialect. Validation reports what an install would
-produce (skills, MCP servers, sub-agents, hooks, variables), every warning, and
+produce (skills, MCP servers, subagents, hooks, variables), every warning, and
 every component Stigmer does not install, or refuses the plugin with one
 sentence per problem.
 
@@ -56,8 +56,10 @@ stigmer validate -f ./my-plugin/
 - Required fields (apiVersion, kind, metadata, spec)
 - Resource-specific schema rules per kind
 - Multi-document YAML (`---` separated)
+- An Agent that still writes sub-agents inside it (`sub_agents`) is refused,
+  with a sentence saying to save each as an Agent and list it in `subagents`
 - For a plugin directory: the manifest, every `SKILL.md`, the MCP server
-  configuration, every sub-agent file and the declared variables
+  configuration, every subagent file and the declared variables
 
 ### Supported inputs
 

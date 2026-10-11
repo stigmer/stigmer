@@ -54,6 +54,14 @@ import {
   serverFactsOf,
   unreadableRowError as unreadableRetiredServerRowError,
 } from "../mcp-server-retired.js";
+import {
+  SUB_AGENT_RETIREMENT_AGENT_KIND,
+  SUB_AGENT_RETIREMENT_PAGE_SIZE,
+  SUB_AGENT_RETIREMENT_SESSION_KIND,
+  repinSessionRow,
+  retireSubAgentsInAgentRow,
+  unreadableSubAgentRowError,
+} from "../sub-agents-retired.js";
 
 import {
   AGENT_KIND,
@@ -179,12 +187,13 @@ export const SCHEMA_VERSION_24 = 24;
 export const SCHEMA_VERSION_25 = 25;
 /** v26: the MCP server rows removed; a plugin's parts became its plugins; a connect attempt names a plugin's server. */
 export const SCHEMA_VERSION_26 = 26;
-
 /** v27: each session's ordered event log (DDL only). */
 export const SCHEMA_VERSION_27 = 27;
+/** v28: the sub-agents written inside agents removed, each logged as an agent manifest. */
+export const SCHEMA_VERSION_28 = 28;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_27;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_28;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -237,6 +246,7 @@ export function runMigrations(
     [SCHEMA_VERSION_25, migrateToV25],
     [SCHEMA_VERSION_26, (migrating) => migrateToV26(migrating, logger)],
     [SCHEMA_VERSION_27, migrateToV27],
+    [SCHEMA_VERSION_28, (migrating) => migrateToV28(migrating, logger)],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1495,6 +1505,68 @@ function migrateToV26(db: DatabaseSync, logger: StoreLogger): void {
     CREATE INDEX idx_connect_attempt_org ON connect_attempt (org);
     CREATE INDEX idx_connect_attempt_expires ON connect_attempt (expires_at);
   `);
+}
+
+/**
+ * v28: a subagent is a saved agent the parent lists
+ * (../sub-agents-retired.ts says what each row becomes and why a sub-agent
+ * is logged rather than created). Every agent holding sub-agents written
+ * inside it loses them, as a new current version archived like any saved
+ * one, and each one is logged as an agent manifest; every session on a
+ * changed agent moves to its new version. The Postgres driver's v23 in
+ * this engine's terms. Runs inside applyInTransaction's BEGIN.
+ */
+function migrateToV28(db: DatabaseSync, logger: StoreLogger): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const forEachRow = (kind: string, visit: (row: { id: string; data: Uint8Array }) => void): void => {
+    for (let after = ""; ; ) {
+      const rows = page.all(kind, after, SUB_AGENT_RETIREMENT_PAGE_SIZE) as Array<{ id: string; data: Uint8Array }>;
+      for (const row of rows) {
+        try {
+          visit(row);
+        } catch (error) {
+          throw unreadableSubAgentRowError(kind, row.id, error);
+        }
+      }
+      if (rows.length < SUB_AGENT_RETIREMENT_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+  const update = db.prepare(
+    `UPDATE resources SET data = ?, updated_at = datetime('now') WHERE kind = ? AND id = ?`,
+  );
+  const archived = db.prepare(
+    `SELECT 1 FROM resource_audit WHERE kind = ? AND resource_id = ? AND version_hash = ? LIMIT 1`,
+  );
+  const archive = db.prepare(
+    `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag, archived_at)
+     VALUES (?, ?, ?, ?, '', datetime('now'))`,
+  );
+  const repinned = new Map<string, string>();
+  forEachRow(SUB_AGENT_RETIREMENT_AGENT_KIND, (row) => {
+    const migrated = retireSubAgentsInAgentRow(row.data, logger);
+    if (migrated === undefined) {
+      return;
+    }
+    update.run(migrated.data, SUB_AGENT_RETIREMENT_AGENT_KIND, row.id);
+    if (archived.get(SUB_AGENT_RETIREMENT_AGENT_KIND, row.id, migrated.versionHash) === undefined) {
+      archive.run(SUB_AGENT_RETIREMENT_AGENT_KIND, row.id, migrated.data, migrated.versionHash);
+    }
+    repinned.set(row.id, migrated.versionHash);
+  });
+  if (repinned.size === 0) {
+    return;
+  }
+  forEachRow(SUB_AGENT_RETIREMENT_SESSION_KIND, (row) => {
+    const migrated = repinSessionRow(row.data, repinned);
+    if (migrated !== undefined) {
+      update.run(migrated, SUB_AGENT_RETIREMENT_SESSION_KIND, row.id);
+    }
+  });
 }
 
 /**

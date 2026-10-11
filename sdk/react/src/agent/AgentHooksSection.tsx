@@ -6,8 +6,8 @@
 // section lists the plugins, and each plugin's page shows its hooks, so
 // nothing here reads a plugin. The block is shown, never edited:
 // hand-written hooks are YAML, as Claude Code's settings files are. A
-// sub-agent has no hooks of its own (it runs its parent's), so nothing here
-// reads one. Pinned by `__tests__/AgentDetailView.hooks.test.tsx`.
+// subagent is an agent of its own whose page shows its hooks, so nothing
+// here reads one. Pinned by `__tests__/AgentDetailView.hooks.test.tsx`.
 
 import { cn } from "@stigmer/theme";
 import type { HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";

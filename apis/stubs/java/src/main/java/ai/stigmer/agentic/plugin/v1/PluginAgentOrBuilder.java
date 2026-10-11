@@ -200,4 +200,34 @@ public interface PluginAgentOrBuilder extends
    */
   com.google.protobuf.ByteString
       getSkillsBytes(int index);
+
+  /**
+   * <pre>
+   * The model the agent's file names, as written; empty when it names none.
+   *
+   * A turn runs the agent on it when it is a model id the conversation's
+   * engine lists. inherit, an alias such as sonnet, or any other value runs
+   * the turn's model; install records an alias or an unknown value in
+   * PluginStatus.warnings.
+   * </pre>
+   *
+   * <code>string model = 7 [json_name = "model"];</code>
+   * @return The model.
+   */
+  java.lang.String getModel();
+  /**
+   * <pre>
+   * The model the agent's file names, as written; empty when it names none.
+   *
+   * A turn runs the agent on it when it is a model id the conversation's
+   * engine lists. inherit, an alias such as sonnet, or any other value runs
+   * the turn's model; install records an alias or an unknown value in
+   * PluginStatus.warnings.
+   * </pre>
+   *
+   * <code>string model = 7 [json_name = "model"];</code>
+   * @return The bytes for model.
+   */
+  com.google.protobuf.ByteString
+      getModelBytes();
 }

@@ -80,12 +80,12 @@ IdentityProvider, `kind: identity_provider` | Identity Provider |
 | **Identity Account** | --- | --- | Identity Account | IdentityAccount,
 `kind: identity_account` | Identity Account | | **PlatformClient** | --- | --- |
 PlatformClient | PlatformClient, `kind: platform_client` | PlatformClient | |
-**Run** | --- | run | run | Run, `kind: Run` | Run | | **Sub-Agent** | --- | ---
-| Sub-Agent | SubAgent, `sub_agents` | Sub-Agent | | **Agent Channel** | --- |
---- | channel, Agent Channel | AgentChannel, `kind: AgentChannel` | Agent
-Channel | | **Channel App** | --- | --- | Channel App | ChannelApp,
-`kind: ChannelApp` | Channel App | | **Schedule** | --- | --- | schedule,
-Schedule | Schedule, `kind: Schedule` | Schedule |
+**Run** | --- | run | run | Run, `kind: Run` | Run | | **Subagent** | --- | ---
+| subagent | subagent, `subagents`, `<plugin>:<agent>` | subagent | | **Agent
+Channel** | --- | --- | channel, Agent Channel | AgentChannel,
+`kind: AgentChannel` | Agent Channel | | **Channel App** | --- | --- | Channel
+App | ChannelApp, `kind: ChannelApp` | Channel App | | **Schedule** | --- | ---
+| schedule, Schedule | Schedule, `kind: Schedule` | Schedule |
 
 Dash (—) means the term should not appear in that context.
 
@@ -1366,17 +1366,22 @@ only in tutorials when unavoidable.
 
 ---
 
-#### Sub-Agent
+#### Subagent
 
-A delegated specialist Agent that a parent Agent can call to handle a specific
-subtask.
+An Agent the main Agent of a conversation hands a task to. It works in its own
+context and reports back to the main Agent. A saved subagent is an Agent of its
+own that another Agent lists, and runs its own instructions, model, tools,
+plugins, Skills, hooks and values; a plugin subagent comes from a plugin's
+`agents/` folder, and narrows the conversation's tools.
 
-- **Capitalize**: Yes, hyphenated: "Sub-Agent."
-- **API surface**: `SubAgent` message in `agent/v1/spec.proto`. Fields: `tools`,
-  `disallowed_tools` (narrow the parent's tools, never widen them),
-  `skill_refs`, `model_override`. Run tracking: `run/v1/subagent.proto`.
+- **Capitalize**: No, one word: "subagent," as Claude Code and Claude Managed
+  Agents spell it. "Subagent" only to start a sentence; never hyphenated.
+- **API surface**: `AgentSpec.subagents` in `agent/v1/spec.proto`, a list of
+  saved Agents by reference (`kind: agent`), each pinned to a version when the
+  listing Agent is saved. A plugin's agents are named `<plugin>:<agent>`
+  (`PluginStatus.agents`). Run tracking: `run/v1/subagent.proto`.
 - **Context rule**: Concepts and reference only. Never on the sales site. In
-  tutorials, if needed, describe as "an Agent that calls another Agent."
+  tutorials, if needed, describe as "an Agent that hands work to another Agent."
 
 ---
 

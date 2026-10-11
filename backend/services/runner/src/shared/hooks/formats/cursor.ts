@@ -159,7 +159,7 @@ export function cursorCommand(source: HookSource, handler: HookHandler, ctx: For
 /** A Cursor hook's environment. */
 export function cursorEnv(source: HookSource, ctx: FormatContext): Record<string, string> {
   return {
-    ...ctx.baseEnv,
+    ...(source.env ?? ctx.baseEnv),
     ...pathVariables(source, ctx),
     // Python would otherwise write `__pycache__` into the plugin's tree,
     // which the tamper guard then rebuilds before every later run.

@@ -1,4 +1,4 @@
-// An agent's (or a sub-agent's) two tool lists, read-only, in plain words:
+// An agent's two tool lists, read-only, in plain words:
 // "Only these tools" for `tools`, "Never these tools" for `disallowedTools`.
 // Entries are shown verbatim in Claude Code's names (`Read`,
 // `Bash(git push *)`, `mcp__github__*`), because those exact strings are what
@@ -12,11 +12,11 @@ import { UNSTYLED_LIST } from "../internal/element-resets.js";
 
 /** Props for {@link AgentToolLists}. */
 export interface AgentToolListsProps {
-  /** `AgentSpec.tools` / `SubAgent.tools`: when non-empty, only these tools. */
+  /** `AgentSpec.tools`: when non-empty, only these tools. */
   readonly tools: readonly string[];
-  /** `AgentSpec.disallowed_tools` / `SubAgent.disallowed_tools`: never these. */
+  /** `AgentSpec.disallowed_tools`: never these. */
   readonly disallowedTools: readonly string[];
-  /** `"section"` pads rows for a page section; `"compact"` nests in a sub-agent. */
+  /** `"section"` pads rows for a page section; `"compact"` nests inside another card. */
   readonly density?: "section" | "compact";
 }
 

@@ -222,7 +222,8 @@ export interface TurnMcp {
    * The main agent's tool scope, from its `tools` and `disallowed_tools`,
    * narrowed by the turn's own (`RunSpec.tools`, `RunSpec.disallowed_tools`;
    * `shared/tool-lists.ts`); unrestricted when neither carries a list. A
-   * sub-agent's scope narrows this one.
+   * plugin subagent's scope narrows this one; a saved subagent's is its own
+   * ({@link TurnSubagent.toolScope}).
    */
   readonly toolScope: ToolScope;
 }
@@ -231,15 +232,57 @@ export interface TurnMcp {
  * The mounted skills (phase 5), each under the session's platform dir and
  * reachable from the workspace through its `.stigmer` link; the harness
  * renders them into its prompt shapes. Resolved per OWNER, because a
- * sub-agent's skills are its own prompt's, not the root's: the root's are
- * `blueprint.mergedSkillRefs` (agent plus session), a sub-agent's are its
- * `skillRefs` on the blueprint, keyed by the sub-agent's name (the key its
- * compiler uses). A sub-agent with no skills has no entry. Empty for a
- * harness whose `capabilities.subAgents` is false.
+ * plugin subagent's skills are its own prompt's, not the root's: the
+ * root's are `blueprint.mergedSkillRefs` (agent plus session) and the
+ * turn's plugins' skills, a plugin subagent's the ones its file's
+ * `skills:` names, keyed by its `<plugin>:<agent>` name (the key its
+ * compiler uses). A plugin subagent with no skills has no entry, and the
+ * map is empty for a harness whose `capabilities.subAgents` is false. A
+ * saved subagent's skills are in its own context
+ * ({@link TurnSubagent.skills}).
  */
 export interface TurnSkills {
   readonly root: readonly SkillMetadata[];
   readonly bySubAgent: ReadonlyMap<string, readonly SkillMetadata[]>;
+}
+
+/**
+ * A saved agent the turn's agent lists as a subagent, resolved as an agent
+ * of its own (phase 5c, `turn-context.ts` `resolveSubagents`): what the
+ * main agent's context is spread over `blueprint`, `mcp`, `skills`, `hooks`
+ * and `values`, one value per subagent. It runs as the turn's person, on
+ * the turn's budget and under the conversation's hooks, which run before
+ * its own; it reports to the main agent, which alone speaks to the person
+ * or the channel, so it gets none of the conversation's own plugins and
+ * none of the platform's own servers, and it cannot hand work on.
+ */
+export interface TurnSubagent {
+  /** Its name in the turn: the listed agent's slug, the `task` tool's type. */
+  readonly name: string;
+  readonly description: string;
+  readonly instructions: string;
+  /**
+   * The model it runs on: its own run defaults' model when they name this
+   * conversation's engine and the engine lists the model; undefined runs
+   * the turn's model.
+   */
+  readonly model: string | undefined;
+  /**
+   * Its own lists, then the turn's (`RunSpec.tools`, `RunSpec.disallowed_tools`)
+   * as a cap, then `Agent` denied: never the main agent's lists, which
+   * govern the main agent alone.
+   */
+  readonly toolScope: ToolScope;
+  /** Its plugins' MCP servers, resolved; a server the main agent also has is the same one, by slug. */
+  readonly servers: readonly ResolvedMcpServer[];
+  /** Its own skills and its plugins', mounted; empty when its scope hides skills. */
+  readonly skills: readonly SkillMetadata[];
+  /** Its plugins' hooks, then its own block: run after the conversation's ({@link TurnHooks}) on its calls. */
+  readonly hooks: readonly TurnHookSource[];
+  /** Its own values (`ExecutionValues.subagents`): its shell's and its own hooks', never the main agent's. */
+  readonly values: Readonly<Record<string, string>>;
+  /** What it brings of its own beyond instructions, model and skills: an engine that cannot keep them to it refuses the turn. */
+  readonly bringsOwn: { readonly plugins: boolean; readonly hooks: boolean; readonly lists: boolean };
 }
 
 /** One source of the agent's hooks: a mounted plugin and its recorded groups, or the agent's own block. */
@@ -354,6 +397,8 @@ export interface TurnInput extends NormalizedActivityInput {
   readonly mcp: TurnMcp;
   readonly skills: TurnSkills;
   readonly hooks: TurnHooks;
+  /** The saved agents the turn's agent lists, each resolved as an agent of its own, in its order. */
+  readonly subagents: readonly TurnSubagent[];
   readonly attachments: TurnAttachments;
   /** Approved whole-file writes the runtime applied itself this turn (exact-apply); the harness issues no grant for them. */
   readonly appliedToolCallIds: ReadonlySet<string>;

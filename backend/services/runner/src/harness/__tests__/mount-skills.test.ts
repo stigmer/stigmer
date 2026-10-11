@@ -1,19 +1,14 @@
 /**
- * Pins the skills phase (`turn-context.ts` `mountSkills`) as the runtime's
- * one reader of skills for EVERY owner: the root's merged refs and each
- * sub-agent's own, resolved through one resolver into `TurnSkills`.
+ * Pins the skills phase (`turn-context.ts` `mountSkills`): the root's merged
+ * refs and each plugin subagent's skills, resolved into `TurnSkills`. A
+ * saved subagent's skills are its own context's (`resolveSubagents`,
+ * `resolve-subagents.test.ts`), so this phase fetches none of them.
  *
- * What is asserted: the shape (root vs a map keyed by sub-agent name; no
- * entry for a sub-agent without refs), that a skill the root and a sub-agent
- * share is fetched per owner but MOUNTED once (the hash-keyed mount marker,
- * so the second write is a cache hit), that one owner's failing ref costs
- * that owner alone (the root's skills stand; the sub-agent gets what
- * resolved), and that a harness without sub-agents (`capabilities.subAgents`
- * false) resolves the root only — the flag's first reader. The phase reports
- * its one label, so the runtime's label list is unchanged. A scope that
- * denies `Skill` hides skills: the main scope's deny (the agent's or the
- * turn's) fetches nothing for any owner, a sub-agent's own deny only its
- * own, and an allow-list that omits `Skill` keeps them.
+ * What is asserted: the root's merged refs resolve under one label, so the
+ * runtime's label list is unchanged; a failing root ref is warned and
+ * skipped. A scope that denies `Skill` hides skills: the main scope's deny
+ * (the agent's or the turn's) fetches nothing, and an allow-list that omits
+ * `Skill` keeps them.
  *
  * A plugin's skills come from its mounted archive, never a skill fetch: each
  * renders as `<plugin>:<skill>` at `.stigmer/plugins/<digest>/<path>/SKILL.md`
@@ -33,7 +28,7 @@ import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { SkillSchema, type Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceReferenceSchema, type ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -48,7 +43,7 @@ import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { ToolScope } from "../../shared/tool-lists.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { mountSkills, type ResolutionDeps } from "../turn-context.js";
-import { pluginSubAgents } from "../../shared/blueprint-resolver.js";
+import { pluginSubagents } from "../../shared/blueprint-resolver.js";
 import { PLUGINS_SUBDIR } from "../../shared/plugin-mount.js";
 import { STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
 
@@ -103,21 +98,25 @@ function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: 
   };
 }
 
-function blueprintWith(
-  rootRefs: readonly string[],
-  subAgents: ReadonlyArray<{ name: string; refs: readonly string[]; disallowedTools?: string[] }>,
-) {
+/** A blueprint whose root merges `rootRefs` and whose agent lists one saved subagent carrying `subagentRefs`. */
+function blueprintWith(rootRefs: readonly string[], subagentRefs: readonly string[] = []) {
   return turnInputFixture({
     blueprint: {
       mergedSkillRefs: rootRefs.map(ref),
-      subAgents: subAgents.map((sa) =>
-        create(SubAgentSchema, { name: sa.name, skillRefs: sa.refs.map(ref), disallowedTools: sa.disallowedTools ?? [] }),
-      ),
+      subagents: [
+        {
+          name: "researcher",
+          agentId: "agt_researcher",
+          versionHash: "c".repeat(64),
+          spec: create(AgentSpecSchema, { instructions: "You research.", skillRefs: subagentRefs.map(ref) }),
+          plugins: [],
+        },
+      ],
     },
   }).blueprint;
 }
 
-describe("mountSkills: the runtime resolves every owner's skills", () => {
+describe("mountSkills: the root's skills", () => {
   let n = 0;
   let sessionId: string;
   let primaryDir: string;
@@ -131,75 +130,41 @@ describe("mountSkills: the runtime resolves every owner's skills", () => {
     mkdirSync(primaryDir, { recursive: true });
   });
 
-  it("resolves the root's merged refs and each sub-agent's own, keyed by the sub-agent's name; a sub-agent without refs has no entry", async () => {
-    const { client } = skillClient(["alpha", "beta", "gamma"]);
+  it("resolves the root's merged refs under one label, and none of a saved subagent's", async () => {
+    const { client, fetches } = skillClient(["alpha", "beta"]);
     const { deps, labels } = depsWith(client, sessionId);
     const skills = await mountSkills(deps, {
-      blueprint: blueprintWith(["alpha"], [{ name: "researcher", refs: ["beta", "gamma"] }, { name: "writer", refs: [] }]),
+      blueprint: blueprintWith(["alpha"], ["beta"]),
       sessionId,
       primaryDir,
       subAgents: true,
       toolScope: ToolScope.unrestricted(),
     });
     expect(skills.root.map((s) => s.name)).toEqual(["alpha"]);
-    expect([...skills.bySubAgent.keys()]).toEqual(["researcher"]);
-    expect(skills.bySubAgent.get("researcher")!.map((s) => s.name)).toEqual(["beta", "gamma"]);
-    expect(skills.bySubAgent.get("researcher")![0]!.path, "a sub-agent's skill mounts where the root's do").toBe(".stigmer/skills/beta/SKILL.md");
+    expect(skills.root[0]!.path).toBe(".stigmer/skills/alpha/SKILL.md");
+    expect(skills.bySubAgent.size, "a saved subagent's skills are its own context's").toBe(0);
+    expect(fetches).toEqual(["alpha"]);
     expect(labels, "one label for the whole phase").toEqual(["Resolving skills"]);
   });
 
-  it("a skill the root and a sub-agent share is fetched per owner but mounted once (the second resolution is a mount-cache hit)", async () => {
-    const { client, fetches } = skillClient(["shared"]);
+  it("a failing root ref is warned and skipped, never thrown", async () => {
+    const { client } = skillClient(["beta"]);
     const { deps } = depsWith(client, sessionId);
-    const writes = vi.spyOn(await import("../../shared/skill-mount.js"), "writeSkillMount");
     const skills = await mountSkills(deps, {
-      blueprint: blueprintWith(["shared"], [{ name: "researcher", refs: ["shared"] }]),
+      blueprint: blueprintWith(["missing", "beta"]),
       sessionId,
       primaryDir,
       subAgents: true,
       toolScope: ToolScope.unrestricted(),
     });
-    expect(skills.root.map((s) => s.name)).toEqual(["shared"]);
-    expect(skills.bySubAgent.get("researcher")!.map((s) => s.name)).toEqual(["shared"]);
-    expect(fetches, "the control plane is asked once per owner").toEqual(["shared", "shared"]);
-    expect(writes, "the mount is written once; the second owner hits the hash-keyed marker").toHaveBeenCalledTimes(1);
-    writes.mockRestore();
+    expect(skills.root.map((s) => s.name)).toEqual(["beta"]);
   });
 
-  it("one owner's failing ref costs that owner alone: the root's skills stand and the sub-agent gets what resolved", async () => {
-    const { client } = skillClient(["alpha", "beta"]);
+  it("a turn that denies Skill fetches and mounts no skill, so no prompt can list one", async () => {
+    const { client, fetches } = skillClient(["alpha"]);
     const { deps } = depsWith(client, sessionId);
     const skills = await mountSkills(deps, {
-      blueprint: blueprintWith(["alpha"], [{ name: "researcher", refs: ["missing", "beta"] }]),
-      sessionId,
-      primaryDir,
-      subAgents: true,
-      toolScope: ToolScope.unrestricted(),
-    });
-    expect(skills.root.map((s) => s.name)).toEqual(["alpha"]);
-    expect(skills.bySubAgent.get("researcher")!.map((s) => s.name), "warned and skipped, never thrown").toEqual(["beta"]);
-  });
-
-  it("a harness without sub-agents resolves the root only: no sub-agent ref is fetched", async () => {
-    const { client, fetches } = skillClient(["alpha", "beta"]);
-    const { deps } = depsWith(client, sessionId);
-    const skills = await mountSkills(deps, {
-      blueprint: blueprintWith(["alpha"], [{ name: "researcher", refs: ["beta"] }]),
-      sessionId,
-      primaryDir,
-      subAgents: false,
-      toolScope: ToolScope.unrestricted(),
-    });
-    expect(skills.root.map((s) => s.name)).toEqual(["alpha"]);
-    expect(skills.bySubAgent.size).toBe(0);
-    expect(fetches).toEqual(["alpha"]);
-  });
-
-  it("a turn that denies Skill fetches and mounts no skill for any owner, so no prompt can list one", async () => {
-    const { client, fetches } = skillClient(["alpha", "beta"]);
-    const { deps } = depsWith(client, sessionId);
-    const skills = await mountSkills(deps, {
-      blueprint: blueprintWith(["alpha"], [{ name: "researcher", refs: ["beta"] }]),
+      blueprint: blueprintWith(["alpha"]),
       sessionId,
       primaryDir,
       subAgents: true,
@@ -210,22 +175,18 @@ describe("mountSkills: the runtime resolves every owner's skills", () => {
     expect(fetches).toEqual([]);
   });
 
-  it("a sub-agent whose own lists deny Skill loses its skills alone; an allow-list that omits Skill keeps them", async () => {
-    const { client, fetches } = skillClient(["alpha", "beta", "gamma"]);
+  it("an allow-list that omits Skill keeps the root's skills", async () => {
+    const { client, fetches } = skillClient(["alpha"]);
     const { deps } = depsWith(client, sessionId);
     const skills = await mountSkills(deps, {
-      blueprint: blueprintWith(["alpha"], [
-        { name: "researcher", refs: ["beta"], disallowedTools: ["Skill"] },
-        { name: "writer", refs: ["gamma"] },
-      ]),
+      blueprint: blueprintWith(["alpha"]),
       sessionId,
       primaryDir,
       subAgents: true,
       toolScope: ToolScope.of("The agent", { tools: ["Read"], disallowedTools: [] }),
     });
     expect(skills.root.map((s) => s.name), "Read alone still keeps the platform's skills").toEqual(["alpha"]);
-    expect([...skills.bySubAgent.keys()]).toEqual(["writer"]);
-    expect(fetches).toEqual(["alpha", "gamma"]);
+    expect(fetches).toEqual(["alpha"]);
   });
 });
 
@@ -265,7 +226,7 @@ function pluginClient() {
 }
 
 function pluginBlueprint(plugin: Plugin) {
-  return turnInputFixture({ blueprint: { plugins: [plugin], subAgents: pluginSubAgents(plugin) } }).blueprint;
+  return turnInputFixture({ blueprint: { plugins: [plugin], pluginAgents: pluginSubagents(plugin) } }).blueprint;
 }
 
 describe("mountSkills: a plugin's skills", () => {

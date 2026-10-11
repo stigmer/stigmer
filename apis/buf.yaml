@@ -29,3 +29,15 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request makes a subagent a saved agent the parent lists. It
+  # deletes AgentSpec.sub_agents and the SubAgent message written inside an
+  # agent (the number and name reserved). It is made before launch: the
+  # release notes name the change under Upgrading. This block exists for that
+  # one pull request. While it stays, buf breaking does not report these
+  # rules on the listed file, so the pull request that removes it lands
+  # straight after the merge.
+  ignore_only:
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/agent/v1/spec.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/agent/v1/spec.proto

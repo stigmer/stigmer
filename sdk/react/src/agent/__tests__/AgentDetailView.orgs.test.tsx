@@ -1,6 +1,6 @@
 /**
  * AgentDetailView names a reference into another organization by that org's
- * slug (its plugins, skills and sub-agents' skills), a reference into the
+ * slug (its plugins and skills), a reference into the
  * agent's own org by its slug alone, and still hands navigation the org id
  * the reference is stored by. The route may name the agent's org by slug
  * while the agent stores its org by id: the two are the same organization.
@@ -29,13 +29,6 @@ function agentWithCrossOrgRefs() {
     skillRefs: [
       { org: GLOBEX_ID, slug: "shared-guide" },
       { org: ACME_ID, slug: "own-guide" },
-    ],
-    subAgents: [
-      {
-        name: "researcher",
-        description: "Digs up context",
-        skillRefs: [{ org: GLOBEX_ID, slug: "research-guide" }],
-      },
     ],
   });
   return agent;
@@ -83,14 +76,6 @@ describe("AgentDetailView references across organizations", () => {
     expect(onPluginClick).toHaveBeenCalledWith({ org: GLOBEX_ID, slug: "github" });
     fireEvent.click(screen.getByText("globex/shared-guide"));
     expect(onSkillClick).toHaveBeenCalledWith({ org: GLOBEX_ID, slug: "shared-guide" });
-  });
-
-  it("labels a sub-agent's skill in another org by that org's slug", async () => {
-    renderView();
-
-    fireEvent.click(await screen.findByRole("button", { name: /researcher/ }));
-
-    expect(screen.getByText("globex/research-guide")).toBeTruthy();
   });
 
   it("labels the editable reference lists the same way", async () => {
