@@ -3,7 +3,9 @@
  * (`TurnInput.hooks`, every plugin mounted and verified) turned into the
  * evaluator the approval gate runs, through the setup both engines share
  * (`shared/hooks/setup.ts`, which says what a hook runs with and when the
- * turn is refused).
+ * turn is refused). A saved subagent's graph runs its own evaluator: the
+ * conversation's sources, then the subagent's own, each of those in the
+ * subagent's environment.
  *
  * What is this harness's here is how its calls look to a hook: the native
  * views (`shared/hooks/tool-view.ts` `NativeToolViews`), over the tools it
@@ -12,7 +14,8 @@
 
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
-import type { TurnInput, TurnSink } from "../../harness/types.js";
+import type { TurnInput, TurnSink, TurnSubagent } from "../../harness/types.js";
+import type { PluginServerName } from "../../shared/hooks/tool-view.js";
 import { normalizeWorkspacePathArg } from "../../middleware/path-normalization.js";
 import type { HookEvaluator, HookPermissionMode } from "../../shared/hooks/evaluate.js";
 import { buildHookEvaluator as buildEvaluator, hookPermissionMode } from "../../shared/hooks/setup.js";
@@ -21,23 +24,36 @@ import type { DeepAgentTools } from "./turn-setup.js";
 
 export { HookSetupError } from "../../shared/hooks/setup.js";
 
-/** The turn's hook evaluator, or `null` when the agent has no hook this engine runs. Throws `HookSetupError`. */
+/**
+ * The turn's hook evaluator, or `null` when the agent has no hook this
+ * engine runs; with `subagent`, the evaluator that subagent's graph runs.
+ * Throws `HookSetupError`.
+ */
 export async function buildHookEvaluator(
   input: TurnInput,
   sink: Pick<TurnSink, "stopSignal" | "recordActivity">,
   tools: Pick<DeepAgentTools, "toolServerMap">,
   stallTimeoutMs: number,
+  subagent?: TurnSubagent,
 ): Promise<HookEvaluator | null> {
   const primaryDir = input.workspace.primaryDir;
+  const pluginServers = new Map<string, PluginServerName>(input.hooks.pluginServers);
+  for (const server of subagent?.servers ?? []) {
+    if (server.pluginOrigin !== null) {
+      pluginServers.set(server.slug, { plugin: server.pluginOrigin.plugin, server: server.pluginOrigin.server });
+    }
+  }
   return buildEvaluator({
-    sources: input.hooks.sources,
+    sources: subagent === undefined
+      ? input.hooks.sources
+      : [...input.hooks.sources, ...subagent.hooks.map((source) => ({ ...source, shellValues: subagent.values }))],
     runValues: input.values,
-    mcpServers: input.mcp.servers,
+    mcpServers: subagent === undefined ? input.mcp.servers : [...input.mcp.servers, ...subagent.servers],
     views: new NativeToolViews({
       workspaceRoot: primaryDir,
       toVirtualPath: (path) => normalizeWorkspacePathArg(path, primaryDir),
       toolServerMap: tools.toolServerMap,
-      pluginServers: input.hooks.pluginServers,
+      pluginServers,
       platformServerSlugs: input.mcp.platformServerSlugs,
     }),
     sessionId: input.sessionId,

@@ -1,21 +1,27 @@
 /**
- * Maps Stigmer SubAgent blueprints to Cursor SDK custom sub-agent definitions.
+ * Maps a turn's subagents to Cursor SDK custom sub-agent definitions.
  *
  * The Cursor SDK registers custom sub-agents via `AgentOptions.agents`
  * (`Record<name, AgentDefinition>`). Once registered, the parent agent can
  * delegate to them by name through the Task tool. This is the capability that
- * makes blueprint sub-agents actually invokable on the Cursor harness — parity
- * with the native deepagents harness, which compiles them into the graph.
+ * makes a turn's subagents invokable on the Cursor harness — parity with the
+ * native deepagents harness, which compiles them into the graph.
  *
- * Tool lists: an `AgentDefinition` carries no tool list, and the hook cannot
- * tell which sub-agent made a call, so a sub-agent with lists of its own is
- * refused at setup (`turn-setup.ts` `checkToolScope`); every registered
- * sub-agent runs within the main agent's scope, which the hook enforces. A
- * main agent's `Agent(type, …)` type list is refused at setup on this engine:
- * Cursor's built-in sub-agent types start through a `task` call that fires no
- * hook on the 1.0.31 local runtime (live probe, 2026-10-05), so nothing could
- * hold them back. {@link subAgentsInScope} still keeps a custom type the list
- * does not allow unregistered, for the turns that pass that check.
+ * A turn's subagents are the saved agents its agent lists and the plugins'
+ * agents. Each runs on Cursor with its instructions, its model (where
+ * Cursor's registry section lists it, else the turn's) and its skills,
+ * rendered into its prompt as the main agent's are (`formatSkillsSection`).
+ * An `AgentDefinition` carries no tool list and no hook, and the hook cannot
+ * tell which sub-agent made a call, so what a subagent brings beyond those
+ * is refused at setup (`turn-setup.ts` `checkToolScope`): a saved subagent's
+ * own plugins, hooks or lists, and a plugin subagent's lists. Every
+ * registered subagent runs within the main agent's scope, which the hook
+ * enforces. A main agent's `Agent(type, …)` type list is refused at setup on
+ * this engine: Cursor's built-in sub-agent types start through a `task` call
+ * that fires no hook on the 1.0.31 local runtime (live probe, 2026-10-05),
+ * so nothing could hold them back. {@link subagentsInScope} still keeps a
+ * type the list does not allow unregistered, for the turns that pass that
+ * check.
  *
  * Built-in kinds (`explore`, `shell`, `generalPurpose`) are provided by
  * Cursor's own runtime and must NOT be registered here — doing so would
@@ -28,47 +34,89 @@
  */
 
 import type { AgentDefinition } from "@cursor/sdk";
-import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { ToolScope } from "../../shared/tool-lists.js";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-/**
- * The blueprint sub-agents the main agent may start under its `Agent(type, …)`
- * list: the ones registered with the SDK and named in the prompt.
- */
-export function subAgentsInScope(subAgents: readonly SubAgent[], scope: ToolScope): SubAgent[] {
-  return subAgents.filter((sa) => scope.allowsSubAgentType(sa.name));
+import type { TurnInput } from "../../harness/types.js";
+import type { SkillMetadata } from "../../shared/skill-resolver.js";
+import { subagentModel } from "../../shared/subagents.js";
+import { formatSkillsSection } from "./prompt-builder.js";
+
+/** One subagent as this engine registers it. */
+export interface CursorSubagent {
+  readonly name: string;
+  readonly description: string;
+  readonly instructions: string;
+  /** The model it runs on; undefined runs the turn's. */
+  readonly model: string | undefined;
+  readonly skills: readonly SkillMetadata[];
 }
 
 /**
- * Build the Cursor SDK `agents` map from blueprint sub-agents.
+ * The names of the turn's subagents the main agent may start under its
+ * `Agent(type, …)` list: the ones registered with the SDK and named in the
+ * prompt.
+ */
+export function subagentNamesInScope(input: Pick<TurnInput, "blueprint" | "subagents" | "mcp">): string[] {
+  return [...input.subagents.map((s) => s.name), ...input.blueprint.pluginAgents.map((a) => a.name)].filter((name) =>
+    input.mcp.toolScope.allowsSubAgentType(name),
+  );
+}
+
+/** The turn's subagents the main agent may start, as this engine registers them. */
+export async function subagentsInScope(input: Pick<TurnInput, "blueprint" | "subagents" | "mcp" | "skills">): Promise<CursorSubagent[]> {
+  const inScope = new Set(subagentNamesInScope(input));
+  const saved = input.subagents
+    .filter((subagent) => inScope.has(subagent.name))
+    .map((subagent): CursorSubagent => ({
+      name: subagent.name,
+      description: subagent.description,
+      instructions: subagent.instructions,
+      model: subagent.model,
+      skills: subagent.skills,
+    }));
+  const plugin: CursorSubagent[] = [];
+  for (const agent of input.blueprint.pluginAgents) {
+    if (!inScope.has(agent.name)) continue;
+    plugin.push({
+      name: agent.name,
+      description: agent.description,
+      instructions: agent.instructions,
+      model: await subagentModel(agent.model, Harness.CURSOR),
+      skills: input.skills.bySubAgent.get(agent.name) ?? [],
+    });
+  }
+  return [...saved, ...plugin];
+}
+
+/**
+ * Build the Cursor SDK `agents` map from the turn's subagents.
  *
  * Returns `undefined` (rather than an empty object) when there are no usable
  * entries, so callers can omit the `agents` option entirely.
- *
- * @param subAgents Blueprint sub-agents from `Agent.spec.sub_agents`.
  */
 export function buildCursorSubAgentDefinitions(
-  subAgents: readonly SubAgent[],
+  subagents: readonly CursorSubagent[],
 ): Record<string, AgentDefinition> | undefined {
-  if (subAgents.length === 0) return undefined;
+  if (subagents.length === 0) return undefined;
 
   const agents: Record<string, AgentDefinition> = {};
-  for (const sa of subAgents) {
-    const name = sa.name?.trim();
+  for (const subagent of subagents) {
+    const name = subagent.name.trim();
     // The name is the SDK registration key and the handle the model uses to
     // delegate. Skip entries without one rather than register an unaddressable
     // sub-agent.
     if (!name) continue;
 
-    // instructions is the sub-agent's system prompt. The proto requires it
-    // (min_len 10), but fall back defensively so a malformed blueprint still
-    // produces an invokable sub-agent instead of being silently dropped.
-    const prompt = sa.instructions?.trim() || sa.description?.trim() || name;
+    // The instructions are the subagent's system prompt, its skills after
+    // them; fall back defensively so a malformed definition still produces
+    // an invokable subagent instead of being silently dropped.
+    const instructions = subagent.instructions.trim() || subagent.description.trim() || name;
+    const prompt = subagent.skills.length > 0 ? `${instructions}\n\n${formatSkillsSection(subagent.skills)}` : instructions;
 
     agents[name] = {
-      description: sa.description ?? "",
+      description: subagent.description,
       prompt,
-      model: sa.modelOverride ? { id: sa.modelOverride } : "inherit",
+      model: subagent.model ? { id: subagent.model } : "inherit",
     };
   }
 

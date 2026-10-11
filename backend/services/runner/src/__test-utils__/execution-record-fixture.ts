@@ -34,7 +34,7 @@ import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { AgentSpecSchema, type HookSource, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, type HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -96,8 +96,11 @@ export interface ExecutionRecordOptions {
   readonly approvalMode?: ApprovalMode;
   /** The request's own `spec.run_config`; absent when omitted. The runner must never read it. */
   readonly requestRunConfig?: RunConfig;
-  /** The agent's declared sub-agents (`AgentSpec.sub_agents`). */
-  readonly subAgents?: SubAgent[];
+  /**
+   * The saved agents the agent lists (`AgentSpec.subagents`), each listed at
+   * its `status.version_hash` and served by reference.
+   */
+  readonly subagents?: Agent[];
   /** The agent's `AgentSpec.tools` ("only these"), in Claude Code's names. */
   readonly tools?: string[];
   /** The agent's `AgentSpec.disallowed_tools` ("never these"). */
@@ -182,7 +185,14 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
     spec: create(AgentSpecSchema, {
       description: "Hermetic fixture agent",
       instructions: options.instructions ?? "You are the hermetic fixture agent. Answer briefly.",
-      subAgents: options.subAgents ?? [],
+      subagents: (options.subagents ?? []).map((subagent) =>
+        create(ApiResourceReferenceSchema, {
+          kind: ApiResourceKind.agent,
+          org: subagent.metadata?.org ?? ids.org,
+          slug: subagent.metadata?.slug ?? "",
+          version: subagent.status?.versionHash ?? "",
+        }),
+      ),
       tools: options.tools ?? [],
       disallowedTools: options.disallowedTools ?? [],
       hooks: options.hooks ?? [],
@@ -196,5 +206,5 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       status: { versionHash: `hash-${s.slug}` },
     }),
   );
-  return new ExecutionRecord({ execution, session, agent, controlSignal: options.controlSignal, skills });
+  return new ExecutionRecord({ execution, session, agent, controlSignal: options.controlSignal, skills, subagents: options.subagents ?? [] });
 }

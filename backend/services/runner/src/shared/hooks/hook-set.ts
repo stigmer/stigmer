@@ -66,6 +66,8 @@ export interface HookSource {
   readonly options: ReadonlyMap<string, string>;
   /** Run before each of the source's commands: a plugin's tamper guard. */
   readonly beforeRun?: () => Promise<void>;
+  /** The environment the source's commands run with, when it is not the agent's: a subagent's own hooks run in its shell's. */
+  readonly env?: Readonly<Record<string, string>>;
 }
 
 /** One group of one source: an event, its matcher and its handlers. */

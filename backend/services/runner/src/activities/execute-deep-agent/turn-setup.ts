@@ -90,7 +90,8 @@ import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
 import { buildShellEnv, shellRunValues } from "../../shared/shell-env.js";
-import { subAgentScope, transformAndCompileSubagents, type SubagentScopeBase } from "./subagent-transformer.js";
+import { transformAndCompileSubagents, type SavedSubagentGraph, type SubagentScopeBase } from "./subagent-transformer.js";
+import { pluginSubagentScope } from "../../shared/subagents.js";
 import { ENGINE_TOOL } from "./engine-tools.js";
 import { createTodoListMiddleware } from "./todo-list.js";
 import { buildHookEvaluator } from "./hooks-setup.js";
@@ -132,7 +133,9 @@ export interface DeepAgentWorkspace {
 export interface DeepAgentTools {
   /** Absent when the turn has no servers to connect: `MultiServerMCPClient` refuses an empty config. */
   readonly connection: McpConnectionResult | undefined;
+  /** The main agent's MCP tools: its servers' (the platform's own included), never a server only a subagent has. */
   readonly mcpTools: readonly DynamicStructuredTool[];
+  /** Every connected server's tools, the subagents' servers included, by slug. */
   readonly serverToolMap: ReadonlyMap<string, readonly DynamicStructuredTool[]>;
   readonly toolServerMap: ReadonlyMap<string, string>;
 }
@@ -235,7 +238,10 @@ export function buildDeepAgentWorkspace(input: TurnInput): DeepAgentWorkspace {
 
 /**
  * Connect the runtime's resolved servers (synthesized attachments included)
- * into LangChain tools. The connect covers the whole fan-out — stdio servers
+ * and each saved subagent's servers into LangChain tools, each server once
+ * by slug: a server the main agent and a subagent both have is one
+ * connection. The main agent binds only its own servers' tools
+ * (`mcpTools`); a subagent's graph binds its own (`buildEngine`). The connect covers the whole fan-out — stdio servers
  * spawn npx/uvx subprocesses here, so on-demand package installs land in
  * this span. A turn with no servers connects nothing: `MultiServerMCPClient`
  * refuses an empty config, which is what the orchestrator's MCP gate
@@ -244,11 +250,17 @@ export function buildDeepAgentWorkspace(input: TurnInput): DeepAgentWorkspace {
  * "anything to connect?" (since #1096).
  */
 export async function connectTools(input: TurnInput, sink: TurnSink): Promise<DeepAgentTools> {
-  if (input.mcp.servers.length === 0) {
+  const servers = new Map(input.mcp.servers.map((server) => [server.slug, server] as const));
+  for (const subagent of input.subagents) {
+    for (const server of subagent.servers) {
+      if (!servers.has(server.slug)) servers.set(server.slug, server);
+    }
+  }
+  if (servers.size === 0) {
     return { connection: undefined, mcpTools: [], serverToolMap: new Map(), toolServerMap: new Map() };
   }
   await sink.reportProgress("Connecting tools…");
-  const connection = await connectMcpServers([...input.mcp.servers]);
+  const connection = await connectMcpServers([...servers.values()]);
   const serverToolMap = new Map<string, readonly DynamicStructuredTool[]>();
   const toolServerMap = new Map<string, string>();
   for (const [serverName, serverTools] of Object.entries(connection.serverToolMap)) {
@@ -257,7 +269,15 @@ export async function connectTools(input: TurnInput, sink: TurnSink): Promise<De
   }
   sink.setupTiming.mark("connect_mcp");
   sink.recordActivity();
-  return { connection, mcpTools: connection.tools as DynamicStructuredTool[], serverToolMap, toolServerMap };
+  return { connection, mcpTools: toolsOf(serverToolMap, input.mcp.servers), serverToolMap, toolServerMap };
+}
+
+/** The connected tools of `servers`, in their order. */
+export function toolsOf(
+  serverToolMap: ReadonlyMap<string, readonly DynamicStructuredTool[]>,
+  servers: readonly { readonly slug: string }[],
+): DynamicStructuredTool[] {
+  return servers.flatMap((server) => [...(serverToolMap.get(server.slug) ?? [])]);
 }
 
 /**
@@ -497,7 +517,7 @@ export async function buildEngine(
   // on THIS gate); secret-like paths are hard-blocked; shell/MCP stay gated.
   // The CAS arm additionally requires storage to persist its blobs.
   const captureMode = input.workspace.captureMode;
-  const approvalGateConfig: ApprovalGateConfig | null = !gate.globalBypass || hooks !== null
+  const gateConfigFor = (evaluator: typeof hooks): ApprovalGateConfig | null => !gate.globalBypass || evaluator !== null
     ? {
         mcpDefault: gate.mcpDefault,
         leasedCategories: gate.leasedCategories,
@@ -515,10 +535,26 @@ export async function buildEngine(
         unattended: gate.unattended,
         unattendedSkips: gate.unattendedSkips,
         ...(gate.refusedByPerson !== undefined ? { refusedByPerson: gate.refusedByPerson } : {}),
-        hooks,
+        hooks: evaluator,
         globalBypass: gate.globalBypass,
       }
     : null;
+  const approvalGateConfig = gateConfigFor(hooks);
+
+  // Each saved subagent's graph: its own servers' tools, its own gate (the
+  // conversation's hooks, then its own, `hooks-setup.ts`) and its own shell,
+  // which holds its values and never the agent's. Plan mode gives no
+  // subagent a shell, as it gives the parent none.
+  const subagentGraphs: SavedSubagentGraph[] = [];
+  for (const subagent of input.subagents) {
+    const evaluator = await buildHookEvaluator(input, sink, tools, config.cursorStreamStallTimeoutMs, subagent);
+    subagentGraphs.push({
+      subagent,
+      mcpTools: toolsOf(tools.serverToolMap, subagent.servers),
+      approvalGate: gateConfigFor(evaluator),
+      shellEnv: isPlanMode ? undefined : buildShellEnv(subagent.values),
+    });
+  }
 
   const maxCostUsd = runConfig?.maxCostUsd ?? 0;
   const toolRoundLimit = resolveToolRoundLimit(runConfig?.maxToolRounds);
@@ -555,7 +591,8 @@ export async function buildEngine(
 
   await sink.reportProgress("Configuring sub-agents…");
   const compiledSubagents = await transformAndCompileSubagents({
-    subAgents: blueprint.subAgents,
+    pluginAgents: blueprint.pluginAgents,
+    subagents: subagentGraphs,
     parentMcpTools: tools.mcpTools,
     parentScope: toolScope,
     scopeBase,
@@ -680,17 +717,20 @@ function nativeBoundToolNames(options: { readonly shellCapable: boolean; readonl
 
 /**
  * What one graph of this turn has, for deciding whether a list entry names
- * anything: its native built-ins and the connected servers' live tools. The
- * platform's own servers are left out: no list can name them.
+ * anything: its native built-ins and the live tools of the servers it binds
+ * (`boundServers`; every connected server when absent). The platform's own
+ * servers are left out: no list can name them.
  */
 export function turnToolInventory(
   boundNames: readonly string[],
   tools: DeepAgentTools,
   platformServerSlugs: ReadonlySet<string>,
+  boundServers?: readonly { readonly slug: string }[],
 ): TurnToolInventory {
+  const bound = boundServers === undefined ? undefined : new Set(boundServers.map((server) => server.slug));
   const servers = new Map<string, Set<string>>();
   for (const [slug, serverTools] of tools.serverToolMap) {
-    if (platformServerSlugs.has(slug)) continue;
+    if (platformServerSlugs.has(slug) || (bound !== undefined && !bound.has(slug))) continue;
     servers.set(slug, new Set(serverTools.map((t) => t.name)));
   }
   return {
@@ -704,25 +744,26 @@ export function turnToolInventory(
 }
 
 /**
- * Check the agent's lists (and the turn's over them) and each declared
- * sub-agent's against what its graph binds: an entry naming nothing is logged, and a `tools` list that
- * resolves to nothing throws `ToolListResolutionError`. A sub-agent's graph
- * binds the parent's tools without the to-do list. Only a sub-agent the main
- * agent's `Agent(type, …)` admits is checked: one it keeps from compiling
+ * Check the agent's lists (and the turn's over them) and each subagent's
+ * against what its graph binds: an entry naming nothing is logged, and a
+ * `tools` list that resolves to nothing throws `ToolListResolutionError`.
+ * A subagent's graph binds no to-do list. Only a subagent the main agent's
+ * `Agent(type, …)` admits is checked: one it keeps from compiling
  * (`transformAndCompileSubagents` applies the same filter) can never run, so
  * its lists cannot refuse the turn.
  *
- * A sub-agent's lists are judged against the agent's layers alone, the
- * prefix of the main scope before the turn's (`mainToolScope` puts the
- * agent's first, and adds it only when it carries a list): the agent's
- * definition is what a sub-agent's lists are written against, so a turn
- * that narrows the agent, as an eval's read-only set does, never refuses
- * the turn over a sub-agent that lists only write or shell tools. The turn
- * still narrows what the sub-agent may use, since its graph runs under the
- * whole scope (`subAgentScope` over the parent's).
+ * A plugin subagent binds the parent's tools, and its lists are judged
+ * against the agent's layers alone, the prefix of the main scope before the
+ * turn's (`mainToolScope` puts the agent's first, and adds it only when it
+ * carries a list): the agent's definition is what they are written against,
+ * so a turn that narrows the agent, as an eval's read-only set does, never
+ * refuses the turn over a plugin subagent that lists only write or shell
+ * tools. The turn still narrows what it may use, since its graph runs
+ * under the whole scope. A saved subagent binds its own servers, and its
+ * own lists are judged against them alone, before the turn's cap.
  */
 export function checkTurnToolLists(
-  input: Pick<TurnInput, "mcp" | "blueprint">,
+  input: Pick<TurnInput, "mcp" | "blueprint" | "subagents">,
   tools: DeepAgentTools,
   parentScope: ToolScope,
   shellCapable: boolean,
@@ -730,15 +771,20 @@ export function checkTurnToolLists(
   const log = (line: string): void => console.warn(`[turn-setup] ${line}`);
   const { platformServerSlugs } = input.mcp;
   const parentNames = nativeBoundToolNames({ shellCapable, todos: true });
-  checkMainToolListResolution(parentScope, turnToolInventory(parentNames, tools, platformServerSlugs), log);
-  const subAgentInventory = turnToolInventory(nativeBoundToolNames({ shellCapable, todos: false }), tools, platformServerSlugs);
+  checkMainToolListResolution(parentScope, turnToolInventory(parentNames, tools, platformServerSlugs, input.mcp.servers), log);
+  const subagentNames = nativeBoundToolNames({ shellCapable, todos: false });
+  const pluginAgentInventory = turnToolInventory(subagentNames, tools, platformServerSlugs, input.mcp.servers);
   const agentSpec = input.blueprint.agent?.spec;
   const agentHasLists = agentSpec !== undefined && (agentSpec.tools.length > 0 || agentSpec.disallowedTools.length > 0);
   const agentScope = parentScope.upTo(agentHasLists ? 1 : 0);
-  for (const subAgent of input.blueprint.subAgents) {
-    const hasLists = subAgent.tools.length > 0 || subAgent.disallowedTools.length > 0;
-    if (!hasLists || !parentScope.allowsSubAgentType(subAgent.name)) continue;
-    checkToolListResolution(subAgentScope(agentScope, subAgent), subAgentInventory, log);
+  for (const agent of input.blueprint.pluginAgents) {
+    const hasLists = agent.tools.length > 0 || agent.disallowedTools.length > 0;
+    if (!hasLists || !parentScope.allowsSubAgentType(agent.name)) continue;
+    checkToolListResolution(pluginSubagentScope(agentScope, agent).upTo(agentScope.depth + 1), pluginAgentInventory, log);
+  }
+  for (const subagent of input.subagents) {
+    if (!subagent.bringsOwn.lists || !parentScope.allowsSubAgentType(subagent.name)) continue;
+    checkToolListResolution(subagent.toolScope.upTo(1), turnToolInventory(subagentNames, tools, platformServerSlugs, subagent.servers), log);
   }
 }
 

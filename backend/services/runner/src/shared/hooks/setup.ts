@@ -12,7 +12,14 @@
  * built even in plan mode, where the agent has no shell, because hooks
  * still run there. A plugin's `${user_config.KEY}` resolves from that
  * plugin's own values (`RunValues.plugins`), never another plugin's or the
- * agent's; the agent's own block resolves from the agent's. One the run
+ * agent's; the agent's own block resolves from the agent's.
+ *
+ * A subagent's calls run the conversation's hooks, then the subagent's
+ * own. A source of the subagent's carries its values (`shellValues`): its
+ * own block resolves from them, and every command of the source runs in
+ * the subagent's shell environment instead of the agent's, so a
+ * subagent's hook never holds the agent's keys and the agent's never holds
+ * the subagent's. One the run
  * does not have refuses the turn, naming the variable and the plugin, and
  * so does a shell-form handler (every Cursor handler is one) when no `bash`
  * is on the hook's `PATH`. A hook that cannot run as
@@ -51,6 +58,8 @@ export interface HookSetupInput {
     readonly plugin: MountedPlugin | null;
     readonly format: HookFormatName;
     readonly groups: readonly HookGroup[];
+    /** A subagent's source: that subagent's values, which its own block reads and its commands run with (the module header). */
+    readonly shellValues?: Readonly<Record<string, string>>;
   }[];
   /** The run's values, per declarer (`TurnInput.values`). */
   readonly runValues: Pick<RunValues, "agent" | "tools" | "plugins">;
@@ -75,7 +84,7 @@ export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEva
   if (input.sources.length === 0) return null;
   const values = shellRunValues(input.runValues);
 
-  const sources: HookSourceGroups[] = input.sources.map(({ plugin, format, groups }) => {
+  const sources: HookSourceGroups[] = input.sources.map(({ plugin, format, groups, shellValues }) => {
     const who = plugin === null ? "A hook in the agent's own hooks block" : `A hook of the plugin '${plugin.slug}'`;
     const handlers = groups.filter((group) => isRunEvent(group.event, format)).flatMap((group) => group.handlers);
     if (format === "claude-code" && handlers.some((handler) => handler.args.length === 0 && handler.command.includes("${user_config."))) {
@@ -85,7 +94,7 @@ export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEva
       );
     }
     const options = new Map<string, string>();
-    const own = plugin === null ? values : (input.runValues.plugins.get(plugin.id) ?? {});
+    const own = plugin === null ? (shellValues ?? values) : (input.runValues.plugins.get(plugin.id) ?? {});
     for (const key of format === "claude-code" ? handlers.flatMap(userConfigKeys) : []) {
       const value = own[key];
       if (value === undefined) {
@@ -103,10 +112,11 @@ export async function buildHookEvaluator(input: HookSetupInput): Promise<HookEva
       }
       options.set(key, value);
     }
+    const env = shellValues === undefined ? {} : { env: buildShellEnv(shellValues) };
     return {
       source: plugin === null
-        ? { plugin: "", root: "", data: "", options }
-        : { plugin: plugin.slug, root: plugin.root, data: plugin.data, options, beforeRun: plugin.verify },
+        ? { plugin: "", root: "", data: "", options, ...env }
+        : { plugin: plugin.slug, root: plugin.root, data: plugin.data, options, beforeRun: plugin.verify, ...env },
       format,
       groups,
     };
