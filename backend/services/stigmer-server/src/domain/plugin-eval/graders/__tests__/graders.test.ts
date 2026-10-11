@@ -36,6 +36,7 @@ import type {
 import type { EvalFiles, EvalTrace } from "../../../score/eval/trace.js";
 import { gradeCheck, gradeChecks } from "../grade.js";
 import {
+  describeVoteAnswer,
   judgeTraceLines,
   readVote,
   referenceTranscript,
@@ -469,6 +470,24 @@ describe("the AI-graded checks", () => {
       readVote({ other: { result: "passed", reason: "ok" } }, "criteria"),
     ).toHaveProperty("refused");
     expect(readVote(undefined, "criteria")).toHaveProperty("refused");
+  });
+
+  it("describes a refused answer's shape for the log, never its reason's text (stigmer#2143)", () => {
+    expect(
+      describeVoteAnswer(
+        { criteria: { result: "PASS", reason: "secret words", extra: 1 } },
+        "criteria",
+      ),
+    ).toBe('keys ["result","reason","extra"]; result "PASS"; reason a string of 12 characters');
+    expect(describeVoteAnswer({ criteria: { result: 3, reason: null } }, "criteria")).toBe(
+      'keys ["result","reason"]; result a number; reason null',
+    );
+    expect(describeVoteAnswer({ criteria: { result: "x".repeat(100) } }, "criteria")).toBe(
+      `keys ["result"]; result "${"x".repeat(40)}…"; reason absent`,
+    );
+    expect(describeVoteAnswer({ criteria: ["passed"] }, "criteria")).toBe("an array");
+    expect(describeVoteAnswer({ other: {} }, "criteria")).toBe('no "criteria"; output keys ["other"]');
+    expect(describeVoteAnswer(undefined, "criteria")).toBe("no structured output");
   });
 
   it("renders a baseline's reference transcript, or names it missing", () => {

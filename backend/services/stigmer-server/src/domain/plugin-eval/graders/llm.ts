@@ -28,7 +28,7 @@
  * Proven by __tests__/graders.test.ts.
  */
 import { renderTranscript } from "@stigmer/eval-runtime";
-import type { JsonObject } from "@bufbuild/protobuf";
+import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 
 import type {
   EvalGrader,
@@ -245,6 +245,63 @@ export function readVote(
     passed: verdict.result === CriterionResult.passed,
     reason: verdict.reason,
   };
+}
+
+/** The longest result value, and object key, a refused answer's description quotes. */
+const DESCRIBED_VALUE_MAX = 40;
+
+/** At most this many keys are named. */
+const DESCRIBED_KEYS_MAX = 8;
+
+/**
+ * A refused vote's answer described for the server's log: its keys, its
+ * result value, and its reason's type and length, never the reason's text.
+ * The strict reader names only that the answer is wrong; this says how, so
+ * a refusal seen on a real judge model can be told apart from the others
+ * (stigmer#2143).
+ */
+export function describeVoteAnswer(
+  output: JsonObject | undefined,
+  rubric: string,
+): string {
+  if (output === undefined) {
+    return "no structured output";
+  }
+  const answer = output[rubric];
+  if (answer === undefined) {
+    return `no ${JSON.stringify(rubric)}; output keys ${keysOf(output)}`;
+  }
+  if (Array.isArray(answer)) {
+    return "an array";
+  }
+  if (typeof answer !== "object" || answer === null) {
+    return kindOf(answer);
+  }
+  const result = answer["result"];
+  const reason = answer["reason"];
+  return [
+    `keys ${keysOf(answer)}`,
+    `result ${typeof result === "string" ? JSON.stringify(quoted(result)) : kindOf(result)}`,
+    `reason ${typeof reason === "string" ? `a string of ${reason.length} characters` : kindOf(reason)}`,
+  ].join("; ");
+}
+
+function keysOf(value: JsonObject): string {
+  return JSON.stringify(Object.keys(value).slice(0, DESCRIBED_KEYS_MAX).map(quoted));
+}
+
+function quoted(text: string): string {
+  return text.length <= DESCRIBED_VALUE_MAX ? text : `${text.slice(0, DESCRIBED_VALUE_MAX)}…`;
+}
+
+function kindOf(value: JsonValue | undefined): string {
+  if (value === undefined) {
+    return "absent";
+  }
+  if (value === null) {
+    return "null";
+  }
+  return `a ${typeof value}`;
 }
 
 /** The grader's verdict from its votes: two decide (the module header). */
