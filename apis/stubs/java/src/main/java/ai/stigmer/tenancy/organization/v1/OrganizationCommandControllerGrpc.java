@@ -270,8 +270,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
-     * included.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
+     * LICENSE_RENEWAL_REQUIRED included.
      * </pre>
      */
     default void apply(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -324,6 +324,13 @@ public final class OrganizationCommandControllerGrpc {
      * "stigmer.ai"), before anything is written:
      *   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
      *     as it is composed to. Metadata: limit.
+     * On Stigmer Enterprise, a new organization is growth the server's
+     * license pays for. Once the license and its grace period have ended, a
+     * create is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+     *     organization that exists keeps working. No metadata.
      * </pre>
      */
     default void create(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -444,8 +451,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
-     * included.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
+     * LICENSE_RENEWAL_REQUIRED included.
      * </pre>
      */
     public void apply(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -499,6 +506,13 @@ public final class OrganizationCommandControllerGrpc {
      * "stigmer.ai"), before anything is written:
      *   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
      *     as it is composed to. Metadata: limit.
+     * On Stigmer Enterprise, a new organization is growth the server's
+     * license pays for. Once the license and its grace period have ended, a
+     * create is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+     *     organization that exists keeps working. No metadata.
      * </pre>
      */
     public void create(ai.stigmer.tenancy.organization.v1.Organization request,
@@ -610,8 +624,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
-     * included.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
+     * LICENSE_RENEWAL_REQUIRED included.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization apply(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -664,6 +678,13 @@ public final class OrganizationCommandControllerGrpc {
      * "stigmer.ai"), before anything is written:
      *   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
      *     as it is composed to. Metadata: limit.
+     * On Stigmer Enterprise, a new organization is growth the server's
+     * license pays for. Once the license and its grace period have ended, a
+     * create is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+     *     organization that exists keeps working. No metadata.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization create(ai.stigmer.tenancy.organization.v1.Organization request) throws io.grpc.StatusException {
@@ -770,8 +791,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
-     * included.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
+     * LICENSE_RENEWAL_REQUIRED included.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization apply(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -824,6 +845,13 @@ public final class OrganizationCommandControllerGrpc {
      * "stigmer.ai"), before anything is written:
      *   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
      *     as it is composed to. Metadata: limit.
+     * On Stigmer Enterprise, a new organization is growth the server's
+     * license pays for. Once the license and its grace period have ended, a
+     * create is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+     *     organization that exists keeps working. No metadata.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organization create(ai.stigmer.tenancy.organization.v1.Organization request) {
@@ -930,8 +958,8 @@ public final class OrganizationCommandControllerGrpc {
     /**
      * <pre>
      * Create or update an organization.
-     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
-     * included.
+     * Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
+     * LICENSE_RENEWAL_REQUIRED included.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> apply(
@@ -985,6 +1013,13 @@ public final class OrganizationCommandControllerGrpc {
      * "stigmer.ai"), before anything is written:
      *   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
      *     as it is composed to. Metadata: limit.
+     * On Stigmer Enterprise, a new organization is growth the server's
+     * license pays for. Once the license and its grace period have ended, a
+     * create is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+     *     organization that exists keeps working. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organization> create(

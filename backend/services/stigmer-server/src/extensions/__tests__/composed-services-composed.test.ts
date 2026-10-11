@@ -11,7 +11,9 @@
  *     authorization, the built-in Authorizer, list scope and policy check;
  *     in every posture, the identity accounts' store binding and the one
  *     create path, through which a unit provisions a federated account at
- *     its provider-and-subject address.
+ *     its provider-and-subject address; and the policy store binding's
+ *     reads, the registered driver where a unit registered one and open
+ *     source's adapter over the composition's store otherwise.
  *   - `start` runs in unit order, first in `start()`, before the server
  *     reports SERVING; a failing start fails `start()`, naming its unit.
  *   - An edition above open source with no sign-in is refused at boot,
@@ -36,10 +38,15 @@ import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
 import { federatedAccountIdFor } from "../../domain/identityaccount/constants.js";
+import { policyIdFor } from "../../domain/iampolicy/constants.js";
+import { newResourceIamPolicyStore } from "../../domain/iampolicy/resource-store.js";
+import type { IamPolicyStore } from "../../domain/iampolicy/store.js";
 import { serverActingFor } from "../../pipeline/interceptors/auth.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../pipeline/steps/authorize.js";
 import { platformTokenKeyRingFromPem } from "../../platformtoken/key-ring.js";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
+import { IamPolicySpecSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
 import { BOUND_ELSEWHERE_DENY_REASON } from "../../authorization/credential-binding.js";
 import type { AuthorizationQueryEngine } from "../authorization-queries.js";
@@ -151,6 +158,18 @@ describe("onComposed: a unit receives the composition's own instances", () => {
       onResourceDeleted: () => Promise.resolve(),
       onVisibilityChanged: () => Promise.resolve(),
     };
+    const policies: IamPolicyStore = {
+      save: () => Promise.resolve(),
+      deleteById: () => Promise.resolve(),
+      findById: () => Promise.resolve(undefined),
+      findByPrincipal: () => Promise.resolve([]),
+      findByResource: () => Promise.resolve([]),
+      findByPrincipalAndResource: () => Promise.resolve([]),
+      findByResourceWithRelations: () => Promise.resolve([]),
+      countDistinctPrincipalsByResource: () => Promise.resolve(0),
+      findByResourceKindAndRelation: () => Promise.resolve([]),
+      findScopeTuple: () => Promise.resolve(undefined),
+    };
     let received: ComposedServices | undefined;
     const server = await compose([
       {
@@ -165,6 +184,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
           listReadScope,
           authorizationQueries: queries,
           resourceAuthorizationLifecycle: lifecycle,
+          iamPolicyStore: policies,
           resourceRowReaders: new Map([
             [ApiResourceKind.identity_provider, noRows],
             [ApiResourceKind.invitation, noRows],
@@ -214,6 +234,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
     expect(received?.authorizationQueries).toBe(queries);
     expect(received?.resourceAuthorizationLifecycle).toBe(lifecycle);
     expect(received?.inProcessTransport).toBe(server.inProcessTransport);
+    expect(received?.iamPolicies).toBe(policies);
   });
 
   it("under open source's own authorization hands the built-in Authorizer, list scope and policy check, and no lifecycle", async () => {
@@ -275,6 +296,46 @@ describe("onComposed: a unit receives the composition's own instances", () => {
       )?.metadata?.id,
     ).toBe(created.metadata?.id);
     expect(await accounts.store.findDirectByIdpId("okta|dana")).toBeUndefined();
+  });
+});
+
+describe("onComposed: the policy store binding under open source's own authorization", () => {
+  it("hands open source's adapter over the composition's own store, so a row the grant path writes is the row the unit reads", async () => {
+    let received: ComposedServices | undefined;
+    const server = await compose([
+      enterpriseUnit({
+        onComposed: (composed) => {
+          received = composed;
+        },
+      }),
+    ]);
+    const policies = received?.iamPolicies;
+    if (policies === undefined) {
+      throw new Error("the unit received no policy store");
+    }
+    const spec = create(IamPolicySpecSchema, {
+      principal: { kind: "organization", id: "org_acme" },
+      resource: { kind: "team", id: "tem_acme" },
+      relation: "organization",
+    });
+    const id = policyIdFor(spec);
+    await newResourceIamPolicyStore(server.store).save(
+      create(IamPolicySchema, { metadata: { id }, spec }),
+    );
+
+    expect(
+      (await policies.findByResource("team", "tem_acme")).map(
+        (policy) => policy.metadata?.id,
+      ),
+    ).toEqual([id]);
+    expect((await policies.findScopeTuple("team", "tem_acme"))?.metadata?.id).toBe(
+      id,
+    );
+    expect(
+      (await policies.findByResourceKindAndRelation("team", "organization")).map(
+        (policy) => policy.metadata?.id,
+      ),
+    ).toEqual([id]);
   });
 });
 
