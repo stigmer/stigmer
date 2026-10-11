@@ -1,9 +1,11 @@
 /**
  * Agent controller — ports pkg/domain/agent/controller (command + query
  * sides): the agent BLUEPRINT surface. A conversation names an agent
- * directly (session spec.agent_ref); delete cascades same-org shares
- * before the agent row, and leaves the sessions that pin it, whose next
- * turn fails naming the agent that is gone. There is no default agent to
+ * directly (session spec.agent_ref); delete is refused while another
+ * agent lists this one as a subagent, cascades same-org shares before the
+ * agent row, and leaves the sessions that pin it, whose next turn fails
+ * naming the agent that is gone. Create and update pin each subagent the
+ * agent lists (subagents.ts). There is no default agent to
  * serve: a session with no agent runs the built-in assistant.
  *
  * Agents are versioned (versions.ts): every create and update hashes the
@@ -68,6 +70,10 @@ import {
   newAuthorizeResolvedTargetStep,
 } from "../../pipeline/steps/authorize-resolved-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
+import {
+  UNLISTED_AGENT,
+  newGuardUnlistedStep,
+} from "../../pipeline/steps/guard-unlisted.js";
 import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
@@ -145,6 +151,10 @@ import {
 } from "./versions.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import { newValidateAgentRunConfigStep } from "./validate-run-config.js";
+import {
+  newPinSubagentsStep,
+  newValidateSubagentListStep,
+} from "./subagents.js";
 
 export interface AgentControllerDeps {
   readonly store: Store;
@@ -216,8 +226,10 @@ async function createAgent(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateHooksStep())
+    .addStep(newValidateSubagentListStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())
@@ -262,8 +274,10 @@ async function update(
     .addStep(newBuildUpdateStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateHooksStep())
+    .addStep(newValidateSubagentListStep())
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())
@@ -315,7 +329,9 @@ async function apply(
 }
 
 /**
- * Delete — cascades children before the parent (delete_cascade.go):
+ * Delete — refused while another agent of the organization lists this
+ * one in its subagents (GuardUnlisted, naming them); then cascades
+ * children before the parent (delete_cascade.go):
  * same-org shares and the agent's evaluator, each one's access cleaned with
  * its row, then the agent's version rows (best-effort), the agent row, its
  * access and its index entry. Returns the deleted agent (the audit-trail
@@ -342,6 +358,12 @@ async function deleteAgent(
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, AgentSchema))
+    .addStep(
+      newGuardUnlistedStep<typeof AgentCommandController.method.delete.input>(
+        deps.store,
+        UNLISTED_AGENT,
+      ),
+    )
     .addStep(
       newCascadeDeleteSharesStep(
         deps.store,

@@ -58,6 +58,14 @@ import {
   serverFactsOf,
   unreadableRowError as unreadableRetiredServerRowError,
 } from "../mcp-server-retired.js";
+import {
+  SUB_AGENT_RETIREMENT_AGENT_KIND,
+  SUB_AGENT_RETIREMENT_PAGE_SIZE,
+  SUB_AGENT_RETIREMENT_SESSION_KIND,
+  repinSessionRow,
+  retireSubAgentsInAgentRow,
+  unreadableSubAgentRowError,
+} from "../sub-agents-retired.js";
 
 import {
   AGENT_KIND,
@@ -179,8 +187,11 @@ export const SCHEMA_VERSION_20 = 20;
 /** v21: the MCP server rows removed; a plugin's parts became its plugins; a connect attempt names a plugin's server. */
 export const SCHEMA_VERSION_21 = 21;
 
+/** v22: the sub-agents written inside agents removed, each logged as an agent manifest. */
+export const SCHEMA_VERSION_22 = 22;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_21;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_22;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -242,6 +253,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_19, migrateToV19],
       [SCHEMA_VERSION_20, migrateToV20],
       [SCHEMA_VERSION_21, (migrating) => migrateToV21(migrating, logger)],
+      [SCHEMA_VERSION_22, (migrating) => migrateToV22(migrating, logger)],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1523,4 +1535,76 @@ async function migrateToV21(client: PoolClient, logger: StoreLogger): Promise<vo
     CREATE INDEX idx_connect_attempt_org ON connect_attempt (org);
     CREATE INDEX idx_connect_attempt_expires ON connect_attempt (expires_at);
   `);
+}
+
+/**
+ * v22: a subagent is a saved agent the parent lists
+ * (../sub-agents-retired.ts says what each row becomes and why a sub-agent
+ * is logged rather than created). Every agent holding sub-agents written
+ * inside it loses them, as a new current version archived like any saved
+ * one, and each one is logged as an agent manifest; every session on a
+ * changed agent moves to its new version. The SQLite driver's v27 in this
+ * engine's terms. Runs inside applyInTransaction's BEGIN.
+ */
+async function migrateToV22(client: PoolClient, logger: StoreLogger): Promise<void> {
+  const forEachRow = async (
+    kind: string,
+    visit: (row: { id: string; data: Uint8Array }) => Promise<void>,
+  ): Promise<void> => {
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources WHERE kind = $1 AND id > $2 ORDER BY id LIMIT $3`,
+          [kind, after, SUB_AGENT_RETIREMENT_PAGE_SIZE],
+        )
+      ).rows;
+      for (const row of rows) {
+        try {
+          await visit({ id: row.id, data: new Uint8Array(row.data) });
+        } catch (error) {
+          throw unreadableSubAgentRowError(kind, row.id, error);
+        }
+      }
+      if (rows.length < SUB_AGENT_RETIREMENT_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+  const update = async (kind: string, id: string, data: Uint8Array): Promise<void> => {
+    await client.query(
+      `UPDATE resources SET data = $1, updated_at = now() WHERE kind = $2 AND id = $3`,
+      [Buffer.from(data), kind, id],
+    );
+  };
+
+  const repinned = new Map<string, string>();
+  await forEachRow(SUB_AGENT_RETIREMENT_AGENT_KIND, async (row) => {
+    const migrated = retireSubAgentsInAgentRow(row.data, logger);
+    if (migrated === undefined) {
+      return;
+    }
+    await update(SUB_AGENT_RETIREMENT_AGENT_KIND, row.id, migrated.data);
+    const archived = await client.query(
+      `SELECT 1 FROM resource_audit WHERE kind = $1 AND resource_id = $2 AND version_hash = $3 LIMIT 1`,
+      [SUB_AGENT_RETIREMENT_AGENT_KIND, row.id, migrated.versionHash],
+    );
+    if (archived.rowCount === 0) {
+      await client.query(
+        `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag, archived_at)
+         VALUES ($1, $2, $3, $4, '', now())`,
+        [SUB_AGENT_RETIREMENT_AGENT_KIND, row.id, Buffer.from(migrated.data), migrated.versionHash],
+      );
+    }
+    repinned.set(row.id, migrated.versionHash);
+  });
+  if (repinned.size === 0) {
+    return;
+  }
+  await forEachRow(SUB_AGENT_RETIREMENT_SESSION_KIND, async (row) => {
+    const migrated = repinSessionRow(row.data, repinned);
+    if (migrated !== undefined) {
+      await update(SUB_AGENT_RETIREMENT_SESSION_KIND, row.id, migrated);
+    }
+  });
 }
