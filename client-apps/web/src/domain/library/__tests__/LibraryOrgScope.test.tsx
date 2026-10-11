@@ -69,6 +69,10 @@ vi.mock("@/domain/library/library-navigation", () => ({
   useRouteDetailYieldsToOverlay: () => false,
 }));
 
+vi.mock("@/domain/runs/run-navigation", () => ({
+  useRunNavigation: () => ({ navigateToRun: () => undefined }),
+}));
+
 vi.mock("@/config/env", () => ({
   getAppBaseUrl: () => "https://console.test",
 }));

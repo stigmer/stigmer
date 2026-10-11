@@ -1,95 +1,95 @@
 ---
-title: Test an agent with its plugins' evals
+title: Test an Agent with its plugins' evals
 description:
-  Run the evals/ test cases of the plugins an agent uses on the agent itself,
+  Run the evals/ test cases of the plugins an Agent uses on the Agent itself,
   from the console or the CLI; know which versions run, the one arm, the default
   model and the tools a try may use, who sees the results and who pays; and
-  compare two versions of the agent.
+  compare two versions of the Agent.
 ---
 
 A plugin carries its own test cases, in Claude Code's plugin-eval format (see
 [Test a plugin with evals](/docs/guides/plugins/test-a-plugin-with-evals)). An
-agent that uses plugins can be measured on those same cases: each plugin's cases
-run on **your agent**, with its own instructions, Skills and subagents, so you
-see how the agent handles what each plugin was built for.
+Agent that uses plugins can be measured on those same cases: each plugin's cases
+run on **your Agent**, with its own instructions, Skills and subagents, so you
+see how the Agent handles what each plugin was built for.
 
-An **Agent Eval** runs the cases of every plugin the agent uses, several times
-each, on the agent's own model or on the models you name. For each plugin and
+An **Agent Eval** runs the cases of every plugin the Agent uses, several times
+each, on the Agent's own model or on the models you name. For each plugin and
 each case you get the score and whether every try passed, and every try is a
-real conversation. The eval is stamped with the agent's version, so after you
-change the agent's instructions you run it again and compare the two, case by
+real conversation. The eval is stamped with the Agent's version, so after you
+change the Agent's instructions you run it again and compare the two, case by
 case: "the refund cases went from 0.8 to 1.0, the tracker cases stayed at 0.9."
 
-An agent has no test cases of its own: the cases stay in the plugins. An agent
+An Agent has no test cases of its own: the cases stay in the plugins. An Agent
 that uses no plugin has nothing to run.
 
 ## What runs, and at which versions
 
-The eval runs the agent at one version: its current version, unless you name
+The eval runs the Agent at one version: its current version, unless you name
 another by its tag or its version hash. Each plugin runs at the version the
-agent uses it at: the version the agent's reference names, or, when it names
+Agent uses it at: the version the Agent's reference names, or, when it names
 none, the version installed when the eval starts. The eval records each one.
 
 Every try runs at those versions to the end of the eval. Saving a new version of
-the agent, or updating a plugin, while the eval runs does not change the tries
-still to come: a try pins the agent and every plugin it uses, as an open
-conversation keeps the agent version it started on.
+the Agent, or updating a plugin, while the eval runs does not change the tries
+still to come: a try pins the Agent and every plugin it uses, as an open
+conversation keeps the Agent version it started on.
 
-Each case runs in one arm: the agent with all its plugins. There is no
+Each case runs in one arm: the Agent with all its plugins. There is no
 without-plugin comparison and no `Δ`: the plugin's own eval measures what the
 plugin adds on the Assistant. A case passes when its score reaches the
 threshold, 1.0 by default, and **pass^k** tells you whether every one of its
 tries scored 1.0.
 
-A plugin's cases were written for the plugin. On an agent with its own
-instructions, a case can fail because the agent was told to do something else.
-That is a finding about your agent, and when a case does not apply to it, leave
+A plugin's cases were written for the plugin. On an Agent with its own
+instructions, a case can fail because the Agent was told to do something else.
+That is a finding about your Agent, and when a case does not apply to it, leave
 the case out with the case filters (`--case`, `--tag`).
 
 ## The model, and the tools a try may use
 
-With no model named, each try runs the agent as it runs in a conversation: on
-its own engine and model, with its own speed tier and thinking setting. A model
-named in the case's own files is not used, and the case notes so.
+With no model named, each try runs the Agent as it runs in a conversation: on
+its own engine, model, speed tier, and thinking setting. A model named in the
+case's own files is not used, and the case notes so.
 
 When you name models, each case runs on each of them instead. A try that names a
-model runs without the agent's tier and thinking choices, as any conversation
-that names a model does, so for the agent as its users meet it, leave the model
-to the agent.
+model runs without the Agent's tier and thinking choices, as any conversation
+that names a model does, so for the Agent as its users meet it, leave the model
+to the Agent.
 
 A try may use the tools its case grants within the format's read-only set, plus
-the tools the eval allows, within the agent's own tool lists. That is the rule
+the tools the eval allows, within the Agent's own tool lists. That is the rule
 of every plugin eval: the cases' checks were written for that setting, and no
-try stops to ask for approval. So the agent's Skills, its hand-offs to
+try stops to ask for approval. So the Agent's Skills, its hand-offs to
 subagents, and any other tool it works with run in a try only when the case
 lists them or the eval allows them: name them in **Allowed tools**
 (`--allow-tools Skill Agent`), and the case's notes name each tool it asked for
 and did not get.
 
 The MCP servers of the case's own plugin follow its mocks, as in a plugin eval.
-The servers of the agent's other plugins are off in that case's tries, unless
+The servers of the Agent's other plugins are off in that case's tries, unless
 the eval runs real servers: a try never acts through a connection its case did
 not mock.
 
 ## Start an eval in the console
 
-On the agent's page, open the **Evals** tab. **Run evals** is shown to people
-who can edit the agent. It holds the models (none runs the agent as it runs),
-tries per case, which of the agent's plugins to run (all by default), the cost
-limit, and the allowed tools. An agent that uses no plugin shows why there is
+On the Agent's page, open the **Evals** tab. **Run evals** is shown to people
+who can edit the Agent. It holds the models (none runs the Agent as it runs),
+tries per case, which of the Agent's plugins to run (all by default), the cost
+limit, and the allowed tools. An Agent that uses no plugin shows why there is
 nothing to run.
 
-Each past eval is listed with the agent version it ran and its overall score. An
+Each past eval is listed with the Agent version it ran and its overall score. An
 eval's results show one section per plugin, with the plugin version its tries
 ran, each case's score, pass^k and tries, and every try links to its
-conversation. **Compare** puts two evals of the agent side by side, case by
-case, labelled with both agent versions, and marks a plugin whose version
+conversation. **Compare** puts two evals of the Agent side by side, case by
+case, labelled with both Agent versions, and marks a plugin whose version
 differs between the two, since a plugin updated between two evals changes its
-cases' scores as well as the agent does.
+cases' scores as well as the Agent does.
 
 ## Start an eval from the CLI
 
-Name the agent, and a version after `@` when you want one other than its current
+Name the Agent, and a version after `@` when you want one other than its current
 version:
 
 ```bash
@@ -99,12 +99,12 @@ stigmer agent eval support-desk --plugin refund-policy --runs 5
 ```
 
 The command creates the eval, follows it, and prints one table per plugin and
-model, headed by the agent's version and each plugin's version. It takes the
+model, headed by the Agent's version and each plugin's version. It takes the
 plugin eval's options (`--case`, `--tag`, `--runs`, `--model`, `--threshold`,
 `--max-cost-usd`, `--concurrency`, `--allow-tools`, `--judge-model`, `--mocks`,
 `--real-mcp-servers`, `--allow-real-servers`, `--no-scaffold`, `--json`,
 `--no-wait`), without `--ablation`, plus `--plugin <slug>`, repeated to run only
-some of the agent's plugins. The exit codes are the plugin eval's.
+some of the Agent's plugins. The exit codes are the plugin eval's.
 
 ```bash
 stigmer agent eval cancel aev_01j9...
@@ -114,27 +114,27 @@ stigmer delete agent-eval aev_01j9...
 
 Cancelling stops the tries in flight and keeps the results of the tries that
 finished. Delete refuses an eval that is still running; deleting one deletes its
-tries' conversations, runs and scores, and deleting the agent deletes its evals.
+tries' conversations, runs and scores, and deleting the Agent deletes its evals.
 
-`--json` writes the result file: the agent and its version, the eval's totals,
+`--json` writes the result file: the Agent and its version, the eval's totals,
 and one block per plugin, each in the plugin eval's result-file shape for that
 plugin's cases, so a script that gates on a plugin eval's file reads
 `plugins[i]` unchanged.
 
 ## Who sees an eval, and who pays
 
-The agent's editors start, cancel and delete its evals. The agent's viewers in
+The Agent's editors start, cancel, and delete its evals. The Agent's viewers in
 its own Organization read them. A viewer in a child Organization, who can use a
-parent's shared agent, does not see its evals: a try spends the Organization's
+parent's shared Agent, does not see its evals: a try spends the Organization's
 money and may act with its connections.
 
-In Stigmer Cloud every viewer of the agent in its Organization opens each try's
+In Stigmer Cloud every viewer of the Agent in its Organization opens each try's
 conversation, read-only. In self-hosted open source the tries belong to the
-eval's creator, and the agent's other viewers read the eval, its results and
-each try's scores. Tries are kept out of the conversation lists, the agent's own
+eval's creator, and the Agent's other viewers read the eval, its results and
+each try's scores. Tries are kept out of the conversation lists, the Agent's own
 included.
 
-The agent's Organization pays for every try and every AI-graded check, on its
-own provider keys. A try is a run of the agent, so it counts in the agent's
+The Agent's Organization pays for every try and every AI-graded check, on its
+own provider keys. A try is a run of the Agent, so it counts in the Agent's
 usage. The vaults an eval names are shared vaults, as for a plugin eval, and the
 cost limit works the same way.

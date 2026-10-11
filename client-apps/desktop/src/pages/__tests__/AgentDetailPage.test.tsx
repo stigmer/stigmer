@@ -15,6 +15,11 @@
  * screen on the agent itself (no instance to bind), and Delete warns that
  * conversations on the agent cannot continue, in the same words as the
  * agents list's row Delete, deleting only once confirmed.
+ *
+ * And pins how an eval try's run opens from the Evals tab: a run is viewed
+ * through its parent session, so the page resolves the run first and
+ * navigates to `/sessions/<id>` only once the session is known; until then
+ * it stays put, as the plugin page does.
  */
 import type { ReactElement } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -55,6 +60,7 @@ interface DetailProps {
   onPluginClick: (ref: { org: string; slug: string }) => void;
   onAgentClick: (ref: { org: string; slug: string }) => void;
   buildShareUrl: (shareId: string) => string;
+  onNavigateToRun: (runId: string) => void;
 }
 
 const page = vi.hoisted(() => ({
@@ -63,6 +69,8 @@ const page = vi.hoisted(() => ({
   confirmed: false,
   confirmations: [] as ConfirmRequest[],
   deletes: 0,
+  resolving: [] as Array<string | null>,
+  sessionFor: new Map<string, string>(),
 }));
 
 const ACME_ID = "org_01jaaaaaaaaaaaaaaaaaaaaaaa";
@@ -99,6 +107,10 @@ vi.mock("@stigmer/react", () => ({
   // The person's organizations: their one org reads "acme" in a URL.
   useOrgSlugForId: () => (id: string) =>
     id === "org_01jaaaaaaaaaaaaaaaaaaaaaaa" ? "acme" : id,
+  useResolveRunSession: (runId: string | null) => {
+    page.resolving.push(runId);
+    return { sessionId: runId === null ? null : (page.sessionFor.get(runId) ?? null) };
+  },
 }));
 
 import AgentDetailPage from "../library/AgentDetailPage";
@@ -134,6 +146,8 @@ beforeEach(() => {
   page.confirmed = false;
   page.confirmations.length = 0;
   page.deletes = 0;
+  page.resolving.length = 0;
+  page.sessionFor.clear();
 });
 
 describe("desktop AgentDetailPage — the Channels tab", () => {
@@ -261,5 +275,34 @@ describe("desktop AgentDetailPage — actions", () => {
 
     expect(page.deletes).toBe(1);
     expect(screen.getByTestId("location").textContent).toBe("/library/agents");
+  });
+});
+
+describe("desktop AgentDetailPage — an eval try's run", () => {
+  function openRun(runId: string): void {
+    const view = page.detail.at(-1);
+    expect(view, "AgentDetailView was never rendered").toBeDefined();
+    act(() => view!.onNavigateToRun(runId));
+  }
+
+  it("opens the run's session once it resolves", () => {
+    page.agent = AGENT;
+    page.sessionFor.set("run_1", "ses_1");
+    renderAgent();
+
+    openRun("run_1");
+
+    expect(page.resolving).toContain("run_1");
+    expect(screen.getByTestId("location").textContent).toBe("/sessions/ses_1");
+  });
+
+  it("stays on the agent while the run's session is not yet known", () => {
+    page.agent = AGENT;
+    renderAgent();
+
+    openRun("run_unresolved");
+
+    expect(page.resolving).toContain("run_unresolved");
+    expect(screen.getByTestId("location").textContent).toBe("/library/agents/acme/helper");
   });
 });

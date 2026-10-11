@@ -5,7 +5,8 @@
  * cannot continue, in the same words as the agents list's row Delete, and
  * deletes and returns to the list only once the person confirms. The detail view, the confirm dialog and the delete hook
  * are pinned in @stigmer/react; this file pins only the page's wiring.
- * A listed subagent opens the agents detail for its org and slug.
+ * A listed subagent opens the agents detail for its org and slug, and an
+ * eval try's run, from the Evals tab, opens through run navigation.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render } from "@testing-library/react";
@@ -33,6 +34,8 @@ const page = vi.hoisted(() => ({
   confirmations: [] as ConfirmRequest[],
   deletes: 0,
   agentClicks: [] as ((ref: ResourceRef) => void)[],
+  runOpeners: [] as ((runId: string) => void)[],
+  openedRuns: [] as string[],
   details: [] as string[][],
 }));
 
@@ -46,10 +49,12 @@ vi.mock("@stigmer/react", () => {
       primaryAction: Action;
       actions: Action[];
       onAgentClick: (ref: ResourceRef) => void;
+      onNavigateToRun: (runId: string) => void;
     }) => {
       page.primary.push(props.primaryAction);
       page.actions.push(props.actions);
       page.agentClicks.push(props.onAgentClick);
+      page.runOpeners.push(props.onNavigateToRun);
       return null;
     },
     useAgent: () => ({ agent: null, refetch: () => undefined }),
@@ -98,6 +103,14 @@ vi.mock("@/domain/library/library-navigation", () => ({
   useRouteDetailYieldsToOverlay: () => false,
 }));
 
+vi.mock("@/domain/runs/run-navigation", () => ({
+  useRunNavigation: () => ({
+    navigateToRun: (id: string) => {
+      page.openedRuns.push(id);
+    },
+  }),
+}));
+
 vi.mock("@/config/env", () => ({
   getAppBaseUrl: () => "https://console.test",
 }));
@@ -119,6 +132,8 @@ beforeEach(() => {
   page.confirmations.length = 0;
   page.deletes = 0;
   page.agentClicks.length = 0;
+  page.runOpeners.length = 0;
+  page.openedRuns.length = 0;
   page.details.length = 0;
 });
 
@@ -169,5 +184,16 @@ describe("web AgentDetailPage subagents", () => {
     act(() => page.agentClicks.at(-1)?.({ org: "org_01jaaaaaaaaaaaaaaaaaaaaaaa", slug: "researcher" }));
 
     expect(page.details).toEqual([["agents", "org_01jaaaaaaaaaaaaaaaaaaaaaaa", "researcher"]]);
+  });
+});
+
+describe("web AgentDetailPage evals", () => {
+  it("opens an eval try's run through run navigation", () => {
+    render(<AgentDetailPageInner org="acme" slug="helper" />);
+
+    act(() => page.runOpeners.at(-1)?.("run_1"));
+
+    expect(page.openedRuns).toEqual(["run_1"]);
+    expect(page.pushed).toEqual([]);
   });
 });
