@@ -3,18 +3,19 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { ResourceRef, Stigmer } from "@stigmer/sdk";
+import { GetMyVaultInputSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/io_pb";
 import type { EnvVarInput } from "../vault/types.js";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import { GetOAuthGrantStatusInputSchema, OAuthConnectionHealth } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { useMyVault } from "../vault/useMyVault.js";
 import { valuesOf } from "../vault/types.js";
 import { toolLoginKeyOf, vaultLoginServes } from "../vault/address.js";
 import { MY_VAULT_ONLY, conversationVaultsKey, type ConversationVaults } from "../vault/conversationVaults.js";
+import { pluginDeclarations, readPlugins, serversOf, signInKeys, signInServers } from "../plugin/pluginRequirements.js";
 import { useOrganizationId } from "./usePersonalKeys.js";
 import { diffEnv } from "../vault/diffEnv.js";
 import {
@@ -27,80 +28,54 @@ import {
   type PendingSignIn,
 } from "./agentSetupReducer.js";
 
-/** What the agent's MCP servers say about its readiness. */
-interface ServerReadings {
-  /** Every MCP server the agent uses, as read. */
-  readonly servers: McpServer[];
-  /** The servers nobody in the organization has signed in to. */
+/** What the agent's plugins say about its readiness. */
+interface PluginReadings {
+  /** Every MCP server of the plugins the agent lists. */
+  readonly servers: McpServerEntry[];
+  /** The servers that sign in and have no login where the run reads, one per address. */
   readonly pendingSignIns: PendingSignIn[];
+  /** The keys the plugins' servers and hooks read, with their declarations. */
+  readonly declarations: Record<string, EnvVarDeclaration>;
   /**
-   * Every `spec.auth.targetEnvVar` among the agent's servers, connected or
-   * not: the variables a sign-in fills and the composer never asks for.
+   * The login key of every server that signs in, signed in or not: the
+   * variables a sign-in fills and the composer never asks for.
    */
   readonly signInVariables: ReadonlySet<string>;
 }
 
 /**
- * Reads the agent's MCP servers once, and judges its OAuth servers. The
- * rule is the composer's own MCP path's (`useMcpServerSetup`): a server
- * whose `spec.auth.targetEnvVar` is set is satisfied by a login in a vault
- * the run reads; a grant read that fails leaves it pending, fail-closed, so
- * the row offers Sign in rather than pretending; a server that cannot be
- * read is the resolution's error, thrown to the caller's catch.
+ * Reads the plugins the agent lists once, and judges their servers that
+ * sign in: such a server is satisfied by a login at its address in a vault
+ * the run reads ({@link vaultLoginServes}, the run's own rule: a sign-in
+ * and a pasted login alike, whichever page saved it). A plugin that cannot
+ * be read is the resolution's error, thrown to the caller's catch.
  *
  * `readVaults` are the vaults the run reads, as the person can see them
  * (My vault first when the conversation includes it, then the listed
- * vaults); a login in any of them that serves the server counts
- * ({@link vaultLoginServes}). `readsMyVault` says whether My vault's grant
- * is consulted too: it reports only a sign-in made for that very server,
- * and a grant whose token expired keeps the server pending whatever else
- * holds a login, because the run meets that sign-in in My vault first.
- * Every sign-in still owed is saved in My vault.
+ * vaults). Every sign-in still owed is saved in My vault.
  */
-async function readServers(
+async function readAgentPlugins(
   stigmer: Stigmer,
-  org: string,
   agent: Agent,
   readVaults: readonly Vault[],
-  readsMyVault: boolean,
-): Promise<ServerReadings> {
-  const servers: McpServer[] = [];
-  const pendingSignIns: PendingSignIn[] = [];
-  const signInVariables = new Set<string>();
-  for (const usage of agent.spec?.mcpServerUsages ?? []) {
-    const ref = usage.mcpServerRef;
-    if (!ref) continue;
-    const server = await stigmer.mcpServer.getByReference(ref);
-    servers.push(server);
-    const auth = server.spec?.auth;
-    const id = server.metadata?.id ?? "";
-    if (!auth?.targetEnvVar || id === "") continue;
-    signInVariables.add(auth.targetEnvVar);
-    let health = OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT;
-    let granted = false;
-    if (readsMyVault) {
-      try {
-        const grant = await stigmer.mcpServer.getOAuthGrantStatus(
-          create(GetOAuthGrantStatusInputSchema, { resourceId: id, org }),
-        );
-        health = grant.connectionHealth;
-        granted = grant.connected;
-      } catch {
-        // Fail closed: an unreadable grant is a sign-in still owed.
-      }
-    }
-    const connected =
-      (granted || readVaults.some((vault) => vaultLoginServes(vault.spec?.connections ?? {}, server))) &&
-      health !== OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED;
-    if (connected) continue;
-    pendingSignIns.push({
-      ref: { org: ref.org || server.metadata?.org || org, slug: ref.slug || server.metadata?.slug || "" },
-      id,
-      name: server.metadata?.name || server.metadata?.slug || ref.slug,
-      health,
-    });
-  }
-  return { servers, pendingSignIns, signInVariables };
+): Promise<PluginReadings> {
+  const read = await readPlugins(stigmer, agent.spec?.plugins ?? [], agent.metadata?.org ?? "");
+  const plugins = read.map((entry) => entry.plugin);
+  const pendingSignIns = signInServers(read)
+    .filter(({ server }) => !readVaults.some((vault) => vaultLoginServes(vault.spec?.connections ?? {}, server)))
+    .map(({ plugin, pluginName, server, address }) => ({
+      plugin,
+      pluginName,
+      server,
+      address,
+      name: pluginName === server.name ? pluginName : `${pluginName} · ${server.name}`,
+    }));
+  return {
+    servers: serversOf(plugins),
+    pendingSignIns,
+    declarations: pluginDeclarations(plugins),
+    signInVariables: signInKeys(plugins),
+  };
 }
 
 /** The vaults among `refs` this person can read; the others their run cannot use. */
@@ -117,7 +92,7 @@ async function readableVaults(stigmer: Stigmer, refs: readonly ResourceRef[]): P
 }
 
 /** The keys `vaults` fill: their secret names, and the login key of each of `servers` a login of theirs serves. */
-function keysHeldBy(vaults: readonly Vault[], servers: readonly McpServer[]): Set<string> {
+function keysHeldBy(vaults: readonly Vault[], servers: readonly McpServerEntry[]): Set<string> {
   const keys = new Set<string>();
   for (const vault of vaults) {
     for (const name of Object.keys(vault.spec?.secrets ?? {})) keys.add(name);
@@ -130,16 +105,14 @@ function keysHeldBy(vaults: readonly Vault[], servers: readonly McpServer[]): Se
 }
 
 /**
- * The declarations the composer may ask the user to type.
+ * The declarations the composer may ask the user to type: the agent's own
+ * and those of the plugins it lists.
  *
- * The server's MergeMcpServerEnvSpecs step copies every referenced MCP
- * server's `env` onto the agent at save, the OAuth token variable included,
- * so the agent's schema is complete for run. That variable is filled
- * by a sign-in: a run fills it from the login saved at the server's
- * address, never from a value typed here. Without a grant it is a
- * Sign in row; with one it is satisfied. Either way it is not a form field,
- * and an agent whose only declarations are such variables is as ready as
- * one that declares nothing.
+ * The login key of a server that signs in is filled by a sign-in: a run
+ * fills it from the login saved at the server's address, never from a
+ * value typed here. Without a login it is a Sign in row; with one it is
+ * satisfied. Either way it is not a form field, and an agent whose only
+ * declarations are such variables is as ready as one that declares nothing.
  */
 function typedDeclarations(
   envDeclarations: Record<string, EnvVarDeclaration>,
@@ -207,13 +180,14 @@ export interface UseAgentSetupReturn {
 
   /**
    * Record that one of the pending sign-ins completed (the row's own
-   * OAuth flow landed). When it was the last one, the agent is resolved
-   * again through {@link resolveAgent}, which now finds the grant and
-   * lands in `ready` or in `needsEnvVars` for its variables alone.
+   * sign-in landed), by the address it saved its login at. When it was
+   * the last one, the agent is resolved again through {@link resolveAgent},
+   * which now finds the login and lands in `ready` or in `needsEnvVars`
+   * for its variables alone.
    *
    * Must only be called when `state.status === "needsEnvVars"`.
    */
-  readonly signInCompleted: (mcpServerId: string) => Promise<void>;
+  readonly signInCompleted: (address: string) => Promise<void>;
 
   /** Clear the error without changing the current phase. */
   readonly clearError: () => void;
@@ -241,7 +215,7 @@ export interface UseAgentSetupReturn {
  *
  * Composes {@link useMyVault} for My vault
  * operations and calls the Stigmer client directly for the agent and
- * its MCP servers.
+ * the plugins it lists.
  *
  * Pass `null` as `org` to disable all operations (stable no-op).
  *
@@ -253,8 +227,8 @@ export interface UseAgentSetupReturn {
  *   changes, `needsEnvVars` is re-evaluated.
  * @param conversationVaults - The vaults the conversation uses (its
  *   sender's My vault when included, then the listed vaults). Only what
- *   they hold counts as saved, and My vault's sign-in grant counts only
- *   when My vault is included. Omitted, the run is taken to read My vault
+ *   they hold counts as saved, and a login in My vault counts only when
+ *   My vault is included. Omitted, the run is taken to read My vault
  *   alone. Reactive — when the choice changes, an agent already resolved
  *   is resolved again over it.
  *
@@ -334,10 +308,10 @@ export function useAgentSetup(
         const agent = await stigmer.agent.getByReference(ref);
         const agentName = agent.metadata?.name ?? ref.slug;
 
-        // Sign-ins first: an agent whose OAuth server has no grant is not
-        // ready however its variables stand. Nothing is created here; when
-        // the last sign-in lands, `signInCompleted` resolves again and the
-        // branches below run with the grant in place. The variables those
+        // Sign-ins first: an agent whose plugin server that signs in has no
+        // login is not ready however its variables stand. Nothing is
+        // created here; when the last sign-in lands, `signInCompleted`
+        // resolves again and the branches below run with the login in place. The variables those
         // sign-ins fill leave the declarations here and are never typed.
         // The run reads exactly the vaults the conversation uses, read
         // once here for its logins and its secret names alike: My vault
@@ -351,14 +325,9 @@ export function useAgentSetup(
         );
         const mine = latestMyVaultRef.current.current;
         const readVaults = readsMyVault && mine !== null ? [mine, ...listed] : listed;
-        const { servers, pendingSignIns, signInVariables } = await readServers(
-          stigmer,
-          org,
-          agent,
-          readVaults,
-          readsMyVault,
-        );
-        const envDeclarations = agent.spec?.env ? typedDeclarations(agent.spec.env, signInVariables) : undefined;
+        const { servers, pendingSignIns, declarations, signInVariables } = await readAgentPlugins(stigmer, agent, readVaults);
+        const declared = { ...declarations, ...(agent.spec?.env ?? {}) };
+        const envDeclarations = Object.keys(declared).length > 0 ? typedDeclarations(declared, signInVariables) : undefined;
         if (pendingSignIns.length > 0) {
           const existingKeys = keysHeldBy(readVaults, servers);
           const missingVariables = envDeclarations
@@ -539,7 +508,7 @@ export function useAgentSetup(
         throw new Error(
           "useAgentSetup: submitEnvVars requires every pending sign-in to have completed. " +
             `Still pending: ${state.pendingSignIns.map((signIn) => signIn.name).join(", ")}. ` +
-            "Call signInCompleted(id) as each lands; the agent is resolved again when the last one does.",
+            "Call signInCompleted(address) as each lands; the agent is resolved again when the last one does.",
         );
       }
 
@@ -562,13 +531,29 @@ export function useAgentSetup(
     [org, myVault, state, resolveAgent],
   );
 
+  // The sign-in was saved into My vault by the row's own hook, so this
+  // hook's read of My vault predates it: My vault is read again before the
+  // agent is, and the reload is started for every other reader.
+  const refetchMyVault = myVault.refetch;
+  const refreshMyVault = useCallback(async (): Promise<void> => {
+    if (!org) return;
+    try {
+      const fresh = await stigmer.vault.getMine(create(GetMyVaultInputSchema, { org }));
+      latestMyVaultRef.current = { read: latestMyVaultRef.current.read, current: fresh };
+    } catch {
+      // Unreadable now: the resolution judges what was read before.
+    }
+    refetchMyVault();
+  }, [org, stigmer, refetchMyVault]);
+
   const signInCompleted = useCallback(
-    async (mcpServerId: string): Promise<void> => {
+    async (address: string): Promise<void> => {
       if (state.status !== "needsEnvVars") return;
-      const remaining = state.pendingSignIns.filter((signIn) => signIn.id !== mcpServerId);
+      const remaining = state.pendingSignIns.filter((signIn) => signIn.address !== address);
       if (remaining.length === state.pendingSignIns.length) return;
-      dispatch({ type: "SIGN_IN_COMPLETED", id: mcpServerId });
+      dispatch({ type: "SIGN_IN_COMPLETED", address });
       if (remaining.length === 0) {
+        await refreshMyVault();
         try {
           await resolveAgent(state.agentRef);
         } catch {
@@ -576,7 +561,7 @@ export function useAgentSetup(
         }
       }
     },
-    [state, resolveAgent],
+    [state, resolveAgent, refreshMyVault],
   );
 
   return { state, resolveAgent, submitEnvVars, signInCompleted, clearError, reset };

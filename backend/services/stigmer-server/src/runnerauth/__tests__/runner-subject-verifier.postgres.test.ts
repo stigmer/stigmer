@@ -3,9 +3,9 @@
  * OSS execution-scoped runner token, presented as a bearer under the
  * built-in authorization posture, admits its bearer AS THE HUMAN WHO
  * ASKED — for a run, the person the execution row's creator stamp
- * names, for exactly as long as that execution lives; for an MCP
- * connect, the person the connect's attempt row records as having started
- * it, for as long as that row exists — in the `runner` caller class, bound
+ * names, for exactly as long as that execution lives; for a plugin's
+ * tools listing, the person the listing's attempt row records as having
+ * started it, for as long as that row exists — in the `runner` caller class, bound
  * to the execution's organization (a run belongs to one, so its
  * credential works there alone). A
  * clockless token bound to a connect is a shape no mint produces and is
@@ -56,7 +56,7 @@ import {
 import type { OpenedStore } from "../../authorization/__tests__/drivers.js";
 import { accountIdFor } from "../../domain/identityaccount/constants.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
-import { newConnectExecutionId } from "../../domain/mcpserver/connect-execution-id.js";
+import { newConnectExecutionId } from "../../domain/plugin/tools/execution-id.js";
 import type { IdentityAccountStore } from "../../domain/identityaccount/store.js";
 import { newOrganizationOnlyGrantScope } from "../../domain/iampolicy/grant-scope.js";
 import {
@@ -169,8 +169,8 @@ describe.each(
         org: "acme",
         createdBy,
         person: createdBy,
-        mcpServerId: "mcps_carols",
-        runId: "",
+        pluginId: "plg_carols",
+        server: "tickets",
         createdAt: now,
         expiresAt: now + 600,
       });
@@ -269,7 +269,7 @@ describe.each(
     });
 
     describe("the connect token admits its bearer as the person who asked for the connect", () => {
-      const connectId = newConnectExecutionId("mcps_carols");
+      const connectId = newConnectExecutionId("plg_carols");
 
       // The shared Postgres database keeps attempt rows between arms: each
       // arm ends its own, as the connect lane does when it settles.

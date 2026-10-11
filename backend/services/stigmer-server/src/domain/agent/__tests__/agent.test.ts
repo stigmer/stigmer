@@ -4,13 +4,15 @@
  * client and the full interceptor chain.
  *
  * The load-bearing pins:
- *   - MCP env-merge semantics: agent-declared entries win, among servers
- *     first-encountered wins, only declaration fields are copied;
+ *   - an agent's env is stored as written: a plugin it lists keeps its
+ *     own env declarations, and a save never merges them into the agent;
+ *   - each plugin is listed once in spec.plugins: a slug listed twice is
+ *     refused at apply (ValidateHooks), naming the slug;
  *   - tool lists at apply: an entry whose shape is malformed is refused
  *     by the proto's per-item pattern, on the agent and on a sub-agent;
  *     well-formed lists are accepted and read back as written, and their
- *     names are never checked against a server's discovered tools, so an
- *     entry naming a tool no connected server exposes still applies;
+ *     names are never checked against a listed plugin's servers, so an
+ *     entry naming a tool no plugin's server declares still applies;
  *   - hooks at apply: an inline block is stored with Claude Code's format
  *     filled, and a malformed one is refused on the create and on the
  *     update an apply delegates to (ValidateHooks runs on both chains);
@@ -34,7 +36,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
@@ -110,7 +112,7 @@ function agentInput(overrides?: {
   org?: string;
   visibility?: ApiResourceVisibility;
   labels?: Record<string, string>;
-  usages?: Array<{ slug: string }>;
+  plugins?: string[];
   tools?: string[];
   disallowedTools?: string[];
   subAgents?: Array<{
@@ -137,10 +139,11 @@ function agentInput(overrides?: {
     },
     spec: {
       instructions: "You are a helpful agent used by the domain tests.",
-      mcpServerUsages: (overrides?.usages ?? []).map((usage) => ({
-        // The spec's CEL rule pins kind == mcp_server; org stays empty so
-        // NormalizeReferences resolves it from the agent's own org.
-        mcpServerRef: { kind: ApiResourceKind.mcp_server, slug: usage.slug },
+      // The spec's CEL rule pins kind == plugin; org stays empty so
+      // NormalizeReferences resolves it from the agent's own org.
+      plugins: (overrides?.plugins ?? []).map((slug) => ({
+        kind: ApiResourceKind.plugin,
+        slug,
       })),
       env: overrides?.env ?? {},
       tools: overrides?.tools ?? [],
@@ -156,46 +159,49 @@ function agentInput(overrides?: {
 }
 
 /**
- * Seeds an MCP server straight into the store — the agent pipelines only
- * need the row. Org-visible, the level the mcpserver create chain would
- * have stamped: an org-visible agent may reference it under the reference
- * floor, as it would a server created through the API.
+ * Seeds an installed plugin straight into the store: the agent pipelines
+ * only need the row. Org-visible, the level an install stamps, so an
+ * org-visible agent may list it under the reference floor. Its status
+ * carries one MCP server and the env that server reads, the facts a save
+ * once copied into the agent.
  */
-async function seedMcpServer(opts: {
+async function seedPlugin(opts: {
   id: string;
   slug: string;
-  org?: string;
   env?: Record<
     string,
     { description?: string; isSecret?: boolean; optional?: boolean }
   >;
-  tools?: string[];
 }): Promise<void> {
-  const mcpServer = create(McpServerSchema, {
+  const plugin = create(PluginSchema, {
     apiVersion: API_VERSION,
-    kind: "McpServer",
+    kind: "Plugin",
     metadata: {
       id: opts.id,
       name: opts.slug,
       slug: opts.slug,
-      org: opts.org ?? ORG_ID,
+      org: ORG_ID,
       visibility: ApiResourceVisibility.visibility_org,
     },
-    spec: { env: opts.env ?? {} },
-    status:
-      opts.tools !== undefined
-        ? {
-            discoveredCapabilities: {
-              tools: opts.tools.map((name) => ({ name })),
-            },
-          }
-        : undefined,
+    status: {
+      mcpServers: [
+        {
+          name: "tickets",
+          transport: {
+            case: "stdio",
+            value: { command: "tickets-mcp", args: [] },
+          },
+          env: Object.keys(opts.env ?? {}),
+        },
+      ],
+      env: opts.env ?? {},
+    },
   });
   await server.store.saveResource(
-    ApiResourceKind.mcp_server,
+    ApiResourceKind.plugin,
     opts.id,
-    McpServerSchema,
-    mcpServer,
+    PluginSchema,
+    plugin,
   );
 }
 
@@ -211,65 +217,57 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
   }
 }
 
-describe("agent MCP env merge (merge_mcp_env_specs)", () => {
-  it("merges declarations: agent-declared wins, first-encountered server wins, declaration fields copied", async () => {
-    await seedMcpServer({
-      id: "mcp_env_one",
-      slug: "env-srv-one",
+describe("agent env and plugins at apply", () => {
+  it("stores the agent's env as written: a listed plugin's env is never merged in", async () => {
+    await seedPlugin({
+      id: "plg_env_one",
+      slug: "env-plugin",
       env: {
-        SHARED_VAR: { description: "shared from one", isSecret: true },
-        ONLY_ONE: { description: "one only", optional: true },
-      },
-    });
-    await seedMcpServer({
-      id: "mcp_env_two",
-      slug: "env-srv-two",
-      env: {
-        SHARED_VAR: { description: "shared from two" },
-        ONLY_TWO: { description: "two only" },
+        TICKETS_TOKEN: { description: "from the plugin", isSecret: true },
+        AGENT_VAR: { description: "the plugin's copy" },
       },
     });
 
     const created = await command.create(
       agentInput({
-        name: "Env Merge Agent",
-        usages: [{ slug: "env-srv-one" }, { slug: "env-srv-two" }],
+        name: "Env Agent",
+        plugins: ["env-plugin"],
         env: {
           AGENT_VAR: { description: "declared on the agent", isSecret: true },
-          ONLY_TWO: {
-            description: "agent wins",
-            isSecret: true,
-            optional: true,
-          },
         },
       }),
     );
+    const fetched = await query.get({ value: created.metadata!.id });
+    for (const agent of [created, fetched]) {
+      expect(Object.keys(agent.spec!.env)).toEqual(["AGENT_VAR"]);
+      expect(agent.spec!.env.AGENT_VAR?.description).toBe(
+        "declared on the agent",
+      );
+      expect(agent.spec!.plugins.map((ref) => ref.slug)).toEqual([
+        "env-plugin",
+      ]);
+    }
+  });
 
-    const env = created.spec!.env;
-    // Agent-declared entries always win over server declarations.
-    expect(env.AGENT_VAR?.description).toBe("declared on the agent");
-    expect(env.ONLY_TWO?.description).toBe("agent wins");
-    expect(env.ONLY_TWO?.isSecret).toBe(true);
-    expect(env.ONLY_TWO?.optional).toBe(true);
-    // Among servers, first-encountered (usage order) wins for overlaps.
-    expect(env.SHARED_VAR?.description).toBe("shared from one");
-    expect(env.SHARED_VAR?.isSecret).toBe(true);
-    // Declaration fields are copied verbatim from the server's spec.
-    expect(env.ONLY_ONE?.description).toBe("one only");
-    expect(env.ONLY_ONE?.isSecret).toBe(false);
-    expect(env.ONLY_ONE?.optional).toBe(true);
+  it("refuses a plugin listed twice, naming the slug", async () => {
+    await seedPlugin({ id: "plg_twice", slug: "twice" });
+    const error = await grpcError(() =>
+      command.apply(
+        agentInput({ name: "Twice Agent", plugins: ["twice", "twice"] }),
+      ),
+    );
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toContain(
+      "plugins lists 'twice' more than once",
+    );
   });
 });
 
 describe("agent tool lists at apply", () => {
   beforeAll(async () => {
-    // Connected, and exposing no tool the lists below name: names are
-    // resolved at run time, never against discovery at apply.
-    await seedMcpServer({
-      id: "mcp_lists",
-      slug: "zendesk",
-      tools: ["search_tickets"],
-    });
+    // Listed, and declaring no tool the lists below name: names are
+    // resolved at run time, never against a plugin's servers at apply.
+    await seedPlugin({ id: "plg_lists", slug: "zendesk" });
   });
 
   // Each one breaks the shape the pattern admits: an MCP entry with no
@@ -312,7 +310,7 @@ describe("agent tool lists at apply", () => {
     const applied = await command.apply(
       agentInput({
         name: "Support Bot",
-        usages: [{ slug: "zendesk" }],
+        plugins: ["zendesk"],
         tools: ["Read", "Grep", "mcp__zendesk"],
         disallowedTools: ["Bash"],
         subAgents: [
@@ -341,11 +339,11 @@ describe("agent tool lists at apply", () => {
     }
   });
 
-  it("accepts entries naming tools no server exposes (portable agents apply anywhere)", async () => {
+  it("accepts entries naming tools no listed plugin declares (portable agents apply anywhere)", async () => {
     const applied = await command.apply(
       agentInput({
         name: "Portable Agent",
-        usages: [{ slug: "zendesk" }],
+        plugins: ["zendesk"],
         tools: ["mcp__zendesk__close_ticket", "mcp__github", "NotebookEdit"],
       }),
     );

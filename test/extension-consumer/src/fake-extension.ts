@@ -16,8 +16,9 @@
  * THIS compile via the GateSlotName union), a gate-step body built from
  * the pipeline primitives, the store-fault idiom, the
  * identity-account seams (the store PORT, the federation capability, and
- * a verifier converging on the exported subject-resolution rule), and the
- * compose entry itself. It is never executed — the runtime behavior is pinned by the
+ * a verifier converging on the exported subject-resolution rule, and the
+ * create path a unit provisions a federated account through), the compose
+ * entry itself, and the process body an edition's own entry boots with. It is never executed — the runtime behavior is pinned by the
  * server's own extension suite; execution here would need real
  * infrastructure for no additional proof.
  */
@@ -47,6 +48,7 @@ import { LicenseCommandController } from "@stigmer/protos/ai/stigmer/billing/lic
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import type { IamPolicy } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api_pb";
 import type { ApiResourceRefView } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { ApiResourceRefViewSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
@@ -114,6 +116,7 @@ import {
   ResourceNotFoundError,
   repairAccountSlug,
   rethrownStatusError,
+  runServer,
   newSubstrateSandboxDriver,
   newSubstrateSettingsFromEnv,
   ROUTING_SESSION,
@@ -141,7 +144,11 @@ import type {
   ChannelRuntime,
   ChildOrganizationLinkedEvent,
   ChildOrganizations,
+  ComposedIdentityAccounts,
   ComposedServer,
+  CreateAccountInput,
+  FederatedProvider,
+  RunServerOptions,
   GateSlotName,
   GuestTokenMinting,
   IamPolicyStore,
@@ -268,6 +275,8 @@ const consumerIdentityAccountStore: IdentityAccountStore = {
   findDirectByEmail: () => Promise.resolve(undefined),
   findByIds: () => Promise.resolve([]),
   findByOrg: () => Promise.resolve([]),
+  findByProviderAndIdpId: () => Promise.resolve(undefined),
+  findByProvider: () => Promise.resolve([]),
 };
 
 /**
@@ -559,6 +568,7 @@ const consumerIamPolicyStore: IamPolicyStore = {
   findByResourceWithRelations: () => Promise.resolve([]),
   countDistinctPrincipalsByResource: () => Promise.resolve(0),
   findScopeTuple: () => Promise.resolve(undefined),
+  findByResourceKindAndRelation: () => Promise.resolve([]),
 };
 
 /**
@@ -1439,6 +1449,38 @@ export const consumerOutsideVerdict: BindingVerdict = "outside";
  * names under its provider's organization.
  */
 let consumerChildOrganizations: ChildOrganizations | undefined;
+
+/**
+ * The identity accounts as an edition that serves identity providers meets
+ * them: kept from `onComposed`, a person its provider vouches for is
+ * looked up by the federated natural key and, when absent, created through
+ * the composition's one create path with the `federated` arm.
+ */
+let consumerIdentityAccounts: ComposedIdentityAccounts | undefined;
+export async function consumerFederatedSignIn(
+  provider: FederatedProvider,
+  subject: string,
+  caller: CallerIdentity,
+): Promise<IdentityAccount | undefined> {
+  const accounts = consumerIdentityAccounts;
+  if (accounts === undefined) {
+    return undefined;
+  }
+  const existing = await accounts.store.findByProviderAndIdpId(
+    provider.org,
+    provider.slug,
+    subject,
+  );
+  if (existing !== undefined) {
+    return existing;
+  }
+  const input: CreateAccountInput = {
+    name: subject,
+    spec: create(IdentityAccountSpecSchema, { idpId: subject }),
+    provisioning: { mode: "federated", provider },
+  };
+  return accounts.create(input, caller);
+}
 export async function consumerChildIdFor(
   parentId: string,
   externalId: string,
@@ -1468,6 +1510,7 @@ export const fakeExtension: ServerExtension = {
   onComposed: (composed) => {
     consumerCredentialBinding = composed.credentialBinding;
     consumerChildOrganizations = composed.childOrganizations;
+    consumerIdentityAccounts = composed.identityAccounts;
   },
   identityVerifiers: [verifier, consumerGuestTokenVerifier],
   // Post-authentication caller guards, serving
@@ -1583,6 +1626,15 @@ export async function composeFakeCloud(): Promise<ComposedServer> {
     // set for it; it states the release of the package it installed.
     version: "0.0.0-consumer",
   });
+}
+
+/**
+ * An edition's own process entry: it decides its units, then boots through
+ * the library's process body, as the shipped server's entry does.
+ */
+export function runFakeCloudProcess(): Promise<void> {
+  const options: RunServerOptions = { extensions: [fakeExtension] };
+  return runServer(options);
 }
 
 /**

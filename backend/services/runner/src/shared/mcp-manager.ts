@@ -32,8 +32,8 @@
  *
  * The Cursor execution path does NOT use this manager — it passes MCP
  * configs directly to the Cursor SDK via toCursorMcpConfig(). This
- * manager serves LangGraph-based deep agent executions, and discovery
- * (activities/discover-mcp-server.ts) builds its spawn config through
+ * manager serves LangGraph-based deep agent executions, and a tools listing
+ * (shared/mcp-tool-listing.ts) builds its spawn config through
  * toMcpClientConfig too.
  */
 
@@ -59,7 +59,7 @@ export function toMcpClientConfig(
         console.log(
           `[MCP] Server '${server.slug}' declares no env — its subprocess ` +
           `starts with the minimal base environment only. Declare variables ` +
-          `in the McpServer's spec.env to pass them.`,
+          `the server reads in its plugin's MCP configuration to pass them.`,
         );
       }
       config[server.slug] = {

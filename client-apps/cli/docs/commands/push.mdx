@@ -4,8 +4,8 @@ Push an artifact to the Stigmer registry.
 directory holding a `SKILL.md`, pushed from a local directory or directly from
 a remote git repository. A **plugin** is a directory in the Agent Plugins,
 Cursor, Claude Code or Codex layout; pushing it installs the plugin, or
-upgrades it when it is already installed, and Stigmer materializes its skills,
-MCP servers and agent in your organization as one unit.
+upgrades it when it is already installed, as one unit holding its skills,
+agents, MCP servers and hooks.
 
 {/* AUTO_USAGE */}
 
@@ -38,11 +38,10 @@ stigmer push plugin ./thermos --dry-run
 `stigmer push plugin <dir>` reads the folder the way `stigmer validate -f <dir>`
 does, refuses offline with the same sentences, and pushes the whole folder as
 one archive. The plugin's version is its manifest's `version`, so `--tag` does
-not apply; `--visibility` sets the level for the plugin and every resource it
-installs. Pushing an unchanged folder again changes nothing. The resources a
-plugin installs are the plugin's to redefine: edit the plugin and push it again
-rather than editing them directly, or compose your own agent over its skills
-and servers. `stigmer delete plugin <name>` removes everything it installed.
+not apply; `--visibility` sets the plugin's level. Pushing an unchanged folder
+again changes nothing. What a plugin carries is the plugin's to redefine: edit
+it and push it again, or compose your own agent that lists it under
+`spec.plugins`. `stigmer delete plugin <name>` removes it.
 
 ### Source modes
 

@@ -22,8 +22,7 @@ import { Stigmer } from "@stigmer/sdk";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { ListPluginMembersResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import { PluginMaterializationSchema, PluginState, PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { digestArchive } from "@stigmer/plugin-package/client";
 
@@ -89,8 +88,9 @@ function transport(backend: Backend) {
           metadata: create(ApiResourceMetadataSchema, { id: "plg_1", org: ORG, slug: "thermos", name: "thermos" }),
           status: create(PluginStatusSchema, {
             digest: await digestArchive(req.artifact),
-            state: PluginState.READY,
-            materialized: create(PluginMaterializationSchema, { skills: 1, mcpServers: 1, agents: 1 }),
+            skills: [{ name: "keep-warm" }],
+            mcpServers: [{ name: "warmth", transport: { case: "http", value: { url: "https://warmth.example/mcp" } } }],
+            agents: [{ name: "thermos" }],
           }),
         });
       },
@@ -99,7 +99,6 @@ function transport(backend: Backend) {
       getByReference: () => {
         throw new ConnectError("no plugin", Code.NotFound);
       },
-      listMembers: () => create(ListPluginMembersResponseSchema, { members: [] }),
     });
   });
 }

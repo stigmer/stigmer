@@ -35,7 +35,10 @@ import { fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type {
+  ApiResourceReference,
+  ApiResourceReferenceSchema,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import {
@@ -102,67 +105,82 @@ export function newLoadByReferenceWithVersionStep<Desc extends DescMessage>(
   return {
     name: stepName,
     async execute(ctx: RequestContext<GetByReferenceDesc>): Promise<void> {
-      const ref = ctx.input;
-
-      if (ref.slug === "") {
-        throw invalidArgumentError("slug is required in reference");
-      }
-
-      // Org-scoped kinds: the slug is unique only within an org, so an
-      // empty-org reference is under-specified.
-      requireOrgForReference(ctx.apiResourceKind, ref.org);
-
-      if (
-        ref.kind !== ApiResourceKind.api_resource_kind_unknown &&
-        ref.kind !== binding.kind
-      ) {
-        throw invalidArgumentError(
-          `kind mismatch: expected ${kindLabel(binding.kind)}, got ${kindLabel(ref.kind)}`,
-        );
-      }
-
-      let head: MessageShape<Desc> | undefined;
-      try {
-        head = await findResourceBySlug(
-          store,
-          ctx.apiResourceKind,
-          binding.schema,
-          ref.slug,
-          ref.org,
-        );
-      } catch (error) {
-        throw internalError(error, `failed to list ${binding.noun}s`);
-      }
-      if (head === undefined) {
-        throw notFoundError(binding.noun, ref.slug);
-      }
-
-      const version = ref.version.trim();
-      if (version === "" || version === "latest") {
-        ctx.set(TARGET_RESOURCE_KEY, head);
-        return;
-      }
-
-      if (headMatchesVersion(binding, head, version)) {
-        ctx.set(TARGET_RESOURCE_KEY, head);
-        return;
-      }
-
-      const archived = await findAuditByVersion(
-        store,
-        binding,
-        idOf(head),
-        version,
+      ctx.set(
+        TARGET_RESOURCE_KEY,
+        await loadByReferenceWithVersion(store, binding, ctx.input),
       );
-      if (archived === undefined) {
-        throw notFoundError(
-          `${binding.noun} version`,
-          `${ref.slug}:${version}`,
-        );
-      }
-      ctx.set(TARGET_RESOURCE_KEY, archived);
     },
   };
+}
+
+/**
+ * The resource a reference names, at its version: the live head for no
+ * version or "latest", or when the head is the version by hash or live
+ * tag; else the archived row, by hash or by tag. A reference with no slug
+ * or no organization is InvalidArgument, a missing resource or version
+ * NotFound naming it, a store fault Internal. Asks no authorization: the
+ * step's pipeline, or the server-side reader, decides who may read.
+ */
+export async function loadByReferenceWithVersion<Desc extends DescMessage>(
+  store: Store,
+  binding: VersionedResourceBinding<Desc>,
+  ref: ApiResourceReference,
+): Promise<MessageShape<Desc>> {
+  if (ref.slug === "") {
+    throw invalidArgumentError("slug is required in reference");
+  }
+
+  // Org-scoped kinds: the slug is unique only within an org, so an
+  // empty-org reference is under-specified.
+  requireOrgForReference(binding.kind, ref.org);
+
+  if (
+    ref.kind !== ApiResourceKind.api_resource_kind_unknown &&
+    ref.kind !== binding.kind
+  ) {
+    throw invalidArgumentError(
+      `kind mismatch: expected ${kindLabel(binding.kind)}, got ${kindLabel(ref.kind)}`,
+    );
+  }
+
+  let head: MessageShape<Desc> | undefined;
+  try {
+    head = await findResourceBySlug(
+      store,
+      binding.kind,
+      binding.schema,
+      ref.slug,
+      ref.org,
+    );
+  } catch (error) {
+    throw internalError(error, `failed to list ${binding.noun}s`);
+  }
+  if (head === undefined) {
+    throw notFoundError(binding.noun, ref.slug);
+  }
+
+  const version = ref.version.trim();
+  if (
+    version === "" ||
+    version === "latest" ||
+    headMatchesVersion(binding, head, version)
+  ) {
+    return head;
+  }
+
+  const archived = await findAuditByVersion(
+    store,
+    binding,
+    idOf(head),
+    version,
+  );
+  if (archived === undefined) {
+    throw notFoundError(
+      `${binding.noun} version`,
+      `${ref.slug}:${version}`,
+    );
+  }
+  return archived;
 }
 
 /**

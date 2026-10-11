@@ -96,9 +96,11 @@ export type PluginEvalStatus = Message<"ai.stigmer.agentic.plugineval.v1.PluginE
   finishedAt?: Timestamp;
 
   /**
-   * True while the comparison with and without the plugin also measures
-   * the agent Stigmer composes for the plugin at install, not only the
-   * plugin's parts.
+   * True when the comparison with and without the plugin also measured an
+   * agent Stigmer composed for the plugin at install, not only the plugin:
+   * an eval made before conversations listed plugins directly. Every eval
+   * made since runs both arms on the assistant, the with-plugin arm with the
+   * plugin listed, and records false.
    *
    * @generated from field: bool provisional_delta = 11;
    */

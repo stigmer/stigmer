@@ -123,7 +123,7 @@ export interface PluginEvalResultDocument {
   readonly durationSeconds: number;
   /** The eval's id. */
   readonly evalId: string;
-  /** True while the comparison also measures the agent Stigmer composes for the plugin. */
+  /** True only for an eval made before chats listed plugins directly, whose with-arm also carried an agent Stigmer composed for the plugin. */
   readonly provisionalDelta: boolean;
   readonly targets: readonly ResultTarget[];
   readonly notRun: readonly ResultNotRun[];

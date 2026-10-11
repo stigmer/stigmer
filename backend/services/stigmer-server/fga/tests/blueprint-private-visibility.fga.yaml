@@ -82,12 +82,6 @@ tuples:
   - user: identity_account:carol
     relation: owner
     object: skill:secret-notes
-  - user: organization:acme
-    relation: organization
-    object: mcp_server:secret-tools
-  - user: identity_account:carol
-    relation: owner
-    object: mcp_server:secret-tools
 
   # --- ORG-visible agent (explicit org viewer tuple, stigmer#465 shape) ---
   - user: organization:acme
@@ -123,11 +117,6 @@ tests:
         object: skill:secret-notes
         assertions:
           can_view: false
-      - user: identity_account:dave
-        object: mcp_server:secret-tools
-        assertions:
-          can_view: false
-          can_connect: false
 
   - name: org admin sees and manages private blueprints of every kind
     check:
@@ -140,13 +129,6 @@ tests:
           can_execute: true
       - user: identity_account:oscar
         object: skill:secret-notes
-        assertions:
-          can_view: true
-          can_edit: true
-      # mcp_server had admin inheritance before 2026-07-13 — asserted here so
-      # every private-blueprint kind is pinned to the same rule.
-      - user: identity_account:oscar
-        object: mcp_server:secret-tools
         assertions:
           can_view: true
           can_edit: true

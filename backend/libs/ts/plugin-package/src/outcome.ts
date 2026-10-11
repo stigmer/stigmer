@@ -83,10 +83,7 @@ export type PluginErrorKind =
   // Claude plugin settings
   | "settings-unreadable"
   // Variables
-  | "variable-name-invalid"
-  // The ai.stigmer/ overlay
-  | "overlay-server-unknown"
-  | "overlay-document-unknown";
+  | "variable-name-invalid";
 
 export type PluginWarningKind =
   | "manifest-field-unknown"
@@ -115,7 +112,8 @@ export type PluginWarningKind =
   | "skill-hooks-not-run"
   | "hooks-not-read"
   | "settings-agent-unknown"
-  | "settings-key-ignored";
+  | "settings-key-ignored"
+  | "stigmer-folder-ignored";
 
 /**
  * The warnings that name hooks Stigmer does not run, so a surface can list

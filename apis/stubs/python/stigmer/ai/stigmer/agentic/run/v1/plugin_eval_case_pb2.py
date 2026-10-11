@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x12\x19\x61i.stigmer.agentic.run.v1\x1a\x1b\x62uf/validate/validate.proto\"\xd9\x05\n\x15PluginEvalCaseContext\x12$\n\tplugin_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08pluginId\x12:\n\rplugin_digest\x18\x02 \x01(\tB\x15\xbaH\x12r\x10\x32\x0e^[a-f0-9]{64}$R\x0cpluginDigest\x12$\n\tsuite_dir\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08suiteDir\x12\"\n\x08\x63\x61se_dir\x18\x04 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07\x63\x61seDir\x12\'\n\x0fscaffold_script\x18\x05 \x01(\tR\x0escaffoldScript\x12#\n\x08\x61\x64\x64_dirs\x18\x06 \x03(\tB\x08\xbaH\x05\x92\x01\x02\x10 R\x07\x61\x64\x64\x44irs\x12!\n\x0chistory_file\x18\x07 \x01(\tR\x0bhistoryFile\x12s\n\x03\x65nv\x18\x08 \x03(\x0b\x32\x39.ai.stigmer.agentic.run.v1.PluginEvalCaseContext.EnvEntryB&\xbaH#\x9a\x01 \x10@\"\x15r\x13\x32\x11^EVAL_[A-Z0-9_]*$*\x05r\x03\x18\x80 R\x03\x65nv\x12O\n\x05mocks\x18\t \x03(\x0b\x32/.ai.stigmer.agentic.run.v1.PluginEvalMockServerB\x08\xbaH\x05\x92\x01\x02\x10 R\x05mocks\x12\x32\n\x10\x61gent_mock_model\x18\n \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\x0e\x61gentMockModel\x12?\n\x16\x61gent_mock_call_budget\x18\x0b \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\xa0\x06(\x00R\x13\x61gentMockCallBudget\x12\x30\n\nread_files\x18\x0c \x03(\tB\x11\xbaH\x0e\x92\x01\x0b\x10@\"\x07r\x05\x10\x01\x18\x80\x08R\treadFiles\x1a\x36\n\x08\x45nvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"\\\n\x0fPluginEvalFiles\x12I\n\x05\x66iles\x18\x01 \x03(\x0b\x32).ai.stigmer.agentic.run.v1.PluginEvalFileB\x08\xbaH\x05\x92\x01\x02\x10@R\x05\x66iles\"\xa4\x01\n\x0ePluginEvalFile\x12\x1b\n\x04path\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04path\x12\x14\n\x04text\x18\x02 \x01(\tH\x00R\x04text\x12\x18\n\x06\x62inary\x18\x03 \x01(\x08H\x00R\x06\x62inary\x12\x18\n\x06\x61\x62sent\x18\x04 \x01(\x08H\x00R\x06\x61\x62sent\x12 \n\nunreadable\x18\x05 \x01(\tH\x00R\nunreadableB\t\n\x07\x63ontent\"\xcb\x01\n\x14PluginEvalMockServer\x12\x1f\n\x06server\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x06server\x12!\n\x07segment\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07segment\x12P\n\x05tools\x18\x03 \x03(\x0b\x32-.ai.stigmer.agentic.run.v1.PluginEvalMockToolB\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80\x01R\x05tools\x12\x1d\n\ntools_file\x18\x04 \x01(\tR\ttoolsFile\"\x88\x02\n\x12PluginEvalMockTool\x12\x1b\n\x04tool\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04tool\x12\x1b\n\x04\x66ile\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04\x66ile\x12M\n\x04kind\x18\x03 \x01(\x0e\x32-.ai.stigmer.agentic.run.v1.PluginEvalMockKindB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x04kind\x12\x14\n\x05\x65rror\x18\x04 \x01(\x08R\x05\x65rror\x12*\n\x0b\x65xpect_json\x18\x05 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x01R\nexpectJson\x12\'\n\nabort_when\x18\x06 \x01(\tB\x08\xbaH\x05r\x03\x18\x80 R\tabortWhen*}\n\x12PluginEvalMockKind\x12%\n!plugin_eval_mock_kind_unspecified\x10\x00\x12\x1f\n\x1bplugin_eval_mock_kind_fixed\x10\x01\x12\x1f\n\x1bplugin_eval_mock_kind_agent\x10\x02\x42\xbd\x01\n\x1d\x63om.ai.stigmer.agentic.run.v1B\x13PluginEvalCaseProtoP\x01\xa2\x02\x04\x41SAR\xaa\x02\x19\x41i.Stigmer.Agentic.Run.V1\xca\x02\x19\x41i\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1d\x41i::Stigmer::Agentic::Run::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x12\x19\x61i.stigmer.agentic.run.v1\x1a\x1b\x62uf/validate/validate.proto\"\x84\x06\n\x15PluginEvalCaseContext\x12$\n\tplugin_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08pluginId\x12:\n\rplugin_digest\x18\x02 \x01(\tB\x15\xbaH\x12r\x10\x32\x0e^[a-f0-9]{64}$R\x0cpluginDigest\x12$\n\tsuite_dir\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08suiteDir\x12\"\n\x08\x63\x61se_dir\x18\x04 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07\x63\x61seDir\x12\'\n\x0fscaffold_script\x18\x05 \x01(\tR\x0escaffoldScript\x12#\n\x08\x61\x64\x64_dirs\x18\x06 \x03(\tB\x08\xbaH\x05\x92\x01\x02\x10 R\x07\x61\x64\x64\x44irs\x12!\n\x0chistory_file\x18\x07 \x01(\tR\x0bhistoryFile\x12s\n\x03\x65nv\x18\x08 \x03(\x0b\x32\x39.ai.stigmer.agentic.run.v1.PluginEvalCaseContext.EnvEntryB&\xbaH#\x9a\x01 \x10@\"\x15r\x13\x32\x11^EVAL_[A-Z0-9_]*$*\x05r\x03\x18\x80 R\x03\x65nv\x12O\n\x05mocks\x18\t \x03(\x0b\x32/.ai.stigmer.agentic.run.v1.PluginEvalMockServerB\x08\xbaH\x05\x92\x01\x02\x10 R\x05mocks\x12\x32\n\x10\x61gent_mock_model\x18\n \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x01R\x0e\x61gentMockModel\x12?\n\x16\x61gent_mock_call_budget\x18\x0b \x01(\x05\x42\n\xbaH\x07\x1a\x05\x18\xa0\x06(\x00R\x13\x61gentMockCallBudget\x12\x30\n\nread_files\x18\x0c \x03(\tB\x11\xbaH\x0e\x92\x01\x0b\x10@\"\x07r\x05\x10\x01\x18\x80\x08R\treadFiles\x12)\n\x0bplugin_name\x18\r \x01(\tB\x08\xbaH\x05r\x03\x18\x80\x02R\npluginName\x1a\x36\n\x08\x45nvEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"\\\n\x0fPluginEvalFiles\x12I\n\x05\x66iles\x18\x01 \x03(\x0b\x32).ai.stigmer.agentic.run.v1.PluginEvalFileB\x08\xbaH\x05\x92\x01\x02\x10@R\x05\x66iles\"\xa4\x01\n\x0ePluginEvalFile\x12\x1b\n\x04path\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04path\x12\x14\n\x04text\x18\x02 \x01(\tH\x00R\x04text\x12\x18\n\x06\x62inary\x18\x03 \x01(\x08H\x00R\x06\x62inary\x12\x18\n\x06\x61\x62sent\x18\x04 \x01(\x08H\x00R\x06\x61\x62sent\x12 \n\nunreadable\x18\x05 \x01(\tH\x00R\nunreadableB\t\n\x07\x63ontent\"\xcb\x01\n\x14PluginEvalMockServer\x12\x1f\n\x06server\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x06server\x12!\n\x07segment\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x07segment\x12P\n\x05tools\x18\x03 \x03(\x0b\x32-.ai.stigmer.agentic.run.v1.PluginEvalMockToolB\x0b\xbaH\x08\x92\x01\x05\x08\x01\x10\x80\x01R\x05tools\x12\x1d\n\ntools_file\x18\x04 \x01(\tR\ttoolsFile\"\x88\x02\n\x12PluginEvalMockTool\x12\x1b\n\x04tool\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04tool\x12\x1b\n\x04\x66ile\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04\x66ile\x12M\n\x04kind\x18\x03 \x01(\x0e\x32-.ai.stigmer.agentic.run.v1.PluginEvalMockKindB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x04kind\x12\x14\n\x05\x65rror\x18\x04 \x01(\x08R\x05\x65rror\x12*\n\x0b\x65xpect_json\x18\x05 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x01R\nexpectJson\x12\'\n\nabort_when\x18\x06 \x01(\tB\x08\xbaH\x05r\x03\x18\x80 R\tabortWhen*}\n\x12PluginEvalMockKind\x12%\n!plugin_eval_mock_kind_unspecified\x10\x00\x12\x1f\n\x1bplugin_eval_mock_kind_fixed\x10\x01\x12\x1f\n\x1bplugin_eval_mock_kind_agent\x10\x02\x42\xbd\x01\n\x1d\x63om.ai.stigmer.agentic.run.v1B\x13PluginEvalCaseProtoP\x01\xa2\x02\x04\x41SAR\xaa\x02\x19\x41i.Stigmer.Agentic.Run.V1\xca\x02\x19\x41i\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1d\x41i::Stigmer::Agentic::Run::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -55,6 +55,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PLUGINEVALCASECONTEXT'].fields_by_name['agent_mock_call_budget']._serialized_options = b'\272H\007\032\005\030\240\006(\000'
   _globals['_PLUGINEVALCASECONTEXT'].fields_by_name['read_files']._loaded_options = None
   _globals['_PLUGINEVALCASECONTEXT'].fields_by_name['read_files']._serialized_options = b'\272H\016\222\001\013\020@\"\007r\005\020\001\030\200\010'
+  _globals['_PLUGINEVALCASECONTEXT'].fields_by_name['plugin_name']._loaded_options = None
+  _globals['_PLUGINEVALCASECONTEXT'].fields_by_name['plugin_name']._serialized_options = b'\272H\005r\003\030\200\002'
   _globals['_PLUGINEVALFILES'].fields_by_name['files']._loaded_options = None
   _globals['_PLUGINEVALFILES'].fields_by_name['files']._serialized_options = b'\272H\005\222\001\002\020@'
   _globals['_PLUGINEVALFILE'].fields_by_name['path']._loaded_options = None
@@ -75,18 +77,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_PLUGINEVALMOCKTOOL'].fields_by_name['expect_json']._serialized_options = b'\272H\006r\004\030\200\200\001'
   _globals['_PLUGINEVALMOCKTOOL'].fields_by_name['abort_when']._loaded_options = None
   _globals['_PLUGINEVALMOCKTOOL'].fields_by_name['abort_when']._serialized_options = b'\272H\005r\003\030\200 '
-  _globals['_PLUGINEVALMOCKKIND']._serialized_start=1574
-  _globals['_PLUGINEVALMOCKKIND']._serialized_end=1699
+  _globals['_PLUGINEVALMOCKKIND']._serialized_start=1617
+  _globals['_PLUGINEVALMOCKKIND']._serialized_end=1742
   _globals['_PLUGINEVALCASECONTEXT']._serialized_start=109
-  _globals['_PLUGINEVALCASECONTEXT']._serialized_end=838
-  _globals['_PLUGINEVALCASECONTEXT_ENVENTRY']._serialized_start=784
-  _globals['_PLUGINEVALCASECONTEXT_ENVENTRY']._serialized_end=838
-  _globals['_PLUGINEVALFILES']._serialized_start=840
-  _globals['_PLUGINEVALFILES']._serialized_end=932
-  _globals['_PLUGINEVALFILE']._serialized_start=935
-  _globals['_PLUGINEVALFILE']._serialized_end=1099
-  _globals['_PLUGINEVALMOCKSERVER']._serialized_start=1102
-  _globals['_PLUGINEVALMOCKSERVER']._serialized_end=1305
-  _globals['_PLUGINEVALMOCKTOOL']._serialized_start=1308
-  _globals['_PLUGINEVALMOCKTOOL']._serialized_end=1572
+  _globals['_PLUGINEVALCASECONTEXT']._serialized_end=881
+  _globals['_PLUGINEVALCASECONTEXT_ENVENTRY']._serialized_start=827
+  _globals['_PLUGINEVALCASECONTEXT_ENVENTRY']._serialized_end=881
+  _globals['_PLUGINEVALFILES']._serialized_start=883
+  _globals['_PLUGINEVALFILES']._serialized_end=975
+  _globals['_PLUGINEVALFILE']._serialized_start=978
+  _globals['_PLUGINEVALFILE']._serialized_end=1142
+  _globals['_PLUGINEVALMOCKSERVER']._serialized_start=1145
+  _globals['_PLUGINEVALMOCKSERVER']._serialized_end=1348
+  _globals['_PLUGINEVALMOCKTOOL']._serialized_start=1351
+  _globals['_PLUGINEVALMOCKTOOL']._serialized_end=1615
 # @@protoc_insertion_point(module_scope)

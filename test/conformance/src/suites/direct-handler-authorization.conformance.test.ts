@@ -13,8 +13,9 @@
 //   - an UNKNOWN id on the authorize-first family answers NOT_FOUND via
 //     the authorizer's deny-path existence probe — the UNIFORM not-found
 //     posture;
-//   - the load-first family (updateSubject, the MCP connect trio) keeps its handler-owned NotFound copy for unknown
-//     ids, outsider or not — the load fires before the check (#224).
+//   - the load-first family (updateSubject, a plugin's tools listing) keeps
+//     its handler-owned NotFound copy for unknown ids, outsider or not — the
+//     load fires before the check (#224).
 //
 // Two arms below sit where the retired Java edition once diverged by
 // ruling (the per-method dispositions in docs/authorization-coverage.md);
@@ -49,7 +50,7 @@ import { expectGrpcCode, grpcCodeOf } from "../contract/errors";
 import { collectStream } from "../support/collect-stream";
 import { makeAgent, agentRefOf } from "../support/agents";
 import { makeSlackAgentChannel } from "../support/agentchannels";
-import { makeMcpServer } from "../support/mcpservers";
+import { oneServerPlugin, pushPlugin } from "../support/plugins";
 import { makeSession } from "../support/sessions";
 import { makeSharedVault, vaultTarget } from "../support/vaults";
 import { uniqueName } from "../support/naming";
@@ -121,67 +122,57 @@ describe("direct-handler authorization — outsider denials (on the enforcing la
     expect(after.spec?.subject).toBe("owner's subject");
   });
 
-  it("[rpc:McpServerCommandController.connect] [rpc:McpServerCommandController.startConnect] [rpc:McpServerQueryController.getOAuthGrantStatus] [rpc:McpServerCommandController.disconnectOAuth] the MCP connect lanes refuse an outsider with their annotation copies", async (ctx) => {
+  it("[rpc:PluginCommandController.listTools] a plugin's tools listing refuses an outsider with its annotation copy before the engine is asked, and answers an unknown plugin NotFound", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     const outsider = await lane.provisionIdentity();
 
-    const server = await clients.mcpServerCommand.create(
-      makeMcpServer({ org, name: uniqueName("authz-mcp") }),
+    // A server whose header names its key is never probed at install, so
+    // the push asks no network.
+    const plugin = await pushPlugin(
+      clients,
+      fixtures,
+      org,
+      oneServerPlugin({
+        name: uniqueName("authz-plugin"),
+        server: {
+          url: "https://mcp.vendor.test/mcp",
+          headers: { Authorization: "Bearer ${VENDOR_TOKEN}" },
+        },
+      }),
     );
-    fixtures.defer(() =>
-      clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }),
-    );
-    const id = server.metadata!.id;
+    const pluginId = plugin.metadata!.id;
 
-    // Ordering pin on the two engine-backed lanes: connect and startConnect
-    // load and authorize BEFORE they check the engine (connect.ts,
-    // start-connect.ts), the authorize-before-precondition order the run gate
-    // keeps, so an outsider hears the denial on every
-    // target — a Temporal-less server included, where the engine arm used to
-    // answer FAILED_PRECONDITION first and disclose engine state.
-    for (const [name, op] of [
-      [
-        "connect",
-        () => outsider.mcpServerCommand.connect({ mcpServerId: id, org }),
-      ],
-      [
-        "startConnect",
-        () => outsider.mcpServerCommand.startConnect({ mcpServerId: id, org }),
-      ],
-    ] as const) {
+    // Ordering pin: the listing loads the plugin and authorizes BEFORE it
+    // checks the engine (domain/plugin/list-tools.ts), the
+    // authorize-before-precondition order the run gate keeps, so an
+    // outsider hears the denial on every target, a Temporal-less server
+    // included, and learns nothing about the engine or the plugin's servers.
+    for (const server of ["tools", "no-such-server"]) {
       const refused = await expectGrpcCode(
-        op,
+        () => outsider.pluginCommand.listTools({ pluginId, server, org }),
         Code.PermissionDenied,
-        `outsider ${name} on a foreign server`,
+        `outsider listTools of server '${server}' on a foreign plugin`,
       );
-      expect(refused.rawMessage, `${name} annotation copy`).toBe(
-        "unauthorized to connect to mcp server",
+      expect(refused.rawMessage, "listTools annotation copy").toBe(
+        "unauthorized to list plugin tools",
       );
     }
 
-    const rpcs: ReadonlyArray<[string, () => Promise<unknown>, string]> = [
-      [
-        "getOAuthGrantStatus",
-        () =>
-          outsider.mcpServerQuery.getOAuthGrantStatus({ resourceId: id, org }),
-        "unauthorized to view oauth status for mcp server",
-      ],
-      [
-        "disconnectOAuth",
-        () =>
-          outsider.mcpServerCommand.disconnectOAuth({ resourceId: id, org }),
-        "unauthorized to disconnect oauth for mcp server",
-      ],
-    ];
-    for (const [rpc, op, copy] of rpcs) {
-      const denied = await expectGrpcCode(
-        op,
-        Code.PermissionDenied,
-        `outsider ${rpc} on a foreign server`,
-      );
-      expect(denied.rawMessage, `${rpc} annotation copy`).toBe(copy);
-    }
+    // Load-first: an unknown plugin is the handler's NotFound, outsider or not.
+    const missing = await expectGrpcCode(
+      () =>
+        outsider.pluginCommand.listTools({
+          pluginId: "plg_direct_handler_missing",
+          server: "tools",
+          org,
+        }),
+      Code.NotFound,
+      "outsider listTools on an unknown plugin",
+    );
+    expect(missing.rawMessage).toBe(
+      "plugin not found: plg_direct_handler_missing",
+    );
   });
 
   it("[rpc:VaultCommandController.startSignIn] [rpc:VaultCommandController.createConnectLink] a sign-in and a Connect link refuse an outsider naming someone else's shared vault, before any login server is asked", async (ctx) => {

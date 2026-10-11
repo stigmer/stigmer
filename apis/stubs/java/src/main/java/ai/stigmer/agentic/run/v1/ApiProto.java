@@ -168,21 +168,23 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "ValueOriginR\006origin\022\031\n\010vault_id\030\004 \001(\tR\007v" +
       "aultId\022\024\n\005entry\030\005 \001(\tR\005entry\022\024\n\005login\030\006 " +
       "\001(\010R\005login\022\037\n\013plain_value\030\010 \001(\tR\nplainVa" +
-      "lueJ\004\010\007\020\010R\007sign_in\"\266\001\n\020RunValueDeclarer\022" +
+      "lueJ\004\010\007\020\010R\007sign_in\"\201\002\n\020RunValueDeclarer\022" +
       "C\n\004kind\030\001 \001(\0162/.ai.stigmer.agentic.run.v" +
       "1.RunValueDeclarerKindR\004kind\022\022\n\004name\030\002 \001" +
-      "(\tR\004name\022\"\n\rmcp_server_id\030\003 \001(\tR\013mcpServ" +
-      "erId\022%\n\016repository_url\030\004 \001(\tR\rrepository" +
-      "Url\"4\n\rSetupProgress\022#\n\rcurrent_phase\030\001 " +
-      "\001(\tR\014currentPhase\"\234\001\n\026RecalledMemoriesRe" +
-      "port\022)\n\020selection_active\030\001 \001(\010R\017selectio" +
-      "nActive\022.\n\023injected_memory_ids\030\002 \003(\tR\021in" +
-      "jectedMemoryIds\022\'\n\017embedding_model\030\003 \001(\t" +
-      "R\016embeddingModelB\223\001B\010ApiProtoP\001\242\002\004ASAR\252\002" +
-      "\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\" +
-      "Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\" +
-      "V1\\GPBMetadata\352\002\035Ai::Stigmer::Agentic::R" +
-      "un::V1b\006proto3"
+      "(\tR\004name\022%\n\016repository_url\030\004 \001(\tR\rreposi" +
+      "toryUrl\022\033\n\tplugin_id\030\005 \001(\tR\010pluginId\022\026\n\006" +
+      "server\030\006 \001(\tR\006server\022#\n\rplugin_digest\030\007 " +
+      "\001(\tR\014pluginDigestJ\004\010\003\020\004R\rmcp_server_id\"4" +
+      "\n\rSetupProgress\022#\n\rcurrent_phase\030\001 \001(\tR\014" +
+      "currentPhase\"\234\001\n\026RecalledMemoriesReport\022" +
+      ")\n\020selection_active\030\001 \001(\010R\017selectionActi" +
+      "ve\022.\n\023injected_memory_ids\030\002 \003(\tR\021injecte" +
+      "dMemoryIds\022\'\n\017embedding_model\030\003 \001(\tR\016emb" +
+      "eddingModelB\223\001B\010ApiProtoP\001\242\002\004ASAR\252\002\031Ai.S" +
+      "tigmer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\Agent" +
+      "ic\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\GP" +
+      "BMetadata\352\002\035Ai::Stigmer::Agentic::Run::V" +
+      "1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -240,7 +242,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_run_v1_RunValueDeclarer_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_RunValueDeclarer_descriptor,
-        new java.lang.String[] { "Kind", "Name", "McpServerId", "RepositoryUrl", });
+        new java.lang.String[] { "Kind", "Name", "RepositoryUrl", "PluginId", "Server", "PluginDigest", });
     internal_static_ai_stigmer_agentic_run_v1_SetupProgress_descriptor =
       getDescriptor().getMessageType(5);
     internal_static_ai_stigmer_agentic_run_v1_SetupProgress_fieldAccessorTable = new

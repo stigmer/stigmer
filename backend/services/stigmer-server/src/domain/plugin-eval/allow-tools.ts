@@ -1,45 +1,48 @@
 /**
- * An eval's `allow_tools` in Stigmer's names. Claude Code names a plugin's
- * MCP tools `mcp__plugin_<plugin>_<server>__<tool>`; Stigmer names the same
- * server by the slug install gave it (`mcp__<server-slug>__<tool>`,
- * domain/plugin/materialize/mcp-servers.ts), so a suite's CI line written
- * for `claude plugin eval --allow-tools` works unchanged here. Create
- * rewrites each such entry once, so the stored spec and every try's tool
- * list hold Stigmer names only.
+ * An eval's `allow_tools`, checked against the plugin it runs. A turn names
+ * a plugin's MCP tools as Claude Code does,
+ * `mcp__plugin_<plugin>_<server>__<tool>` (`toolServerSegment`), so a
+ * suite's CI line written for `claude plugin eval --allow-tools` works
+ * unchanged here and is stored as written.
  *
- * The plugin part must be the eval's own plugin (its name or its slug): a
- * try attaches no other plugin, so an entry naming another one could never
- * grant anything and is refused rather than silently kept.
+ * An entry naming a plugin server must name one of the eval's own plugin's
+ * servers: a try attaches no other plugin, so an entry naming another one
+ * could never grant anything and is refused rather than silently kept. The
+ * segment is compared whole, never split back into a plugin and a server,
+ * since either name may hold `_`.
  *
  * Proven by __tests__/allow-tools.test.ts.
  */
-import { generateSlug } from "../../pipeline/steps/slug.js";
+import { toolServerSegment } from "@stigmer/plugin-package";
 
-const CLAUDE_PLUGIN_MCP = /^mcp__plugin_([A-Za-z0-9.-]+)_([A-Za-z0-9_.-]+?)(__(?:\*|[A-Za-z0-9_.-]+))?$/;
+const PLUGIN_MCP_PREFIX = "mcp__plugin_";
 
-/** The rewrite's outcome: Stigmer names, or the entry that names another plugin. */
+/** The check's outcome: the entries as written, or the first that names a server of another plugin. */
 export type AllowToolsOutcome =
   | { readonly ok: true; readonly tools: readonly string[] }
-  | { readonly ok: false; readonly entry: string; readonly plugin: string };
+  | { readonly ok: false; readonly entry: string; readonly server: string };
 
-/** Rewrites Claude Code's plugin MCP names of `plugin` (its name and slug) to Stigmer's. */
-export function stigmerAllowTools(
+/** The server part of a plugin MCP entry: everything between `mcp__` and the next `__`. */
+function serverPartOf(entry: string): string {
+  const rest = entry.slice("mcp__".length);
+  const end = rest.indexOf("__");
+  return end === -1 ? rest : rest.slice(0, end);
+}
+
+/** Checks that every plugin MCP entry names one of `plugin`'s servers. */
+export function checkAllowTools(
   tools: readonly string[],
-  plugin: { readonly name: string; readonly slug: string },
+  plugin: { readonly name: string; readonly servers: readonly string[] },
 ): AllowToolsOutcome {
-  const own = new Set([plugin.name, plugin.slug].filter((n) => n !== ""));
-  const out: string[] = [];
+  const own = new Set(plugin.servers.map((server) => toolServerSegment(plugin.name, server)));
   for (const entry of tools) {
-    const match = CLAUDE_PLUGIN_MCP.exec(entry);
-    if (match === null) {
-      out.push(entry);
+    if (!entry.startsWith(PLUGIN_MCP_PREFIX)) {
       continue;
     }
-    const [, named = "", server = "", rest = ""] = match;
-    if (!own.has(named)) {
-      return { ok: false, entry, plugin: named };
+    const server = serverPartOf(entry);
+    if (!own.has(server)) {
+      return { ok: false, entry, server };
     }
-    out.push(`mcp__${generateSlug(server)}${rest}`);
   }
-  return { ok: true, tools: out };
+  return { ok: true, tools: [...tools] };
 }

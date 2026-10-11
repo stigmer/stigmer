@@ -55,10 +55,10 @@ export interface AgentRefInput {
  * embedded session_spec. agentRef names the new conversation's agent; with
  * neither, the new conversation runs the built-in assistant.
  *
- * workspaceEntries, harness, vaults and includeMyVault ride the one-call
- * bootstrap (spec.session_spec, stigmer/stigmer#249) and shape the
- * auto-created session. A session's agent, workspace, harness and vault
- * choice are set at creation, so with sessionId set they are not sent: the
+ * workspaceEntries, harness, vaults, includeMyVault and plugins ride the
+ * one-call bootstrap (spec.session_spec, stigmer/stigmer#249) and shape the
+ * auto-created session. A session's agent, workspace, harness, vault and
+ * plugin choice are set at creation, so with sessionId set they are not sent: the
  * target carries the session id alone, and the conversation keeps the vaults
  * it was started with. A run carries no keys of its own; they come from the
  * vaults its conversation uses.
@@ -72,6 +72,8 @@ export interface CreateRunInput {
   readonly vaults: readonly ApiResourceReference[];
   /** Whether each turn of the new conversation uses its sender's My vault first. */
   readonly includeMyVault: boolean;
+  /** The plugins the new conversation uses: their skills, agents, MCP servers and hooks. */
+  readonly plugins: readonly ApiResourceReference[];
   readonly attachments: readonly Attachment[];
   readonly workspaceFileRefs: readonly string[];
   readonly workspaceEntries: readonly WorkspaceEntry[];
@@ -134,6 +136,7 @@ function buildSessionSpec(input: CreateRunInput): SessionSpec {
     workspaceEntries: [...input.workspaceEntries],
     vaults: [...input.vaults],
     includeMyVault: input.includeMyVault,
+    plugins: [...input.plugins],
   });
   if (agentRef !== undefined) {
     spec.agentRef = create(ApiResourceReferenceSchema, {

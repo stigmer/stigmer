@@ -67,10 +67,10 @@ export function ReviewStep({
             />
           )}
           <SummaryItem
-            label="MCP Servers"
+            label="Plugins"
             value={
-              data.mcpServerUsages.length > 0
-                ? `${data.mcpServerUsages.length} configured`
+              data.plugins.length > 0
+                ? `${data.plugins.length} added`
                 : "None"
             }
           />
@@ -181,8 +181,8 @@ export function buildAgentInput(
     ...(data.instructions && { instructions: data.instructions }),
   };
 
-  if (data.mcpServerUsages.length > 0) {
-    input.mcpServerUsages = data.mcpServerUsages;
+  if (data.plugins.length > 0) {
+    input.plugins = data.plugins;
   }
 
   if (data.skillRefs.length > 0) {

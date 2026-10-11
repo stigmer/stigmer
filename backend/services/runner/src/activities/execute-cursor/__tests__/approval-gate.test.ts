@@ -236,6 +236,7 @@ describe("buildApprovalGrants", () => {
 describe("buildApprovalState", () => {
   const mcpPolicies: McpApprovalDefault = {
     destructive: new Set(["planton/apply_x", "leased/drop_y"]),
+    unlisted: new Set<string>(),
     leasedServers: new Set(["leased"]),
   };
 
@@ -260,7 +261,8 @@ describe("buildApprovalState", () => {
 
     const scope = compileHookToolScope({
       scope: ToolScope.of('Agent "a"', { tools: ["Read", "mcp__planton__get_cloud_resource"], disallowedTools: [] }),
-      servers: [{ slug: "planton", discoveredToolNames: ["get_cloud_resource", "apply_x"] }],
+      servers: [{ slug: "planton" }],
+      listing: { listed: [{ server: "planton", tools: ["get_cloud_resource", "apply_x"] }], destructive: [], unlisted: [] },
       platformServerSlugs: new Set(),
       readRoot: "/platform",
       subAgentTypes: [],

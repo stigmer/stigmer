@@ -80,7 +80,7 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "source_tier_unspecified\020\000\022\017\n\013open_source" +
       "\020\001\022\016\n\ncloud_only\020\002\022\016\n\nenterprise\020\003*A\n\017Pl" +
       "atformIdValue\022!\n\035platform_id_value_unspe" +
-      "cified\020\000\022\013\n\007stigmer\020\001*\217\"\n\017ApiResourceKin" +
+      "cified\020\000\022\013\n\007stigmer\020\001*\216 \n\017ApiResourceKin" +
       "d\022\035\n\031api_resource_kind_unknown\020\000\022[\n\024api_" +
       "resource_version\020\001\032A\252\377+=\010\001\020\001\032\022ApiResourc" +
       "eVersion\"\024API Resource Version*\003ver8\001@\002J" +
@@ -135,71 +135,65 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "l*\003skl0\001@\001J\215\001\010\002\020\001*\006\020\001\030\001 \001:\002\001\004B\001\004JA\010\001\022=Ev" +
       "erything, including deleting it and deci" +
       "ding who has accessJ5\010\004\0221Use it and see " +
-      "what it contains; cannot change it\022\220\002\n\nm" +
-      "cp_server\020,\032\377\001\252\377+\372\001\010\001\020\001\032\tMcpServer\"\nMCP " +
-      "Server*\003mcp@\001J\325\001\010\002\020\001*\006\020\001\030\001 \001:\003\001\006\004B\002\006\004JA\010" +
-      "\001\022=Everything, including deleting it and" +
-      " deciding who has accessJD\010\006\022@Change and" +
-      " connect it; cannot delete it or decide " +
-      "who has accessJ5\010\004\0221Connect it and use i" +
-      "t in agents; cannot change it\022\276\001\n\013agent_" +
-      "share\020.\032\254\001\252\377+\247\001\010\001\020\001\032\nAgentShare\"\013Agent S" +
-      "hare*\003ash8\001@\001J\177\010\002\020\001:\002\001\004JA\010\001\022=Everything," +
-      " including deleting it and deciding who " +
-      "has accessJ2\010\004\022.See the chat link\'s sett" +
-      "ings; cannot change it\022\233\002\n\ragent_channel" +
-      "\020/\032\207\002\252\377+\202\002\010\001\020\001\032\014AgentChannel\"\rAgent Chan" +
-      "nel*\003ach8\001@\001J\325\001\010\002\020\001:\003\001\004\005B\002\004\005JE\010\001\022AEveryt" +
-      "hing, including the channel\'s connection" +
-      " and who has accessJ2\010\004\022.Read the channe" +
-      "l\'s conversations; cannot replyJK\010\005\022GRea" +
-      "d the channel\'s conversations and reply " +
-      "to customers as the business\022p\n\013channel_" +
-      "app\0200\032_\252\377+[\010\001\020\001\032\nChannelApp\"\013Channel App" +
-      "*\005chapp8\001@\001J1\010\002\020\004:\001\004J(\010\004\022$See its settin" +
-      "gs; cannot change them\022\273\001\n\010schedule\0208\032\254\001" +
-      "\252\377+\247\001\010\001\020\001\032\010Schedule\"\010Schedule*\003sch8\001@\001J\203" +
-      "\001\010\002\020\001:\002\001\004B\001\004JA\010\001\022=Everything, including " +
-      "deleting it and deciding who has accessJ" +
-      "3\010\004\022/See the schedule and its runs; cann" +
-      "ot change it\022m\n\006memory\0209\032a\252\377+]\010\001\020\001\032\006Memo" +
-      "ry\"\006Memory*\003mem8\001@\001J>\010\002\020\004\"8\n\020identity_ac" +
-      "count\022\007subject\032\033subject_identity_account" +
-      "_id\022\277\001\n\006plugin\020:\032\262\001\252\377+\255\001\010\001\020\001\032\006Plugin\"\006Pl" +
-      "ugin*\003plg0\001@\001J\215\001\010\002\020\001*\006\020\001\030\001 \001:\002\001\004B\001\004JA\010\001\022" +
-      "=Everything, including deleting it and d" +
-      "eciding who has accessJ5\010\004\0221Use it and s" +
-      "ee what it contains; cannot change it\022\274\001" +
-      "\n\005vault\020;\032\260\001\252\377+\253\001\010\001\020\001\032\005Vault\"\005Vault*\003vlt" +
-      "8\001@\001J\215\001\010\002\020\004\"$\n\020identity_account\022\006person\032" +
-      "\006person \001\" \n\014organization\022\torg_owned\032\003or" +
-      "g \001*\002\030\001:\001\007B\001\007J5\010\007\0221Use this vault\'s logi" +
-      "ns and secrets in their runs\022D\n\005score\020=\032" +
-      "9\252\377+5\010\001\020\001\032\005Score\"\005Score*\003scr8\001@\001J\030\010\003\020\001\032\022" +
-      "\n\003run\022\003run\032\006run_id\022V\n\tevaluator\020>\032G\252\377+C\010" +
-      "\001\020\001\032\tEvaluator\"\tEvaluator*\003evl8\001@\001J\036\010\003\020\004" +
-      "\032\030\n\005agent\022\005agent\032\010agent_id\022^\n\013plugin_eva" +
-      "l\020?\032M\252\377+I\010\001\020\001\032\nPluginEval\"\013Plugin Eval*\003" +
-      "pev8\001@\001J!\010\003\020\004\032\033\n\006plugin\022\006plugin\032\tplugin_" +
-      "id\022-\n\004plan\020F\032#\252\377+\037\010\004\020\001\032\004Plan\"\004Plan*\003pln8" +
-      "\001@\002J\004\010\005\020\004\022E\n\014subscription\020G\0323\252\377+/\010\004\020\001\032\014S" +
-      "ubscription\"\014Subscription*\003sub8\001@\002J\004\010\002\020\004" +
-      "\0226\n\007license\020H\032)\252\377+%\010\004\020\001\032\007License\"\007Licens" +
-      "e*\003lic8\001@\002J\004\010\005\020\004\"\004\010-\020-\"\004\0101\0201\"\004\0102\0202\"\004\0103\0203" +
-      "\"\004\0104\0204\"\004\0105\0205\"\004\0106\0206\"\004\0107\0207\"\004\010<\020<*\016agent_in" +
-      "stance*\tdatastore*\010workflow*\021workflow_in" +
-      "stance*\014workflow_run*\013environment*\021execu" +
-      "tion_context*\010artifact*\007project:\205\001\n\tkind" +
-      "_meta\022!.google.protobuf.EnumValueOptions" +
-      "\030\365\277\005 \001(\0132C.ai.stigmer.commons.apiresourc" +
-      "e.apiresourcekind.ApiResourceKindMetaR\010k" +
-      "indMetaB\364\001B\024ApiResourceKindProtoP\001\242\002\005ASC" +
-      "AA\252\002.Ai.Stigmer.Commons.Apiresource.Apir" +
-      "esourcekind\312\002.Ai\\Stigmer\\Commons\\Apireso" +
-      "urce\\Apiresourcekind\342\002:Ai\\Stigmer\\Common" +
-      "s\\Apiresource\\Apiresourcekind\\GPBMetadat" +
-      "a\352\0022Ai::Stigmer::Commons::Apiresource::A" +
-      "piresourcekindb\006proto3"
+      "what it contains; cannot change it\022\276\001\n\013a" +
+      "gent_share\020.\032\254\001\252\377+\247\001\010\001\020\001\032\nAgentShare\"\013Ag" +
+      "ent Share*\003ash8\001@\001J\177\010\002\020\001:\002\001\004JA\010\001\022=Everyt" +
+      "hing, including deleting it and deciding" +
+      " who has accessJ2\010\004\022.See the chat link\'s" +
+      " settings; cannot change it\022\233\002\n\ragent_ch" +
+      "annel\020/\032\207\002\252\377+\202\002\010\001\020\001\032\014AgentChannel\"\rAgent" +
+      " Channel*\003ach8\001@\001J\325\001\010\002\020\001:\003\001\004\005B\002\004\005JE\010\001\022AE" +
+      "verything, including the channel\'s conne" +
+      "ction and who has accessJ2\010\004\022.Read the c" +
+      "hannel\'s conversations; cannot replyJK\010\005" +
+      "\022GRead the channel\'s conversations and r" +
+      "eply to customers as the business\022p\n\013cha" +
+      "nnel_app\0200\032_\252\377+[\010\001\020\001\032\nChannelApp\"\013Channe" +
+      "l App*\005chapp8\001@\001J1\010\002\020\004:\001\004J(\010\004\022$See its s" +
+      "ettings; cannot change them\022\273\001\n\010schedule" +
+      "\0208\032\254\001\252\377+\247\001\010\001\020\001\032\010Schedule\"\010Schedule*\003sch8" +
+      "\001@\001J\203\001\010\002\020\001:\002\001\004B\001\004JA\010\001\022=Everything, inclu" +
+      "ding deleting it and deciding who has ac" +
+      "cessJ3\010\004\022/See the schedule and its runs;" +
+      " cannot change it\022m\n\006memory\0209\032a\252\377+]\010\001\020\001\032" +
+      "\006Memory\"\006Memory*\003mem8\001@\001J>\010\002\020\004\"8\n\020identi" +
+      "ty_account\022\007subject\032\033subject_identity_ac" +
+      "count_id\022\277\001\n\006plugin\020:\032\262\001\252\377+\255\001\010\001\020\001\032\006Plugi" +
+      "n\"\006Plugin*\003plg0\001@\001J\215\001\010\002\020\001*\006\020\001\030\001 \001:\002\001\004B\001\004" +
+      "JA\010\001\022=Everything, including deleting it " +
+      "and deciding who has accessJ5\010\004\0221Use it " +
+      "and see what it contains; cannot change " +
+      "it\022\274\001\n\005vault\020;\032\260\001\252\377+\253\001\010\001\020\001\032\005Vault\"\005Vault" +
+      "*\003vlt8\001@\001J\215\001\010\002\020\004\"$\n\020identity_account\022\006pe" +
+      "rson\032\006person \001\" \n\014organization\022\torg_owne" +
+      "d\032\003org \001*\002\030\001:\001\007B\001\007J5\010\007\0221Use this vault\'s" +
+      " logins and secrets in their runs\022D\n\005sco" +
+      "re\020=\0329\252\377+5\010\001\020\001\032\005Score\"\005Score*\003scr8\001@\001J\030\010" +
+      "\003\020\001\032\022\n\003run\022\003run\032\006run_id\022V\n\tevaluator\020>\032G" +
+      "\252\377+C\010\001\020\001\032\tEvaluator\"\tEvaluator*\003evl8\001@\001J" +
+      "\036\010\003\020\004\032\030\n\005agent\022\005agent\032\010agent_id\022^\n\013plugi" +
+      "n_eval\020?\032M\252\377+I\010\001\020\001\032\nPluginEval\"\013Plugin E" +
+      "val*\003pev8\001@\001J!\010\003\020\004\032\033\n\006plugin\022\006plugin\032\tpl" +
+      "ugin_id\022-\n\004plan\020F\032#\252\377+\037\010\004\020\001\032\004Plan\"\004Plan*" +
+      "\003pln8\001@\002J\004\010\005\020\004\022E\n\014subscription\020G\0323\252\377+/\010\004" +
+      "\020\001\032\014Subscription\"\014Subscription*\003sub8\001@\002J" +
+      "\004\010\002\020\004\0226\n\007license\020H\032)\252\377+%\010\004\020\001\032\007License\"\007L" +
+      "icense*\003lic8\001@\002J\004\010\005\020\004\"\004\010,\020,\"\004\010-\020-\"\004\0101\0201\"" +
+      "\004\0102\0202\"\004\0103\0203\"\004\0104\0204\"\004\0105\0205\"\004\0106\0206\"\004\0107\0207\"\004\010<\020" +
+      "<*\nmcp_server*\016agent_instance*\tdatastore" +
+      "*\010workflow*\021workflow_instance*\014workflow_" +
+      "run*\013environment*\021execution_context*\010art" +
+      "ifact*\007project:\205\001\n\tkind_meta\022!.google.pr" +
+      "otobuf.EnumValueOptions\030\365\277\005 \001(\0132C.ai.sti" +
+      "gmer.commons.apiresource.apiresourcekind" +
+      ".ApiResourceKindMetaR\010kindMetaB\364\001B\024ApiRe" +
+      "sourceKindProtoP\001\242\002\005ASCAA\252\002.Ai.Stigmer.C" +
+      "ommons.Apiresource.Apiresourcekind\312\002.Ai\\" +
+      "Stigmer\\Commons\\Apiresource\\Apiresourcek" +
+      "ind\342\002:Ai\\Stigmer\\Commons\\Apiresource\\Api" +
+      "resourcekind\\GPBMetadata\352\0022Ai::Stigmer::" +
+      "Commons::Apiresource::Apiresourcekindb\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

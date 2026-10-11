@@ -8,7 +8,10 @@
  *     reaches the registered driver; a caller bound elsewhere is denied
  *     before it), the binding itself, its engine's check and its
  *     lifecycle, and the one in-process transport; under open source's own
- *     authorization, the built-in Authorizer, list scope and policy check.
+ *     authorization, the built-in Authorizer, list scope and policy check;
+ *     in every posture, the identity accounts' store binding and the one
+ *     create path, through which a unit provisions a federated account at
+ *     its provider-and-subject address.
  *   - `start` runs in unit order, first in `start()`, before the server
  *     reports SERVING; a failing start fails `start()`, naming its unit.
  *   - An edition above open source with no sign-in is refused at boot,
@@ -21,7 +24,10 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { create } from "@bufbuild/protobuf";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
+import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
 import { HealthCheckResponse_ServingStatus } from "@stigmer/protos/grpc/health/v1/health_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
@@ -29,6 +35,8 @@ import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
+import { federatedAccountIdFor } from "../../domain/identityaccount/constants.js";
+import { serverActingFor } from "../../pipeline/interceptors/auth.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../pipeline/steps/authorize.js";
 import { platformTokenKeyRingFromPem } from "../../platformtoken/key-ring.js";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -221,6 +229,52 @@ describe("onComposed: a unit receives the composition's own instances", () => {
     expect(received?.listReadScope).toBeDefined();
     expect(received?.authorizationQueries).toBeDefined();
     expect(received?.resourceAuthorizationLifecycle).toBeUndefined();
+  });
+
+  it("hands the identity accounts' store binding and the one create path, which provisions a federated account at its provider-and-subject address", async () => {
+    let received: ComposedServices | undefined;
+    await compose([
+      enterpriseUnit({
+        onComposed: (composed) => {
+          received = composed;
+        },
+      }),
+    ]);
+    const accounts = received?.identityAccounts;
+    if (accounts === undefined) {
+      throw new Error("the unit received no identity accounts");
+    }
+    const providerOrg = "org_01hzacme000000000000000000";
+    const created = await accounts.create(
+      {
+        name: "dana@acme.example",
+        spec: create(IdentityAccountSpecSchema, {
+          idpId: "okta|dana",
+          email: "dana@acme.example",
+        }),
+        provisioning: {
+          mode: "federated",
+          provider: { org: providerOrg, slug: "acme-okta" },
+        },
+      },
+      serverActingFor("idp_01hzacmeokta0000000000000"),
+    );
+    expect(created.metadata?.id).toBe(
+      federatedAccountIdFor(providerOrg, "acme-okta", "okta|dana"),
+    );
+    expect(created.spec?.provisioningMode).toBe(
+      IdentityAccountProvisioningMode.federated,
+    );
+    expect(
+      (
+        await accounts.store.findByProviderAndIdpId(
+          providerOrg,
+          "acme-okta",
+          "okta|dana",
+        )
+      )?.metadata?.id,
+    ).toBe(created.metadata?.id);
+    expect(await accounts.store.findDirectByIdpId("okta|dana")).toBeUndefined();
   });
 });
 

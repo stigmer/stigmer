@@ -3,13 +3,16 @@
 // chain (stigmer#382).
 //
 // The contract under test (docs/guides/integrations/caller-identity-for-mcp-servers.mdx):
-// an McpServer that declares the reserved STIGMER_CALLER_IDENTITY_KIND/_VALUE
-// env keys (`optional: true`) and templates them into its headers receives the
-// platform-verified caller identity on EVERY request — resolved with fixed
+// a plugin's MCP server that references the platform's keys
+// STIGMER_CALLER_IDENTITY_KIND/_VALUE and STIGMER_SESSION_ID in its headers,
+// declaring nothing for them (the plugin library declares them as the
+// platform's, optional), receives the platform-verified caller identity and
+// the conversation's id on EVERY request, and the run asks no vault for
+// them: its source manifest lists none. The identity is resolved with fixed
 // precedence: channel sender (SessionSpec.metadata, cloud-broker-stamped) →
 // session creator (`stigmer_user` from the session's audit actor) → the
-// anonymous sentinel. A server that never declares the keys never receives
-// identity (opt-in by construction — filterEnvToDeclaredKeys).
+// anonymous sentinel. A server that never references the keys never
+// receives identity (opt-in by construction — filterEnvToDeclaredKeys).
 //
 // This chain crosses four components (audit transformer → runner resolver →
 // env filter → header templating) and previously had NO automated test that
@@ -37,23 +40,26 @@ import { agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitTerminal,
   makeAgentExecution,
+  pushFixturePlugin,
   requireLlmProxy,
   requireMcpFixture,
   sessionIdOf,
 } from "../support/runs";
 import { FixtureTracker } from "../harness/fixtures";
-import { makeHttpMcpServer, type HttpMcpServerOptions } from "../support/mcpservers";
+import { runSourcesOf } from "../support/run-values";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
 // The reserved env keys (pinned verbatim to the runner's caller-identity.ts).
 const KIND_ENV_KEY = "STIGMER_CALLER_IDENTITY_KIND";
 const VALUE_ENV_KEY = "STIGMER_CALLER_IDENTITY_VALUE";
+const SESSION_ENV_KEY = "STIGMER_SESSION_ID";
 
 // The header names the suite templates. Node lowercases incoming header names,
 // so captures are asserted via the lowercase forms.
 const KIND_HEADER = "x-stigmer-caller-kind";
 const VALUE_HEADER = "x-stigmer-caller-value";
+const SESSION_HEADER = "x-stigmer-session-id";
 
 // SessionSpec.metadata keys the cloud broker stamps for channel senders —
 // pinned verbatim to the runner's sender-identity.ts (which pins them to
@@ -85,40 +91,36 @@ afterAll(async () => {
   await target?.teardown();
 });
 
-// An McpServer declaring the reserved keys and templating them into headers —
-// the exact shape the docs guide prescribes (rules 1 and 2).
-function identityTemplatingServer(
-  opts: Pick<HttpMcpServerOptions, "org" | "name" | "url">,
-): ReturnType<typeof makeHttpMcpServer> {
-  return makeHttpMcpServer({
-    ...opts,
-    headers: {
-      "X-Stigmer-Caller-Kind": `\${${KIND_ENV_KEY}}`,
-      "X-Stigmer-Caller-Value": `\${${VALUE_ENV_KEY}}`,
-    },
-    env: {
-      [KIND_ENV_KEY]: { optional: true, description: "Injected by the platform" },
-      [VALUE_ENV_KEY]: { optional: true, description: "Injected by the platform" },
-    },
-  });
-}
+// The headers a plugin's server templates the platform's keys into — the
+// exact shape the docs guide prescribes; nothing is declared for them.
+const IDENTITY_HEADERS: Readonly<Record<string, string>> = {
+  "X-Stigmer-Caller-Kind": `\${${KIND_ENV_KEY}}`,
+  "X-Stigmer-Caller-Value": `\${${VALUE_ENV_KEY}}`,
+  "X-Stigmer-Session-Id": `\${${SESSION_ENV_KEY}}`,
+};
 
-// Drives one echo-tool run against the given McpServer resource and returns
-// the tools/call requests the fixture observed for it. sessionSpec lets the
-// channel case stamp sender metadata on the auto-created session.
+// Drives one echo-tool run against a plugin whose one server sends
+// `headers`, and returns the tools/call requests the fixture observed for it
+// and the keys the run's source manifest names. sessionSpec lets the channel
+// case stamp sender metadata on the auto-created session.
 async function runEchoAndCapture(options: {
   org: string;
-  server: ReturnType<typeof makeHttpMcpServer>;
+  name: string;
+  headers?: Readonly<Record<string, string>>;
   sessionSpec?: { metadata: Record<string, string> };
-}): Promise<{ toolCalls: CapturedMcpRequest[]; sessionId: string }> {
-  const server = await clients.mcpServerCommand.create(options.server);
-  fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+}): Promise<{ toolCalls: CapturedMcpRequest[]; sessionId: string; sourceKeys: string[] }> {
+  const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
+    org: options.org,
+    name: options.name,
+    tools: [ECHO_TOOL_NAME],
+    ...(options.headers !== undefined ? { headers: options.headers } : {}),
+  });
 
   const agent = await clients.agentCommand.create(
     makeAgent({
       org: options.org,
       name: uniqueName("agent-identity"),
-      mcpServerRefs: [server.metadata!.slug],
+      plugins: [plugin.metadata!.slug],
     }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
@@ -137,6 +139,7 @@ async function runEchoAndCapture(options: {
   );
   const executionId = execution.metadata!.id;
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+  const sourceKeys = (await runSourcesOf(clients, executionId)).map((source) => source.key);
 
   const final = await awaitTerminal(clients, executionId);
   expect(
@@ -146,16 +149,18 @@ async function runEchoAndCapture(options: {
 
   const toolCalls = mcp.capturedRequests().filter((r) => r.method === "tools/call");
   expect(toolCalls.length, "the echo dispatch reaches the fixture as a tools/call").toBeGreaterThan(0);
-  return { toolCalls: [...toolCalls], sessionId: sessionIdOf(final) };
+  return { toolCalls: [...toolCalls], sessionId: sessionIdOf(final), sourceKeys };
 }
 
-describe("MCP caller-identity headers (mint → session → execution → headers)", () => {
-  it("carries the session creator identity, derived per the resolver's documented precedence", async () => {
+describe("MCP caller-identity headers (mint → session → execution → a plugin server's headers)", () => {
+  it("carries the session creator identity, derived per the resolver's documented precedence, and the conversation's id, asking no vault", async () => {
     const { org } = await target.provisionTenancy();
-    const { toolCalls, sessionId } = await runEchoAndCapture({
+    const { toolCalls, sessionId, sourceKeys } = await runEchoAndCapture({
       org,
-      server: identityTemplatingServer({ org, name: uniqueName("mcp-identity"), url: mcp.url() }),
+      name: uniqueName("mcp-identity"),
+      headers: IDENTITY_HEADERS,
     });
+    expect(sourceKeys, "the platform's keys are asked of no vault").toEqual([]);
 
     // Derive the expected identity from the session's own audit actor — the
     // exact source and precedence the runner resolves from: a creator email
@@ -180,6 +185,7 @@ describe("MCP caller-identity headers (mint → session → execution → header
       expect(call.headers[VALUE_HEADER], "the value header carries the resolved identity value").toBe(
         expected.value,
       );
+      expect(call.headers[SESSION_HEADER], "the session header carries the conversation's id").toBe(sessionId);
     }
   });
 
@@ -187,7 +193,8 @@ describe("MCP caller-identity headers (mint → session → execution → header
     const { org } = await target.provisionTenancy();
     const { toolCalls } = await runEchoAndCapture({
       org,
-      server: identityTemplatingServer({ org, name: uniqueName("mcp-sender"), url: mcp.url() }),
+      name: uniqueName("mcp-sender"),
+      headers: IDENTITY_HEADERS,
       // What the cloud broker stamps at session creation for a WhatsApp
       // conversation — the resolver's highest-precedence source.
       sessionSpec: {
@@ -208,18 +215,19 @@ describe("MCP caller-identity headers (mint → session → execution → header
     }
   });
 
-  it("sends no identity headers to a server that never declared the reserved keys", async () => {
+  it("sends no identity headers to a plugin server that never references the platform's keys", async () => {
     const { org } = await target.provisionTenancy();
     const { toolCalls } = await runEchoAndCapture({
       org,
-      // No env declarations, no templated headers: identity injection is
-      // opt-in, so nothing identity-shaped may reach this server.
-      server: makeHttpMcpServer({ org, name: uniqueName("mcp-plain"), url: mcp.url() }),
+      // No templated headers: identity injection is opt-in, so nothing
+      // identity-shaped may reach this server.
+      name: uniqueName("mcp-plain"),
     });
 
     for (const call of toolCalls) {
       expect(call.headers[KIND_HEADER], "no declaration → no kind header").toBeUndefined();
       expect(call.headers[VALUE_HEADER], "no declaration → no value header").toBeUndefined();
+      expect(call.headers[SESSION_HEADER], "no declaration → no session header").toBeUndefined();
     }
   });
 });

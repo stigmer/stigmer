@@ -8,7 +8,7 @@
  * already has about each session (SessionActivityReader).
  *
  * Only session sandboxes sleep. A connect sandbox lives for one request
- * and ends when the connect settles (domain/mcpserver/connect-sandbox.ts).
+ * and ends when the connect settles (domain/plugin/tools/sandbox.ts).
  * The list asks for session Sandboxes by their labels.
  *
  * A Sandbox names its session in its `stigmer.ai/sandbox-id` label, so the

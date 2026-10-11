@@ -34,7 +34,7 @@ import { DependencyTreeNode } from "./DependencyTreeNode.js";
  *   <DependencyGraph
  *     tree={tree}
  *     onNodeClick={(node) => {
- *       if (node.kind === "mcp-server") navigateTo(`/mcp-servers/${node.ref!.slug}`);
+ *       if (node.kind === "plugin") navigateTo(`/plugins/${node.ref!.slug}`);
  *     }}
  *   />
  * )}

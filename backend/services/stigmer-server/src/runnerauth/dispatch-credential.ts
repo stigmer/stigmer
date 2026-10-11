@@ -3,7 +3,7 @@
  * run's dispatch path (temporal/agentexecution/engine-client.ts),
  * which puts the answer on the invoke workflow input as
  * `execution_context_token` — the
- * connect lane's key for the same token type (domain/mcpserver/engine.ts)
+ * connect lane's key for the same token type (domain/plugin/tools/engine.ts)
  * — and omit the key when the answer is "".
  *
  * Three answers, one rule each:

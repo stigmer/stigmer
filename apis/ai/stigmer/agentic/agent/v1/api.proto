@@ -20,7 +20,7 @@ message Agent {
   // Resource metadata including name, organization, visibility, and labels.
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
-  // Configurable properties: instructions, MCP servers, skills, and sub-agents.
+  // Configurable properties: instructions, plugins, skills, and sub-agents.
   AgentSpec spec = 4;
 
   // System-managed state including audit trail and current version hash.

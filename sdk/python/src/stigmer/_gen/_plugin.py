@@ -54,6 +54,12 @@ class PluginClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_tools(self, input: io_pb2.ListPluginToolsInput) -> io_pb2.ListPluginToolsOutput:
+        try:
+            return self._command.listTools(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.Plugin:
         try:
             return self._query.get(io_pb2.PluginId(value=id))
@@ -65,12 +71,6 @@ class PluginClient:
             proto = ref._to_proto()
             proto.kind = api_resource_kind_pb2.plugin
             return self._query.getByReference(proto)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def list_members(self, id: str) -> io_pb2.ListPluginMembersResponse:
-        try:
-            return self._query.listMembers(io_pb2.PluginId(value=id))
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

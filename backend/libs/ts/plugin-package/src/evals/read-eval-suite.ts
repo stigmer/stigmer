@@ -198,7 +198,9 @@ export function readEvalSuite(files: PluginFiles): EvalSuite {
   const findings: EvalSuiteFinding[] = [];
   // The install reports manifest and server problems; this read only needs the values.
   const set = detectManifests(index, new Findings());
-  const declared = set === undefined ? new Set<string>() : normaliseMcpServers(index, set.mcpSources, new Findings()).declaredNames;
+  const declared = new Set(
+    set === undefined ? [] : normaliseMcpServers(index, set.mcpSources, new Findings()).servers.map((server) => server.name),
+  );
   const servers = [...declared].sort(comparePaths);
   const { dir, held } = suiteDir(set, findings);
   if (held) return { dir, cases: [], findings, servers };

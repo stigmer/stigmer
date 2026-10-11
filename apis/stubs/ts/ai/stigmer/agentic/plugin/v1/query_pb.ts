@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { PluginSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_plugin_v1_api } from "./api_pb.js";
-import type { GetArtifactRequestSchema, GetArtifactResponseSchema, ListPluginMembersResponseSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, PluginArtifactDownloadUrlSchema, PluginIdSchema } from "./io_pb.js";
+import type { GetArtifactRequestSchema, GetArtifactResponseSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, PluginArtifactDownloadUrlSchema, PluginIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_plugin_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/plugin/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_plugin_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL3F1ZXJ5LnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxMskGChVQbHVnaW5RdWVyeUNvbnRyb2xsZXISgAEKA2dldBImLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luSWQaJC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbiIrwrgYJwgBEDoiBXZhbHVlKhp1bmF1dGhvcml6ZWQgdG8gZ2V0IHBsdWdpbhJyCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRokLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luIgTQuBgBEqQBCgtsaXN0TWVtYmVycxImLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luSWQaNy5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkxpc3RQbHVnaW5NZW1iZXJzUmVzcG9uc2UiNMK4GDAIARA6IgV2YWx1ZSojdW5hdXRob3JpemVkIHRvIGxpc3QgcGx1Z2luIG1lbWJlcnMSeAoLZ2V0QXJ0aWZhY3QSMC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkdldEFydGlmYWN0UmVxdWVzdBoxLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuR2V0QXJ0aWZhY3RSZXNwb25zZSIE0LgYARKJAQoWZ2V0QXJ0aWZhY3REb3dubG9hZFVybBIwLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuR2V0QXJ0aWZhY3RSZXF1ZXN0GjcuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5BcnRpZmFjdERvd25sb2FkVXJsIgTQuBgBEoUBCgxsaXN0VmVyc2lvbnMSNS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkxpc3RQbHVnaW5WZXJzaW9uc0lucHV0GjguYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5MaXN0UGx1Z2luVmVyc2lvbnNSZXNwb25zZSIE0LgYARoEoP8rOmIGcHJvdG8z", [file_ai_stigmer_agentic_plugin_v1_api, file_ai_stigmer_agentic_plugin_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL3F1ZXJ5LnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxMqIFChVQbHVnaW5RdWVyeUNvbnRyb2xsZXISgAEKA2dldBImLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luSWQaJC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbiIrwrgYJwgBEDoiBXZhbHVlKhp1bmF1dGhvcml6ZWQgdG8gZ2V0IHBsdWdpbhJyCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRokLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luIgTQuBgBEngKC2dldEFydGlmYWN0EjAuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5HZXRBcnRpZmFjdFJlcXVlc3QaMS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkdldEFydGlmYWN0UmVzcG9uc2UiBNC4GAESiQEKFmdldEFydGlmYWN0RG93bmxvYWRVcmwSMC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkdldEFydGlmYWN0UmVxdWVzdBo3LmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luQXJ0aWZhY3REb3dubG9hZFVybCIE0LgYARKFAQoMbGlzdFZlcnNpb25zEjUuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5MaXN0UGx1Z2luVmVyc2lvbnNJbnB1dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuTGlzdFBsdWdpblZlcnNpb25zUmVzcG9uc2UiBNC4GAEaBKD/KzpiBnByb3RvMw", [file_ai_stigmer_agentic_plugin_v1_api, file_ai_stigmer_agentic_plugin_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * PluginQueryController handles read operations for plugins.
@@ -49,19 +49,6 @@ export const PluginQueryController: GenService<{
     methodKind: "unary";
     input: typeof ApiResourceReferenceSchema;
     output: typeof PluginSchema;
-  },
-  /**
-   * List the resources an installed plugin materialised.
-   *
-   * Returns every skill, MCP server and agent the plugin owns, in
-   * materialisation order.
-   *
-   * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginQueryController.listMembers
-   */
-  listMembers: {
-    methodKind: "unary";
-    input: typeof PluginIdSchema;
-    output: typeof ListPluginMembersResponseSchema;
   },
   /**
    * Download a plugin archive from storage by its storage key.

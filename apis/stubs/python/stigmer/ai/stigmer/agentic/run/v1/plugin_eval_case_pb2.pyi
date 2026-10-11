@@ -18,7 +18,7 @@ plugin_eval_mock_kind_fixed: PluginEvalMockKind
 plugin_eval_mock_kind_agent: PluginEvalMockKind
 
 class PluginEvalCaseContext(_message.Message):
-    __slots__ = ("plugin_id", "plugin_digest", "suite_dir", "case_dir", "scaffold_script", "add_dirs", "history_file", "env", "mocks", "agent_mock_model", "agent_mock_call_budget", "read_files")
+    __slots__ = ("plugin_id", "plugin_digest", "suite_dir", "case_dir", "scaffold_script", "add_dirs", "history_file", "env", "mocks", "agent_mock_model", "agent_mock_call_budget", "read_files", "plugin_name")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -38,6 +38,7 @@ class PluginEvalCaseContext(_message.Message):
     AGENT_MOCK_MODEL_FIELD_NUMBER: _ClassVar[int]
     AGENT_MOCK_CALL_BUDGET_FIELD_NUMBER: _ClassVar[int]
     READ_FILES_FIELD_NUMBER: _ClassVar[int]
+    PLUGIN_NAME_FIELD_NUMBER: _ClassVar[int]
     plugin_id: str
     plugin_digest: str
     suite_dir: str
@@ -50,7 +51,8 @@ class PluginEvalCaseContext(_message.Message):
     agent_mock_model: str
     agent_mock_call_budget: int
     read_files: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, plugin_id: _Optional[str] = ..., plugin_digest: _Optional[str] = ..., suite_dir: _Optional[str] = ..., case_dir: _Optional[str] = ..., scaffold_script: _Optional[str] = ..., add_dirs: _Optional[_Iterable[str]] = ..., history_file: _Optional[str] = ..., env: _Optional[_Mapping[str, str]] = ..., mocks: _Optional[_Iterable[_Union[PluginEvalMockServer, _Mapping]]] = ..., agent_mock_model: _Optional[str] = ..., agent_mock_call_budget: _Optional[int] = ..., read_files: _Optional[_Iterable[str]] = ...) -> None: ...
+    plugin_name: str
+    def __init__(self, plugin_id: _Optional[str] = ..., plugin_digest: _Optional[str] = ..., suite_dir: _Optional[str] = ..., case_dir: _Optional[str] = ..., scaffold_script: _Optional[str] = ..., add_dirs: _Optional[_Iterable[str]] = ..., history_file: _Optional[str] = ..., env: _Optional[_Mapping[str, str]] = ..., mocks: _Optional[_Iterable[_Union[PluginEvalMockServer, _Mapping]]] = ..., agent_mock_model: _Optional[str] = ..., agent_mock_call_budget: _Optional[int] = ..., read_files: _Optional[_Iterable[str]] = ..., plugin_name: _Optional[str] = ...) -> None: ...
 
 class PluginEvalFiles(_message.Message):
     __slots__ = ("files",)

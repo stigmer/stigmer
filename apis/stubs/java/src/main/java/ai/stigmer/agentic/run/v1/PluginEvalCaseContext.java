@@ -46,6 +46,7 @@ private static final long serialVersionUID = 0L;
     agentMockModel_ = "";
     readFiles_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    pluginName_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -696,6 +697,55 @@ java.lang.String defaultValue) {
     return readFiles_.getByteString(index);
   }
 
+  public static final int PLUGIN_NAME_FIELD_NUMBER = 13;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object pluginName_ = "";
+  /**
+   * <pre>
+   * The plugin's name, as a turn names its MCP servers
+   * (`plugin_&lt;plugin&gt;_&lt;server&gt;`) and a hook reads a stand-in's origin.
+   * </pre>
+   *
+   * <code>string plugin_name = 13 [json_name = "pluginName", (.buf.validate.field) = { ... }</code>
+   * @return The pluginName.
+   */
+  @java.lang.Override
+  public java.lang.String getPluginName() {
+    java.lang.Object ref = pluginName_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      pluginName_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The plugin's name, as a turn names its MCP servers
+   * (`plugin_&lt;plugin&gt;_&lt;server&gt;`) and a hook reads a stand-in's origin.
+   * </pre>
+   *
+   * <code>string plugin_name = 13 [json_name = "pluginName", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for pluginName.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPluginNameBytes() {
+    java.lang.Object ref = pluginName_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      pluginName_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -748,6 +798,9 @@ java.lang.String defaultValue) {
     }
     for (int i = 0; i < readFiles_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 12, readFiles_.getRaw(i));
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pluginName_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 13, pluginName_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -818,6 +871,9 @@ java.lang.String defaultValue) {
       size += dataSize;
       size += 1 * getReadFilesList().size();
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pluginName_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(13, pluginName_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -857,6 +913,8 @@ java.lang.String defaultValue) {
         != other.getAgentMockCallBudget()) return false;
     if (!getReadFilesList()
         .equals(other.getReadFilesList())) return false;
+    if (!getPluginName()
+        .equals(other.getPluginName())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -900,6 +958,8 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + READ_FILES_FIELD_NUMBER;
       hash = (53 * hash) + getReadFilesList().hashCode();
     }
+    hash = (37 * hash) + PLUGIN_NAME_FIELD_NUMBER;
+    hash = (53 * hash) + getPluginName().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1079,6 +1139,7 @@ java.lang.String defaultValue) {
       agentMockCallBudget_ = 0;
       readFiles_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      pluginName_ = "";
       return this;
     }
 
@@ -1160,6 +1221,9 @@ java.lang.String defaultValue) {
       if (((from_bitField0_ & 0x00000800) != 0)) {
         readFiles_.makeImmutable();
         result.readFiles_ = readFiles_;
+      }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.pluginName_ = pluginName_;
       }
     }
 
@@ -1262,6 +1326,11 @@ java.lang.String defaultValue) {
         }
         onChanged();
       }
+      if (!other.getPluginName().isEmpty()) {
+        pluginName_ = other.pluginName_;
+        bitField0_ |= 0x00001000;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1360,6 +1429,11 @@ java.lang.String defaultValue) {
               readFiles_.add(input.readStringRequireUtf8());
               break;
             } // case 98
+            case 106: {
+              pluginName_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 106
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2849,6 +2923,103 @@ java.lang.String defaultValue) {
       ensureReadFilesIsMutable();
       readFiles_.add(value);
       bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object pluginName_ = "";
+    /**
+     * <pre>
+     * The plugin's name, as a turn names its MCP servers
+     * (`plugin_&lt;plugin&gt;_&lt;server&gt;`) and a hook reads a stand-in's origin.
+     * </pre>
+     *
+     * <code>string plugin_name = 13 [json_name = "pluginName", (.buf.validate.field) = { ... }</code>
+     * @return The pluginName.
+     */
+    public java.lang.String getPluginName() {
+      java.lang.Object ref = pluginName_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        pluginName_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's name, as a turn names its MCP servers
+     * (`plugin_&lt;plugin&gt;_&lt;server&gt;`) and a hook reads a stand-in's origin.
+     * </pre>
+     *
+     * <code>string plugin_name = 13 [json_name = "pluginName", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for pluginName.
+     */
+    public com.google.protobuf.ByteString
+        getPluginNameBytes() {
+      java.lang.Object ref = pluginName_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        pluginName_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The plugin's name, as a turn names its MCP servers
+     * (`plugin_&lt;plugin&gt;_&lt;server&gt;`) and a hook reads a stand-in's origin.
+     * </pre>
+     *
+     * <code>string plugin_name = 13 [json_name = "pluginName", (.buf.validate.field) = { ... }</code>
+     * @param value The pluginName to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPluginName(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      pluginName_ = value;
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's name, as a turn names its MCP servers
+     * (`plugin_&lt;plugin&gt;_&lt;server&gt;`) and a hook reads a stand-in's origin.
+     * </pre>
+     *
+     * <code>string plugin_name = 13 [json_name = "pluginName", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPluginName() {
+      pluginName_ = getDefaultInstance().getPluginName();
+      bitField0_ = (bitField0_ & ~0x00001000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin's name, as a turn names its MCP servers
+     * (`plugin_&lt;plugin&gt;_&lt;server&gt;`) and a hook reads a stand-in's origin.
+     * </pre>
+     *
+     * <code>string plugin_name = 13 [json_name = "pluginName", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for pluginName to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPluginNameBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      pluginName_ = value;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }

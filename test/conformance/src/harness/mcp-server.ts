@@ -5,24 +5,24 @@
 // HITL/tool-approval is the first suite that needs a genuine tool: the runner's
 // approval gate keys off a tool name, and there is no built-in approval-gated
 // tool, so a conformance agent can only reach RUN_WAITING_FOR_APPROVAL by
-// referencing a real McpServer that exposes a real tool. This fixture is that
+// listing a plugin whose MCP server exposes a real tool. This fixture is that
 // tool surface, and (like mock-llm.ts) it is TS-pure on purpose — no reuse of
 // the Go test/integration MCP servers — to preserve the suite's
 // no-cross-language-coupling property.
 //
-// When `connect` is needed and when it is not: at execution setup the runner
-// resolves MCP servers from their *spec*, connects LIVE and lists tools, so a
-// suite that only CALLS a tool needs the McpServer created, nothing more. The
-// approval default is different: it asks before a tool the server marks
-// destructive, and the runner learns that mark only from the stored discovery
-// (DiscoveredTool.destructive_hint), so a suite that needs the gate connects
-// the server first (support/agentexecutions.ts, createConnectedMcpServer).
-// The conformance runner sets SKIP_MCP_CONNECT_BACKFILL=true, so nothing
-// discovers a server behind a suite's back. See the runner's
-// harness/turn-context.ts (the MCP phase) and shared/approval-policy.ts.
+// Nothing is connected ahead of a run: at turn start the runner reads each
+// listed plugin's server entries, connects LIVE and lists tools, and reads
+// each tool's destructive mark from that listing (the approval default asks
+// before a tool whose annotation says `destructiveHint: true`). So a suite
+// pushes a one-server plugin naming one of the fixture's surfaces
+// (support/runs.ts, pushFixturePlugin) and lists it on the agent or the
+// conversation, nothing more. The install itself asks the URL once whether
+// it wants a sign-in; the fixture answers without a challenge unless a suite
+// turns requireOAuth on. See the runner's harness/turn-context.ts (the MCP
+// phase) and shared/approval-policy.ts.
 //
 // Transport choice: stateless Streamable HTTP. Each POST gets a fresh
-// McpServer + transport (sessionIdGenerator: undefined), so independent runner
+// SDK McpServer + transport (sessionIdGenerator: undefined), so independent runner
 // connections over the fixture's lifetime never share session state and nothing
 // leaks between executions — the right default for a stateless `echo` tool, and
 // the behavioral match to the retired Go harness's mcp_http_server.go. The
@@ -40,13 +40,15 @@ import { z } from "zod";
 // the runner binds MCP tools by their bare names — the mock LLM's tool_use turn
 // references exactly this string. It declares no annotations, so the approval
 // default lets it through: every suite that calls it unattended relies on that.
+// A plugin's tool is offered to the model by this bare name; the turn's tool
+// lists and a call's mcp_server_slug name its server as
+// `plugin_<plugin>_<server>` (support/plugins.ts).
 export const ECHO_TOOL_NAME = "echo";
 
 // The same echo, declared `destructiveHint: true`: the tool the approval
-// default asks before, once a connect has stored the hint. A separate tool
-// rather than an annotated `echo`, so a suite that connects the default
-// surface (the connect suite, the enforcing lane) never turns the echo every
-// other suite calls unattended into a gated one.
+// default asks before, read live from the listing. A separate tool rather
+// than an annotated `echo`, so the default surface every other suite calls
+// unattended never turns into a gated one.
 export const DESTRUCTIVE_ECHO_TOOL_NAME = "echo_destructive";
 
 // A tool that always fails. The runner must record the failed ToolCall and let
@@ -86,10 +88,10 @@ export const FIXTURE_ORDERS: Readonly<Record<string, Readonly<Record<string, unk
   },
 };
 
-// The tool surfaces the fixture can expose. A registered McpServer names its
+// The tool surfaces the fixture can expose. A plugin's server names its
 // surface IN ITS URL (see url()), so every existing suite keeps the one-tool
 // `echo` server it pins by exact tool list, and a suite that needs `fail`
-// registers a second McpServer resource pointing at the same fixture process.
+// pushes a plugin whose server points at that surface of the same process.
 // Per-request construction (stateless mode) is what makes this free: the tool
 // set is read off the path each time, no per-file posture involved.
 export type FixtureTool =
@@ -276,7 +278,7 @@ export class McpToolFixture {
     this.server = server;
   }
 
-  // The McpServer http.url to register: the MCP client POSTs JSON-RPC here.
+  // The http url a plugin's server entry names: the MCP client POSTs JSON-RPC here.
   // Without arguments it is the one-tool `echo` surface every existing suite
   // pins; with a tool list it is that exact surface, named in the path.
   url(tools?: readonly FixtureTool[]): string {

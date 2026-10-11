@@ -76,6 +76,7 @@ import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import {
   accountIdFor,
+  federatedAccountIdFor,
   NOT_A_DIRECT_SIGN_IN_MESSAGE,
 } from "../../domain/identityaccount/constants.js";
 import { newResourceIdentityAccountStore } from "../../domain/identityaccount/resource-store.js";
@@ -145,6 +146,14 @@ function recordingStore(
     findByOrg: (org) => {
       calls.push("findByOrg");
       return inner.findByOrg(org);
+    },
+    findByProviderAndIdpId: (providerOrg, providerSlug, idpId) => {
+      calls.push("findByProviderAndIdpId");
+      return inner.findByProviderAndIdpId(providerOrg, providerSlug, idpId);
+    },
+    findByProvider: (providerOrg, providerSlug) => {
+      calls.push("findByProvider");
+      return inner.findByProvider(providerOrg, providerSlug);
     },
   };
 }
@@ -592,7 +601,9 @@ describe("identity-account points (composed server, declared posture: the verifi
           transportFor(port, fakeJwt(subject, EMAIL)),
         ).provisionMyAccount({});
       }
-      const laneAccount = "ida_lane_account";
+      // A federated row sits at the address of its provider and subject:
+      // the OSS adapter under the driver refuses any other id.
+      const laneAccount = federatedAccountIdFor("acme", "acme-okta", subject);
       await driver.accounts.save(
         create(IdentityAccountSchema, {
           apiVersion: "iam.stigmer.ai/v1",

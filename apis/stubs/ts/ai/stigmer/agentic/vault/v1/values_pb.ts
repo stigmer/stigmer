@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/vault/v1/values.proto.
  */
 export const file_ai_stigmer_agentic_vault_v1_values: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvdmF1bHQvdjEvdmFsdWVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEiOgoZRmV0Y2hFeGVjdXRpb25WYWx1ZXNJbnB1dBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAEihAIKD0V4ZWN1dGlvblZhbHVlcxJGCgVhZ2VudBgBIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5FeGVjdXRpb25WYWx1ZXMuQWdlbnRFbnRyeRI2CgV0b29scxgCIAMoCzInLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5Ub29sVmFsdWVzEkMKDHJlcG9zaXRvcmllcxgDIAMoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5SZXBvc2l0b3J5VmFsdWVzGiwKCkFnZW50RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKkAQoKVG9vbFZhbHVlcxIVCg1tY3Bfc2VydmVyX2lkGAEgASgJEgsKA3VybBgCIAEoCRJDCgZ2YWx1ZXMYAyADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVG9vbFZhbHVlcy5WYWx1ZXNFbnRyeRotCgtWYWx1ZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIjwKEFJlcG9zaXRvcnlWYWx1ZXMSDAoEbmFtZRgBIAEoCRILCgN1cmwYAiABKAkSDQoFdG9rZW4YAyABKAkykQEKFFZhdWx0VmFsdWVDb250cm9sbGVyEnkKC2ZldGNoVmFsdWVzEjYuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLkZldGNoRXhlY3V0aW9uVmFsdWVzSW5wdXQaLC5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuRXhlY3V0aW9uVmFsdWVzIgTQuBgBYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvdmF1bHQvdjEvdmFsdWVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEiOgoZRmV0Y2hFeGVjdXRpb25WYWx1ZXNJbnB1dBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAEiwAIKD0V4ZWN1dGlvblZhbHVlcxJGCgVhZ2VudBgBIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5FeGVjdXRpb25WYWx1ZXMuQWdlbnRFbnRyeRI2CgV0b29scxgCIAMoCzInLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5Ub29sVmFsdWVzEkMKDHJlcG9zaXRvcmllcxgDIAMoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5SZXBvc2l0b3J5VmFsdWVzEjoKB3BsdWdpbnMYBCADKAsyKS5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuUGx1Z2luVmFsdWVzGiwKCkFnZW50RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASLFAQoKVG9vbFZhbHVlcxIRCglwbHVnaW5faWQYBCABKAkSDgoGc2VydmVyGAUgASgJEgsKA3VybBgCIAEoCRJDCgZ2YWx1ZXMYAyADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVG9vbFZhbHVlcy5WYWx1ZXNFbnRyeRotCgtWYWx1ZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBSgQIARACUg1tY3Bfc2VydmVyX2lkIpcBCgxQbHVnaW5WYWx1ZXMSEQoJcGx1Z2luX2lkGAEgASgJEkUKBnZhbHVlcxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5QbHVnaW5WYWx1ZXMuVmFsdWVzRW50cnkaLQoLVmFsdWVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI8ChBSZXBvc2l0b3J5VmFsdWVzEgwKBG5hbWUYASABKAkSCwoDdXJsGAIgASgJEg0KBXRva2VuGAMgASgJMpEBChRWYXVsdFZhbHVlQ29udHJvbGxlchJ5CgtmZXRjaFZhbHVlcxI2LmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5GZXRjaEV4ZWN1dGlvblZhbHVlc0lucHV0GiwuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLkV4ZWN1dGlvblZhbHVlcyIE0LgYAWIGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * Which execution's values to fetch.
@@ -21,7 +21,7 @@ export const file_ai_stigmer_agentic_vault_v1_values: GenFile = /*@__PURE__*/
  */
 export type FetchExecutionValuesInput = Message<"ai.stigmer.agentic.vault.v1.FetchExecutionValuesInput"> & {
   /**
-   * The run's id, or the id of a tool connect's attempt.
+   * The run's id, or the id of a tools listing's connect attempt.
    *
    * @generated from field: string execution_id = 1;
    */
@@ -43,9 +43,9 @@ export const FetchExecutionValuesInputSchema: GenMessage<FetchExecutionValuesInp
  */
 export type ExecutionValues = Message<"ai.stigmer.agentic.vault.v1.ExecutionValues"> & {
   /**
-   * The agent's own keys, for its shell and hooks: secrets by name and plain
-   * defaults, never a connection or a repository's token, and never a key a
-   * tool of the run declares.
+   * The agent's own keys, for its shell and its own hooks: secrets by name
+   * and plain defaults, never a connection or a repository's token, and
+   * never a key a tool or a plugin of the run declares.
    *
    * @generated from field: map<string, string> agent = 1;
    */
@@ -64,6 +64,13 @@ export type ExecutionValues = Message<"ai.stigmer.agentic.vault.v1.ExecutionValu
    * @generated from field: repeated ai.stigmer.agentic.vault.v1.RepositoryValues repositories = 3;
    */
   repositories: RepositoryValues[];
+
+  /**
+   * Each plugin's keys, for that plugin's hooks only.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.vault.v1.PluginValues plugins = 4;
+   */
+  plugins: PluginValues[];
 };
 
 /**
@@ -74,17 +81,25 @@ export const ExecutionValuesSchema: GenMessage<ExecutionValues> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_vault_v1_values, 1);
 
 /**
- * ToolValues are the values of one tool (an MCP server) of the execution.
+ * ToolValues are the values of one tool (an MCP server in a plugin) of the
+ * execution.
  *
  * @generated from message ai.stigmer.agentic.vault.v1.ToolValues
  */
 export type ToolValues = Message<"ai.stigmer.agentic.vault.v1.ToolValues"> & {
   /**
-   * The tool's MCP server id.
+   * The tool's plugin.
    *
-   * @generated from field: string mcp_server_id = 1;
+   * @generated from field: string plugin_id = 4;
    */
-  mcpServerId: string;
+  pluginId: string;
+
+  /**
+   * The tool's server name in its plugin.
+   *
+   * @generated from field: string server = 5;
+   */
+  server: string;
 
   /**
    * The tool's URL as the fetch read it, whose address was checked against
@@ -109,6 +124,34 @@ export type ToolValues = Message<"ai.stigmer.agentic.vault.v1.ToolValues"> & {
  */
 export const ToolValuesSchema: GenMessage<ToolValues> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_vault_v1_values, 2);
+
+/**
+ * PluginValues are the keys one plugin's hooks read.
+ *
+ * @generated from message ai.stigmer.agentic.vault.v1.PluginValues
+ */
+export type PluginValues = Message<"ai.stigmer.agentic.vault.v1.PluginValues"> & {
+  /**
+   * The plugin.
+   *
+   * @generated from field: string plugin_id = 1;
+   */
+  pluginId: string;
+
+  /**
+   * Its keys and their values.
+   *
+   * @generated from field: map<string, string> values = 2;
+   */
+  values: { [key: string]: string };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.vault.v1.PluginValues.
+ * Use `create(PluginValuesSchema)` to create a new message.
+ */
+export const PluginValuesSchema: GenMessage<PluginValues> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_vault_v1_values, 3);
 
 /**
  * RepositoryValues is the token of one repository the execution clones.
@@ -143,7 +186,7 @@ export type RepositoryValues = Message<"ai.stigmer.agentic.vault.v1.RepositoryVa
  * Use `create(RepositoryValuesSchema)` to create a new message.
  */
 export const RepositoryValuesSchema: GenMessage<RepositoryValues> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_vault_v1_values, 3);
+  messageDesc(file_ai_stigmer_agentic_vault_v1_values, 4);
 
 /**
  * VaultValueController hands a runner the values one execution uses, read
@@ -154,7 +197,7 @@ export const RepositoryValuesSchema: GenMessage<RepositoryValues> = /*@__PURE__*
  */
 export const VaultValueController: GenService<{
   /**
-   * Fetch the values of a run or of a tool connect, grouped by who declared
+   * Fetch the values of a run or of a tools listing, grouped by who declared
    * them, opened from the vaults the run's source manifest names
    * (RunStatus.credentials.sources) as they are now.
    *

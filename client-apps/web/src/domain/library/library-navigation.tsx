@@ -29,7 +29,6 @@ import { useCanonicalOrgSlug, useOrgSlugForId } from "@stigmer/react";
 export const LIBRARY_RESOURCE_TYPES = [
   "agents",
   "skills",
-  "mcp-servers",
   "schedules",
   "plugins",
 ] as const;

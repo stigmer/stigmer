@@ -1,98 +1,73 @@
 /**
- * Which agent a plugin eval's try runs on, per arm: the one place that
- * decides what "with the plugin" and "without the plugin" mean.
+ * What a plugin eval's try attaches, per arm: the one place that decides
+ * what "with the plugin" and "without the plugin" mean.
  *
- *   - with: the agent the plugin's install composed (the plugin's agent
- *     member, found by the `stigmer.ai/plugin` membership label), which
- *     carries the plugin's skills, servers, sub-agents and hooks. A plugin
- *     that composes no agent (an MCP-only plugin) runs on the assistant
- *     with the plugin's MCP servers attached to the session
- *     (`SessionSpec.mcp_server_usages`).
- *   - without: the assistant, with nothing attached.
+ *   - with: the built-in assistant with the plugin under test listed in the
+ *     session's `plugins`, at the archive the eval stamped (the reference's
+ *     version is its digest), so the try runs the plugin whole: its skills,
+ *     its agents, its hooks and its MCP servers;
+ *   - without: the built-in assistant with nothing attached.
  *
- * The composed agent's instructions name the plugin, so today the
- * difference between the arms also measures that prompt, not only the
- * plugin's parts. The eval says so: its `status.provisional_delta` is
- * true (PROVISIONAL_DELTA). When sessions attach plugins directly, this
- * body becomes `SessionSpec.plugins` at the eval's stamped digest for the
- * with-arm, both arms run on the assistant, the composed-agent branch is
- * deleted, and the flag turns false.
+ * Both arms run the same assistant, so the difference between them is the
+ * plugin and nothing else: no prompt of an agent rides along, and
+ * `status.provisional_delta` is false (PROVISIONAL_DELTA).
  *
  * Proven by __tests__/arm.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 
-import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
-import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { toolServerSegment } from "@stigmer/plugin-package";
 
-import type { Store } from "../../store/interface.js";
-import { findMembers } from "../plugin/members.js";
-
-/** Whether the arms' comparison also measures the composed agent (the module header). */
-export const PROVISIONAL_DELTA = true;
+/** Whether the arms' comparison also measures something beside the plugin (the module header). */
+export const PROVISIONAL_DELTA = false;
 
 /** A try's arm. */
 export type EvalArm = "with" | "without";
 
 /** What the arms need to know of the installed plugin. */
 export interface PluginAttachmentFacts {
-  /** The plugin's organization: its members live there. */
+  /** The plugin's organization. */
   readonly org: string;
-  /** The slug of the agent its install composed; undefined when it composed none. */
-  readonly agentSlug?: string;
-  /** The slugs of the MCP servers it installed, in member order. */
-  readonly mcpServerSlugs: ReadonlyArray<string>;
+  /** The plugin's slug, which the with-plugin arm's reference names. */
+  readonly slug: string;
+  /** The archive the eval stamped, which the reference pins. */
+  readonly digest: string;
   /**
-   * Each installed server's name as the plugin declares it (its
-   * `mcpServers` key, which the McpServer's name records), by slug: a
-   * slug drops underscores and capitals, and the eval's trace names a call
-   * as Claude Code does, by the key.
+   * Each of the plugin's MCP servers as a turn names it,
+   * `plugin_<plugin>_<server>` (`toolServerSegment`), in entry order: the
+   * names a try's lists turn the servers off by, and the ones its trace
+   * reads.
    */
-  readonly mcpServerKeys: ReadonlyMap<string, string>;
+  readonly serverSegments: ReadonlyArray<string>;
 }
-
-/** What choosing an arm's attachment reads of the facts. */
-export type ArmFacts = Omit<PluginAttachmentFacts, "mcpServerKeys">;
 
 /** What a try's session attaches. */
 export interface ArmAttachment {
-  /** The agent the session runs; undefined runs the assistant. */
-  readonly agentRef?: ApiResourceReference;
-  /** Servers the session itself attaches. */
-  readonly mcpServerUsages: ReadonlyArray<McpServerUsage>;
+  /** The plugins the session lists; empty runs the assistant alone. */
+  readonly plugins: ReadonlyArray<ApiResourceReference>;
 }
 
 export function armAttachment(
   arm: EvalArm,
-  plugin: ArmFacts,
+  plugin: Pick<PluginAttachmentFacts, "org" | "slug" | "digest">,
 ): ArmAttachment {
   switch (arm) {
     case "without":
-      return { mcpServerUsages: [] };
+      return { plugins: [] };
     case "with":
-      if (plugin.agentSlug !== undefined) {
-        return {
-          agentRef: create(ApiResourceReferenceSchema, {
-            org: plugin.org,
-            kind: ApiResourceKind.agent,
-            slug: plugin.agentSlug,
-          }),
-          mcpServerUsages: [],
-        };
-      }
       return {
-        mcpServerUsages: plugin.mcpServerSlugs.map((slug) =>
-          create(McpServerUsageSchema, {
-            mcpServerRef: create(ApiResourceReferenceSchema, {
-              org: plugin.org,
-              kind: ApiResourceKind.mcp_server,
-              slug,
-            }),
+        plugins: [
+          create(ApiResourceReferenceSchema, {
+            org: plugin.org,
+            kind: ApiResourceKind.plugin,
+            slug: plugin.slug,
+            version: plugin.digest,
           }),
-        ),
+        ],
       };
     /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
@@ -102,31 +77,13 @@ export function armAttachment(
   }
 }
 
-/**
- * The plugin's facts, from its members in its organization. A plugin
- * composes at most one agent; should a store hold more (a row left by an
- * interrupted push), the first by slug runs, so every try of an eval runs
- * the same one.
- */
-export async function pluginAttachmentFacts(
-  store: Store,
-  pluginId: string,
-  org: string,
-): Promise<PluginAttachmentFacts> {
-  const members = await findMembers(store, pluginId, org);
-  const agents = members
-    .filter((member) => member.kind === ApiResourceKind.agent)
-    .map((member) => member.slug)
-    .sort();
-  const servers = members.filter(
-    (member) => member.kind === ApiResourceKind.mcp_server,
-  );
-  const mcpServerSlugs = servers.map((member) => member.slug);
-  const mcpServerKeys = new Map(
-    servers.map((member) => [member.slug, member.name] as const),
-  );
-  const agentSlug = agents[0];
-  return agentSlug === undefined
-    ? { org, mcpServerSlugs, mcpServerKeys }
-    : { org, agentSlug, mcpServerSlugs, mcpServerKeys };
+/** The plugin's facts, from the row the eval loaded at the digest it stamped. */
+export function pluginAttachmentFacts(plugin: Plugin, digest: string): PluginAttachmentFacts {
+  const name = plugin.metadata?.name ?? "";
+  return {
+    org: plugin.metadata?.org ?? "",
+    slug: plugin.metadata?.slug ?? "",
+    digest,
+    serverSegments: (plugin.status?.mcpServers ?? []).map((server) => toolServerSegment(name, server.name)),
+  };
 }

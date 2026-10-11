@@ -1,9 +1,10 @@
 /**
  * Pins ValidateHooks (domain/agent/steps.ts), the step that checks an
- * agent's hook sources where the proto's rules cannot reach: each plugin
- * listed once by slug (the slug is what a run records as the deciding hook,
- * so two plugins sharing one would share a lease), one inline block at
- * most, and an inline block held to the rules a plugin's hooks are held to
+ * agent's plugins and hook sources where the proto's rules cannot reach:
+ * each plugin listed once by slug in spec.plugins, even across two
+ * organizations (the slug is what a run records as the deciding hook and
+ * names a plugin's skills, agents and tools, so two plugins sharing one
+ * would share them), one inline block at most, and an inline block held to the rules a plugin's hooks are held to
  * at install, in either format. Claude Code's: the two tool-call events, a
  * matcher the library accepts, an `if` in a permission rule's shape, no
  * fail_closed, and `${user_config.*}` only in a handler with args (bash
@@ -28,12 +29,21 @@ import { newValidateHooksStep } from "../steps.js";
 
 type AgentInit = Parameters<typeof create<typeof AgentSchema>>[1];
 
-function contextWith(hooks: unknown[]): RequestContext<typeof AgentSchema> {
+interface PluginRef {
+  kind: ApiResourceKind;
+  org: string;
+  slug: string;
+}
+
+function contextWith(
+  hooks: unknown[],
+  plugins: PluginRef[] = [],
+): RequestContext<typeof AgentSchema> {
   const init = {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
     metadata: { name: "Guarded", org: "acme" },
-    spec: { instructions: "help the user with their tasks", hooks },
+    spec: { instructions: "help the user with their tasks", hooks, plugins },
   } as AgentInit;
   return new RequestContext(
     AgentSchema,
@@ -43,11 +53,10 @@ function contextWith(hooks: unknown[]): RequestContext<typeof AgentSchema> {
   );
 }
 
-const plugin = (slug: string, org = "acme") => ({
-  source: {
-    case: "plugin",
-    value: { kind: ApiResourceKind.plugin, org, slug },
-  },
+const plugin = (slug: string, org = "acme"): PluginRef => ({
+  kind: ApiResourceKind.plugin,
+  org,
+  slug,
 });
 
 interface GroupInit {
@@ -75,9 +84,9 @@ const inline = (groups: GroupInit[], format?: HookFormat) => ({
   },
 });
 
-function refusal(hooks: unknown[]): ConnectError {
+function refusal(hooks: unknown[], plugins: PluginRef[] = []): ConnectError {
   try {
-    newValidateHooksStep().execute(contextWith(hooks));
+    newValidateHooksStep().execute(contextWith(hooks, plugins));
   } catch (error) {
     if (error instanceof ConnectError) return error;
     throw error;
@@ -108,18 +117,19 @@ describe("ValidateHooks", () => {
   });
 
   it("passes plugins with distinct slugs and one valid inline block, filling Claude Code's format", () => {
-    const ctx = contextWith([
-      inline([
-        {
-          event: "PreToolUse",
-          matcher: "Bash|Write",
-          handlers: [{ command: "guard", condition: "Bash(git push *)" }],
-        },
-        { event: "PostToolUse", matcher: "mcp__github__.*" },
-      ]),
-      plugin("safety"),
-      plugin("audit", "globex"),
-    ]);
+    const ctx = contextWith(
+      [
+        inline([
+          {
+            event: "PreToolUse",
+            matcher: "Bash|Write",
+            handlers: [{ command: "guard", condition: "Bash(git push *)" }],
+          },
+          { event: "PostToolUse", matcher: "mcp__github__.*" },
+        ]),
+      ],
+      [plugin("safety"), plugin("audit", "globex")],
+    );
     newValidateHooksStep().execute(ctx);
     const source = inlineOf(ctx);
     expect(source.case).toBe("inline");
@@ -163,12 +173,15 @@ describe("ValidateHooks", () => {
     expect(() => newValidateHooksStep().execute(contextWith([{}]))).not.toThrow();
   });
 
+  it("refuses two plugins with one slug, even from two organizations, with InvalidArgument", () => {
+    const error = refusal([], [plugin("safety"), plugin("safety", "globex")]);
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe(
+      "plugins lists 'safety' more than once; list each plugin once, and never two plugins that share a slug",
+    );
+  });
+
   it.each([
-    [
-      "two plugins with one slug, even from two organizations",
-      [plugin("safety"), plugin("safety", "globex")],
-      "hooks lists plugin 'safety' more than once; list each plugin once, and never two plugins that share a slug",
-    ],
     [
       "a second inline block",
       [inline([{ event: "PreToolUse" }]), inline([{ event: "PostToolUse" }])],

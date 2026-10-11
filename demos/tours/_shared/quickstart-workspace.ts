@@ -2,7 +2,7 @@
  * The reader's quickstart project — the workspace the Getting Started
  * sequence keeps returning to. `quickstart-tour` (on quickstart.mdx) writes
  * and runs `ask-agent.ts`; the `connect-tools-tour` overview (on
- * connect-tools.mdx) edits the same file to add MCP servers and runs it
+ * connect-tools.mdx) edits the same file to add a plugin and runs it
  * again. The reader is following one project across pages, so its identity
  * — folder name, entry file, file tree, terminal chrome — lives here once
  * and the embeds cannot drift apart.
@@ -54,7 +54,7 @@ export const QUICKSTART_FILE_TREE: readonly FileTreeEntry[] = [
 /**
  * The payoff both tours share: running the entry file asks the agent about
  * order #ORD-4821 and real data comes back (via the Order Management API's
- * `get_order` — see `_shared/order-management-mcp.ts`).
+ * `get_order` — see `_shared/order-management-plugin.ts`).
  */
 export const ORDER_LOOKUP_OUTPUT: readonly TerminalLine[] = [
   { type: "prompt", text: `npx tsx ${QUICKSTART_WORKSPACE.entryFile}` },

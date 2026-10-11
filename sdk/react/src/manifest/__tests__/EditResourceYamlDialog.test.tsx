@@ -1,12 +1,12 @@
 // Tests for the shared Edit-YAML dialog's apply-error affordance: the
 // server's refusal renders verbatim with Try-again/Dismiss — shared
-// by every kind (McpServer, Agent, Skill), so any apply-time guard
+// by every kind (Agent, Schedule, Skill), so any apply-time guard
 // gets the same acknowledge-and-retry treatment.
 
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { EditResourceYamlDialog } from "../EditResourceYamlDialog";
 import type { useEditResourceYaml } from "../useEditResourceYaml";
 
@@ -33,7 +33,7 @@ let editState: Partial<EditState>;
 
 vi.mock("../useEditResourceYaml", () => ({
   useEditResourceYaml: () => ({
-    yaml: "kind: McpServer",
+    yaml: "kind: Agent",
     setYaml: vi.fn(),
     validation: { status: "valid" as const },
     target: { action: "update" as const, slug: "clinic" },
@@ -53,8 +53,8 @@ vi.mock("../YamlEditor", () => ({
   YamlEditor: () => <div data-testid="yaml-editor" />,
 }));
 
-const RESOURCE = create(McpServerSchema, {
-  metadata: { id: "mcp_1", slug: "clinic", org: "acme", name: "Clinic" },
+const RESOURCE = create(AgentSchema, {
+  metadata: { id: "agt_1", slug: "clinic", org: "acme", name: "Clinic" },
 });
 
 function renderDialog() {

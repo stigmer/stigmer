@@ -1,8 +1,8 @@
-// In-process test for the apply tools. Drives apply_agent and
-// apply_mcp_server through the full MCP boundary and asserts the codegen
-// projection (src/gen/*) reconstitutes the proto correctly: metadata hoist +
-// slug generation, the agent tool lists, enum-string conversion,
-// ApiResourceReference kind injection, and the stdio/http oneof.
+// In-process test for the apply tools. Drives apply_agent through the full
+// MCP boundary and asserts the codegen projection (src/gen/*) reconstitutes
+// the proto correctly: metadata hoist + slug generation, the agent tool
+// lists, enum-string conversion, and ApiResourceReference kind injection for
+// the skills and plugins an agent lists.
 
 import { clone } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -18,8 +18,6 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { type Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import type { McpServer as McpServerProto } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -33,7 +31,6 @@ configureLogger({ level: "error", format: "text" });
 let backend: Http2Server;
 let client: Client;
 let appliedAgent: Agent | undefined;
-let appliedMcpServer: McpServerProto | undefined;
 const visibilityUpdates: UpdateVisibilityInput[] = [];
 
 // The single-door contract (oss#573): a plain update preserves the STORED
@@ -73,12 +70,6 @@ beforeAll(async () => {
         return updated;
       },
     });
-    router.service(McpServerCommandController, {
-      apply: (req) => {
-        appliedMcpServer = req;
-        return req;
-      },
-    });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
   backend.on("session", (session) => {
@@ -101,14 +92,11 @@ afterAll(async () => {
 });
 
 describe("apply tools integration", () => {
-  it("advertises every apply tool", async () => {
+  it("advertises the apply tool and no MCP server tools", async () => {
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name)).toEqual(
-      expect.arrayContaining([
-        "apply_agent",
-        "apply_mcp_server",
-      ]),
-    );
+    const names = tools.map((t) => t.name);
+    expect(names).toContain("apply_agent");
+    expect(names.filter((name) => name.includes("mcp_server"))).toEqual([]);
   });
 
   it("apply_agent hoists metadata, generates slug, and injects reference kinds", async () => {
@@ -118,7 +106,7 @@ describe("apply tools integration", () => {
       visibility: "visibility_child_orgs",
       instructions: "Review code carefully.",
       skill_refs: [{ slug: "web-search", version: "stable" }],
-      mcp_server_usages: [{ mcp_server_ref: { slug: "github" } }],
+      plugins: [{ slug: "github" }],
       tools: ["Read", "mcp__github"],
       disallowed_tools: ["Bash"],
     });
@@ -138,35 +126,11 @@ describe("apply tools integration", () => {
     expect(skillRef?.kind).toBe(ApiResourceKind.skill);
     expect(skillRef?.version).toBe("stable"); // version kept for versioned kind
 
-    const usage = agent?.spec?.mcpServerUsages?.[0];
-    expect(usage?.mcpServerRef?.slug).toBe("github");
-    expect(usage?.mcpServerRef?.kind).toBe(ApiResourceKind.mcp_server);
+    const plugin = agent?.spec?.plugins?.[0];
+    expect(plugin?.slug).toBe("github");
+    expect(plugin?.kind).toBe(ApiResourceKind.plugin);
     expect(agent?.spec?.tools).toEqual(["Read", "mcp__github"]);
     expect(agent?.spec?.disallowedTools).toEqual(["Bash"]);
-  });
-
-  it("apply_mcp_server rebuilds the stdio oneof", async () => {
-    const result = await callTool("apply_mcp_server", {
-      name: "GitHub",
-      org: "acme",
-      stdio: { command: "npx", args: ["-y", "@modelcontextprotocol/server-github"] },
-    });
-    expect(result.isError).toBeFalsy();
-    expect(appliedMcpServer?.spec?.serverType?.case).toBe("stdio");
-    expect(appliedMcpServer?.spec?.serverType?.value).toMatchObject({ command: "npx" });
-  });
-
-  it("apply_mcp_server rebuilds the http oneof", async () => {
-    const result = await callTool("apply_mcp_server", {
-      name: "Remote",
-      org: "acme",
-      http: { url: "https://mcp.example.com/v1" },
-    });
-    expect(result.isError).toBeFalsy();
-    expect(appliedMcpServer?.spec?.serverType?.case).toBe("http");
-    expect(appliedMcpServer?.spec?.serverType?.value).toMatchObject({
-      url: "https://mcp.example.com/v1",
-    });
   });
 
   it("apply_agent lands a declared visibility the update preserved away via UpdateVisibility (oss#573)", async () => {

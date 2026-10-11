@@ -12,12 +12,12 @@
  * The contract carries TWO kind vocabularies, and this module holds one
  * lookup for each so they are never merged:
  *
- *   - A resource's own `kind` field is the `kind_meta.name` ("McpServer").
+ *   - A resource's own `kind` field is the `kind_meta.name` ("AgentShare").
  *     `getKindEnum` reads it by canonical name (case-insensitive,
  *     underscores ignored) and throws on an unknown value.
  *   - An `ApiResourceRef.kind` — the IamPolicy spec's principal and
  *     resource, the FGA object type — is the enum MEMBER name
- *     ("mcp_server"). `kindByEnumName` reads it by the descriptor's exact
+ *     ("agent_share"). `kindByEnumName` reads it by the descriptor's exact
  *     proto name and never throws. Exact, because the
  *     IamPolicy id is derived from the spec's text: a lenient
  *     match would let "Organization" and "organization" mint two rows for

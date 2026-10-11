@@ -1,0 +1,71 @@
+Install an MCP server as a plugin of its own.
+
+An MCP server lives in a plugin. `stigmer mcp add <name> <url>` is the short way
+to a plugin holding one server, as Claude Code's `claude mcp add` adds one: it
+writes a plugin named `<name>` whose MCP configuration names one server,
+`<name>`, at `<url>`, and installs it in your organization exactly as
+`stigmer install` installs a plugin. Use it like any other plugin:
+`stigmer run --plugin <name>` for a conversation, or list it under an agent's
+`spec.plugins`.
+
+`stigmer mcp-server` is a different command: it starts Stigmer's own MCP
+server for your IDE.
+
+{/* AUTO_USAGE */}
+
+{/* AUTO_FLAGS */}
+
+{/* AUTO_SUBCOMMANDS */}
+
+### Headers and keys
+
+`--header NAME=VALUE` adds a header sent with every request; repeat it for
+more. A value may name a key in your vault as `${NAME}`: the plugin then
+declares the key, and each conversation reads it from the vaults it uses. The
+value is never written into the plugin.
+
+```bash
+stigmer vault set-secret ACME_TOKEN --mine
+stigmer mcp add acme https://mcp.acme.example/mcp --header 'Authorization=Bearer ${ACME_TOKEN}'
+```
+
+An address that answers with an OAuth challenge is a server you sign in to:
+the install's `Next` section names `stigmer connect plugin <name>`, which runs
+the sign-in and lists the tools.
+
+### Adding again
+
+Running `mcp add` again with the same name, address and headers changes
+nothing; with a changed address or headers it upgrades the plugin. Remove it
+with `stigmer delete plugin <name>`.
+
+## Examples
+
+### Add a server and use it in a conversation
+
+```bash
+stigmer mcp add linear https://mcp.linear.app/mcp
+stigmer connect plugin linear
+stigmer run --plugin linear -m "What's on my plate this week?"
+```
+
+### See the plugin without installing it
+
+```bash
+stigmer mcp add linear https://mcp.linear.app/mcp --dry-run
+```
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer connect`](./connect) | Sign in to a plugin's server and list its tools |
+| [`stigmer install`](./install) | Install a plugin from a marketplace |
+| [`stigmer run`](./run) | Start a conversation with `--plugin` |
+| [`stigmer delete`](./delete) | Remove a plugin |
+
+## See also
+
+- [Command Reference](./) — All available commands

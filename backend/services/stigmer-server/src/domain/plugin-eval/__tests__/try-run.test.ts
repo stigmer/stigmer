@@ -1,20 +1,22 @@
 /**
- * Pins what a try runs on and with (arm.ts, try-run.ts): the with-arm on
- * the plugin's composed agent, or the assistant with the plugin's servers
- * when it composed none; the without-arm on the bare assistant; the delta
- * marked provisional. The run: the case's read-only tools plus the eval's
- * grants, Skill disallowed unless listed, only the to-do list allowed when
- * none is granted, the plugin's servers disallowed unless real servers run,
- * names Stigmer runs nothing for left out, a not-granted tool noted;
- * max_turns clamped to the run's 10..1000 with a note; the reserved label
- * on the session and run; the case name as the subject; auto-approve; the
- * vote's judge label and cap. A case's mocks: each mocked tool granted in
- * the with-arm and its server left off the deny-list, a server neither
- * mocked nor run real still denied, `allow_real_servers` starting the
- * unmocked ones; the case context the run carries (paths, variables, the
- * with-arm's mocks under the run's server names, the agent mocks' model and
- * budget), absent when the case gives its try nothing; the mocked-servers
- * line and the case's notes.
+ * Pins the requests a try and a vote send (try-run.ts). The session: the
+ * plugins its arm lists (the with-arm's plugin reference at the eval's
+ * digest, none on the without-arm), no agent of its own, the reserved
+ * label, the case name as the subject, the target's engine, and a name
+ * per run and per retried start. The run: the case's
+ * read-only tools plus the eval's grants, Skill disallowed unless listed,
+ * only the to-do list allowed when none is granted, each of the plugin's
+ * servers disallowed by its turn segment (`mcp__plugin_<plugin>_<server>`)
+ * unless real servers run, names Stigmer runs nothing for left out, a
+ * not-granted tool noted; max_turns clamped to the run's 10..1000 with a
+ * note; auto-approve. The vote: the judge label and cap. A case's mocks:
+ * each mocked tool granted in the with-arm and its server left off the
+ * deny-list, a server neither mocked nor run real still denied,
+ * `allow_real_servers` starting the unmocked ones; the case context the
+ * run carries (paths, variables, the files its graders read, the
+ * with-arm's mocks under the run's server segments, the agent mocks' model
+ * and budget), absent when the case gives its try nothing; the
+ * mocked-servers line and the case's notes.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -28,7 +30,7 @@ import {
   GRADES_RUN_LABEL,
   PER_GRADE_CAP_USD,
 } from "../../score/judge/judge-run.js";
-import { PROVISIONAL_DELTA, armAttachment } from "../arm.js";
+import { armAttachment } from "../arm.js";
 import { PLUGIN_EVAL_LABEL } from "../constants.js";
 import {
   MAX_AGENT_MOCK_CALLS,
@@ -69,38 +71,12 @@ const evalCase = (overrides: Partial<EvalCase> = {}): EvalCase => ({
   ...overrides,
 });
 
-const GITHUB = { slug: "github", key: "github" };
-const SOURCE = { pluginId: "plg_1", digest: "d".repeat(64), suiteDir: "evals" };
+const SEGMENT = "plugin_thermos_github";
+const GITHUB = { slug: SEGMENT, key: "github" };
+const JIRA = { slug: "plugin_thermos_jira", key: "jira" };
+const SOURCE = { pluginId: "plg_1", pluginName: "thermos", digest: "d".repeat(64), suiteDir: "evals" };
 
-describe("which agent a try runs on", () => {
-  const facts = {
-    org: "acme",
-    agentSlug: "thermos",
-    mcpServerSlugs: ["github"],
-  };
-
-  it("runs the with-arm on the composed agent and the without-arm on the bare assistant", () => {
-    expect(armAttachment("with", facts).agentRef).toMatchObject({
-      org: "acme",
-      kind: ApiResourceKind.agent,
-      slug: "thermos",
-    });
-    expect(armAttachment("with", facts).mcpServerUsages).toEqual([]);
-    expect(armAttachment("without", facts)).toEqual({ mcpServerUsages: [] });
-    expect(PROVISIONAL_DELTA).toBe(true);
-  });
-
-  it("attaches an agentless plugin's servers to the assistant", () => {
-    const attached = armAttachment("with", {
-      org: "acme",
-      mcpServerSlugs: ["github", "jira"],
-    });
-    expect(attached.agentRef).toBeUndefined();
-    expect(
-      attached.mcpServerUsages.map((usage) => usage.mcpServerRef?.slug),
-    ).toEqual(["github", "jira"]);
-  });
-});
+const facts = { org: "acme", slug: "thermos", digest: "sha256:0123abcd" };
 
 describe("a try's tools", () => {
   it("grants the case's read-only tools and the eval's, and withholds Skill unless listed", () => {
@@ -133,17 +109,21 @@ describe("a try's tools", () => {
     // tool every engine's main loop has that acts on nothing outside the
     // run: the engines' extras and any other MCP server are out of scope,
     // as for a read-only case.
-    const none = tryToolsOf(evalCase(), spec(), [GITHUB]);
+    const none = tryToolsOf(evalCase(), spec(), [GITHUB, JIRA]);
     expect(none.tools).toEqual(["TodoWrite"]);
-    expect(none.disallowedTools).toEqual(["Skill", "mcp__github"]);
-    const read = tryToolsOf(evalCase({ allowedTools: ["Read"] }), spec(), [GITHUB]);
+    expect(none.disallowedTools).toEqual([
+      "Skill",
+      `mcp__${SEGMENT}`,
+      "mcp__plugin_thermos_jira",
+    ]);
+    const read = tryToolsOf(evalCase({ allowedTools: ["Read"] }), spec(), [GITHUB, JIRA]);
     expect(read.disallowedTools).toEqual(none.disallowedTools);
     const real = tryToolsOf(
       evalCase({ allowedTools: ["Skill"] }),
-      spec({ realMcpServers: true, allowTools: ["mcp__github__*"] }),
+      spec({ realMcpServers: true, allowTools: [`mcp__${SEGMENT}__*`] }),
       [GITHUB],
     );
-    expect(real.tools).toEqual(["Skill", "mcp__github__*"]);
+    expect(real.tools).toEqual(["Skill", `mcp__${SEGMENT}__*`]);
     expect(real.disallowedTools).toEqual([]);
   });
 
@@ -161,7 +141,7 @@ describe("a try's tools", () => {
 });
 
 describe("a try's session and run", () => {
-  it("labels the session, names it after the case and runs the target's engine", () => {
+  it("labels the session, names it after the case, runs the target's engine and lists the with-arm's plugin", () => {
     const session = trySessionRequest({
       org: "acme",
       evalId: "pev_1",
@@ -169,16 +149,34 @@ describe("a try's session and run", () => {
       attempt: 1,
       caseName: "first-case",
       harness: Harness.UNSPECIFIED,
-      attachment: armAttachment("with", {
-        org: "acme",
-        agentSlug: "thermos",
-        mcpServerSlugs: [],
-      }),
+      attachment: armAttachment("with", facts),
     });
     expect(session.metadata?.labels).toEqual({ [PLUGIN_EVAL_LABEL]: "pev_1" });
     expect(session.spec?.subject).toBe("first-case");
     expect(session.spec?.harness).toBe(Harness.NATIVE);
-    expect(session.spec?.agentRef?.slug).toBe("thermos");
+    expect(session.spec?.plugins).toHaveLength(1);
+    expect(session.spec?.plugins[0]).toMatchObject({
+      org: "acme",
+      kind: ApiResourceKind.plugin,
+      slug: "thermos",
+      version: "sha256:0123abcd",
+    });
+    expect(session.spec?.agentRef).toBeUndefined();
+  });
+
+  it("lists no plugin on the without-arm's session", () => {
+    const session = trySessionRequest({
+      org: "acme",
+      evalId: "pev_1",
+      cell: { caseIndex: 0, targetIndex: 0, arm: "without", tryIndex: 0 },
+      attempt: 1,
+      caseName: "first-case",
+      harness: Harness.CURSOR,
+      attachment: armAttachment("without", facts),
+    });
+    expect(session.spec?.plugins).toEqual([]);
+    expect(session.spec?.agentRef).toBeUndefined();
+    expect(session.spec?.harness).toBe(Harness.CURSOR);
   });
 
   // A session create refuses a session with no name (ResolveSlug), and its
@@ -192,10 +190,7 @@ describe("a try's session and run", () => {
       arm: "with",
       tryIndex: 2,
     } as const;
-    const attachment = armAttachment("without", {
-      org: "acme",
-      mcpServerSlugs: [],
-    });
+    const attachment = armAttachment("without", facts);
     const tryNames = [1, 2].map(
       (attempt) =>
         trySessionRequest({
@@ -258,7 +253,7 @@ describe("a try's session and run", () => {
       maxCostUsd: 3.5,
     });
     expect(run.spec?.tools).toEqual(["Read"]);
-    expect(run.spec?.disallowedTools).toEqual(["Skill", "mcp__github"]);
+    expect(run.spec?.disallowedTools).toEqual(["Skill", `mcp__${SEGMENT}`]);
     expect(run.spec?.appendSystemPrompt).toBe("Be brief.");
     expect(run.spec?.pluginEvalCase).toBeUndefined();
   });
@@ -278,7 +273,7 @@ describe("a try's session and run", () => {
       source: SOURCE,
     });
     expect(run.spec?.tools).toEqual(["TodoWrite"]);
-    expect(run.spec?.disallowedTools).toEqual(["Skill", "mcp__github"]);
+    expect(run.spec?.disallowedTools).toEqual(["Skill", `mcp__${SEGMENT}`]);
   });
 
   it("makes a vote a judge run of the try, in a labelled session, at the judge's cap", () => {
@@ -338,16 +333,16 @@ describe("a case's mocks and context", () => {
   it("grants each mocked tool in the with-arm and leaves its server off the deny-list", () => {
     const withArm = tryToolsOf(mocked, spec(), [TRACKER, GITHUB], "with");
     expect(withArm.tools).toEqual(["mcp__tracker-acme__close_issue", "mcp__tracker-acme__create_issue"]);
-    expect(withArm.disallowedTools).toEqual(["Skill", "mcp__github"]);
+    expect(withArm.disallowedTools).toEqual(["Skill", `mcp__${SEGMENT}`]);
     const without = tryToolsOf(mocked, spec(), [TRACKER, GITHUB], "without");
     expect(without.tools).toEqual(["TodoWrite"]);
-    expect(without.disallowedTools).toEqual(["Skill", "mcp__github"]);
+    expect(without.disallowedTools).toEqual(["Skill", `mcp__${SEGMENT}`]);
   });
 
   it("starts the unmocked servers with allow_real_servers, their tools granted only by allow_tools", () => {
     const tools = tryToolsOf(mocked, spec({ allowRealServers: true }), [TRACKER, GITHUB], "with");
     expect(tools.disallowedTools).toEqual(["Skill"]);
-    expect(tools.tools).not.toContain("mcp__github");
+    expect(tools.tools).not.toContain(`mcp__${SEGMENT}`);
   });
 
   it("carries the case's context and the files its graders read, with the mocks in the with-arm only, under the run's server names", () => {

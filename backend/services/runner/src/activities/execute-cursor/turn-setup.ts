@@ -51,7 +51,8 @@ import {
   cursorSdkToolOptions,
   type TurnToolInventory,
 } from "../../shared/tool-lists.js";
-import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
+import { declaredServerCount, type ResolvedMcpServer } from "../../shared/mcp-resolver.js";
+import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
 import { ensureHitlDir, getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import type { HookEvaluator } from "../../shared/hooks/evaluate.js";
 import { buildHookEvaluator, HookSetupError, hookPermissionMode } from "../../shared/hooks/setup.js";
@@ -269,7 +270,7 @@ export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentM
         "it cannot limit which sub-agents an agent starts. Run this agent on the native engine, or list Agent without types.",
     );
   }
-  checkMainToolListResolution(scope, cursorToolInventory(input.mcp.servers, input.mcp.platformServerSlugs), (line) =>
+  checkMainToolListResolution(scope, cursorToolInventory(input.mcp.servers, input.mcp.platformServerSlugs, input.mcp.listing), (line) =>
     console.log(`ExecuteCursor tool lists: execution=${input.executionId}: ${line}`),
   );
 }
@@ -283,16 +284,19 @@ export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentM
 function cursorToolInventory(
   resolved: readonly ResolvedMcpServer[],
   platformServerSlugs: ReadonlySet<string>,
+  listing: McpToolListing | undefined,
 ): TurnToolInventory {
   const servers = resolved.filter((s) => !platformServerSlugs.has(s.slug));
+  const listed = new Map((listing?.listed ?? []).map(({ server, tools }) => [server, tools]));
   return {
     claudeTools: claudeToolsOf(CURSOR_SDK_TOOL_COVERS.keys(), CURSOR_SDK_TOOL_COVERS),
     anyMcp: servers.length > 0,
     hasMcp(slug, tool) {
       const server = servers.find((s) => s.slug === slug);
       if (!server) return false;
-      // A server never discovered cannot prove a tool absent.
-      return tool === null || server.discoveredToolNames === null || server.discoveredToolNames.includes(tool);
+      // A server whose tools were not listed cannot prove a tool absent.
+      const tools = listed.get(slug);
+      return tool === null || tools === undefined || tools.includes(tool);
     },
   };
 }
@@ -438,7 +442,7 @@ export function readAdjudicatedRows(input: TurnInput, status: RunStatus): Adjudi
  * exactly once, plus the MCP env pre-flight (diagnostic, non-blocking).
  */
 export function projectMcpConfig(input: TurnInput): ReturnType<typeof toCursorMcpConfig> {
-  const mcpWarnings = validateMcpServerEnv(input.mcp.servers, input.blueprint.mergedMcpServerUsages);
+  const mcpWarnings = validateMcpServerEnv(input.mcp.servers, input.blueprint.plugins);
   if (mcpWarnings.length > 0) {
     console.warn(
       `ExecuteCursor MCP pre-flight warnings: execution=${input.executionId}\n` +
@@ -518,6 +522,7 @@ export async function installGate(
     compileHookToolScope({
       scope: mcp.toolScope,
       servers: mcp.servers,
+      listing: mcp.listing,
       platformServerSlugs: mcp.platformServerSlugs,
       readRoot: mcp.toolScope.restricted ? await platformReadRoot(primaryDir, getPlatformDir(sessionId)) : "",
       platformRoot: mcp.toolScope.hidesSkills ? await platformRealRoot(getPlatformDir(sessionId)) : "",
@@ -748,7 +753,7 @@ export async function resolveEngine(
     harness: "cursor",
     agent_resumed: resolution.resumed,
     cursor_mode: agentMode,
-    mcp_server_count: blueprint.mergedMcpServerUsages.length,
+    mcp_server_count: declaredServerCount(input.mcp.servers),
     skill_count: blueprint.mergedSkillRefs.length,
     workspace_entry_count: session.spec?.workspaceEntries?.length ?? 0,
   }, sink.setupTiming);

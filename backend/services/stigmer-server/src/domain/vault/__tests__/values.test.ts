@@ -6,20 +6,19 @@
  *   - the gate refuses with PERMISSION_DENIED, never a redacted answer: no
  *     bearer, a person's token, a credential for another execution, a run
  *     credential whose run ended past the grace, a run credential bound to
- *     a connect (a shape no mint produces), a connect whose attempt is
- *     gone or expired, and a composed decision that answers false or
+ *     a tools listing (a shape no mint produces), a listing whose attempt
+ *     is gone or expired, and a composed decision that answers false or
  *     throws; an empty execution id is INVALID_ARGUMENT;
  *   - a run credential bound to a live run receives the run's manifest
  *     opened, grouped by declarer;
- *   - a connect attempt that names a run (the runner's backfill) receives
- *     only that tool's entries of the run's manifest, never the agent's or
- *     another tool's;
- *   - a connect attempt that names none receives a plan made now over its
- *     person's My vault, and a caller who was no person gets no My vault;
+ *   - a tools listing's attempt (a plugin and one of its servers) receives
+ *     a plan made now over its person's My vault for that server only,
+ *     never the plugin's other servers' keys, and a caller who was no
+ *     person gets no My vault;
  *   - past an edition's admitting decision, the handler's own loads still
- *     refuse: an id of no execution kind, a run that is gone, a connect
- *     that is over, a backfill's run of another organization, a connect's
- *     tool that is gone; a store fault is INTERNAL without its text;
+ *     refuse: an id of no execution kind, a run that is gone, a listing
+ *     that is over, a listing whose plugin is gone or no longer has the
+ *     server; a store fault is INTERNAL without its text;
  *   - the registered service validates the request (an empty id is
  *     INVALID_ARGUMENT) and answers through the gate.
  */
@@ -31,8 +30,8 @@ import type { HandlerContext } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { RunCredentialsSchema, RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -54,7 +53,7 @@ import { RUN_CREDENTIAL_GRACE_AFTER_TERMINAL_MS } from "../../../runnerauth/cons
 import { newExecutionScopedRunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import type { RunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
 import { RunnerAuthService, TOKEN_TYPE_EXECUTION_SCOPED } from "../../../runnerauth/runnerauth.js";
-import { newConnectExecutionId } from "../../mcpserver/connect-execution-id.js";
+import { newConnectExecutionId } from "../../plugin/tools/execution-id.js";
 
 import { registerVaultServices } from "../controller.js";
 import type { VaultControllerDeps } from "../controller.js";
@@ -119,18 +118,24 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
   throw new Error("expected a refusal");
 }
 
-function tool(slug: string, env: Record<string, { isSecret: boolean }>): McpServer {
-  return create(McpServerSchema, {
-    metadata: { id: `mcp_${slug}`, name: slug, slug, org: ORG },
-    spec: {
-      serverType: { case: "http", value: { url: `https://mcp.${slug}.example/mcp` } },
-      env,
-    },
-  });
-}
+const PLUGIN_ID = "plg_tools";
 
-const LINEAR = tool("linear", { LINEAR_KEY: { isSecret: true } });
-const NOTION = tool("notion", { NOTION_KEY: { isSecret: true } });
+/** One installed plugin with two HTTP servers, each reading its own key. */
+const TOOLS: Plugin = create(PluginSchema, {
+  metadata: { id: PLUGIN_ID, name: "tools", slug: "tools", org: ORG },
+  status: {
+    mcpServers: ["linear", "notion"].map((name) => ({
+      name,
+      transport: { case: "http" as const, value: { url: `https://mcp.${name}.example/mcp` } },
+      env: [`${name.toUpperCase()}_KEY`],
+    })),
+    env: { LINEAR_KEY: { isSecret: true }, NOTION_KEY: { isSecret: true } },
+  },
+});
+
+async function seedPlugin(): Promise<void> {
+  await rig.store.saveResource(ApiResourceKind.plugin, PLUGIN_ID, PluginSchema, TOOLS);
+}
 
 /** Ana's My vault with every key the run and its tools use. */
 async function seedAnasVault(): Promise<void> {
@@ -153,9 +158,7 @@ async function seedRun(
   status: { phase?: RunPhase; completedAt?: string } = {},
 ): Promise<Run> {
   await seedAnasVault();
-  for (const server of [LINEAR, NOTION]) {
-    await rig.store.saveResource(ApiResourceKind.mcp_server, server.metadata!.id, McpServerSchema, server);
-  }
+  await seedPlugin();
   const session = create(SessionSchema, {
     metadata: { id: SESSION_ID, org: ORG },
     spec: { includeMyVault: true },
@@ -176,17 +179,17 @@ async function seedRun(
     agentSpec: create(AgentSpecSchema, { env: { AGENT_KEY: { isSecret: true } } }),
     agentName: "Helper",
     agentOrg: ORG,
-    tools: [LINEAR, NOTION],
+    plugins: [{ id: PLUGIN_ID, name: "tools", status: TOOLS.status! }],
   });
   run.status!.credentials = create(RunCredentialsSchema, { person: ANA, sources });
   await rig.store.saveResource(ApiResourceKind.run, id, RunSchema, run);
   return run;
 }
 
-/** Records a connect attempt as the connect lane does. */
+/** Records a listing's attempt as the tools listing lane does. */
 async function seedAttempt(
   id: string,
-  init: { person?: string; runId?: string; mcpServerId?: string; expiresAt?: number } = {},
+  init: { person?: string; pluginId?: string; server?: string; expiresAt?: number } = {},
 ): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
   await rig.store.connectAttempts.create({
@@ -194,8 +197,8 @@ async function seedAttempt(
     org: ORG,
     createdBy: init.person ?? ANA,
     person: init.person ?? ANA,
-    mcpServerId: init.mcpServerId ?? LINEAR.metadata!.id,
-    runId: init.runId ?? "",
+    pluginId: init.pluginId ?? PLUGIN_ID,
+    server: init.server ?? "linear",
     createdAt: now,
     expiresAt: init.expiresAt ?? now + 600,
   });
@@ -206,7 +209,7 @@ function grouped(values: ExecutionValues): Record<string, Record<string, string>
     agent: { ...values.agent },
   };
   for (const group of values.tools) {
-    out[group.mcpServerId] = { ...group.values };
+    out[`${group.pluginId}/${group.server}`] = { ...group.values };
   }
   return out;
 }
@@ -217,8 +220,8 @@ describe("the gate", () => {
     const values = await fetch("run_live", credentials.mintRunCredential!("run_live"));
     expect(grouped(values)).toEqual({
       agent: { AGENT_KEY: "agent-secret" },
-      mcp_linear: { LINEAR_KEY: "linear-secret" },
-      mcp_notion: { NOTION_KEY: "notion-secret" },
+      "plg_tools/linear": { LINEAR_KEY: "linear-secret" },
+      "plg_tools/notion": { NOTION_KEY: "notion-secret" },
     });
   });
 
@@ -245,22 +248,22 @@ describe("the gate", () => {
     expect(grouped(values).agent).toEqual({ AGENT_KEY: "agent-secret" });
   });
 
-  it("refuses a run credential bound to a connect: no mint produces that shape", async () => {
+  it("refuses a run credential bound to a tools listing: no mint produces that shape", async () => {
     await seedAnasVault();
-    await rig.store.saveResource(ApiResourceKind.mcp_server, LINEAR.metadata!.id, McpServerSchema, LINEAR);
-    const connectId = newConnectExecutionId(LINEAR.metadata!.id);
+    await seedPlugin();
+    const connectId = newConnectExecutionId(PLUGIN_ID);
     await seedAttempt(connectId);
     const failure = await refusal(fetch(connectId, credentials.mintRunCredential!(connectId)));
     expect(failure.code).toBe(Code.PermissionDenied);
   });
 
-  it("refuses a connect whose attempt is expired or gone", async () => {
-    const expired = newConnectExecutionId(LINEAR.metadata!.id);
+  it("refuses a listing whose attempt is expired or gone", async () => {
+    const expired = newConnectExecutionId(PLUGIN_ID);
     await seedAttempt(expired, { expiresAt: Math.floor(Date.now() / 1000) - 1 });
     expect((await refusal(fetch(expired, credentials.mint(TOKEN_TYPE_EXECUTION_SCOPED, expired, 300).token))).code).toBe(
       Code.PermissionDenied,
     );
-    const gone = newConnectExecutionId(LINEAR.metadata!.id);
+    const gone = newConnectExecutionId(PLUGIN_ID);
     expect((await refusal(fetch(gone, credentials.mint(TOKEN_TYPE_EXECUTION_SCOPED, gone, 300).token))).code).toBe(
       Code.PermissionDenied,
     );
@@ -305,32 +308,25 @@ describe("the gate", () => {
   });
 });
 
-describe("a connect's values", () => {
-  it("the backfill of a run's tool receives only that tool's planned entries", async () => {
-    await seedRun("run_backfill");
-    const connectId = newConnectExecutionId(LINEAR.metadata!.id);
-    await seedAttempt(connectId, { runId: "run_backfill" });
+describe("a tools listing's values", () => {
+  it("are planned now over the person's own My vault, for the listed server only", async () => {
+    await seedAnasVault();
+    await seedPlugin();
+    const connectId = newConnectExecutionId(PLUGIN_ID);
+    await seedAttempt(connectId, { server: "notion" });
     const values = await fetch(connectId, credentials.mint(TOKEN_TYPE_EXECUTION_SCOPED, connectId, 300).token);
-    expect(grouped(values)).toEqual({ agent: {}, mcp_linear: { LINEAR_KEY: "linear-secret" } });
+    expect(grouped(values)).toEqual({ agent: {}, "plg_tools/notion": { NOTION_KEY: "notion-secret" } });
+    expect(values.tools[0]?.url).toBe("https://mcp.notion.example/mcp");
   });
 
-  it("a person's connect is planned now over their own My vault", async () => {
+  it("a listing started by no person reads no My vault: a required key is refused, naming it", async () => {
     await seedAnasVault();
-    await rig.store.saveResource(ApiResourceKind.mcp_server, NOTION.metadata!.id, McpServerSchema, NOTION);
-    const connectId = newConnectExecutionId(NOTION.metadata!.id);
-    await seedAttempt(connectId, { mcpServerId: NOTION.metadata!.id });
-    const values = await fetch(connectId, credentials.mint(TOKEN_TYPE_EXECUTION_SCOPED, connectId, 300).token);
-    expect(grouped(values)).toEqual({ agent: {}, mcp_notion: { NOTION_KEY: "notion-secret" } });
-  });
-
-  it("a connect started by no person reads no My vault: a required key is refused, naming it", async () => {
-    await seedAnasVault();
-    await rig.store.saveResource(ApiResourceKind.mcp_server, NOTION.metadata!.id, McpServerSchema, NOTION);
-    const connectId = newConnectExecutionId(NOTION.metadata!.id);
-    await seedAttempt(connectId, { mcpServerId: NOTION.metadata!.id, person: "" });
+    await seedPlugin();
+    const connectId = newConnectExecutionId(PLUGIN_ID);
+    await seedAttempt(connectId, { server: "notion", person: "" });
     const failure = await refusal(fetch(connectId, credentials.mint(TOKEN_TYPE_EXECUTION_SCOPED, connectId, 300).token));
     expect(failure.code).toBe(Code.FailedPrecondition);
-    expect(failure.rawMessage).toContain("notion needs NOTION_KEY");
+    expect(failure.rawMessage).toContain("plugin:tools:notion needs NOTION_KEY");
   });
 });
 
@@ -404,13 +400,13 @@ describe("past a composed decision that admits", () => {
     expect(faulted.rawMessage).not.toContain("disk gone");
   });
 
-  it("refuses a connect whose attempt is over at the gate, and one that ends between the gate and the read", async () => {
-    const atTheGate = await refusal(fetch(newConnectExecutionId("mcp_linear"), "edition-token", admitting()));
+  it("refuses a listing whose attempt is over at the gate, and one that ends between the gate and the read", async () => {
+    const atTheGate = await refusal(fetch(newConnectExecutionId(PLUGIN_ID), "edition-token", admitting()));
     expect(atTheGate.code).toBe(Code.PermissionDenied);
 
     // The attempt is live when the gate reads it and gone when the values
-    // are read (its connect settled in between).
-    const connectId = newConnectExecutionId(LINEAR.metadata!.id);
+    // are read (its listing settled in between).
+    const connectId = newConnectExecutionId(PLUGIN_ID);
     await seedAttempt(connectId);
     let reads = 0;
     const settling = new Proxy(rig.store, {
@@ -431,39 +427,35 @@ describe("past a composed decision that admits", () => {
     });
     const raced = await refusal(fetch(connectId, "edition-token", admitting({ store: settling })));
     expect(raced.code).toBe(Code.FailedPrecondition);
-    expect(raced.rawMessage).toBe("this connect is over: connect the tool again");
+    expect(raced.rawMessage).toBe("this tools listing is over: list the tools again");
   });
 
-  it("refuses a backfill whose run belongs to another organization than its attempt", async () => {
-    await seedRun("run_elsewhere");
-    const connectId = newConnectExecutionId(LINEAR.metadata!.id);
-    await rig.store.connectAttempts.create({
-      id: connectId,
-      org: "another-org",
-      createdBy: ANA,
-      person: ANA,
-      mcpServerId: LINEAR.metadata!.id,
-      runId: "run_elsewhere",
-      createdAt: 0,
-      expiresAt: Math.floor(Date.now() / 1000) + 600,
-    });
-    expect((await refusal(fetch(connectId, "edition-token", admitting()))).code).toBe(Code.PermissionDenied);
-  });
-
-  it("refuses a connect whose tool is gone, and answers a store fault as INTERNAL", async () => {
-    const connectId = newConnectExecutionId("mcp_gone");
-    await seedAttempt(connectId, { mcpServerId: "mcp_gone" });
+  it("refuses a listing whose plugin is gone, and answers a store fault as INTERNAL", async () => {
+    const connectId = newConnectExecutionId("plg_gone");
+    await seedAttempt(connectId, { pluginId: "plg_gone" });
     const gone = await refusal(fetch(connectId, "edition-token", admitting()));
     expect(gone.code).toBe(Code.FailedPrecondition);
-    expect(gone.rawMessage).toContain("MCP server mcp_gone no longer exists");
+    expect(gone.rawMessage).toBe("plugin plg_gone no longer exists: its tools cannot be listed");
     const faulted = await refusal(
       fetch(
         connectId,
         "edition-token",
-        admitting({ store: faultingStore(ApiResourceKind.mcp_server, new Error("disk gone")) }),
+        admitting({ store: faultingStore(ApiResourceKind.plugin, new Error("disk gone")) }),
       ),
     );
     expect(faulted.code).toBe(Code.Internal);
+    expect(faulted.rawMessage).not.toContain("disk gone");
+  });
+
+  it("refuses a listing whose plugin no longer has the server: an upgrade dropped it", async () => {
+    await seedPlugin();
+    const connectId = newConnectExecutionId(PLUGIN_ID);
+    await seedAttempt(connectId, { server: "jira" });
+    const failure = await refusal(fetch(connectId, "edition-token", admitting()));
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toBe(
+      "plugin tools no longer has a server named jira: its tools cannot be listed",
+    );
   });
 });
 

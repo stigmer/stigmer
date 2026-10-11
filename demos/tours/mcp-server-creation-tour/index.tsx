@@ -1,54 +1,37 @@
 /**
- * Pure `renderStep` for the MCP server creation tour. The player, cursor,
- * narration, and viewport are supplied by `scenar pack` — this file only maps
- * step data to views.
+ * Pure `renderStep` for the Add MCP server tour. The player, cursor,
+ * narration, and viewport are supplied by `scenar pack` — this file only
+ * maps step data to views.
  *
- * The wizard beats compose the REAL `@stigmer/react` creation surface:
- * `WizardShell` (controlled chrome), `CreationPicker`, and the exported
- * presentational steps (`IdentityTransportStep`, `VariablesSignInStep`,
- * `ReviewStep`). Every state — including the validation failure and the
- * create error — is injected via props from `steps.ts`, so scrubbing and
- * video export reproduce each beat exactly (no synthetic events, ever).
+ * The Plugins list is the shared `ResourceListPage` (the real
+ * `ResourceWorkbench` over fixture rows) with the Plugins page's own copy
+ * and its three ways in; the closing beats are the real plugin page
+ * (`_shared/PluginPage`, the real `PluginDetailView`).
  *
- * The real components sit inside an `inert` wrapper: it neutralizes
- * `IdentityTransportStep`'s name-field autofocus (which would steal keyboard
- * focus from the player mid-playback) and makes the depicted form
- * non-interactive — the correct semantic for a playback.
- *
- * The import beat is a tour-local replica of `ApplyManifestDialog`: the real
+ * The form beats are a tour-local replica of `AddMcpServerDialog`: the real
  * dialog opens with `<dialog>.showModal()`, which escapes to the browser top
- * layer where the embed's CSS zoom does not apply (it would render unscaled
- * over the player controls). The replica renders the same visual inside the
- * canonical container instead.
+ * layer where the embed's canvas does not reach (it would render unscaled
+ * over the player controls), and its fields are its own state, which a
+ * beat may not drive with synthetic events. The replica renders the same
+ * form inside the canonical container, from the step's phase: the same
+ * labels, placeholders and help text, and an Add button that is disabled
+ * until a name and a URL are in, as the real one is.
  */
 import type { ReactNode } from "react";
-import { ConnectError, Code } from "@connectrpc/connect";
-import {
-  createInitialMcpServerWizardData,
-  CreationPicker,
-  IdentityTransportStep,
-  MCP_SERVER_TEMPLATES,
-  ReviewStep,
-  VariablesSignInStep,
-  WizardShell,
-} from "@stigmer/react";
-import type { McpServerWizardData, WizardStepDef } from "@stigmer/react";
 import { BrowserView } from "@scenar/react";
+import { Server, Store, Upload } from "lucide-react";
 import { AppShell } from "../_shared/AppShell";
-import { ORDER_MGMT_MCP } from "../_shared/order-management-mcp";
-import { ResourceListPage } from "../_shared/ResourceListPage";
+import { ORDER_MGMT } from "../_shared/order-management-plugin";
+import { PluginPage } from "../_shared/PluginPage";
+import { ResourceListPage, type ListPageAction } from "../_shared/ResourceListPage";
 import { SessionView } from "../_shared/SessionView";
 import {
-  type IdentityFormPhase,
+  type AddFormPhase,
   type McpServerCreationTourStep,
-  ALL_SERVERS,
   DEMO_ORG,
-  EXISTING_SERVERS,
-  MCP_SERVER_YAML,
+  EXISTING_PLUGINS,
 } from "./steps";
 import "./tour.css";
-
-const noop = () => {};
 
 /**
  * Console beats render inside a browser window whose address bar tracks the
@@ -62,160 +45,124 @@ function consoleWindow(contentKey: string, path: string, children: ReactNode) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Wizard-data snapshots (one per beat)
-// ---------------------------------------------------------------------------
-// These live here rather than in steps.ts because `scenar narrate` imports
-// steps.ts in a plain Node process — steps.ts must stay free of component-
-// package imports. Each snapshot is the exact state a user would have
-// reached at that point of the form; later snapshots extend earlier ones,
-// so the tour reads as one continuous session.
+/** The Plugins page's copy, transcribed from the console's `PluginListPage`. */
+const PLUGINS_SUBTITLE =
+  "What you have installed. A plugin is what you install; the agent it installs is what runs.";
 
-/** Step 1 as it first opens: the untouched form. */
-const IDENTITY_EMPTY: McpServerWizardData = createInitialMcpServerWizardData();
-
-/**
- * The user filled the identity fields but clicked Next before entering the
- * HTTP URL — the state that trips the wizard's real step validation.
- */
-const IDENTITY_INVALID: McpServerWizardData = {
-  ...IDENTITY_EMPTY,
-  name: ORDER_MGMT_MCP.name,
-  slug: ORDER_MGMT_MCP.slug,
-  description: ORDER_MGMT_MCP.description,
-};
-
-/** The exact message the wizard's step-1 validation produces for this state. */
-const IDENTITY_VALIDATION_ERROR = "HTTP URL is required";
-
-/** The corrected step 1: URL supplied, auth header wired to an env var. */
-const IDENTITY_COMPLETE: McpServerWizardData = {
-  ...IDENTITY_INVALID,
-  httpUrl: ORDER_MGMT_MCP.url,
-  httpHeaders: [
-    { key: "Authorization", value: `Bearer \${${ORDER_MGMT_MCP.envKey}}` },
-  ],
-};
-
-/** Step 2: the secret the `${API_TOKEN}` header placeholder resolves from. */
-const WITH_ENV: McpServerWizardData = {
-  ...IDENTITY_COMPLETE,
-  env: [
-    {
-      key: ORDER_MGMT_MCP.envKey,
-      description: ORDER_MGMT_MCP.envDescription,
-      isSecret: true,
-      optional: false,
-    },
-  ],
-};
-
-const IDENTITY_BY_PHASE: Record<
-  IdentityFormPhase,
-  { data: McpServerWizardData; validationError: string | null }
-> = {
-  empty: { data: IDENTITY_EMPTY, validationError: null },
-  invalid: { data: IDENTITY_INVALID, validationError: IDENTITY_VALIDATION_ERROR },
-  complete: { data: IDENTITY_COMPLETE, validationError: null },
-};
-
-/**
- * The server error shown on the failed create: a realistic Connect
- * `already_exists` — `ReviewStep` renders it through the SDK's
- * `getUserMessage`, so the beat shows exactly what a live user sees.
- */
-const CREATE_CONFLICT_ERROR: Error = new ConnectError(
-  `an MCP server with slug "${ORDER_MGMT_MCP.slug}" already exists in org "${DEMO_ORG}"`,
-  Code.AlreadyExists,
-);
-
-/**
- * Mirrors the real `McpServerCreationWizard`'s step definitions — same ids,
- * same labels — so the `WizardShell` step indicator reads identically to the
- * console. Validation lives in `steps.ts` as pre-computed state; the defs
- * here only drive the indicator.
- */
-const WIZARD_STEPS: WizardStepDef<McpServerWizardData>[] = [
-  { id: "identity-transport", label: "Identity & Transport" },
-  { id: "variables-sign-in", label: "Variables & Sign-in" },
-  { id: "review", label: "Review & Create" },
+/** The ways in before "Add MCP server", as the console's Plugins page shows them. */
+const PLUGINS_LEADING_ACTIONS: readonly ListPageAction[] = [
+  { label: "Browse Marketplace", icon: <Store size={14} />, primary: true },
+  { label: "Upload plugin", icon: <Upload size={14} /> },
 ];
 
-/**
- * Renders one wizard beat: the real `WizardShell` chrome around the active
- * real step component, pinned to the content area's height so the footer
- * (with its `wizard-next` cursor target) is always on screen and long step
- * content scrolls internally, exactly like the console.
- */
-function WizardFrame({
-  stepIndex,
-  children,
+function PluginsList({ highlightAdd }: { readonly highlightAdd?: boolean }) {
+  return (
+    <ResourceListPage
+      title="Plugins"
+      nounPlural="plugins"
+      subtitle={PLUGINS_SUBTITLE}
+      leadingActions={PLUGINS_LEADING_ACTIONS}
+      createLabel="Add MCP server"
+      createIcon={<Server size={14} />}
+      createSecondary
+      cursorTarget="add-mcp-server"
+      items={EXISTING_PLUGINS}
+      highlightCreate={highlightAdd}
+    />
+  );
+}
+
+/** What the form holds at each phase: untouched, or filled in for the Order Management API. */
+const FORM_VALUES: Record<AddFormPhase, { name: string; url: string; description: string }> = {
+  empty: { name: "", url: "", description: "" },
+  filled: { name: ORDER_MGMT.name, url: ORDER_MGMT.url, description: ORDER_MGMT.description },
+};
+
+/** One labelled field of the replica: the value when filled, the real placeholder when not. */
+function Field({
+  label,
+  optional,
+  value,
+  placeholder,
+  help,
 }: {
-  readonly stepIndex: number;
-  readonly children: ReactNode;
+  readonly label: string;
+  readonly optional?: boolean;
+  readonly value: string;
+  readonly placeholder?: string;
+  readonly help?: string;
 }) {
   return (
-    <div className="mcp-wizard" inert>
-      <WizardShell
-        steps={WIZARD_STEPS}
-        currentStepIndex={stepIndex}
-        submitLabel="Create MCP server"
-        canGoBack={stepIndex > 0}
-        onNext={noop}
-        onBack={noop}
-        onCancel={noop}
-      >
-        {children}
-      </WizardShell>
+    <div className="add-mcp__field">
+      <span className={optional ? "add-mcp__label add-mcp__label--optional" : "add-mcp__label"}>
+        {label}
+        {optional && <span className="add-mcp__optional"> (optional)</span>}
+      </span>
+      <span className={value === "" ? "add-mcp__input add-mcp__input--placeholder" : "add-mcp__input"}>
+        {value === "" ? (placeholder ?? " ") : value}
+      </span>
+      {help && <span className="add-mcp__help">{help}</span>}
     </div>
   );
 }
 
 /**
- * Tour-local replica of `ApplyManifestDialog` (see the file header for why
- * the real one can't render in an embed): header, pasted manifest, the
- * per-document "Will create" preview row, and the action footer — over a
- * dimmed MCP Servers list, like the console's modal backdrop.
+ * Tour-local replica of `AddMcpServerDialog` over the dimmed Plugins page,
+ * like the console's modal backdrop (see the file header for why the real
+ * dialog cannot render here).
  */
-function ImportManifestOverlay() {
+function AddMcpServerOverlay({ phase }: { readonly phase: AddFormPhase }) {
+  const values = FORM_VALUES[phase];
+  const canSubmit = values.name !== "" && values.url !== "";
   return (
-    <div className="mcp-import">
-      <div className="mcp-import__underlay" inert>
-        <ResourceListPage
-          title="MCP Servers"
-          nounPlural="MCP servers"
-          createLabel="Add MCP server"
-          cursorTarget="create-mcp-server"
-          showApplyYaml
-          items={EXISTING_SERVERS}
-        />
+    <div className="add-mcp">
+      <div className="add-mcp__underlay" inert>
+        <PluginsList />
       </div>
 
-      <div className="mcp-import__backdrop">
-        <div className="mcp-import__dialog" role="dialog" aria-label="Apply YAML">
-          <h3 className="mcp-import__title">Apply YAML</h3>
-          <p className="mcp-import__subtitle">
-            Paste a resource manifest or upload a file. Resources are created
-            when new and updated when they already exist.
-          </p>
+      <div className="add-mcp__backdrop">
+        <div className="add-mcp__dialog" role="dialog" aria-label="Add MCP server">
+          <header>
+            <h3 className="add-mcp__title">Add MCP server</h3>
+            <p className="add-mcp__subtitle">
+              Installs a plugin of this one server. A chat or an agent that uses the plugin gets the
+              server&apos;s tools; if the server asks you to sign in, its plugin page says so.
+            </p>
+          </header>
 
-          <pre className="mcp-import__yaml">{MCP_SERVER_YAML}</pre>
+          <Field
+            label="Name"
+            value={values.name}
+            placeholder="linear"
+            help="Lowercase letters, digits, dots and hyphens. The plugin is named after it."
+          />
+          <Field label="URL" value={values.url} placeholder="https://mcp.linear.app/mcp" />
+          <Field label="Description" optional value={values.description} />
 
-          <div className="mcp-import__row">
-            <span className="mcp-import__kind">McpServer</span>
-            <span className="mcp-import__name">{ORDER_MGMT_MCP.name}</span>
-            <span className="mcp-import__badge">Will create</span>
-            <span className="mcp-import__org">{DEMO_ORG}</span>
+          <div className="add-mcp__field">
+            <span className="add-mcp__label add-mcp__label--optional">
+              Headers<span className="add-mcp__optional"> (optional)</span>
+            </span>
+            <span className="add-mcp__button add-mcp__button--small">Add header</span>
+            <span className="add-mcp__help">
+              Write a key as <code>{"${NAME}"}</code>, never its value: each conversation that uses
+              the server asks for it and reads it from a vault.
+            </span>
           </div>
 
-          <div className="mcp-import__actions">
-            <span className="mcp-import__button mcp-import__button--secondary">
-              Cancel
+          <footer className="add-mcp__actions">
+            <span className="add-mcp__button">Cancel</span>
+            <span
+              className={
+                canSubmit
+                  ? "add-mcp__button add-mcp__button--primary"
+                  : "add-mcp__button add-mcp__button--primary add-mcp__button--disabled"
+              }
+              data-cursor-target="add-submit"
+            >
+              Add
             </span>
-            <span className="mcp-import__button mcp-import__button--primary">
-              Apply
-            </span>
-          </div>
+          </footer>
         </div>
       </div>
     </div>
@@ -245,105 +192,31 @@ export function renderStep(data: McpServerCreationTourStep): ReactNode {
         </AppShell>,
       );
 
-    case "mcp-servers-list":
+    case "plugins-list":
       return consoleWindow(
-        "servers",
-        "/library/mcp-servers",
-        <AppShell activeNav="library" contentKey="servers" slideDirection="forward">
-          <ResourceListPage
-            title="MCP Servers"
-            nounPlural="MCP servers"
-            createLabel="Add MCP server"
-            cursorTarget="create-mcp-server"
-            showApplyYaml
-            items={EXISTING_SERVERS}
-            highlightCreate
-          />
+        "plugins",
+        "/library/plugins",
+        <AppShell activeNav="library" contentKey="plugins" slideDirection="forward">
+          <PluginsList highlightAdd />
         </AppShell>,
       );
 
-    case "creation-picker":
+    case "add-form":
+      // Both form beats share one page: only the fields change between them.
       return consoleWindow(
-        "picker",
-        "/library/mcp-servers/new",
-        <AppShell activeNav="library" contentKey="picker" slideDirection="forward">
-          <div className="mcp-picker" inert>
-            <CreationPicker
-              resourceLabel="MCP server"
-              templates={MCP_SERVER_TEMPLATES}
-              onSelect={noop}
-            />
-          </div>
+        "add-form",
+        "/library/plugins",
+        <AppShell activeNav="library" contentKey="add-form">
+          <AddMcpServerOverlay phase={data.form} />
         </AppShell>,
       );
 
-    case "wizard-identity": {
-      const { data: form, validationError } = IDENTITY_BY_PHASE[data.form];
+    case "plugin-page":
       return consoleWindow(
-        "wizard",
-        "/library/mcp-servers/new",
-        <AppShell activeNav="library" contentKey="wizard" slideDirection="forward">
-          <WizardFrame stepIndex={0}>
-            <IdentityTransportStep
-              data={form}
-              updateData={noop}
-              validationError={validationError}
-            />
-          </WizardFrame>
-        </AppShell>,
-      );
-    }
-
-    case "wizard-env-auth":
-      return consoleWindow(
-        "wizard",
-        "/library/mcp-servers/new",
-        <AppShell activeNav="library" contentKey="wizard">
-          <WizardFrame stepIndex={1}>
-            <VariablesSignInStep data={WITH_ENV} updateData={noop} />
-          </WizardFrame>
-        </AppShell>,
-      );
-
-    case "wizard-review":
-      return consoleWindow(
-        "wizard",
-        "/library/mcp-servers/new",
-        <AppShell activeNav="library" contentKey="wizard">
-          <WizardFrame stepIndex={2}>
-            <ReviewStep
-              org={DEMO_ORG}
-              data={WITH_ENV}
-              isCreating={false}
-              error={data.failed ? CREATE_CONFLICT_ERROR : null}
-            />
-          </WizardFrame>
-        </AppShell>,
-      );
-
-    case "import-manifest":
-      return consoleWindow(
-        "import",
-        "/library/mcp-servers",
-        <AppShell activeNav="library" contentKey="import">
-          <ImportManifestOverlay />
-        </AppShell>,
-      );
-
-    case "library-complete":
-      return consoleWindow(
-        "servers",
-        "/library/mcp-servers",
-        <AppShell activeNav="library" contentKey="servers" slideDirection="backward">
-          <ResourceListPage
-            title="MCP Servers"
-            nounPlural="MCP servers"
-            createLabel="Add MCP server"
-            cursorTarget="create-mcp-server"
-            showApplyYaml
-            items={ALL_SERVERS}
-            showNewItem
-          />
+        "plugin-page",
+        `/library/plugins/${DEMO_ORG}/${ORDER_MGMT.name}`,
+        <AppShell activeNav="library" contentKey="plugin-page" slideDirection="forward">
+          <PluginPage org={DEMO_ORG} slug={ORDER_MGMT.name} serverName={ORDER_MGMT.name} />
         </AppShell>,
       );
   }

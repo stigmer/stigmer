@@ -44,9 +44,9 @@ spec:
       slug: company-style-guide
 ```
 
-## Agent with MCP Servers
+## Agent with Plugins
 
-An agent that uses external tools via MCP server integration. The `mcp_server_ref` uses a relative reference (no `org` field).
+An agent that uses external tools through a plugin's MCP server. The plugin reference is relative (no `org` field); the agent gets the plugin whole, its skills and hooks too, and the tool lists narrow its server's tools.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -60,12 +60,11 @@ spec:
   instructions: |
     You help developers with GitHub tasks including searching code,
     creating pull requests, and managing issues.
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: github
-  tools: [Read, Grep, mcp__github]
-  disallowed_tools: [mcp__github__delete_repository]
+  plugins:
+    - kind: plugin
+      slug: github
+  tools: [Read, Grep, mcp__plugin_github_github]
+  disallowed_tools: [mcp__plugin_github_github__delete_repository]
 ```
 
 ## Agent with Sub-Agents
@@ -83,31 +82,30 @@ spec:
     You coordinate engineering work. Delegate to sub-agents based on the task:
     - Code reviews go to the code-reviewer sub-agent
     - PR creation goes to the pr-creator sub-agent
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: github
-  tools: [Read, Grep, Agent, mcp__github]
+  plugins:
+    - kind: plugin
+      slug: github
+  tools: [Read, Grep, Agent, mcp__plugin_github_github]
   sub_agents:
     - name: code-reviewer
       description: "Reviews code changes for quality and security"
       instructions: |
         You review code for quality, security, and best practices.
         Provide specific, actionable feedback.
-      tools: [Read, Grep, mcp__github__search_code, mcp__github__get_file_contents]
+      tools: [Read, Grep, mcp__plugin_github_github__search_code, mcp__plugin_github_github__get_file_contents]
     - name: pr-creator
       description: "Creates well-formatted pull requests"
       instructions: |
         You create pull requests with clear titles and descriptions.
         Always summarize the changes and their purpose.
-      tools: [mcp__github__create_pull_request, mcp__github__get_file_contents]
+      tools: [mcp__plugin_github_github__create_pull_request, mcp__plugin_github_github__get_file_contents]
 ```
 
 ## Full-Featured Agent
 
-An agent using all available features — MCP servers narrowed by the tool lists, skills, sub-agents, and environment variables. Stigmer asks before `deploy_app` runs only if the kubernetes server marks it destructive (`destructiveHint: true`); shell commands and file writes always ask.
+An agent using all available features — plugins whose MCP servers the tool lists narrow, skills, sub-agents, and environment variables. Stigmer asks before `deploy_app` runs only if the kubernetes server marks it destructive (`destructiveHint: true`); shell commands and file writes always ask.
 
-Note: `kubernetes` below is a user-defined MCP server (the org registered it themselves), not a marketplace entry — the marketplace catalog is HTTP-only, and self-registered stdio servers like this one run only on local runners.
+Note: `kubernetes` below is the organization's own plugin carrying a local program (stdio), not a marketplace entry. A local program runs only where a person's own runner runs (the desktop app, the CLI); a conversation hosted in a cloud sandbox is refused at create when one of its plugins carries one.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -135,23 +133,21 @@ spec:
     - Rollback on failures
 
     Always verify deployment targets before executing changes.
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: github
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: kubernetes
+  plugins:
+    - kind: plugin
+      slug: github
+    - kind: plugin
+      slug: kubernetes
   tools:
     - Read
     - Grep
     - Agent
-    - mcp__github__search_code
-    - mcp__github__get_file_contents
-    - mcp__github__create_pull_request
-    - mcp__kubernetes__deploy_app
-    - mcp__kubernetes__rollback_deployment
-    - mcp__kubernetes__get_pod_status
+    - mcp__plugin_github_github__search_code
+    - mcp__plugin_github_github__get_file_contents
+    - mcp__plugin_github_github__create_pull_request
+    - mcp__plugin_kubernetes_kubernetes__deploy_app
+    - mcp__plugin_kubernetes_kubernetes__rollback_deployment
+    - mcp__plugin_kubernetes_kubernetes__get_pod_status
   skill_refs:
     - kind: skill
       slug: kubernetes-best-practices
@@ -171,7 +167,7 @@ spec:
       instructions: |
         You monitor deployments after rollout. Check pod status, logs,
         and health endpoints. Report any issues immediately.
-      tools: [mcp__kubernetes__get_pod_status]
+      tools: [mcp__plugin_kubernetes_kubernetes__get_pod_status]
 ```
 
 ## Agent Shared With Child Organizations
@@ -200,12 +196,11 @@ spec:
     3. Highlight areas of uncertainty or conflicting information
 
     Always cite your sources with URLs.
-  mcp_server_usages:
-    - mcp_server_ref:
-        org: acme-cloud
-        kind: mcp_server
-        slug: web-search
-  tools: [mcp__web-search__search, mcp__web-search__fetch_page]
+  plugins:
+    - org: acme-cloud
+      kind: plugin
+      slug: web-search
+  tools: [mcp__plugin_web-search_web-search__search, mcp__plugin_web-search_web-search__fetch_page]
   skill_refs:
     - org: acme-cloud
       kind: skill
@@ -215,6 +210,6 @@ spec:
 
 Key characteristics of an agent shared with child organizations:
 - `metadata.org` is set explicitly to the parent organization (`acme-cloud`)
-- `metadata.visibility` is `visibility_child_orgs`; every referenced skill and MCP server carries the same level
+- `metadata.visibility` is `visibility_child_orgs`; every referenced skill and plugin carries the same level
 - Resource references use absolute `org` values naming the parent organization
 - Skill version is pinned to `stable` for production reliability

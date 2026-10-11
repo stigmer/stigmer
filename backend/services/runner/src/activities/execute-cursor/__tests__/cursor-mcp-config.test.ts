@@ -1,28 +1,33 @@
+/**
+ * The Cursor-specific last hop over the resolved servers: the SDK config
+ * projection (`toCursorMcpConfig`) and the env pre-flight
+ * (`validateMcpServerEnv`), which names a plugin's server that did not
+ * resolve by its turn name, `plugin_<plugin>_<server>`. Resolution itself
+ * (naming, values, the transport guard) is pinned once on the shared
+ * resolver (shared/__tests__/mcp-resolver.test.ts).
+ */
 import { describe, it, expect } from "vitest";
+import { create } from "@bufbuild/protobuf";
+import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import { toCursorMcpConfig, validateMcpServerEnv } from "../cursor-mcp-config.js";
 
-// Resolution behavior (discovery facts, the transport guard) is pinned once
-// on the single shared resolver
-// (shared/__tests__/mcp-resolver.test.ts — oss#387). These tests pin what is
-// genuinely Cursor-specific: the SDK config projection and the env pre-flight.
-
 function server(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
   return {
-    slug: "github",
+    slug: "plugin_github_api",
     connectionType: "http",
     url: "https://mcp.example.com/mcp",
-    discoveredCapabilitiesEmpty: false,
-    destructiveTools: [],
-    discoveredToolNames: null,
-    serverId: "",
-    pluginOrigin: null,
+    pluginOrigin: { pluginId: "plg_github", plugin: "github", server: "api" },
     ...overrides,
   };
 }
 
-function usage(slug: string) {
-  return { mcpServerRef: { slug, org: "test-org", kind: 0 } } as any;
+/** The `github` plugin carrying one server named `server`. */
+function plugin(server = "api"): Plugin {
+  return create(PluginSchema, {
+    metadata: { id: "plg_github", name: "github" },
+    status: { mcpServers: [{ name: server, transport: { case: "http", value: { url: "https://mcp.example.com/mcp" } } }] },
+  });
 }
 
 describe("toCursorMcpConfig", () => {
@@ -31,7 +36,7 @@ describe("toCursorMcpConfig", () => {
       server({ headers: { Authorization: "Bearer x" } }),
     ]);
 
-    expect(config.github).toEqual({
+    expect(config.plugin_github_api).toEqual({
       type: "http",
       url: "https://mcp.example.com/mcp",
       headers: { Authorization: "Bearer x" },
@@ -70,9 +75,9 @@ describe("toCursorMcpConfig", () => {
   });
 
   it("never narrows a server's config by tool — a server config has no tool filter; tool lists bind in the hook", () => {
-    const config = toCursorMcpConfig([server({ discoveredToolNames: ["create_pr", "merge_pr"] })]);
+    const config = toCursorMcpConfig([server({})]);
 
-    expect(config.github).toEqual({
+    expect(config.plugin_github_api).toEqual({
       type: "http",
       url: "https://mcp.example.com/mcp",
       headers: undefined,
@@ -81,11 +86,11 @@ describe("toCursorMcpConfig", () => {
 });
 
 describe("validateMcpServerEnv", () => {
-  it("warns for a usage whose server failed to resolve", () => {
-    const warnings = validateMcpServerEnv([], [usage("github")]);
+  it("warns for a plugin's server that failed to resolve, by its turn name", () => {
+    const warnings = validateMcpServerEnv([], [plugin("srv one")]);
 
     expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain("'github'");
+    expect(warnings[0]).toContain("'plugin_github_srv_one'");
     expect(warnings[0]).toContain("failed to resolve");
   });
 
@@ -97,7 +102,7 @@ describe("validateMcpServerEnv", () => {
         command: "npx",
         env: { API_KEY: "", OTHER: "set" },
       })],
-      [usage("github")],
+      [plugin()],
     );
 
     expect(warnings).toHaveLength(1);
@@ -105,7 +110,7 @@ describe("validateMcpServerEnv", () => {
   });
 
   it("stays quiet for healthy servers", () => {
-    const warnings = validateMcpServerEnv([server({})], [usage("github")]);
+    const warnings = validateMcpServerEnv([server({})], [plugin()]);
 
     expect(warnings).toEqual([]);
   });

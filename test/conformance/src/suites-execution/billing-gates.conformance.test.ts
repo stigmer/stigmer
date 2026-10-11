@@ -31,8 +31,8 @@ import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitPhase,
   awaitTerminal,
-  createConnectedMcpServer,
   makeAgentExecution,
+  pushFixturePlugin,
   requireLlmProxy,
   requireMcpFixture,
   submitApprovalPerContract,
@@ -150,15 +150,15 @@ describe.skipIf(!gatesEnabled)("Billing gates — settle, the approval STOP gate
   }
 
   // An agent whose one tool the approval default asks before: the fixture's
-  // destructive echo, on a connected server (createConnectedMcpServer).
+  // destructive echo, the one server of a plugin it lists (pushFixturePlugin).
   async function provisionGatedAgent(org: string): Promise<AgentRefInit> {
-    const server = await createConnectedMcpServer(clients, mcp, fixtures, {
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
       org,
-      name: uniqueName("mcp"),
+      name: uniqueName("gated"),
       tools: [DESTRUCTIVE_ECHO_TOOL_NAME],
     });
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("agent-gated"), mcpServerRefs: [server.metadata!.slug] }),
+      makeAgent({ org, name: uniqueName("agent-gated"), plugins: [plugin.metadata!.slug] }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
     return agentRefOf(agent);

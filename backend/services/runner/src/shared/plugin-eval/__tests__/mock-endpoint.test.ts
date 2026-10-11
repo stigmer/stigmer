@@ -47,6 +47,7 @@ const tool = (fields: { tool: string; file: string; kind: PluginEvalMockKind; er
 function contextOf(budget: number) {
   return create(PluginEvalCaseContextSchema, {
     pluginId: "plg_1",
+    pluginName: "kit",
     pluginDigest: "a".repeat(64),
     suiteDir: "evals",
     caseDir: "evals/fix",
@@ -104,9 +105,13 @@ const noModel: AgentMockModel = () => Promise.reject(new Error("no model in this
 describe("the mock endpoint", () => {
   it("registers each stand-in under the plugin server's own name, for its mocked tools only", async () => {
     const { connect } = await started(4, noModel);
-    expect(endpoint?.servers.map((s) => [s.slug, s.discoveredToolNames, s.pluginOrigin])).toEqual([
-      ["plugin_kit_tracker", ["close_issue", "create_issue"], { pluginId: "plg_1", server: "tracker" }],
-      ["plugin_kit_orders", ["lookup_order", "receipt", "refund"], { pluginId: "plg_1", server: "orders" }],
+    expect(endpoint?.servers.map((s) => [s.slug, s.pluginOrigin])).toEqual([
+      ["plugin_kit_tracker", { pluginId: "plg_1", plugin: "kit", server: "tracker" }],
+      ["plugin_kit_orders", { pluginId: "plg_1", plugin: "kit", server: "orders" }],
+    ]);
+    expect(endpoint?.listed).toEqual([
+      { server: "plugin_kit_tracker", tools: ["close_issue", "create_issue"] },
+      { server: "plugin_kit_orders", tools: ["lookup_order", "receipt", "refund"] },
     ]);
     const tracker = await connect("plugin_kit_tracker");
     const { tools } = await tracker.listTools();

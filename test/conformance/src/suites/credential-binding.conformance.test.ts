@@ -13,7 +13,8 @@
 // owner can view. A run filed in A cannot use an agent of B that B does not
 // share with A, though its person may run it there: the run's own credential
 // is bound to A and could not read it, so the create refuses it before
-// anything runs.
+// anything runs. A plugin's tools listing is bound the same way: refused in
+// B, and in A answered exactly as the person is answered.
 //
 // Every arm runs on the target's enforcing lane, where the server signs its
 // callers in and keys authenticate: the primary on the cloud, open source's
@@ -43,7 +44,7 @@ import {
 import { agentRefOf, makeAgent } from "../support/agents";
 import { makeAgentExecution } from "../support/runs";
 import { makeSharedVault, myVaultTarget, setSecretsInput } from "../support/vaults";
-import { makeMcpServer } from "../support/mcpservers";
+import { oneServerPlugin, pushPlugin } from "../support/plugins";
 import { makeSession } from "../support/sessions";
 import { organizationRole, policyTriple, ref } from "../support/iampolicies";
 import { uniqueName } from "../support/naming";
@@ -69,6 +70,20 @@ const BOUND_ELSEWHERE_MESSAGE =
   "this credential is bound to another organization";
 const API_KEY_BOUND_ELSEWHERE_MESSAGE =
   "this credential is limited to one organization, so it can only create API keys limited to that organization";
+
+// The plugins the listing arms install: one server whose header names its key,
+// so the install probes nothing and a listing never reaches a network.
+const BINDING_SERVER = "tools";
+function bindingPlugin(name: string) {
+  return oneServerPlugin({
+    name,
+    serverName: BINDING_SERVER,
+    server: {
+      url: "https://mcp.vendor.test/mcp",
+      headers: { Authorization: "Bearer ${VENDOR_TOKEN}" },
+    },
+  });
+}
 
 let target: TargetProfile;
 let lane: EnforcingLane | undefined;
@@ -496,7 +511,7 @@ describe("credential binding — a credential that names an organization works t
     );
   });
 
-  it("[rpc:RunCommandController.create] a key limited to A files no run and opens no connect in B, even with A's own agent or MCP server", async (ctx) => {
+  it("[rpc:RunCommandController.create] [rpc:PluginCommandController.listTools] a key limited to A files no run and lists no plugin's tools in B, even with A's own agent or plugin", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const a = await tenancy(on);
@@ -519,18 +534,12 @@ describe("credential binding — a credential that names an organization works t
     fixtures.defer(() =>
       on.clients.agentCommand.delete({ value: agent.metadata?.id ?? "" }),
     );
-    const serverInput = makeMcpServer({
-      org: a.org,
-      name: uniqueName("binding-mcp"),
-    });
-    const server = await on.clients.mcpServerCommand.create({
-      ...serverInput,
-      metadata: { ...serverInput.metadata, ...orgVisible },
-    });
-    fixtures.defer(() =>
-      on.clients.mcpServerCommand.delete({
-        resourceId: server.metadata?.id ?? "",
-      }),
+    const plugin = await pushPlugin(
+      on.clients,
+      fixtures,
+      a.org,
+      bindingPlugin(uniqueName("binding-plugin")),
+      orgVisible,
     );
 
     const run = await expectGrpcCode(
@@ -548,51 +557,48 @@ describe("credential binding — a credential that names an organization works t
     );
     expect(run.rawMessage).toBe(BOUND_ELSEWHERE_MESSAGE);
 
-    const connect = await expectGrpcCode(
+    const listing = await expectGrpcCode(
       () =>
-        key.clients.mcpServerCommand.connect({
-          mcpServerId: server.metadata?.id ?? "",
+        key.clients.pluginCommand.listTools({
+          pluginId: plugin.metadata?.id ?? "",
+          server: BINDING_SERVER,
           org: b.org,
         }),
       Code.PermissionDenied,
-      "connect in B through a key limited to A",
+      "list a plugin's tools in B through a key limited to A",
     );
-    expect(connect.rawMessage).toBe(BOUND_ELSEWHERE_MESSAGE);
+    expect(listing.rawMessage).toBe(BOUND_ELSEWHERE_MESSAGE);
   });
 
-  it("[rpc:McpServerCommandController.connect] a key limited to A connects, in A, to an MCP server A's parent B shares with its children exactly as its person does", async (ctx) => {
+  it("[rpc:PluginCommandController.listTools] a key limited to A lists, in A, the tools of a plugin A's parent B shares with its children exactly as its person does", async (ctx) => {
     if (lane === undefined) return ctx.skip(laneReason);
     const on = lane;
     const b = await tenancy(on);
     const a = await childTenancy(on, b);
     const person = await personIn(on, a, "member");
     const key = await keyOf(on, person, a.org);
-    const serverInput = makeMcpServer({
-      org: b.org,
-      name: uniqueName("binding-shared-mcp"),
-    });
-    const shared = await on.clients.mcpServerCommand.create({
-      ...serverInput,
-      metadata: {
-        ...serverInput.metadata,
-        visibility: ApiResourceVisibility.visibility_child_orgs,
-      },
-    });
-    fixtures.defer(() =>
-      on.clients.mcpServerCommand.delete({
-        resourceId: shared.metadata?.id ?? "",
-      }),
+    const shared = await pushPlugin(
+      on.clients,
+      fixtures,
+      b.org,
+      bindingPlugin(uniqueName("binding-shared-plugin")),
+      { visibility: ApiResourceVisibility.visibility_child_orgs },
     );
 
-    // Connecting is how an MCP server runs, the one path the model opens
-    // across organizations: the binding adds nothing to it, so the limited
-    // key gets exactly its person's answer, whatever the model and the
-    // engine make of that answer on this target.
+    // Listing a server's tools is how a person checks a plugin's server, the
+    // one path the model opens across organizations: the binding adds
+    // nothing to it, so the limited key gets exactly its person's answer,
+    // whatever the model, the engine and the caller's vault make of that
+    // answer on this target.
     const outcomeOf = (as: ConformanceClients) =>
-      as.mcpServerCommand
-        .connect({ mcpServerId: shared.metadata?.id ?? "", org: a.org })
+      as.pluginCommand
+        .listTools({
+          pluginId: shared.metadata?.id ?? "",
+          server: BINDING_SERVER,
+          org: a.org,
+        })
         .then(
-          () => "connected",
+          () => "listed",
           (error: unknown) =>
             `${String((error as { code?: unknown }).code)} ${(error as { rawMessage?: string }).rawMessage ?? ""}`,
         );

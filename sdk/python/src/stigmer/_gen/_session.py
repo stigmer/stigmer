@@ -15,7 +15,6 @@ from ai.stigmer.commons.apiresource import metadata_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
-from ._agent import McpServerUsageInput
 from ._run import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
 
 
@@ -97,13 +96,13 @@ class SessionInput:
     harness_state_id_history: list[str] = field(default_factory=list)
     metadata: dict[str, str] = field(default_factory=dict)
     workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
-    mcp_server_usages: list[McpServerUsageInput] = field(default_factory=list)
     skill_refs: list[ResourceRef] = field(default_factory=list)
     harness: int = 0
     cursor_mode: int = 0
     execution_target: int = 0
     vaults: list[ResourceRef] = field(default_factory=list)
     include_my_vault: bool = False
+    plugins: list[ResourceRef] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
@@ -124,8 +123,6 @@ class SessionInput:
             spec.metadata.update(self.metadata)
         for item in self.workspace_entries:
             spec.workspace_entries.append(item._to_proto())
-        for item in self.mcp_server_usages:
-            spec.mcp_server_usages.append(item._to_proto())
         for ref in self.skill_refs:
             _ref = ref._to_proto()
             _ref.kind = 43
@@ -134,6 +131,10 @@ class SessionInput:
             _ref = ref._to_proto()
             _ref.kind = 59
             spec.vaults.append(_ref)
+        for ref in self.plugins:
+            _ref = ref._to_proto()
+            _ref.kind = 58
+            spec.plugins.append(_ref)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

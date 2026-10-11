@@ -22,7 +22,7 @@ export default defineConfig({
     // tick), so it is the first Class B behavior assertable against cloud —
     // the full runner-backed Class B suites live in the cloud-execution run
     // (vitest.cloud-execution.config.ts).
-    // mcpserver-oauth runs here like every other Class A suite: the
+    // plugin-oauth runs here like every other Class A suite: the
     // provisioner boots the composition with STIGMER_OAUTH_REDIRECT_URI set to
     // the suite's pinned constant (server-process.ts).
     include: [

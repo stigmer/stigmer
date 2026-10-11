@@ -169,6 +169,19 @@
       "validation": {
         "maxItems": 64
       }
+    },
+    {
+      "name": "PluginName",
+      "jsonName": "pluginName",
+      "protoField": "plugin_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The plugin's name, as a turn names its MCP servers\n (`plugin_\u003cplugin\u003e_\u003cserver\u003e`) and a hook reads a stand-in's origin.",
+      "required": false,
+      "validation": {
+        "maxLength": 256
+      }
     }
   ]
 }

@@ -7,7 +7,8 @@
 // What is pinned here, on every edition:
 //   - create on an installed plugin whose archive carries evals/ stamps the
 //     plugin's current digest, mints the eval's own id, counts its tries
-//     (cases x targets x arms x runs) and marks the comparison provisional;
+//     (cases x targets x arms x runs) and marks the comparison not
+//     provisional;
 //   - get answers what create stored; listByPlugin answers the plugin's
 //     evals newest first, and no other plugin's;
 //   - create refuses, before anything is stored: a plugin version with no
@@ -164,7 +165,7 @@ async function createEval(plugin: Plugin, opts: Partial<PluginEvalOptions> = {})
 }
 
 describe("PluginEval — create, get and listByPlugin", () => {
-  it("[rpc:PluginEvalCommandController.create] create stamps the current digest, mints the eval's id, counts its tries and marks the comparison provisional", async () => {
+  it("[rpc:PluginEvalCommandController.create] create stamps the current digest, mints the eval's id, counts its tries and marks the comparison not provisional", async () => {
     const plugin = await installedWithEvals();
     const created = await createEval(plugin, { runs: 3 });
 
@@ -177,7 +178,7 @@ describe("PluginEval — create, get and listByPlugin", () => {
     // One case kept by the glob, the case's own (default) target, one arm, three tries.
     expect(created.status?.triesTotal).toBe(3);
     expect(created.status?.triesFinished ?? 0).toBe(0);
-    expect(created.status?.provisionalDelta).toBe(true);
+    expect(created.status?.provisionalDelta).toBe(false);
   });
 
   it("[rpc:PluginEvalQueryController.get] get answers what create stored", async () => {
@@ -318,7 +319,7 @@ describe("PluginEval — create refusals", () => {
       Code.InvalidArgument,
       "create granting another plugin's tools",
     );
-    expect(err.rawMessage).toBe(pluginEvalOtherPluginToolMessage(entry, "someone-else", plugin.metadata!.slug));
+    expect(err.rawMessage).toBe(pluginEvalOtherPluginToolMessage(entry, "plugin_someone-else_github", plugin.metadata!.slug));
   });
 
   it("[rpc:PluginEvalCommandController.create] a plugin that does not exist is NOT_FOUND", async () => {

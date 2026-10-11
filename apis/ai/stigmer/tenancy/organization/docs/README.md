@@ -4,21 +4,21 @@ Comprehensive documentation for the `tenancy.stigmer.ai/v1` Organization resourc
 
 ## What Is an Organization?
 
-An Organization is the **top-level container** for all Stigmer resources. Similar to GitHub organizations, every agent, MCP server, skill, and session belongs to exactly one organization. Organizations provide multi-tenancy, resource isolation, and access control boundaries.
+An Organization is the **top-level container** for all Stigmer resources. Similar to GitHub organizations, every agent, plugin, skill, and session belongs to exactly one organization. Organizations provide multi-tenancy, resource isolation, and access control boundaries.
 
 All other Stigmer resources reference their owning organization through `metadata.org`. You must have an organization before creating any other resource.
 
 ## Organization Lifecycle
 
 ```
-User ──► Organization ──► Members ──► Resources (Agents, MCP Servers, Skills, Sessions…)
+User ──► Organization ──► Members ──► Resources (Agents, Plugins, Skills, Sessions…)
 ```
 
 | Concept | Description |
 |---|---|
 | **Organization** | The root namespace for all resources. Created once, referenced everywhere. |
 | **Member** | A user granted access to an organization via the IAM subsystem. The creator automatically becomes the owner (a child organization's parent admins grant its first members instead). |
-| **Resources** | Agents, MCP servers, skills, sessions, and runs all live under an organization. |
+| **Resources** | Agents, plugins, skills, sessions, and runs all live under an organization. |
 
 ## Parent and Child Organizations
 

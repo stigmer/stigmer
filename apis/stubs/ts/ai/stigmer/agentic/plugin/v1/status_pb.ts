@@ -2,10 +2,12 @@
 // @generated from file ai/stigmer/agentic/plugin/v1/status.proto (package ai.stigmer.agentic.plugin.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { HookConfig } from "./hooks_pb.js";
 import { file_ai_stigmer_agentic_plugin_v1_hooks } from "./hooks_pb.js";
+import type { EnvVarDeclaration } from "../../vault/v1/declaration_pb.js";
+import { file_ai_stigmer_agentic_vault_v1_declaration } from "../../vault/v1/declaration_pb.js";
 import type { ApiResourceAudit } from "../../../commons/apiresource/status_pb.js";
 import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
@@ -15,11 +17,12 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/plugin/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_plugin_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL3N0YXR1cy5wcm90bxIcYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MSLhAwoMUGx1Z2luU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSKAoGZGlnZXN0GAEgASgJQhi6SBVyEzIRXiR8XlthLWYwLTldezY0fSQSHAoUYXJ0aWZhY3Rfc3RvcmFnZV9rZXkYAiABKAkSOAoFc3RhdGUYAyABKA4yKS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblN0YXRlEg0KBWVycm9yGAQgASgJEkkKDG1hdGVyaWFsaXplZBgFIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luTWF0ZXJpYWxpemF0aW9uEj0KCHdhcm5pbmdzGAYgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5XYXJuaW5nEjcKBWhvb2tzGAcgASgLMiguYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5Ib29rQ29uZmlnEjwKBWV2YWxzGAggASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5QbHVnaW5FdmFsU3VpdGUixgEKD1BsdWdpbkV2YWxTdWl0ZRILCgNkaXIYASABKAkSEgoKY2FzZV9jb3VudBgCIAEoBRIRCgljYXNlX3RhZ3MYAyADKAkSQAoFY2FzZXMYBCADKAsyMS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbkV2YWxTdWl0ZUNhc2USPQoIZmluZGluZ3MYBSADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbldhcm5pbmciXgoTUGx1Z2luRXZhbFN1aXRlQ2FzZRIRCgljYXNlX25hbWUYASABKAkSDAoEcGF0aBgCIAEoCRIRCgljYXNlX3RhZ3MYAyADKAkSEwoLdW5zdXBwb3J0ZWQYBCABKAkiXQoVUGx1Z2luTWF0ZXJpYWxpemF0aW9uEg4KBnNraWxscxgBIAEoBRITCgttY3Bfc2VydmVycxgCIAEoBRIOCgZhZ2VudHMYAyABKAVKBAgEEAVSCXdvcmtmbG93cyI8Cg1QbHVnaW5XYXJuaW5nEgwKBGtpbmQYASABKAkSDwoHbWVzc2FnZRgCIAEoCRIMCgRwYXRoGAMgASgJKnkKC1BsdWdpblN0YXRlEhwKGFBMVUdJTl9TVEFURV9VTlNQRUNJRklFRBAAEhsKF1BMVUdJTl9TVEFURV9JTlNUQUxMSU5HEAESFgoSUExVR0lOX1NUQVRFX1JFQURZEAISFwoTUExVR0lOX1NUQVRFX0ZBSUxFRBADYgZwcm90bzM", [file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luL3YxL3N0YXR1cy5wcm90bxIcYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MSLSBQoMUGx1Z2luU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSKAoGZGlnZXN0GAEgASgJQhi6SBVyEzIRXiR8XlthLWYwLTldezY0fSQSHAoUYXJ0aWZhY3Rfc3RvcmFnZV9rZXkYAiABKAkSPQoId2FybmluZ3MYBiADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbldhcm5pbmcSNwoFaG9va3MYByABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLkhvb2tDb25maWcSPAoFZXZhbHMYCCABKAsyLS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpbkV2YWxTdWl0ZRI5CgZza2lsbHMYCSADKAsyKS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLlBsdWdpblNraWxsEjkKBmFnZW50cxgKIAMoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luQWdlbnQSQQoLbWNwX3NlcnZlcnMYCyADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLk1jcFNlcnZlckVudHJ5EkAKA2VudhgMIAMoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luU3RhdHVzLkVudkVudHJ5GloKCEVudkVudHJ5EgsKA2tleRgBIAEoCRI9CgV2YWx1ZRgCIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5FbnZWYXJEZWNsYXJhdGlvbjoCOAFKBAgDEARKBAgEEAVKBAgFEAZSBXN0YXRlUgVlcnJvclIMbWF0ZXJpYWxpemVkIj4KC1BsdWdpblNraWxsEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSDAoEcGF0aBgDIAEoCSJ/CgtQbHVnaW5BZ2VudBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEhQKDGluc3RydWN0aW9ucxgDIAEoCRINCgV0b29scxgEIAMoCRIYChBkaXNhbGxvd2VkX3Rvb2xzGAUgAygJEg4KBnNraWxscxgGIAMoCSL0AQoOTWNwU2VydmVyRW50cnkSDAoEbmFtZRgBIAEoCRI9CgVzdGRpbxgCIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuU3RkaW9NY3BTZXJ2ZXJIABI7CgRodHRwGAMgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5IdHRwTWNwU2VydmVySAASCwoDZW52GAQgAygJEj4KB3NpZ25faW4YBSABKAsyLS5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luLnYxLk1jcFNlcnZlclNpZ25JbkILCgl0cmFuc3BvcnQiLwoOU3RkaW9NY3BTZXJ2ZXISDwoHY29tbWFuZBgBIAEoCRIMCgRhcmdzGAIgAygJIrABCg1IdHRwTWNwU2VydmVyEgsKA3VybBgBIAEoCRJJCgdoZWFkZXJzGAIgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbi52MS5IdHRwTWNwU2VydmVyLkhlYWRlcnNFbnRyeRIXCg90aW1lb3V0X3NlY29uZHMYAyABKAUaLgoMSGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiJQoPTWNwU2VydmVyU2lnbkluEhIKCm9hdXRoX29ubHkYASABKAgiPAoNUGx1Z2luV2FybmluZxIMCgRraW5kGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSDAoEcGF0aBgDIAEoCSLGAQoPUGx1Z2luRXZhbFN1aXRlEgsKA2RpchgBIAEoCRISCgpjYXNlX2NvdW50GAIgASgFEhEKCWNhc2VfdGFncxgDIAMoCRJACgVjYXNlcxgEIAMoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luRXZhbFN1aXRlQ2FzZRI9CghmaW5kaW5ncxgFIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW4udjEuUGx1Z2luV2FybmluZyJeChNQbHVnaW5FdmFsU3VpdGVDYXNlEhEKCWNhc2VfbmFtZRgBIAEoCRIMCgRwYXRoGAIgASgJEhEKCWNhc2VfdGFncxgDIAMoCRITCgt1bnN1cHBvcnRlZBgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_plugin_v1_hooks, file_ai_stigmer_agentic_vault_v1_declaration, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
  * PluginStatus is the system-managed state of an installed plugin: the
- * archive identity and the receipt of the last push.
+ * archive identity and what the archive holds, read when the plugin was
+ * installed.
  *
  * @generated from message ai.stigmer.agentic.plugin.v1.PluginStatus
  */
@@ -46,27 +49,6 @@ export type PluginStatus = Message<"ai.stigmer.agentic.plugin.v1.PluginStatus"> 
   artifactStorageKey: string;
 
   /**
-   * Current lifecycle state of the install.
-   *
-   * @generated from field: ai.stigmer.agentic.plugin.v1.PluginState state = 3;
-   */
-  state: PluginState;
-
-  /**
-   * One sentence naming what failed when state is FAILED; empty otherwise.
-   *
-   * @generated from field: string error = 4;
-   */
-  error: string;
-
-  /**
-   * What the last push materialised, by kind.
-   *
-   * @generated from field: ai.stigmer.agentic.plugin.v1.PluginMaterialization materialized = 5;
-   */
-  materialized?: PluginMaterialization;
-
-  /**
    * Warnings the last push recorded: components Stigmer does not carry,
    * model hints it did not apply, names that shadow built-ins.
    *
@@ -89,6 +71,37 @@ export type PluginStatus = Message<"ai.stigmer.agentic.plugin.v1.PluginStatus"> 
    * @generated from field: ai.stigmer.agentic.plugin.v1.PluginEvalSuite evals = 8;
    */
   evals?: PluginEvalSuite;
+
+  /**
+   * The plugin's skills. A turn names each as <plugin>:<skill>.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.plugin.v1.PluginSkill skills = 9;
+   */
+  skills: PluginSkill[];
+
+  /**
+   * The plugin's agents, from its agents folder. A turn names each as
+   * <plugin>:<agent>.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.plugin.v1.PluginAgent agents = 10;
+   */
+  agents: PluginAgent[];
+
+  /**
+   * The plugin's MCP servers.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.plugin.v1.McpServerEntry mcp_servers = 11;
+   */
+  mcpServers: McpServerEntry[];
+
+  /**
+   * The variables the plugin's servers and hooks read, by name: the
+   * plugin's own declarations, a required secret for each name it uses but
+   * does not declare, and the login key of a server that signs in.
+   *
+   * @generated from field: map<string, ai.stigmer.agentic.vault.v1.EnvVarDeclaration> env = 12;
+   */
+  env: { [key: string]: EnvVarDeclaration };
 };
 
 /**
@@ -97,6 +110,285 @@ export type PluginStatus = Message<"ai.stigmer.agentic.plugin.v1.PluginStatus"> 
  */
 export const PluginStatusSchema: GenMessage<PluginStatus> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 0);
+
+/**
+ * PluginSkill is one skill a plugin carries.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.PluginSkill
+ */
+export type PluginSkill = Message<"ai.stigmer.agentic.plugin.v1.PluginSkill"> & {
+  /**
+   * The skill's name, from its SKILL.md.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * What the skill is for, from its SKILL.md.
+   *
+   * @generated from field: string description = 2;
+   */
+  description: string;
+
+  /**
+   * The skill's folder inside the plugin archive; empty when the plugin is
+   * one skill with SKILL.md at its root.
+   *
+   * @generated from field: string path = 3;
+   */
+  path: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.PluginSkill.
+ * Use `create(PluginSkillSchema)` to create a new message.
+ */
+export const PluginSkillSchema: GenMessage<PluginSkill> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 1);
+
+/**
+ * PluginAgent is one agent a plugin carries, read from its agent file.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.PluginAgent
+ */
+export type PluginAgent = Message<"ai.stigmer.agentic.plugin.v1.PluginAgent"> & {
+  /**
+   * The agent's name.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * What the agent specializes in.
+   *
+   * @generated from field: string description = 2;
+   */
+  description: string;
+
+  /**
+   * The agent's system prompt: the body of its file.
+   *
+   * @generated from field: string instructions = 3;
+   */
+  instructions: string;
+
+  /**
+   * Tools this agent may use, in Claude Code's names; empty means all of the
+   * turn's. Checked at install: an entry the agent's rules refuse is dropped
+   * with a warning, and an agent whose list loses every entry is left out.
+   *
+   * @generated from field: repeated string tools = 4;
+   */
+  tools: string[];
+
+  /**
+   * Tools this agent may never use, in the same names as tools.
+   *
+   * @generated from field: repeated string disallowed_tools = 5;
+   */
+  disallowedTools: string[];
+
+  /**
+   * The plugin's own skills this agent uses, by name.
+   *
+   * @generated from field: repeated string skills = 6;
+   */
+  skills: string[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.PluginAgent.
+ * Use `create(PluginAgentSchema)` to create a new message.
+ */
+export const PluginAgentSchema: GenMessage<PluginAgent> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 2);
+
+/**
+ * McpServerEntry is one MCP server a plugin carries: a local program or an
+ * address.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.McpServerEntry
+ */
+export type McpServerEntry = Message<"ai.stigmer.agentic.plugin.v1.McpServerEntry"> & {
+  /**
+   * The server's key in the plugin's MCP configuration. A turn names its
+   * tools mcp__plugin_<plugin>_<server>__<tool>, as Claude Code does.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * How the server is reached.
+   *
+   * @generated from oneof ai.stigmer.agentic.plugin.v1.McpServerEntry.transport
+   */
+  transport: {
+    /**
+     * A local program the runner starts.
+     *
+     * @generated from field: ai.stigmer.agentic.plugin.v1.StdioMcpServer stdio = 2;
+     */
+    value: StdioMcpServer;
+    case: "stdio";
+  } | {
+    /**
+     * A server at an address.
+     *
+     * @generated from field: ai.stigmer.agentic.plugin.v1.HttpMcpServer http = 3;
+     */
+    value: HttpMcpServer;
+    case: "http";
+  } | { case: undefined; value?: undefined };
+
+  /**
+   * The names of the variables this server reads, declared in
+   * PluginStatus.env.
+   *
+   * @generated from field: repeated string env = 4;
+   */
+  env: string[];
+
+  /**
+   * How a person signs in to this server; unset when it needs no sign-in or
+   * takes a key the plugin names.
+   *
+   * @generated from field: ai.stigmer.agentic.plugin.v1.McpServerSignIn sign_in = 5;
+   */
+  signIn?: McpServerSignIn;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.McpServerEntry.
+ * Use `create(McpServerEntrySchema)` to create a new message.
+ */
+export const McpServerEntrySchema: GenMessage<McpServerEntry> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 3);
+
+/**
+ * StdioMcpServer is a local program serving MCP over its standard input and
+ * output.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.StdioMcpServer
+ */
+export type StdioMcpServer = Message<"ai.stigmer.agentic.plugin.v1.StdioMcpServer"> & {
+  /**
+   * The program to run.
+   *
+   * @generated from field: string command = 1;
+   */
+  command: string;
+
+  /**
+   * Its arguments.
+   *
+   * @generated from field: repeated string args = 2;
+   */
+  args: string[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.StdioMcpServer.
+ * Use `create(StdioMcpServerSchema)` to create a new message.
+ */
+export const StdioMcpServerSchema: GenMessage<StdioMcpServer> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 4);
+
+/**
+ * HttpMcpServer is an MCP server at an address.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.HttpMcpServer
+ */
+export type HttpMcpServer = Message<"ai.stigmer.agentic.plugin.v1.HttpMcpServer"> & {
+  /**
+   * The server's URL.
+   *
+   * @generated from field: string url = 1;
+   */
+  url: string;
+
+  /**
+   * Headers sent with every request; a value may name a variable as
+   * ${NAME}.
+   *
+   * @generated from field: map<string, string> headers = 2;
+   */
+  headers: { [key: string]: string };
+
+  /**
+   * Seconds to wait for one request; zero means the runner's default.
+   *
+   * @generated from field: int32 timeout_seconds = 3;
+   */
+  timeoutSeconds: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.HttpMcpServer.
+ * Use `create(HttpMcpServerSchema)` to create a new message.
+ */
+export const HttpMcpServerSchema: GenMessage<HttpMcpServer> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 5);
+
+/**
+ * McpServerSignIn says how a person signs in to a server.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.McpServerSignIn
+ */
+export type McpServerSignIn = Message<"ai.stigmer.agentic.plugin.v1.McpServerSignIn"> & {
+  /**
+   * Whether the server accepts only a sign-in, and no pasted key.
+   *
+   * @generated from field: bool oauth_only = 1;
+   */
+  oauthOnly: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.McpServerSignIn.
+ * Use `create(McpServerSignInSchema)` to create a new message.
+ */
+export const McpServerSignInSchema: GenMessage<McpServerSignIn> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 6);
+
+/**
+ * PluginWarning is one thing a push noticed but did not refuse.
+ *
+ * @generated from message ai.stigmer.agentic.plugin.v1.PluginWarning
+ */
+export type PluginWarning = Message<"ai.stigmer.agentic.plugin.v1.PluginWarning"> & {
+  /**
+   * Stable warning kind, e.g. "agent-not-installed", "component-ignored",
+   * "model-hint-unresolved", "settings-agent-not-applied",
+   * "tool-list-entry-dropped", "version-not-taggable".
+   *
+   * @generated from field: string kind = 1;
+   */
+  kind: string;
+
+  /**
+   * The warning as one user-facing sentence.
+   *
+   * @generated from field: string message = 2;
+   */
+  message: string;
+
+  /**
+   * The plugin-relative path the warning points at, when it has one.
+   *
+   * @generated from field: string path = 3;
+   */
+  path: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugin.v1.PluginWarning.
+ * Use `create(PluginWarningSchema)` to create a new message.
+ */
+export const PluginWarningSchema: GenMessage<PluginWarning> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 7);
 
 /**
  * PluginEvalSuite summarises a plugin's evals/ test cases.
@@ -146,7 +438,7 @@ export type PluginEvalSuite = Message<"ai.stigmer.agentic.plugin.v1.PluginEvalSu
  * Use `create(PluginEvalSuiteSchema)` to create a new message.
  */
 export const PluginEvalSuiteSchema: GenMessage<PluginEvalSuite> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 1);
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 8);
 
 /**
  * PluginEvalSuiteCase is one case of a plugin's eval suite.
@@ -189,120 +481,5 @@ export type PluginEvalSuiteCase = Message<"ai.stigmer.agentic.plugin.v1.PluginEv
  * Use `create(PluginEvalSuiteCaseSchema)` to create a new message.
  */
 export const PluginEvalSuiteCaseSchema: GenMessage<PluginEvalSuiteCase> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 2);
-
-/**
- * PluginMaterialization counts what a push produced, by kind.
- *
- * @generated from message ai.stigmer.agentic.plugin.v1.PluginMaterialization
- */
-export type PluginMaterialization = Message<"ai.stigmer.agentic.plugin.v1.PluginMaterialization"> & {
-  /**
-   * Skills materialised.
-   *
-   * @generated from field: int32 skills = 1;
-   */
-  skills: number;
-
-  /**
-   * MCP servers materialised.
-   *
-   * @generated from field: int32 mcp_servers = 2;
-   */
-  mcpServers: number;
-
-  /**
-   * Agents materialised: one when the plugin carries a skill, a sub-agent or
-   * an agent overlay; zero for an MCP-only plugin.
-   *
-   * @generated from field: int32 agents = 3;
-   */
-  agents: number;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.plugin.v1.PluginMaterialization.
- * Use `create(PluginMaterializationSchema)` to create a new message.
- */
-export const PluginMaterializationSchema: GenMessage<PluginMaterialization> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 3);
-
-/**
- * PluginWarning is one thing a push noticed but did not refuse.
- *
- * @generated from message ai.stigmer.agentic.plugin.v1.PluginWarning
- */
-export type PluginWarning = Message<"ai.stigmer.agentic.plugin.v1.PluginWarning"> & {
-  /**
-   * Stable warning kind, e.g. "component-ignored", "member-adopted",
-   * "model-hint-unresolved", "settings-agent-not-applied",
-   * "sub-agent-name-builtin", "sub-agent-not-installed",
-   * "tool-list-entry-dropped", "version-not-taggable".
-   *
-   * @generated from field: string kind = 1;
-   */
-  kind: string;
-
-  /**
-   * The warning as one user-facing sentence.
-   *
-   * @generated from field: string message = 2;
-   */
-  message: string;
-
-  /**
-   * The plugin-relative path the warning points at, when it has one.
-   *
-   * @generated from field: string path = 3;
-   */
-  path: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.plugin.v1.PluginWarning.
- * Use `create(PluginWarningSchema)` to create a new message.
- */
-export const PluginWarningSchema: GenMessage<PluginWarning> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 4);
-
-/**
- * PluginState is the lifecycle state of a plugin install.
- *
- * @generated from enum ai.stigmer.agentic.plugin.v1.PluginState
- */
-export enum PluginState {
-  /**
-   * Unspecified state (default/invalid).
-   *
-   * @generated from enum value: PLUGIN_STATE_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * The archive is stored and its members are being materialised.
-   *
-   * @generated from enum value: PLUGIN_STATE_INSTALLING = 1;
-   */
-  INSTALLING = 1,
-
-  /**
-   * Every member of the last push is materialised.
-   *
-   * @generated from enum value: PLUGIN_STATE_READY = 2;
-   */
-  READY = 2,
-
-  /**
-   * A member failed to materialise; `error` names it.
-   *
-   * @generated from enum value: PLUGIN_STATE_FAILED = 3;
-   */
-  FAILED = 3,
-}
-
-/**
- * Describes the enum ai.stigmer.agentic.plugin.v1.PluginState.
- */
-export const PluginStateSchema: GenEnum<PluginState> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_plugin_v1_status, 0);
+  messageDesc(file_ai_stigmer_agentic_plugin_v1_status, 9);
 

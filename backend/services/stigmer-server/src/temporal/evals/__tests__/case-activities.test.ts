@@ -17,9 +17,12 @@
  *   - stop-run: a failure other than "already ended or gone" is thrown; a
  *     refused stop is read against the run's phase, an ended or gone run
  *     stopped, a paused or approval-waiting one thrown as not stopped;
- *   - grade-try: the evidence an AI-graded check cannot be shown (no file
- *     record, an offloaded file and no artifact storage, a reference
- *     transcript the archive lacks); the run's error named per phase when
+ *   - grade-try: an MCP call named by the server segment the turn gave
+ *     it, and a read of a plugin skill's SKILL.md named `Skill` by the
+ *     name the plugin's status lists for its path, so graders written
+ *     against Claude Code's names pass; the evidence an AI-graded check
+ *     cannot be shown (no file record, an offloaded file and no artifact
+ *     storage, a reference transcript the archive lacks); the run's error named per phase when
  *     the run carries none; the duration with missing or reversed stamps;
  *     a run its own cap stopped at the try's budget leaves every check not
  *     graded, where the deadline's stop, a lower cap's stop and the
@@ -54,7 +57,8 @@ import { MockActivityEnvironment } from "@temporalio/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { inMemoryPluginFiles } from "@stigmer/plugin-package";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginSkillSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
   RunSchema,
   RunStatusSchema,
@@ -91,7 +95,6 @@ import {
 import type { JudgeSessionDeleter } from "../../../domain/score/ports.js";
 import { listRunScores } from "../../../domain/score/queries.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
-import { PLUGIN_LABEL } from "../../../pipeline/apiresource-labels.js";
 import type { PluginEvalCallerMint } from "../../../extensions/plugin-eval-caller.js";
 import { PluginEvalCallerRefusedError } from "../../../extensions/plugin-eval-caller.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
@@ -125,6 +128,7 @@ import {
 import type { CaseInput, TryGrade } from "../names.js";
 import type { PluginEvalTryLane } from "../ports.js";
 import {
+  DIGEST,
   EVAL_ID,
   ORG,
   PLUGIN_ID,
@@ -1374,24 +1378,9 @@ describe("a try its case stopped", () => {
   });
 });
 
-describe("grade-try over a plugin's MCP server", () => {
-  it("names an MCP call by the server's name as the plugin declares it, so a grader written against Claude Code's name passes", async () => {
+describe("grade-try over a plugin's MCP server and skills", () => {
+  it("names an MCP call by the server segment the turn gave it, so a grader written against Claude Code's name passes", async () => {
     await seeded();
-    // The plugin's `My_Server` installs under the slug `myserver`.
-    await temp.store.saveResource(
-      ApiResourceKind.mcp_server,
-      "mcp_2",
-      McpServerSchema,
-      create(McpServerSchema, {
-        metadata: {
-          id: "mcp_2",
-          org: ORG,
-          slug: "myserver",
-          name: "My_Server",
-          labels: { [PLUGIN_LABEL]: PLUGIN_ID },
-        },
-      }),
-    );
     const { cases } = build({
       suite: {
         "evals/mcp-case/prompt.md": "Find the bug.\n",
@@ -1407,7 +1396,12 @@ describe("grade-try over a plugin's MCP server", () => {
           type: MessageType.MESSAGE_AI,
           content: "",
           toolCalls: [
-            { id: "c1", name: "search", mcpServerSlug: "myserver", args: { q: "bug" } },
+            {
+              id: "c1",
+              name: "search",
+              mcpServerSlug: "plugin_thermos_My_Server",
+              args: { q: "bug" },
+            },
           ],
         },
         { type: MessageType.MESSAGE_AI, content: "Found it." },
@@ -1418,6 +1412,59 @@ describe("grade-try over a plugin's MCP server", () => {
       {
         passed: true,
         reason: "1 call(s) to 'mcp__plugin_thermos_My_Server__search' (step 1); expected at least 1",
+      },
+    ]);
+  });
+
+  it("names a read of a plugin skill's SKILL.md as Skill, by the name the plugin's status lists for its path", async () => {
+    await seeded();
+    // The skill's directory is not its name: only the plugin's list says
+    // `skills/write-commit` is `commit-message`.
+    await temp.store.updateResource(
+      ApiResourceKind.plugin,
+      PLUGIN_ID,
+      PluginSchema,
+      (live) => {
+        live.status!.skills = [
+          create(PluginSkillSchema, {
+            name: "commit-message",
+            path: "skills/write-commit",
+          }),
+        ];
+      },
+    );
+    const { cases } = build({
+      suite: {
+        "evals/skill-case/prompt.md": "Write the commit message.\n",
+        "evals/skill-case/graders/fired.md":
+          '---\ntype: tool_used\ntool: Skill\ninput_match: \'"skill"\\s*:\\s*"thermos:commit-message"\'\n---\n',
+      },
+    });
+    const start = await startTry(cases);
+    await setStatus(start.runId, {
+      phase: RunPhase.RUN_COMPLETED,
+      messages: [
+        {
+          type: MessageType.MESSAGE_AI,
+          content: "",
+          toolCalls: [
+            {
+              id: "c1",
+              name: "read_file",
+              args: {
+                file_path: `/work/.stigmer/plugins/${DIGEST}/skills/write-commit/SKILL.md`,
+              },
+            },
+          ],
+        },
+        { type: MessageType.MESSAGE_AI, content: "fix: rename fetchUser" },
+      ],
+    });
+    const grade = await cases[GRADE_TRY_ACTIVITY_NAME](CELL, start.runId, false);
+    expect(grade.outcomes).toEqual([
+      {
+        passed: true,
+        reason: "1 call(s) to 'Skill' with matching input (step 1); expected at least 1",
       },
     ]);
   });

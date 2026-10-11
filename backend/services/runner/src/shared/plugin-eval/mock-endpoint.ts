@@ -67,6 +67,8 @@ export interface MockEndpointBinding {
 export interface MockEndpoint {
   /** The stand-ins, as the turn's server list carries them; each replaces the plugin's server of the same name. */
   readonly servers: readonly ResolvedMcpServer[];
+  /** Each stand-in's mocked tools, as a turn's tool listing names them (`McpToolListing.listed`). */
+  readonly listed: readonly { readonly server: string; readonly tools: readonly string[] }[];
   bind(binding: MockEndpointBinding): void;
   close(): Promise<void>;
 }
@@ -158,7 +160,8 @@ export async function startMockEndpoint(args: {
   const port = typeof address === "object" && address !== null ? address.port : 0;
 
   return {
-    servers: [...standIns.values()].map(({ server, tools }) => resolvedServerOf(context.pluginId, server, [...tools.keys()], port, token)),
+    servers: [...standIns.values()].map(({ server }) => resolvedServerOf(context, server, port, token)),
+    listed: [...standIns.values()].map(({ server, tools }) => ({ server: server.segment, tools: [...tools.keys()] })),
     bind: (next) => {
       binding = next;
     },
@@ -193,9 +196,8 @@ function fixtureOf(context: PluginEvalCaseContext, archive: CaseArchive, server:
 }
 
 function resolvedServerOf(
-  pluginId: string,
+  context: PluginEvalCaseContext,
   server: PluginEvalMockServer,
-  tools: readonly string[],
   port: number,
   token: string,
 ): ResolvedMcpServer {
@@ -204,11 +206,7 @@ function resolvedServerOf(
     connectionType: "http",
     url: `http://127.0.0.1:${port}/mcp/${encodeURIComponent(server.segment)}`,
     headers: { Authorization: `Bearer ${token}` },
-    discoveredCapabilitiesEmpty: false,
-    destructiveTools: [],
-    discoveredToolNames: tools,
-    serverId: "",
-    pluginOrigin: { pluginId, server: server.server },
+    pluginOrigin: { pluginId: context.pluginId, plugin: context.pluginName, server: server.server },
   };
 }
 

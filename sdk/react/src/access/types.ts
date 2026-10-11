@@ -11,7 +11,7 @@ import type { VisibilityResourceKind } from "../library/useUpdateVisibility.js";
 export interface AccessResource {
   /** ApiResourceKind enum — drives grantable-role lookup and capability. */
   readonly kind: ApiResourceKind;
-  /** FGA/API kind string (e.g. "mcp_server", "session", "agent"). */
+  /** FGA/API kind string (e.g. "plugin", "session", "agent"). */
   readonly kindString: string;
   /** Resource id. */
   readonly id: string;

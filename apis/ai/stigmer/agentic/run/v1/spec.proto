@@ -70,7 +70,7 @@ message RunSpec {
     //
     // This is the one-call session bootstrap: a single create carries the
     // full session shape (the agent, workspace_entries, harness,
-    // execution_target, MCP servers, skills) together with the first
+    // execution_target, plugins, skills) together with the first
     // message, so embedders do not need to orchestrate session.create
     // followed by run.create. The created session's ID is
     // returned on the persisted run's session_id.
@@ -182,7 +182,7 @@ message RunSpec {
     items: {
       string: {
         max_len: 256
-        pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
+        pattern: "^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
       }
     }
   }];
@@ -195,7 +195,7 @@ message RunSpec {
     items: {
       string: {
         max_len: 256
-        pattern: "^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
+        pattern: "^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
       }
     }
   }];

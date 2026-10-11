@@ -38,13 +38,12 @@ spec:
       slug: rebooking-policy
       version: stable
 
-  # What the agent can do: Meridian's operations tools. Rebooking is
-  # gated — the server marks it destructive, so it stops and asks a human
-  # before money moves.
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: meridian-ops
+  # What the agent can do: Meridian's operations tools, from the
+  # meridian-ops plugin. Rebooking is gated — the server marks it
+  # destructive, so it stops and asks a human before money moves.
+  plugins:
+    - kind: plugin
+      slug: meridian-ops
 
   # Who the agent can delegate to: a fare-search specialist with just
   # the tools it needs.
@@ -55,4 +54,4 @@ spec:
         You are a fare-search specialist. Given a route and a date range,
         search the schedule and return the strongest options, cheapest
         first, with times and per-class prices. You never modify bookings.
-      tools: [mcp__meridian-ops__search_flights]
+      tools: [mcp__plugin_meridian-ops_meridian-ops__search_flights]

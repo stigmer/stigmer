@@ -213,6 +213,13 @@ export function fakeIamPolicyStore(
           !["owner", "creator"].includes(p.spec?.relation ?? ""),
       );
     },
+    async findByResourceKindAndRelation(resourceKind, relation) {
+      return all().filter(
+        (p) =>
+          p.spec?.resource?.kind === resourceKind &&
+          p.spec.relation === relation,
+      );
+    },
   };
 }
 

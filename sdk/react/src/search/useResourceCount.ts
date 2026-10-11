@@ -32,7 +32,7 @@ export interface UseResourceCountReturn {
  * Internal hook that fetches the total count of a resource type.
  *
  * Powers the public resource count hooks (`useAgentCount`, `useSkillCount`,
- * `useMcpServerCount`) — not exported from the public API.
+ * `usePluginCount`) — not exported from the public API.
  *
  * Issues a minimal `list()` call with `page: { num: 1, size: 1 }` and
  * reads only `totalCount` from the response. The single returned entry

@@ -105,7 +105,10 @@ type PluginEvalCaseContext struct {
 	// runner returns their contents after the turn in
 	// RunStatus.plugin_eval_files, so a grader can read a file the try did not
 	// change (one the scaffold wrote, for example).
-	ReadFiles     []string `protobuf:"bytes,12,rep,name=read_files,json=readFiles,proto3" json:"read_files,omitempty"`
+	ReadFiles []string `protobuf:"bytes,12,rep,name=read_files,json=readFiles,proto3" json:"read_files,omitempty"`
+	// The plugin's name, as a turn names its MCP servers
+	// (`plugin_<plugin>_<server>`) and a hook reads a stand-in's origin.
+	PluginName    string `protobuf:"bytes,13,opt,name=plugin_name,json=pluginName,proto3" json:"plugin_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -222,6 +225,13 @@ func (x *PluginEvalCaseContext) GetReadFiles() []string {
 		return x.ReadFiles
 	}
 	return nil
+}
+
+func (x *PluginEvalCaseContext) GetPluginName() string {
+	if x != nil {
+		return x.PluginName
+	}
+	return ""
 }
 
 // PluginEvalFiles is the content, after a plugin-eval try's turn, of each
@@ -572,7 +582,7 @@ var File_ai_stigmer_agentic_run_v1_plugin_eval_case_proto protoreflect.FileDescr
 
 const file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x12\x19ai.stigmer.agentic.run.v1\x1a\x1bbuf/validate/validate.proto\"\xd9\x05\n" +
+	"0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x12\x19ai.stigmer.agentic.run.v1\x1a\x1bbuf/validate/validate.proto\"\x84\x06\n" +
 	"\x15PluginEvalCaseContext\x12$\n" +
 	"\tplugin_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bpluginId\x12:\n" +
 	"\rplugin_digest\x18\x02 \x01(\tB\x15\xbaH\x12r\x102\x0e^[a-f0-9]{64}$R\fpluginDigest\x12$\n" +
@@ -588,7 +598,9 @@ const file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_rawDesc = "" +
 	"\x16agent_mock_call_budget\x18\v \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\xa0\x06(\x00R\x13agentMockCallBudget\x120\n" +
 	"\n" +
-	"read_files\x18\f \x03(\tB\x11\xbaH\x0e\x92\x01\v\x10@\"\ar\x05\x10\x01\x18\x80\bR\treadFiles\x1a6\n" +
+	"read_files\x18\f \x03(\tB\x11\xbaH\x0e\x92\x01\v\x10@\"\ar\x05\x10\x01\x18\x80\bR\treadFiles\x12)\n" +
+	"\vplugin_name\x18\r \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\n" +
+	"pluginName\x1a6\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\\\n" +

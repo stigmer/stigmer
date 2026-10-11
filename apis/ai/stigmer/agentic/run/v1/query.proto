@@ -137,7 +137,7 @@ service RunQueryController {
   // 2. Find artifact in status.artifacts[]
   // 3. Call getArtifactContent with run_id and storage_key
   // 4. Decode content bytes as UTF-8 for text artifacts
-  // 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
+  // 5. Parse YAML to detect Stigmer resource kind (Agent, Skill, etc.)
   rpc getArtifactContent(GetArtifactContentRequest) returns (GetArtifactContentResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;

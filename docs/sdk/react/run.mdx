@@ -286,7 +286,7 @@ return url ? <img src={url} alt="Tool output" /> : null;
 
 Headless behavior hook consolidating the artifact inspect-and-act pipeline
 that was previously inlined per artifact surface: content fetch,
-Agent/McpServer YAML detection, skill-package detection, the Apply/Push
+Agent YAML detection, skill-package detection, the Apply/Push
 mutation, and in-memory clipboard copy.
 
 It is the single writer of this pipeline's derived state, consumed by every
@@ -1193,7 +1193,7 @@ Orchestrates the shared detection pipeline (see [`useArtifactInspection`](#usear
 
 - **FILE artifacts**: Fetches text content via [`useArtifactContent`](#useartifactcontent),
   renders via [`ArtifactContentRenderer`](#artifactcontentrenderer) (markdown, YAML, JSON, or
-  plain text based on file type), and detects Agent/McpServer resources
+  plain text based on file type), and detects Agent resources
   via [`useDetectStigmerResource`](/docs/sdk/react/library#usedetectstigmerresource).
 
 - **DIRECTORY artifacts**: Shows the file listing from
@@ -2269,8 +2269,8 @@ stay with the hosts that render the row.
 Spec for the session the server auto-creates on the one-call bootstrap
 path (maps to `RunSpec.session_spec` in the proto).
 
-Carries the session shape — workspace, harness, execution target, MCP
-servers, skills — alongside the first message, so starting a session
+Carries the session shape — workspace, harness, execution target,
+plugins, skills — alongside the first message, so starting a session
 with a configured workspace is a single API call (stigmer/stigmer#249).
 
 `agentRef` names the agent the new conversation runs; the server pins
@@ -2283,8 +2283,8 @@ Omit it for a conversation with the built-in assistant.
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities execute. Immutable after the first run runs.", typeDescriptionLink: "/docs/sdk/react/session#executiontargetoption" },
     harness: { type: "HarnessOption", description: "Run harness. Immutable after the first run runs.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of vaults. Off unless set: each person who sends a turn uses their own My vault, never another's." },
-    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs stored on the created session's `SessionSpec.metadata`.  A passthrough for embedder-owned keys (correlation IDs, tenant tags) and for platform-reserved `stigmer.ai/*` keys set explicitly. For the common case — standing user context injected into the agent's prompt — prefer the typed sessionContext field, which maps onto the reserved `stigmer.ai/session-context` key and wins over a raw entry under that key when both are provided." },
+    plugins: { type: "ResourceRef[]", description: "Plugins the conversation uses, each whole: their skills, agents, hooks and MCP servers." },
     sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on the created session's `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in a vault. Large values bloat every prompt." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for runs in this session." },
     subject: { type: "string", description: "Initial conversation subject. Omit for an async LLM-generated title." },

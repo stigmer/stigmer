@@ -9,58 +9,42 @@
  *  - the built-in assistant (no agent) is unrestricted;
  *  - a turn's own lists (`mainToolScope`) are one more layer, over the
  *    agent's or over the assistant's nothing;
+ *  - each plugin server is named `plugin_<plugin>_<server>` and filled only
+ *    from its own values group, and one whose URL moved since its values
+ *    were checked is skipped;
+ *  - an engine that does not read its tools' marks (`readsToolMarks` false)
+ *    gets each plugin server listed at turn start, and the default asks for
+ *    the destructive tools and every tool of an unlisted server; one that
+ *    reads them itself gets no listing and a default of the leases alone;
  *  - a server the lists exclude whole is not connected, while a server
  *    excluded tool by tool and the platform's own still are (#2106):
- *    `callableServers` is the one filter, applied before the discovery
- *    backfill (itself a connection) and so before either engine connects;
- *    a plugin-eval try's mocked server never reaches the backfill either;
+ *    `callableServers` is the one filter, applied before the tool listing
+ *    (itself a connection) and so before either engine connects; a
+ *    plugin-eval try's mocked server is never listed either;
  *  - a try's stand-ins (`startEvalMocks`) take their servers' places in the
- *    list, a stand-in the lists exclude whole left out like any server, and
- *    a try whose endpoint starts no stand-in keeps its list as it was.
+ *    list and in the listing, a stand-in the lists exclude whole left out
+ *    like any server, and a try whose endpoint starts no stand-in keeps its
+ *    list as it was.
  * The fetch-and-provision phases around it are pinned end to end by the
  * hermetic goldens.
  */
 
-import { describe, expect, it, vi } from "vitest";
-
-/** What the mocked resolver answers, and what reached the backfill, per test. */
-const resolution = vi.hoisted(() => ({
-  resolved: [] as unknown[],
-  backfilled: [] as string[][],
-}));
-vi.mock("../../shared/mcp-resolver.js", async (original) => ({
-  ...(await original<typeof import("../../shared/mcp-resolver.js")>()),
-  resolveMcpServers: () => Promise.resolve({ resolvedServers: [...resolution.resolved] }),
-}));
-/** The stand-ins the mocked endpoint serves; `undefined` when it starts none. */
-const endpoint = vi.hoisted(() => ({ servers: undefined as unknown[] | undefined }));
-vi.mock("../../shared/plugin-eval/mock-endpoint.js", () => ({
-  startMockEndpoint: () =>
-    Promise.resolve(
-      endpoint.servers === undefined
-        ? undefined
-        : { servers: endpoint.servers, bind: () => undefined, close: () => Promise.resolve() },
-    ),
-}));
-vi.mock("../../shared/connect-backfill.js", async (original) => ({
-  ...(await original<typeof import("../../shared/connect-backfill.js")>()),
-  backfillMcpServersIfNeeded: (_client: unknown, servers: { slug: string }[]) => {
-    resolution.backfilled.push(servers.map((server) => server.slug));
-    return Promise.resolve(servers);
-  },
-}));
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSpecSchema, RecalledMemoriesSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
-import {
-  PluginEvalCaseContextSchema,
-  PluginEvalMockServerSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { HttpMcpServerSchema, McpServerEntrySchema, PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+
+import {
+  PluginEvalCaseContextSchema,
+  PluginEvalMockServerSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 
 import {
   callableServers,
@@ -71,7 +55,6 @@ import {
   type TurnFrame,
 } from "../turn-context.js";
 import { caseArchiveOf } from "../../shared/plugin-eval/case-archive.js";
-import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { ToolScope } from "../../shared/tool-lists.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
@@ -81,7 +64,27 @@ import { MEMORY_ATTACHMENT_SLUG } from "../../shared/memory-attachment.js";
 import type { ResolvedBlueprint, RunAgent } from "../../shared/blueprint-resolver.js";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
-import { NO_RUN_VALUES } from "../../shared/run-values.js";
+import { NO_RUN_VALUES, toolValuesKey, type RunValues, type ToolValueGroup } from "../../shared/run-values.js";
+import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
+import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
+
+const listTurnTools = vi.hoisted(() =>
+  vi.fn<(servers: readonly ResolvedMcpServer[]) => Promise<McpToolListing>>(),
+);
+vi.mock("../../shared/mcp-tool-listing.js", () => ({ listTurnTools }));
+
+/** What the mocked endpoint serves: its stand-ins and their tools; `undefined` when it starts none. */
+const endpoint = vi.hoisted(() => ({
+  served: undefined as { servers: unknown[]; listed: { server: string; tools: string[] }[] } | undefined,
+}));
+vi.mock("../../shared/plugin-eval/mock-endpoint.js", () => ({
+  startMockEndpoint: () =>
+    Promise.resolve(
+      endpoint.served === undefined
+        ? undefined
+        : { ...endpoint.served, bind: () => undefined, close: () => Promise.resolve() },
+    ),
+}));
 
 const EXECUTION_ID = "aex_mcp_1";
 
@@ -106,7 +109,37 @@ function deps(options: { readonly channels: boolean }): ResolutionDeps {
   };
 }
 
-function args(options: { readonly agentLists?: { tools: string[]; disallowedTools: string[] }; readonly attachments: boolean }) {
+/** A plugin carrying one HTTP server that reads TOKEN into its Authorization header. */
+function httpPlugin(id: string, name: string, server: string, url: string): Plugin {
+  return create(PluginSchema, {
+    metadata: create(ApiResourceMetadataSchema, { id, name, slug: name, org: "org" }),
+    status: create(PluginStatusSchema, {
+      mcpServers: [
+        create(McpServerEntrySchema, {
+          name: server,
+          env: ["TOKEN"],
+          transport: { case: "http", value: create(HttpMcpServerSchema, { url, headers: { Authorization: "Bearer ${TOKEN}" } }) },
+        }),
+      ],
+    }),
+  });
+}
+
+/** Each plugin's `api` server's values, checked against the URL it declares. */
+function valuesFor(...plugins: [id: string, url: string][]): RunValues {
+  return {
+    ...NO_RUN_VALUES,
+    tools: new Map(plugins.map(([id, url]) => [toolValuesKey(id, "api"), { url, values: { TOKEN: "t" } }])),
+  };
+}
+
+function args(options: {
+  readonly agentLists?: { tools: string[]; disallowedTools: string[] };
+  readonly attachments: boolean;
+  readonly plugins?: Plugin[];
+  readonly values?: RunValues;
+  readonly readsToolMarks?: boolean;
+}) {
   const session = create(SessionSchema, {
     metadata: create(ApiResourceMetadataSchema, {
       id: "ses_1",
@@ -124,7 +157,7 @@ function args(options: { readonly agentLists?: { tools: string[]; disallowedTool
     sessionSpec: session.spec!,
     instructions: "",
     subAgents: [],
-    mergedMcpServerUsages: [],
+    plugins: options.plugins ?? [],
     mergedSkillRefs: [],
     cloudRepos: [],
   };
@@ -137,7 +170,14 @@ function args(options: { readonly agentLists?: { tools: string[]; disallowedTool
       recalledMemories: options.attachments ? create(RecalledMemoriesSchema, { enabled: true }) : undefined,
     }),
   });
-  return { execution, session, sessionId: "ses_1", blueprint, values: NO_RUN_VALUES };
+  return {
+    execution,
+    session,
+    sessionId: "ses_1",
+    blueprint,
+    values: options.values ?? NO_RUN_VALUES,
+    readsToolMarks: options.readsToolMarks ?? true,
+  };
 }
 
 describe("resolveMcpServersAndPolicies — platform servers and the agent's scope", () => {
@@ -190,15 +230,92 @@ describe("resolveMcpServersAndPolicies — platform servers and the agent's scop
   });
 });
 
+describe("resolveMcpServersAndPolicies — the plugins' servers", () => {
+  const linear = httpPlugin("plg_linear", "linear", "api", "https://linear.example/mcp");
+  const github = httpPlugin("plg_github", "github", "api", "https://github.example/mcp");
+  const groups = new Map<string, ToolValueGroup>([
+    [toolValuesKey("plg_linear", "api"), { url: "https://linear.example/mcp", values: { TOKEN: "linear-token" } }],
+    [toolValuesKey("plg_github", "api"), { url: "https://github.example/mcp", values: { TOKEN: "github-token" } }],
+  ]);
+  const values: RunValues = { ...NO_RUN_VALUES, tools: groups };
+
+  beforeEach(() => {
+    listTurnTools.mockReset();
+  });
+
+  it("names each server plugin_<plugin>_<server> and fills it from its own group only", async () => {
+    const mcp = await resolveMcpServersAndPolicies(
+      deps({ channels: false }),
+      args({ attachments: false, plugins: [linear, github], values }),
+    );
+    expect(mcp.servers.map((server) => [server.slug, server.headers?.Authorization])).toEqual([
+      ["plugin_linear_api", "Bearer linear-token"],
+      ["plugin_github_api", "Bearer github-token"],
+    ]);
+    expect(mcp.servers.map((server) => server.pluginOrigin)).toEqual([
+      { pluginId: "plg_linear", plugin: "linear", server: "api" },
+      { pluginId: "plg_github", plugin: "github", server: "api" },
+    ]);
+    expect(mcp.platformServerSlugs.size).toBe(0);
+  });
+
+  it("skips a server whose URL is not the one its values were checked against", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const moved = httpPlugin("plg_github", "github", "api", "https://moved.example/mcp");
+    const mcp = await resolveMcpServersAndPolicies(
+      deps({ channels: false }),
+      args({ attachments: false, plugins: [linear, moved], values }),
+    );
+    expect(mcp.servers.map((server) => server.slug)).toEqual(["plugin_linear_api"]);
+    expect(warn.mock.calls.some(([line]) => String(line).includes("'plugin_github_api'"))).toBe(true);
+    warn.mockRestore();
+  });
+
+  it("lists the plugin servers for an engine that does not read its tools' marks, and asks per the listing", async () => {
+    const listing: McpToolListing = {
+      listed: [{ server: "plugin_linear_api", tools: ["search", "delete_issue"] }],
+      destructive: [{ server: "plugin_linear_api", tool: "delete_issue" }],
+      unlisted: ["plugin_github_api"],
+    };
+    listTurnTools.mockResolvedValue(listing);
+    const mcp = await resolveMcpServersAndPolicies(
+      deps({ channels: false }),
+      args({ attachments: false, plugins: [linear, github], values, readsToolMarks: false }),
+    );
+    expect(listTurnTools).toHaveBeenCalledTimes(1);
+    expect(listTurnTools.mock.calls[0][0].map((server) => server.slug)).toEqual(["plugin_linear_api", "plugin_github_api"]);
+    expect(mcp.listing).toBe(listing);
+    expect([...mcp.mcpDefault.destructive]).toEqual(["plugin_linear_api/delete_issue"]);
+    expect([...mcp.mcpDefault.unlisted]).toEqual(["plugin_github_api"]);
+  });
+
+  it("lists nothing for an engine that reads its tools' marks itself: the default is the leases alone", async () => {
+    const mcp = await resolveMcpServersAndPolicies(
+      deps({ channels: false }),
+      args({ attachments: false, plugins: [linear], values, readsToolMarks: true }),
+    );
+    expect(listTurnTools).not.toHaveBeenCalled();
+    expect(mcp.listing).toBeUndefined();
+    expect(mcp.mcpDefault.destructive.size).toBe(0);
+    expect(mcp.mcpDefault.unlisted.size).toBe(0);
+    expect(mcp.mcpDefault.leasedServers).toBe(mcp.leases.servers);
+  });
+
+  it("lists nothing when the turn has no plugin server", async () => {
+    const mcp = await resolveMcpServersAndPolicies(
+      deps({ channels: false }),
+      args({ attachments: false, readsToolMarks: false }),
+    );
+    expect(listTurnTools).not.toHaveBeenCalled();
+    expect(mcp.listing).toBeUndefined();
+  });
+});
+
 describe("callableServers — a server no tool of which can be called is never connected (#2106)", () => {
   const server = (slug: string): ResolvedMcpServer => ({
     slug,
     connectionType: "http",
     url: `https://${slug}.example.com/mcp`,
-    discoveredCapabilitiesEmpty: false,
-    destructiveTools: [],
-    discoveredToolNames: null,
-    serverId: `mcp_${slug}`,
     pluginOrigin: null,
   });
   const servers = [server("tracker"), server("orders"), server("wiki"), server(MEMORY_ATTACHMENT_SLUG)];
@@ -218,34 +335,40 @@ describe("callableServers — a server no tool of which can be called is never c
     expect(slugs(ToolScope.unrestricted())).toEqual(["tracker", "orders", "wiki", MEMORY_ATTACHMENT_SLUG]);
   });
 
-  it("filters before the discovery backfill, and leaves a plugin-eval try's mocked server to its stand-in", async () => {
-    resolution.resolved = [server("tracker"), server("orders"), server("wiki")];
-    resolution.backfilled = [];
-    try {
-      const turn = args({ attachments: false, agentLists: { tools: [], disallowedTools: ["mcp__wiki"] } });
-      turn.execution.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
-        mocks: [create(PluginEvalMockServerSchema, { server: "tracker", segment: "tracker" })],
-      });
-      vi.spyOn(console, "log").mockImplementation(() => undefined);
-      const mcp = await resolveMcpServersAndPolicies(deps({ channels: false }), turn);
-      expect(resolution.backfilled).toEqual([["orders"]]);
-      expect(mcp.servers.map((s) => s.slug)).toEqual(["orders"]);
-    } finally {
-      resolution.resolved = [];
-    }
+  it("filters before the tool listing, and leaves a plugin-eval try's mocked server to its stand-in", async () => {
+    listTurnTools.mockReset();
+    listTurnTools.mockResolvedValue({ listed: [], destructive: [], unlisted: [] });
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const turn = args({
+      attachments: false,
+      agentLists: { tools: [], disallowedTools: ["mcp__plugin_github_api"] },
+      plugins: [
+        httpPlugin("plg_linear", "linear", "api", "https://linear.example/mcp"),
+        httpPlugin("plg_github", "github", "api", "https://github.example/mcp"),
+        httpPlugin("plg_wiki", "wiki", "api", "https://wiki.example/mcp"),
+      ],
+      values: valuesFor(
+        ["plg_linear", "https://linear.example/mcp"],
+        ["plg_github", "https://github.example/mcp"],
+        ["plg_wiki", "https://wiki.example/mcp"],
+      ),
+      readsToolMarks: false,
+    });
+    turn.execution.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
+      mocks: [create(PluginEvalMockServerSchema, { server: "api", segment: "plugin_linear_api" })],
+    });
+    const mcp = await resolveMcpServersAndPolicies(deps({ channels: false }), turn);
+    expect(listTurnTools.mock.calls.map(([listed]) => listed.map((s) => s.slug))).toEqual([["plugin_wiki_api"]]);
+    expect(mcp.servers.map((s) => s.slug)).toEqual(["plugin_wiki_api"]);
   });
 });
 
 describe("startEvalMocks — a plugin-eval try's stand-ins take their servers' places", () => {
-  const server = (slug: string, url = `https://${slug}.example.com/mcp`): ResolvedMcpServer => ({
+  const standIn = (slug: string): ResolvedMcpServer => ({
     slug,
     connectionType: "http",
-    url,
-    discoveredCapabilitiesEmpty: false,
-    destructiveTools: [],
-    discoveredToolNames: null,
-    serverId: `mcp_${slug}`,
-    pluginOrigin: null,
+    url: `http://127.0.0.1:4000/mcp/${slug}`,
+    pluginOrigin: { pluginId: "plg_linear", plugin: "linear", server: slug.replace(/^plugin_linear_/, "") },
   });
   const frame = (): TurnFrame => ({
     primaryDir: undefined,
@@ -255,38 +378,77 @@ describe("startEvalMocks — a plugin-eval try's stand-ins take their servers' p
     evalReadFiles: undefined,
   });
 
-  /** The turn's resolved list (`tracker`, `wiki`; `orders` denied whole), then the try's stand-ins for `tracker` and `orders`. */
-  async function standIns(served: unknown[] | undefined) {
-    resolution.resolved = [server("tracker"), server("wiki")];
-    endpoint.servers = served;
+  /**
+   * The turn's resolved list (`plugin_linear_api` and `plugin_wiki_api`;
+   * `plugin_linear_orders` denied whole), then the try's stand-ins for
+   * `plugin_linear_api` and `plugin_linear_orders`.
+   */
+  async function standIns(served: typeof endpoint.served, readsToolMarks: boolean) {
+    listTurnTools.mockReset();
+    listTurnTools.mockResolvedValue({
+      listed: [
+        { server: "plugin_linear_api", tools: ["search"] },
+        { server: "plugin_wiki_api", tools: ["read_page"] },
+      ],
+      destructive: [],
+      unlisted: [],
+    });
+    endpoint.served = served;
     try {
-      const turn = args({ attachments: false, agentLists: { tools: [], disallowedTools: ["mcp__orders"] } });
+      const turn = args({
+        attachments: false,
+        agentLists: { tools: [], disallowedTools: ["mcp__plugin_linear_orders"] },
+        plugins: [
+          httpPlugin("plg_linear", "linear", "api", "https://linear.example/mcp"),
+          httpPlugin("plg_wiki", "wiki", "api", "https://wiki.example/mcp"),
+        ],
+        values: valuesFor(["plg_linear", "https://linear.example/mcp"], ["plg_wiki", "https://wiki.example/mcp"]),
+        readsToolMarks,
+      });
       const mcp = await resolveMcpServersAndPolicies(deps({ channels: false }), turn);
       const spec = create(RunSpecSchema, {
         pluginEvalCase: create(PluginEvalCaseContextSchema, {
-          mocks: ["tracker", "orders"].map((segment) => create(PluginEvalMockServerSchema, { server: segment, segment })),
+          mocks: ["api", "orders"].map((server) =>
+            create(PluginEvalMockServerSchema, { server, segment: `plugin_linear_${server}` }),
+          ),
         }),
       });
       const into = frame();
       const out = await startEvalMocks(deps({ channels: false }), { spec, archive: caseArchiveOf([]), mcp, frame: into });
       return { mcp, out, into };
     } finally {
-      resolution.resolved = [];
-      endpoint.servers = undefined;
+      endpoint.served = undefined;
     }
   }
 
+  const served = {
+    servers: [standIn("plugin_linear_api"), standIn("plugin_linear_orders")],
+    listed: [
+      { server: "plugin_linear_api", tools: ["create_issue"] },
+      { server: "plugin_linear_orders", tools: ["refund"] },
+    ],
+  };
+
   it("replaces the plugin's server of each stand-in's name, and leaves out a stand-in the lists exclude whole", async () => {
-    const { out, into } = await standIns([server("tracker", "http://127.0.0.1:4000/tracker"), server("orders", "http://127.0.0.1:4000/orders")]);
+    const { out, into } = await standIns(served, true);
     expect(out.servers.map((s) => [s.slug, s.url])).toEqual([
-      ["wiki", "https://wiki.example.com/mcp"],
-      ["tracker", "http://127.0.0.1:4000/tracker"],
+      ["plugin_wiki_api", "https://wiki.example/mcp"],
+      ["plugin_linear_api", "http://127.0.0.1:4000/mcp/plugin_linear_api"],
     ]);
+    expect(out.listing, "an engine that reads its tools' marks gets no listing").toBeUndefined();
     expect(into.evalMocks, "the turn's finally closes it").toBeDefined();
   });
 
+  it("lists each stand-in's mocked tools in place of its server's, for an engine that does not read its tools' marks", async () => {
+    const { out } = await standIns(served, false);
+    expect(out.listing?.listed).toEqual([
+      { server: "plugin_wiki_api", tools: ["read_page"] },
+      { server: "plugin_linear_api", tools: ["create_issue"] },
+    ]);
+  });
+
   it("keeps the list as it was when the endpoint starts no stand-in", async () => {
-    const { mcp, out, into } = await standIns(undefined);
+    const { mcp, out, into } = await standIns(undefined, false);
     expect(out).toBe(mcp);
     expect(into.evalMocks).toBeUndefined();
   });

@@ -1,9 +1,9 @@
 /**
  * Pins that the Go generator imports the package of a repeated message
- * field whose element lives in another proto package: the agent spec's
- * `mcp_server_usages` is `repeated mcpserver.v1.McpServerUsage`, so the
- * generated agent client must import that package or the SDK does not
- * build. The generator runs over the real schemas and the test reads what
+ * field whose element lives in another proto package: the agent's inline
+ * hooks block is a plugin.v1.HookConfig whose `groups` is `repeated
+ * HookGroup`, so the generated agent client must import that package or the
+ * SDK does not build. The generator runs over the real schemas and the test reads what
  * it wrote.
  */
 import * as fs from "node:fs";
@@ -32,7 +32,7 @@ describe("the Go generator's repeated cross-package message", () => {
   });
 
   it("imports the element's package and uses it", () => {
-    expect(go).toMatch(/mcpserverv1 "[^"]*\/ai\/stigmer\/agentic\/mcpserver\/v1"/);
-    expect(go).toContain("mcpserverv1.McpServerUsage");
+    expect(go).toMatch(/pluginv1 "[^"]*\/ai\/stigmer\/agentic\/plugin\/v1"/);
+    expect(go).toContain("pluginv1.HookGroup");
   });
 });

@@ -259,7 +259,7 @@ function generateResourceClient(
   if (specSchema !== null) {
     const scanFieldsForImports = (fields: FieldSchema[]): void => {
       for (const f of fields) {
-        // A message field, a repeated one (`repeated McpServerUsage` in
+        // A message field, a repeated one (`repeated ApiResourceReference` in
         // another package's spec), or a map's message value (`map<string,
         // EnvVarDeclaration>`) imports the message's own package.
         const msgName =

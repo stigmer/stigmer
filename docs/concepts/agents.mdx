@@ -42,11 +42,10 @@ spec:
       slug: company-knowledge-base
     - kind: skill
       slug: return-policy
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: order-management-api
-  tools: [Read, Grep, mcp__order-management-api]
+  plugins:
+    - kind: plugin
+      slug: order-management-api
+  tools: [Read, Grep, mcp__plugin_order-management-api_order-management-api]
   env:
     ORDER_API_URL:
       is_secret: false
@@ -64,28 +63,28 @@ rendered for reading:
   id="agent-detail-tour/agent-detail"
   alt="The Agent detail page in the Stigmer console: the support-agent
 definition with its description, its full instructions, the
-order-management-api MCP server, its tool list of Read, Grep and that server,
-and its two Skills."
+order-management-api plugin, its tool list of Read, Grep and that plugin's
+server, and its two Skills."
 />
 
 Check the frame against the YAML: the description at the top is
 `spec.description`, the instructions section carries the system prompt verbatim,
-the MCP servers section lists `order-management-api`, the tool list shows
-`tools`, and the two `skill_refs` appear under Skills. Each of those fields
-serves a purpose:
+the plugins section lists `order-management-api`, the tool list shows `tools`,
+and the two `skill_refs` appear under Skills. Each of those fields serves a
+purpose:
 
-| Field               | What it does                                                                           |
-| ------------------- | -------------------------------------------------------------------------------------- |
-| `instructions`      | The Agent's system prompt — defines its personality, behavior rules, and task guidance |
-| `skill_refs`        | References to [Skills](/docs/concepts/skills) that give the Agent domain knowledge     |
-| `mcp_server_usages` | References to [MCP Servers](/docs/concepts/tools) that give the Agent tool access      |
-| `tools`             | Only these tools, in Claude Code's names — here no shell commands and no file writes   |
-| `env`               | Environment variables the Agent needs at runtime (API keys, URLs, configuration)       |
+| Field          | What it does                                                                           |
+| -------------- | -------------------------------------------------------------------------------------- |
+| `instructions` | The Agent's system prompt — defines its personality, behavior rules, and task guidance |
+| `skill_refs`   | References to [Skills](/docs/concepts/skills) that give the Agent domain knowledge     |
+| `plugins`      | [Plugins](/docs/concepts/tools) the Agent uses whole: their tools, Skills and hooks    |
+| `tools`        | Only these tools, in Claude Code's names — here no shell commands and no file writes   |
+| `env`          | Environment variables the Agent needs at runtime (API keys, URLs, configuration)       |
 
 Two more fields shape what the Agent's tools may do. `disallowed_tools` lists
-tools the Agent may never use, and `hooks` names the plugins whose hooks run
-around its tool calls, or carries hooks written in the Agent: commands that can
-refuse a call, ask a person first, or let it run.
+tools the Agent may never use, and `hooks` carries hooks written in the Agent,
+which run around its tool calls after the hooks of the plugins it lists:
+commands that can refuse a call, ask a person first, or let it run.
 [Approval Flows](/docs/concepts/approval-flows) explains both.
 
 ## Blueprint vs. runtime
@@ -131,8 +130,8 @@ and production credentials from another, and its definition never changes.
 ### Sessions and runs
 
 A [Session](/docs/concepts/sessions) represents a conversation. It holds message
-history and can add Skills and MCP Servers for a specific interaction; the
-Agent's tool lists still govern every tool.
+history and can add Skills and plugins for a specific interaction; the Agent's
+tool lists still govern every tool.
 
 A run is a single request-response cycle within a Session. When a user sends a
 message, Stigmer creates a run that:
@@ -275,10 +274,10 @@ assistant whose instructions are part of Stigmer itself, not a stored Agent.
 There is no row to find, no label to configure and nothing to install — a fresh
 installation answers its first message at once.
 
-The assistant works with whatever the Session carries: the MCP Servers and
-Skills you attach to the conversation are its tools, and the variables those
-servers declare are asked for the same way an Agent's are. What it does not have
-is anything of its own — no Skills, no MCP Servers, no Sub-Agents. The value of
+The assistant works with whatever the Session carries: the plugins and Skills
+you attach to the conversation are its tools, their hooks run, and the variables
+those plugins read are asked for the same way an Agent's are. What it does not
+have is anything of its own — no Skills, no plugins, no Sub-Agents. The value of
 Stigmer appears when you create Agents tailored to your domain, and a
 conversation can pick one up at any point: choosing an Agent binds the Session
 to it, and removing the Agent returns the Session to the assistant.

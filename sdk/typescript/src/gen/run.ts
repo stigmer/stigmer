@@ -6,7 +6,6 @@ import { type ResourceRef } from "./types.js";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { McpServerUsageSchema, type McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -213,13 +212,13 @@ export interface SessionSpecInput {
   harnessStateIdHistory?: string[];
   metadata?: Record<string, string>;
   workspaceEntries?: WorkspaceEntryInput[];
-  mcpServerUsages?: McpServerUsageInput[];
   skillRefs?: ResourceRef[];
   harness?: Harness;
   cursorMode?: CursorMode;
   executionTarget?: ExecutionTarget;
   vaults?: ResourceRef[];
   includeMyVault?: boolean;
+  plugins?: ResourceRef[];
 }
 
 /** SDK input type for WorkspaceEntry. */
@@ -247,11 +246,6 @@ export interface GitRepoSourceInput {
 /** SDK input type for LocalPathSource. */
 export interface LocalPathSourceInput {
   path?: string;
-}
-
-/** SDK input type for McpServerUsage. */
-export interface McpServerUsageInput {
-  mcpServerRef: ResourceRef;
 }
 
 /** SDK input type for RunConfig. */
@@ -294,6 +288,7 @@ export interface PluginEvalCaseContextInput {
   agentMockModel?: string;
   agentMockCallBudget?: number;
   readFiles?: string[];
+  pluginName?: string;
 }
 
 /** SDK input type for PluginEvalMockServer. */
@@ -348,12 +343,6 @@ function buildWorkspaceEntryProto(input: WorkspaceEntryInput) {
   return msg;
 }
 
-function buildMcpServerUsageProto(input: McpServerUsageInput) {
-  const msg = create(McpServerUsageSchema);
-  if (input.mcpServerRef?.slug || input.mcpServerRef?.org) msg.mcpServerRef = create(ApiResourceReferenceSchema, { ...input.mcpServerRef, kind: 44 });
-  return msg;
-}
-
 function buildSessionSpecProto(input: SessionSpecInput) {
   const msg = create(SessionSpecSchema);
   if (input.agentRef?.slug || input.agentRef?.org) msg.agentRef = create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 });
@@ -362,13 +351,13 @@ function buildSessionSpecProto(input: SessionSpecInput) {
   if (input.harnessStateIdHistory) msg.harnessStateIdHistory = input.harnessStateIdHistory;
   if (input.metadata) Object.assign(msg.metadata, input.metadata);
   if (input.workspaceEntries) msg.workspaceEntries = input.workspaceEntries.map(buildWorkspaceEntryProto);
-  if (input.mcpServerUsages) msg.mcpServerUsages = input.mcpServerUsages.map(buildMcpServerUsageProto);
   if (input.skillRefs) msg.skillRefs = input.skillRefs.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
   if (input.harness !== undefined) msg.harness = input.harness;
   if (input.cursorMode !== undefined) msg.cursorMode = input.cursorMode;
   if (input.executionTarget !== undefined) msg.executionTarget = input.executionTarget;
   if (input.vaults) msg.vaults = input.vaults.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   if (input.includeMyVault !== undefined) msg.includeMyVault = input.includeMyVault;
+  if (input.plugins) msg.plugins = input.plugins.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 58 }));
   return msg;
 }
 
@@ -435,6 +424,7 @@ function buildPluginEvalCaseContextProto(input: PluginEvalCaseContextInput) {
   if (input.agentMockModel !== undefined) msg.agentMockModel = input.agentMockModel;
   if (input.agentMockCallBudget !== undefined) msg.agentMockCallBudget = input.agentMockCallBudget;
   if (input.readFiles) msg.readFiles = input.readFiles;
+  if (input.pluginName !== undefined) msg.pluginName = input.pluginName;
   return msg;
 }
 
@@ -510,12 +500,6 @@ function toWorkspaceEntryInput(msg: WorkspaceEntry): WorkspaceEntryInput {
   };
 }
 
-function toMcpServerUsageInput(msg: McpServerUsage): McpServerUsageInput {
-  return {
-    mcpServerRef: toResourceRefInput(msg.mcpServerRef) ?? { org: "", slug: "" },
-  };
-}
-
 function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
   return {
     agentRef: toResourceRefInput(msg.agentRef),
@@ -524,13 +508,13 @@ function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
     harnessStateIdHistory: msg.harnessStateIdHistory?.length ? [...msg.harnessStateIdHistory] : undefined,
     metadata: Object.keys(msg.metadata ?? {}).length > 0 ? { ...msg.metadata } : undefined,
     workspaceEntries: msg.workspaceEntries?.length ? msg.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
-    mcpServerUsages: msg.mcpServerUsages?.length ? msg.mcpServerUsages.map(toMcpServerUsageInput) : undefined,
     skillRefs: toResourceRefInputs(msg.skillRefs),
     harness: msg.harness || undefined,
     cursorMode: msg.cursorMode || undefined,
     executionTarget: msg.executionTarget || undefined,
     vaults: toResourceRefInputs(msg.vaults),
     includeMyVault: msg.includeMyVault || undefined,
+    plugins: toResourceRefInputs(msg.plugins),
   };
 }
 
@@ -597,6 +581,7 @@ function toPluginEvalCaseContextInput(msg: PluginEvalCaseContext): PluginEvalCas
     agentMockModel: msg.agentMockModel || undefined,
     agentMockCallBudget: msg.agentMockCallBudget || undefined,
     readFiles: msg.readFiles?.length ? [...msg.readFiles] : undefined,
+    pluginName: msg.pluginName || undefined,
   };
 }
 

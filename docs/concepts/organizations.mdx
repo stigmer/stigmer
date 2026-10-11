@@ -6,9 +6,9 @@ description:
   and how resources are scoped.
 ---
 
-Every resource in Stigmer — Agents, Skills, MCP Servers, Sessions, Vaults —
-belongs to an Organization. An Organization is a tenant boundary that groups
-resources and controls who can access them.
+Every resource in Stigmer — Agents, Skills, Plugins, Sessions, Vaults — belongs
+to an Organization. An Organization is a tenant boundary that groups resources
+and controls who can access them.
 
 ## Structure
 
@@ -19,9 +19,10 @@ graph TD
   O["Organization<br/>(acme)"] --> P1["Plugin<br/>(customer-support)"]
   O --> A2["Agent: ops-assistant"]
   O --> S2["Skill: runbook"]
+  A2 -. "plugins" .-> P1
   P1 --> A1["Agent: support-agent"]
   P1 --> S1["Skill: return-policy"]
-  P1 --> M1["MCP Server: order-service"]
+  P1 --> M1["MCP server: order-service"]
 `}
 />
 
@@ -84,13 +85,15 @@ never changes the slug.
 
 ### Plugins
 
-A Plugin groups the resources that belong together within an Organization: the
-Agent, Skills and MCP Servers one folder installs. It is the unit of install,
+A Plugin is one folder's Skills, agents, hooks and MCP servers, kept together as
+one resource; an MCP server lives only in a Plugin. It is the unit of install,
 upgrade and removal: `stigmer push plugin <dir>` installs the folder as one
-Plugin, the Marketplace installs one from a catalogue, and removing the Plugin
-removes every resource it brought. A Plugin is not written as YAML; it is read
-from a folder in the open Agent Plugins format (or the Cursor, Claude Code or
-Codex dialect), and the resource the server keeps records what landed:
+Plugin, the Marketplace installs one from a catalogue, and `stigmer mcp add`
+installs a Plugin of one MCP server. An Agent or a conversation uses a Plugin
+whole by listing it in `plugins`; removing a Plugin is refused while an Agent
+lists it. A Plugin is not written as YAML; it is read from a folder in the open
+Agent Plugins format (or the Cursor, Claude Code or Codex dialect), and the
+resource the server keeps records what the folder holds:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -194,10 +197,10 @@ Organization owned, in three steps:
    inside it. Every role anyone held in it is gone.
 2. **Within minutes.** In the background, Stigmer stops anything still running
    (Schedules, runs, sandboxes), then removes every Agent, Session, file, Skill,
-   MCP Server, Plugin, Vault and secret, Channel and its conversations, and
-   every permission that named the Organization. Where an edition seals secrets
-   with a key per Organization (Stigmer Cloud), that key is destroyed too, so a
-   copy of a secret in an old backup can no longer be read.
+   Plugin, Vault and secret, Channel and its conversations, and every permission
+   that named the Organization. Where an edition seals secrets with a key per
+   Organization (Stigmer Cloud), that key is destroyed too, so a copy of a
+   secret in an old backup can no longer be read.
 3. **When that finishes.** The Organization's slug is free for someone else, and
    not before.
 
@@ -238,12 +241,12 @@ read it:
 | Visibility              | Meaning                                                                                                                                 |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `visibility_private`    | The person who created it, and anyone granted access to it directly                                                                     |
-| `visibility_org`        | Everyone in the owning Organization (the default for Agents, Skills, MCP Servers and Plugins)                                           |
+| `visibility_org`        | Everyone in the owning Organization (the default for Agents, Skills and Plugins)                                                        |
 | `visibility_child_orgs` | Everyone in every child organization of the owning Organization (see [Parent and child organizations](#parent-and-child-organizations)) |
 
 Nothing an Organization owns is visible outside it unless it is a parent sharing
 it with its child organizations. To use another Organization's Agent, Skill or
-MCP Server, install the Plugin that carries it: the copy is yours, in your
+MCP server, install the Plugin that carries it: the copy is yours, in your
 Organization, and upgrades with the Plugin.
 
 ## Resource references
@@ -269,10 +272,10 @@ skill_refs:
 ```
 
 Stigmer checks every reference when you save: the referenced resource must
-exist, and an Agent may not be more visible than the Skills, MCP Servers and
-Agents it references, so what a person can run they can also read. A reference
-that fails either check is refused with the field and the reason named, rather
-than failing later at run time.
+exist, and an Agent may not be more visible than the resources it references, so
+what a person can run they can also read. A reference that fails either check is
+refused with the field and the reason named, rather than failing later at run
+time.
 
 This keeps resource definitions portable — they reference resources by name, not
 by internal IDs. Stigmer stores a reference's Organization by id, so a stored

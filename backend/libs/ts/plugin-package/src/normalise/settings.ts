@@ -13,8 +13,8 @@
  *
  * `agent` must name one of the plugin's own agents, by its bare name or
  * scoped as `<plugin>:<agent>`; anything else is warned and ignored
- * (`settings-agent-unknown`), since a main agent that is not there leaves
- * the composed agent as it would be without settings. Only a Claude
+ * (`settings-agent-unknown`), since a main agent that is not there names
+ * nothing a conversation could run. Only a Claude
  * manifest makes these settings meaningful; without one, `settings.json`
  * stays an ignored component. A `settings.json` that is not a JSON object
  * refuses the plugin, as a broken hooks file does.

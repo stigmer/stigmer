@@ -19,10 +19,10 @@ TypeScript gRPC control plane for local Stigmer deployment.
 **Key responsibilities**:
 
 - gRPC/gRPC-Web/Connect command/query controllers for every API resource
-  (Agent, Skill, Session, Vault, McpServer, …) on one port
+  (Agent, Skill, Plugin, Session, Vault, …) on one port
 - SQLite storage via `node:sqlite` (see [Storage](#storage) below)
-- Temporal workflow orchestration for agent executions, schedules and MCP
-  server discovery
+- Temporal workflow orchestration for agent executions, schedules and listing
+  a plugin's MCP server tools
 - Serves platform documents such as the model registry
   (`GET /v1/proxy/model-registry`, mirrored from the cloud edition)
 
@@ -46,8 +46,8 @@ executes **agent sessions**, across both harnesses:
 - Agent session execution: prompt assembly, tool orchestration, HITL
   approvals, attachments/vision, streaming status updates back to the
   control plane over gRPC
-- MCP server connection and capability discovery
-  (`workflows/connect-mcp-server.ts`)
+- Listing the tools of a plugin's MCP server on request
+  (`workflows/list-plugin-tools.ts`)
 - Skill loading and sandbox/workspace management
 
 The same runner image runs in the cloud edition — execution behavior is
@@ -178,6 +178,6 @@ schemas, and API docs all flow from it. Never edit generated files.
 
 ### 3. One runner, two harnesses
 
-Agent execution and MCP server discovery deliberately share one worker, one
+Agent execution and MCP tool listing deliberately share one worker, one
 deploy artifact, and one set of execution semantics. Adding execution behavior
 means extending the runner — not adding a service.

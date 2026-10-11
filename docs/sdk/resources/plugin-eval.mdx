@@ -397,7 +397,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource, by slug or id." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -454,7 +454,7 @@ PluginEvalStatus holds an eval's progress and results: per case, per target and 
     triesFinished: { type: "number", description: "" },
     startedAt: { type: "string", description: "When the eval started running and when it finished." },
     finishedAt: { type: "string", description: "" },
-    provisionalDelta: { type: "boolean", description: "True while the comparison with and without the plugin also measures the agent Stigmer composes for the plugin at install, not only the plugin's parts." },
+    provisionalDelta: { type: "boolean", description: "True when the comparison with and without the plugin also measured an agent Stigmer composed for the plugin at install, not only the plugin: an eval made before conversations listed plugins directly." },
     vaultAttachers: { type: "Record<string, string>", description: "Who attached each of this eval's vaults, by vault id: the account whose permission to use the vault each try checks, since a try has no person." },
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
   }}

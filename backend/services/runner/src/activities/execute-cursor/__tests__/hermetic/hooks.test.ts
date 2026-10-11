@@ -4,7 +4,7 @@
  * bash gate as the out-of-process half and the runner's REAL hook server
  * behind it.
  *
- * The agent references the `safety` plugin through `AgentSpec.hooks`, as on
+ * The agent lists the `safety` plugin (`AgentSpec.plugins`), as on
  * the native engine (`execute-deep-agent/__tests__/hermetic/hooks.test.ts`
  * runs the same plugin): the runtime mounts it from its verified archive,
  * and the hook is its own bash script, in Claude Code's format. The scripted
@@ -73,7 +73,7 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
 
-import { ScriptedClock, createHermeticEnvironment, type HermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
+import { ScriptedClock, createHermeticEnvironment, type ExecutionRecord, type HermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
 import { localPathEntry } from "../../../../__test-utils__/git-workspace-fixture.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { isToolCallRowHidden } from "../../../../shared/tool-row.js";
@@ -139,9 +139,11 @@ function safetyPlugin(script: string): { readonly plugin: Plugin; readonly archi
   return { plugin, archive };
 }
 
-const SAFETY_REF = create(HookSourceSchema, {
-  source: { case: "plugin", value: create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "safety" }) },
-});
+/** The record with the `safety` plugin listed on its agent (`AgentSpec.plugins`). */
+function withSafety(record: ExecutionRecord): ExecutionRecord {
+  record.agent!.spec!.plugins.push(create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "safety" }));
+  return record;
+}
 
 /** The client half of a mounted plugin: read by reference, fetched on the unary lane. */
 function pluginClient(script: string) {
@@ -222,7 +224,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
         ],
       ],
     });
-    const record = cursorExecutionRecord({ message: "Clean the build, list the files, then publish.", hooks: [SAFETY_REF] });
+    const record = withSafety(cursorExecutionRecord({ message: "Clean the build, list the files, then publish." }));
     const client = pluginClient(GUARD);
     const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG }, clientOverrides: client });
 
@@ -304,7 +306,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
         ],
       ],
     });
-    const record = cursorExecutionRecord({ message: "Publish twice, then show where you are.", hooks: [SAFETY_REF] });
+    const record = withSafety(cursorExecutionRecord({ message: "Publish twice, then show where you are." }));
     const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG }, clientOverrides: pluginClient(GUARD) });
 
     await runCursorTurn(scenario, { threadId: "", turnSeq: 0 });
@@ -360,7 +362,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
         ],
       ],
     });
-    const record = cursorExecutionRecord({ message: "Delete the build, list, then delete it again.", hooks: [SAFETY_REF] });
+    const record = withSafety(cursorExecutionRecord({ message: "Delete the build, list, then delete it again." }));
     const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG }, clientOverrides: pluginClient(GUARD) });
 
     const turn = await runCursorTurn(scenario, { threadId: "", turnSeq: 0 });
@@ -416,7 +418,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
         ],
       ],
     });
-    const record = cursorExecutionRecord({ message: "Publish.", hooks: [SAFETY_REF] });
+    const record = withSafety(cursorExecutionRecord({ message: "Publish." }));
     const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG }, clientOverrides: pluginClient(CHANGES_ITS_MIND) });
 
     await runCursorTurn(scenario, { threadId: "", turnSeq: 0 });

@@ -10,7 +10,8 @@
  * and its slug must be free in the organization, so a retried start, which
  * may meet the session an earlier attempt left, names its own); its
  * subject is the case's name, so no titling call is made; its harness is
- * the target's; it runs the agent its arm names (arm.ts). The run:
+ * the target's; it runs the built-in assistant with the plugins its arm
+ * lists (arm.ts). The run:
  *
  *   - the target's model, and as its own cap the budget the suite workflow
  *     hands the try when it starts (tryBudgetUsd): an equal share of what
@@ -24,13 +25,14 @@
  *     `tools`; `Skill` in `disallowed_tools` when the case does not list
  *     it, since an allow-list without `Skill` keeps skills in Stigmer; and,
  *     unless the eval runs real servers, each of the plugin's MCP servers
- *     disallowed (`mcp__<server>`), the format's default of not starting
- *     them. A server the case mocks is not disallowed: in the with-plugin
- *     arm each mocked tool is granted (`mcp__<server>__<tool>`), as the
- *     format allows a mocked tool without an `--allow-tools` grant, and the
- *     runner answers it from its mock. With `allow_real_servers` a server
- *     the case does not mock is not disallowed either, so the runner
- *     starts it, its tools granted only by `allow_tools`. With nothing granted the try still gets an allow-list, so an
+ *     disallowed (`mcp__plugin_<plugin>_<server>`, as a turn names it), the
+ *     format's default of not starting them. A server the case mocks is
+ *     not disallowed: in the with-plugin arm each mocked tool is granted
+ *     (`mcp__plugin_<plugin>_<server>__<tool>`), as the format allows a
+ *     mocked tool without an `--allow-tools` grant, and the runner answers
+ *     it from its mock. With `allow_real_servers` a server the case does
+ *     not mock is not disallowed either, so the runner starts it, its tools
+ *     granted only by `allow_tools`. With nothing granted the try still gets an allow-list, so an
  *     engine's own extras (Cursor's `generateImage`, ...) and every MCP
  *     server are out of scope exactly as for a read-only case: the runner
  *     reads an empty `tools` as every tool and refuses one in which nothing
@@ -60,6 +62,8 @@ import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
 
 import type { EvalCase, EvalMockServer } from "@stigmer/plugin-package";
+import { toolServerSegment } from "@stigmer/plugin-package";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import {
   PluginEvalMockedServerSchema,
   type PluginEvalMockedServer,
@@ -143,10 +147,16 @@ export interface TryTools {
   readonly notes: ReadonlyArray<string>;
 }
 
-/** One of the plugin's MCP servers as a try names it: its name in the run, and its key in the plugin. */
+/** One of the plugin's MCP servers as a try names it: its segment in the run (`plugin_<plugin>_<server>`), and its key in the plugin. */
 export interface PluginServer {
   readonly slug: string;
   readonly key: string;
+}
+
+/** The plugin's MCP servers as its tries name them, from the row the eval loaded at its digest. */
+export function pluginServersOf(plugin: Plugin): PluginServer[] {
+  const name = plugin.metadata?.name ?? "";
+  return (plugin.status?.mcpServers ?? []).map((server) => ({ slug: toolServerSegment(name, server.name), key: server.name }));
 }
 
 /** The case's mocks of `key` that answer at least one tool, or `undefined`. */
@@ -240,7 +250,7 @@ export function mockedServersOf(
 ): PluginEvalMockedServer[] {
   if (spec.realMcpServers) return [];
   return serverKeys.flatMap((key) => {
-    const name = `plugin_${pluginName}_${key}`;
+    const name = toolServerSegment(pluginName, key);
     const mocks = mocksOf(evalCase, key);
     if (mocks !== undefined) {
       return [create(PluginEvalMockedServerSchema, { name, tools: mocks.tools.map((tool) => tool.tool) })];
@@ -255,6 +265,8 @@ export const MAX_AGENT_MOCK_CALLS = 800;
 /** What locates the case in the plugin's archive. */
 export interface CaseSource {
   readonly pluginId: string;
+  /** The plugin's name, as its servers' segments carry it. */
+  readonly pluginName: string;
   /** The archive digest the eval runs. */
   readonly digest: string;
   /** The suite's directory, as in "evals". */
@@ -287,6 +299,7 @@ export function tryCaseContextOf(input: {
   }
   return create(PluginEvalCaseContextSchema, {
     pluginId: source.pluginId,
+    pluginName: source.pluginName,
     pluginDigest: source.digest,
     suiteDir: source.suiteDir,
     caseDir: evalCase.dir,
@@ -370,10 +383,7 @@ export function trySessionRequest(input: {
       subject: input.caseName,
       harness:
         input.harness === Harness.UNSPECIFIED ? Harness.NATIVE : input.harness,
-      ...(input.attachment.agentRef === undefined
-        ? {}
-        : { agentRef: input.attachment.agentRef }),
-      mcpServerUsages: [...input.attachment.mcpServerUsages],
+      plugins: [...input.attachment.plugins],
     }),
   });
 }

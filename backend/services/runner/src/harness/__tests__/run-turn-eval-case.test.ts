@@ -66,6 +66,7 @@ vi.mock("../../shared/plugin-eval/mock-endpoint.js", () => ({
     fakes.started += 1;
     return Promise.resolve({
       servers: [],
+      listed: [],
       bind: (binding: MockEndpointBinding) => {
         fakes.bindings.push(binding);
         fakes.onBound?.(binding);

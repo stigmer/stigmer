@@ -21,7 +21,7 @@ describe("parseResourceURI", () => {
 
   it("ignores the authority (kind) segment", () => {
     // The authority differs but the org/slug are taken from the path only.
-    expect(parseResourceURI("stigmer://mcp-servers/acme/github")).toEqual({
+    expect(parseResourceURI("stigmer://skills/acme/github")).toEqual({
       org: "acme",
       slug: "github",
     });
@@ -72,7 +72,6 @@ describe("parseVersionedResourceURI", () => {
 describe("buildResourceURI", () => {
   it("builds a URI for every templated kind", () => {
     expect(buildResourceURI("agent", "acme", "a")).toBe("stigmer://agents/acme/a");
-    expect(buildResourceURI("mcp_server", "acme", "m")).toBe("stigmer://mcp-servers/acme/m");
     expect(buildResourceURI("skill", "acme", "s")).toBe("stigmer://skills/acme/s");
   });
 
@@ -93,7 +92,6 @@ describe("buildResourceURI", () => {
   it("covers exactly the templated kinds", () => {
     expect(Object.keys(kindToAuthority).sort()).toEqual([
       "agent",
-      "mcp_server",
       "skill",
     ]);
   });

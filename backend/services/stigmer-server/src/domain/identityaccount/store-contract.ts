@@ -20,13 +20,16 @@
  * the fault propagates instead of reading as `undefined`.
  *
  * What the kit deliberately does not carry: open source's primary-key read
- * (the findByField spy) and its derived-id refusal, the cloud's column
+ * (the findByField spy) and its derived-id refusals, the cloud's column
  * layout and SQLSTATE 23505 mapping — driver-physical, each driver's own
- * tests. Nor does any case hold a direct and a federated row under one
- * subject: open source has no federated writer and its derived-id key could
- * not hold both. The federated fixture carries the derived id of its
- * subject, so the OSS adapter's mode filter — not an unreachable id — is
- * what the direct-only arms exercise.
+ * tests. Every fixture row sits at the address open source derives for it
+ * (constants.ts: `accountIdFor` of a direct subject, `federatedAccountIdFor`
+ * of a federated provider and subject), so one case list runs over an
+ * adapter that refuses any other id and over a driver that keeps whatever
+ * id it is given. On open source a federated row's address and its
+ * subject's direct address differ, so a direct lookup cannot reach it by
+ * id; the cases still hold every driver to the line, and the OSS adapter
+ * keeps its mode filter for a lookup handed the federated text itself.
  *
  * The duplicate arm checks `instanceof DuplicateAccountError` on the
  * exported class, because that is how the domain's race arm (steps.ts)
@@ -51,7 +54,7 @@ import type {
   PortContractDeclaration,
   PortContractFixture,
 } from "../../store/port-contract.js";
-import { accountIdFor } from "./constants.js";
+import { accountIdFor, federatedAccountIdFor } from "./constants.js";
 import { DuplicateAccountError } from "./store.js";
 import type { IdentityAccountStore } from "./store.js";
 
@@ -83,27 +86,44 @@ function directAccount(overrides: {
   });
 }
 
+/** An identity provider as a stored reference names it: its organization's id and its slug. */
+interface ProviderRef {
+  readonly org: string;
+  readonly slug: string;
+}
+
+const ACME_ORG = "org_01hzacme000000000000000000";
+const BETA_ORG = "org_01hzbeta000000000000000000";
+const ACME_OKTA: ProviderRef = { org: ACME_ORG, slug: "acme-okta" };
+const ACME_AZURE: ProviderRef = { org: ACME_ORG, slug: "acme-azure" };
+
 /**
  * A federated account: a customer IdP's subject, marked by its
- * identity_provider_ref and mode. Its id is the derived id of its subject
- * (see the header: the mode filter, not the id, must be what excludes it).
+ * identity_provider_ref and mode, at the address of its provider and
+ * subject, in the provider's organization.
  */
 function federatedAccount(overrides: {
   idpId: string;
-  email: string;
+  email?: string;
+  provider?: ProviderRef;
 }): IdentityAccount {
+  const provider = overrides.provider ?? ACME_OKTA;
   return create(IdentityAccountSchema, {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityAccount",
-    metadata: { id: accountIdFor(overrides.idpId), name: overrides.email },
+    metadata: {
+      id: federatedAccountIdFor(provider.org, provider.slug, overrides.idpId),
+      name: overrides.email ?? overrides.idpId,
+      org: provider.org,
+    },
     spec: {
       idpId: overrides.idpId,
-      email: overrides.email,
+      email: overrides.email ?? "",
       provisioningMode: IdentityAccountProvisioningMode.federated,
       identityProviderRef: {
-        org: "acme",
+        org: provider.org,
         kind: ApiResourceKind.identity_provider,
-        slug: "acme-okta",
+        slug: provider.slug,
       },
     },
   });
@@ -169,7 +189,7 @@ function mixedShapeAccounts(idpId: string): ReadonlyArray<{
         spec: {
           idpId,
           identityProviderRef: {
-            org: "acme",
+            org: ACME_ORG,
             kind: ApiResourceKind.identity_provider,
             slug: "acme-okta",
           },
@@ -423,6 +443,127 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
         await store.findByIdpId("auth0|fed"),
         undefined,
         "the subject lookup must not resolve to a federated account: a provider chooses its subjects, so one equal to a platform person's or a platform client user's would otherwise answer for them",
+      );
+    },
+  ],
+  [
+    "findByProviderAndIdpId finds a federated row by its provider and subject, and nothing under another provider or subject",
+    async ({ store }) => {
+      const dana = federatedAccount({ idpId: "okta|dana" });
+      await store.save(dana);
+      assert.equal(
+        (await store.findByProviderAndIdpId(ACME_ORG, "acme-okta", "okta|dana"))
+          ?.metadata?.id,
+        idOf(dana),
+        "the natural key must find the row it names",
+      );
+      assert.equal(
+        await store.findByProviderAndIdpId(ACME_ORG, "acme-azure", "okta|dana"),
+        undefined,
+        "another provider's subject is another person",
+      );
+      assert.equal(
+        await store.findByProviderAndIdpId(BETA_ORG, "acme-okta", "okta|dana"),
+        undefined,
+        "a provider slug in another organization is another provider",
+      );
+      assert.equal(
+        await store.findByProviderAndIdpId(ACME_ORG, "acme-okta", "okta|erin"),
+        undefined,
+        "an unknown subject answers undefined",
+      );
+    },
+  ],
+  [
+    "findByProviderAndIdpId keeps two providers' same subject apart, and never answers a direct row sharing the subject",
+    async ({ store }) => {
+      await store.save(directAccount({ idpId: "shared|sam" }));
+      assert.equal(
+        await store.findByProviderAndIdpId(ACME_ORG, "acme-okta", "shared|sam"),
+        undefined,
+        "a provider's lookup never answers a direct row that shares the subject",
+      );
+      const viaOkta = federatedAccount({ idpId: "shared|sam", provider: ACME_OKTA });
+      const viaAzure = federatedAccount({ idpId: "shared|sam", provider: ACME_AZURE });
+      await store.save(viaOkta);
+      await store.save(viaAzure);
+      assert.equal(
+        (await store.findByProviderAndIdpId(ACME_ORG, "acme-okta", "shared|sam"))
+          ?.metadata?.id,
+        idOf(viaOkta),
+      );
+      assert.equal(
+        (await store.findByProviderAndIdpId(ACME_ORG, "acme-azure", "shared|sam"))
+          ?.metadata?.id,
+        idOf(viaAzure),
+      );
+      assert.equal(
+        (await store.findDirectByIdpId("shared|sam"))?.metadata?.id,
+        accountIdFor("shared|sam"),
+        "the direct row keeps answering its own subject beside two federated rows that share it",
+      );
+    },
+  ],
+  [
+    "findByProvider answers every row the provider vouches for, in id order, and none of another provider's or a direct row",
+    async ({ store }) => {
+      const okta = [
+        federatedAccount({ idpId: "okta|b" }),
+        federatedAccount({ idpId: "okta|a" }),
+        federatedAccount({ idpId: "okta|c" }),
+      ];
+      for (const account of okta) {
+        await store.save(account);
+      }
+      await store.save(federatedAccount({ idpId: "azure|c", provider: ACME_AZURE }));
+      await store.save(directAccount({ idpId: "okta|d" }));
+      assert.deepEqual(
+        (await store.findByProvider(ACME_ORG, "acme-okta")).map(
+          (row) => row.metadata?.id,
+        ),
+        okta.map(idOf).sort(),
+        "every row the provider vouches for, ordered by id",
+      );
+      assert.deepEqual(
+        await store.findByProvider(BETA_ORG, "acme-okta"),
+        [],
+        "a provider slug in another organization is another provider",
+      );
+    },
+  ],
+  [
+    "an outage is a fault on both federated reads, never 'no account'",
+    async ({ store, disconnect }) => {
+      await disconnect();
+      await assert.rejects(
+        store.findByProviderAndIdpId(ACME_ORG, "acme-okta", "okta|dana"),
+        "a federated sign-in that read undefined from a broken store would provision a second account",
+      );
+      await assert.rejects(
+        store.findByProvider(ACME_ORG, "acme-okta"),
+        "a provider's removal that read nothing from a broken store would leave its accounts behind",
+      );
+    },
+  ],
+  [
+    "findDirectByEmail answers the direct account when federated and platform-client rows share its email",
+    async ({ store }) => {
+      await store.save(
+        federatedAccount({ idpId: "okta|shared", email: "shared@example.com" }),
+      );
+      await store.save(
+        platformClientAccount({
+          idpId: "stgm_pc|acme|shared",
+          email: "shared@example.com",
+        }),
+      );
+      await store.save(
+        directAccount({ idpId: "auth0|shared", email: "shared@example.com" }),
+      );
+      assert.equal(
+        (await store.findDirectByEmail("shared@example.com"))?.spec?.idpId,
+        "auth0|shared",
+        "a row of another mode carrying the same email must never hide the direct account",
       );
     },
   ],

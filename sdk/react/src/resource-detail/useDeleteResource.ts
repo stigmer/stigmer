@@ -10,7 +10,6 @@ import { toast } from "../feedback/toast.js";
 export type DeletableResourceKind =
   | "agent"
   | "skill"
-  | "mcpServer"
   | "schedule"
   | "plugin";
 
@@ -76,15 +75,11 @@ export function useDeleteResource(
         case "skill":
           await stigmer.skill.delete(resourceId);
           break;
-        case "mcpServer":
-          await stigmer.mcpServer.delete({ resourceId });
-          break;
         case "schedule":
           await stigmer.schedule.delete(resourceId);
           break;
         case "plugin":
-          // Removes the plugin and every resource it installed; the server
-          // refuses when something outside the plugin still references one.
+          // The server refuses while an agent of the organization lists it.
           await stigmer.plugin.delete(resourceId);
           break;
       }
@@ -115,8 +110,6 @@ function kindLabel(kind: DeletableResourceKind): string {
       return "agent";
     case "skill":
       return "skill";
-    case "mcpServer":
-      return "MCP server";
     case "schedule":
       return "schedule";
     case "plugin":

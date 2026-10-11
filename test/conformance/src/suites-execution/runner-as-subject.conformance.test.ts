@@ -33,13 +33,13 @@
 //     organization cannot swap itself through the exchange for the run's
 //     credential, so a credential limited to one organization never widens
 //     itself through a run;
-//   - the runner's MCP children act as the person who asked. An MCP server
-//     is an organization's blueprint, an admin's to author; a member brings
-//     their own credential to it. A member's connect of an admin-authored,
-//     org-visible server that declares a credential SUCCEEDS with the
-//     fixture's tools: the connect's attempt records the member and the
-//     connect token admits the runner as the member for the values fetch
-//     from the member's My vault (stigmer#1137's connect half).
+//   - the runner's MCP children act as the person who asked. A plugin is
+//     installed by an admin; a member brings their own credential to its
+//     servers. A member's tools listing of an admin-installed, org-visible
+//     plugin's server that reads a credential SUCCEEDS with the fixture's
+//     tools: the listing's attempt records the member and its credential
+//     admits the runner as the member for the values fetch from the
+//     member's My vault (stigmer#1137's connect half).
 //     A key the run's agent declares is filled from the TURN SENDER's My
 //     vault when the conversation includes it: a member's turn on the
 //     founder's org-visible agent plans and fetches the
@@ -70,12 +70,12 @@
 //   - "the runner made no exchange call": the runner's own unit arm on
 //     acquireScopedRunnerToken pins the short-circuit; a conformance arm
 //     reads outcomes, never a server log;
-//   - the discovery's McpServer metadata read: it rides the runner's own
-//     credential, an organization admin's under the chart's install, whom
-//     the model makes an owner of every McpServer in the organization. No
-//     arm here tells that key from the member's connect token — every
-//     server a member may connect is one both may read — so which key the
-//     read rides is the runner's own units' to pin, not this suite's.
+//   - the tools listing's read of the plugin itself: it rides the runner's
+//     own credential, an organization admin's under the chart's install,
+//     who may read every plugin in the organization. No arm here tells that
+//     key from the member's listing credential — every plugin a member may
+//     list is one both may read — so which key the read rides is the
+//     runner's own units' to pin, not this suite's.
 //
 // The arms run on the target's ENFORCING LANE (targets/target.ts): on the
 // execution targets an open-source sibling in the OIDC posture WITH its own
@@ -87,7 +87,6 @@
 import { Code } from "@connectrpc/connect";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
@@ -123,7 +122,7 @@ import {
 import { makeSharedVault, myVaultTarget, setSecretsInput, vaultTarget } from "../support/vaults";
 import { RunValueOrigin, agentSourceOf, fetchRunValues, runSourcesOf, sourcesFor } from "../support/run-values";
 import { pollUntil } from "../support/run-poll";
-import { makeHttpMcpServer } from "../support/mcpservers";
+import { FIXTURE_SERVER, oneServerPlugin, pushPlugin } from "../support/plugins";
 import {
   enableMyMemory,
   enableOrganizationMemory,
@@ -607,116 +606,83 @@ describe.skipIf(!runnerActsAsRunCreator)(
       await awaitTerminal(people.founder, run.metadata!.id);
     });
 
-    it("[rpc:McpServerCommandController.connect] a member's connect of an admin-authored server with their own credential succeeds: the connect's attempt records the member, and the connect token admits the runner as the member for the values fetch", async (ctx) => {
+    it("[rpc:PluginCommandController.listTools] a member's listing of an admin-installed plugin's server with their own credential succeeds: the listing's attempt records the member, and its credential admits the runner as the member for the values fetch", async (ctx) => {
       const { lane, mock } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
       const mcpTools = requireMcpFixture(target);
 
-      // The founder (the organization's owner, so an admin) authors an
-      // ORG-VISIBLE server that declares a credential — authoring an MCP
-      // server is the organization's blueprint bar, and a member holds
-      // `can_connect` on an org-visible row and on no private one. The
-      // member saves the credential in their own My vault in the
-      // organization; the connect reads it from THERE, as the member,
-      // through the connect token — the read this arm proves.
+      // The founder (the organization's owner, so an admin) installs an
+      // ORG-VISIBLE plugin whose one server reads a credential — a member
+      // may view an org-visible plugin, so may list its tools. The member
+      // saves the credential in their own My vault in the organization; the
+      // listing reads it from THERE, as the member, through the listing's
+      // credential — the read this arm proves.
       await saveToMyVault(people.member, people.org, {
         RAS_REQUIRED_KEY: "member-credential",
       });
-      const input = makeHttpMcpServer({
-        org: people.org,
-        name: uniqueName("ras-credentialed"),
-        url: mcpTools.url(),
-        env: {
-          RAS_REQUIRED_KEY: {
-            description: "a required credential",
-            isSecret: true,
-          },
-        },
-      });
-      input.metadata = {
-        ...input.metadata,
-        visibility: ApiResourceVisibility.visibility_org,
-      };
-      const server = await people.founder.mcpServerCommand.create(input);
-      fixtures.defer(() =>
-        people.founder.mcpServerCommand.delete({
-          resourceId: server.metadata!.id,
+      const plugin = await pushPlugin(
+        people.founder,
+        fixtures,
+        people.org,
+        oneServerPlugin({
+          name: uniqueName("ras-credentialed"),
+          server: { url: mcpTools.url(), headers: { "X-Ras-Credential": "${RAS_REQUIRED_KEY}" } },
         }),
+        { visibility: ApiResourceVisibility.visibility_org },
       );
 
-      // A refused fetch fails discovery loudly, so SUCCEEDED with the
-      // fixture's tool is the proof the value was fetched as the member.
-      const connected = await people.member.mcpServerCommand.connect({
-        mcpServerId: server.metadata!.id,
+      // A refused fetch fails the listing loudly, so the fixture's tool is
+      // the proof the value was fetched as the member.
+      const listed = await people.member.pluginCommand.listTools({
+        pluginId: plugin.metadata!.id,
+        server: FIXTURE_SERVER,
         org: people.org,
       });
-      expect(
-        connected.status?.connectStatus?.phase,
-        `the member's connect: ${connected.status?.connectStatus?.failureMessage ?? ""}`,
-      ).toBe(ConnectPhase.succeeded);
-      expect(
-        (connected.status?.discoveredCapabilities?.tools ?? []).map(
-          (t) => t.name,
-        ),
-      ).toEqual([ECHO_TOOL_NAME]);
-      expect(mock.requests(), "a connect asks no model").toEqual([]);
+      expect(listed.tools.map((t) => t.name)).toEqual([ECHO_TOOL_NAME]);
+      expect(mock.requests(), "a listing asks no model").toEqual([]);
     });
 
-    it("[rpc:McpServerCommandController.connect] a member's connect reads the member's own saved credential, never the founder's saved after it", async (ctx) => {
-      const { lane, mock } = laneOrSkip(ctx);
+    it("[rpc:PluginCommandController.listTools] a member's listing reads the member's own saved credential, never the founder's saved after it", async (ctx) => {
+      const { lane } = laneOrSkip(ctx);
       const people = await provisionPeople(lane);
       const mcpTools = requireMcpFixture(target);
 
-      // Both people save the credential the server declares, the founder
-      // LAST: a lookup that took the organization's newest My vault would
-      // hand the member the founder's. The server templates the credential
-      // into a header, so the fixture shows on the wire whose value the
-      // connect carried.
+      // Both people save the credential the server reads, the founder LAST:
+      // a lookup that took the organization's newest My vault would hand the
+      // member the founder's. The server templates the credential into a
+      // header, so the fixture shows on the wire whose value the listing
+      // carried.
       for (const [client, value] of [
         [people.member, "member-credential"],
         [people.founder, "founder-credential"],
       ] as const) {
         await saveToMyVault(client, people.org, { RAS_REQUIRED_KEY: value });
       }
-      const input = makeHttpMcpServer({
-        org: people.org,
-        name: uniqueName("ras-credential-header"),
-        url: mcpTools.url(),
-        headers: { "X-Ras-Credential": "${RAS_REQUIRED_KEY}" },
-        env: {
-          RAS_REQUIRED_KEY: {
-            description: "a required credential",
-            isSecret: true,
-          },
-        },
-      });
-      input.metadata = {
-        ...input.metadata,
-        visibility: ApiResourceVisibility.visibility_org,
-      };
-      const server = await people.founder.mcpServerCommand.create(input);
-      fixtures.defer(() =>
-        people.founder.mcpServerCommand.delete({
-          resourceId: server.metadata!.id,
+      const plugin = await pushPlugin(
+        people.founder,
+        fixtures,
+        people.org,
+        oneServerPlugin({
+          name: uniqueName("ras-credential-header"),
+          server: { url: mcpTools.url(), headers: { "X-Ras-Credential": "${RAS_REQUIRED_KEY}" } },
         }),
+        { visibility: ApiResourceVisibility.visibility_org },
       );
 
       mcpTools.resetCaptured();
-      const connected = await people.member.mcpServerCommand.connect({
-        mcpServerId: server.metadata!.id,
+      const listed = await people.member.pluginCommand.listTools({
+        pluginId: plugin.metadata!.id,
+        server: FIXTURE_SERVER,
         org: people.org,
       });
-      expect(
-        connected.status?.connectStatus?.phase,
-        `the member's connect: ${connected.status?.connectStatus?.failureMessage ?? ""}`,
-      ).toBe(ConnectPhase.succeeded);
+      expect(listed.tools.map((t) => t.name)).toEqual([ECHO_TOOL_NAME]);
       const carried = mcpTools
         .capturedRequests()
         .map((request) => request.headers["x-ras-credential"])
         .filter((value) => value !== undefined);
       expect(
         carried.length,
-        "the discovery reached the fixture",
+        "the listing reached the fixture",
       ).toBeGreaterThan(0);
       expect(new Set(carried)).toEqual(new Set(["member-credential"]));
     });

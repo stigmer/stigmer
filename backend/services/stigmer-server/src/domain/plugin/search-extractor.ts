@@ -2,8 +2,9 @@
  * Plugin search extractor — both sides of the searchable contract (the
  * index side pipeline/steps/index-search.ts consumes, the query side the
  * SearchService renders). A plugin's summary is its manifest description;
- * its keywords join the tags so `stigmer list plugin` and the console's
- * search find a plugin by what its author called it.
+ * its keywords and the names of its skills, agents and MCP servers join
+ * the tags, so `stigmer list plugin` and the console's search find a
+ * plugin by what its author called it or by any part it holds.
  */
 import type { Message } from "@bufbuild/protobuf";
 
@@ -47,9 +48,15 @@ export const pluginSearchExtractor: SearchableExtractor = {
     return {
       name: metadata.name,
       description: plugin.spec?.description ?? "",
-      // The index carries one tags string; the manifest's keywords are
-      // what an author expects a search to match, so they join the tags.
-      tags: [...metadata.tags, ...(plugin.spec?.keywords ?? [])].join(" "),
+      // The index carries one tags string; the manifest's keywords and the
+      // names of the plugin's parts are what a search should match.
+      tags: [
+        ...metadata.tags,
+        ...(plugin.spec?.keywords ?? []),
+        ...(plugin.status?.skills ?? []).map((skill) => skill.name),
+        ...(plugin.status?.agents ?? []).map((agent) => agent.name),
+        ...(plugin.status?.mcpServers ?? []).map((server) => server.name),
+      ].join(" "),
       org: metadata.org,
       visibility: ApiResourceVisibility[metadata.visibility] ?? "",
       createdAt: Number(

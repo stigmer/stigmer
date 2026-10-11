@@ -2,16 +2,8 @@
  * The plugin's purge (domain/organization/purge/kind-purge.ts): every
  * plugin of an organization being deleted, removed with its delete chain's
  * cleanup (controller.ts `deletePlugin`: its version archives, the row, its
- * access, its search entry) and without its refusal of a plugin whose
- * members something references.
- *
- * One step of the chain is left out on purpose: CascadeDeleteMembers. It
- * deletes each member through the plugin materializer, which calls the
- * members' delete RPCs, and a purge never calls the RPC surface (every RPC
- * naming the organization answers not-found by then). A plugin's members
- * are the organization's agents, skills and MCP servers, which
- * their own purges remove before this one runs (boot/organization-purge.ts
- * orders them first).
+ * access, its search entry) and without its refusal of a plugin an agent
+ * lists: the organization's agents are purged too.
  */
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";

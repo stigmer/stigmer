@@ -26,7 +26,6 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_create_run_in: _ClassVar[IamPermission]
     can_execute: _ClassVar[IamPermission]
     can_bootstrap_iam: _ClassVar[IamPermission]
-    can_connect: _ClassVar[IamPermission]
     can_view_billing: _ClassVar[IamPermission]
     can_manage_billing: _ClassVar[IamPermission]
     can_execute_billing_ops: _ClassVar[IamPermission]
@@ -41,7 +40,6 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_create_plugin: _ClassVar[IamPermission]
     can_manage_plans: _ClassVar[IamPermission]
     can_issue_license: _ClassVar[IamPermission]
-    can_create_mcp_server: _ClassVar[IamPermission]
     can_create_team: _ClassVar[IamPermission]
     can_manage_credits: _ClassVar[IamPermission]
     can_manage_child_orgs: _ClassVar[IamPermission]
@@ -78,7 +76,6 @@ can_create_platform_client: IamPermission
 can_create_run_in: IamPermission
 can_execute: IamPermission
 can_bootstrap_iam: IamPermission
-can_connect: IamPermission
 can_view_billing: IamPermission
 can_manage_billing: IamPermission
 can_execute_billing_ops: IamPermission
@@ -93,7 +90,6 @@ can_view_provider_standing: IamPermission
 can_create_plugin: IamPermission
 can_manage_plans: IamPermission
 can_issue_license: IamPermission
-can_create_mcp_server: IamPermission
 can_create_team: IamPermission
 can_manage_credits: IamPermission
 can_manage_child_orgs: IamPermission

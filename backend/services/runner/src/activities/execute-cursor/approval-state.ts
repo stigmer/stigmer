@@ -13,6 +13,7 @@
  *   "mcpDestructiveTools": {
  *     "planton/apply_cloud_resource": { "message": "Execute apply_cloud_resource" }
  *   },
+ *   "mcpUnlistedServers": ["plugin_linear_linear"],
  *   "toolListsRestricted": true,
  *   "toolScope": "<base64(JSON)>",
  *   "approvedGrants": [{ "toolName": "edit", "mcpServerSlug": "", "key": "write", "salient": "a.txt", "contentDigest": "<sha256>" }],
@@ -29,7 +30,8 @@
  * of scope is refused whatever the approval posture. Then, does the call ask
  * first? The hook gates the dangerous built-in set and the MCP tools whose
  * server marks them destructive (`mcpDestructiveTools`, keyed by server and
- * tool); every other tool is allowed. The gated built-in set and its
+ * tool), and every tool of a server whose tools could not be listed at turn
+ * start (`mcpUnlistedServers`); every other tool is allowed. The gated built-in set and its
  * name->category mapping are baked into the generated hook script (from
  * approval-policy.ts), not carried in the state file — only the dynamic inputs
  * live here. Both halves are computed by the runner from the turn's one
@@ -41,7 +43,8 @@
  * "approve all" of a given class becomes a run-lifetime lease: a built-in
  * category lease is listed in `leasedCategories` (the hook allows any built-in of
  * that category), and an MCP-server lease leaves the server's tools out of
- * mcpDestructiveTools, so the hook lets them through.
+ * mcpDestructiveTools and the server out of mcpUnlistedServers, so the hook
+ * lets them through.
  *
  * Why grants instead of tool-call ids: a resumed Cursor agent re-issues the
  * approved tool with a BRAND NEW call id, so matching on the original call id
@@ -206,6 +209,12 @@ export interface ApprovalStateFile {
    * mcp_server_name, so equal tool names on two servers never share a verdict.
    */
   mcpDestructiveTools: Record<string, McpDestructiveToolEntry>;
+  /**
+   * The servers whose tools could not be listed at turn start, minus the
+   * leased ones: every tool of theirs asks first, because an unread mark
+   * never means "ask nothing" (`McpApprovalDefault.unlisted`).
+   */
+  mcpUnlistedServers: string[];
   /** Whether the agent has tool lists: the hook's bash half reads it to fail closed when its Node half cannot run. */
   toolListsRestricted: boolean;
   /**
@@ -558,6 +567,8 @@ function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
  * - leasedCategories: built-in categories with a run-lifetime lease
  * - mcpDestructiveTools: the MCP tools that ask, keyed by server and tool,
  *   leased servers left out
+ * - mcpUnlistedServers: the servers whose every tool asks because their tools
+ *   could not be listed, leased servers left out
  * - approvedGrants / approvedGrantTokens: tools approved in the current HITL
  *   cycle, allowed through on reinvocation
  * - toolScope: the agent's tool lists, compiled (`hook-scope.ts`)
@@ -588,10 +599,13 @@ export function buildApprovalState(
     mcpDestructiveTools[key] = { message: resolveApprovalMessage(DESTRUCTIVE_MCP_APPROVAL_MESSAGE, tool, {}) };
   }
 
+  const mcpUnlistedServers = [...mcpDefault.unlisted].filter((server) => !mcpDefault.leasedServers.has(server));
+
   return {
     autoApproveAll: globalBypass,
     leasedCategories: [...leasedCategories],
     mcpDestructiveTools,
+    mcpUnlistedServers,
     toolListsRestricted: toolScope.restricted,
     toolScope: encodeHookToolScope(toolScope),
     approvedGrants,

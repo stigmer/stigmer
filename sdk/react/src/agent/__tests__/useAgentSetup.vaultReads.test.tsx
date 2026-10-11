@@ -1,8 +1,8 @@
 /**
  * What an agent's setup counts as already saved, and when it counts again.
- * Pinned: a tool's login key is saved when a vault the run reads holds a
- * login that serves the tool under the run's rule (a pasted login at an
- * HTTP tool's own URL), in My vault or in a listed vault alike, so the
+ * Pinned: a plugin server's login key is saved when a vault the run reads
+ * holds a login that serves the server under the run's rule (a pasted login
+ * at an HTTP server's own URL), in My vault or in a listed vault alike, so the
  * composer never asks again for a key saved as a login; a login at another
  * address fills nothing. When the conversation's vault choice changes
  * after the agent resolved (My vault ticked or unticked, a vault listed),
@@ -20,9 +20,8 @@ import { Stigmer } from "@stigmer/sdk";
 
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultSchema, type Vault } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
@@ -41,11 +40,17 @@ const REF = { org: ORG, slug: "reviewer" };
 const LISTED: ConversationVaults = { includeMyVault: false, vaults: [{ org: ORG, slug: "team" }] };
 const ZENDESK_URL = "https://zendesk.example/mcp";
 
-/** An API-key tool: its bearer header names the key a pasted login at its URL fills. */
-const zendesk = create(McpServerSchema, {
-  metadata: { id: "mcp_zendesk", org: ORG, slug: "zendesk", name: "Zendesk" },
-  spec: {
-    serverType: { case: "http", value: { url: `${ZENDESK_URL}/`, headers: { Authorization: "Bearer ${ZENDESK_TOKEN}" } } },
+/** A plugin of one API-key server: its bearer header names the key a pasted login at its URL fills. */
+const zendesk = create(PluginSchema, {
+  metadata: { id: "plg_zendesk", org: ORG, slug: "zendesk", name: "zendesk" },
+  status: {
+    mcpServers: [
+      {
+        name: "zendesk",
+        transport: { case: "http", value: { url: `${ZENDESK_URL}/`, headers: { Authorization: "Bearer ${ZENDESK_TOKEN}" } } },
+        env: ["ZENDESK_TOKEN"],
+      },
+    ],
     env: { ZENDESK_TOKEN: create(EnvVarDeclarationSchema, { isSecret: true }) },
   },
 });
@@ -65,9 +70,9 @@ function vaultHolding(slug: string, secrets: readonly string[], addresses: reado
 interface World {
   readonly mine: Vault | null;
   readonly team: Vault;
-  /** The keys the agent declares (the tool's merged in, as agent save does). */
+  /** The keys the agent declares itself. */
   readonly declares: readonly string[];
-  /** Whether the agent uses the Zendesk tool. */
+  /** Whether the agent lists the Zendesk plugin. */
   readonly usesTool: boolean;
   /** When set, a read of the team vault answers only once this settles. */
   readonly teamRead?: Promise<void>;
@@ -88,14 +93,12 @@ function client(world: World) {
             metadata: { id: "agt_1", org: ORG, slug: REF.slug, name: "Reviewer" },
             spec: {
               env: Object.fromEntries(world.declares.map((key) => [key, create(EnvVarDeclarationSchema, { isSecret: true })])),
-              mcpServerUsages: world.usesTool
-                ? [create(McpServerUsageSchema, { mcpServerRef: { org: ORG, slug: "zendesk" } })]
-                : [],
+              plugins: world.usesTool ? [{ org: ORG, slug: "zendesk" }] : [],
             },
           });
         },
       });
-      service(McpServerQueryController, { getByReference: () => zendesk });
+      service(PluginQueryController, { getByReference: () => zendesk });
       service(VaultQueryController, {
         getMine: () => {
           if (world.mine === null) throw new ConnectError("no My vault yet", Code.NotFound);

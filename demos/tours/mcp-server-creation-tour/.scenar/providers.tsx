@@ -1,15 +1,25 @@
 /**
- * Providers for the MCP server creation tour.
+ * Providers for the Add MCP server tour.
  *
- * Every beat is prop-driven — the real wizard step components render entirely
- * from the wizard-data snapshots in `steps.ts` — so the router registers no
- * RPC fixtures (the first pure-props Path-A tour). `createStigmerPreview` is
- * still required: it mounts the `StigmerProvider` theme scope (`.stgm` +
- * `?theme` → color mode) and the SDK client context the real components
- * expect to exist.
+ * The list and form beats are prop-driven (fixture rows, the form replica's
+ * phase). The closing beats render the real plugin page, which reads the
+ * plugin and the person's My vault: the router answers both, with the
+ * plugin as "Add MCP server" installed it and a vault that holds no login
+ * yet, so the server reads "Not signed in" (the sign-in is the next tour).
+ * Everything else the page asks (its versions, the access check) falls
+ * through to the router's `unimplemented` response, which the SDK hooks
+ * degrade from gracefully.
  */
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
+import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
+import { buildMyVault, buildOrderMgmtPlugin } from "../../_shared/order-management-plugin";
 import { createStigmerPreview } from "../../_shared/stigmer-preview";
 
-export const PreviewProviders = createStigmerPreview(() => {
-  // No RPCs to mock: every component in this tour renders from props.
+export const PreviewProviders = createStigmerPreview((router) => {
+  router.service(PluginQueryController, {
+    getByReference: () => buildOrderMgmtPlugin(),
+  });
+  router.service(VaultQueryController, {
+    getMine: () => buildMyVault(false),
+  });
 });

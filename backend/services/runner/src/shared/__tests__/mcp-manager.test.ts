@@ -30,11 +30,7 @@ function makeServer(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
   return {
     slug: "test-server",
     connectionType: "stdio",
-    destructiveTools: [],
-    discoveredToolNames: null,
-    serverId: "",
     pluginOrigin: null,
-    discoveredCapabilitiesEmpty: false,
     ...overrides,
   };
 }

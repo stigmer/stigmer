@@ -78,6 +78,10 @@ message PluginEvalCaseContext {
       }
     }
   }];
+
+  // The plugin's name, as a turn names its MCP servers
+  // (`plugin_<plugin>_<server>`) and a hook reads a stand-in's origin.
+  string plugin_name = 13 [(buf.validate.field).string.max_len = 256];
 }
 
 // PluginEvalFiles is the content, after a plugin-eval try's turn, of each

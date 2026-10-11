@@ -18,9 +18,9 @@
  * the tries are their creator's conversations, so they are links only when
  * the viewer is the eval's creator (`useWhoAmI`, a cached read, asked only
  * there and only when the host can open a run). A try that is not a link
- * still shows its result. `Δ` is marked provisional, with the reason,
- * while the eval says the comparison also measures the agent Stigmer
- * composes for the plugin. A try the platform could not grade shows why,
+ * still shows its result. `Δ` is marked provisional, with the reason, when
+ * the eval says the comparison also measured an agent Stigmer composed for
+ * the plugin (an eval made before conversations listed plugins directly). A try the platform could not grade shows why,
  * never a zero. The heading is the eval's label, its plugin and when it
  * started; a reason the eval stopped that a newer server added reads
  * "stopped early".
@@ -175,10 +175,10 @@ export function PluginEvalResults({
         ) : null}
         {provisional && (
           <p className="stg:text-xs stg:text-muted-foreground">
-            Δ is provisional: the runs with the plugin also carry the agent
-            Stigmer composes for it at install, whose instructions name the
-            plugin, so the difference measures that agent as well as the
-            plugin&apos;s parts.
+            Δ is provisional: this eval ran before conversations listed
+            plugins directly, so its runs with the plugin also carried an
+            agent Stigmer composed for it, and the difference measures that
+            agent as well as the plugin.
           </p>
         )}
         {ran.length > 0 && (

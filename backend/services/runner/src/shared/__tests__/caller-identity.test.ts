@@ -1,8 +1,9 @@
 /**
  * Unit tests for the caller identity: the reserved env keys, the
  * precedence chain, the reserved values (authoritative over a run value in
- * MCP resolution, mcp-resolver.test.ts), and the discovery
- * sentinel that keeps identity-templating servers discoverable.
+ * MCP resolution, mcp-resolver.test.ts), and the anonymous sentinel a
+ * tools listing uses, so an identity-templating server still lists its
+ * tools.
  */
 
 import { describe, it, expect } from "vitest";

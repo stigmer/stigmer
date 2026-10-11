@@ -14,11 +14,11 @@ import (
 type ResourceKind = apiresourcekind.ApiResourceKind
 
 const (
-	KindAgent     = apiresourcekind.ApiResourceKind_agent
-	KindSkill     = apiresourcekind.ApiResourceKind_skill
-	KindMcpServer = apiresourcekind.ApiResourceKind_mcp_server
-	KindSession   = apiresourcekind.ApiResourceKind_session
-	KindRun       = apiresourcekind.ApiResourceKind_run
+	KindAgent   = apiresourcekind.ApiResourceKind_agent
+	KindSkill   = apiresourcekind.ApiResourceKind_skill
+	KindPlugin  = apiresourcekind.ApiResourceKind_plugin
+	KindSession = apiresourcekind.ApiResourceKind_session
+	KindRun     = apiresourcekind.ApiResourceKind_run
 )
 
 // SearchParams configures a cross-resource search query.

@@ -12,7 +12,7 @@ public interface FetchExecutionValuesInputOrBuilder extends
 
   /**
    * <pre>
-   * The run's id, or the id of a tool connect's attempt.
+   * The run's id, or the id of a tools listing's connect attempt.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -21,7 +21,7 @@ public interface FetchExecutionValuesInputOrBuilder extends
   java.lang.String getExecutionId();
   /**
    * <pre>
-   * The run's id, or the id of a tool connect's attempt.
+   * The run's id, or the id of a tools listing's connect attempt.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

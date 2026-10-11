@@ -44,11 +44,11 @@ import { FixtureTracker } from "../harness/fixtures";
 import type { McpToolFixture } from "../harness/mcp-server";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { makeHttpMcpServer } from "../support/mcpservers";
 import { uniqueName } from "../support/naming";
 import {
   awaitTerminal,
   makeAgentExecution,
+  pushFixturePlugin,
   requireLlmProxy,
   requireMcpFixture,
   sessionIdOf,
@@ -111,18 +111,19 @@ interface RunOptions {
 // One run of a fresh agent in a fresh organization (or a further turn of an
 // existing session), scripted on the mock, awaited to its terminal phase.
 async function runToEnd(org: string, opts: RunOptions): Promise<Run> {
-  const mcpServerRefs: string[] = [];
+  const plugins: string[] = [];
   if (opts.withEchoTool === true) {
-    const server = await clients.mcpServerCommand.create(
-      makeHttpMcpServer({ org, name: uniqueName("mcp-scores"), url: mcp.url() }),
-    );
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
-    mcpServerRefs.push(server.metadata!.slug);
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
+      org,
+      name: uniqueName("mcp-scores"),
+      tools: [ECHO_TOOL_NAME],
+    });
+    plugins.push(plugin.metadata!.slug);
   }
   let agentRef: ReturnType<typeof agentRefOf> | undefined;
   if (opts.sessionId === undefined) {
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("agent-scores"), mcpServerRefs }),
+      makeAgent({ org, name: uniqueName("agent-scores"), plugins }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
     agentRef = agentRefOf(agent);

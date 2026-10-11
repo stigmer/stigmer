@@ -41,8 +41,13 @@ import { readTurnShapes, type TurnShape } from "@stigmer/test-support/llm-wire";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy, requireMcpFixture } from "../support/runs";
-import { makeHttpMcpServer } from "../support/mcpservers";
+import {
+  awaitTerminal,
+  makeAgentExecution,
+  pushFixturePlugin,
+  requireLlmProxy,
+  requireMcpFixture,
+} from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -100,13 +105,14 @@ describe("Run advisories to the model", () => {
   it("loop detection's warning reaches the model as a user turn after the tool results, and the run completes", async () => {
     const { org } = await target.provisionTenancy();
 
-    const server = await clients.mcpServerCommand.create(
-      makeHttpMcpServer({ org, name: uniqueName("mcp-advisory"), url: mcp.url() }),
-    );
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
+      org,
+      name: uniqueName("mcp-advisory"),
+      tools: [ECHO_TOOL_NAME],
+    });
 
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("agent-advisory"), mcpServerRefs: [server.metadata!.slug] }),
+      makeAgent({ org, name: uniqueName("agent-advisory"), plugins: [plugin.metadata!.slug] }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
 

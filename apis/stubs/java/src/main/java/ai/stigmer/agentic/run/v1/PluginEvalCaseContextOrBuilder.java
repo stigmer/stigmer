@@ -351,4 +351,26 @@ java.lang.String defaultValue);
    */
   com.google.protobuf.ByteString
       getReadFilesBytes(int index);
+
+  /**
+   * <pre>
+   * The plugin's name, as a turn names its MCP servers
+   * (`plugin_&lt;plugin&gt;_&lt;server&gt;`) and a hook reads a stand-in's origin.
+   * </pre>
+   *
+   * <code>string plugin_name = 13 [json_name = "pluginName", (.buf.validate.field) = { ... }</code>
+   * @return The pluginName.
+   */
+  java.lang.String getPluginName();
+  /**
+   * <pre>
+   * The plugin's name, as a turn names its MCP servers
+   * (`plugin_&lt;plugin&gt;_&lt;server&gt;`) and a hook reads a stand-in's origin.
+   * </pre>
+   *
+   * <code>string plugin_name = 13 [json_name = "pluginName", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for pluginName.
+   */
+  com.google.protobuf.ByteString
+      getPluginNameBytes();
 }

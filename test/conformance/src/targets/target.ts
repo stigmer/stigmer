@@ -346,6 +346,24 @@ export interface CapabilityFlags {
   // RPC answers UNIMPLEMENTED with the edition sentence; where false, the
   // suite PINS that refusal.
   guestMinting: boolean;
+  // A conversation on the cloud execution target runs its turns in a hosted
+  // sandbox whose runner runs in cloud mode, where a plugin's local program
+  // (a stdio MCP server) cannot start: the server refuses such a
+  // conversation at session create and again at run create, naming the
+  // plugin and the server (FAILED_PRECONDITION), while a conversation on the
+  // local target keeps its local programs. What decides it is the sandbox
+  // provisioner's runner mode, which the provisioner also writes into every
+  // sandbox it starts.
+  //
+  // False on every target this suite drives, by the environment rather than
+  // the edition: the open-source targets compose no sandbox lane (or one
+  // whose runner runs in local mode), and the cloud readout's substrate
+  // boots the composition without the cloud-mode sandbox driver, so no
+  // target serves a cloud-target conversation from a cloud-mode sandbox.
+  // The refusal is proven by the server's unit tests
+  // (domain/run/__tests__/local-programs.test.ts); where a target composes
+  // the cloud-mode lane, the arm gated on this flag runs.
+  cloudTargetRefusesLocalPrograms: boolean;
 }
 
 // The Stripe webhook lane as the suite drives it: where the composition
@@ -628,7 +646,7 @@ export interface TargetProfile {
 
   // The HTTP MCP server fixture backing tool-using runs (HITL). Present
   // only on execution targets; absent on CRUD/cloud targets. Suites obtain it via
-  // requireMcpFixture() and register an McpServer pointing at its url().
+  // requireMcpFixture() and push a plugin whose one server points at its url().
   mcpFixture?(): McpToolFixture;
 
   // The model registry document THE RUNNER RESOLVES AGAINST, fetched from the

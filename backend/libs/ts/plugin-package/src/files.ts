@@ -61,8 +61,6 @@ export const PLUGIN_DOCUMENT_LIMITS = {
   skillMd: 1024 * 1024,
   /** A sub-agent file (`agents/*.md`): a prompt, so the `SKILL.md` cap. */
   subAgent: 1024 * 1024,
-  /** A document under `ai.stigmer/`: a resource YAML. */
-  overlay: 1024 * 1024,
   /**
    * A plugin's logo, the image a storefront card shows. Checked from the
    * listing's declared size before a client hands the file's URL to an

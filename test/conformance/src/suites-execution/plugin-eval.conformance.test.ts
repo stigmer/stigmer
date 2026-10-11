@@ -8,11 +8,12 @@
 // The contract under test:
 //   - create answers the eval pending; a two-case suite with and without the
 //     plugin, two tries each, ends completed with its aggregates: the
-//     with-arm tries run on the plugin's composed agent and read its skill,
-//     the without-arm tries run on the assistant and are offered no skill;
+//     with-arm tries run on the assistant with the plugin listed and read
+//     its skill inside the plugin's mounted tree, the without-arm tries run
+//     on the assistant with nothing attached and are offered no skill;
 //     a `tool_used: Skill` grader is an indicator only (its reason says it
 //     passed on the with-arm and failed on the without), a `regex` grader on
-//     the last message scores, `Δ` is computed and marked provisional;
+//     the last message scores, `Δ` is computed and not provisional;
 //   - each try's run carries one Score, source eval, one criterion per
 //     grader, the indicator `not_applicable`;
 //   - a case that runs with another plugin is listed "not run" and starts
@@ -97,7 +98,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { agentRefOf } from "../support/agents";
 import { provisionOrgWithFacts } from "../support/memories";
 import { uniqueName } from "../support/naming";
 import {
@@ -169,9 +169,11 @@ afterAll(async () => {
 const DONE = "DONE: one line per change.";
 const UNSURE = "I am not sure how to write those.";
 
-// The skill a with-arm try reads, as the native engine names the mount.
-function skillRead(skill: string, id: string) {
-  return anthropicToolUse(id, "read_file", { file_path: `.stigmer/skills/${skill}/SKILL.md` });
+/** The model reading the plugin's skill where a turn mounts it: inside the plugin's tree, by digest. */
+function skillRead(installation: Installed, id: string) {
+  const status = installation.plugin.status!;
+  const path = status.skills.find((skill) => skill.name === installation.skill)!.path;
+  return anthropicToolUse(id, "read_file", { file_path: `.stigmer/plugins/${status.digest}/${path}/SKILL.md` });
 }
 
 function scoredCase(name: string, skill: string, extra: Partial<EvalCaseFixture> = {}): EvalCaseFixture {
@@ -265,11 +267,10 @@ describe.skipIf(!runnerServesTries)("PluginEval — a suite with and without the
         graders: [lastMessageGrader("says-done", "^DONE")],
       },
     ]);
-    const { skill } = installation;
     // Matrix order: the case, then the arm, then the try; the other-plugin case plans none.
     for (let caseIndex = 0; caseIndex < 2; caseIndex++) {
       for (let attempt = 1; attempt <= 2; attempt++) {
-        mock.enqueue(skillRead(skill, `call_skill_${caseIndex}_${attempt}`));
+        mock.enqueue(skillRead(installation, `call_skill_${caseIndex}_${attempt}`));
         mock.enqueue(anthropicText(DONE));
       }
       for (let attempt = 1; attempt <= 2; attempt++) {
@@ -284,7 +285,7 @@ describe.skipIf(!runnerServesTries)("PluginEval — a suite with and without the
     const ended = await awaitPluginEvalEnd(clients, created.metadata!.id, 300_000);
     expect(ended.status?.phase, describeTries(ended)).toBe(PluginEvalPhase.completed);
     expect(ended.status?.triesFinished).toBe(8);
-    expect(ended.status?.provisionalDelta).toBe(true);
+    expect(ended.status?.provisionalDelta).toBe(false);
     expect(mock.consumed(), "exactly the scripted turns: the other-plugin case started no run").toBe(12);
 
     const status = ended.status!;
@@ -317,7 +318,10 @@ describe.skipIf(!runnerServesTries)("PluginEval — a suite with and without the
     // The with-arm is offered the plugin's skill; the without-arm is not.
     const requests = mock.scriptedRequests();
     expect(requests).toHaveLength(12);
-    const offered = requests.map((request) => systemTextOf(request.body).includes(`### ${skill}`));
+    // A plugin's skill is offered by the name a turn gives it, `<plugin>:<skill>`.
+    const offered = requests.map((request) =>
+      systemTextOf(request.body).includes(`### ${installation.plugin.metadata!.name}:${installation.skill}`),
+    );
     expect(offered).toEqual([true, true, true, true, false, false, true, true, true, true, false, false]);
 
     const tries = triesOf(ended);
@@ -493,16 +497,15 @@ describe.skipIf(!runnerServesTries)("PluginEval — what a try is given", () => 
     });
     const installation = await installed((skill) => [scoredCase("plain-notes", skill)], { org });
 
-    // An ordinary run on the plugin's agent in that organization gets both.
-    // The agent the plugin's install composed is named after the plugin.
-    const agents = await clients.agentQuery.getByReference({
-      org,
-      kind: ApiResourceKind.agent,
-      slug: installation.plugin.metadata!.slug,
-    });
+    // An ordinary chat with the plugin listed, in that organization, gets both.
     mock.enqueue(anthropicText("Bonjour."));
     const ordinary = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("ordinary"), agentRef: agentRefOf(agents), autoApproveAll: true }),
+      makeAgentExecution({
+        org,
+        name: uniqueName("ordinary"),
+        sessionSpec: { plugins: [{ kind: ApiResourceKind.plugin, slug: installation.plugin.metadata!.slug }] },
+        autoApproveAll: true,
+      }),
     );
     const ordinaryRun = await awaitTerminal(clients, ordinary.metadata!.id);
     expect(ordinaryRun.status?.declaredPreferences?.orgContext).toBe(standing);

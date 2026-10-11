@@ -65,6 +65,7 @@ export const CURSOR_CAPABILITIES: HarnessCapabilities = {
   subAgents: true,
   toolRestriction: false,
   runsHooks: true,
+  readsToolMarks: false,
   visionProfile: CURSOR_VISION_PROFILE,
   fileReview: CURSOR_FILE_REVIEW_IDENTITY,
 };

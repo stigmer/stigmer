@@ -37,6 +37,11 @@ class PluginCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_api__pb2.Plugin.FromString,
                 _registered_method=True)
+        self.listTools = channel.unary_unary(
+                '/ai.stigmer.agentic.plugin.v1.PluginCommandController/listTools',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginToolsInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginToolsOutput.FromString,
+                _registered_method=True)
 
 
 class PluginCommandControllerServicer(object):
@@ -48,7 +53,7 @@ class PluginCommandControllerServicer(object):
         Creates the plugin if it does not exist, or installs a new version of an
         existing plugin; pushing the archive already installed changes nothing.
         The archive is a plugin folder in the Agent Plugins, Cursor, Claude Code
-        or Codex layout; the response's status names what was materialised and
+        or Codex layout; the response's status lists what the plugin holds and
         what was skipped.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -68,18 +73,31 @@ class PluginCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def updateVisibility(self, request, context):
-        """Update the visibility of a plugin and of every resource it materialised.
-        Only modifies metadata.visibility on the plugin and its members.
+        """Update the visibility of a plugin.
+        Only modifies metadata.visibility.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """Delete a plugin and every resource it materialised, its evals included.
-        Refused when a resource outside the plugin still references a member;
-        the error names the referencing resources. Refused while one of its
-        evals is pending or running: cancel that eval first.
+        """Delete a plugin, its evals included.
+        Refused while an agent of the organization lists it; the error names the
+        agents. Refused while one of its evals is pending or running: cancel that
+        eval first.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def listTools(self, request, context):
+        """List the tools one of a plugin's MCP servers offers now, signed in as
+        the caller. Nothing is stored.
+
+        Errors:
+        - FAILED_PRECONDITION: a key the server needs is in none of the caller's
+        vaults, or the server needs a sign-in the caller has not made
+        - NOT_FOUND: the plugin, or the server in it, does not exist
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -107,6 +125,11 @@ def add_PluginCommandControllerServicer_to_server(servicer, server):
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_api__pb2.Plugin.SerializeToString,
+            ),
+            'listTools': grpc.unary_unary_rpc_method_handler(
+                    servicer.listTools,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginToolsInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginToolsOutput.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -218,6 +241,33 @@ class PluginCommandController(object):
             '/ai.stigmer.agentic.plugin.v1.PluginCommandController/delete',
             ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.PluginId.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_api__pb2.Plugin.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listTools(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.plugin.v1.PluginCommandController/listTools',
+            ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginToolsInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_plugin_dot_v1_dot_io__pb2.ListPluginToolsOutput.FromString,
             options,
             channel_credentials,
             insecure,

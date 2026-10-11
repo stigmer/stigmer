@@ -95,15 +95,15 @@ import {
   type ReleaseWorkspaceLock,
 } from "../shared/workspace/workspace-lock.js";
 import { LocalWorkspaceBackend } from "../shared/workspace/local-backend.js";
-import { resolveMcpServers } from "../shared/mcp-resolver.js";
+import { resolvePluginServers } from "../shared/mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../shared/mcp-transport-guard.js";
 import { callerIdentityValues, resolveCallerIdentity } from "../shared/caller-identity.js";
-import { backfillMcpServersIfNeeded } from "../shared/connect-backfill.js";
 import { discoverChannelMessaging, synthesizeChannelAttachment } from "../shared/channel-attachment.js";
 import { readChannelConversationId, synthesizeConversationAttachment } from "../shared/conversation-attachment.js";
 import { synthesizeMemoryAttachment } from "../shared/memory-attachment.js";
 import { injectSynthesizedAttachment } from "../shared/synthesized-attachment.js";
-import { buildMcpApprovalDefault, deriveActiveLeases } from "../shared/approval-policy.js";
+import { buildMcpApprovalDefault, deriveActiveLeases, NOTHING_LISTED } from "../shared/approval-policy.js";
+import { listTurnTools, type McpToolListing } from "../shared/mcp-tool-listing.js";
 import { ToolScope } from "../shared/tool-lists.js";
 import { resolveAttachments } from "../shared/attachment-resolver.js";
 import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
@@ -113,7 +113,11 @@ import type { PluginServerName } from "../shared/hooks/tool-view.js";
 import { getPlatformDir } from "../shared/workspace/platform-dir.js";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
-import type { HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { join } from "node:path";
+import { PLUGINS_SUBDIR } from "../shared/plugin-mount.js";
+import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "../shared/workspace/stigmer-link.js";
+import { pluginAgentName } from "../shared/blueprint-resolver.js";
 import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
 import { VisionBudget, type NotViewableEntry, type VisionProfile } from "../shared/attachment-vision.js";
 import { getDefaultModel, getModelVisionCapability } from "../shared/model-registry.js";
@@ -187,7 +191,7 @@ export interface ResolutionDeps {
   readonly timing: TimingRecorder;
   /** Cancellation for the one wait a phase can block on (the workspace lock). */
   readonly signal: AbortSignal;
-  /** The Temporal heartbeat, handed to helpers that pulse mid-call (the lock wait, the MCP backfill). */
+  /** The Temporal heartbeat, handed to helpers that pulse mid-call (the lock wait). */
   readonly heartbeat: () => void;
   /**
    * "Resolution is now at this step": labels the caller's periodic heartbeat
@@ -699,7 +703,25 @@ export async function startEvalMocks(
   args.frame.evalMocks = endpoint;
   const standIns = callableServers(endpoint.servers, args.mcp.toolScope, args.mcp.platformServerSlugs);
   const replaced = new Set(endpoint.servers.map((server) => server.slug));
-  return { ...args.mcp, servers: [...args.mcp.servers.filter((server) => !replaced.has(server.slug)), ...standIns] };
+  const kept = new Set(standIns.map((server) => server.slug));
+  // An engine that does not read its tools' marks scopes a server's tools
+  // by the listing: a stand-in lists its mocked tools, none destructive.
+  const { listing } = args.mcp;
+  return {
+    ...args.mcp,
+    servers: [...args.mcp.servers.filter((server) => !replaced.has(server.slug)), ...standIns],
+    listing:
+      listing === undefined
+        ? undefined
+        : {
+            listed: [
+              ...listing.listed.filter(({ server }) => !replaced.has(server)),
+              ...endpoint.listed.filter(({ server }) => kept.has(server)),
+            ],
+            destructive: listing.destructive.filter(({ server }) => !replaced.has(server)),
+            unlisted: listing.unlisted.filter((server) => !replaced.has(server)),
+          },
+  };
 }
 
 /**
@@ -817,13 +839,13 @@ export const PLATFORM_TOOLS_OFF_NOTICE =
  * The MCP-bound env map (and ONLY it, never the agent process env) carries
  * the reserved caller-identity keys, so a server that declares them in
  * spec.env can template the platform-verified caller into its headers;
- * filterEnvToDeclaredKeys keeps every other server blind. Resolution fills a
- * missing STIGMER_SERVER_ADDRESS per server from `config`'s endpoints
- * (shared/platform-server-address.ts). The resolved list
- * then mutates through the Connect backfill and three synthesized
- * attachments, deliberately AFTER resolve + backfill: an attachment is the
- * platform's own server, never discovered, so the backfill must not try to
- * connect it, and its tools carry no destructive hint and never ask:
+ * filterEnvToDeclaredKeys keeps every other server blind. Every server is a
+ * plugin's (the turn's plugins, shared/mcp-resolver.ts), named as Claude
+ * Code names it. Resolution fills a missing STIGMER_SERVER_ADDRESS per
+ * server from `config`'s endpoints (shared/platform-server-address.ts). The
+ * resolved list then gains three synthesized attachments, deliberately
+ * AFTER resolve: an attachment is the platform's own server, never listed,
+ * and its tools never ask:
  *
  *  - channel messaging: the discovery read IS the attachment
  *    decision, and every failure mode degrades to honest absence;
@@ -842,10 +864,15 @@ export const PLATFORM_TOOLS_OFF_NOTICE =
  * unlike the env read, where secrets are load-bearing.
  *
  * The approval default's MCP half is built last (which tools their servers
- * mark destructive), with two bypasses shared with the native harness
- * (`shared/approval-policy.ts` `ActiveLeases`): the pre-armed
+ * mark destructive, read live), with two bypasses shared with the native
+ * harness (`shared/approval-policy.ts` `ActiveLeases`): the pre-armed
  * spec.auto_approve_all is the one whole-run global bypass; an interactive
- * APPROVE_ALL grants a run-lifetime lease scoped to that action's class. The
+ * APPROVE_ALL grants a run-lifetime lease scoped to that action's class. An
+ * engine that loads the tools itself reads their marks from what it loaded
+ * (`capabilities.readsToolMarks`), so the default carries only the leases
+ * here and the engine completes it; for any other engine each plugin server
+ * is listed now, in parallel (shared/mcp-tool-listing.ts), and a server
+ * whose listing fails asks before every one of its tools. The
  * agent's tool scope is resolved here too, from its two lists, so both
  * harnesses enforce one reading of them. The harness projects its SDK config
  * from `servers` after this returns, exactly once, so every mutation is
@@ -859,6 +886,7 @@ export async function resolveMcpServersAndPolicies(
     readonly sessionId: string;
     readonly blueprint: ResolvedBlueprint;
     readonly values: RunValues;
+    readonly readsToolMarks: boolean;
   },
 ): Promise<TurnMcp> {
   const { client, config } = deps;
@@ -876,18 +904,19 @@ export async function resolveMcpServersAndPolicies(
     sessionId,
   );
   const platformServerSlugs = new Set<string>();
-  let servers = (await resolveMcpServers(
-    client, blueprint.mergedMcpServerUsages, values.tools, platformValues, transportPosture, config,
-  )).resolvedServers;
+  let servers = resolvePluginServers(
+    blueprint.plugins, values.tools, platformValues, transportPosture, config,
+  ).resolvedServers;
   deps.timing.mark("resolve_mcp_servers");
 
   // The turn's tool scope (the agent's lists, then this turn's over them,
   // which can only narrow), and the servers it leaves standing, before
-  // anything connects, the backfill included: a server the lists exclude
-  // whole is never started or dialled, since no tool of it could be called
-  // (#2106). A plugin-eval try's mocked servers are left out too: their
-  // stand-ins take their names (`startEvalMocks`), and the real ones must
-  // never start. The platform's own servers, added below, are always kept.
+  // anything connects, the tool listing included: a server the lists
+  // exclude whole is never started or dialled, since no tool of it could be
+  // called (#2106). A plugin-eval try's mocked servers are left out too:
+  // their stand-ins take their names (`startEvalMocks`), and the real ones
+  // must never start. The platform's own servers, added below, are always
+  // kept.
   const toolScope = mainToolScope(blueprint, execution.spec);
   const standIns = new Set((execution.spec?.pluginEvalCase?.mocks ?? []).map((mock) => mock.segment));
   const resolved = servers;
@@ -897,13 +926,14 @@ export async function resolveMcpServersAndPolicies(
     console.log(`[turn-context] execution=${executionId}: not connecting ${left.join(", ")}: excluded whole by the turn's tool lists, or answered by a stand-in`);
   }
 
-  // Phase 4a: Connect backfill for undiscovered MCP servers.
-  const sessionOrg = session.metadata?.org ?? "";
-  servers = await backfillMcpServersIfNeeded(
-    client, servers, blueprint.mergedMcpServerUsages, values.tools, platformValues, sessionOrg,
-    executionId, transportPosture, config, deps.heartbeat,
-  );
-  deps.timing.mark("backfill_mcp");
+  // Phase 4a: the plugin servers' tools, listed now for an engine that does
+  // not load them itself.
+  let listing: McpToolListing | undefined;
+  if (!args.readsToolMarks && servers.length > 0) {
+    await deps.reportProgress("Listing MCP tools");
+    listing = await listTurnTools(servers);
+    deps.timing.mark("list_mcp_tools");
+  }
 
   let exchangedRunnerToken: string | undefined;
   try {
@@ -980,9 +1010,10 @@ export async function resolveMcpServersAndPolicies(
   // Phase 4b: the approval default's MCP half, over the servers the turn
   // connects.
   const leases = deriveActiveLeases(execution);
-  const mcpDefault = buildMcpApprovalDefault(servers, leases);
+  const mcpDefault = buildMcpApprovalDefault(listing ?? NOTHING_LISTED, leases);
 
-  return { servers, channelMessaging, leases, mcpDefault, platformServerSlugs, toolScope };
+
+  return { servers, channelMessaging, leases, mcpDefault, listing, platformServerSlugs, toolScope };
 }
 
 /**
@@ -1022,6 +1053,13 @@ export function mainToolScope(blueprint: ResolvedBlueprint, spec: RunSpec | unde
  * harness's; each harness places the returned metadata in its own prompt
  * shapes — the root's in its system prompt, a sub-agent's in that
  * sub-agent's, client-free.
+ *
+ * Each plugin of the turn is mounted once (shared/plugin-mount.ts, its
+ * verified archive), and its skills are rendered from the mounted tree as
+ * `<plugin>:<skill>`, never copied: the root gets every plugin's skills,
+ * and a plugin's agent (`<plugin>:<agent>`) the ones its `skills:` names. A
+ * plugin that cannot be mounted contributes no skills, warned, as a failed
+ * skill does.
  *
  * The root's refs are the blueprint's merged set (agent plus session); a
  * sub-agent's are its own `skillRefs`. Each ref resolves through the same
@@ -1063,7 +1101,7 @@ export async function mountSkills(
   if (toolScope.hidesSkills) {
     console.log(`[resolveSkills] execution=${deps.input.executionId}: the tool lists deny Skill; no skills this turn`);
   }
-  const root = toolScope.hidesSkills ? [] : await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options);
+  const root = toolScope.hidesSkills ? [] : [...(await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options))];
   const bySubAgent = new Map<string, readonly SkillMetadata[]>();
   if (args.subAgents) {
     for (const subAgent of args.blueprint.subAgents) {
@@ -1073,16 +1111,74 @@ export async function mountSkills(
       bySubAgent.set(subAgent.name, await resolveSkills(deps.client, subAgent.skillRefs, options));
     }
   }
+  for (const plugin of args.blueprint.plugins) {
+    // The same rule for a plugin's skills: the root lists them unless the
+    // main scope hides skills, and a plugin agent its own unless its lists,
+    // narrowed from the main scope, do.
+    const pluginName = plugin.metadata?.name ?? "";
+    const agents = args.subAgents
+      ? (plugin.status?.agents ?? []).filter(
+          (agent) =>
+            agent.skills.length > 0 &&
+            !toolScope.narrow(pluginAgentName(pluginName, agent.name), { tools: agent.tools, disallowedTools: agent.disallowedTools }).hidesSkills,
+        )
+      : [];
+    if (toolScope.hidesSkills && agents.length === 0) continue;
+    const skills = await mountPluginSkills(deps, plugin, args.sessionId, args.primaryDir);
+    if (!toolScope.hidesSkills) root.push(...skills.values());
+    for (const agent of agents) {
+      const own = agent.skills.flatMap((name) => skills.get(name) ?? []);
+      if (own.length > 0) bySubAgent.set(pluginAgentName(pluginName, agent.name), own);
+    }
+  }
   deps.timing.mark("resolve_skills");
   return { root, bySubAgent };
 }
 
-/** No hooks: the record of an agent without any, and of the built-in assistant. */
+/**
+ * A plugin's skills by their name in the plugin, as a prompt renders them:
+ * `<plugin>:<skill>`, with the path of the skill's SKILL.md inside the
+ * plugin's mounted tree, reached from the workspace through `.stigmer`. A
+ * plugin that cannot be mounted contributes none, warned.
+ */
+async function mountPluginSkills(
+  deps: ResolutionDeps,
+  plugin: Plugin,
+  sessionId: string,
+  primaryDir: string,
+): Promise<ReadonlyMap<string, SkillMetadata>> {
+  const skills = plugin.status?.skills ?? [];
+  if (skills.length === 0) return new Map();
+  const pluginName = plugin.metadata?.name ?? "";
+  try {
+    const platformDir = getPlatformDir(sessionId);
+    await ensureStigmerSymlink(primaryDir, platformDir);
+    await mountPlugin(deps.client, plugin, platformDir);
+  } catch (err) {
+    console.warn(
+      `[turn-context] the skills of plugin '${pluginName}' are missing this turn: its archive could not be mounted: ${errorText(err)}`,
+    );
+    return new Map();
+  }
+  const digest = plugin.status?.digest ?? "";
+  return new Map(
+    skills.map((skill): [string, SkillMetadata] => [
+      skill.name,
+      {
+        name: `${pluginName}:${skill.name}`,
+        description: skill.description || `Skill: ${skill.name}`,
+        path: join(STIGMER_LOCAL_STATE_DIR, PLUGINS_SUBDIR, digest, skill.path, "SKILL.md"),
+      },
+    ]),
+  );
+}
+
+/** No hooks: the record of a turn whose plugins carry none and whose agent writes none. */
 const NO_HOOKS: TurnHooks = { sources: [], pluginServers: new Map() };
 
-/** How a refusal names one hook source. */
-function describeHookSource(source: HookSource): string {
-  return source.source.case === "plugin" ? `the plugin '${source.source.value.slug}'` : "its own hooks block";
+/** The plugins of a turn that carry hooks. */
+function pluginsWithHooks(blueprint: ResolvedBlueprint): Plugin[] {
+  return blueprint.plugins.filter((plugin) => (plugin.status?.hooks?.groups.length ?? 0) > 0);
 }
 
 /**
@@ -1097,30 +1193,32 @@ export function refuseUnrunnableHooks(
   blueprint: ResolvedBlueprint,
   capabilities: Pick<HarnessCapabilities, "runsHooks">,
 ): Extract<TurnSettlement, { kind: "hooks-refused" }> | undefined {
-  const sources = blueprint.agent?.spec?.hooks ?? [];
-  if (sources.length === 0 || capabilities.runsHooks) return undefined;
+  const described = [
+    ...pluginsWithHooks(blueprint).map((plugin) => `the plugin '${plugin.metadata?.name ?? ""}'`),
+    ...(blueprint.agent?.spec?.hooks ?? []).map(() => "the agent's own hooks block"),
+  ];
+  if (described.length === 0 || capabilities.runsHooks) return undefined;
   return {
     kind: "hooks-refused",
     message:
-      `The agent has hooks (${sources.map(describeHookSource).join(", ")}), and this engine does not run hooks yet. ` +
-      "Run the agent on Stigmer's native engine, or remove its hooks.",
+      `This conversation has hooks (${described.join(", ")}), and this engine does not run hooks yet. ` +
+      "Run it on Stigmer's native engine, or remove the hooks.",
   };
 }
 
 /**
- * Phase 5a: resolve the agent's hooks for a harness that runs them.
+ * Phase 5a: resolve the turn's hooks for a harness that runs them.
  *
- * Each source, in the agent's order: a plugin reference is read with
- * `getByReference` (the reference's version when it names one, else the
- * installed version) and mounted from its verified archive
- * (`shared/plugin-mount.ts`); the agent's own block is taken as written.
- * Each source keeps the format it is written in, Claude Code's or Cursor's;
- * both run on every engine that runs hooks. A plugin that records no hooks
- * contributes none, with a log line. When the agent has hooks, every server
- * a plugin brought is named as Claude Code names it, from its plugin's own
- * name, so a plugin's matchers find its tools.
+ * The sources, in order: each of the turn's plugins that records hooks (its
+ * agent's plugins, then the conversation's, as the blueprint merged them),
+ * mounted from its verified archive (`shared/plugin-mount.ts`), then the
+ * agent's own block, taken as written. A chat with the built-in assistant
+ * gets its plugins' hooks too. Each source keeps the format it is written
+ * in, Claude Code's or Cursor's; both run on every engine that runs hooks.
+ * Every plugin server is named to a hook as Claude Code names it
+ * (`plugin:<plugin>:<server>`), so a plugin's matchers find its tools.
  *
- * Anything that cannot be read, fetched, verified or named refuses the turn
+ * A plugin whose archive cannot be fetched or verified refuses the turn
  * (`hooks-refused`), naming it: a hook that does not run as written is a
  * policy that vanished, so this is deliberately stricter than a skill, whose
  * failed download degrades.
@@ -1133,60 +1231,36 @@ export async function resolveHooks(
     readonly servers: readonly ResolvedMcpServer[];
   },
 ): Promise<{ readonly kind: "ready"; readonly hooks: TurnHooks } | { readonly kind: "settled"; readonly settlement: TurnSettlement }> {
-  const sources = args.blueprint.agent?.spec?.hooks ?? [];
-  if (sources.length === 0) return { kind: "ready", hooks: NO_HOOKS };
+  const plugins = pluginsWithHooks(args.blueprint);
+  const inline = args.blueprint.agent?.spec?.hooks ?? [];
+  if (plugins.length === 0 && inline.length === 0) return { kind: "ready", hooks: NO_HOOKS };
   deps.enterPhase("resolve_hooks");
   await deps.reportProgress("Resolving hooks");
-  const refused = (message: string) => ({ kind: "settled" as const, settlement: { kind: "hooks-refused" as const, message } });
 
   const platformDir = getPlatformDir(args.sessionId);
   const resolved: TurnHookSource[] = [];
-  for (const source of sources) {
-    if (source.source.case === "inline") {
-      resolved.push({ plugin: null, format: formatOf(source.source.value.format), groups: source.source.value.groups });
-      continue;
-    }
-    if (source.source.case !== "plugin") continue;
-    const ref = source.source.value;
-    let plugin;
-    try {
-      plugin = await deps.client.getPluginByReference(ref);
-    } catch (err) {
-      if (!ownersToFix(err)) throw err;
-      return refused(`The plugin '${ref.slug}' that the agent's hooks reference could not be read: ${errorText(err)}`);
-    }
-    const hooks = plugin.status?.hooks;
-    if (hooks === undefined || hooks.groups.length === 0) {
-      console.log(`[turn-context] the plugin '${ref.slug}' records no hooks; it contributes none`);
-      continue;
-    }
+  for (const plugin of plugins) {
+    const hooks = plugin.status!.hooks!;
     try {
       resolved.push({ plugin: await mountPlugin(deps.client, plugin, platformDir), format: formatOf(hooks.format), groups: hooks.groups });
     } catch (err) {
       if (!ownersToFix(err)) throw err;
-      return refused(`The agent's hooks could not be prepared: ${errorText(err)}`);
+      return {
+        kind: "settled",
+        settlement: { kind: "hooks-refused", message: `The hooks of plugin '${plugin.metadata?.name ?? ""}' could not be prepared: ${errorText(err)}` },
+      };
     }
+  }
+  for (const source of inline) {
+    if (source.source.case !== "inline") continue;
+    resolved.push({ plugin: null, format: formatOf(source.source.value.format), groups: source.source.value.groups });
   }
 
   const pluginServers = new Map<string, PluginServerName>();
-  const pluginNames = new Map<string, string>();
   for (const server of args.servers) {
-    const origin = server.pluginOrigin;
-    if (origin === null) continue;
-    let name = pluginNames.get(origin.pluginId);
-    if (name === undefined) {
-      try {
-        const owner = await deps.client.getPlugin(origin.pluginId);
-        name = owner.metadata?.name || owner.metadata?.slug || "";
-      } catch (err) {
-        if (!ownersToFix(err)) throw err;
-        return refused(
-          `The MCP server '${server.slug}' came from a plugin that could not be read, so the agent's hooks cannot see its tools by name: ${errorText(err)}`,
-        );
-      }
-      pluginNames.set(origin.pluginId, name);
+    if (server.pluginOrigin !== null) {
+      pluginServers.set(server.slug, { plugin: server.pluginOrigin.plugin, server: server.pluginOrigin.server });
     }
-    pluginServers.set(server.slug, { plugin: name, server: origin.server });
   }
 
   deps.timing.mark("resolve_hooks");
@@ -1503,7 +1577,14 @@ export async function resolveTurnContext(
   });
   if (reinvoked.kind === "settled") return { kind: "settled", settlement: reinvoked.settlement };
 
-  const resolvedMcp = await resolveMcpServersAndPolicies(deps, { execution, session, sessionId, blueprint, values });
+  const resolvedMcp = await resolveMcpServersAndPolicies(deps, {
+    execution,
+    session,
+    sessionId,
+    blueprint,
+    values,
+    readsToolMarks: capabilities.readsToolMarks,
+  });
   const mcp =
     prepared === undefined ? resolvedMcp : await startEvalMocks(deps, { spec, archive: prepared.archive, mcp: resolvedMcp, frame });
   const skills = await mountSkills(deps, {

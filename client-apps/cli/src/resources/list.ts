@@ -61,7 +61,6 @@ import { requireOrganization } from "../client/single-org.js";
 export const SEARCH_KINDS: ReadonlySet<ApiResourceKind> =
   new Set<ApiResourceKind>([
     ApiResourceKind.agent,
-    ApiResourceKind.mcp_server,
     ApiResourceKind.skill,
     ApiResourceKind.plugin,
   ]);

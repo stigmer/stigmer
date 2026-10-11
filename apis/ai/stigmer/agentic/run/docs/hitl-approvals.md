@@ -25,11 +25,11 @@ By default there is nothing to configure. Stigmer asks before:
 
 - shell commands;
 - file writes and deletes;
-- any MCP tool whose server marks it destructive (`destructiveHint: true` in the tool's MCP annotations, recorded at connect on `DiscoveredTool.destructive_hint`).
+- any MCP tool whose server marks it destructive (`destructiveHint: true` in the tool's MCP annotations, read from the live server at the start of each turn), and every tool of a server whose tools cannot be listed when the turn starts.
 
 Nothing else asks by default; an agent's hooks can change that (below). An MCP tool's approval card reads `Execute <tool>`.
 
-To keep an agent away from a tool rather than asking about it, leave the tool out with the agent's `tools` and `disallowed_tools` lists (see the Agent resource's `mcp-server-integration.md`). The lists hold under every bypass below: a run that approves everything still cannot call a tool its lists exclude.
+To keep an agent away from a tool rather than asking about it, leave the tool out with the agent's `tools` and `disallowed_tools` lists (see the Agent resource's `plugin-integration.md`). The lists hold under every bypass below: a run that approves everything still cannot call a tool its lists exclude.
 
 An agent's hooks also decide which tools ask (`AgentSpec.hooks`, a plugin's hooks or a block written in the agent, in Claude Code's or Cursor's format). Before a call runs, a `PreToolUse` hook can refuse it, ask a person first, or let it run; whichever it answers replaces the default for that call. A hook that gives no answer leaves the call to the default. When several hooks answer, a refusal wins over an ask, and an ask over an allow. Both engines run hooks in both formats; on the Cursor engine a hook sees no sub-agent identity, and web fetch and web search, which reach no hook there, are left out of an agent whose `PreToolUse` hooks would match them (a `PostToolUse` hook on them does not run there). Hooks are the agent author's policy: a hook that lets a call run skips the approval the default would have asked of whoever runs the agent, so an agent shared with others carries that choice to them, and a hook's command runs in that person's workspace with their run values, without a prompt. An allow from a handler whose condition the runner cannot read for sure is not honoured; the call falls to the default.
 

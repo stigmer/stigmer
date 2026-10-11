@@ -69,11 +69,6 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for runner lifecycle, fleet management, local launch, and picker.",
   },
-  "mcp-server": {
-    title: "MCP Server",
-    description:
-      "Hooks and components for MCP server connections, setup, credentials, and tool management.",
-  },
   skill: {
     title: "Skill",
     description:
@@ -287,7 +282,6 @@ const PROTO_TYPE_TO_SLUG: Record<string, string> = {
   Agent: "agent",
   Run: "run",
   Vault: "vault",
-  McpServer: "mcp-server",
   Skill: "skill",
   ApiKey: "api-key",
   Organization: "organization",

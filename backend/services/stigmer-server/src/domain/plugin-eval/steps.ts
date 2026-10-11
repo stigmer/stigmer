@@ -68,7 +68,8 @@ import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { resolveVersionHash } from "../../pipeline/steps/version-history.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import { stigmerAllowTools } from "./allow-tools.js";
+import { checkAllowTools } from "./allow-tools.js";
+import { PROVISIONAL_DELTA } from "./arm.js";
 import {
   PLUGIN_EVAL_CREATE_DENIED_MESSAGE,
   PLUGIN_EVAL_MAX_CASES,
@@ -284,13 +285,13 @@ export function newResolvePluginEvalDefaultsStep(
         throw failedPreconditionError(pluginEvalNotCurrentVersionMessage(current));
       }
       spec.pluginDigest = digest;
-      const allowed = stigmerAllowTools(spec.allowTools, {
+      const allowed = checkAllowTools(spec.allowTools, {
         name: plugin.metadata?.name ?? "",
-        slug: plugin.metadata?.slug ?? "",
+        servers: (plugin.status?.mcpServers ?? []).map((server) => server.name),
       });
       if (!allowed.ok) {
         throw invalidArgumentError(
-          pluginEvalOtherPluginToolMessage(allowed.entry, allowed.plugin, plugin.metadata?.slug ?? ""),
+          pluginEvalOtherPluginToolMessage(allowed.entry, allowed.server, plugin.metadata?.slug ?? ""),
         );
       }
       spec.allowTools = [...allowed.tools];
@@ -335,9 +336,9 @@ export function newValidatePluginEvalTargetsStep(
  * naming it), reads the suite from the archive at the stamped digest,
  * refuses a version with no cases and a suite larger than an eval may run
  * (with the computed counts, counted without building a cell), and writes
- * the pending status: the planned tries, and the comparison marked
- * provisional while the with-arm runs on the agent the plugin's install
- * composed. Runs after BuildNewState and
+ * the pending status: the planned tries, and whether the comparison is
+ * provisional (arm.ts PROVISIONAL_DELTA: false, both arms run the
+ * assistant). Runs after BuildNewState and
  * VaultAttachments, which own the rest of the status.
  */
 export function newPlanPluginEvalStep(
@@ -380,7 +381,7 @@ export function newPlanPluginEvalStep(
       const status = (ctx.newState.status ??= create(PluginEvalStatusSchema));
       status.phase = PluginEvalPhase.pending;
       status.triesTotal = tries;
-      status.provisionalDelta = true;
+      status.provisionalDelta = PROVISIONAL_DELTA;
     },
   };
 }

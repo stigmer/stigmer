@@ -230,9 +230,11 @@ type PluginEvalStatus struct {
 	// When the eval started running and when it finished.
 	StartedAt  *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	FinishedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
-	// True while the comparison with and without the plugin also measures
-	// the agent Stigmer composes for the plugin at install, not only the
-	// plugin's parts.
+	// True when the comparison with and without the plugin also measured an
+	// agent Stigmer composed for the plugin at install, not only the plugin:
+	// an eval made before conversations listed plugins directly. Every eval
+	// made since runs both arms on the assistant, the with-plugin arm with the
+	// plugin listed, and records false.
 	ProvisionalDelta bool `protobuf:"varint,11,opt,name=provisional_delta,json=provisionalDelta,proto3" json:"provisional_delta,omitempty"`
 	// Who attached each of this eval's vaults, by vault id: the account
 	// whose permission to use the vault each try checks, since a try has no

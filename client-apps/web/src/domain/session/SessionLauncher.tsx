@@ -17,8 +17,11 @@ import { useSessionNavigation } from "@/domain/session/session-navigation";
 
 /**
  * Console-specific session launcher — thin shell that composes the SDK
- * `NewSessionViewer` with Console routing, org context, and the
- * `?agent=org/slug` URL parameter a "Start session" action arrives with.
+ * `NewSessionViewer` with Console routing, org context, the
+ * `?agent=org/slug` URL parameter a "Start session" action arrives with,
+ * and the `?plugin=org/slug` one a plugin's "Start a chat" arrives with.
+ * The person's plugin picks are remembered in this browser for the next
+ * conversation.
  */
 export function SessionLauncher() {
   const rawSearchParams = useSearchParams();
@@ -36,20 +39,27 @@ export function SessionLauncher() {
   // -------------------------------------------------------------------------
 
   const liveAgentParam = rawSearchParams.get("agent");
+  const livePluginParam = rawSearchParams.get("plugin");
 
   const [initialAgentRef, setInitialAgentRef] = useState<ResourceRef | undefined>(
-    () => parseAgentParam(liveAgentParam),
+    () => parseRefParam(liveAgentParam),
+  );
+  const [initialPluginRef, setInitialPluginRef] = useState<ResourceRef | undefined>(
+    () => parseRefParam(livePluginParam),
   );
 
   if (initialAgentRef === undefined && liveAgentParam) {
-    setInitialAgentRef(parseAgentParam(liveAgentParam));
+    setInitialAgentRef(parseRefParam(liveAgentParam));
+  }
+  if (initialPluginRef === undefined && livePluginParam) {
+    setInitialPluginRef(parseRefParam(livePluginParam));
   }
 
   useEffect(() => {
-    if (liveAgentParam) {
+    if (liveAgentParam || livePluginParam) {
       window.history.replaceState({}, "", "/");
     }
-  }, [liveAgentParam]);
+  }, [liveAgentParam, livePluginParam]);
 
   return (
     <NewSessionViewer
@@ -63,16 +73,18 @@ export function SessionLauncher() {
       workspaceFileLister={workspaceFileLister}
       workspaceFileReader={workspaceFileReader}
       initialAgentRef={initialAgentRef}
+      initialPluginRefs={initialPluginRef ? [initialPluginRef] : undefined}
+      rememberPluginPicks
       className="h-full"
     />
   );
 }
 
 /**
- * Parse an `agent` query param of the form `org/slug` into a
+ * Parse an `agent` or `plugin` query param of the form `org/slug` into a
  * {@link ResourceRef}. Returns `undefined` when absent or malformed.
  */
-function parseAgentParam(value: string | null): ResourceRef | undefined {
+function parseRefParam(value: string | null): ResourceRef | undefined {
   if (!value) return undefined;
   const slashIndex = value.indexOf("/");
   if (slashIndex <= 0 || slashIndex === value.length - 1) return undefined;

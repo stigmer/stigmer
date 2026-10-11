@@ -63,7 +63,7 @@ export interface ArtifactPreviewContentProps {
  *
  * - **FILE artifacts**: Fetches text content via {@link useArtifactContent},
  *   renders via {@link ArtifactContentRenderer} (markdown, YAML, JSON, or
- *   plain text based on file type), and detects Agent/McpServer resources
+ *   plain text based on file type), and detects Agent resources
  *   via {@link useDetectStigmerResource}.
  *
  * - **DIRECTORY artifacts**: Shows the file listing from

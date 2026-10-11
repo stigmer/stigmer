@@ -47,6 +47,14 @@ public enum RunValueDeclarerKind
    * <code>RUN_VALUE_DECLARER_KIND_REPOSITORY = 3;</code>
    */
   RUN_VALUE_DECLARER_KIND_REPOSITORY(3),
+  /**
+   * <pre>
+   * A plugin the turn uses, for its hooks.
+   * </pre>
+   *
+   * <code>RUN_VALUE_DECLARER_KIND_PLUGIN = 4;</code>
+   */
+  RUN_VALUE_DECLARER_KIND_PLUGIN(4),
   UNRECOGNIZED(-1),
   ;
 
@@ -91,6 +99,14 @@ public enum RunValueDeclarerKind
    * <code>RUN_VALUE_DECLARER_KIND_REPOSITORY = 3;</code>
    */
   public static final int RUN_VALUE_DECLARER_KIND_REPOSITORY_VALUE = 3;
+  /**
+   * <pre>
+   * A plugin the turn uses, for its hooks.
+   * </pre>
+   *
+   * <code>RUN_VALUE_DECLARER_KIND_PLUGIN = 4;</code>
+   */
+  public static final int RUN_VALUE_DECLARER_KIND_PLUGIN_VALUE = 4;
 
 
   public final int getNumber() {
@@ -121,6 +137,7 @@ public enum RunValueDeclarerKind
       case 1: return RUN_VALUE_DECLARER_KIND_AGENT;
       case 2: return RUN_VALUE_DECLARER_KIND_TOOL;
       case 3: return RUN_VALUE_DECLARER_KIND_REPOSITORY;
+      case 4: return RUN_VALUE_DECLARER_KIND_PLUGIN;
       default: return null;
     }
   }

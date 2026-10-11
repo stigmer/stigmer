@@ -7,7 +7,8 @@ package ai.stigmer.agentic.vault.v1;
 
 /**
  * <pre>
- * ToolValues are the values of one tool (an MCP server) of the execution.
+ * ToolValues are the values of one tool (an MCP server in a plugin) of the
+ * execution.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.vault.v1.ToolValues}
@@ -32,7 +33,8 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ToolValues() {
-    mcpServerId_ = "";
+    pluginId_ = "";
+    server_ = "";
     url_ = "";
   }
 
@@ -66,47 +68,94 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.vault.v1.ToolValues.class, ai.stigmer.agentic.vault.v1.ToolValues.Builder.class);
   }
 
-  public static final int MCP_SERVER_ID_FIELD_NUMBER = 1;
+  public static final int PLUGIN_ID_FIELD_NUMBER = 4;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object mcpServerId_ = "";
+  private volatile java.lang.Object pluginId_ = "";
   /**
    * <pre>
-   * The tool's MCP server id.
+   * The tool's plugin.
    * </pre>
    *
-   * <code>string mcp_server_id = 1 [json_name = "mcpServerId"];</code>
-   * @return The mcpServerId.
+   * <code>string plugin_id = 4 [json_name = "pluginId"];</code>
+   * @return The pluginId.
    */
   @java.lang.Override
-  public java.lang.String getMcpServerId() {
-    java.lang.Object ref = mcpServerId_;
+  public java.lang.String getPluginId() {
+    java.lang.Object ref = pluginId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      mcpServerId_ = s;
+      pluginId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * The tool's MCP server id.
+   * The tool's plugin.
    * </pre>
    *
-   * <code>string mcp_server_id = 1 [json_name = "mcpServerId"];</code>
-   * @return The bytes for mcpServerId.
+   * <code>string plugin_id = 4 [json_name = "pluginId"];</code>
+   * @return The bytes for pluginId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getMcpServerIdBytes() {
-    java.lang.Object ref = mcpServerId_;
+      getPluginIdBytes() {
+    java.lang.Object ref = pluginId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      mcpServerId_ = b;
+      pluginId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int SERVER_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object server_ = "";
+  /**
+   * <pre>
+   * The tool's server name in its plugin.
+   * </pre>
+   *
+   * <code>string server = 5 [json_name = "server"];</code>
+   * @return The server.
+   */
+  @java.lang.Override
+  public java.lang.String getServer() {
+    java.lang.Object ref = server_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      server_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The tool's server name in its plugin.
+   * </pre>
+   *
+   * <code>string server = 5 [json_name = "server"];</code>
+   * @return The bytes for server.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getServerBytes() {
+    java.lang.Object ref = server_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      server_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -273,9 +322,6 @@ java.lang.String defaultValue) {
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, mcpServerId_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(url_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, url_);
     }
@@ -285,6 +331,12 @@ java.lang.String defaultValue) {
         internalGetValues(),
         ValuesDefaultEntryHolder.defaultEntry,
         3);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pluginId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, pluginId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(server_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, server_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -294,9 +346,6 @@ java.lang.String defaultValue) {
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, mcpServerId_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(url_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, url_);
     }
@@ -309,6 +358,12 @@ java.lang.String defaultValue) {
           .buildPartial();
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(3, values__);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pluginId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, pluginId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(server_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, server_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -325,8 +380,10 @@ java.lang.String defaultValue) {
     }
     ai.stigmer.agentic.vault.v1.ToolValues other = (ai.stigmer.agentic.vault.v1.ToolValues) obj;
 
-    if (!getMcpServerId()
-        .equals(other.getMcpServerId())) return false;
+    if (!getPluginId()
+        .equals(other.getPluginId())) return false;
+    if (!getServer()
+        .equals(other.getServer())) return false;
     if (!getUrl()
         .equals(other.getUrl())) return false;
     if (!internalGetValues().equals(
@@ -342,8 +399,10 @@ java.lang.String defaultValue) {
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + MCP_SERVER_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getMcpServerId().hashCode();
+    hash = (37 * hash) + PLUGIN_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getPluginId().hashCode();
+    hash = (37 * hash) + SERVER_FIELD_NUMBER;
+    hash = (53 * hash) + getServer().hashCode();
     hash = (37 * hash) + URL_FIELD_NUMBER;
     hash = (53 * hash) + getUrl().hashCode();
     if (!internalGetValues().getMap().isEmpty()) {
@@ -449,7 +508,8 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * ToolValues are the values of one tool (an MCP server) of the execution.
+   * ToolValues are the values of one tool (an MCP server in a plugin) of the
+   * execution.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.vault.v1.ToolValues}
@@ -507,7 +567,8 @@ java.lang.String defaultValue) {
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      mcpServerId_ = "";
+      pluginId_ = "";
+      server_ = "";
       url_ = "";
       internalGetMutableValues().clear();
       return this;
@@ -544,12 +605,15 @@ java.lang.String defaultValue) {
     private void buildPartial0(ai.stigmer.agentic.vault.v1.ToolValues result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.mcpServerId_ = mcpServerId_;
+        result.pluginId_ = pluginId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.url_ = url_;
+        result.server_ = server_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.url_ = url_;
+      }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.values_ = internalGetValues();
         result.values_.makeImmutable();
       }
@@ -567,19 +631,24 @@ java.lang.String defaultValue) {
 
     public Builder mergeFrom(ai.stigmer.agentic.vault.v1.ToolValues other) {
       if (other == ai.stigmer.agentic.vault.v1.ToolValues.getDefaultInstance()) return this;
-      if (!other.getMcpServerId().isEmpty()) {
-        mcpServerId_ = other.mcpServerId_;
+      if (!other.getPluginId().isEmpty()) {
+        pluginId_ = other.pluginId_;
         bitField0_ |= 0x00000001;
+        onChanged();
+      }
+      if (!other.getServer().isEmpty()) {
+        server_ = other.server_;
+        bitField0_ |= 0x00000002;
         onChanged();
       }
       if (!other.getUrl().isEmpty()) {
         url_ = other.url_;
-        bitField0_ |= 0x00000002;
+        bitField0_ |= 0x00000004;
         onChanged();
       }
       internalGetMutableValues().mergeFrom(
           other.internalGetValues());
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -606,14 +675,9 @@ java.lang.String defaultValue) {
             case 0:
               done = true;
               break;
-            case 10: {
-              mcpServerId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000001;
-              break;
-            } // case 10
             case 18: {
               url_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000002;
+              bitField0_ |= 0x00000004;
               break;
             } // case 18
             case 26: {
@@ -622,9 +686,19 @@ java.lang.String defaultValue) {
                   ValuesDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableValues().getMutableMap().put(
                   values__.getKey(), values__.getValue());
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000008;
               break;
             } // case 26
+            case 34: {
+              pluginId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000001;
+              break;
+            } // case 34
+            case 42: {
+              server_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000002;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -642,22 +716,22 @@ java.lang.String defaultValue) {
     }
     private int bitField0_;
 
-    private java.lang.Object mcpServerId_ = "";
+    private java.lang.Object pluginId_ = "";
     /**
      * <pre>
-     * The tool's MCP server id.
+     * The tool's plugin.
      * </pre>
      *
-     * <code>string mcp_server_id = 1 [json_name = "mcpServerId"];</code>
-     * @return The mcpServerId.
+     * <code>string plugin_id = 4 [json_name = "pluginId"];</code>
+     * @return The pluginId.
      */
-    public java.lang.String getMcpServerId() {
-      java.lang.Object ref = mcpServerId_;
+    public java.lang.String getPluginId() {
+      java.lang.Object ref = pluginId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        mcpServerId_ = s;
+        pluginId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -665,20 +739,20 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The tool's MCP server id.
+     * The tool's plugin.
      * </pre>
      *
-     * <code>string mcp_server_id = 1 [json_name = "mcpServerId"];</code>
-     * @return The bytes for mcpServerId.
+     * <code>string plugin_id = 4 [json_name = "pluginId"];</code>
+     * @return The bytes for pluginId.
      */
     public com.google.protobuf.ByteString
-        getMcpServerIdBytes() {
-      java.lang.Object ref = mcpServerId_;
+        getPluginIdBytes() {
+      java.lang.Object ref = pluginId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        mcpServerId_ = b;
+        pluginId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -686,50 +760,142 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The tool's MCP server id.
+     * The tool's plugin.
      * </pre>
      *
-     * <code>string mcp_server_id = 1 [json_name = "mcpServerId"];</code>
-     * @param value The mcpServerId to set.
+     * <code>string plugin_id = 4 [json_name = "pluginId"];</code>
+     * @param value The pluginId to set.
      * @return This builder for chaining.
      */
-    public Builder setMcpServerId(
+    public Builder setPluginId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      mcpServerId_ = value;
+      pluginId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The tool's MCP server id.
+     * The tool's plugin.
      * </pre>
      *
-     * <code>string mcp_server_id = 1 [json_name = "mcpServerId"];</code>
+     * <code>string plugin_id = 4 [json_name = "pluginId"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearMcpServerId() {
-      mcpServerId_ = getDefaultInstance().getMcpServerId();
+    public Builder clearPluginId() {
+      pluginId_ = getDefaultInstance().getPluginId();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The tool's MCP server id.
+     * The tool's plugin.
      * </pre>
      *
-     * <code>string mcp_server_id = 1 [json_name = "mcpServerId"];</code>
-     * @param value The bytes for mcpServerId to set.
+     * <code>string plugin_id = 4 [json_name = "pluginId"];</code>
+     * @param value The bytes for pluginId to set.
      * @return This builder for chaining.
      */
-    public Builder setMcpServerIdBytes(
+    public Builder setPluginIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      mcpServerId_ = value;
+      pluginId_ = value;
       bitField0_ |= 0x00000001;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object server_ = "";
+    /**
+     * <pre>
+     * The tool's server name in its plugin.
+     * </pre>
+     *
+     * <code>string server = 5 [json_name = "server"];</code>
+     * @return The server.
+     */
+    public java.lang.String getServer() {
+      java.lang.Object ref = server_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        server_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The tool's server name in its plugin.
+     * </pre>
+     *
+     * <code>string server = 5 [json_name = "server"];</code>
+     * @return The bytes for server.
+     */
+    public com.google.protobuf.ByteString
+        getServerBytes() {
+      java.lang.Object ref = server_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        server_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The tool's server name in its plugin.
+     * </pre>
+     *
+     * <code>string server = 5 [json_name = "server"];</code>
+     * @param value The server to set.
+     * @return This builder for chaining.
+     */
+    public Builder setServer(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      server_ = value;
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The tool's server name in its plugin.
+     * </pre>
+     *
+     * <code>string server = 5 [json_name = "server"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearServer() {
+      server_ = getDefaultInstance().getServer();
+      bitField0_ = (bitField0_ & ~0x00000002);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The tool's server name in its plugin.
+     * </pre>
+     *
+     * <code>string server = 5 [json_name = "server"];</code>
+     * @param value The bytes for server to set.
+     * @return This builder for chaining.
+     */
+    public Builder setServerBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      server_ = value;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -795,7 +961,7 @@ java.lang.String defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       url_ = value;
-      bitField0_ |= 0x00000002;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -811,7 +977,7 @@ java.lang.String defaultValue) {
      */
     public Builder clearUrl() {
       url_ = getDefaultInstance().getUrl();
-      bitField0_ = (bitField0_ & ~0x00000002);
+      bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
@@ -831,7 +997,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       url_ = value;
-      bitField0_ |= 0x00000002;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -855,7 +1021,7 @@ java.lang.String defaultValue) {
       if (!values_.isMutable()) {
         values_ = values_.copy();
       }
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       onChanged();
       return values_;
     }
@@ -931,7 +1097,7 @@ java.lang.String defaultValue) {
       return map.get(key);
     }
     public Builder clearValues() {
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000008);
       internalGetMutableValues().getMutableMap()
           .clear();
       return this;
@@ -956,7 +1122,7 @@ java.lang.String defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, java.lang.String>
         getMutableValues() {
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       return internalGetMutableValues().getMutableMap();
     }
     /**
@@ -973,7 +1139,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableValues().getMutableMap()
           .put(key, value);
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       return this;
     }
     /**
@@ -987,7 +1153,7 @@ java.lang.String defaultValue) {
         java.util.Map<java.lang.String, java.lang.String> values) {
       internalGetMutableValues().getMutableMap()
           .putAll(values);
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       return this;
     }
 

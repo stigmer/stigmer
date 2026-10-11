@@ -5,7 +5,8 @@
  * fragment), the refusals (a scheme other than http or https, credentials
  * in the URL, a placeholder), the bare host for Git with its HTTPS port
  * dropped, a clone URL's host for HTTPS only, two tools on one host keeping
- * two addresses, which variable a tool's login fills, and which saved
+ * two addresses, which variable a plugin server's login fills (the one its
+ * bearer header names), and which saved
  * connection fills it (a sign-in and a pasted login alike for every HTTP
  * tool at their address, whichever tool or page signed in; never a local
  * program, which has no address; the github.com login for an HTTP tool on
@@ -14,7 +15,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { McpServerEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { VaultConnectionSchema, VaultConnectionSource } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/spec_pb";
 import {
   gitHostOf,
@@ -86,17 +87,11 @@ describe("gitHostOf", () => {
 });
 
 describe("toolLoginKeyOf", () => {
-  const http = (headers: Record<string, string>, targetEnvVar = "") =>
-    create(McpServerSchema, {
-      spec: {
-        serverType: { case: "http", value: { url: "https://mcp.example.com/mcp", headers } },
-        ...(targetEnvVar ? { auth: { targetEnvVar } } : {}),
-      },
+  const http = (headers: Record<string, string>) =>
+    create(McpServerEntrySchema, {
+      name: "linear",
+      transport: { case: "http", value: { url: "https://mcp.example.com/mcp", headers } },
     });
-
-  it("prefers the sign-in's target variable", () => {
-    expect(toolLoginKeyOf(http({ Authorization: "Bearer ${OTHER}" }, "LINEAR_TOKEN"))).toBe("LINEAR_TOKEN");
-  });
 
   it("reads the variable a bearer header names", () => {
     expect(toolLoginKeyOf(http({ authorization: "Bearer ${ZENDESK_API_KEY}" }))).toBe("ZENDESK_API_KEY");
@@ -114,9 +109,7 @@ describe("toolLoginKeyOf", () => {
 
 describe("the edges of the address rule", () => {
   const stdio = () =>
-    create(McpServerSchema, {
-      spec: { serverType: { case: "stdio", value: { command: "linear-mcp" } } },
-    });
+    create(McpServerEntrySchema, { name: "linear", transport: { case: "stdio", value: { command: "linear-mcp" } } });
 
   it("refuses a value with a scheme that does not parse as a URL", () => {
     expect(normalizeAddress("https://exa mple.com/mcp")).toBeNull();
@@ -134,12 +127,11 @@ describe("the edges of the address rule", () => {
   it("gives a local program without a sign-in no login key, and skips headers other than Authorization", () => {
     expect(toolLoginKeyOf(stdio())).toBeNull();
     expect(toolLoginKeyOf(null)).toBeNull();
-    const withOtherHeaders = create(McpServerSchema, {
-      spec: {
-        serverType: {
-          case: "http",
-          value: { url: "https://mcp.example.com/mcp", headers: { "X-Org": "acme", Authorization: "Bearer ${TOKEN}" } },
-        },
+    const withOtherHeaders = create(McpServerEntrySchema, {
+      name: "linear",
+      transport: {
+        case: "http",
+        value: { url: "https://mcp.example.com/mcp", headers: { "X-Org": "acme", Authorization: "Bearer ${TOKEN}" } },
       },
     });
     expect(toolLoginKeyOf(withOtherHeaders)).toBe("TOKEN");
@@ -148,19 +140,15 @@ describe("the edges of the address rule", () => {
 
 describe("vaultLoginServes", () => {
   const URL_ADDRESS = "https://mcp.example.com/mcp";
-  const httpTool = create(McpServerSchema, {
-    metadata: { id: "mcp_linear" },
-    spec: {
-      serverType: { case: "http", value: { url: "https://MCP.example.com/mcp/" } },
-      auth: { targetEnvVar: "LINEAR_ACCESS_TOKEN" },
-    },
+  const httpTool = create(McpServerEntrySchema, {
+    name: "linear",
+    transport: { case: "http", value: { url: "https://MCP.example.com/mcp/" } },
+    signIn: {},
   });
-  const localTool = create(McpServerSchema, {
-    metadata: { id: "mcp_local" },
-    spec: {
-      serverType: { case: "stdio", value: { command: "linear-mcp" } },
-      env: { LINEAR_ACCESS_TOKEN: { isSecret: true } },
-    },
+  const localTool = create(McpServerEntrySchema, {
+    name: "local",
+    transport: { case: "stdio", value: { command: "linear-mcp" } },
+    env: ["LINEAR_ACCESS_TOKEN"],
   });
   const pastedLogin = create(VaultConnectionSchema, { source: VaultConnectionSource.pasted });
   const pasted = { [URL_ADDRESS]: pastedLogin };
@@ -173,9 +161,9 @@ describe("vaultLoginServes", () => {
 
   it("takes a sign-in at the address for every HTTP tool there, whichever tool or page signed in", () => {
     expect(vaultLoginServes(signedIn, httpTool)).toBe(true);
-    const anotherToolThere = create(McpServerSchema, {
-      metadata: { id: "mcp_other" },
-      spec: { serverType: { case: "http", value: { url: URL_ADDRESS } } },
+    const anotherToolThere = create(McpServerEntrySchema, {
+      name: "other",
+      transport: { case: "http", value: { url: URL_ADDRESS } },
     });
     expect(vaultLoginServes(signedIn, anotherToolThere)).toBe(true);
   });
@@ -186,17 +174,13 @@ describe("vaultLoginServes", () => {
 
   it("takes the github.com login for an HTTP tool on GitHub's own API at its default port, and for nothing else", () => {
     const github = { "github.com": pastedLogin };
-    const at = (url: string) =>
-      create(McpServerSchema, { metadata: { id: "mcp_github" }, spec: { serverType: { case: "http", value: { url } } } });
+    const at = (url: string) => create(McpServerEntrySchema, { name: "github", transport: { case: "http", value: { url } } });
     expect(vaultLoginServes(github, at("https://api.githubcopilot.com/mcp/"))).toBe(true);
     expect(vaultLoginServes(github, at("https://api.github.com:443/mcp"))).toBe(true);
     expect(vaultLoginServes(github, at("https://api.github.com:8443/mcp"))).toBe(false);
     expect(vaultLoginServes(github, at("http://api.github.com/mcp"))).toBe(false);
     expect(vaultLoginServes(github, at("https://mcp.example.com/mcp"))).toBe(false);
-    const localOnGitHub = create(McpServerSchema, {
-      metadata: { id: "mcp_local" },
-      spec: { serverType: { case: "stdio", value: { command: "gh-mcp" } } },
-    });
+    const localOnGitHub = create(McpServerEntrySchema, { name: "gh", transport: { case: "stdio", value: { command: "gh-mcp" } } });
     expect(vaultLoginServes(github, localOnGitHub)).toBe(false);
   });
 
@@ -207,7 +191,7 @@ describe("vaultLoginServes", () => {
 
   it("finds nothing at another address or for a tool without one", () => {
     expect(vaultLoginServes({ "https://mcp.example.com/other": pastedLogin }, httpTool)).toBe(false);
-    expect(vaultLoginServes(pasted, create(McpServerSchema, {}))).toBe(false);
+    expect(vaultLoginServes(pasted, create(McpServerEntrySchema, {}))).toBe(false);
     expect(vaultLoginServes(pasted, null)).toBe(false);
   });
 });

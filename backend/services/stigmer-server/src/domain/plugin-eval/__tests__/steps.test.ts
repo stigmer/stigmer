@@ -17,8 +17,9 @@
  * suite source's own refusal passes through while any other fault is
  * INTERNAL; a store fault reading the plugin is INTERNAL. The create's
  * defaults refuse a request with no organization or no spec, a plugin
- * with no version to run, and an allow_tools entry naming another
- * plugin; a suite past the limits is refused with its counts and no cell
+ * with no version to run, and an allow_tools entry naming an MCP server
+ * segment that is not one of the plugin's (another plugin's), while the
+ * plugin's own entries are kept as written; a suite past the limits is refused with its counts and no cell
  * planned; a failed start's write answers NOT_FOUND for a row gone and
  * INTERNAL for a store fault; a chain built wrong (the plugin, the
  * cancel's target or the delete's row never stashed) fails loudly as
@@ -563,7 +564,7 @@ describe("ResolvePluginEvalDefaults' refusals", () => {
       EVALUATED_PLUGIN_KEY,
       create(PluginSchema, {
         metadata: { id: "plg_1", org: "org_1", name: "thermos", slug: "thermos" },
-        status: { digest },
+        status: { digest, mcpServers: [{ name: "github" }] },
       }),
     );
     return ctx;
@@ -605,10 +606,14 @@ describe("ResolvePluginEvalDefaults' refusals", () => {
     );
     expect(refused.code).toBe(Code.InvalidArgument);
     expect(refused.rawMessage).toBe(
-      pluginEvalOtherPluginToolMessage("mcp__plugin_other_github__search_issues", "other", "thermos"),
+      pluginEvalOtherPluginToolMessage(
+        "mcp__plugin_other_github__search_issues",
+        "plugin_other_github",
+        "thermos",
+      ),
     );
     expect(refused.rawMessage).toBe(
-      "allow_tools entry 'mcp__plugin_other_github__search_issues' names plugin 'other', but this eval runs 'thermos'; a try attaches no other plugin",
+      "allow_tools entry 'mcp__plugin_other_github__search_issues' names MCP server 'plugin_other_github', which is not one of 'thermos''s; a try attaches no other plugin",
     );
   });
 
@@ -621,6 +626,16 @@ describe("ResolvePluginEvalDefaults' refusals", () => {
     );
     expect(refused.code).toBe(Code.InvalidArgument);
     expect(refused.rawMessage).toBe(PLUGIN_EVAL_REAL_SERVERS_CONFLICT_MESSAGE);
+  });
+
+  it("keeps the plugin's own server entries and every other entry as written", async () => {
+    const row = evalRow("", PluginEvalPhase.unspecified);
+    const tools = ["Read", "Bash(npm test *)", "mcp__plugin_thermos_github__search_issues", "mcp__github__*"];
+    row.spec!.allowTools = [...tools];
+    const ctx = evaluated(row);
+    await newResolvePluginEvalDefaultsStep(temp.store).execute(ctx);
+    expect(ctx.newState.spec?.allowTools).toEqual(tools);
+    expect(ctx.newState.metadata?.id).toMatch(/^pev_/);
   });
 });
 
