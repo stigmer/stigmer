@@ -4,7 +4,17 @@
 // The contract pinned here, over the wire with the runner and the mock LLM:
 //
 //   - one turn's log reads, in order: the user's message (its text), the
-//     session running, then the session idle with stop_reason end_turn;
+//     session running, the agent's message the runner wrote, then the
+//     session idle with stop_reason end_turn;
+//   - the runner writes what the agent did, each fact once and in order,
+//     under ids derived from the run and the row: thinking (with its text in
+//     stigmer.agent.thinking), a tool use and its result, the answer; a tool
+//     use that waits for a person carries evaluated_permission ask and a
+//     stigmer.permission.asked, and the resumed turn adds only the result
+//     and what follows; a sub-agent is a thread of its own, opened after the
+//     task's tool use and closed before its result; a structured output is
+//     stigmer.agent.structured_output; a turn stopped by its tool-call
+//     limit ends the session as budget_reached;
 //   - a stream opened on a session before a turn sees that turn's events as
 //     they are appended, in the same order as the list;
 //   - the session's status describes the whole session: with a second turn
@@ -19,24 +29,34 @@
 //     refused (the server's alone), another run's credential is
 //     PERMISSION_DENIED, and a finished run takes no more events.
 //
-// The runner does not write the agent's own events into the log yet (it
-// reports them on the run); these arms append them through the RPC, as a
-// runner will.
+// The append arm presents a run credential through the RPC itself, beside
+// the runner's own writes, to pin the gate.
 // The outsider contract (no view, no events) is Class A,
 // suites/session-events.conformance.test.ts, on the enforcing lane.
 import { Code, ConnectError } from "@connectrpc/connect";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApprovalAction, ApprovalPolicySource, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
-import { anthropicText } from "@stigmer/test-support/mock-llm";
+import type { AnthropicMessageBody } from "@stigmer/test-support/mock-llm";
+import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { agentRefOf, makeAgent } from "../support/agents";
+import { DESTRUCTIVE_ECHO_TOOL_NAME, ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
+import { agentRefOf, createSubagents, makeAgent, subagentSlugsOf } from "../support/agents";
 import { pollUntil } from "../support/run-poll";
-import { awaitPhase, awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
+import {
+  type AgentExecutionOptions,
+  awaitPhase,
+  awaitTerminal,
+  makeAgentExecution,
+  pushFixturePlugin,
+  requireLlmProxy,
+  requireMcpFixture,
+  submitApprovalPerContract,
+} from "../support/runs";
 import { makeSession } from "../support/sessions";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -44,6 +64,7 @@ import { createTarget, type TargetProfile } from "../targets";
 let target: TargetProfile;
 let clients: ConformanceClients;
 let mock: MockLlmProxy;
+let mcp: McpToolFixture;
 const fixtures = new FixtureTracker();
 
 /** How long a held turn stays IN_PROGRESS unless released. */
@@ -54,34 +75,58 @@ beforeAll(async () => {
   await target.setup();
   clients = target.clients();
   mock = requireLlmProxy(target);
+  mcp = requireMcpFixture(target);
 });
 
 afterEach(async () => {
   mock.releaseHolds();
+  // A run that ended before it reached the model would take the next arm's
+  // script; wait, bounded, for every scripted turn to be claimed.
+  const claimDeadline = Date.now() + 15_000;
+  while (mock.remaining() > 0 && Date.now() < claimDeadline) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  }
   await fixtures.cleanup();
   mock.reset();
+  mcp.resetCaptured();
 });
 
 afterAll(async () => {
   await target?.teardown();
 });
 
-/** An event's Managed Agents type, read from its oneof case. */
+/** An event's type, by its oneof case. */
 function typeOf(event: SessionEvent): string {
-  switch (event.event.case) {
-    case "userMessage":
-      return "user.message";
-    case "sessionStatusRunning":
-      return "session.status_running";
-    case "sessionStatusIdle":
-      return "session.status_idle";
-    case "sessionError":
-      return "session.error";
-    case "agentMessage":
-      return "agent.message";
-    default:
-      return String(event.event.case);
-  }
+  return TYPE_BY_CASE[String(event.event.case)] ?? String(event.event.case);
+}
+
+/** The event types these arms read, by oneof case. */
+const TYPE_BY_CASE: Readonly<Record<string, string>> = {
+  userMessage: "user.message",
+  sessionStatusRunning: "session.status_running",
+  sessionStatusIdle: "session.status_idle",
+  sessionError: "session.error",
+  agentMessage: "agent.message",
+  agentThinking: "agent.thinking",
+  agentToolUse: "agent.tool_use",
+  agentToolResult: "agent.tool_result",
+  agentMcpToolUse: "agent.mcp_tool_use",
+  agentMcpToolResult: "agent.mcp_tool_result",
+  sessionThreadCreated: "session.thread_created",
+  sessionThreadStatusRunning: "session.thread_status_running",
+  sessionThreadStatusIdle: "session.thread_status_idle",
+  agentThreadMessageSent: "agent.thread_message_sent",
+  agentThreadMessageReceived: "agent.thread_message_received",
+  stigmerAgentThinking: "stigmer.agent.thinking",
+  stigmerPermissionAsked: "stigmer.permission.asked",
+  stigmerHarnessNote: "stigmer.harness.note",
+  stigmerAgentStructuredOutput: "stigmer.agent.structured_output",
+  stigmerMemoryRecalled: "stigmer.memory.recalled",
+};
+
+/** An event's own id. */
+function idOf(event: SessionEvent): string {
+  return event.event.case === undefined ? "" : event.event.value.id;
 }
 
 async function newAgentRef(org: string): Promise<ReturnType<typeof agentRefOf>> {
@@ -167,16 +212,16 @@ describe("a session's event log on real turns", () => {
     const stream = watch(
       sessionId,
       [],
-      (frames) => frames.filter((f) => f.frame.case === "event").length === 3,
+      (frames) => frames.filter((f) => f.frame.case === "event").length === 4,
       lastSeen,
     );
     await stream.finished;
     const resumed = stream.frames.flatMap((f) => (f.frame.case === "event" ? [f.frame.value] : []));
     expect(resumed.map((e) => e.seq)).toEqual((await log(sessionId)).filter((e) => e.seq > lastSeen).map((e) => e.seq));
-    expect(resumed.map(typeOf)).toEqual(["user.message", "session.status_running", "session.status_idle"]);
+    expect(resumed.map(typeOf)).toEqual(["user.message", "session.status_running", "agent.message", "session.status_idle"]);
   });
 
-  it("[rpc:SessionQueryController.listEvents] one turn's log reads the user's message, running, then idle as end_turn, in order", async () => {
+  it("[rpc:SessionQueryController.listEvents] one turn's log reads the user's message, running, the agent's message, then idle as end_turn, in order", async () => {
     const { org } = await target.provisionTenancy();
     const sessionId = await newSession(org);
     mock.enqueue(anthropicText("Hello from the mock."));
@@ -185,12 +230,15 @@ describe("a session's event log on real turns", () => {
     expect(final.status?.phase).toBe(RunPhase.RUN_COMPLETED);
 
     const events = await log(sessionId);
-    expect(events.map(typeOf)).toEqual(["user.message", "session.status_running", "session.status_idle"]);
-    expect(events.map((e) => e.seq)).toEqual([1n, 2n, 3n]);
+    expect(events.map(typeOf)).toEqual(["user.message", "session.status_running", "agent.message", "session.status_idle"]);
+    expect(events.map((e) => e.seq)).toEqual([1n, 2n, 3n, 4n]);
     expect(events.every((e) => e.sessionId === sessionId && e.runId === runId)).toBe(true);
     const message = events[0]!.event;
     expect(message.case === "userMessage" && message.value.content.map((b) => b.text)).toEqual(["summarise the repo"]);
-    const idle = events[2]!.event;
+    const answer = events[2]!.event;
+    expect(answer.case === "agentMessage" && answer.value.content.map((b) => b.text)).toEqual(["Hello from the mock."]);
+    expect(idOf(events[2]!), "the agent's message is named by its run and its row").toBe(`${runId}.root.m0`);
+    const idle = events[3]!.event;
     expect(idle.case === "sessionStatusIdle" && idle.value.stopReason?.type).toBe("end_turn");
   });
 
@@ -207,7 +255,7 @@ describe("a session's event log on real turns", () => {
     await awaitTerminal(clients, runId);
     await stream.finished;
     const streamed = stream.frames.flatMap((f) => (f.frame.case === "event" ? [f.frame.value] : []));
-    expect(streamed.map(typeOf)).toEqual(["user.message", "session.status_running", "session.status_idle"]);
+    expect(streamed.map(typeOf)).toEqual(["user.message", "session.status_running", "agent.message", "session.status_idle"]);
     expect(streamed.map((e) => e.seq)).toEqual((await log(sessionId)).map((e) => e.seq));
   });
 
@@ -318,12 +366,189 @@ describe("a session's event log on real turns", () => {
       runner.sessionCommand.appendEvents({ runId, events: [{ event: { case: "agentThinking", value: { id: "evt-late" } } }] }),
     );
     expect(late.code, "a finished run takes no more events").toBe(Code.FailedPrecondition);
-    expect((await log(sessionId)).map(typeOf)).toEqual([
+    const final = await log(sessionId);
+    expect(final.map(typeOf)).toEqual([
       "user.message",
       "session.status_running",
       "agent.message",
+      "agent.message",
       "session.status_idle",
     ]);
+    expect(final.map(idOf).slice(2, 4), "the append's own, then the runner's").toEqual(["evt-m1", `${runId}.root.m0`]);
   });
 });
 
+describe("the runner writes what the agent did", () => {
+  /** A model turn that thinks, then calls one tool. */
+  function thinkThenCall(thinking: string, callId: string, tool: string, input: Record<string, unknown>): AnthropicMessageBody {
+    const body = anthropicToolUse(callId, tool, input);
+    return { ...body, content: [{ type: "thinking", thinking }, ...body.content] };
+  }
+
+  /** Creates a turn on its own conversation and answers its id. */
+  async function turn(options: Omit<AgentExecutionOptions, "name">): Promise<string> {
+    const run = await clients.agentExecutionCommand.create(makeAgentExecution({ name: uniqueName("events-run"), ...options }));
+    const id = run.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: id }).catch(() => undefined));
+    return id;
+  }
+
+  /** The run's events, after the session went idle. */
+  async function runLog(runId: string): Promise<SessionEvent[]> {
+    const final = await awaitTerminal(clients, runId);
+    const sessionId = final.spec?.target.case === "sessionId" ? final.spec.target.value : "";
+    return pollUntil(
+      async () => (await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 })).events,
+      (got) => got.length > 0 && typeOf(got[got.length - 1]!) === "session.status_idle",
+      (last) => `run ${runId}'s session never went idle: ${JSON.stringify(last?.map(typeOf))}`,
+    );
+  }
+
+  it("[rpc:SessionQueryController.listEvents] a turn's thinking, tool use, result and answer, in order, each once, under ids derived from the run", async () => {
+    const { org } = await target.provisionTenancy();
+    mock.enqueue(thinkThenCall("I should look first.", "toolu_events_read", "read_file", { file_path: "/missing.md" }));
+    mock.enqueue(anthropicText("There is no such file."));
+    const runId = await turn({ org, agentRef: await newAgentRef(org), message: "read it", autoApproveAll: true });
+    const events = await runLog(runId);
+    expect(events.map(typeOf)).toEqual([
+      "user.message",
+      "session.status_running",
+      "agent.thinking",
+      "stigmer.agent.thinking",
+      "agent.tool_use",
+      "agent.tool_result",
+      "agent.message",
+      "session.status_idle",
+    ]);
+    const [, , thinking, thinkingText, use, result] = events;
+    expect(thinkingText!.event.case === "stigmerAgentThinking" && [thinkingText!.event.value.thinkingId, thinkingText!.event.value.text]).toEqual([
+      idOf(thinking!),
+      "I should look first.",
+    ]);
+    expect(idOf(use!)).toBe(`${runId}.toolu_events_read`);
+    expect(use!.event.case === "agentToolUse" && [use!.event.value.name, use!.event.value.input?.file_path]).toEqual(["read_file", "/missing.md"]);
+    expect(result!.event.case === "agentToolResult" && result!.event.value.toolUseId).toBe(idOf(use!));
+    expect(new Set(events.map(idOf)).size, "every fact once").toBe(events.length);
+  });
+
+  it("[rpc:SessionQueryController.listEvents] a tool use that waits carries its ask; the resumed turn adds only its result and what follows", async () => {
+    const { org } = await target.provisionTenancy();
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, { org, name: uniqueName("gated"), tools: [DESTRUCTIVE_ECHO_TOOL_NAME] });
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("events-gated"), plugins: [plugin.metadata!.slug] }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    mock.enqueue(anthropicToolUse("toolu_events_echo", DESTRUCTIVE_ECHO_TOOL_NAME, { text: "hello" }));
+    mock.enqueue(anthropicText("Echoed."));
+    const runId = await turn({ org, agentRef: agentRefOf(agent), message: "echo it" });
+    const gated = await awaitPhase(clients, runId, RunPhase.RUN_WAITING_FOR_APPROVAL, { label: "WAITING_FOR_APPROVAL" });
+    const sessionId = gated.spec?.target.case === "sessionId" ? gated.spec.target.value : "";
+    const atGate = (await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 })).events;
+    expect(atGate.map(typeOf)).toEqual(["user.message", "session.status_running", "agent.mcp_tool_use", "stigmer.permission.asked"]);
+    const use = atGate[2]!.event;
+    expect(use.case === "agentMcpToolUse" && use.value.evaluatedPermission).toBe("ask");
+    const asked = atGate[3]!.event;
+    expect(asked.case === "stigmerPermissionAsked" && [asked.value.toolUseId, asked.value.policySource]).toEqual([
+      idOf(atGate[2]!),
+      ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN,
+    ]);
+
+    await submitApprovalPerContract({
+      expectedRemaining: 0,
+      label: "approve clears the gate",
+      submit: () =>
+        clients.agentExecutionCommand.submitApproval({ runId, toolCallId: gated.status!.pendingApprovals[0]!.toolCallId, action: ApprovalAction.APPROVE }),
+    });
+    const events = await runLog(runId);
+    expect(events.map(typeOf)).toEqual([
+      "user.message",
+      "session.status_running",
+      "agent.mcp_tool_use",
+      "stigmer.permission.asked",
+      "agent.mcp_tool_result",
+      "agent.message",
+      "session.status_idle",
+    ]);
+    const result = events[4]!.event;
+    expect(result.case === "agentMcpToolResult" && [result.value.mcpToolUseId, result.value.isError]).toEqual([idOf(events[2]!), false]);
+  });
+
+  it("[rpc:SessionQueryController.listEvents] a sub-agent is a thread of its own, opened after the task's tool use and closed before its result", async () => {
+    const { org } = await target.provisionTenancy();
+    const saved = await createSubagents(clients, fixtures, org, [{ name: uniqueName("events-helper"), description: "Answers one question." }]);
+    const parent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("events-parent"), subagents: subagentSlugsOf(saved) }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: parent.metadata!.id }));
+    mock.enqueue(
+      anthropicToolUse("toolu_events_task", "task", {
+        description: "Ask the helper",
+        prompt: "Answer in one sentence.",
+        subagent_type: saved[0]!.metadata!.slug,
+      }),
+    );
+    mock.enqueue(anthropicText("The helper's answer."));
+    mock.enqueue(anthropicText("The helper says hello."));
+    const runId = await turn({ org, agentRef: agentRefOf(parent), message: "delegate", autoApproveAll: true });
+    const events = await runLog(runId);
+    const thread = `${runId}.toolu_events_task`;
+    expect(events.map(typeOf)).toEqual([
+      "user.message",
+      "session.status_running",
+      "agent.tool_use",
+      "session.thread_created",
+      "agent.thread_message_sent",
+      "session.thread_status_running",
+      "agent.message",
+      "agent.thread_message_received",
+      "session.thread_status_idle",
+      "agent.tool_result",
+      "agent.message",
+      "session.status_idle",
+    ]);
+    expect(events[6]!.threadId, "the sub-agent's own message is on its thread").toBe(thread);
+    expect(events.filter((e) => e.threadId !== "").map(idOf)).toEqual([`${thread}.m0`]);
+    const created = events[3]!.event;
+    expect(created.case === "sessionThreadCreated" && created.value.sessionThreadId).toBe(thread);
+  });
+
+  it("[rpc:SessionQueryController.listEvents] a turn's structured output is stigmer.agent.structured_output, after its answer", async () => {
+    const { org } = await target.provisionTenancy();
+    mock.enqueue(anthropicText('{"summary":"all good"}'));
+    const runId = await turn({
+      org,
+      agentRef: await newAgentRef(org),
+      message: "summarise",
+      autoApproveAll: true,
+      structuredOutputSchema: { type: "object", properties: { summary: { type: "string" } }, required: ["summary"] },
+    });
+    const events = await runLog(runId);
+    expect(events.map(typeOf)).toEqual([
+      "user.message",
+      "session.status_running",
+      "agent.message",
+      "stigmer.agent.structured_output",
+      "session.status_idle",
+    ]);
+    const output = events[3]!.event;
+    expect(output.case === "stigmerAgentStructuredOutput" && output.value.output).toEqual({ summary: "all good" });
+  });
+
+  it("[rpc:SessionQueryController.listEvents] a turn stopped by its tool-call limit ends the session as budget_reached", async () => {
+    const { org } = await target.provisionTenancy();
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, { org, name: uniqueName("rounds"), tools: [ECHO_TOOL_NAME] });
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("events-rounds"), plugins: [plugin.metadata!.slug] }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    // The budget is ten rounds, the least the runner honours: the model is
+    // asked ten times, and the turn stops before the eleventh request
+    // (run-tool-rounds' shape).
+    for (let round = 1; round <= 11; round++) {
+      mock.enqueue(anthropicToolUse(`toolu_events_round_${round}`, ECHO_TOOL_NAME, { text: `round-${round}` }));
+    }
+    const runId = await turn({ org, agentRef: agentRefOf(agent), message: "echo each round", autoApproveAll: true, runConfig: { maxToolRounds: 10 } });
+    const final = await awaitTerminal(clients, runId);
+    expect(final.status?.phase).toBe(RunPhase.RUN_TERMINATED);
+    expect(final.status?.stopCause).toBe("budget_reached");
+    const events = await runLog(runId);
+    const idle = events[events.length - 1]!.event;
+    expect(idle.case === "sessionStatusIdle" && idle.value.stopReason?.type).toBe("budget_reached");
+    // The turn past the budget was never requested; clear it for the next arm.
+    mock.reset();
+  });
+});

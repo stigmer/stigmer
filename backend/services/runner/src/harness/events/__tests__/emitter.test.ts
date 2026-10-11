@@ -9,16 +9,15 @@
  * activity on both harnesses.
  */
 
-import { create, toBinary } from "@bufbuild/protobuf";
+import { create, toBinary, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it, vi } from "vitest";
 import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { MessageType, SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { AgentMessageSchema, ToolCallSchema, type ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
+import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
-import { boundaryMayStillRewrite } from "../../../activities/execute-cursor/boundary-rows.js";
 import { ELISION_MARKER } from "../../../shared/status-offload.js";
 import { SESSION_EVENT_MAX_BYTES, SessionEventEmitter, type SessionEventEmitterDeps } from "../emitter.js";
 
@@ -65,7 +64,9 @@ function status(init: Parameters<typeof create<typeof RunStatusSchema>>[1]): Run
   return create(RunStatusSchema, init);
 }
 
-function row(id: string, init: Partial<ToolCall> = {}): Partial<ToolCall> {
+type RowInit = MessageInitShape<typeof ToolCallSchema>;
+
+function row(id: string, init: RowInit = {}): RowInit {
   return { id, name: "read", status: S.TOOL_CALL_COMPLETED, result: "ok", ...init };
 }
 
@@ -116,68 +117,28 @@ describe("the sealed prefix of a thread", () => {
   });
 });
 
-describe("a harness whose boundary rewrites rows (Cursor)", () => {
-  const cursor = { boundaryRewritesRow: boundaryMayStillRewrite };
+describe("a harness whose boundary rewrites rows", () => {
+  // The adapter's predicate decides which rows wait; this stand-in holds a
+  // hook-blocked call, as Cursor's does (`execute-cursor/boundary-rows.ts`,
+  // whose own test runs this emitter with the real predicate).
+  const boundary = { boundaryRewritesRow: (tc: { error: string }) => tc.error.includes("blocked by a hook") };
 
-  it("writes no tool use or result for a hook-blocked call before the boundary, nor the narration after it, nor its preview", async () => {
+  it("holds the row the boundary may rewrite, and everything after it, until the terminal write", async () => {
     const log = logDouble();
-    const e = emitter(log, cursor);
+    const e = emitter(log, boundary);
     const st = status({
       messages: [
-        { type: AI, content: "Reading the secret plan.", toolCalls: [row("blocked", { status: S.TOOL_CALL_FAILED, result: "", error: "Tool call was blocked by a hook" })] },
-        { type: AI, content: "The read was blocked, so I will" },
+        { type: AI, content: "Reading.", toolCalls: [row("blocked", { status: S.TOOL_CALL_FAILED, result: "", error: "blocked by a hook" })] },
+        { type: AI, content: "After the block." },
       ],
     });
     await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
-    e.observe({ kind: "text_delta", runId: "seg-2", text: "The read was blocked" }, { messageIndex: 1 });
+    e.observe({ kind: "text_delta", runId: "seg-2", text: "After" }, { messageIndex: 1 });
     await e.flush(st, { final: false });
-    expect(ids(log), "only the message before the blocked call").toEqual(["root.m0"]);
-    expect(log.previews, "the narration after the block is never previewed").toEqual([]);
-
-    // The boundary reopens the call as the turn's gate and blanks the narration.
-    const blocked = st.messages[0]!.toolCalls[0]!;
-    blocked.status = S.TOOL_CALL_WAITING_APPROVAL;
-    blocked.error = "";
-    blocked.requiresApproval = true;
-    blocked.approvalMessage = "Read secret-plan.md";
-    st.messages[1]!.content = "";
-    e.observe({ kind: "text_delta", runId: "seg-2", text: " retry" }, { messageIndex: 1 });
-    await e.flush(st, { final: true });
-    expect(ids(log)).toEqual(["root.m0", "blocked", "blocked.ask"]);
-    const use = log.events[1]!.event;
-    expect(use.case === "agentToolUse" && use.value.evaluatedPermission).toBe("ask");
+    expect(ids(log)).toEqual(["root.m0"]);
     expect(log.previews).toEqual([]);
-  });
-
-  it("a settled read writes at once; a gated call with no change of its own waits for the boundary", async () => {
-    const log = logDouble();
-    const e = emitter(log, cursor);
-    const st = status({
-      messages: [
-        { type: AI, content: "Two steps.", toolCalls: [row("read-1"), row("edit-1", { name: "edit", args: { path: "a.md" }, result: "ok" })] },
-      ],
-    });
-    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
-    await e.flush(st, { final: false });
-    expect(ids(log)).toEqual(["root.m0", "read-1"]);
     await e.flush(st, { final: true });
-    expect(ids(log)).toEqual(["root.m0", "read-1", "edit-1", "read-1.r", "edit-1.r"]);
-  });
-
-  it("the boundary's predicate covers every row it may still rewrite, and no other", () => {
-    const rows: Array<[Partial<ToolCall>, boolean]> = [
-      [row("x", { status: S.TOOL_CALL_RUNNING }), true],
-      [row("x", { status: S.TOOL_CALL_FAILED, error: "blocked by a hook" }), true],
-      [row("x", { name: "shell", args: { command: "ls" }, result: "" }), true],
-      [row("x", { name: "edit", args: { path: "a.md" } }), true],
-      [row("x", { name: "search", mcpServerSlug: "docs", result: "" }), true],
-      [row("x"), false],
-      [row("x", { name: "shell", args: { command: "ls" }, result: "src\n" }), false],
-      [row("x", { status: S.TOOL_CALL_FAILED, error: "ENOENT" }), false],
-    ];
-    for (const [init, expected] of rows) {
-      expect(boundaryMayStillRewrite(create(ToolCallSchema, init)), JSON.stringify(init)).toBe(expected);
-    }
+    expect(ids(log)).toEqual(["root.m0", "blocked", "blocked.r", "root.m1"]);
   });
 });
 
