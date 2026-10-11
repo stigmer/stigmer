@@ -27,7 +27,8 @@
  *     conversation already lists is the conversation's object, at its
  *     version; a plugin only subagents list is read once, the first
  *     subagent's reference winning; a subagent that cannot be read fails
- *     the turn naming it.
+ *     the turn naming it; a subagent or plugin reference with no slug is
+ *     passed over unread.
  *
  * `mergeSkillRefs` carried from `skill-writer.test.ts` in #1096, when the
  * native orchestrator's byte-twin of this function was deleted with its
@@ -425,6 +426,29 @@ describe("resolveBlueprint: subagents", () => {
     expect(blueprint.subagents[1]?.plugins[0]).toBe(blueprint.subagents[0]?.plugins[0]);
     expect(blueprint.plugins, "a subagent's plugin is not the conversation's").toEqual([]);
     expect(blueprint.pluginAgents, "nor are its plugin's agents offered to the main agent").toEqual([]);
+  });
+
+  it("passes over a subagent reference, and a subagent's plugin reference, that names no slug", async () => {
+    const getAgentByReference = vi.fn(async (ref: ApiResourceReference) => savedAgent(ref.slug, [{ slug: "" }, { slug: "changelog" }]));
+    const getPluginByReference = vi.fn(async (ref: ApiResourceReference) => pluginNamed(ref.slug, [], ref.org));
+    const client = mockStigmerClient({
+      getAgentVersion: vi.fn().mockResolvedValue(
+        parentVersion([], [
+          { org: "acme", slug: "", version: PIN },
+          { org: "acme", slug: "release-notes", version: PIN },
+        ]),
+      ),
+      getAgentByReference,
+      getPluginByReference,
+    });
+    const session = create(SessionSchema, { metadata: { id: "ses_blank", org: "acme" }, spec: {} });
+
+    const blueprint = await resolveBlueprint(client, session, { agentId: "agt_1", agentVersionHash: HASH }, {});
+
+    expect(getAgentByReference.mock.calls.map(([ref]) => ref.slug), "a reference with no slug is never read").toEqual(["release-notes"]);
+    expect(blueprint.subagents.map((s) => s.name)).toEqual(["release-notes"]);
+    expect(getPluginByReference.mock.calls.map(([ref]) => ref.slug)).toEqual(["changelog"]);
+    expect(blueprint.subagents[0]?.plugins.map((p) => p.metadata?.slug)).toEqual(["changelog"]);
   });
 
   it("fails the turn naming a subagent that cannot be read, keeping its status code", async () => {

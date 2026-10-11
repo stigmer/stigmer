@@ -30,6 +30,11 @@
  *     about what it introduces; the server acting as itself is exempt;
  *   - an Authorizer that no longer finds the agent answers the missing
  *     copy, and one that is down is INTERNAL.
+ * Through the two steps' own faults: a reference with no slug is passed
+ * over; a state with no metadata, PinSubagents run without
+ * ValidateReferences' targets, and a store fault reading a subagent are
+ * INTERNAL; a subagent deleted between the two steps answers the
+ * reference rule's missing copy.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -75,6 +80,7 @@ import {
   listedTwiceMessage,
   nestedSubagentMessage,
   newPinSubagentsStep,
+  newValidateSubagentListStep,
   selfListedMessage,
   subagentNotRunnableMessage,
   subagentUnversionedMessage,
@@ -629,5 +635,85 @@ describe("the writer clause on subagents", () => {
     await newValidateReferencesStep<typeof AgentSchema>(server.store, authorizer).execute(ctx);
     await newPinSubagentsStep(server.store, authorizer).execute(ctx);
     expect(pins(ctx.newState)).toEqual([[teams.metadata!.slug, teams.status!.versionHash]]);
+  });
+});
+
+describe("the two steps' own faults", () => {
+  const admits: Authorizer = { authorize: async () => ({ kind: "allow" }) };
+
+  /** A context for a parent listing `slugs` under the seeded organization, or with no metadata at all. */
+  function context(slugs: readonly string[], opts: { readonly metadata?: boolean } = {}): RequestContext<typeof AgentSchema> {
+    return new RequestContext(
+      AgentSchema,
+      create(AgentSchema, {
+        apiVersion: API_VERSION,
+        kind: "Agent",
+        ...(opts.metadata === false ? {} : { metadata: { name: "fault-parent", slug: "fault-parent", org: ORG_ID } }),
+        spec: {
+          instructions: "A parent the steps' faults are proven on.",
+          subagents: slugs.map((slug) => ({ kind: ApiResourceKind.agent, org: ORG_ID, slug })),
+        },
+      }),
+      testCallerIdentity({ identityId: "acc_ben" }),
+      ApiResourceKind.agent,
+    );
+  }
+
+  /** PinSubagents over `store`, as a promise however the step settles. */
+  async function pin(store: typeof server.store, ctx: RequestContext<typeof AgentSchema>): Promise<void> {
+    await newPinSubagentsStep(store, admits).execute(ctx);
+  }
+
+  /** The store with its listing failing, as a database fault would. */
+  function listingFails(): typeof server.store {
+    return new Proxy(server.store, {
+      get(target, property, receiver) {
+        if (property === "listResources") {
+          return async () => {
+            throw new Error("database offline");
+          };
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+  }
+
+  it("ValidateSubagentList passes over a reference with no slug, however many there are", () => {
+    const ctx = context(["", "", "lone"]);
+    expect(() => newValidateSubagentListStep().execute(ctx)).not.toThrow();
+  });
+
+  it("PinSubagents on a state with no metadata is INTERNAL", async () => {
+    const error = await grpcError(pin(server.store, context(["any"], { metadata: false })));
+    expect(error.code).toBe(Code.Internal);
+  });
+
+  it("PinSubagents run without ValidateReferences' recorded targets is INTERNAL, a wiring fault", async () => {
+    const helper = await command.create(agentInput(uniqueName("unvalidated")));
+    const error = await grpcError(pin(server.store, context([helper.metadata!.slug])));
+    expect(error.code).toBe(Code.Internal);
+  });
+
+  it("a store fault while reading a subagent is INTERNAL", async () => {
+    const helper = await command.create(agentInput(uniqueName("unreadable")));
+    const ctx = context([helper.metadata!.slug]);
+    await newValidateReferencesStep<typeof AgentSchema>(server.store, admits).execute(ctx);
+    const error = await grpcError(pin(listingFails(), ctx));
+    expect(error.code).toBe(Code.Internal);
+  });
+
+  it("a subagent that leaves between ValidateReferences and PinSubagents answers the reference rule's missing copy", async () => {
+    const helper = await command.create(agentInput(uniqueName("leaving")));
+    const ctx = context([helper.metadata!.slug]);
+    await newValidateReferencesStep<typeof AgentSchema>(server.store, admits).execute(ctx);
+    await command.delete({ value: helper.metadata!.id });
+    await expectRefused(
+      pin(server.store, ctx),
+      Code.FailedPrecondition,
+      missingReferencesMessage(referenceTargetKind(ApiResourceKind.agent)!, [
+        { slug: helper.metadata!.slug, org: ORG_ID },
+      ]),
+    );
   });
 });

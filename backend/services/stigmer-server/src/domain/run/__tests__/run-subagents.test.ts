@@ -9,7 +9,8 @@
  *     refuse the create FAILED_PRECONDITION naming it;
  *   - no agent, an agent listing none, and a reference with no slug read
  *     nothing;
- *   - a store fault is INTERNAL, never mistaken for a gone subagent.
+ *   - a store fault, reading the agent or its pinned version, is
+ *     INTERNAL, never mistaken for a gone subagent or version.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -137,6 +138,24 @@ describe("runSubagents", () => {
       () => undefined,
       (e: unknown) => e,
     );
+    expect((error as ConnectError).code).toBe(Code.Internal);
+  });
+
+  it("answers a store fault reading the pinned version INTERNAL, never a gone version", async () => {
+    const versionReadFails = new Proxy(store, {
+      get(target, property, receiver) {
+        if (property === "getAuditRecordByHash") {
+          return () => Promise.reject(new Error("disk gone"));
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const error = await runSubagents(versionReadFails, listing({ slug: "researcher", version: OLDER }), ORG).then(
+      () => undefined,
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.Internal);
   });
 });

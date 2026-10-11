@@ -40,7 +40,9 @@
  * refuses the delete.
  *
  * A listed plugin that cannot be read fails the turn naming it, as a
- * conversation whose agent is gone does; a hook that reads a variable the
+ * conversation whose agent is gone does; a subagent's plugin whose archive
+ * does not verify refuses the turn naming that plugin before the model is
+ * asked; a hook that reads a variable the
  * run does not give the agent settles RUN_FAILED on the actionable surface
  * with its own sentence.
  *
@@ -77,6 +79,7 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
 
 import { ScriptedClock, createHermeticEnvironment, type ExecutionRecord, type HermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { savedAgentFixture } from "../../../../__test-utils__/execution-record-fixture.js";
 import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../../__test-utils__/hermetic-deep-agent.js";
 import type { ScriptedToolCall } from "../../__test-utils__/scripted-model.js";
 import { CLOSING_TURN } from "../../__test-utils__/hitl-script.js";
@@ -413,6 +416,40 @@ fi
     // As a conversation whose agent is gone: the blueprint names the plugin
     // and the turn fails, never running without its hooks.
     expect(record.lastFullStatus!.error).toContain("the plugin 'gone' this conversation uses could not be read: plugin not found");
+  });
+
+  it("refuses the turn, naming the plugin, when a subagent's plugin's hooks cannot be mounted", async () => {
+    clock.reset();
+    const notes = savedAgentFixture("release-notes", {
+      description: "Writes release notes.",
+      instructions: "You write release notes.",
+      plugins: [create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "safety" })],
+    });
+    const record = deepAgentExecutionRecord({ message: "Write the release notes.", subagents: [notes] });
+    const forged = buildZip([{ name: "hooks/guard", content: "#!/usr/bin/env bash\nexit 0\n" }]);
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      checkpointer: "sqlite",
+      clientOverrides: {
+        getPluginByReference: vi.fn(async () => SAFETY),
+        getPluginArtifactDownloadUrl: vi.fn(async () => {
+          throw new ConnectError("no download lane", Code.Unimplemented);
+        }),
+        getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: forged })),
+      },
+      script: () => {
+        throw new Error("the model must never be asked when a subagent's hooks cannot be mounted");
+      },
+    });
+
+    const turn = await runDeepAgentTurn(scenario, { turnSeq: 0 });
+
+    expect(turn.outcome.kind, "a deterministic refusal RETURNS").toBe("returned");
+    const final = record.lastFullStatus!;
+    expect(final.phase).toBe(RunPhase.RUN_FAILED);
+    expect(final.error).toContain("The hooks of plugin 'safety' could not be prepared");
   });
 
   it("refuses the turn with its own sentence when a hook reads a variable the run does not give the agent", async () => {

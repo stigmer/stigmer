@@ -9,7 +9,8 @@
  *     decode and an encode, so a row read and written by today's schema
  *     still holds its sub-agents;
  *   - writing them back round-trips: an edited list is read as written and
- *     keeps its place among the other unknown fields, and an empty list
+ *     keeps its place among the other unknown fields, before them or after
+ *     an unknown field that preceded it, and an empty list
  *     removes the field (and the unknown-field holder once nothing is left);
  *   - a spec with no sub-agents reads none.
  */
@@ -118,6 +119,28 @@ describe("the frozen sub-agent", () => {
     expect(only).toMatchObject({ name: "Issue Triager", tools: ["Grep"], skillRefs: [] });
     // The other unknown field keeps its place after the sub-agents.
     expect(((reread as UnknownHolder).$unknown ?? []).map((field) => field.no)).toEqual([
+      AGENT_SPEC_SUB_AGENTS_FIELD,
+      999,
+    ]);
+  });
+
+  it("writes the list back after an unknown field that came before it, keeping both neighbours in place", () => {
+    const writer = new BinaryWriter().raw(specBytes([], [{ no: 998, text: "before" }]));
+    writer.tag(AGENT_SPEC_SUB_AGENTS_FIELD, WireType.LengthDelimited).bytes(subAgentBytes(TRIAGER));
+    writer.tag(999, WireType.LengthDelimited).string("after");
+    const spec = fromBinary(AgentSpecSchema, writer.finish());
+    const [triager] = readSubAgents(spec);
+    triager!.tools = ["Grep"];
+    writeSubAgents(spec, [triager!, { ...triager!, name: "second" }]);
+
+    const reread = fromBinary(AgentSpecSchema, toBinary(AgentSpecSchema, spec));
+    expect(readSubAgents(reread).map((subAgent) => [subAgent.name, subAgent.tools])).toEqual([
+      ["Issue Triager", ["Grep"]],
+      ["second", ["Grep"]],
+    ]);
+    expect(((reread as UnknownHolder).$unknown ?? []).map((field) => field.no)).toEqual([
+      998,
+      AGENT_SPEC_SUB_AGENTS_FIELD,
       AGENT_SPEC_SUB_AGENTS_FIELD,
       999,
     ]);

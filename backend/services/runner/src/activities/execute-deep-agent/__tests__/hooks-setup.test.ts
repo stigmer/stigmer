@@ -11,7 +11,9 @@
  * A saved subagent's evaluator runs the conversation's sources first, then
  * the subagent's own; the subagent's own block reads the subagent's values,
  * never the agent's, and its commands run in the subagent's environment,
- * while the conversation's keep the agent's.
+ * while the conversation's keep the agent's. A hook on a subagent's call
+ * sees the subagent's plugin servers as Claude Code names them
+ * (`plugin:<plugin>:<server>`), and a platform server by its slug.
  */
 
 import { mkdtempSync, rmSync } from "node:fs";
@@ -256,6 +258,43 @@ describe("buildHookEvaluator", () => {
         "conversation agent=agent-secret sub=",
         "subagent agent= sub=notes-secret",
       ]);
+    } finally {
+      rmSync(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it("shows a hook a subagent's plugin server by its plugin's name, as Claude Code does, and a platform server by its slug", async () => {
+    const workspace = mkdtempSync(join(tmpdir(), "hooks-subagent-servers-"));
+    try {
+      const github: ResolvedMcpServer = {
+        slug: "plugin_github_api",
+        connectionType: "http",
+        url: "https://api.githubcopilot.com/mcp/",
+        pluginOrigin: { pluginId: "plg_github", plugin: "github", server: "api" },
+      };
+      const platform: ResolvedMcpServer = { slug: "notes", connectionType: "http", url: "https://notes.example.com/mcp", pluginOrigin: null };
+      const reportsServer = [
+        create(HookGroupSchema, {
+          event: "PreToolUse",
+          matcher: "mcp__.*",
+          handlers: [
+            create(HookHandlerSchema, {
+              command:
+                `input=$(cat); case "$input" in *'"name":"plugin:github:api"'*) n=plugin:github:api ;; *'"name":"notes"'*) n=notes ;; *) n=unnamed ;; esac; ` +
+                `printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"%s"}}' "$n"`,
+            }),
+          ],
+        }),
+      ];
+      const own: TurnSubagent = { ...subagent([{ plugin: null, format: "claude-code", groups: reportsServer }], {}), servers: [github, platform] };
+      const turn = input([], { workspaceDir: workspace, subagents: [own] });
+      const served = { toolServerMap: new Map([["create_issue", "plugin_github_api"], ["add_note", "notes"]]) };
+
+      const delegated = await buildHookEvaluator(turn, sink, served, 180_000, own);
+      const issue = await delegated!.preToolUse({ id: "c1", name: "create_issue", args: {}, serverSlug: "plugin_github_api" }, {});
+      expect(issue.additionalContext).toEqual(["plugin:github:api"]);
+      const note = await delegated!.preToolUse({ id: "c2", name: "add_note", args: {}, serverSlug: "notes" }, {});
+      expect(note.additionalContext).toEqual(["notes"]);
     } finally {
       rmSync(workspace, { recursive: true, force: true });
     }

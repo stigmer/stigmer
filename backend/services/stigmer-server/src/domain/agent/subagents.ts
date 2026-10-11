@@ -319,6 +319,7 @@ async function judgeWriter(
 function subagentGone(ref: ApiResourceReference): Error {
   const entry = referenceTargetKind(ApiResourceKind.agent);
   if (entry === undefined) {
+    /* v8 ignore next -- @preserve: the reference rule table is a constant that holds an agent entry; no input reaches this */
     return internalError(
       new Error("reference rule table has no agent entry"),
       "pin subagents",
