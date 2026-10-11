@@ -283,7 +283,6 @@ const agent = await stigmer.agent.apply({
   iconUrl: "...",
   instructions: "...",
   skillRefs: [],
-  subAgents: [],
   env: {},
   tools: [],
   disallowedTools: [],
@@ -291,6 +290,7 @@ const agent = await stigmer.agent.apply({
   runConfig: {},
   harness: "...",
   plugins: [],
+  subagents: [],
 });
 ```
 </Tab>
@@ -305,7 +305,6 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   IconUrl:         "...",
   Instructions:    "...",
   SkillRefs:       []stigmer.ResourceRef{},
-  SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
   Tools:           []string{},
   DisallowedTools: []string{},
@@ -313,6 +312,7 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   RunConfig:       &stigmer.RunConfigInput{},
   Harness:         "...",
   Plugins:         []stigmer.ResourceRef{},
+  Subagents:       []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -327,7 +327,6 @@ agent = client.agents.apply(AgentInput(
     icon_url="...",
     instructions="...",
     skill_refs=[],
-    sub_agents=[],
     env={},
     tools=[],
     disallowed_tools=[],
@@ -335,6 +334,7 @@ agent = client.agents.apply(AgentInput(
     run_config=None,
     harness="...",
     plugins=[],
+    subagents=[],
 ))
 ```
 </Tab>
@@ -349,7 +349,6 @@ Agent agent = client.agents().apply(AgentInput.builder()
     .iconUrl("...")
     .instructions("...")
     .skillRefs(List.of())
-    .subAgents(List.of())
     .env(Map.of())
     .tools(List.of())
     .disallowedTools(List.of())
@@ -357,6 +356,7 @@ Agent agent = client.agents().apply(AgentInput.builder()
     .runConfig(null)
     .harness("...")
     .plugins(List.of())
+    .subagents(List.of())
     .build());
 ```
 </Tab>
@@ -382,7 +382,6 @@ const agent = await stigmer.agent.create({
   iconUrl: "...",
   instructions: "...",
   skillRefs: [],
-  subAgents: [],
   env: {},
   tools: [],
   disallowedTools: [],
@@ -390,6 +389,7 @@ const agent = await stigmer.agent.create({
   runConfig: {},
   harness: "...",
   plugins: [],
+  subagents: [],
 });
 ```
 </Tab>
@@ -404,7 +404,6 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   IconUrl:         "...",
   Instructions:    "...",
   SkillRefs:       []stigmer.ResourceRef{},
-  SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
   Tools:           []string{},
   DisallowedTools: []string{},
@@ -412,6 +411,7 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   RunConfig:       &stigmer.RunConfigInput{},
   Harness:         "...",
   Plugins:         []stigmer.ResourceRef{},
+  Subagents:       []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -426,7 +426,6 @@ agent = client.agents.create(AgentInput(
     icon_url="...",
     instructions="...",
     skill_refs=[],
-    sub_agents=[],
     env={},
     tools=[],
     disallowed_tools=[],
@@ -434,6 +433,7 @@ agent = client.agents.create(AgentInput(
     run_config=None,
     harness="...",
     plugins=[],
+    subagents=[],
 ))
 ```
 </Tab>
@@ -448,7 +448,6 @@ Agent agent = client.agents().create(AgentInput.builder()
     .iconUrl("...")
     .instructions("...")
     .skillRefs(List.of())
-    .subAgents(List.of())
     .env(Map.of())
     .tools(List.of())
     .disallowedTools(List.of())
@@ -456,6 +455,7 @@ Agent agent = client.agents().create(AgentInput.builder()
     .runConfig(null)
     .harness("...")
     .plugins(List.of())
+    .subagents(List.of())
     .build());
 ```
 </Tab>
@@ -481,7 +481,6 @@ const agent = await stigmer.agent.update({
   iconUrl: "...",
   instructions: "...",
   skillRefs: [],
-  subAgents: [],
   env: {},
   tools: [],
   disallowedTools: [],
@@ -489,6 +488,7 @@ const agent = await stigmer.agent.update({
   runConfig: {},
   harness: "...",
   plugins: [],
+  subagents: [],
 });
 ```
 </Tab>
@@ -503,7 +503,6 @@ agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
   IconUrl:         "...",
   Instructions:    "...",
   SkillRefs:       []stigmer.ResourceRef{},
-  SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
   Tools:           []string{},
   DisallowedTools: []string{},
@@ -511,6 +510,7 @@ agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
   RunConfig:       &stigmer.RunConfigInput{},
   Harness:         "...",
   Plugins:         []stigmer.ResourceRef{},
+  Subagents:       []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -525,7 +525,6 @@ agent = client.agents.update(AgentInput(
     icon_url="...",
     instructions="...",
     skill_refs=[],
-    sub_agents=[],
     env={},
     tools=[],
     disallowed_tools=[],
@@ -533,6 +532,7 @@ agent = client.agents.update(AgentInput(
     run_config=None,
     harness="...",
     plugins=[],
+    subagents=[],
 ))
 ```
 </Tab>
@@ -547,7 +547,6 @@ Agent agent = client.agents().update(AgentInput.builder()
     .iconUrl("...")
     .instructions("...")
     .skillRefs(List.of())
-    .subAgents(List.of())
     .env(Map.of())
     .tools(List.of())
     .disallowedTools(List.of())
@@ -555,6 +554,7 @@ Agent agent = client.agents().update(AgentInput.builder()
     .runConfig(null)
     .harness("...")
     .plugins(List.of())
+    .subagents(List.of())
     .build());
 ```
 </Tab>
@@ -713,14 +713,14 @@ Input for creating or updating an Agent.
     iconUrl: { type: "string", description: "Icon URL for marketplace and UI display." },
     instructions: { type: "string", description: "System prompt defining the agent's behavior and personality." },
     skillRefs: { type: "ResourceRef[]", description: "Skill resources providing additional knowledge to the agent.", typeDescriptionLink: "#resourceref" },
-    subAgents: { type: "SubAgentInput[]", description: "Sub-agents that can be delegated to.", typeDescriptionLink: "#subagentinput" },
     env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this agent.", typeDescriptionLink: "#envvardeclarationinput" },
     tools: { type: "string[]", description: "Tools this agent may use; empty means every tool it has." },
     disallowedTools: { type: "string[]", description: "Tools this agent may never use, in the same names as tools." },
-    hooks: { type: "HookSourceInput[]", description: "Hooks written in this agent itself, run around its tool calls and its sub-agents' calls, after the hooks of the plugins it lists.", typeDescriptionLink: "#hooksourceinput" },
+    hooks: { type: "HookSourceInput[]", description: "Hooks written in this agent itself, run around its tool calls and its subagents' calls, after the hooks of the plugins it lists.", typeDescriptionLink: "#hooksourceinput" },
     runConfig: { type: "RunConfigInput", description: "The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message or the surface it came through sets its own (RunConfig has the rule).", typeDescriptionLink: "#runconfiginput" },
     harness: { type: "Harness", description: "The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person or the surface starting it names neither an engine nor a model (a turn that names a model but no engine starts on native, the engine its name was checked against).", typeDescriptionLink: "#harness" },
     plugins: { type: "ResourceRef[]", description: "Plugins this agent uses, each whole: its skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
+    subagents: { type: "ResourceRef[]", description: "Saved agents this agent may hand work to, each running its own instructions, model, tools, plugins, skills, hooks and values.", typeDescriptionLink: "#resourceref" },
   }}
 />
 
@@ -734,22 +734,6 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
-  }}
-/>
-
-### SubAgentInput
-
-SubAgent defines a specialized agent that the parent can delegate to.
-
-<TypeTable
-  type={{
-    name: { type: "string", description: "Unique name of the sub-agent within the parent agent.", required: true },
-    description: { type: "string", description: "What this sub-agent specializes in." },
-    instructions: { type: "string", description: "System prompt for this sub-agent." },
-    skillRefs: { type: "ResourceRef[]", description: "Skill resources for this sub-agent.", typeDescriptionLink: "#resourceref" },
-    modelOverride: { type: "string", description: "Model override for this sub-agent." },
-    tools: { type: "string[]", description: "Tools this sub-agent may use, from what the parent may use; empty means all of the parent's." },
-    disallowedTools: { type: "string[]", description: "Tools this sub-agent may never use, in the same names as tools." },
   }}
 />
 
@@ -899,7 +883,7 @@ AgentVersionEntry is one historical version of an agent.
     tag: { type: "string", description: "The tag this version holds now, if any." },
     isCurrent: { type: "boolean", description: "Whether this is the agent's current version." },
     message: { type: "string", description: "Human-readable message describing what changed in this version, from metadata.version.message at apply time." },
-    specSnapshot: { type: "AgentSpecInput", description: "The agent spec exactly as this version stored it: the instructions, sub-agents, skill and plugin references, declared keys and vaults a turn on this version runs with." },
+    specSnapshot: { type: "AgentSpecInput", description: "The agent spec exactly as this version stored it: the instructions, subagent pins, skill and plugin references, declared keys and vaults a turn on this version runs with." },
   }}
 />
 

@@ -210,18 +210,8 @@ describe("toAgentUpdateInput", () => {
         skillRefs: [
           { org: "acme", slug: "triage", version: "v2", kind: ApiResourceKind.skill },
         ],
-        subAgents: [
-          {
-            name: "researcher",
-            description: "Digs into logs.",
-            instructions: "Cite sources.",
-            tools: ["Read", "mcp__plugin_github_github__search_code"],
-            disallowedTools: ["Bash(git push *)"],
-            skillRefs: [
-              { org: "acme", slug: "log-analysis", version: "v1", kind: ApiResourceKind.skill },
-            ],
-            modelOverride: "gpt-5.6-sol",
-          },
+        subagents: [
+          { org: "acme", slug: "researcher", version: "a".repeat(64), kind: ApiResourceKind.agent },
         ],
         env: {
           API_KEY: { isSecret: true, description: "Vendor key", optional: true },

@@ -11,7 +11,15 @@ export {
 } from "./registry.js";
 export type { ManifestKindHandler, ServiceClientFn } from "./registry.js";
 
-export { parseManifest, metadataOf, MCP_SERVER_WAY_FORWARD, mcpServerWayForward } from "./parse.js";
+export {
+  parseManifest,
+  metadataOf,
+  MCP_SERVER_WAY_FORWARD,
+  mcpServerWayForward,
+  SUBAGENTS_WAY_FORWARD,
+  subagentsWayForward,
+  retiredShapeWayForward,
+} from "./parse.js";
 export type { ManifestDocument, ParseManifestOptions } from "./parse.js";
 
 export { manifestDocumentForResource } from "./document.js";

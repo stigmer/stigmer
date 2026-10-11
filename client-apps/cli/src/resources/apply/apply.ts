@@ -27,7 +27,7 @@ import {
   organizationLabel,
   organizationNamed,
 } from "../../client/organizations.js";
-import { mcpServerWayForward } from "@stigmer/sdk";
+import { retiredShapeWayForward } from "@stigmer/sdk";
 import { classify, UsageError } from "../../errors/index.js";
 import { CommandResult } from "../../output/index.js";
 import { defaultRegistry, unknownKindError, Verb } from "../../registry/index.js";
@@ -117,7 +117,7 @@ export function marshalItem(item: ApplyItem): Message {
   try {
     return fromJson(item.handler.schema, item.document, { ignoreUnknownFields: false });
   } catch (err) {
-    const hint = mcpServerWayForward(item.document);
+    const hint = retiredShapeWayForward(item.document);
     throw new UsageError(
       `invalid ${item.handler.displayName} in ${item.filePath}: ${(err as Error).message}${hint === undefined ? "" : `\n${hint}`}`,
     );

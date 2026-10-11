@@ -1356,6 +1356,7 @@ ExecutionValues are one execution's values, grouped by who declared them: each d
     tools: { type: "ToolValuesInput[]", description: "Each tool's keys, by tool." },
     repositories: { type: "RepositoryValuesInput[]", description: "Each repository's token, for its clone and write-back only." },
     plugins: { type: "PluginValuesInput[]", description: "Each plugin's keys, for that plugin's hooks only." },
+    subagents: { type: "SubagentValuesInput[]", description: "Each subagent's own keys, for its shell and its own hooks: what agent holds for the agent, for a saved agent the turn's agent lists." },
   }}
 />
 
