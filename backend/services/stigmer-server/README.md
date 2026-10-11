@@ -73,7 +73,9 @@ const myExtension: ServerExtension = { /* services, workers, verifiers, drivers,
 const server = await composeServer({ config, logger, extensions: [myExtension] });
 ```
 
-A composition that is a whole process, rather than a library inside one, boots through the same process body the shipped server does: `runServer({ extensions: [myExtension] })` reads the config, makes the logger, composes, starts, prints the ready line and runs the drain on SIGTERM or SIGINT.
+A composition that is a whole process, rather than a library inside one, boots through the same process body the shipped server does: `runServer({ extensions: [myExtension] })` reads the config, makes the logger, composes, starts, prints the ready line and runs the drain on SIGTERM or SIGINT. An entry that needs the config or the logger to build its units (a pool over `DATABASE_URL`, a key it must verify first) passes a function instead, `runServer({ extensions: ({ config, logger }) => buildUnits(config, logger) })`, called once after both exist and before composition; its rejection rejects `runServer` as a composition failure does. Such an entry composes `openSourceEdition`, the shipped server's one unit, when it has nothing of its own to add. An edition above open source that signs its own tokens as the open-source server does registers `openSourcePlatformTokenKeyRing()` as its `drivers.platformTokenKeys`: the library generates that ring unasked for open source alone.
+
+A unit receives the composition's own instances at `onComposed` (`ComposedServices`): the bound Authorizer and list scope, the identity accounts' store and create path, and `iamPolicies`, the policy store binding's reads (`findByResource`, `findScopeTuple`, `findByResourceKindAndRelation`), for a unit's repair or grant gate. Writes go through the IamPolicy RPCs, never this store.
 
 Versions are lockstep with the platform (`vX.Y.Z` tags on this repository). Pre-release builds for cross-repository work publish under the `dev` dist-tag as `X.Y.Z-dev.<stamp>.g<sha12>`, naming the commit they were built from (`.github/workflows/docs/dev-publishing.md`); pin them exactly, never by tag, and never in a production image.
 

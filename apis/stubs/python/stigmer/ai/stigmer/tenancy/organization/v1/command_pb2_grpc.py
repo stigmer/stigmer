@@ -56,8 +56,8 @@ class OrganizationCommandControllerServicer(object):
     def apply(self, request, context):
         """Create or update an organization.
 
-        Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
-        included.
+        Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
+        LICENSE_RENEWAL_REQUIRED included.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -117,6 +117,15 @@ class OrganizationCommandControllerServicer(object):
 
         - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
         as it is composed to. Metadata: limit.
+
+        On Stigmer Enterprise, a new organization is growth the server's
+        license pays for. Once the license and its grace period have ended, a
+        create is refused with FAILED_PRECONDITION carrying a
+        google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+        written:
+
+        - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+        organization that exists keeps working. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

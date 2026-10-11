@@ -23,7 +23,8 @@
  *   - the process body (runServer: config, logger, operator identity,
  *     compose, start, the ready line and the signal-driven shutdown), for
  *     an entry that composes its own units and should boot a process the
- *     way the shipped server does
+ *     way the shipped server does, and the open-source edition's unit such
+ *     an entry composes when it has no license
  *   - the extension-point types (the whole src/extensions contract)
  *   - the pipeline primitives extensions build gates AND extension-
  *     registered services from (PipelineStep, RequestContext, the semantic
@@ -64,7 +65,15 @@ export { createLogger } from "./boot/logger.js";
 // The process body every entry boots through: the shipped server's, the
 // test harness's, and an edition's own entry that composes other units.
 export { runServer } from "./boot/run.js";
-export type { ProcessHost, RunServerOptions } from "./boot/run.js";
+export type {
+  ProcessHost,
+  RunServerOptions,
+  ServerBoot,
+} from "./boot/run.js";
+// The open-source edition's one unit (one organization), for an edition's
+// entry that composes it when its own license is absent, so a keyless
+// server is exactly the shipped one.
+export { openSourceEdition } from "./editions/open-source.js";
 export type {
   LogEntry,
   LogFields,
@@ -86,8 +95,9 @@ export type {
 // Authorizer and list read scope (bound by the credential binding), the
 // binding itself, the policy check, tuple lifecycle, in-process transport
 // and the identity accounts' store binding and create path, whichever
-// posture built them.
+// posture built them, and the policy store's reads.
 export type {
+  ComposedIamPolicies,
   ComposedIdentityAccounts,
   ComposedServices,
 } from "./extensions/composed-services.js";
@@ -365,6 +375,13 @@ export {
   canSign,
   platformTokenKeyRingFromPem,
 } from "./platformtoken/key-ring.js";
+// Open source's own ring, on its key ladder (STIGMER_PLATFORM_TOKEN_KEY,
+// else ~/.stigmer/platform-token.key, else generated and kept there): for
+// a self-hosted edition above open source that signs its tokens the way
+// the open-source server does. The library generates it unasked for open
+// source alone, so such an edition registers it as its driver, by choice.
+export { openSourcePlatformTokenKeyRing } from "./platformtoken/key-ring.js";
+export type { KeyLoaderOptions } from "./encryption/key-manager.js";
 // The kinds whose missing row the built-in authorizer denies instead of
 // answering not-found: exported so a composition that authorizes with its
 // own engine and probes existence itself pins its exemptions to this set.

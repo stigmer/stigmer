@@ -36,8 +36,8 @@ const (
 type OrganizationCommandControllerClient interface {
 	// Create or update an organization.
 	//
-	// Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
-	// included.
+	// Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
+	// LICENSE_RENEWAL_REQUIRED included.
 	Apply(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Create an organization.
 	//
@@ -92,6 +92,15 @@ type OrganizationCommandControllerClient interface {
 	//
 	//   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
 	//     as it is composed to. Metadata: limit.
+	//
+	// On Stigmer Enterprise, a new organization is growth the server's
+	// license pays for. Once the license and its grace period have ended, a
+	// create is refused with FAILED_PRECONDITION carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+	// written:
+	//
+	//   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+	//     organization that exists keeps working. No metadata.
 	Create(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Update an existing organization.
 	//
@@ -223,8 +232,8 @@ func (c *organizationCommandControllerClient) Delete(ctx context.Context, in *Or
 type OrganizationCommandControllerServer interface {
 	// Create or update an organization.
 	//
-	// Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED
-	// included.
+	// Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
+	// LICENSE_RENEWAL_REQUIRED included.
 	Apply(context.Context, *Organization) (*Organization, error)
 	// Create an organization.
 	//
@@ -279,6 +288,15 @@ type OrganizationCommandControllerServer interface {
 	//
 	//   - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations
 	//     as it is composed to. Metadata: limit.
+	//
+	// On Stigmer Enterprise, a new organization is growth the server's
+	// license pays for. Once the license and its grace period have ended, a
+	// create is refused with FAILED_PRECONDITION carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+	// written:
+	//
+	//   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+	//     organization that exists keeps working. No metadata.
 	Create(context.Context, *Organization) (*Organization, error)
 	// Update an existing organization.
 	//

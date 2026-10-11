@@ -117,6 +117,8 @@ import {
   repairAccountSlug,
   rethrownStatusError,
   runServer,
+  openSourceEdition,
+  openSourcePlatformTokenKeyRing,
   newSubstrateSandboxDriver,
   newSubstrateSettingsFromEnv,
   ROUTING_SESSION,
@@ -144,11 +146,13 @@ import type {
   ChannelRuntime,
   ChildOrganizationLinkedEvent,
   ChildOrganizations,
+  ComposedIamPolicies,
   ComposedIdentityAccounts,
   ComposedServer,
   CreateAccountInput,
   FederatedProvider,
   RunServerOptions,
+  ServerBoot,
   GateSlotName,
   GuestTokenMinting,
   IamPolicyStore,
@@ -1493,6 +1497,22 @@ export async function consumerChildIdFor(
 }
 export const consumerBoundDenial: string = BOUND_ELSEWHERE_DENY_REASON;
 
+/**
+ * The policy store's reads, kept from `onComposed`: a unit's repair and
+ * grant gate read the composition's one binding, never a store of their
+ * own.
+ */
+let consumerIamPolicies: ComposedIamPolicies | undefined;
+export async function consumerScopeLinkOf(
+  resourceKind: string,
+  resourceId: string,
+): Promise<string | undefined> {
+  const link = await consumerIamPolicies?.findScopeTuple(
+    resourceKind,
+    resourceId,
+  );
+  return link?.spec?.principal?.id;
+}
 /** The whole unit — every point a consumer can populate today. */
 export const fakeExtension: ServerExtension = {
   name: "consumer-fake",
@@ -1511,6 +1531,7 @@ export const fakeExtension: ServerExtension = {
     consumerCredentialBinding = composed.credentialBinding;
     consumerChildOrganizations = composed.childOrganizations;
     consumerIdentityAccounts = composed.identityAccounts;
+    consumerIamPolicies = composed.iamPolicies;
   },
   identityVerifiers: [verifier, consumerGuestTokenVerifier],
   // Post-authentication caller guards, serving
@@ -1635,6 +1656,42 @@ export async function composeFakeCloud(): Promise<ComposedServer> {
 export function runFakeCloudProcess(): Promise<void> {
   const options: RunServerOptions = { extensions: [fakeExtension] };
   return runServer(options);
+}
+
+/**
+ * An edition's entry that builds its units from the boot's own config and
+ * logger: with no license it composes exactly the open-source edition, and
+ * with one its own unit, so the environment is read once.
+ */
+export function runLicensedEditionProcess(
+  licenseKey: string | undefined,
+): Promise<void> {
+  return runServer({
+    extensions: (boot: ServerBoot) => {
+      if (licenseKey === undefined) {
+        return Promise.resolve([openSourceEdition]);
+      }
+      boot.logger.info("licensed edition", {
+        database: boot.config.databaseUrl === "" ? "sqlite" : "postgres",
+      });
+      return Promise.resolve([selfHostedEdition()]);
+    },
+  });
+}
+
+/**
+ * A self-hosted edition above open source: it signs its own tokens with
+ * open source's ring on its key ladder, registered as its driver by
+ * choice, since the library generates that ring unasked for open source
+ * alone. Built when the entry decides, never at import: the ladder may
+ * write the key it generates.
+ */
+function selfHostedEdition(): ServerExtension {
+  return {
+    name: "self-hosted-edition",
+    edition: ServerEdition.enterprise,
+    drivers: { platformTokenKeys: openSourcePlatformTokenKeyRing() },
+  };
 }
 
 /**
