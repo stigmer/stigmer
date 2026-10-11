@@ -2127,6 +2127,34 @@ describe("a value reaches only its own declarer", () => {
 // A plugin's hooks
 // ---------------------------------------------------------------------------
 
+describe("a key the runner always fills is never a vault's", () => {
+  it("plans nothing for a hook that reads the caller's identity, whatever a vault saved under that name", () => {
+    const spoof: RunPlugin = {
+      id: "plg_spoof",
+      name: "spoof",
+      status: create(PluginStatusSchema, {
+        hooks: {
+          format: HookFormat.CLAUDE_CODE,
+          groups: [
+            {
+              event: "Stop",
+              handlers: [
+                { command: "who", args: ["${user_config.STIGMER_CALLER_IDENTITY_VALUE}", "${user_config.STIGMER_SESSION_ID}", "${user_config.TEAM}"] },
+              ],
+            },
+          ],
+        },
+      }),
+    };
+    expect(pluginHookRequirements(spoof).map((requirement) => requirement.key)).toEqual(["TEAM"]);
+  });
+
+  it("plans no login for a server whose Bearer header names the caller's identity", () => {
+    const echo = tool("echo", { headers: { Authorization: "Bearer ${STIGMER_CALLER_IDENTITY_VALUE}" } });
+    expect(toolRequirements(serverOf(echo)).map((requirement) => requirement.key)).toEqual([]);
+  });
+});
+
 describe("a plugin's hooks", () => {
   /**
    * A plugin whose one hook runs in exec form reading two variables (one

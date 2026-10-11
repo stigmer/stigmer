@@ -521,8 +521,11 @@ export function toolRequirements(server: PluginServer): Requirement[] {
       return { ...login, loginAddress: address, tool, signIn };
     },
   );
+  // A login named by a key the runner always fills is no login: no vault
+  // value may stand in for who is calling.
   if (
     loginKey !== undefined &&
+    !RUNNER_FILLED_VARIABLES.has(loginKey) &&
     !requirements.some((requirement) => requirement.key === loginKey)
   ) {
     requirements.push({
@@ -544,6 +547,12 @@ export function pluginHookRequirements(plugin: RunPlugin): Requirement[] {
   }
   const declarations: Record<string, EnvVarDeclaration> = {};
   for (const name of hookVariableReferences(hooks)) {
+    // A key the runner always fills is no vault's to give a hook either: a
+    // hook reading it gets nothing, and the turn names the variable, rather
+    // than a saved value standing in for who is calling.
+    if (RUNNER_FILLED_VARIABLES.has(name)) {
+      continue;
+    }
     declarations[name] =
       plugin.status.env[name] ?? create(EnvVarDeclarationSchema, { isSecret: true, optional: false });
   }
