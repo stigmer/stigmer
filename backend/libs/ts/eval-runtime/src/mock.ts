@@ -45,7 +45,7 @@ export function renderMockAnswer(
   readFixture: (path: string) => string | undefined,
 ): MockRender {
   let failure: string | undefined;
-  const text = body.replace(/\{\{\s*(input\.[^{}\s]+|file:[^{}]*(?:\{[^{}]*\}[^{}]*)*)\s*\}\}/g, (_whole, ref: string) => {
+  const text = replacePlaceholders(body, (ref) => {
     if (failure !== undefined) return "";
     if (ref.startsWith("input.")) return inputText(input, ref.slice("input.".length));
     const named = ref
@@ -64,6 +64,47 @@ export function renderMockAnswer(
     return content;
   });
   return failure === undefined ? { ok: true, text } : { ok: false, error: failure };
+}
+
+/**
+ * Each `{{ ref }}` in `body` replaced by `render(ref)`: a ref is
+ * `input.<path>` with no space or brace, or `file:...` holding at most
+ * single-level `{...}` groups. Anything else stays as written. A scan from
+ * one `{{` stops at its closing `}}`, at the next `{{` or at a stray `}`, so
+ * a body costs time linear in its length whatever it holds, which a
+ * pattern with overlapping quantifiers cannot promise.
+ */
+function replacePlaceholders(body: string, render: (ref: string) => string): string {
+  let out = "";
+  let from = 0;
+  for (let open = body.indexOf("{{", from); open !== -1; open = body.indexOf("{{", from)) {
+    const close = closingOf(body, open + 2);
+    const ref = close === -1 ? "" : body.slice(open + 2, close).trim();
+    if (/^input\.[^{}\s]+$/.test(ref) || ref.startsWith("file:")) {
+      out += body.slice(from, open) + render(ref);
+      from = close + 2;
+    } else {
+      out += body.slice(from, open + 1);
+      from = open + 1;
+    }
+  }
+  return out + body.slice(from);
+}
+
+/** The index of the `}}` that closes a placeholder opened before `start`, or -1. */
+function closingOf(body: string, start: number): number {
+  let depth = 0;
+  for (let k = start; k < body.length; k++) {
+    const c = body[k];
+    if (c === "{") {
+      if (depth === 1) return -1;
+      depth = 1;
+    } else if (c === "}") {
+      if (depth === 1) depth = 0;
+      else return body[k + 1] === "}" ? k : -1;
+    }
+  }
+  return -1;
 }
 
 /** `name` normalised under `fixtures/`, or `undefined` when it leaves it. */
