@@ -32,10 +32,10 @@
  *     read by id, in place of the scan every lookup by slug used to run.
  *
  * NAMED_KINDS says, for every kind, whether its slug is claimed or why
- * not; __tests__/names.test.ts holds it equal to ApiResourceKind, so a new
+ * not; __tests__/names.postgres.test.ts holds it equal to ApiResourceKind, so a new
  * kind cannot land without an answer.
  *
- * Proven by __tests__/names.test.ts (both drivers: the race, the gone
+ * Proven by __tests__/names.postgres.test.ts (both drivers: the race, the gone
  * holder, the release), the kind-purge tests, and the store contract.
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
