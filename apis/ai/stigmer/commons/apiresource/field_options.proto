@@ -20,4 +20,8 @@ extend google.protobuf.FieldOptions {
   // Declares what kind of resource an ApiResourceReference field points to.
   // Used by codegen to auto-populate the kind enum and flatten reference types.
   ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind reference_kind = 90204;
+  // Names the outside format's type string a oneof member carries on the
+  // wire ("agent.message"), so a message copied from that format keeps no
+  // type field of its own and the name is declared once.
+  string event_type = 90206;
 }

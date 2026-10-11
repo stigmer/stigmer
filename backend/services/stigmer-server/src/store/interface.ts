@@ -34,6 +34,12 @@ import type {
   ListIndexQuery,
   ListIndexRow,
 } from "./list-index.js";
+import type {
+  ResourceEventWriteResult,
+  ResourceEventWriter,
+  SessionEventScope,
+  SessionEventStore,
+} from "./session-events.js";
 
 // =============================================================================
 // Sentinel errors
@@ -681,6 +687,25 @@ export interface Store {
   deleteResource(kind: ApiResourceKind, id: string): Promise<void>;
 
   /**
+   * The one door for a write that must commit with session events
+   * (session-events.ts states the contract): under the session's lock, the
+   * committed row (undefined when absent) and the count of the session's
+   * OTHER rows holding `scope.workingKey` are handed to the synchronous
+   * `write`, and the row it returns (or its removal, with the row's own
+   * events except the kept types) commits in one transaction with the
+   * events it returns, numbered and stamped. Throwing from `write` writes
+   * nothing. The kind must be list-indexed with both scope keys; a row in
+   * no session may write no events.
+   */
+  writeResourceAppendingEvents<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+    write: ResourceEventWriter<Desc>,
+    scope: SessionEventScope,
+  ): Promise<ResourceEventWriteResult<Desc>>;
+
+  /**
    * Finds a single resource whose field at `fieldPath` (dot notation, e.g.
    * "spec.executionId"; camelCase parts fall back to snake_case) equals
    * `value`. Full-scan + proto reflection, exactly as Go — indexability is
@@ -987,6 +1012,8 @@ export interface Store {
   readonly connectLinks: ConnectLinkStore;
   readonly connectAttempts: ConnectAttemptStore;
   readonly organizationDeletions: OrganizationDeletionStore;
+  /** Each session's ordered event log (session-events.ts). */
+  readonly sessionEvents: SessionEventStore;
 
   // ---------------------------------------------------------------------------
   // Lifecycle

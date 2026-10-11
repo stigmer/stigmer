@@ -48,6 +48,8 @@ const ALL_TABLES = [
   "oauth_client_registration",
   "connect_link",
   "connect_attempt",
+  "session_events",
+  "session_event_heads",
 ] as const;
 
 describe.skipIf(testDatabaseAdminUrl() === undefined)(

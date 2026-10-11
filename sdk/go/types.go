@@ -104,6 +104,7 @@ type VaultConnectionSignInInput = gen.VaultConnectionSignInInput
 
 // Streaming types.
 type RunSubscribeStream = gen.RunSubscribeStream
+type SessionStreamEventsStream = gen.SessionStreamEventsStream
 
 // Shared SDK types.
 type DeleteResourceInput = gen.DeleteResourceInput

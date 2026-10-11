@@ -108,6 +108,8 @@ import {
 } from "../lifecycle.js";
 import { StreamBroker } from "../stream-broker.js";
 import { stubConnectedEngine } from "./engine-stub.js";
+import { SessionEventBroker } from "../../session/events/broker.js";
+import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -120,7 +122,9 @@ let store: Store;
 
 beforeAll(() => {
   dir = mkdtempSync(path.join(tmpdir(), "aexec-lifecycle-test-"));
-  store = SqliteStore.open(path.join(dir, "stigmer.db"));
+  store = SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
+    listIndexes: LIST_INDEXES,
+  });
 });
 
 afterAll(() => {
@@ -479,6 +483,7 @@ function lifecycleDeps(engineState: ExecutionEngineState): LifecycleDeps {
     authorizer: newPermissiveSingleTeamAuthorizer(),
     recoverSerializer: new KeyedSerializer(),
     broker: new StreamBroker(silentLogger),
+    sessionEventBroker: new SessionEventBroker(silentLogger),
     engineState: () => engineState,
     runValuePlanner: stubPlannerDeps(),
     gateSteps: new Map(),
@@ -835,6 +840,7 @@ describe("lifecycle pipelines", () => {
       authorizer: newPermissiveSingleTeamAuthorizer(),
       recoverSerializer: new KeyedSerializer(),
       broker: new StreamBroker(silentLogger),
+      sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
       sandboxLane: { enabled: false },
@@ -935,6 +941,7 @@ describe("lifecycle pipelines", () => {
       authorizer: newPermissiveSingleTeamAuthorizer(),
       recoverSerializer: new KeyedSerializer(),
       broker: new StreamBroker(silentLogger),
+      sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
       sandboxLane: { enabled: false },
@@ -982,6 +989,7 @@ describe("lifecycle pipelines", () => {
       authorizer: newPermissiveSingleTeamAuthorizer(),
       recoverSerializer: new KeyedSerializer(),
       broker: new StreamBroker(silentLogger),
+      sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
       sandboxLane: { enabled: false },
@@ -1036,6 +1044,7 @@ describe("lifecycle pipelines", () => {
       authorizer: newPermissiveSingleTeamAuthorizer(),
       recoverSerializer: new KeyedSerializer(),
       broker: new StreamBroker(silentLogger),
+      sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
       sandboxLane: { enabled: false },
@@ -1268,6 +1277,7 @@ describe("lifecycle pipelines", () => {
       authorizer: newPermissiveSingleTeamAuthorizer(),
       recoverSerializer: new KeyedSerializer(),
       broker: new StreamBroker(silentLogger),
+      sessionEventBroker: new SessionEventBroker(silentLogger),
       gateSteps: new Map(),
       statusObservers: [],
       sandboxLane: { enabled: false },
@@ -1579,13 +1589,15 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
   });
 });
 
-// The lifecycle persist must go through the atomic store.updateResource,
-// never the whole-resource saveResource it replaced (Go
+// The lifecycle persist must go through the store's atomic row-locked
+// write, never the whole-resource saveResource it replaced (Go
 // TestLifecyclePersist_UsesUpdateResource): a saveResource here is the
 // regression that lets a concurrent SubmitApproval append be clobbered.
-// The mechanism pin complements the race test below — it pinpoints the
+// The atomic write is writeResourceAppendingEvents since a transition
+// commits with its session's events (session/events/run-writes.ts). The
+// mechanism pin complements the race test below — it pinpoints the
 // regression without depending on interleaving.
-describe("lifecycle persist uses the atomic updateResource", () => {
+describe("lifecycle persist uses the atomic row-locked write", () => {
   const cases: Array<{
     name: string;
     run: (deps: LifecycleDeps, id: string) => Promise<unknown>;
@@ -1621,10 +1633,10 @@ describe("lifecycle persist uses the atomic updateResource", () => {
       let saveCalls = 0;
       const countingStore = new Proxy(store, {
         get(target, prop, receiver) {
-          if (prop === "updateResource") {
-            return (...args: Parameters<Store["updateResource"]>) => {
+          if (prop === "writeResourceAppendingEvents") {
+            return (...args: Parameters<Store["writeResourceAppendingEvents"]>) => {
               updateCalls += 1;
-              return target.updateResource(...args);
+              return target.writeResourceAppendingEvents(...args);
             };
           }
           if (prop === "saveResource") {
@@ -1642,6 +1654,7 @@ describe("lifecycle persist uses the atomic updateResource", () => {
         authorizer: newPermissiveSingleTeamAuthorizer(),
         recoverSerializer: new KeyedSerializer(),
         broker: new StreamBroker(silentLogger),
+        sessionEventBroker: new SessionEventBroker(silentLogger),
         engineState: () => connected(stubConnectedEngine()),
         runValuePlanner: stubPlannerDeps(),
         gateSteps: new Map(),
@@ -1656,7 +1669,7 @@ describe("lifecycle persist uses the atomic updateResource", () => {
 
       await tc.run(deps, id);
 
-      expect(updateCalls, "exactly 1 atomic updateResource").toBe(1);
+      expect(updateCalls, "exactly 1 atomic row-locked write").toBe(1);
       expect(saveCalls, "0 whole-resource saveResource").toBe(0);
 
       const final = await store.getResource(

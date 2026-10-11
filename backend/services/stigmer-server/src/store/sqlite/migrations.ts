@@ -180,8 +180,11 @@ export const SCHEMA_VERSION_25 = 25;
 /** v26: the MCP server rows removed; a plugin's parts became its plugins; a connect attempt names a plugin's server. */
 export const SCHEMA_VERSION_26 = 26;
 
+/** v27: each session's ordered event log (DDL only). */
+export const SCHEMA_VERSION_27 = 27;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_26;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_27;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -233,6 +236,7 @@ export function runMigrations(
     [SCHEMA_VERSION_24, migrateToV24],
     [SCHEMA_VERSION_25, migrateToV25],
     [SCHEMA_VERSION_26, (migrating) => migrateToV26(migrating, logger)],
+    [SCHEMA_VERSION_27, migrateToV27],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1490,5 +1494,46 @@ function migrateToV26(db: DatabaseSync, logger: StoreLogger): void {
 
     CREATE INDEX idx_connect_attempt_org ON connect_attempt (org);
     CREATE INDEX idx_connect_attempt_expires ON connect_attempt (expires_at);
+  `);
+}
+
+/**
+ * v27: each session's ordered event log (../session-events.ts): the
+ * Postgres driver's v22 in this engine's terms, with the same keys and
+ * indexes. An ordinary rowid table, not WITHOUT ROWID: an event's payload
+ * can be hundreds of kilobytes, past the small rows WITHOUT ROWID suits.
+ * Every write runs under BEGIN IMMEDIATE, so a session's numbers and times
+ * are assigned one writer at a time.
+ */
+function migrateToV27(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE session_events (
+      session_id    TEXT NOT NULL,
+      seq           INTEGER NOT NULL,
+      event_id      TEXT NOT NULL,
+      run_id        TEXT NOT NULL DEFAULT '',
+      thread_id     TEXT NOT NULL DEFAULT '',
+      type          TEXT NOT NULL,
+      org           TEXT NOT NULL DEFAULT '',
+      processed_at  TEXT NOT NULL,
+      data          BLOB NOT NULL,
+      PRIMARY KEY (session_id, seq)
+    );
+
+    CREATE UNIQUE INDEX idx_session_events_event_id ON session_events (session_id, event_id);
+    CREATE INDEX idx_session_events_type ON session_events (session_id, type, seq);
+    CREATE INDEX idx_session_events_run ON session_events (session_id, run_id, seq);
+    CREATE INDEX idx_session_events_org ON session_events (org);
+    -- A session's high-water mark: the last seq and accepted time it handed
+    -- out. Numbers come from here, never from the newest row, so a run's
+    -- removal (which deletes its own events) never lowers it and no number
+    -- is handed out twice.
+    CREATE TABLE session_event_heads (
+      session_id TEXT PRIMARY KEY,
+      org TEXT NOT NULL DEFAULT '',
+      last_seq INTEGER NOT NULL,
+      last_processed_at TEXT NOT NULL
+    );
+    CREATE INDEX idx_session_event_heads_org ON session_event_heads (org);
   `);
 }

@@ -72,4 +72,20 @@ service SessionCommandController {
     option (ai.stigmer.commons.rpc.config).field_path = "value";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete session";
   }
+
+  // Append a run's events to its session's log.
+  //
+  // Only the runner acting for the run may call it, while the run is not
+  // finished. It accepts the events a runner produces: agent.*,
+  // session.thread_* and session.error. The batch is appended whole or not
+  // at all.
+  //
+  // @internal
+  // Skip-authorization: a permission cannot tell a runner from the person
+  // it acts for. The handler admits only a runner credential for this run,
+  // decided by the composed RunnerCredentialProvider (its
+  // authorizeRunEventsAppend capability, else the execution-scoped binding).
+  rpc appendEvents(AppendSessionEventsInput) returns (AppendSessionEventsResponse) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
 }

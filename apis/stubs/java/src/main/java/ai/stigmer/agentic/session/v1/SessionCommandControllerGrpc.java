@@ -170,6 +170,37 @@ public final class SessionCommandControllerGrpc {
     return getDeleteMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.AppendSessionEventsInput,
+      ai.stigmer.agentic.session.v1.AppendSessionEventsResponse> getAppendEventsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "appendEvents",
+      requestType = ai.stigmer.agentic.session.v1.AppendSessionEventsInput.class,
+      responseType = ai.stigmer.agentic.session.v1.AppendSessionEventsResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.AppendSessionEventsInput,
+      ai.stigmer.agentic.session.v1.AppendSessionEventsResponse> getAppendEventsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.AppendSessionEventsInput, ai.stigmer.agentic.session.v1.AppendSessionEventsResponse> getAppendEventsMethod;
+    if ((getAppendEventsMethod = SessionCommandControllerGrpc.getAppendEventsMethod) == null) {
+      synchronized (SessionCommandControllerGrpc.class) {
+        if ((getAppendEventsMethod = SessionCommandControllerGrpc.getAppendEventsMethod) == null) {
+          SessionCommandControllerGrpc.getAppendEventsMethod = getAppendEventsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.AppendSessionEventsInput, ai.stigmer.agentic.session.v1.AppendSessionEventsResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "appendEvents"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.AppendSessionEventsInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.AppendSessionEventsResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("appendEvents"))
+              .build();
+        }
+      }
+    }
+    return getAppendEventsMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -294,6 +325,20 @@ public final class SessionCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeleteMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Append a run's events to its session's log.
+     * Only the runner acting for the run may call it, while the run is not
+     * finished. It accepts the events a runner produces: agent.*,
+     * session.thread_* and session.error. The batch is appended whole or not
+     * at all.
+     * </pre>
+     */
+    default void appendEvents(ai.stigmer.agentic.session.v1.AppendSessionEventsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.AppendSessionEventsResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAppendEventsMethod(), responseObserver);
+    }
   }
 
   /**
@@ -392,6 +437,21 @@ public final class SessionCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Append a run's events to its session's log.
+     * Only the runner acting for the run may call it, while the run is not
+     * finished. It accepts the events a runner produces: agent.*,
+     * session.thread_* and session.error. The batch is appended whole or not
+     * at all.
+     * </pre>
+     */
+    public void appendEvents(ai.stigmer.agentic.session.v1.AppendSessionEventsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.AppendSessionEventsResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getAppendEventsMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -471,6 +531,20 @@ public final class SessionCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Append a run's events to its session's log.
+     * Only the runner acting for the run may call it, while the run is not
+     * finished. It accepts the events a runner produces: agent.*,
+     * session.thread_* and session.error. The batch is appended whole or not
+     * at all.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.AppendSessionEventsResponse appendEvents(ai.stigmer.agentic.session.v1.AppendSessionEventsInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getAppendEventsMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -549,6 +623,20 @@ public final class SessionCommandControllerGrpc {
     public ai.stigmer.agentic.session.v1.Session delete(ai.stigmer.agentic.session.v1.SessionId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Append a run's events to its session's log.
+     * Only the runner acting for the run may call it, while the run is not
+     * finished. It accepts the events a runner produces: agent.*,
+     * session.thread_* and session.error. The batch is appended whole or not
+     * at all.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.AppendSessionEventsResponse appendEvents(ai.stigmer.agentic.session.v1.AppendSessionEventsInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getAppendEventsMethod(), getCallOptions(), request);
     }
   }
 
@@ -634,6 +722,21 @@ public final class SessionCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Append a run's events to its session's log.
+     * Only the runner acting for the run may call it, while the run is not
+     * finished. It accepts the events a runner produces: agent.*,
+     * session.thread_* and session.error. The batch is appended whole or not
+     * at all.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.AppendSessionEventsResponse> appendEvents(
+        ai.stigmer.agentic.session.v1.AppendSessionEventsInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getAppendEventsMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
@@ -641,6 +744,7 @@ public final class SessionCommandControllerGrpc {
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_UPDATE_SUBJECT = 3;
   private static final int METHODID_DELETE = 4;
+  private static final int METHODID_APPEND_EVENTS = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -678,6 +782,10 @@ public final class SessionCommandControllerGrpc {
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.agentic.session.v1.SessionId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session>) responseObserver);
+          break;
+        case METHODID_APPEND_EVENTS:
+          serviceImpl.appendEvents((ai.stigmer.agentic.session.v1.AppendSessionEventsInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.AppendSessionEventsResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -732,6 +840,13 @@ public final class SessionCommandControllerGrpc {
               ai.stigmer.agentic.session.v1.SessionId,
               ai.stigmer.agentic.session.v1.Session>(
                 service, METHODID_DELETE)))
+        .addMethod(
+          getAppendEventsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.AppendSessionEventsInput,
+              ai.stigmer.agentic.session.v1.AppendSessionEventsResponse>(
+                service, METHODID_APPEND_EVENTS)))
         .build();
   }
 
@@ -785,6 +900,7 @@ public final class SessionCommandControllerGrpc {
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateSubjectMethod())
               .addMethod(getDeleteMethod())
+              .addMethod(getAppendEventsMethod())
               .build();
         }
       }

@@ -109,6 +109,7 @@ import type {
 import { stubConnectedEngine } from "./engine-stub.js";
 import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
 import { GRADES_RUN_LABEL } from "../../score/judge/judge-run.js";
+import { SessionEventBroker } from "../../session/events/broker.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -1329,6 +1330,7 @@ describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
     const step = newStartWorkflowStep({
       store,
       logger: silentLogger,
+      sessionEventBroker: new SessionEventBroker(silentLogger),
       engineState: () =>
         ({
           connected: true,
@@ -1349,6 +1351,8 @@ describe("newStartWorkflowStep — start-failure FAILED stamp", () => {
     execution.status = create(RunStatusSchema, {
       phase: RunPhase.RUN_PENDING,
     });
+    // Persist stored the run before this step runs.
+    await store.saveResource(ApiResourceKind.run, "aexec_sw_fail", RunSchema, execution);
 
     const err = await expectCode(
       () => step.execute(newContext(execution)),
@@ -1378,6 +1382,7 @@ describe("newStartWorkflowStep — the workflow input", () => {
     const step = newStartWorkflowStep({
       store,
       logger: silentLogger,
+      sessionEventBroker: new SessionEventBroker(silentLogger),
       engineState: () =>
         ({
           connected: true,

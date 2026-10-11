@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ListSessionsByAgentRequest, ListSessionsByChannelRequest, ListSessionsRequest, SessionId, SessionList } from "./io_pbjs";
+import { ListSessionEventsRequest, ListSessionsByAgentRequest, ListSessionsByChannelRequest, ListSessionsRequest, SessionEventList, SessionId, SessionList, StreamSessionEventsRequest, StreamSessionEventsResponse } from "./io_pbjs";
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -69,6 +69,38 @@ export const SessionQueryController = {
       I: ListSessionsByChannelRequest,
       O: SessionList,
       kind: MethodKind.Unary,
+    },
+    /**
+     * List a session's events, oldest first unless desc is asked for.
+     *
+     * The events are Claude Managed Agents session events, in the order they
+     * were appended; a page holds at most page_size of them.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listEvents
+     */
+    listEvents: {
+      name: "listEvents",
+      I: ListSessionEventsRequest,
+      O: SessionEventList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Stream a session's events as they are appended.
+     *
+     * Without after_seq the stream starts at the moment it opens, as Managed
+     * Agents' does. With after_seq it first sends the stored events after
+     * that seq, then the new ones, with none missing: a client that listed
+     * up to some seq, or whose stream ended, resumes from the last seq it
+     * has. A watcher that falls too far behind is ended with
+     * RESOURCE_EXHAUSTED; it resumes the same way.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.streamEvents
+     */
+    streamEvents: {
+      name: "streamEvents",
+      I: StreamSessionEventsRequest,
+      O: StreamSessionEventsResponse,
+      kind: MethodKind.ServerStreaming,
     },
   }
 } as const;

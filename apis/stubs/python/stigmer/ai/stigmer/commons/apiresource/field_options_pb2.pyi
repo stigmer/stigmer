@@ -10,3 +10,5 @@ IMMUTABLE_FIELD_NUMBER: _ClassVar[int]
 immutable: _descriptor.FieldDescriptor
 REFERENCE_KIND_FIELD_NUMBER: _ClassVar[int]
 reference_kind: _descriptor.FieldDescriptor
+EVENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+event_type: _descriptor.FieldDescriptor
