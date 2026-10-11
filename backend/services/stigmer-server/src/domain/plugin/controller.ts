@@ -22,12 +22,11 @@
  */
 import { posix } from "node:path";
 
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create } from "@bufbuild/protobuf";
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
@@ -96,7 +95,6 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
-import { collectSpecReferences } from "../../pipeline/steps/references.js";
 import { newResolveArtifactSourceStep } from "../../pipeline/steps/resolve-artifact-source.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import {
@@ -115,7 +113,6 @@ import {
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
 } from "../../pipeline/steps/authorize-resolved-target.js";
-import { metadataOf } from "../../pipeline/steps/shapes.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type {
