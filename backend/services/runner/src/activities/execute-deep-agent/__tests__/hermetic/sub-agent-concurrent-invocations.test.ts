@@ -225,13 +225,13 @@ describe("ExecuteDeepAgent hermetic — concurrent invocations of one sub-agent"
       RunPhase.RUN_COMPLETED,
     ]);
     expect(record.lastFullStatus!.subAgentRuns, "one row per invocation").toHaveLength(2);
-    return { root, helpers };
+    return { root, helpers, record };
   }
 
   it("warns the invocation that loops, on its own history, while the other runs beside it", async () => {
     const LOOP_ROUNDS = 7; // loop-detection.ts: consecutiveThreshold
 
-    const { helpers } = await runTwins({
+    const { helpers, record } = await runTwins({
       after: lockstep(LOOP_ROUNDS),
       turn: (twin, round) => {
         if (round === LOOP_ROUNDS) return { text: `List ${twin} is done.`, usage: CHEAP };
@@ -244,6 +244,23 @@ describe("ExecuteDeepAgent hermetic — concurrent invocations of one sub-agent"
     const warnedA = helpers.a.flatMap((t, i) => (advisoriesOf(t).some((a) => a.includes("LOOP WARNING")) ? [i] : []));
     expect(warnedA, "A is warned on the call after its seventh identical read, and only there").toEqual([LOOP_ROUNDS]);
     expect(helpers.b.some((t) => advisoriesOf(t).length > 0), "B, which never repeats itself, is never advised").toBe(false);
+
+    // The session's log: each invocation is a thread of its own, written in
+    // its own order, and the two threads interleave as they ran rather than
+    // one waiting for the other to finish.
+    const threads = [...new Set(record.sessionEvents.map((e) => e.threadId).filter((t) => t !== ""))];
+    expect(threads, "one thread per invocation").toHaveLength(2);
+    const positions = threads.map((thread) =>
+      record.sessionEvents.flatMap((e, i) => (e.threadId === thread ? [i] : [])),
+    );
+    for (const [index, thread] of threads.entries()) {
+      const ids = record.sessionEvents.filter((e) => e.threadId === thread).map((e) => (e.event.case === undefined ? "" : e.event.value.id));
+      const messages = ids.flatMap((id) => /\.m(\d+)$/.exec(id)?.[1] ?? []).map(Number);
+      expect(messages, `thread ${index}: its messages in their order`).toEqual([...messages].sort((x, y) => x - y));
+      expect(messages.length, `thread ${index}: every round's message`).toBeGreaterThan(LOOP_ROUNDS);
+    }
+    const [a, b] = positions as [number[], number[]];
+    expect(a[0]! < b[b.length - 1]! && b[0]! < a[a.length - 1]!, "the threads interleave").toBe(true);
   });
 
   it("counts each invocation's rounds on its own: the periodic advisory comes on each one's 31st call", async () => {
