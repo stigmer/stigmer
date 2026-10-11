@@ -1,9 +1,12 @@
 /**
  * The plugins a run lists: its agent version's `plugins` plus its
  * conversation's, one entry per plugin, the conversation's reference
- * winning when both name one (its version is the one it chose). The runner
- * merges the same two lists the same way at turn start, so what a run is
- * planned for is what it runs.
+ * winning when both name one (its version is the one it chose), then each
+ * subagent's (run-subagents.ts) for a plugin neither already names, the
+ * first subagent's winning. The runner merges the same lists the same way
+ * at turn start, so what a run is planned for is what it runs, and a
+ * subagent that lists a plugin the conversation also lists runs it at the
+ * conversation's version.
  *
  * Each reference resolves like a skill reference: its version when set,
  * else the installed one, in the reference's organization or the run's.
@@ -29,22 +32,34 @@ import { failedPreconditionError } from "../../pipeline/errors.js";
 import type { Store } from "../../store/interface.js";
 import { loadPluginByReference } from "../plugin/versions.js";
 import type { RunPlugin } from "../vault/resolve.js";
+import type { RunSubagent } from "./run-subagents.js";
 
 /** The run's plugin references, each once, keyed by organization and slug. */
 export function runPluginReferences(
   agentSpec: AgentSpec | undefined,
   session: Session | undefined,
   executionOrg: string,
+  subagents: readonly RunSubagent[] = [],
 ): ApiResourceReference[] {
   const merged = new Map<string, ApiResourceReference>();
+  const keyOf = (ref: ApiResourceReference): string => `${ref.org || executionOrg}/${ref.slug}`;
   const add = (ref: ApiResourceReference): void => {
     if (ref.slug !== "") {
-      merged.set(`${ref.org || executionOrg}/${ref.slug}`, ref);
+      merged.set(keyOf(ref), ref);
     }
   };
   for (const ref of agentSpec?.plugins ?? []) add(ref);
   // The conversation's reference wins: it is the version the conversation chose.
   for (const ref of session?.spec?.plugins ?? []) add(ref);
+  for (const subagent of subagents) {
+    for (const ref of subagent.spec.plugins) {
+      // A subagent's own plugin reference names its organization's plugin.
+      const own = ref.org === "" ? { ...ref, org: subagent.org } : ref;
+      if (own.slug !== "" && !merged.has(keyOf(own))) {
+        merged.set(keyOf(own), own);
+      }
+    }
+  }
   return [...merged.values()];
 }
 
