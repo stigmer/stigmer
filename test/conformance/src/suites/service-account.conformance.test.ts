@@ -14,8 +14,9 @@
 //   - its key is refused in every other organization;
 //   - its key is refused every act that decides who belongs to the
 //     organization or what credentials exist: creating keys, service
-//     accounts or organizations, changing an identity account, granting or
-//     revoking a role on the organization;
+//     accounts, organizations or platform clients, deleting its
+//     organization, changing an identity account, granting or revoking a
+//     role on the organization;
 //   - deleting it ends every key at once, and it is no longer listed.
 //
 // A target with no enforcing lane skips visibly: a server that trusts
@@ -355,11 +356,28 @@ describe("Service account conformance", () => {
         act: "grant or revoke roles on the organization",
         call: () => asKey.iamPolicyCommand.revokeOrgAccess({ identityAccountId: colleagueId, org: org.org }),
       },
+      {
+        act: "create or change platform clients",
+        call: () =>
+          asKey.platformClientCommand.create({
+            apiVersion: "iam.stigmer.ai/v1",
+            kind: "PlatformClient",
+            metadata: { name: uniqueName("sa-portal"), org: org.org },
+            spec: { createAccountsOnSignIn: true, signInRole: IamRole.admin },
+          }),
+      },
     ];
     for (const { act, call } of refusals) {
       const error = await expectGrpcCode(call, Code.PermissionDenied, `a service account's key: ${act}`);
       expect(error.rawMessage).toBe(refusedMessage(act));
     }
+    // Its own organization's delete is an owner's, so authorization refuses
+    // it before the service account's own refusal is asked.
+    await expectGrpcCode(
+      () => asKey.organizationCommand.delete({ value: org.org }),
+      Code.PermissionDenied,
+      "a service account's key deleting its organization",
+    );
   });
 
   it("deleting a service account ends every key at once, and it is no longer listed", async (ctx) => {
