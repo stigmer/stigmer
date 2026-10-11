@@ -62,12 +62,12 @@ export type PluginMcpServer =
     };
 
 /**
- * A dialect's `model` value classified into an alias the server resolves
- * against its model registry. The library never names a Stigmer model id:
- * the runner drops a sub-agent whose `model_override` is unregistered, so an
- * id the parser could not verify would silently remove sub-agents at run
- * time. `inherit` and an absent `model` both mean "no override"; `unknown`
- * carries the raw text for the server's warning.
+ * A dialect's `model` value, kept as written (`raw`) and classified into an
+ * alias. The library never names a Stigmer model id: whether `raw` is a
+ * model the conversation's engine lists is the turn's question, so the
+ * server stores `raw` as written and the alias decides only the warnings.
+ * `inherit` and an absent `model` both mean "no override"; `unknown`
+ * carries the raw text for the library's warning.
  */
 export type ModelAlias = "fast" | "sonnet" | "opus" | "haiku" | "inherit" | "unknown";
 

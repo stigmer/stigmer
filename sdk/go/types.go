@@ -38,7 +38,6 @@ type VaultClient = gen.VaultClient
 
 // Input types for resource mutation (Create, Update, Apply).
 type AgentInput = gen.AgentInput
-type SubAgentInput = gen.SubAgentInput
 type EnvVarDeclarationInput = gen.EnvVarDeclarationInput
 type HookSourceInput = gen.HookSourceInput
 type HookConfigInput = gen.HookConfigInput

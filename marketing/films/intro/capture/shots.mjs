@@ -22,7 +22,7 @@ export const SHOTS = {
   /**
    * S3b (console alternative) — the agent overview, scrolled top to
    * bottom in narration order: instructions → skills → plugins →
-   * sub-agents. The console has no YAML surface for agents, so the
+   * subagents. The console has no YAML surface for agents, so the
    * script's "YAML in editor" drift is proposed as a styled Remotion
    * code panel over the real manifest (the S3e terminal treatment);
    * this take is the real-console alternative.

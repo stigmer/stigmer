@@ -23,8 +23,10 @@
  * from its row as it is now (none when the row cannot be read), so the
  * resolver keeps the person's own values from another organization's
  * agent. No stamp is the built-in assistant: no agent, and the session's
- * own plugins are the whole tool set. The plugins are the agent version's
- * and the session's, each once (run-plugins.ts).
+ * own plugins are the whole tool set. The agent's subagents are read at
+ * the versions its stamped version pins (run-subagents.ts), each bringing
+ * its own keys and its plugins. The plugins are the agent version's, the
+ * session's and the subagents', each once (run-plugins.ts).
  *
  * Which entry fills each key is the vault resolver's one rule
  * (domain/vault/resolve.ts): the session's own repository tokens, its
@@ -62,6 +64,7 @@ import type { AgentLoader } from "./create-steps.js";
 import { refuseLocalPrograms } from "./local-programs.js";
 import type { LocalProgramPolicy } from "./local-programs.js";
 import { loadRunPlugins, runPluginReferences } from "./run-plugins.js";
+import { runSubagents } from "./run-subagents.js";
 import { storedSessionOf } from "./session-binding.js";
 import { sessionIdOf } from "./target.js";
 
@@ -166,9 +169,10 @@ export async function planRunValues(
       execution.status?.agentVersionHash ?? "",
     ));
   }
+  const subagents = await runSubagents(deps.store, agentSpec, executionOrg);
   const plugins = await loadRunPlugins(
     deps.store,
-    runPluginReferences(agentSpec, session, executionOrg),
+    runPluginReferences(agentSpec, session, executionOrg, subagents),
     executionOrg,
   );
   refuseLocalPrograms(deps.localPrograms, session.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED, plugins);
@@ -179,6 +183,7 @@ export async function planRunValues(
     agentSpec,
     agentName,
     agentOrg,
+    subagents,
     plugins,
   });
   deps.logger.info("Planned the run's values", {

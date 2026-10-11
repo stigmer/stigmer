@@ -8,7 +8,7 @@
 import { type DescMessage, fromJson, type JsonValue } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { mcpServerWayForward } from "@stigmer/sdk";
+import { mcpServerWayForward, subagentsWayForward } from "@stigmer/sdk";
 
 // Exported for the verb/dispatch conformance suite (registry/registry.test.ts),
 // which holds this map and the matrix's Verb.Validate promises to strict
@@ -25,10 +25,12 @@ export function schemaForValidate(kind: ApiResourceKind): DescMessage | undefine
 /** Structurally validate a parsed YAML document against its proto schema. */
 export function validateDocument(schema: DescMessage, document: JsonValue): void {
   // A retired field is not a forward-compat one: the leniency below would
-  // pass an agent listing mcp_server_usages that apply then refuses, so it
-  // is refused here with the same way forward.
+  // pass an agent listing mcp_server_usages or sub_agents that apply then
+  // refuses, so each is refused here with the same way forward.
   const retired = mcpServerWayForward(document);
   if (retired !== undefined) throw new Error(`mcp_server_usages is no longer read. ${retired}`);
+  const subagents = subagentsWayForward(document);
+  if (subagents !== undefined) throw new Error(`sub_agents is no longer read. ${subagents}`);
   // ignoreUnknownFields mirrors the server's lenient unmarshal: forward-compat
   // fields a newer server adds should not fail a slightly older CLI.
   fromJson(schema, document, { ignoreUnknownFields: true });

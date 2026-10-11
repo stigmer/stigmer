@@ -212,7 +212,7 @@ Defined in `ai/stigmer/agentic/run/v1/api.proto`. All fields are system-managed.
 | Field | Type | Description |
 |---|---|---|
 | `id` | `string` | Unique identifier, matching the tool call ID from the `task` tool invocation. |
-| `name` | `string` | Name of the sub-agent invoked. |
+| `name` | `string` | Name of the subagent invoked: a listed agent's slug, a plugin agent's `<plugin>:<agent>`, or a built-in (`explore`, `shell`, `general-purpose`). |
 | `input` | `string` | Task/instruction given to the sub-agent. |
 | `output` | `string` | Result returned by the sub-agent. Only populated on `SUB_AGENT_COMPLETED`. |
 | `status` | `SubAgentStatus` | `SUB_AGENT_PENDING`, `SUB_AGENT_IN_PROGRESS`, `SUB_AGENT_COMPLETED`, or `SUB_AGENT_FAILED`. |

@@ -82,8 +82,9 @@
  * A version on a reference is the contract's word, never this rule's: the
  * rule judges the row a reference names, whichever version it names. Every
  * surface that references a versioned kind honours the version (an agent's
- * through the session it starts, which pins it; a skill's at run start), and
- * an unversioned kind's is ignored.
+ * through the session it starts, which pins it, and through a parent agent
+ * that lists it as a subagent, which pins it at save; a skill's at run
+ * start), and an unversioned kind's is ignored.
  *
  * A chain whose stored row is rewritten by machines as well as people (a
  * session, whose harness state the runner writes back with the whole row)
@@ -399,9 +400,12 @@ export interface ReferenceWriter {
 
 /**
  * The writer clause for one reference that cleared the three clauses:
- * `ok` unless its kind names a `writerMust`, the reference is the write's
- * own (same organization, not already on the stored row), the writer is
- * not the server itself, and the Authorizer does not admit the writer. A
+ * `ok` unless its kind names a `writerMust` (or the caller passes the
+ * permission, for a clause one field carries and its kind does not: an
+ * agent's subagents, domain/agent/subagents.ts), the reference is the
+ * write's own (same organization, not already on the stored row), the
+ * writer is not the server itself, and the Authorizer does not admit the
+ * writer. A
  * target the Authorizer cannot find has left since the scan and is the
  * `missing` verdict; an evaluation failure is thrown as an infrastructure
  * fault, never answered as a refusal or an admission.
@@ -411,8 +415,9 @@ export async function checkWriter(
   parent: ReferenceParent,
   ref: SpecReference,
   writer: ReferenceWriter,
+  fieldMust?: IamPermission,
 ): Promise<ReferenceVerdict> {
-  const permission = referenceTargetKind(ref.kind)?.writerMust;
+  const permission = fieldMust ?? referenceTargetKind(ref.kind)?.writerMust;
   if (
     permission === undefined ||
     ref.org !== parent.org ||

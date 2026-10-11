@@ -31,7 +31,6 @@
  */
 
 import { resolve } from "node:path";
-import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
@@ -105,7 +104,7 @@ export interface EnhancedPromptOptions {
    * send_channel_message tool.
    */
   channelMessaging?: readonly ChannelMessagingInfo[];
-  subAgents: SubAgent[];
+  subAgents: readonly PromptSubagent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
   /** This turn's resolved input files, as the runtime's attachment phase returns them. */
@@ -482,11 +481,19 @@ export function formatSkillsSection(skills: readonly SkillMetadata[]): string {
   ].join("\n");
 }
 
-export function formatSubAgentsSection(subAgents: SubAgent[]): string {
+/** A subagent as the delegation section names it. */
+export interface PromptSubagent {
+  readonly name: string;
+  readonly description: string;
+  /** The model it runs on; undefined runs the turn's. */
+  readonly model: string | undefined;
+}
+
+export function formatSubAgentsSection(subAgents: readonly PromptSubagent[]): string {
   const entries = subAgents.map((sa) => {
     const parts = [`- **${sa.name}**: ${sa.description}`];
-    if (sa.modelOverride) {
-      parts.push(`  Model: ${sa.modelOverride}`);
+    if (sa.model) {
+      parts.push(`  Model: ${sa.model}`);
     }
     return parts.join("\n");
   });
@@ -756,7 +763,7 @@ export interface BuildPromptInput {
    * read) — the `<available_channel_templates>` section.
    */
   channelMessaging?: readonly ChannelMessagingInfo[];
-  subAgents: SubAgent[];
+  subAgents: readonly PromptSubagent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
   /** This turn's resolved input files for the `<input_files>` section, as the runtime's attachment phase returns them. */

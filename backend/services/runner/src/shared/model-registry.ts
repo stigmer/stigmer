@@ -182,6 +182,18 @@ export async function isModelRegistered(modelId: string): Promise<boolean> {
 }
 
 /**
+ * Whether one engine's registry section lists a model by its id: a model a
+ * subagent's run defaults or a plugin agent's file names runs only then
+ * (an alias such as `sonnet` is no id and never matches). False when the
+ * registry is empty (its fetch failed), so the subagent runs the turn's
+ * model rather than one nobody checked.
+ */
+export async function isModelListedFor(modelId: string, harness: "native" | "cursor"): Promise<boolean> {
+  const registry = await getRegistry();
+  return registry.some((m) => m.harness === harness && m.id === modelId);
+}
+
+/**
  * Derive the recommended economy-tier model for summarization/classification
  * tasks, given a primary model name. Thin alias over getEconomyModel — the
  * registry (costTier=economy, harness=native, same provider preferred) drives

@@ -16,8 +16,11 @@
  *     an agent its author narrowed). Entries keep Claude Code's names: a
  *     plugin's own server is `mcp__plugin_<plugin>_<server>`, and a plugin
  *     agent is `<plugin>:<agent>`, the names a turn gives them;
- *   - a model the file names is recorded as a warning and not applied:
- *     the agent runs on the turn's model;
+ *   - the model the file names is kept as written (PluginAgent.model): a
+ *     turn runs the agent on it when it is a model id the conversation's
+ *     engine lists, else on the turn's model. A bare alias (`fast`,
+ *     `sonnet`, `opus`, `haiku`) never names an id, so it is recorded as a
+ *     warning; a value the library cannot classify carries its own;
  *   - the plugin skills an agent's `skills:` names are kept when the plugin
  *     carries them (an unknown name already carries the library's warning).
  * A Claude plugin's settings may name one of its agents as the main
@@ -43,7 +46,7 @@ import { create } from "@bufbuild/protobuf";
 
 import { hookVariableReferences, toolServerSegment } from "@stigmer/plugin-package";
 import type { EvalSuite, PluginFiles, PluginHooks, PluginPackage, PluginSubAgent } from "@stigmer/plugin-package";
-import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   HttpMcpServerSchema,
   McpServerEntrySchema,
@@ -305,40 +308,41 @@ function planAgent(
     disallowedTools: [...disallowedTools],
     // An unknown skill name already carries the library's own warning.
     skills: agent.skillNames.filter((name) => skillNames.has(name)),
+    model: agent.modelHint?.raw.trim() ?? "",
   });
 }
 
+/** The aliases a file may name that are never a model id (the module header). */
+const MODEL_ALIASES: ReadonlySet<string> = new Set(["fast", "sonnet", "opus", "haiku"]);
+
 function warnModelHint(agent: PluginSubAgent, warnings: PluginWarning[]): void {
-  const hint = agent.modelHint;
-  if (
-    hint !== undefined &&
-    hint.alias !== "inherit" &&
-    hint.alias !== "unknown"
-  ) {
-    // An unknown alias already carries the library's own sentence.
-    warnings.push(
-      create(PluginWarningSchema, {
-        kind: SERVER_WARNING_KINDS.modelHintUnresolved,
-        path: agent.path,
-        message:
-          `agent '${agent.name}' names model '${hint.raw}'; Stigmer does not pin a model ` +
-          "from a plugin, so it runs on the conversation's model",
-      }),
-    );
+  const raw = agent.modelHint?.raw.trim() ?? "";
+  if (!MODEL_ALIASES.has(raw.toLowerCase())) {
+    // inherit and a model id need no word; an unclassified value already
+    // carries the library's own sentence.
+    return;
   }
+  warnings.push(
+    create(PluginWarningSchema, {
+      kind: SERVER_WARNING_KINDS.modelHintUnresolved,
+      path: agent.path,
+      message:
+        `agent '${agent.name}' names model '${raw}', an alias; Stigmer runs a plugin agent on the model its file names ` +
+        "only when it is a model id the conversation's engine lists, so it runs on the conversation's model",
+    }),
+  );
 }
 
 /**
  * True when the contract would store the entry in `field`: the server's
- * shared validator on a one-entry `SubAgent` probe that is otherwise
+ * shared validator on a one-entry `AgentSpec` probe that is otherwise
  * valid, so the rule has one home (the proto) and runs with its own
  * regular-expression flavour.
  */
 export function isStorableEntry(entry: string, field: ToolListField): boolean {
-  const probe = create(SubAgentSchema, {
-    name: "probe",
+  const probe = create(AgentSpecSchema, {
     instructions: "probe instructions",
     [field]: [entry],
   });
-  return validator().validate(SubAgentSchema, probe).kind === "valid";
+  return validator().validate(AgentSpecSchema, probe).kind === "valid";
 }

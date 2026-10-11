@@ -9,6 +9,10 @@
  *   - the plugins read are the pinned version's, not the agent's head: a
  *     conversation pinned to a version without the local program passes
  *     even when the head carries one;
+ *   - a subagent's plugins are read too, at the version its parent pinned:
+ *     a hosted conversation whose agent lists a subagent with a local
+ *     program is refused at create, naming the plugin; one whose pinned
+ *     subagent version is gone is refused naming the subagent;
  *   - plugins whose servers are all URLs pass, and a plugin that is gone is
  *     left to the turn to refuse;
  *   - a target the policy keeps passes without reading the store at all,
@@ -89,6 +93,45 @@ beforeEach(async () => {
       status: { versionHash: HEAD },
     }),
   );
+  // A parent listing only URLs, whose pinned subagent lists the local program.
+  await store.saveResource(
+    ApiResourceKind.agent,
+    "agt_helper",
+    AgentSchema,
+    create(AgentSchema, {
+      metadata: { id: "agt_helper", org: ORG, slug: "helper" },
+      spec: { plugins: [{ org: ORG, slug: "files" }] },
+      status: { versionHash: HEAD },
+    }),
+  );
+  await store.saveResource(
+    ApiResourceKind.agent,
+    "agt_parent",
+    AgentSchema,
+    create(AgentSchema, {
+      metadata: { id: "agt_parent", org: ORG, slug: "parent" },
+      spec: {
+        plugins: [{ org: ORG, slug: "linear" }],
+        subagents: [{ kind: ApiResourceKind.agent, org: ORG, slug: "helper", version: HEAD }],
+      },
+      status: { versionHash: HEAD },
+    }),
+  );
+  await store.saveAudit(
+    ApiResourceKind.agent,
+    "agt_parent",
+    AgentSchema,
+    create(AgentSchema, {
+      metadata: { id: "agt_parent", org: ORG, slug: "parent" },
+      spec: {
+        plugins: [{ org: ORG, slug: "linear" }],
+        subagents: [{ kind: ApiResourceKind.agent, org: ORG, slug: "helper", version: "c".repeat(64) }],
+      },
+      status: { versionHash: OLDER },
+    }),
+    OLDER,
+    "",
+  );
   await store.saveAudit(
     ApiResourceKind.agent,
     "agt_1",
@@ -109,12 +152,15 @@ afterEach(() => {
 
 function conversation(
   executionTarget: ExecutionTarget,
-  opts: { pinned?: string; plugins?: { org: string; slug: string }[] } = {},
+  opts: { pinned?: string; agentId?: string; plugins?: { org: string; slug: string }[] } = {},
 ): Session {
   return create(SessionSchema, {
     metadata: { id: "ses_1", org: ORG, slug: "chat" },
     spec: { plugins: opts.plugins ?? [], executionTarget },
-    status: opts.pinned === undefined ? {} : { agentId: "agt_1", agentVersionHash: opts.pinned },
+    status:
+      opts.pinned === undefined
+        ? {}
+        : { agentId: opts.agentId ?? "agt_1", agentVersionHash: opts.pinned },
   });
 }
 
@@ -149,6 +195,27 @@ describe("RefuseLocalPrograms", () => {
     );
     expect(error.code).toBe(Code.FailedPrecondition);
     expect(error.rawMessage).toContain("plugin 'files'");
+  });
+
+  it("refuses a hosted conversation whose agent's subagent lists a local program, naming the plugin and the server", async () => {
+    const error = await refusal(
+      run(conversation(ExecutionTarget.CLOUD, { agentId: "agt_parent", pinned: HEAD }), cloudRefusing()),
+    );
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toContain("plugin 'files'");
+    expect(error.rawMessage).toContain("'files-local'");
+    // The same conversation on a target that keeps local programs passes.
+    await expect(
+      run(conversation(ExecutionTarget.LOCAL, { agentId: "agt_parent", pinned: HEAD }), cloudRefusing()),
+    ).resolves.toBeUndefined();
+  });
+
+  it("refuses a conversation whose agent version pins a subagent version that is gone, naming it", async () => {
+    const error = await refusal(
+      run(conversation(ExecutionTarget.CLOUD, { agentId: "agt_parent", pinned: OLDER }), cloudRefusing()),
+    );
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toContain("subagent 'helper'");
   });
 
   it("reads the pinned version's plugins, not the agent's head", async () => {

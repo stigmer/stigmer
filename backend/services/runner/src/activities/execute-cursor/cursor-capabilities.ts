@@ -28,6 +28,8 @@
  *    sidecar it binds as the runtime's CAS observations (`turn-setup.ts`).
  */
 
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+
 import type { FileReviewIdentity, HarnessCapabilities } from "../../harness/capabilities.js";
 import { CURSOR_VISION_PROFILE } from "../../shared/attachment-vision.js";
 
@@ -59,6 +61,7 @@ export const CURSOR_FILE_REVIEW_IDENTITY: FileReviewIdentity = {
 };
 
 export const CURSOR_CAPABILITIES: HarnessCapabilities = {
+  harness: Harness.CURSOR,
   pausePrimitive: "deny-and-retry",
   stateIdSource: "engine-minted",
   systemPrompt: false,

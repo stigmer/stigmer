@@ -48,7 +48,11 @@
  *     client, the schedule, the share and the channel (each of another
  *     organization contributes nothing);
  *   - a run of an agent of another organization, or one whose row cannot
- *     be read, reads no My vault for any requirement;
+ *     be read, or whose agent lists a subagent of another organization,
+ *     reads no My vault for any requirement;
+ *   - a subagent's keys: its own requirements under a subagent declarer,
+ *     planned under the SUBAGENT kind, opened into its own group by its
+ *     name and never into the agent's values;
  *   - every value from a vault, a connection or a repository's token is
  *     delivered as secret; only a declaration's own plain value stays plain;
  *   - a stored value the server cannot open refuses the fetch with the
@@ -105,6 +109,7 @@ import type { Authorizer } from "../../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
+import type { RunSubagent } from "../../run/run-subagents.js";
 import { newSignInFreshener } from "../sign-in/refresh.js";
 
 import {
@@ -365,6 +370,8 @@ interface ResolveInit {
   agentSpec?: AgentSpec;
   /** The agent's organization; null when its row cannot be read. Defaults to the run's. */
   agentOrg?: string | null;
+  /** The subagents the agent lists, at their pinned versions; none by default. */
+  subagents?: RunSubagent[];
   plugins?: RunPlugin[];
   /** Hands the resolver a copy without storing it first. */
   unsaved?: boolean;
@@ -382,6 +389,7 @@ async function plan(init: ResolveInit, over: VaultResolver = resolver): Promise<
     agentSpec: init.agentSpec,
     agentName: "Helper",
     agentOrg: init.agentOrg === null ? undefined : (init.agentOrg ?? ORG),
+    subagents: init.subagents ?? [],
     plugins: init.plugins ?? [],
   });
 }
@@ -503,6 +511,7 @@ describe("requirements", () => {
       agentSpec: agent({ OPENAI_API_KEY: KEY }),
       agentName: "Helper",
       agentOrg: ORG,
+      subagents: [],
       plugins: [
         tool("linear", { target: "LINEAR_TOKEN" }),
         tool("notion", { headers: { Authorization: "Bearer ${NOTION_KEY}" } }),
@@ -2333,6 +2342,7 @@ describe("edges", () => {
       agentSpec: undefined,
       agentName: "",
       agentOrg: undefined,
+      subagents: [],
       plugins: [],
     });
     expect(requirements).toEqual([]);
@@ -2825,5 +2835,127 @@ describe("a participant's turn", () => {
     expect(participantSenderOf(runOf({ sender: ANA }), session)).toBeUndefined();
     expect(participantSenderOf(runOf({ sender: BEN, person: BEN }), session)).toBeUndefined();
     expect(participantSenderOf(runOf({ sender: BEN }), sessionOf())).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Subagents: a second agent of the run, with keys of its own
+// ---------------------------------------------------------------------------
+
+describe("a subagent's keys", () => {
+  const MAYBE = { isSecret: true, optional: true };
+
+  /** A subagent the run's agent lists, at its pinned version's spec. */
+  function subagentOf(
+    name: string,
+    env: Record<string, { isSecret?: boolean; optional?: boolean; value?: string }>,
+    org: string = ORG,
+  ): RunSubagent {
+    return { name, org, spec: agent(env) };
+  }
+
+  it("are its own requirements, under a subagent declarer named by its name in the turn", () => {
+    const requirements = runRequirements({
+      execution: runOf(),
+      session: sessionOf(),
+      agentSpec: agent({ A: KEY }),
+      agentName: "Helper",
+      agentOrg: ORG,
+      subagents: [subagentOf("researcher", { S: KEY, NOTE: { value: "plain" } })],
+      plugins: [],
+    });
+    expect(requirements.map((requirement) => [requirement.key, requirement.declarer])).toEqual([
+      ["A", { kind: "agent", name: "Helper" }],
+      ["S", { kind: "subagent", name: "researcher" }],
+      ["NOTE", { kind: "subagent", name: "researcher" }],
+    ]);
+    expect(requirements.find((requirement) => requirement.key === "NOTE")?.plainValue).toBe("plain");
+  });
+
+  it("are planned under the SUBAGENT declarer kind", async () => {
+    await anasVault({ S: "sub-secret" });
+    const sources = await plan({
+      run: runOf({ person: ANA }),
+      agentSpec: agent({}),
+      subagents: [subagentOf("researcher", { S: KEY })],
+    });
+    expect(sources.map((entry) => [entry.key, entry.declarer?.kind, entry.declarer?.name])).toEqual([
+      ["S", RunValueDeclarerKind.SUBAGENT, "researcher"],
+    ]);
+  });
+
+  it("refuse a key removed after the plan at the fetch, naming the subagent", async () => {
+    const mine = await anasVault({ S: "sub-secret" });
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), agentSpec: agent({}), subagents: [subagentOf("researcher", { S: KEY })] }, async () => {
+        await rig.vaults.removeSecrets(mine, ["S"], testCallerIdentity({ identityId: ANA }));
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toBe(
+      "the subagent researcher needs S, but My vault no longer holds a secret named S. Fix it, then recover the turn",
+    );
+  });
+
+  it("never reach the agent's values: each subagent's land in its own group, by its name", async () => {
+    await anasVault({ A: "agent-secret", S: "sub-secret", T: "other-secret" });
+    const values = await open({
+      run: runOf({ person: ANA }),
+      agentSpec: agent({ A: KEY }),
+      subagents: [subagentOf("researcher", { S: KEY }), subagentOf("writer", { T: KEY })],
+    });
+    expect(agentValues(values)).toEqual({ A: "agent-secret" });
+    expect(values.subagents.map((group) => [group.name, { ...group.values }])).toEqual([
+      ["researcher", { S: "sub-secret" }],
+      ["writer", { T: "other-secret" }],
+    ]);
+  });
+
+  it("a key the agent and a subagent both declare reaches each of them, in its own group", async () => {
+    await anasVault({ SHARED: "shared-secret" });
+    const values = await open({
+      run: runOf({ person: ANA }),
+      agentSpec: agent({ SHARED: KEY }),
+      subagents: [subagentOf("researcher", { SHARED: KEY })],
+    });
+    expect(agentValues(values)).toEqual({ SHARED: "shared-secret" });
+    expect(values.subagents.map((group) => [group.name, { ...group.values }])).toEqual([
+      ["researcher", { SHARED: "shared-secret" }],
+    ]);
+  });
+
+  it("a missing required key is refused naming the subagent", async () => {
+    const failure = await refusal(
+      open({
+        run: runOf({ person: ANA }),
+        agentSpec: agent({}),
+        subagents: [subagentOf("researcher", { S: KEY })],
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toMatch(/^the subagent researcher needs S: /);
+  });
+
+  it("a subagent of another organization closes the person's My vault to the whole run, the agent's own keys included", async () => {
+    await anasVault({ A: "ana-mine", S: "ana-sub" });
+    const values = await open({
+      run: runOf({ person: ANA }),
+      session: sessionOf({ includeMyVault: true }),
+      agentSpec: agent({ A: MAYBE }),
+      subagents: [subagentOf("researcher", { S: MAYBE }, "globex")],
+    });
+    expect(agentValues(values)).toEqual({});
+    expect(values.subagents).toEqual([]);
+    // The same run with a subagent of its own organization reads My vault.
+    const own = await open({
+      run: runOf({ person: ANA }),
+      session: sessionOf({ includeMyVault: true }),
+      agentSpec: agent({ A: MAYBE }),
+      subagents: [subagentOf("researcher", { S: MAYBE })],
+    });
+    expect(agentValues(own)).toEqual({ A: "ana-mine" });
+    expect(own.subagents.map((group) => [group.name, { ...group.values }])).toEqual([
+      ["researcher", { S: "ana-sub" }],
+    ]);
   });
 });

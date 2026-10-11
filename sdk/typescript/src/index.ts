@@ -164,6 +164,9 @@ export {
   metadataOf,
   MCP_SERVER_WAY_FORWARD,
   mcpServerWayForward,
+  SUBAGENTS_WAY_FORWARD,
+  subagentsWayForward,
+  retiredShapeWayForward,
   REDACTED_SECRET_MARKER,
   containsRedactedSecrets,
   type AppliedManifest,
@@ -190,7 +193,6 @@ export {
   buildAgentProto,
   toAgentUpdateInput,
   type AgentInput,
-  type SubAgentInput,
   type EnvVarDeclarationInput,
   type HookSourceInput,
 } from "./gen/agent.js";

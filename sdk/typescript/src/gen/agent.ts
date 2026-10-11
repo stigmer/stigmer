@@ -9,7 +9,7 @@ import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agen
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentSpecSchema, SubAgentSchema, HookSourceSchema, type SubAgent, type HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, HookSourceSchema, type HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { TagAgentVersionInputSchema, ListAgentVersionsInputSchema, ListAgentVersionsResponseSchema, GetAgentVersionInputSchema, AgentVersionEntrySchema, type TagAgentVersionInput, type ListAgentVersionsInput, type ListAgentVersionsResponse, type GetAgentVersionInput, type AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import { HookFormat, HookHandlerSchema, HookGroupSchema, HookConfigSchema, type HookHandler, type HookGroup, type HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -132,7 +132,6 @@ export interface AgentInput {
   iconUrl?: string;
   instructions?: string;
   skillRefs?: ResourceRef[];
-  subAgents?: SubAgentInput[];
   env?: Record<string, EnvVarDeclarationInput>;
   tools?: string[];
   disallowedTools?: string[];
@@ -140,17 +139,7 @@ export interface AgentInput {
   runConfig?: RunConfigInput;
   harness?: Harness;
   plugins?: ResourceRef[];
-}
-
-/** SDK input type for SubAgent. */
-export interface SubAgentInput {
-  name: string;
-  description?: string;
-  instructions?: string;
-  skillRefs?: ResourceRef[];
-  modelOverride?: string;
-  tools?: string[];
-  disallowedTools?: string[];
+  subagents?: ResourceRef[];
 }
 
 /** SDK input type for EnvVarDeclaration. */
@@ -196,18 +185,6 @@ export interface RunConfigInput {
   serviceTier?: ServiceTier;
   thinkingMode?: ThinkingMode;
   maxToolResultChars?: number;
-}
-
-function buildSubAgentProto(input: SubAgentInput) {
-  const msg = create(SubAgentSchema);
-  if (input.name !== undefined) msg.name = input.name;
-  if (input.description !== undefined) msg.description = input.description;
-  if (input.instructions !== undefined) msg.instructions = input.instructions;
-  if (input.skillRefs) msg.skillRefs = input.skillRefs.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
-  if (input.modelOverride !== undefined) msg.modelOverride = input.modelOverride;
-  if (input.tools) msg.tools = input.tools;
-  if (input.disallowedTools) msg.disallowedTools = input.disallowedTools;
-  return msg;
 }
 
 function buildEnvVarDeclarationProto(input: EnvVarDeclarationInput) {
@@ -265,7 +242,6 @@ function buildRunConfigProto(input: RunConfigInput) {
 
 export function buildAgentProto(input: AgentInput): Agent {
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
-  const subAgents = input.subAgents?.map(buildSubAgentProto);
   let env;
   if (input.env) {
     env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));
@@ -273,6 +249,7 @@ export function buildAgentProto(input: AgentInput): Agent {
   const hooks = input.hooks?.map(buildHookSourceProto);
   const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
   const plugins = input.plugins?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 58 }));
+  const subagents = input.subagents?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 40 }));
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -290,7 +267,6 @@ export function buildAgentProto(input: AgentInput): Agent {
       iconUrl: input.iconUrl,
       instructions: input.instructions,
       skillRefs,
-      subAgents,
       env,
       tools: input.tools,
       disallowedTools: input.disallowedTools,
@@ -298,20 +274,9 @@ export function buildAgentProto(input: AgentInput): Agent {
       runConfig,
       harness: input.harness,
       plugins,
+      subagents,
     })),
   }) as Agent;
-}
-
-function toSubAgentInput(msg: SubAgent): SubAgentInput {
-  return {
-    name: msg.name ?? "",
-    description: msg.description || undefined,
-    instructions: msg.instructions || undefined,
-    skillRefs: toResourceRefInputs(msg.skillRefs),
-    modelOverride: msg.modelOverride || undefined,
-    tools: msg.tools?.length ? [...msg.tools] : undefined,
-    disallowedTools: msg.disallowedTools?.length ? [...msg.disallowedTools] : undefined,
-  };
 }
 
 function toEnvVarDeclarationInput(msg: EnvVarDeclaration): EnvVarDeclarationInput {
@@ -396,7 +361,6 @@ export function toAgentUpdateInput(resource: Agent): AgentInput {
     iconUrl: spec.iconUrl || undefined,
     instructions: spec.instructions || undefined,
     skillRefs: toResourceRefInputs(spec.skillRefs),
-    subAgents: spec.subAgents?.length ? spec.subAgents.map(toSubAgentInput) : undefined,
     env: Object.keys(spec.env ?? {}).length > 0 ? Object.fromEntries(Object.entries(spec.env).map(([k, v]) => [k, toEnvVarDeclarationInput(v)])) : undefined,
     tools: spec.tools?.length ? [...spec.tools] : undefined,
     disallowedTools: spec.disallowedTools?.length ? [...spec.disallowedTools] : undefined,
@@ -404,5 +368,6 @@ export function toAgentUpdateInput(resource: Agent): AgentInput {
     runConfig: spec.runConfig ? toRunConfigInput(spec.runConfig) : undefined,
     harness: spec.harness || undefined,
     plugins: toResourceRefInputs(spec.plugins),
+    subagents: toResourceRefInputs(spec.subagents),
   };
 }

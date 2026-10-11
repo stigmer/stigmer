@@ -3,7 +3,7 @@ removal for a set of skills, agents, hooks and MCP servers, and the only home of
 an MCP server. Pushing a plugin folder in the Agent Plugins, Cursor, Claude Code
 or Codex layout stores the plugin alone, and its status lists what the archive
 holds. An agent or a conversation uses a plugin by listing it in `plugins`, and
-gets it whole: its skills as `<plugin>:<skill>`, its agents as sub-agents named
+gets it whole: its skills as `<plugin>:<skill>`, its agents as subagents named
 `<plugin>:<agent>`, its hooks, and its MCP servers, whose tools are
 `mcp__plugin_<plugin>_<server>__<tool>`.
 

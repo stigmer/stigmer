@@ -15,13 +15,14 @@
  *     skills stay; a hook source naming a plugin (HookSource field 1)
  *     becomes the plugin and leaves the hooks, an inline hook stays;
  *   - an agent a plugin composed loses both plugin labels and its
- *     sub-agents, keeps its instructions and other labels, and lists the
- *     plugin;
+ *     sub-agents (the retired AgentSpec field 6), keeps its instructions
+ *     and other labels, and lists the plugin;
  *   - tool lists (the agent's and a sub-agent's, allowed and disallowed)
  *     name a plugin server as a turn does, `mcp__plugin_<plugin>_<server>`,
- *     the tool suffix kept; a sub-agent's reference to a plugin's skill is
- *     dropped; a tool list is renamed only by the agent's own
- *     organization's servers;
+ *     the tool suffix kept; a sub-agent's reference to a plugin's skill
+ *     moves to the parent's plugins (stigmer#2119), its other skills stay;
+ *     a tool list is renamed only by the agent's own organization's
+ *     servers;
  *   - a changed agent heads a new version: the recomputed spec hash, the
  *     previous one named, the retirement message; a second pass leaves it;
  *     an agent with no plugin parts, or no spec, is left (undefined);
@@ -43,6 +44,7 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { canonicalSpecHash } from "../../pipeline/steps/spec-hash.js";
+import { readSubAgents } from "../frozen-sub-agent.js";
 import {
   RETIREMENT_VERSION_MESSAGE,
   RetirementFacts,
@@ -370,36 +372,36 @@ describe("migrateAgentRow", () => {
         },
         spec: {
           instructions: "The plugin's main agent, composed at install.",
-          subAgents: [
-            { name: "triager", instructions: "Triage every new issue." },
-          ],
         },
+        subAgents: [
+          { name: "triager", instructions: "Triage every new issue." },
+        ],
       }),
     );
     expect(result.metadata?.labels).toEqual({ team: "platform" });
-    expect(result.spec?.subAgents).toEqual([]);
+    expect(readSubAgents(result.spec!)).toEqual([]);
     expect(result.spec?.instructions).toBe(
       "The plugin's main agent, composed at install.",
     );
     expect(slugs(result.spec?.plugins)).toEqual(["gh-tools"]);
   });
 
-  it("names a plugin server's tools as a turn does, in every tool list, and drops a sub-agent's plugin skill", () => {
+  it("names a plugin server's tools as a turn does, in every tool list, and moves a sub-agent's plugin skill to the parent's plugins", () => {
     const result = migrated(
       agent({
         spec: {
           tools: ["mcp__github__create_issue", "mcp__notes__*", "Read"],
           disallowedTools: ["mcp__github__delete_repo", "mcp__docs-search"],
-          subAgents: [
-            {
-              name: "triager",
-              instructions: "Triage every new issue.",
-              tools: ["mcp__github__*"],
-              disallowedTools: ["mcp__github__close_issue"],
-              skillRefs: [skillRef("pr-review"), skillRef("house-style")],
-            },
-          ],
         },
+        subAgents: [
+          {
+            name: "triager",
+            instructions: "Triage every new issue.",
+            tools: ["mcp__github__*"],
+            disallowedTools: ["mcp__github__close_issue"],
+            skillRefs: [skillRef("pr-review"), skillRef("house-style")],
+          },
+        ],
       }),
     );
     expect(result.spec?.tools).toEqual([
@@ -411,12 +413,18 @@ describe("migrateAgentRow", () => {
       `${NEW_PREFIX}__delete_repo`,
       "mcp__plugin_docs_search",
     ]);
-    const subAgent = result.spec?.subAgents[0];
+    const [subAgent, ...others] = readSubAgents(result.spec!);
+    expect(others).toEqual([]);
+    expect(subAgent?.name).toBe("triager");
+    expect(subAgent?.instructions).toBe("Triage every new issue.");
     expect(subAgent?.tools).toEqual([`${NEW_PREFIX}__*`]);
     expect(subAgent?.disallowedTools).toEqual([`${NEW_PREFIX}__close_issue`]);
     expect(slugs(subAgent?.skillRefs)).toEqual(["house-style"]);
-    // A rename alone attaches no plugin: the agent listed none of its parts.
-    expect(result.spec?.plugins).toEqual([]);
+    // The sub-agent's plugin skill brings its plugin to the parent
+    // (stigmer#2119): the sub-agent's skills come with the parent's plugins.
+    expect(result.spec?.plugins.map((ref) => [ref.kind, ref.org, ref.slug])).toEqual([
+      [ApiResourceKind.plugin, ORG, "gh-tools"],
+    ]);
   });
 
   it("keeps a deny on the agent's own server, and denies another organization's same-slug plugin server too", () => {

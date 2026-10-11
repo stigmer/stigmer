@@ -44,6 +44,8 @@
  * id before its first persist; a `deterministic` one must never bind).
  */
 
+import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+
 import type { VisionProfile } from "../shared/attachment-vision.js";
 
 /**
@@ -107,6 +109,12 @@ export interface FileReviewIdentity {
 }
 
 export interface HarnessCapabilities {
+  /**
+   * The engine, as an agent's `harness` names it: a subagent's own run
+   * defaults (its model) count only on the engine they were chosen for,
+   * and a model counts only when this engine's registry section lists it.
+   */
+  readonly harness: Harness.NATIVE | Harness.CURSOR;
   readonly pausePrimitive: PausePrimitive;
   readonly stateIdSource: StateIdSource;
   /** The engine accepts a system prompt; otherwise instructions ride the first user message. */

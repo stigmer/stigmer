@@ -1,26 +1,22 @@
 /**
- * The Cursor prompt's delegation sections: the blueprint sub-agents the main
- * agent may start, how to reach them through the Task tool, and the guidance
- * toward Cursor's built-in explore sub-agent. Pins that the section names
- * each sub-agent and its model, and carries no tool-access prose (a
- * sub-agent's tools are its lists' business, enforced, not prompted).
+ * The Cursor prompt's delegation sections: the subagents the main agent may
+ * start (the saved agents it lists and the plugins' agents), how to reach
+ * them through the Task tool, and the guidance toward Cursor's built-in
+ * explore sub-agent. Pins that the section names each subagent and the
+ * model it runs on when it runs on its own, and carries no tool-access
+ * prose (a subagent's tools are its lists' business, enforced, not
+ * prompted).
  */
 import { describe, it, expect } from "vitest";
-import { create } from "@bufbuild/protobuf";
-import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
   formatSubAgentsSection,
   formatExplorationGuidance,
   buildEnhancedPrompt,
+  type PromptSubagent,
 } from "../prompt-builder.js";
 
-function makeSubAgent(name: string, description: string, modelOverride = "") {
-  const sa = create(SubAgentSchema);
-  sa.name = name;
-  sa.description = description;
-  sa.instructions = "do the thing thoroughly";
-  sa.modelOverride = modelOverride;
-  return sa;
+function makeSubAgent(name: string, description: string, model?: string): PromptSubagent {
+  return { name, description, model };
 }
 
 describe("formatSubAgentsSection", () => {
@@ -35,8 +31,9 @@ describe("formatSubAgentsSection", () => {
   });
 
   it("names a sub-agent's model override", () => {
-    const section = formatSubAgentsSection([makeSubAgent("fast", "quick lookups", "claude-haiku")]);
-    expect(section).toContain("  Model: claude-haiku");
+    const section = formatSubAgentsSection([makeSubAgent("fast", "quick lookups", "claude-haiku"), makeSubAgent("same", "the turn's model")]);
+    expect(section).toContain("**fast**: quick lookups\n  Model: claude-haiku");
+    expect(section, "a subagent on the turn's model names none").not.toContain("**same**: the turn's model\n  Model:");
   });
 });
 

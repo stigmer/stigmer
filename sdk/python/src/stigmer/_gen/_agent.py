@@ -133,7 +133,6 @@ class AgentInput:
     icon_url: str = ""
     instructions: str = ""
     skill_refs: list[ResourceRef] = field(default_factory=list)
-    sub_agents: list[SubAgentInput] = field(default_factory=list)
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
     tools: list[str] = field(default_factory=list)
     disallowed_tools: list[str] = field(default_factory=list)
@@ -141,6 +140,7 @@ class AgentInput:
     run_config: RunConfigInput | None = None
     harness: int = 0
     plugins: list[ResourceRef] = field(default_factory=list)
+    subagents: list[ResourceRef] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -153,8 +153,6 @@ class AgentInput:
             _ref = ref._to_proto()
             _ref.kind = 43
             spec.skill_refs.append(_ref)
-        for item in self.sub_agents:
-            spec.sub_agents.append(item._to_proto())
         for k, v in self.env.items():
             spec.env[k].CopyFrom(v._to_proto())
         if self.tools:
@@ -169,6 +167,10 @@ class AgentInput:
             _ref = ref._to_proto()
             _ref.kind = 58
             spec.plugins.append(_ref)
+        for ref in self.subagents:
+            _ref = ref._to_proto()
+            _ref.kind = 40
+            spec.subagents.append(_ref)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -191,36 +193,6 @@ class AgentInput:
             metadata=metadata,
             spec=spec,
         )
-
-
-@dataclass
-class SubAgentInput:
-    """SDK input type for SubAgent."""
-
-    name: str
-    description: str = ""
-    instructions: str = ""
-    skill_refs: list[ResourceRef] = field(default_factory=list)
-    model_override: str = ""
-    tools: list[str] = field(default_factory=list)
-    disallowed_tools: list[str] = field(default_factory=list)
-
-    def _to_proto(self) -> spec_pb2.SubAgent:
-        msg = spec_pb2.SubAgent(
-            name=self.name,
-            description=self.description,
-            instructions=self.instructions,
-            model_override=self.model_override,
-        )
-        for ref in self.skill_refs:
-            _ref = ref._to_proto()
-            _ref.kind = 43
-            msg.skill_refs.append(_ref)
-        if self.tools:
-            msg.tools.extend(self.tools)
-        if self.disallowed_tools:
-            msg.disallowed_tools.extend(self.disallowed_tools)
-        return msg
 
 
 @dataclass

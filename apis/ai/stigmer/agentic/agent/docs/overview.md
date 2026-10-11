@@ -1,7 +1,8 @@
 An Agent defines what an AI assistant knows and can do. It declares the agent's
 instructions (system prompt), the plugins it uses (each whole: its skills,
-agents, hooks and MCP servers), which Skills it has, optional Sub-Agents for
-delegation, and the tools it may and may never use, in Claude Code's names
+agents, hooks and MCP servers), which Skills it has, the saved agents it may
+hand work to as subagents (`subagents`, each pinned to a version when the agent
+is saved), and the tools it may and may never use, in Claude Code's names
 (`tools` and `disallowed_tools`, deny applied first; a plugin server's tools are
 `mcp__plugin_<plugin>_<server>__<tool>`). Hooks, a listed plugin's or a block
 written in the agent's `hooks`, can refuse a tool call, ask a person first, or

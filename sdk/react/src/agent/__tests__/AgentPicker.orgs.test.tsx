@@ -1,8 +1,9 @@
 /**
  * AgentPicker compares an agent already selected with each search result by
  * organization identity: a selection naming its org by slug is the same
- * agent as a result naming it by id, so it is not offered again. The search
- * hook is stubbed; the organization list is the mounted OrgProvider's.
+ * agent as a result naming it by id, so it is not offered again; an agent in
+ * `exclude` is never offered, by the same comparison. The search hook is
+ * stubbed; the organization list is the mounted OrgProvider's.
  */
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -45,6 +46,21 @@ describe("AgentPicker organizations", () => {
         org={GLOBEX_ID}
         value={{ org: "globex", slug: "reviewer", kind: ApiResourceKind.agent }}
         onChange={vi.fn()}
+      />,
+      { wrapper: orgWrapper({}, undefined, true) },
+    );
+
+    expect(await screen.findByRole("option", { name: /Triager/ })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: /Reviewer/ })).toBeNull();
+  });
+
+  it("never offers an excluded agent, named by its org's slug or id", async () => {
+    render(
+      <AgentPicker
+        org={GLOBEX_ID}
+        value={null}
+        onChange={vi.fn()}
+        exclude={[{ org: "globex", slug: "reviewer" }]}
       />,
       { wrapper: orgWrapper({}, undefined, true) },
     );

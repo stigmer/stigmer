@@ -9,8 +9,8 @@ import { DependencyTreeNode } from "./DependencyTreeNode.js";
 /**
  * Accessible CSS-based tree visualization of an agent's dependencies.
  *
- * Renders `MCP Servers`, `Skills`, and `Sub-Agents` (with recursive
- * sub-agent children) as a nested tree with visual connector lines.
+ * Renders the agent's plugins, skills and subagents as a tree with
+ * visual connector lines; a subagent links to its own page.
  * The root node represents the agent itself.
  *
  * Implements the WAI-ARIA TreeView pattern:

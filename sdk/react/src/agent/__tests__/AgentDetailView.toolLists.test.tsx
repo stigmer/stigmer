@@ -1,13 +1,10 @@
 /**
- * AgentDetailView shows an agent's two tool lists, and each sub-agent's, in
- * plain words: "Only these tools" for `tools`, "Never these tools" for
- * `disallowedTools`, each entry verbatim. An empty list is no restriction and
- * shows nothing. Editing the sub-agent list rebuilds every sub-agent's input,
- * so a save must carry each sub-agent's lists through untouched; dropping them
- * would silently widen what the sub-agent may call.
+ * AgentDetailView shows an agent's two tool lists in plain words: "Only these
+ * tools" for `tools`, "Never these tools" for `disallowedTools`, each entry
+ * verbatim. An empty list is no restriction and shows nothing.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup, within, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, within } from "@testing-library/react";
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -80,85 +77,5 @@ describe("AgentDetailView tool lists", () => {
     expect(screen.queryByRole("group", { name: "Only these tools" })).toBeNull();
     expect(screen.queryByRole("group", { name: "Never these tools" })).toBeNull();
     expect(screen.queryByText("Tools")).toBeNull();
-  });
-
-  it("shows a sub-agent's own lists when it is expanded", async () => {
-    renderView(
-      agentWith({
-        instructions: "Answer tickets.",
-        subAgents: [
-          {
-            name: "researcher",
-            description: "Digs up context",
-            tools: ["Read", "WebFetch"],
-            disallowedTools: ["mcp__zendesk__delete_ticket"],
-          },
-          { name: "writer", description: "Drafts replies" },
-        ],
-      }),
-    );
-
-    // Collapsed sub-agents show no list rows; the agent itself has none.
-    await screen.findByRole("button", { name: /researcher/ });
-    expect(screen.queryByRole("group", { name: "Only these tools" })).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: /researcher/ }));
-    const only = screen.getByRole("group", { name: "Only these tools" });
-    expect(within(only).getByText("WebFetch")).toBeTruthy();
-    const never = screen.getByRole("group", { name: "Never these tools" });
-    expect(within(never).getByText("mcp__zendesk__delete_ticket")).toBeTruthy();
-
-    // A sub-agent with no lists adds no rows when expanded.
-    fireEvent.click(screen.getByRole("button", { name: /writer/ }));
-    expect(screen.getAllByRole("group", { name: "Only these tools" })).toHaveLength(1);
-  });
-
-  it("keeps the other sub-agents' lists when one sub-agent is removed", async () => {
-    const { update } = renderView(
-      agentWith({
-        instructions: "Answer tickets.",
-        subAgents: [
-          { name: "researcher", tools: ["Read"], disallowedTools: ["Bash"] },
-          { name: "writer" },
-        ],
-      }),
-      { editable: true },
-    );
-
-    fireEvent.click(await screen.findByRole("button", { name: "Edit sub-agents" }));
-    fireEvent.click(screen.getByRole("button", { name: "Remove writer" }));
-
-    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    const input = update.mock.calls[0][0];
-    expect(input.subAgents).toEqual([
-      expect.objectContaining({
-        name: "researcher",
-        tools: ["Read"],
-        disallowedTools: ["Bash"],
-      }),
-    ]);
-  });
-
-  it("keeps the existing sub-agents' lists when a sub-agent is added", async () => {
-    const { update } = renderView(
-      agentWith({
-        instructions: "Answer tickets.",
-        subAgents: [{ name: "researcher", tools: ["Read"], disallowedTools: ["Bash"] }],
-      }),
-      { editable: true },
-    );
-
-    fireEvent.click(await screen.findByRole("button", { name: "Edit sub-agents" }));
-    fireEvent.click(screen.getByRole("button", { name: "Add sub-agent" }));
-    fireEvent.change(screen.getByPlaceholderText("Sub-agent name (required)"), {
-      target: { value: "writer" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
-
-    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    expect(update.mock.calls[0][0].subAgents).toEqual([
-      expect.objectContaining({ name: "researcher", tools: ["Read"], disallowedTools: ["Bash"] }),
-      expect.objectContaining({ name: "writer" }),
-    ]);
   });
 });

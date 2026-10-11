@@ -1,7 +1,8 @@
 /**
  * Resolves the agent blueprint of a turn: the agent spec the turn runs, the
- * plugins it uses (the agent's and the session's), and the merge of its
- * skill refs with the session's own.
+ * plugins it uses (the agent's and the session's), the saved agents it
+ * lists as subagents, and the merge of its skill refs with the session's
+ * own.
  *
  * The agent comes from the turn's stamp alone (status.agent_id and
  * agent_version_hash), which the server records on every turn before it
@@ -22,7 +23,7 @@
  * A turn whose stamp names no agent is the built-in assistant: `agent` is
  * undefined, the instructions are empty (each harness's prompt builder
  * substitutes the one built-in prompt, shared/builtin-assistant-prompt.ts),
- * there are no sub-agents of its own, and the session's own plugins and
+ * there are no subagents of its own, and the session's own plugins and
  * skill refs are the whole tool set — the same merge with an empty agent
  * side, so no consumer downstream needs an agent-less arm of its own.
  *
@@ -33,15 +34,28 @@
  * like a skill reference, its version when set, else the installed one, at
  * turn start. A listed plugin that cannot be read fails the turn naming it,
  * as a conversation whose agent is gone does: running without it would run
- * its tools, hooks and skills away silently. Each plugin's agents join the
- * turn's sub-agents as `<plugin>:<agent>`, after the agent's own, with the
- * plugin's own tool lists; their skills are the plugin's (the skills phase,
- * harness/turn-context.ts).
+ * its tools, hooks and skills away silently. Each plugin's agents are the
+ * turn's plugin subagents, named `<plugin>:<agent>` (Claude Code's plugin
+ * subagents: the turn's tools narrowed by the plugin's own lists, the
+ * plugin's skills, and the model their file names where the engine lists
+ * it; harness/turn-context.ts).
+ *
+ * Subagents. Each saved agent the agent version lists in `subagents` is
+ * read at the version the agent pinned when it was saved
+ * (`getAgentByReference`, whose read the server authorizes as a `get` of
+ * that agent), so an edit to the subagent reaches this turn only once the
+ * parent is saved again. A subagent that cannot be read fails the turn
+ * naming it, as a plugin does. Its own plugins resolve through the same
+ * merge, after the conversation's: a plugin the conversation already lists
+ * is that one, at its version, so the server's plan for the run's values
+ * (domain/run/run-plugins.ts) is what runs. The turn builds each
+ * subagent's own context from them (harness/turn-context.ts
+ * `resolveSubagents`).
  *
  * A turn whose run carries the judge label is the built-in judge
  * (builtin-judge.ts), whatever its stamp: the judge's code-defined spec is
  * the agent, with id "" as the built-ins have, and the turn gets no plugin,
- * skill ref or sub-agent, not even the session's own, so the judge can act
+ * skill ref or subagent, not even the session's own, so the judge can act
  * on nothing in the conversation it grades.
  *
  * Workspace isolation: resolved workspace directories are validated to
@@ -52,9 +66,7 @@
 import { ConnectError } from "@connectrpc/connect";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { create } from "@bufbuild/protobuf";
-import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { AgentSpec, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -78,14 +90,40 @@ export interface RunAgent {
 /** The agent a turn recorded at create (RunStatus). */
 export type RecordedRunAgent = Pick<RunStatus, "agentId" | "agentVersionHash">;
 
+/** A plugin's agent as a turn runs it: Claude Code's plugin subagent. */
+export interface PluginSubagent {
+  /** `<plugin>:<agent>`. */
+  readonly name: string;
+  readonly description: string;
+  readonly instructions: string;
+  /** The plugin's own lists for it, in Claude Code's names; they narrow the turn's tools. */
+  readonly tools: readonly string[];
+  readonly disallowedTools: readonly string[];
+  /** The model its file names, as written; "" when it names none. */
+  readonly model: string;
+}
+
+/** A saved agent the turn's agent lists as a subagent, at the version its parent pinned. */
+export interface SavedSubagent {
+  /** Its name in the turn: its slug. */
+  readonly name: string;
+  readonly agentId: string;
+  readonly versionHash: string;
+  readonly spec: AgentSpec;
+  /** Its own plugins, each at the version the turn's merge resolved (the module header). */
+  readonly plugins: readonly Plugin[];
+}
+
 export interface ResolvedBlueprint {
   /** The agent the turn runs; undefined for the built-in assistant. */
   agent: RunAgent | undefined;
   session: Session;
   sessionSpec: SessionSpec;
   instructions: string;
-  /** The agent's own sub-agents, then each plugin's agents as `<plugin>:<agent>`. */
-  subAgents: SubAgent[];
+  /** Each plugin's agents, as `<plugin>:<agent>`. */
+  pluginAgents: PluginSubagent[];
+  /** The saved agents the agent lists, in its order. */
+  subagents: SavedSubagent[];
   /** The turn's plugins, each at the version it resolved to, in merge order. */
   plugins: Plugin[];
   mergedSkillRefs: ApiResourceReference[];
@@ -112,7 +150,8 @@ export async function resolveBlueprint(
       session,
       sessionSpec,
       instructions: spec.instructions,
-      subAgents: [],
+      pluginAgents: [],
+      subagents: [],
       plugins: [],
       mergedSkillRefs: [],
       cloudRepos: [],
@@ -123,9 +162,9 @@ export async function resolveBlueprint(
   const agentSpec = agent?.spec;
 
   const org = session.metadata?.org ?? "";
-  const plugins = await resolvePlugins(client, mergePluginRefs(agentSpec?.plugins ?? [], sessionSpec.plugins, org));
-  const ownSubAgents = agentSpec?.subAgents ?? [];
-  const pluginAgents = plugins.flatMap(pluginSubAgents);
+  const pluginRefs = mergePluginRefs(agentSpec?.plugins ?? [], sessionSpec.plugins, org);
+  const plugins = await resolvePlugins(client, pluginRefs);
+  const subagents = await resolveSubagents(client, agentSpec?.subagents ?? [], org, pluginRefs, plugins);
 
   const mergedSkillRefs = mergeSkillRefs(
     agentSpec?.skillRefs ?? [],
@@ -139,9 +178,8 @@ export async function resolveBlueprint(
     session,
     sessionSpec,
     instructions: agentSpec?.instructions ?? "",
-    // The agent spec's own list when the plugins add none, so the agent
-    // host's codec can carry it by reference (agent-host/codec.ts).
-    subAgents: pluginAgents.length === 0 ? ownSubAgents : [...ownSubAgents, ...pluginAgents],
+    pluginAgents: plugins.flatMap(pluginSubagents),
+    subagents,
     plugins,
     mergedSkillRefs,
     cloudRepos,
@@ -190,9 +228,64 @@ export function mergePluginRefs(
 ): ApiResourceReference[] {
   const merged = new Map<string, ApiResourceReference>();
   for (const ref of [...agentRefs, ...sessionRefs]) {
-    if (ref.slug) merged.set(`${ref.org || org}/${ref.slug}`, ref);
+    if (ref.slug) merged.set(pluginKey(ref, org), ref);
   }
   return [...merged.values()];
+}
+
+/** The organization-and-slug key a plugin reference is merged by; an empty organization is `org`. */
+function pluginKey(ref: ApiResourceReference, org: string): string {
+  return `${ref.org || org}/${ref.slug}`;
+}
+
+/**
+ * Each saved agent the agent lists, at its pinned version, with its own
+ * plugins: a plugin the turn's merge already holds is that one, and each
+ * other is resolved once, the first subagent's reference winning.
+ */
+async function resolveSubagents(
+  client: StigmerClient,
+  refs: readonly ApiResourceReference[],
+  org: string,
+  turnRefs: readonly ApiResourceReference[],
+  turnPlugins: readonly Plugin[],
+): Promise<SavedSubagent[]> {
+  const byKey = new Map<string, Plugin>(turnRefs.map((ref, i) => [pluginKey(ref, org), turnPlugins[i]!]));
+  const subagents: SavedSubagent[] = [];
+  for (const ref of refs) {
+    if (!ref.slug) continue;
+    let agent;
+    try {
+      agent = await client.getAgentByReference(ref);
+    } catch (error) {
+      const what = `the subagent '${ref.slug}' this conversation's agent lists could not be read`;
+      if (error instanceof ConnectError) {
+        throw new ConnectError(`${what}: ${error.rawMessage}`, error.code);
+      }
+      throw new Error(`${what}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    const spec = agent.spec!;
+    const subagentOrg = agent.metadata?.org || ref.org || org;
+    const plugins: Plugin[] = [];
+    for (const pluginRef of spec.plugins) {
+      if (!pluginRef.slug) continue;
+      const key = pluginKey(pluginRef, subagentOrg);
+      let plugin = byKey.get(key);
+      if (plugin === undefined) {
+        [plugin] = await resolvePlugins(client, [pluginRef.org ? pluginRef : { ...pluginRef, org: subagentOrg }]);
+        byKey.set(key, plugin!);
+      }
+      plugins.push(plugin!);
+    }
+    subagents.push({
+      name: ref.slug,
+      agentId: agent.metadata?.id ?? "",
+      versionHash: ref.version,
+      spec,
+      plugins,
+    });
+  }
+  return subagents;
 }
 
 async function resolvePlugins(client: StigmerClient, refs: readonly ApiResourceReference[]): Promise<Plugin[]> {
@@ -211,18 +304,17 @@ async function resolvePlugins(client: StigmerClient, refs: readonly ApiResourceR
   return plugins;
 }
 
-/** A plugin's agents as the turn's sub-agents, named `<plugin>:<agent>`, with the plugin's own tool lists. */
-export function pluginSubAgents(plugin: Plugin): SubAgent[] {
+/** A plugin's agents as the turn's plugin subagents, named `<plugin>:<agent>`, with the plugin's own tool lists and model. */
+export function pluginSubagents(plugin: Plugin): PluginSubagent[] {
   const pluginName = plugin.metadata?.name ?? "";
-  return (plugin.status?.agents ?? []).map((agent) =>
-    create(SubAgentSchema, {
-      name: pluginAgentName(pluginName, agent.name),
-      description: agent.description,
-      instructions: agent.instructions,
-      tools: [...agent.tools],
-      disallowedTools: [...agent.disallowedTools],
-    }),
-  );
+  return (plugin.status?.agents ?? []).map((agent) => ({
+    name: pluginAgentName(pluginName, agent.name),
+    description: agent.description,
+    instructions: agent.instructions,
+    tools: [...agent.tools],
+    disallowedTools: [...agent.disallowedTools],
+    model: agent.model,
+  }));
 }
 
 /** `<plugin>:<agent>`, as Claude Code names a plugin's agent. */

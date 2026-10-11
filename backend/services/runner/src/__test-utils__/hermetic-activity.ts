@@ -141,6 +141,12 @@ export interface ExecutionRecordInput {
   readonly controlSignal?: (status: RunStatus) => RunControlSignal;
   /** The skills the control plane holds, answered by slug; any other reference is NotFound. */
   readonly skills?: readonly Skill[];
+  /**
+   * The saved agents the record's agent lists as subagents, answered by
+   * reference (slug and pinned version: each one's `status.version_hash`);
+   * any other reference is NotFound.
+   */
+  readonly subagents?: readonly Agent[];
 }
 
 /**
@@ -172,6 +178,7 @@ export class ExecutionRecord {
   readonly agent: Agent | undefined;
   private readonly controlSignal: (status: RunStatus) => RunControlSignal;
   private readonly skills: readonly Skill[];
+  private readonly subagents: readonly Agent[];
   /** Every `updateStatus` payload, in order, snapshotted at write time. */
   readonly persisted: RunStatus[] = [];
   /** Fired after every full-status `applyStatusUpdate`; {@link whenToolCallsSettled} subscribes here. */
@@ -191,6 +198,7 @@ export class ExecutionRecord {
     this.agent = input.agent;
     this.controlSignal = input.controlSignal ?? (() => RunControlSignal.UNSPECIFIED);
     this.skills = input.skills ?? [];
+    this.subagents = input.subagents ?? [];
   }
 
   get executionId(): string {
@@ -448,6 +456,13 @@ export class ExecutionRecord {
       }),
       // A run whose agent and tools declare nothing: the fetch answers no values.
       fetchExecutionValues: vi.fn(async () => create(ExecutionValuesSchema)),
+      getAgentByReference: vi.fn(async (ref: ApiResourceReference) => {
+        const agent = this.subagents.find(
+          (a) => a.metadata?.slug === ref.slug && (ref.version === "" || a.status?.versionHash === ref.version),
+        );
+        if (agent === undefined) throw new ConnectError(`agent not found: ${ref.slug}@${ref.version}`, Code.NotFound);
+        return agent;
+      }),
       getSkillByReference: vi.fn(async (ref: ApiResourceReference) => {
         const skill = this.skills.find((s) => s.metadata?.slug === ref.slug);
         if (skill === undefined) throw new ConnectError(`skill not found: ${ref.slug}`, Code.NotFound);

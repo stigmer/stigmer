@@ -6,7 +6,14 @@ import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agenti
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { parse as parseYaml } from "yaml";
-import { MCP_SERVER_WAY_FORWARD, mcpServerWayForward, parseManifest } from "../manifest/parse";
+import {
+  MCP_SERVER_WAY_FORWARD,
+  SUBAGENTS_WAY_FORWARD,
+  mcpServerWayForward,
+  parseManifest,
+  retiredShapeWayForward,
+  subagentsWayForward,
+} from "../manifest/parse";
 import { serializeManifest } from "../manifest/serialize";
 import { manifestDocumentForResource } from "../manifest/document";
 import { manifestKinds, manifestHandlerForYamlKind } from "../manifest/registry";
@@ -197,6 +204,37 @@ describe("parseManifest", () => {
     for (const document of [null, undefined, "kind: McpServer", 42, [{ kind: "McpServer" }]]) {
       expect(mcpServerWayForward(document)).toBeUndefined();
     }
+  });
+
+  it("names the subagents way forward for an agent writing sub-agents inside it, never for any other document", () => {
+    expect(subagentsWayForward({ kind: "Agent", spec: { sub_agents: [] } })).toBe(SUBAGENTS_WAY_FORWARD);
+    expect(subagentsWayForward({ kind: "Agent", spec: { subAgents: [] } })).toBe(SUBAGENTS_WAY_FORWARD);
+    expect(subagentsWayForward({ kind: "Agent", spec: { subagents: [{ kind: "agent", slug: "helper" }] } })).toBeUndefined();
+    expect(subagentsWayForward({ kind: "Agent" })).toBeUndefined();
+    for (const document of [null, undefined, "spec: {sub_agents: []}", 42, [{ spec: { sub_agents: [] } }]]) {
+      expect(subagentsWayForward(document)).toBeUndefined();
+    }
+  });
+
+  it("names the way forward for either retired shape, MCP server first", () => {
+    expect(retiredShapeWayForward({ kind: "Agent", spec: { sub_agents: [] } })).toBe(SUBAGENTS_WAY_FORWARD);
+    expect(retiredShapeWayForward({ kind: "Agent", spec: { subAgents: [] } })).toBe(SUBAGENTS_WAY_FORWARD);
+    expect(retiredShapeWayForward({ kind: "Agent", spec: { mcp_server_usages: [] } })).toBe(MCP_SERVER_WAY_FORWARD);
+    expect(
+      retiredShapeWayForward({ kind: "Agent", spec: { mcp_server_usages: [], sub_agents: [] } }),
+    ).toBe(MCP_SERVER_WAY_FORWARD);
+    expect(retiredShapeWayForward({ kind: "Agent", spec: { instructions: "x" } })).toBeUndefined();
+    for (const document of [null, "kind: Agent", 42, []]) {
+      expect(retiredShapeWayForward(document)).toBeUndefined();
+    }
+  });
+
+  it("refuses an agent writing sub_agents with the way forward", () => {
+    const yaml = AGENT_YAML.replace(
+      "spec:",
+      "spec:\n  sub_agents:\n    - inline_spec:\n        name: helper",
+    );
+    expect(() => parseManifest(yaml)).toThrow(/Invalid Agent.*A subagent is now a saved agent.*`subagents`/s);
   });
 
   it("rejects empty input with actionable guidance", () => {

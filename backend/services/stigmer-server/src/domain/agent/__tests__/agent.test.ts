@@ -9,8 +9,8 @@
  *   - each plugin is listed once in spec.plugins: a slug listed twice is
  *     refused at apply (ValidateHooks), naming the slug;
  *   - tool lists at apply: an entry whose shape is malformed is refused
- *     by the proto's per-item pattern, on the agent and on a sub-agent;
- *     well-formed lists are accepted and read back as written, and their
+ *     by the proto's per-item pattern; well-formed lists are accepted and
+ *     read back as written, and their
  *     names are never checked against a listed plugin's servers, so an
  *     entry naming a tool no plugin's server declares still applies;
  *   - hooks at apply: an inline block is stored with Claude Code's format
@@ -115,11 +115,6 @@ function agentInput(overrides?: {
   plugins?: string[];
   tools?: string[];
   disallowedTools?: string[];
-  subAgents?: Array<{
-    name: string;
-    tools?: string[];
-    disallowedTools?: string[];
-  }>;
   env?: Record<
     string,
     { description?: string; isSecret?: boolean; optional?: boolean }
@@ -148,12 +143,6 @@ function agentInput(overrides?: {
       env: overrides?.env ?? {},
       tools: overrides?.tools ?? [],
       disallowedTools: overrides?.disallowedTools ?? [],
-      subAgents: (overrides?.subAgents ?? []).map((subAgent) => ({
-        name: subAgent.name,
-        instructions: "You are a sub-agent used by the domain tests.",
-        tools: subAgent.tools ?? [],
-        disallowedTools: subAgent.disallowedTools ?? [],
-      })),
     },
   };
 }
@@ -288,38 +277,13 @@ describe("agent tool lists at apply", () => {
     },
   );
 
-  it.each(MALFORMED)(
-    "refuses the sub-agent entry %j in disallowed_tools",
-    async (entry) => {
-      const error = await grpcError(() =>
-        command.apply(
-          agentInput({
-            name: "Malformed Sub-agent List",
-            subAgents: [{ name: "helper", disallowedTools: [entry] }],
-          }),
-        ),
-      );
-      expect(error.code).toBe(Code.InvalidArgument);
-      expect(error.rawMessage).toContain(
-        "spec.sub_agents[0].disallowed_tools[0]",
-      );
-    },
-  );
-
-  it("accepts well-formed lists on the agent and a sub-agent and reads them back as written", async () => {
+  it("accepts well-formed lists on the agent and reads them back as written", async () => {
     const applied = await command.apply(
       agentInput({
         name: "Support Bot",
         plugins: ["zendesk"],
         tools: ["Read", "Grep", "mcp__zendesk"],
         disallowedTools: ["Bash"],
-        subAgents: [
-          {
-            name: "triage",
-            tools: ["Read", "mcp__zendesk__search_tickets", "Agent(explore)"],
-            disallowedTools: ["Bash(git push *)", "mcp__*"],
-          },
-        ],
       }),
     );
 
@@ -327,15 +291,6 @@ describe("agent tool lists at apply", () => {
     for (const agent of [applied, fetched]) {
       expect(agent.spec?.tools).toEqual(["Read", "Grep", "mcp__zendesk"]);
       expect(agent.spec?.disallowedTools).toEqual(["Bash"]);
-      expect(agent.spec?.subAgents[0]?.tools).toEqual([
-        "Read",
-        "mcp__zendesk__search_tickets",
-        "Agent(explore)",
-      ]);
-      expect(agent.spec?.subAgents[0]?.disallowedTools).toEqual([
-        "Bash(git push *)",
-        "mcp__*",
-      ]);
     }
   });
 

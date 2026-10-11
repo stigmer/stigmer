@@ -97,7 +97,7 @@ import {
 } from "./session-lifecycle.js";
 import { composeTurnRecoveryDigest } from "./turn-recovery.js";
 import type { TurnStreamState } from "./turn-stream.js";
-import { buildCursorSubAgentDefinitions, subAgentsInScope } from "./subagent-config.js";
+import { buildCursorSubAgentDefinitions, subagentNamesInScope, subagentsInScope } from "./subagent-config.js";
 import { CursorUsagePricer } from "./usage-pricing.js";
 import { installHitlGate, MAX_HOOK_TIMEOUT_SECONDS, removeHitlGate, type HitlGateHandle } from "./workspace-setup.js";
 
@@ -206,12 +206,25 @@ export class CursorToolListRefusal extends Error {
   }
 }
 
+/** The refusal for a saved subagent that brings what this engine cannot keep to it. */
+export function subagentBringsOwnMessage(name: string): string {
+  return (
+    `Subagent '${name}' brings its own plugins, hooks or tool lists, which the Cursor engine cannot keep to it: ` +
+    "it cannot tell a subagent's tool call from the main agent's. " +
+    `Run this agent on the native engine, or remove them from '${name}'.`
+  );
+}
+
 /**
  * The agent's tool lists, checked against what this engine can enforce, before
  * anything is installed. Refuses the turn (throws {@link CursorToolListRefusal}
  * or `ToolListResolutionError`, each settling it `failed` with its own
  * sentence) when:
- *  - a sub-agent the main agent may start carries lists of its own: the hook
+ *  - a saved subagent the main agent may start brings its own plugins, hooks
+ *    or tool lists ({@link subagentBringsOwnMessage}): its definition reaches
+ *    the SDK as instructions, model and skills, and the hook cannot tell its
+ *    calls from the main agent's, so they would run unscoped or unhooked;
+ *  - a plugin subagent the main agent may start carries lists of its own: the hook
  *    cannot tell which sub-agent made a call (`preToolUse` carries no
  *    sub-agent id), and the SDK's `tools` options restrict only the main
  *    loop, so a sub-agent's lists would silently not bind. The native engine
@@ -235,8 +248,15 @@ export class CursorToolListRefusal extends Error {
  */
 export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentMode }): void {
   const scope = input.mcp.toolScope;
-  const narrowed = subAgentsInScope(input.blueprint.subAgents, scope).filter(
-    (sa) => sa.tools.length > 0 || sa.disallowedTools.length > 0,
+  const inScope = new Set(subagentNamesInScope(input));
+  for (const subagent of input.subagents) {
+    const own = subagent.bringsOwn;
+    if (inScope.has(subagent.name) && (own.plugins || own.hooks || own.lists)) {
+      throw new CursorToolListRefusal(subagentBringsOwnMessage(subagent.name));
+    }
+  }
+  const narrowed = input.blueprint.pluginAgents.filter(
+    (sa) => inScope.has(sa.name) && (sa.tools.length > 0 || sa.disallowedTools.length > 0),
   );
   if (narrowed.length > 0) {
     const names = narrowed.map((sa) => `"${sa.name}"`).join(", ");
@@ -526,7 +546,7 @@ export async function installGate(
       platformServerSlugs: mcp.platformServerSlugs,
       readRoot: mcp.toolScope.restricted ? await platformReadRoot(primaryDir, getPlatformDir(sessionId)) : "",
       platformRoot: mcp.toolScope.hidesSkills ? await platformRealRoot(getPlatformDir(sessionId)) : "",
-      subAgentTypes: subAgentsInScope(input.blueprint.subAgents, mcp.toolScope).map((sa) => sa.name),
+      subAgentTypes: subagentNamesInScope(input),
     }),
   );
   // The agent's hooks run inside the runner; the gate's script reaches them
@@ -646,7 +666,7 @@ export async function resolveEngine(
   // delegate to them by name via the Task tool. Re-supplied on every
   // create/resume (the SDK does not persist agent config across resume).
   // Only the types the agent's `Agent(type, …)` allows are registered.
-  const cursorSubAgents = buildCursorSubAgentDefinitions(subAgentsInScope(blueprint.subAgents, input.mcp.toolScope));
+  const cursorSubAgents = buildCursorSubAgentDefinitions(await subagentsInScope(input));
   if (cursorSubAgents) {
     console.log(
       `ExecuteCursor registering ${Object.keys(cursorSubAgents).length} custom sub-agent(s): ` +
@@ -819,13 +839,14 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
   const interactionMode = spec.interactionMode ?? InteractionMode.UNSPECIFIED;
   const buildFromPlan = spec.buildFromPlan ?? false;
 
+  const subAgents = await subagentsInScope(input);
   const shared = (): Omit<BuildPromptInput, "resolution" | "recalledMemories" | "turnRecoveryDigest"> => ({
     approvalDecisions,
     instructions: blueprint.instructions,
     userMessage: spec.message,
     skills: input.skills.root,
     channelMessaging: input.mcp.channelMessaging,
-    subAgents: subAgentsInScope(blueprint.subAgents, input.mcp.toolScope),
+    subAgents,
     workspaceDirs: [...workspace.dirs],
     workspaceFileRefs: spec.workspaceFileRefs ?? [],
     attachments: attachments.results,

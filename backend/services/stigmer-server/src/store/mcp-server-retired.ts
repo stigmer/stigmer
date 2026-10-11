@@ -22,8 +22,10 @@
  *   - a tool-list entry naming a plugin's server by its old name
  *     (`mcp__<server slug>`) names it as a turn now does
  *     (`mcp__plugin_<plugin>_<server>`); a sub-agent's lists likewise, and
- *     a sub-agent's reference to a plugin's skill is dropped (the plugin
- *     comes with its parent);
+ *     a sub-agent's reference to a plugin's skill moves to the parent's
+ *     plugins (the sub-agent's skills come with its parent's plugins). A
+ *     sub-agent is the retired AgentSpec field 6, read and written through
+ *     its frozen shape (frozen-sub-agent.ts);
  *   - an agent a plugin install composed (labelled with the plugin) stays,
  *     as an ordinary agent that lists its plugin: its two plugin labels go,
  *     its sub-agents go (they arrive with the plugin as `<plugin>:<agent>`)
@@ -69,6 +71,7 @@ import { IamPolicySchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/api
 
 import { canonicalSpecHash } from "../pipeline/steps/spec-hash.js";
 import { FrozenMcpServerEnvelopeSchema } from "./frozen-envelopes.js";
+import { readSubAgents, writeSubAgents } from "./frozen-sub-agent.js";
 import type { StoreLogger } from "./logger.js";
 
 /** The `kind` column values the step reads, rewrites and removes. */
@@ -348,7 +351,7 @@ export function migrateAgentRow(
     if (plugin !== undefined) {
       plugins.add(plugin);
     }
-    spec.subAgents = [];
+    writeSubAgents(spec, []);
   }
 
   const renames = facts.toolRenames(org, used, plugins.ids());
@@ -374,14 +377,32 @@ export function migrateAgentRow(
   };
   spec.tools = rename(spec.tools);
   spec.disallowedTools = renameDenies(spec.disallowedTools);
-  for (const subAgent of spec.subAgents) {
+  // A sub-agent (the retired field 6, read through its frozen shape) gets
+  // its lists renamed like the agent's; a reference to a plugin's skill
+  // moves to the parent's plugins, which a sub-agent's skills come with
+  // (stigmer#2119).
+  const subAgents = readSubAgents(spec);
+  for (const subAgent of subAgents) {
     subAgent.tools = rename(subAgent.tools);
     subAgent.disallowedTools = renameDenies(subAgent.disallowedTools);
-    const kept = subAgent.skillRefs.filter((ref) => facts.memberSkill(ref, org) === undefined);
+    const kept = subAgent.skillRefs.filter((ref) => {
+      const member = facts.memberSkill(ref, org);
+      if (member === undefined) {
+        return true;
+      }
+      const plugin = facts.plugin(member.pluginId);
+      if (plugin !== undefined) {
+        plugins.add(plugin);
+      }
+      return false;
+    });
     if (kept.length !== subAgent.skillRefs.length) {
       changed = true;
       subAgent.skillRefs = kept;
     }
+  }
+  if (subAgents.length > 0) {
+    writeSubAgents(spec, subAgents);
   }
 
   if (!changed) {

@@ -70,13 +70,13 @@ Stigmer's own. A few things differ:
 
 - A Cursor-format hook that asks gets an approval on both engines, where Cursor
   itself lets the call run.
-- On the Cursor engine, a hook is not told which sub-agent made a call. Web
-  fetch and web search reach no hook there, so an Agent whose hooks that run
-  before a call would match them runs without those tools on that engine (a hook
-  that runs after them does not run there); the sub-agent tool is left out too
-  when a hook's matcher names it. A sub-agent's own calls still reach every
-  hook. On Stigmer's own engine, a Cursor-format hook sees web fetch as
-  `WebFetch`, so its policy holds there too.
+- On the Cursor engine, a hook is not told which subagent made a call. Web fetch
+  and web search reach no hook there, so an Agent whose hooks that run before a
+  call would match them runs without those tools on that engine (a hook that
+  runs after them does not run there); the subagent tool is left out too when a
+  hook's matcher names it. A subagent's own calls still reach every hook. On
+  Stigmer's own engine, a Cursor-format hook sees web fetch as `WebFetch`, so
+  its policy holds there too.
 - On the Cursor engine, a hook that rewrites a call takes effect only where
   Cursor applies a rewrite: a shell command, its directory or timeout, a file
   path, a search pattern or a URL. A rewrite of a file's content or of an MCP
@@ -123,12 +123,15 @@ spec:
 This Agent can read files and use the order server's tools, but cannot run shell
 commands, write files, or cancel an order. The lists hold on both
 [harnesses](/docs/concepts/harnesses), and even when someone chooses to trust
-the whole run. A sub-agent can narrow its parent's tools with its own lists but
-never widen them. On the Cursor harness a sub-agent cannot carry lists of its
-own: Cursor does not say which sub-agent made a call, so a turn whose sub-agent
-has lists is refused there, with the sub-agent named, and so is a turn whose
-Agent limits `Agent` to types, since Cursor cannot hold back its own built-in
-sub-agents. Run such an Agent on the native harness. With `Read` left out, the
+the whole run. A plugin's agents, which join as subagents, can narrow the
+Agent's tools with their own lists but never widen them. A saved Agent listed as
+a [subagent](/docs/concepts/agents#subagents) has lists of its own instead,
+capped by the run's and not by the Agent's. On the Cursor harness a subagent
+cannot carry lists of its own, and a saved one cannot bring plugins or hooks
+either: Cursor does not say which subagent made a call, so a turn whose subagent
+has them is refused there, with the subagent named, and so is a turn whose Agent
+limits `Agent` to types, since Cursor cannot hold back its own built-in
+subagents. Run such an Agent on the native harness. With `Read` left out, the
 Agent still reads its own Skills, inputs and plan. The platform's channel,
 conversation and memory tools are outside the lists.
 

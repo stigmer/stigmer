@@ -6,10 +6,13 @@
  *
  *  - a `TurnInput` survives the trip as JSON: protobuf messages, Maps and
  *    Sets intact, and the aliases the runtime builds rebuilt (`session` IS
- *    `blueprint.session`, the spec IS `blueprint.sessionSpec`, the agent's
- *    sub-agents ARE `blueprint.subAgents`, the leased servers ARE one Set),
- *    the turn's plugins, each plugin's hook values, the servers whose tools
- *    could not be listed and the turn start's listing included;
+ *    `blueprint.session`, the spec IS `blueprint.sessionSpec`, the leased
+ *    servers ARE one Set), the turn's plugins, its plugin subagents and
+ *    saved subagents, each plugin's hook values, each subagent's own values,
+ *    the servers whose tools could not be listed and the turn start's
+ *    listing included;
+ *  - each saved subagent's context crosses whole: its tool scope rebuilt
+ *    with the same answers, its hook sources with a verify that calls back;
  *  - the behaviour members are the host's stand-ins: the memory selection,
  *    the artifact upload and a plugin's verify call back, never run locally;
  *  - a vision image crosses once even when an attachment and the vision
@@ -25,7 +28,7 @@
 
 import { create, toBinary } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ChannelTemplateSchema, MessagingChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -34,6 +37,9 @@ import { ApprovalAction, MessageType, RunPhase } from "@stigmer/protos/ai/stigme
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
+import type { TurnSubagent } from "../../harness/types.js";
+import type { PluginSubagent } from "../../shared/blueprint-resolver.js";
+import { savedSubagentScope } from "../../shared/subagents.js";
 import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { ToolScope } from "../../shared/tool-lists.js";
 import { toolValuesKey } from "../../shared/run-values.js";
@@ -92,6 +98,7 @@ describe("the turn input across the pipe", () => {
         agent: { API_TOKEN: "value" },
         tools: new Map([[toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }]]),
         plugins: new Map([["plg_safety", { HOOK_TOKEN: "hook" }]]),
+        subagents: new Map([["release-notes", { NOTES_TOKEN: "notes" }]]),
         repositories: [{ name: "app", url: "https://github.com/acme/app.git", token: "ghp_runner_only" }],
       },
       appliedToolCallIds: new Set(["call-2"]),
@@ -104,10 +111,8 @@ describe("the turn input across the pipe", () => {
         platformServerSlugs: new Set(["memory"]),
         toolScope: ToolScope.of("The agent", { tools: ["Read", "Agent(explore)"], disallowedTools: ["mcp__github__delete_repo"] }),
       },
-      skills: { root: [{ name: "s", description: "d", path: "/p" }], bySubAgent: new Map([["helper", [{ name: "h", description: "d", path: "/h" }]]]) },
+      skills: { root: [{ name: "s", description: "d", path: "/p" }], bySubAgent: new Map([["kit:helper", [{ name: "h", description: "d", path: "/h" }]]]) },
     });
-    input.blueprint.agent!.spec.subAgents.push(create(SubAgentSchema, { name: "helper" }));
-    input.blueprint.subAgents = input.blueprint.agent!.spec.subAgents;
     input.session.spec!.harnessStateId = "state-1";
 
     const decoded = crossed(input);
@@ -118,8 +123,6 @@ describe("the turn input across the pipe", () => {
     expect(decoded.session.spec!.harnessStateId).toBe("state-1");
     expect(decoded.blueprint.session, "session IS blueprint.session").toBe(decoded.session);
     expect(decoded.blueprint.sessionSpec, "the spec IS blueprint.sessionSpec").toBe(decoded.session.spec);
-    expect(decoded.blueprint.subAgents, "the sub-agents ARE the agent spec's list").toBe(decoded.blueprint.agent!.spec.subAgents);
-    expect(decoded.blueprint.subAgents.map((s) => s.name)).toEqual(["helper"]);
     expect(decoded.mcp.mcpDefault.leasedServers, "one Set of leased servers").toBe(decoded.mcp.leases.servers);
     expect([...decoded.approvalDecisions]).toEqual([["call-1", ApprovalAction.APPROVE]]);
     expect(decoded.values.agent).toEqual({ API_TOKEN: "value" });
@@ -127,6 +130,7 @@ describe("the turn input across the pipe", () => {
       [toolValuesKey("plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }],
     ]);
     expect([...decoded.values.plugins]).toEqual([["plg_safety", { HOOK_TOKEN: "hook" }]]);
+    expect([...decoded.values.subagents]).toEqual([["release-notes", { NOTES_TOKEN: "notes" }]]);
     expect([...decoded.mcp.mcpDefault.unlisted]).toEqual(["plugin_jira_api"]);
     expect(decoded.mcp.listing).toEqual(listing);
     // A repository's token is the runner's alone: it never crosses the pipe.
@@ -135,23 +139,14 @@ describe("the turn input across the pipe", () => {
     expect([...decoded.appliedToolCallIds]).toEqual(["call-2"]);
     expect([...decoded.mcp.leases.categories]).toEqual(["write"]);
     expect([...decoded.mcp.mcpDefault.destructive]).toEqual(["github/delete_repo"]);
-    expect([...decoded.skills.bySubAgent.keys()]).toEqual(["helper"]);
+    expect([...decoded.skills.bySubAgent.keys()]).toEqual(["kit:helper"]);
   });
 
   it("carries no listing for an engine that reads its tools' marks itself", () => {
     expect(crossed(turnInputFixture()).mcp.listing).toBeUndefined();
   });
 
-  it("keeps a sub-agent list that is not the agent spec's (the built-in judge's) as its own", () => {
-    const input = turnInputFixture();
-    input.blueprint.agent!.spec.subAgents.push(create(SubAgentSchema, { name: "on-the-spec" }));
-    const decoded = crossed({ ...input, blueprint: { ...input.blueprint, subAgents: [] } });
-
-    expect(decoded.blueprint.subAgents).toEqual([]);
-    expect(decoded.blueprint.agent!.spec.subAgents.map((s) => s.name)).toEqual(["on-the-spec"]);
-  });
-
-  it("carries every list the runtime resolved: plugins, skill references, channels and their templates, sub-agents of their own, plain attachments", () => {
+  it("carries every list the runtime resolved: plugins, skill references, channels and their templates, plugin subagents and saved subagents, plain attachments", () => {
     const input = turnInputFixture({
       attachments: { results: [{ filename: "notes.txt", relativePath: ".stigmer/inputs/notes.txt", sizeBytes: 4 }], visionImages: [], visionNotViewable: [] },
     });
@@ -161,9 +156,26 @@ describe("the turn input across the pipe", () => {
         { channel: create(MessagingChannelSchema, { channel: "chn_1" }), templates: [create(ChannelTemplateSchema, { name: "welcome" })] },
       ],
     };
+    const pluginAgent: PluginSubagent = {
+      name: "kit:helper",
+      description: "Helps.",
+      instructions: "Help.",
+      tools: ["Read"],
+      disallowedTools: ["Bash"],
+      model: "claude-sonnet-4-5",
+    };
     const blueprint = {
       ...input.blueprint,
-      subAgents: [create(SubAgentSchema, { name: "own" })],
+      pluginAgents: [pluginAgent],
+      subagents: [
+        {
+          name: "release-notes",
+          agentId: "agt_release-notes",
+          versionHash: "c".repeat(64),
+          spec: create(AgentSpecSchema, { instructions: "You write release notes.", plugins: [{ slug: "kit" }] }),
+          plugins: [create(PluginSchema, { metadata: { id: "plg_kit", name: "kit" } })],
+        },
+      ],
       plugins: [
         create(PluginSchema, {
           metadata: { id: "plg_kit", name: "kit" },
@@ -175,7 +187,10 @@ describe("the turn input across the pipe", () => {
 
     const decoded = crossed({ ...input, mcp, blueprint });
 
-    expect(decoded.blueprint.subAgents.map((s) => s.name)).toEqual(["own"]);
+    expect(decoded.blueprint.pluginAgents).toEqual([pluginAgent]);
+    expect(decoded.blueprint.subagents.map((s) => [s.name, s.agentId, s.versionHash, s.spec.instructions, s.spec.plugins.map((r) => r.slug), s.plugins.map((p) => p.metadata?.id)])).toEqual([
+      ["release-notes", "agt_release-notes", "c".repeat(64), "You write release notes.", ["kit"], ["plg_kit"]],
+    ]);
     expect(decoded.blueprint.plugins.map((p) => [p.metadata?.id, p.status?.digest, p.status?.mcpServers.map((e) => [e.name, e.env, e.transport.case])])).toEqual([
       ["plg_kit", "d".repeat(64), [["api", ["TOKEN"], "http"]]],
     ]);
@@ -197,6 +212,46 @@ describe("the turn input across the pipe", () => {
     expect(rebuilt.allowsMcpTool("github", "delete_repo")).toBe(false);
     expect(rebuilt.allowsClaudeTool("Read")).toBe(true);
     expect(rebuilt.owner).toBe("helper");
+  });
+
+  it("carries each saved subagent's context whole: its scope rebuilt, its hooks' verify calling back", async () => {
+    const calls: string[] = [];
+    const toolScope = savedSubagentScope("release-notes", create(AgentSpecSchema, { tools: ["Read", "mcp__plugin_changelog_api"] }), undefined);
+    const subagent: TurnSubagent = {
+      name: "release-notes",
+      description: "Writes release notes",
+      instructions: "You write release notes.",
+      model: "claude-sonnet-4-5",
+      toolScope,
+      servers: [{ slug: "plugin_changelog_api", connectionType: "http", url: "https://changelog.example/mcp", pluginOrigin: { pluginId: "plg_changelog", plugin: "changelog", server: "api" } }],
+      skills: [{ name: "changelog:changelog", description: "Write a changelog", path: "/c" }],
+      hooks: [
+        { plugin: { id: "plg_guard", slug: "guard", name: "Guard", root: "/g", data: "/gd", verify: async () => void calls.push("local verify") }, format: "claude-code", groups: [] },
+        { plugin: null, format: "cursor", groups: [] },
+      ],
+      values: { NOTES_TOKEN: "notes" },
+      bringsOwn: { plugins: true, hooks: true, lists: true },
+    };
+    const decoded = crossed(turnInputFixture({ subagents: [subagent] }), noServices(calls));
+
+    const [back] = decoded.subagents;
+    expect(back).toMatchObject({
+      name: "release-notes",
+      description: "Writes release notes",
+      instructions: "You write release notes.",
+      model: "claude-sonnet-4-5",
+      servers: subagent.servers,
+      skills: subagent.skills,
+      values: { NOTES_TOKEN: "notes" },
+      bringsOwn: { plugins: true, hooks: true, lists: true },
+    });
+    expect(back!.toolScope.describe()).toBe(toolScope.describe());
+    expect(back!.toolScope.allowsClaudeTool("Agent")).toBe(false);
+    expect(back!.toolScope.allowsMcpTool("plugin_changelog_api", "write")).toBe(true);
+    expect(back!.toolScope.allowsClaudeTool("Bash")).toBe(false);
+    expect(back!.hooks.map((h) => [h.plugin?.slug ?? null, h.format])).toEqual([["guard", "claude-code"], [null, "cursor"]]);
+    await back!.hooks[0]!.plugin!.verify();
+    expect(calls, "the host's verify calls back, never the runner's closure").toEqual(["verify guard"]);
   });
 
   it("calls back to the runner for the memory selection, the upload and a plugin's verify", async () => {

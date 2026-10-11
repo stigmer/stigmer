@@ -6,7 +6,7 @@
 import { generateSlug, enumFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema, SubAgentSchema, HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, HookSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { HookHandlerSchema, HookGroupSchema, HookConfigSchema, HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
@@ -30,14 +30,14 @@ export const AgentInputShape = {
   icon_url: z.string().optional().describe("Icon URL for marketplace and UI display. Must be a publicly accessible URL to an image (SVG, PNG, or JPEG)."),
   instructions: z.string().optional().describe("System prompt defining the agent's behavior and personality."),
   skill_refs: z.array(z.lazy(() => SkillRefInputSchema)).optional().describe("Skill resources providing additional knowledge to the agent."),
-  sub_agents: z.array(z.lazy(() => SubAgentInputSchema)).optional().describe("Sub-agents that can be delegated to. A sub-agent starts from this agent's tools and may narrow them with its own tool lists, never widen them."),
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality. A secret is found by its name in a vault when a run starts; a plain setting may carry its value in the declaration."),
-  tools: z.array(z.string()).optional().describe("Tools this agent may use; empty means every tool it has. Entries use Claude Code's names: a built-in such as Read, Grep, Bash, Write, Edit, Glob, Agent or WebFetch; mcp__<server> for every tool of one MCP server, mcp__<server>__<tool> for one tool, and mcp__* for every MCP tool. A plugin's server is named plugin_<plugin>_<server>, as Claude Code names it, with every character outside letters, digits, _ and - written as _. A specifier in parentheses, as in Bash(git push *), is accepted and governs the whole tool. Agent(explore, shell) also limits which sub-agents this agent may start; the Cursor engine cannot hold its built-in sub-agents back, so it refuses a turn whose agent limits Agent to types. The lists hold on both engines, and under 'approve everything' too. Skill is a name here too, for the agent's skills: a list without Skill keeps them, and a list holding only Skill names them, so it does not refuse the turn, also under an outer list that omits Skill (a sub-agent's under its agent's, a turn's under the agent's). Denying Skill in disallowed_tools removes them, and then a list of Skill alone in a narrower layer refuses the turn."),
-  disallowed_tools: z.array(z.string()).optional().describe("Tools this agent may never use, in the same names as tools. Applied before tools, so a tool named in both is excluded. Disallowing Skill hides every skill from this agent: no skill is listed or mounted for its turns, and the Read tool refuses reads of skill and plugin-tree files. Grep, Glob and a shell the agent is granted are not refused, so they can still reach those files. On a sub-agent it hides that sub-agent's skills."),
-  hooks: z.array(z.lazy(() => HookSourceInputSchema)).optional().describe("Hooks written in this agent itself, run around its tool calls and its sub-agents' calls, after the hooks of the plugins it lists. A hook can refuse a call, ask a person first, or let it run without the approval it would otherwise need. Both engines run hooks in Claude Code's format and in Cursor's. On the Cursor engine, web fetch and web search reach no hook, so an agent whose PreToolUse hooks would match them runs there without those tools; a PostToolUse hook on them does not run there."),
+  tools: z.array(z.string()).optional().describe("Tools this agent may use; empty means every tool it has. Entries use Claude Code's names: a built-in such as Read, Grep, Bash, Write, Edit, Glob, Agent or WebFetch; mcp__<server> for every tool of one MCP server, mcp__<server>__<tool> for one tool, and mcp__* for every MCP tool. A plugin's server is named plugin_<plugin>_<server>, as Claude Code names it, with every character outside letters, digits, _ and - written as _. A specifier in parentheses, as in Bash(git push *), is accepted and governs the whole tool. Agent(explore, release-notes) also limits which subagents this agent may start; the Cursor engine cannot hold its built-in subagents back, so it refuses a turn whose agent limits Agent to types. The lists hold on both engines, and under 'approve everything' too. Skill is a name here too, for the agent's skills: a list without Skill keeps them, and a list holding only Skill names them, so it does not refuse the turn, also under an outer list that omits Skill (a plugin subagent's under its turn's, a turn's under the agent's). Denying Skill in disallowed_tools removes them, and then a list of Skill alone in a narrower layer refuses the turn."),
+  disallowed_tools: z.array(z.string()).optional().describe("Tools this agent may never use, in the same names as tools. Applied before tools, so a tool named in both is excluded. Disallowing Skill hides every skill from this agent: no skill is listed or mounted for its turns, and the Read tool refuses reads of skill and plugin-tree files. Grep, Glob and a shell the agent is granted are not refused, so they can still reach those files."),
+  hooks: z.array(z.lazy(() => HookSourceInputSchema)).optional().describe("Hooks written in this agent itself, run around its tool calls and its subagents' calls, after the hooks of the plugins it lists. A hook can refuse a call, ask a person first, or let it run without the approval it would otherwise need. Both engines run hooks in Claude Code's format and in Cursor's. On the Cursor engine, web fetch and web search reach no hook, so an agent whose PreToolUse hooks would match them runs there without those tools; a PostToolUse hook on them does not run there."),
   run_config: z.lazy(() => RunConfigInputSchema).optional().describe("The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message or the surface it came through sets its own (RunConfig has the rule). Versioned with the agent, so a conversation pinned to a version keeps that version's defaults. A choice here (model_name, service_tier, thinking_mode) applies only on the engine named in harness; on a conversation running the other engine only the bounds apply. A bound here is a cap: a message or a surface can lower it, never raise it. A model must be named together with harness, and must be one that engine lists; service_tier FAST and thinking_mode ENABLED need a model that engine prices or marks capable. Checked when the agent is saved."),
   harness: z.string().optional().describe("The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person or the surface starting it names neither an engine nor a model (a turn that names a model but no engine starts on native, the engine its name was checked against). Unspecified: the platform's default engine (native). Model names belong to an engine (each lists its own), so run_config's model, tier and thinking count only on this engine. A conversation keeps the engine it started on; a later version naming another engine changes only new conversations. Allowed values: HARNESS_NATIVE, HARNESS_CURSOR."),
   plugins: z.array(z.lazy(() => PluginInputSchema)).optional().describe("Plugins this agent uses, each whole: its skills, agents, hooks and MCP servers."),
+  subagents: z.array(z.lazy(() => SubagentInputSchema)).optional().describe("Saved agents this agent may hand work to, each running its own instructions, model, tools, plugins, skills, hooks and values. A subagent runs as the conversation's person and on its budget, under the conversation's hooks, and cannot hand work on to another agent: an agent that lists subagents of its own is refused here. Each reference is pinned when this agent is saved: a reference without a version takes the listed agent's latest version, and one naming a tag or a version keeps that version until a later save sends the list again. At most 20."),
 } as const;
 
 export const AgentInputSchema = z.object(AgentInputShape);
@@ -49,17 +49,6 @@ const SkillRefInputSchema = z.object({
   version: z.string().optional().describe("Version of the resource (optional, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to 'latest' (most recent version) 2. Tag name → Resolves to version with this tag (e.g., 'stable', 'v1.0') 3. Exact hash → Immutable reference to specific version (e.g., 'abc123...') Default behavior: Empty means 'latest' (current version). This field is ignored for non-versioned resources. Examples: - version: '' → Use latest version - version: 'latest' → Use latest version (explicit) - version: 'stable' → Use version tagged as 'stable' - version: 'v1.0' → Use version tagged as 'v1.0' - version: 'abc123...' → Use exact version with this hash (immutable)"),
 });
 type SkillRefInput = z.infer<typeof SkillRefInputSchema>;
-
-const SubAgentInputSchema = z.object({
-  name: z.string().describe("Unique name of the sub-agent within the parent agent."),
-  description: z.string().optional().describe("What this sub-agent specializes in."),
-  instructions: z.string().optional().describe("System prompt for this sub-agent."),
-  skill_refs: z.array(z.lazy(() => SkillRefInputSchema)).optional().describe("Skill resources for this sub-agent."),
-  model_override: z.string().optional().describe("Model override for this sub-agent. When set, uses this model instead of the model the turn runs. When empty, inherits the model the turn runs."),
-  tools: z.array(z.string()).optional().describe("Tools this sub-agent may use, from what the parent may use; empty means all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent, the type list of an Agent(...) entry is ignored, as in Claude Code. The Cursor engine cannot tell which sub-agent made a call, so it refuses a turn whose sub-agent carries its own lists; the native engine runs it."),
-  disallowed_tools: z.array(z.string()).optional().describe("Tools this sub-agent may never use, in the same names as tools. Disallowing Skill hides this sub-agent's skills, as on AgentSpec."),
-});
-type SubAgentInput = z.infer<typeof SubAgentInputSchema>;
 
 const EnvVarDeclarationInputSchema = z.object({
   is_secret: z.boolean().optional().describe("Whether the value is a secret, found in a vault when a run starts."),
@@ -113,6 +102,13 @@ const PluginInputSchema = z.object({
 });
 type PluginInput = z.infer<typeof PluginInputSchema>;
 
+const SubagentInputSchema = z.object({
+  org: z.string().optional().describe("Organization that owns the referenced resource, by slug or id. When non-empty: an organization slug (lowercase alphanumeric with hyphens, starts with a letter, 2-63 characters; e.g. 'stigmer', 'acme-corp') or an organization id (org_<ulid>). The server stores the id, so a stored reference keeps pointing at its organization across a rename. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form, the id). Use empty org for same-org references (the common case). An explicit other org is accepted only when that organization is your organization's parent and shares the resource with its children (visibility_child_orgs)."),
+  slug: z.string().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'code-reviewer'). Length: 2-63 characters."),
+  version: z.string().optional().describe("Version of the resource (optional, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to 'latest' (most recent version) 2. Tag name → Resolves to version with this tag (e.g., 'stable', 'v1.0') 3. Exact hash → Immutable reference to specific version (e.g., 'abc123...') Default behavior: Empty means 'latest' (current version). This field is ignored for non-versioned resources. Examples: - version: '' → Use latest version - version: 'latest' → Use latest version (explicit) - version: 'stable' → Use version tagged as 'stable' - version: 'v1.0' → Use version tagged as 'v1.0' - version: 'abc123...' → Use exact version with this hash (immutable)"),
+});
+type SubagentInput = z.infer<typeof SubagentInputSchema>;
+
 
 /** Build the fully-formed Agent proto from the flat MCP apply input. */
 export function agentInputToProto(input: AgentInput): Agent {
@@ -122,7 +118,6 @@ export function agentInputToProto(input: AgentInput): Agent {
   if (input.icon_url !== undefined) spec.iconUrl = input.icon_url;
   if (input.instructions !== undefined) spec.instructions = input.instructions;
   if (input.skill_refs !== undefined) spec.skillRefs = input.skill_refs.map(skillRefInputToProto);
-  if (input.sub_agents !== undefined) spec.subAgents = input.sub_agents.map(subAgentInputToProto);
   if (input.env !== undefined) {
     for (const [k, v] of Object.entries(input.env)) spec.env[k] = envVarDeclarationInputToProto(v);
   }
@@ -132,6 +127,7 @@ export function agentInputToProto(input: AgentInput): Agent {
   if (input.run_config !== undefined) spec.runConfig = runConfigInputToProto(input.run_config);
   spec.harness = enumFromString(Harness, input.harness) as Harness;
   if (input.plugins !== undefined) spec.plugins = input.plugins.map(pluginInputToProto);
+  if (input.subagents !== undefined) spec.subagents = input.subagents.map(subagentInputToProto);
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -154,18 +150,6 @@ function skillRefInputToProto(input: SkillRefInput) {
     kind: ApiResourceKind.skill,
     version: input.version,
   });
-}
-
-function subAgentInputToProto(input: SubAgentInput) {
-  const result = create(SubAgentSchema);
-  if (input.name !== undefined) result.name = input.name;
-  if (input.description !== undefined) result.description = input.description;
-  if (input.instructions !== undefined) result.instructions = input.instructions;
-  if (input.skill_refs !== undefined) result.skillRefs = input.skill_refs.map(skillRefInputToProto);
-  if (input.model_override !== undefined) result.modelOverride = input.model_override;
-  if (input.tools !== undefined) result.tools = input.tools;
-  if (input.disallowed_tools !== undefined) result.disallowedTools = input.disallowed_tools;
-  return result;
 }
 
 function envVarDeclarationInputToProto(input: EnvVarDeclarationInput) {
@@ -224,6 +208,15 @@ function pluginInputToProto(input: PluginInput) {
     org: input.org,
     slug: input.slug,
     kind: ApiResourceKind.plugin,
+    version: input.version,
+  });
+}
+
+function subagentInputToProto(input: SubagentInput) {
+  return create(ApiResourceReferenceSchema, {
+    org: input.org,
+    slug: input.slug,
+    kind: ApiResourceKind.agent,
     version: input.version,
   });
 }

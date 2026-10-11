@@ -7,6 +7,13 @@
  * turn by name (and by the MCP server whose value it is); a shell-form hook
  * with no `bash` on the hook's PATH refusing the turn; and Claude's
  * `permission_mode` for the turn.
+ *
+ * A saved subagent's evaluator runs the conversation's sources first, then
+ * the subagent's own; the subagent's own block reads the subagent's values,
+ * never the agent's, and its commands run in the subagent's environment,
+ * while the conversation's keep the agent's. A hook on a subagent's call
+ * sees the subagent's plugin servers as Claude Code names them
+ * (`plugin:<plugin>:<server>`), and a platform server by its slug.
  */
 
 import { mkdtempSync, rmSync } from "node:fs";
@@ -17,7 +24,8 @@ import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_
 import { HookGroupSchema, HookHandlerSchema, type HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
-import type { TurnHookSource, TurnInput } from "../../../harness/types.js";
+import type { TurnHookSource, TurnInput, TurnSubagent } from "../../../harness/types.js";
+import { ToolScope } from "../../../shared/tool-lists.js";
 import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import { toolValuesKey, type RunValues, type ToolValueGroup } from "../../../shared/run-values.js";
 import type { MountedPlugin } from "../../../shared/plugin-mount.js";
@@ -35,13 +43,48 @@ function groups(...handlers: { command: string; args?: string[] }[]): HookGroup[
 
 function input(
   sources: TurnHookSource[],
-  extra: { agent?: Record<string, string>; tools?: RunValues["tools"]; plugins?: RunValues["plugins"]; workspaceDir?: string } = {},
+  extra: { agent?: Record<string, string>; tools?: RunValues["tools"]; plugins?: RunValues["plugins"]; workspaceDir?: string; subagents?: TurnSubagent[] } = {},
 ): TurnInput {
   return turnInputFixture({
     ...(extra.workspaceDir !== undefined ? { workspaceDir: extra.workspaceDir } : {}),
     hooks: { sources, pluginServers: new Map() },
-    values: { agent: extra.agent ?? {}, tools: extra.tools ?? new Map(), plugins: extra.plugins ?? new Map(), repositories: [] },
+    values: {
+      agent: extra.agent ?? {},
+      tools: extra.tools ?? new Map(),
+      plugins: extra.plugins ?? new Map(),
+      subagents: new Map((extra.subagents ?? []).map((s) => [s.name, s.values])),
+      repositories: [],
+    },
+    subagents: extra.subagents ?? [],
   });
+}
+
+/** A saved subagent's context carrying these hook sources and values. */
+function subagent(hooks: TurnHookSource[], values: Record<string, string>): TurnSubagent {
+  return {
+    name: "release-notes",
+    description: "Writes release notes",
+    instructions: "You write release notes.",
+    model: undefined,
+    toolScope: ToolScope.unrestricted(),
+    servers: [],
+    skills: [],
+    hooks,
+    values,
+    bringsOwn: { plugins: false, hooks: hooks.length > 0, lists: false },
+  };
+}
+
+/** A shell-form PreToolUse hook on Read that reports two variables of its environment as additional context. */
+function reportsEnv(label: string): HookGroup[] {
+  const json = `{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"${label} agent=%s sub=%s"}}`;
+  return [
+    create(HookGroupSchema, {
+      event: "PreToolUse",
+      matcher: "Read",
+      handlers: [create(HookHandlerSchema, { command: `printf '${json}' "$AGENT_KEY" "$NOTES_KEY"` })],
+    }),
+  ];
 }
 
 afterEach(() => vi.unstubAllEnvs());
@@ -175,6 +218,85 @@ describe("buildHookEvaluator", () => {
       expect(await buildHookEvaluator(input([{ plugin: mounted, format: "claude-code", groups: groups({ command: "/bin/check", args: ["x"] }) }]), sink, tools, 180_000)).not.toBeNull();
     } finally {
       rmSync(empty, { recursive: true, force: true });
+    }
+  });
+
+  it("fills a subagent's own block from the subagent's values, never the agent's", async () => {
+    const reads = groups({ command: "check", args: ["${user_config.NOTES_KEY}"] });
+    const own = subagent([{ plugin: null, format: "claude-code", groups: reads }], { NOTES_KEY: "n" });
+    const turn = input([], { subagents: [own] });
+    expect(await buildHookEvaluator(turn, sink, tools, 180_000), "the main agent has no hooks").toBeNull();
+    expect(await buildHookEvaluator(turn, sink, tools, 180_000, own)).not.toBeNull();
+
+    const agentsOnly = subagent([{ plugin: null, format: "claude-code", groups: reads }], {});
+    await expect(
+      buildHookEvaluator(input([], { agent: { NOTES_KEY: "agent's" }, subagents: [agentsOnly] }), sink, tools, 180_000, agentsOnly),
+    ).rejects.toThrow(
+      "A hook in the subagent 'release-notes''s own hooks block reads the variable NOTES_KEY, which this run does not give the subagent 'release-notes'. " +
+        "Declare NOTES_KEY in the subagent 'release-notes''s env and set its value, then run again.",
+    );
+  });
+
+  it("runs the conversation's hooks first on a subagent's call, in the agent's environment, then the subagent's own in its own", async () => {
+    const workspace = mkdtempSync(join(tmpdir(), "hooks-subagent-"));
+    try {
+      const own = subagent([{ plugin: null, format: "claude-code", groups: reportsEnv("subagent") }], { NOTES_KEY: "notes-secret" });
+      const turn = input([{ plugin: null, format: "claude-code", groups: reportsEnv("conversation") }], {
+        agent: { AGENT_KEY: "agent-secret" },
+        workspaceDir: workspace,
+        subagents: [own],
+      });
+      const call = { id: "c", name: "read_file", args: { file_path: "/a.md" }, serverSlug: "" };
+
+      const main = await buildHookEvaluator(turn, sink, tools, 180_000);
+      expect((await main!.preToolUse(call, {})).additionalContext, "the main agent's graph runs only the conversation's").toEqual([
+        "conversation agent=agent-secret sub=",
+      ]);
+
+      const delegated = await buildHookEvaluator(turn, sink, tools, 180_000, own);
+      expect((await delegated!.preToolUse(call, {})).additionalContext).toEqual([
+        "conversation agent=agent-secret sub=",
+        "subagent agent= sub=notes-secret",
+      ]);
+    } finally {
+      rmSync(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it("shows a hook a subagent's plugin server by its plugin's name, as Claude Code does, and a platform server by its slug", async () => {
+    const workspace = mkdtempSync(join(tmpdir(), "hooks-subagent-servers-"));
+    try {
+      const github: ResolvedMcpServer = {
+        slug: "plugin_github_api",
+        connectionType: "http",
+        url: "https://api.githubcopilot.com/mcp/",
+        pluginOrigin: { pluginId: "plg_github", plugin: "github", server: "api" },
+      };
+      const platform: ResolvedMcpServer = { slug: "notes", connectionType: "http", url: "https://notes.example.com/mcp", pluginOrigin: null };
+      const reportsServer = [
+        create(HookGroupSchema, {
+          event: "PreToolUse",
+          matcher: "mcp__.*",
+          handlers: [
+            create(HookHandlerSchema, {
+              command:
+                `input=$(cat); case "$input" in *'"name":"plugin:github:api"'*) n=plugin:github:api ;; *'"name":"notes"'*) n=notes ;; *) n=unnamed ;; esac; ` +
+                `printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"%s"}}' "$n"`,
+            }),
+          ],
+        }),
+      ];
+      const own: TurnSubagent = { ...subagent([{ plugin: null, format: "claude-code", groups: reportsServer }], {}), servers: [github, platform] };
+      const turn = input([], { workspaceDir: workspace, subagents: [own] });
+      const served = { toolServerMap: new Map([["create_issue", "plugin_github_api"], ["add_note", "notes"]]) };
+
+      const delegated = await buildHookEvaluator(turn, sink, served, 180_000, own);
+      const issue = await delegated!.preToolUse({ id: "c1", name: "create_issue", args: {}, serverSlug: "plugin_github_api" }, {});
+      expect(issue.additionalContext).toEqual(["plugin:github:api"]);
+      const note = await delegated!.preToolUse({ id: "c2", name: "add_note", args: {}, serverSlug: "notes" }, {});
+      expect(note.additionalContext).toEqual(["notes"]);
+    } finally {
+      rmSync(workspace, { recursive: true, force: true });
     }
   });
 

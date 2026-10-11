@@ -9,7 +9,8 @@ Everything the film shows on screen is real product state, authored here and app
 | `mcp/meridian-ops.mjs` | Real stdio MCP server (flight search + rebooking), deterministic outputs; marks `rebook_booking` destructive (`destructiveHint: true`), so a turn asks before it runs | S3d config shot; powers the S4b approval gate |
 | `mcp/smoke.mjs` | Stdio round-trip test of the server (`npm run demo:smoke`) | — |
 | `skills/rebooking-policy/` | The versioned policy skill, pushed with tag `stable` | S3c skill shot |
-| `resources/traveler-assist.yaml` | The hero agent YAML, written in narration order | S3b editor walk |
+| `resources/traveler-assist.yaml` | The hero agent YAML, written in narration order; lists `fare-search` as its subagent | S3b editor walk |
+| `resources/fare-search.yaml` | The fare-search specialist, an agent of its own with the plugin's one search tool; applied before `traveler-assist` | S3b (listed under `subagents`) |
 | `plugins/meridian-ops/` | The one-server plugin that installs `mcp/meridian-ops.mjs` (`.claude-plugin/plugin.json` + `.mcp.json`); `seed.mjs` renders the `__MERIDIAN_DEMO_DIR__` placeholder to this checkout's path and pushes the rendered copy | S3d |
 | `resources/disruption-digest-schedule.yaml` | Daily 6:00 schedule firing the hero agent with the digest prompt | S5c |
 | `resources/organization.yaml` | The `meridian-travel` org | throughout |

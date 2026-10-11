@@ -2,8 +2,8 @@
  * Hermetic net: two invocations of ONE sub-agent running at once, through
  * the REAL `ExecuteDeepAgent` activity (stigmer/stigmer#1699).
  *
- * The root's one model message delegates two tasks to the same declared
- * helper. langchain runs a message's tool calls together (one tools task per
+ * The root's one model message delegates two tasks to the same helper, a
+ * saved agent the root lists as a subagent. langchain runs a message's tool calls together (one tools task per
  * call), so both invocations start in the same step and their model calls
  * interleave. Each must be watched as if it ran alone: loop detection, the
  * periodic round advisory and the cost advisory's "told" record are one
@@ -38,9 +38,7 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { HumanMessage, type BaseMessage } from "@langchain/core/messages";
-import { create } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -54,6 +52,7 @@ import {
   createHermeticEnvironment,
   type HermeticEnvironment,
 } from "../../../../__test-utils__/hermetic-activity.js";
+import { savedAgentFixture } from "../../../../__test-utils__/execution-record-fixture.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { ADVISORY_LEAD_IN } from "../../../../middleware/advisory-message.js";
 import {
@@ -181,11 +180,7 @@ describe("ExecuteDeepAgent hermetic — concurrent invocations of one sub-agent"
   let env: HermeticEnvironment;
   let registry: ReturnType<typeof stubRegistryFetch>;
   const clock = new ScriptedClock();
-  const helper = create(SubAgentSchema, {
-    name: "helper",
-    description: "Works through a list.",
-    instructions: HELPER_INSTRUCTIONS,
-  });
+  const helper = savedAgentFixture("helper", { description: "Works through a list.", instructions: HELPER_INSTRUCTIONS });
 
   beforeAll(() => {
     env = createHermeticEnvironment();
@@ -209,7 +204,7 @@ describe("ExecuteDeepAgent hermetic — concurrent invocations of one sub-agent"
     const helpers: Record<Twin, BaseMessage[][]> = { a: [], b: [] };
     const record = deepAgentExecutionRecord({
       message: "Work through both lists.",
-      subAgents: [helper],
+      subagents: [helper],
       ...(options.maxCostUsd !== undefined ? { maxCostUsd: options.maxCostUsd } : {}),
     });
     const order = new CallOrder(options.after);

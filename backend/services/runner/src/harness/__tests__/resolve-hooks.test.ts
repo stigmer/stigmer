@@ -2,8 +2,9 @@
  * Pins the runtime's hook phases (`turn-context.ts`):
  *  - `refuseUnrunnableHooks`: a turn with hooks (its plugins' or the agent's
  *    own block) on an engine whose `capabilities.runsHooks` is false is
- *    refused naming each source, before anything is fetched; a turn without
- *    hooks, or a harness that runs them, passes;
+ *    refused naming each source, before anything is fetched, a subagent's
+ *    plugins' hooks and its own block among them; a turn without hooks, or
+ *    a harness that runs them, passes;
  *  - `resolveHooks`: the turn's plugins that record hooks first, in the
  *    blueprint's merge order, each mounted from its verified archive, then
  *    the agent's own block, taken as written, each with the format it is
@@ -123,6 +124,28 @@ describe("refuseUnrunnableHooks", () => {
         "This conversation has hooks (the plugin 'safety-rails', the agent's own hooks block), and this engine does not run hooks yet. " +
         "Run it on Stigmer's native engine, or remove the hooks.",
     });
+  });
+
+  it("names a subagent's plugins' hooks and its own block", () => {
+    const blueprint: ResolvedBlueprint = {
+      ...blueprintWith([]),
+      subagents: [
+        {
+          name: "release-notes",
+          agentId: "agt_release-notes",
+          versionHash: "c".repeat(64),
+          spec: create(AgentSpecSchema, { instructions: "You write release notes.", hooks: [inline()] }),
+          plugins: [plugin("guard"), plugin("quiet", { hooks: false })],
+        },
+      ],
+    };
+    expect(refuseUnrunnableHooks(blueprint, { runsHooks: false })).toEqual({
+      kind: "hooks-refused",
+      message:
+        "This conversation has hooks (the plugin 'guard-rails' of the subagent 'release-notes', the subagent 'release-notes''s own hooks block), " +
+        "and this engine does not run hooks yet. Run it on Stigmer's native engine, or remove the hooks.",
+    });
+    expect(refuseUnrunnableHooks(blueprint, { runsHooks: true })).toBeUndefined();
   });
 
   it("counts a plugin's hooks on a chat with the built-in assistant", () => {

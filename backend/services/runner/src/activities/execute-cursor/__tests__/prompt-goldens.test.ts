@@ -46,14 +46,13 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { SubAgentSchema, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { PendingApprovalSchema, type PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 
 import type { ResolvedAttachment } from "../../../shared/attachment-resolver.js";
 import type { SkillMetadata } from "../../../shared/skill-resolver.js";
-import { buildPrompt, type BuildPromptInput } from "../prompt-builder.js";
+import { buildPrompt, type BuildPromptInput, type PromptSubagent } from "../prompt-builder.js";
 import type { AgentResolution, AgentResolutionReason } from "../session-lifecycle.js";
 
 // ---------------------------------------------------------------------------
@@ -84,14 +83,12 @@ const SKILLS: readonly SkillMetadata[] = [
   skill("payments-domain", "Payments service domain knowledge and ledger invariants"),
 ];
 
-function subAgent(name: string, description: string, extra: { modelOverride?: string } = {}): SubAgent {
-  const sa = create(SubAgentSchema, { name, description, instructions: "Do the thing thoroughly." });
-  if (extra.modelOverride) sa.modelOverride = extra.modelOverride;
-  return sa;
+function subAgent(name: string, description: string, extra: { model?: string } = {}): PromptSubagent {
+  return { name, description, model: extra.model };
 }
 
-const SUB_AGENTS: SubAgent[] = [
-  subAgent("researcher", "Reads the codebase and reports how a feature works", { modelOverride: "claude-sonnet" }),
+const SUB_AGENTS: PromptSubagent[] = [
+  subAgent("researcher", "Reads the codebase and reports how a feature works", { model: "claude-sonnet" }),
   subAgent("writer", "Drafts release notes from a change list"),
 ];
 

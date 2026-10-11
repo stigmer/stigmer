@@ -1158,6 +1158,20 @@
           },
           "description": "Each plugin's keys, for that plugin's hooks only.",
           "required": false
+        },
+        {
+          "name": "Subagents",
+          "jsonName": "subagents",
+          "protoField": "subagents",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SubagentValues"
+            }
+          },
+          "description": "Each subagent's own keys, for its shell and its own hooks: what\n agent holds for the agent, for a saved agent the turn's agent lists.",
+          "required": false
         }
       ]
     }

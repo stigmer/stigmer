@@ -1,10 +1,10 @@
 /**
- * Hermetic golden: SUB-AGENT DELEGATION — the root agent hands a task to a
- * declared sub-agent through deepagents' `task` tool, and the sub-agent's
- * own turn is tracked as a `SubAgentRun`.
+ * Hermetic golden: SUBAGENT DELEGATION — the root agent hands a task to a
+ * saved agent it lists as a subagent through deepagents' `task` tool, and
+ * the subagent's own turn is tracked as a `SubAgentRun` named by its slug.
  *
- * Invariant pinned: `transformAndCompileSubagents` compiles the agent's
- * declared sub-agent (plus deepagents' built-in `general-purpose` and the
+ * Invariant pinned: the blueprint reads the listed agent at the version its
+ * parent pinned; `transformAndCompileSubagents` compiles it (plus deepagents' built-in `general-purpose` and the
  * runner's `shell`) on the SAME model double through `modelFactory`; the root
  * proposes `task({ subagent_type, description })`; the tools node runs the
  * sub-agent graph under a nested namespace (`tools:<uuid>|...`); the
@@ -17,10 +17,16 @@
  * nested transcript shape; its three moves in #1097 are quoted below with
  * their reasons, and every other line is byte-identical through that PR.
  *
- * Role selection: `createDeepAgent` gives the sub-agent the same tool set as
- * its parent (`task` included), so the script tells the roles apart by the
- * system prompt (`ScriptRoleContext.systemPrompt`), which carries the
- * sub-agent's own instructions — the one thing that differs.
+ * Role selection: the script tells the roles apart by the system prompt
+ * (`ScriptRoleContext.systemPrompt`), which carries the subagent's own
+ * instructions. One level: `createDeepAgent` binds the `task` tool in the
+ * subagent's graph too, and its scope denies `Agent`, so the tool-scope
+ * middleware keeps `task` out of the tools its model is offered; the root
+ * is offered it.
+ *
+ * Since subagents became saved agents the parent lists (the inline
+ * sub-agent written inside an agent is gone), the helper is a saved agent
+ * served by reference; the golden is byte-identical through that change.
  *
  * Since #1096 the activity is the turn runtime over the native adapter, and
  * `streamingUsage` carries the runtime accountant's fields — `model`,
@@ -74,7 +80,8 @@ import {
   SubAgentStatus,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 vi.mock("../../../../shared/model-client.js", async () =>
   (await import("../../__test-utils__/scripted-model-module.js")).scriptedModelClientModule(),
@@ -121,18 +128,29 @@ describe("ExecuteDeepAgent hermetic — sub-agent delegation", () => {
 
   it("tracks the delegated turn as a SubAgentExecution keyed by the task call and completes", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
-    const helper = create(SubAgentSchema, {
-      name: "helper",
-      description: "Looks up fixture values.",
-      instructions: HELPER_INSTRUCTIONS,
+    const helper = create(AgentSchema, {
+      metadata: { id: "agt_helper", name: "helper", slug: "helper" },
+      spec: { description: "Looks up fixture values.", instructions: HELPER_INSTRUCTIONS },
+      status: { versionHash: "e".repeat(64) },
     });
-    const record = deepAgentExecutionRecord({ message: "Ask the helper for the fixture value.", subAgents: [helper] });
+    const record = deepAgentExecutionRecord({ message: "Ask the helper for the fixture value.", subagents: [helper] });
+    const offered = { root: [] as string[][], helper: [] as string[][] };
+    const asked: string[] = [];
     const scenario = beginDeepAgentScenario({
       env,
       clock,
       record,
-      script: (_tools, context) =>
-        context.systemPrompt.includes(HELPER_INSTRUCTIONS)
+      clientOverrides: {
+        getAgentByReference: vi.fn(async (ref: ApiResourceReference) => {
+          asked.push(`${ref.slug}@${ref.version}`);
+          if (ref.slug !== "helper" || ref.version !== "e".repeat(64)) throw new Error(`unexpected agent read: ${ref.slug}@${ref.version}`);
+          return helper;
+        }),
+      },
+      script: (tools, context) => {
+        const helperTurn = context.systemPrompt.includes(HELPER_INSTRUCTIONS);
+        (helperTurn ? offered.helper : offered.root).push([...tools]);
+        return helperTurn
           ? { turns: [{ text: HELPER_ANSWER, usage: { inputTokens: 600, outputTokens: 12 } }] }
           : {
               turns: [
@@ -143,7 +161,8 @@ describe("ExecuteDeepAgent hermetic — sub-agent delegation", () => {
                 },
                 { text: ROOT_CLOSING, usage: { inputTokens: 1_800, outputTokens: 30 } },
               ],
-            },
+            };
+      },
     });
 
     // ── Act ──────────────────────────────────────────────────────────────────
@@ -172,6 +191,12 @@ describe("ExecuteDeepAgent hermetic — sub-agent delegation", () => {
     expect(sub.subject).toBe(TASK_DESCRIPTION);
     expect(sub.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
     expect(sub.messages.map((m) => [m.type, m.content])).toEqual([[MessageType.MESSAGE_AI, HELPER_ANSWER]]);
+
+    // ── Assert: the listed agent, read at its pin; one level ─────────────────
+    expect(asked, "read once, at the version its parent pinned").toEqual([`helper@${"e".repeat(64)}`]);
+    expect(offered.root.flat(), "the root may hand work on").toContain("task");
+    expect(offered.helper.length).toBeGreaterThan(0);
+    expect(offered.helper.flat(), "the subagent's model is never offered the task tool").not.toContain("task");
 
     // ── Assert: the model double was built for every compiled role ──────────
     expect(recordedModelBuilds().length, "the primary plus one per compiled sub-agent").toBeGreaterThanOrEqual(2);

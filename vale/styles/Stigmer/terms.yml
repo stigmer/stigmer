@@ -23,10 +23,10 @@ swap:
   '\bsessions\b': Sessions
   '\bskill\b': Skill
   '\bskills\b': Skills
-  sub-agent: Sub-Agent
-  sub-agents: Sub-Agents
-  subagent: Sub-Agent
-  subagents: Sub-Agents
+  # Claude Code's and Claude Managed Agents' word: lowercase, one word
+  # ("Subagent" only to start a sentence).
+  '\b[Ss]ub-[Aa]gent\b': subagent
+  '\b[Ss]ub-[Aa]gents\b': subagents
 
   # --- Platform pillar ---
   api key: API Key

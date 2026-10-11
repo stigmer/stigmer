@@ -24,7 +24,7 @@ stigmer mcp add linear https://mcp.linear.app/mcp
 ## How Agents Use Plugins
 
 An agent lists the plugins it uses in `spec.plugins`. Each plugin is attached
-whole: its skills (named `<plugin>:<skill>` in a turn), its agents (sub-agents
+whole: its skills (named `<plugin>:<skill>` in a turn), its agents (subagents
 named `<plugin>:<agent>`), its hooks and its MCP servers. Every tool of an
 attached server is available to the agent unless the agent's tool lists say
 otherwise.
@@ -62,8 +62,8 @@ not be read back.
 
 ## Narrowing Tools: `tools` and `disallowed_tools`
 
-An agent and each of its sub-agents can carry Claude Code's two lists, in Claude
-Code's names:
+An agent and each agent file in a plugin can carry Claude Code's two lists, in
+Claude Code's names:
 
 - `tools`: only these. Empty means every tool the agent has.
 - `disallowed_tools`: never these.
@@ -75,7 +75,7 @@ tool named in both is excluded.
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `Bash`, `WebFetch` | One built-in tool.                                                                                                          |
 | `Bash(git push *)`                                          | A specifier in parentheses is accepted and governs the whole tool.                                                          |
-| `Agent(explore)`                                            | In the main agent's `tools`, limits which sub-agents it may start (native harness; the Cursor harness refuses such a turn). |
+| `Agent(explore)`                                            | In the main agent's `tools`, limits which subagents it may start (native harness; the Cursor harness refuses such a turn).  |
 | `mcp__plugin_<plugin>_<server>`                             | Every tool of one plugin's MCP server.                                                                                      |
 | `mcp__plugin_<plugin>_<server>__<tool>`                     | One tool of that server, by the name the server reports in `tools/list`.                                                    |
 | `mcp__*`                                                    | Every MCP tool.                                                                                                             |
@@ -83,8 +83,9 @@ tool named in both is excluded.
 Rules that follow from the lists:
 
 - They hold on both engines, and when a run is set to approve everything.
-- A sub-agent starts from the parent's tools and can narrow them, never widen
-  them. See [sub-agents.md](sub-agents.md).
+- A plugin subagent starts from the main agent's tools and can narrow them,
+  never widen them. A saved subagent has its own lists instead, capped by the
+  turn's and not by the main agent's. See [subagents.md](subagents.md).
 - With `Read` excluded, the agent still reads its own skills, inputs and plan.
 - The platform's own tools (channel messaging, conversation participation and
   memory) are outside the lists.

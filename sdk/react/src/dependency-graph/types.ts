@@ -4,31 +4,32 @@
  * - `"agent"` — the root agent (always the tree root)
  * - `"plugin"` — a plugin referenced via `plugins`
  * - `"skill"` — a skill referenced via `skillRefs`
- * - `"sub-agent"` — an inline sub-agent definition with its own dependencies
+ * - `"subagent"` — a saved agent referenced via `subagents`, at its pinned version
  */
-export type NodeKind = "agent" | "plugin" | "skill" | "sub-agent";
+export type NodeKind = "agent" | "plugin" | "skill" | "subagent";
 
 /**
  * A single node in the agent dependency tree.
  *
- * The tree is recursive: sub-agent nodes contain their own children
- * (the skills they use). Edges are implicit in the
- * parent-child relationship — no separate edge type is needed.
+ * The tree is rooted at the agent; each dependency is a leaf. A
+ * subagent is an agent of its own, whose dependencies its own page
+ * shows, so its node is a link rather than a subtree. Edges are
+ * implicit in the parent-child relationship — no separate edge type
+ * is needed.
  *
- * Nodes are navigable when `ref` is defined (plugins and skills).
- * Sub-agent nodes have no `ref` because they are inline definitions
- * within the agent spec, not standalone resources.
+ * Nodes are navigable when `ref` is defined (plugins, skills and
+ * subagents).
  */
 export interface DependencyNode {
   /**
    * Deterministic identifier. Format: `{kind}:{slug}` for referenced
-   * resources, `sub-agent:{name}` for sub-agents, or `agent:{slug}`
+   * resources (`subagent:{slug}` for a listed agent), or `agent:{slug}`
    * for the root.
    */
   readonly id: string;
   /** What kind of resource this node represents. */
   readonly kind: NodeKind;
-  /** Primary display label (slug for resources, name for sub-agents). */
+  /** Primary display label (the slug for referenced resources, the name for the root). */
   readonly label: string;
   /**
    * Qualified label shown when the resource belongs to a different org
@@ -36,19 +37,19 @@ export interface DependencyNode {
    * the resource is in the same org as the parent agent.
    */
   readonly qualifiedLabel?: string;
-  /** Short description (sub-agent description, if available). */
+  /** Short description, if available. */
   readonly description?: string;
   /**
    * Key-value metadata displayed as secondary info.
-   * Examples: `{ tools: "3 tools" }`, `{ model: "gpt-4" }`.
+   * Examples: `{ tools: "3 tools" }`, `{ version: "1a2b3c4d" }`.
    */
   readonly metadata?: Readonly<Record<string, string>>;
-  /** Child nodes. Empty array for leaf nodes (plugins, skills). */
+  /** Child nodes. Empty array for leaf nodes (plugins, skills, subagents). */
   readonly children: readonly DependencyNode[];
   /**
-   * Navigation reference for clickable nodes. Defined for plugins and
-   * skills (standalone resources). Undefined for sub-agents (inline
-   * definitions) and the root agent.
+   * Navigation reference for clickable nodes. Defined for plugins,
+   * skills and subagents (standalone resources). Undefined for the root
+   * agent.
    */
   readonly ref?: { readonly org: string; readonly slug: string };
 }
@@ -70,11 +71,11 @@ export interface DependencyGraphProps {
   /**
    * Called when a navigable node is clicked. The `node.ref` field
    * contains the `org` and `slug` for routing. Only fired for nodes
-   * where `ref` is defined (plugins and skills).
+   * where `ref` is defined (plugins, skills and subagents).
    */
   readonly onNodeClick?: (node: DependencyNode) => void;
   /**
-   * Whether sub-agent subtrees start expanded.
+   * Whether collapsible subtrees start expanded.
    * @default true
    */
   readonly defaultExpanded?: boolean;
@@ -102,14 +103,11 @@ export interface UseDependencyGraphOptions {
       readonly org: string;
       readonly slug: string;
     }[];
-    readonly subAgents: readonly {
-      readonly name: string;
-      readonly description: string;
-      readonly skillRefs: readonly {
-        readonly org: string;
-        readonly slug: string;
-      }[];
-      readonly modelOverride: string;
+    readonly subagents: readonly {
+      readonly org: string;
+      readonly slug: string;
+      /** The version hash the server pinned when the agent was saved. */
+      readonly version: string;
     }[];
   } | undefined;
 }

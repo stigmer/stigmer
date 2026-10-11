@@ -95,7 +95,7 @@ import {
   type ReleaseWorkspaceLock,
 } from "../shared/workspace/workspace-lock.js";
 import { LocalWorkspaceBackend } from "../shared/workspace/local-backend.js";
-import { resolvePluginServers } from "../shared/mcp-resolver.js";
+import { DuplicateServerNameError, resolvePluginServers } from "../shared/mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../shared/mcp-transport-guard.js";
 import { callerIdentityValues, resolveCallerIdentity } from "../shared/caller-identity.js";
 import { discoverChannelMessaging, synthesizeChannelAttachment } from "../shared/channel-attachment.js";
@@ -112,6 +112,7 @@ import { isTerminalError } from "../shared/grpc-retry.js";
 import type { PluginServerName } from "../shared/hooks/tool-view.js";
 import { getPlatformDir } from "../shared/workspace/platform-dir.js";
 import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import type { HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { join } from "node:path";
@@ -121,6 +122,7 @@ import { pluginAgentName } from "../shared/blueprint-resolver.js";
 import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
 import { VisionBudget, type NotViewableEntry, type VisionProfile } from "../shared/attachment-vision.js";
 import { getDefaultModel, getModelVisionCapability } from "../shared/model-registry.js";
+import { pluginSubagentScope, savedSubagentScope, subagentModel } from "../shared/subagents.js";
 import { applyApprovedWholeFileWrites } from "../shared/exact-apply.js";
 import { resolveEffectiveServiceTier } from "../shared/service-tier.js";
 import { resolveEffectiveThinkingMode } from "../shared/thinking-mode.js";
@@ -143,6 +145,7 @@ import type {
   TurnModelPreferences,
   TurnSkills,
   TurnStandingContext,
+  TurnSubagent,
   TurnWorkspace,
 } from "./types.js";
 
@@ -896,13 +899,7 @@ export async function resolveMcpServersAndPolicies(
   deps.enterPhase("resolve_mcp_servers");
   await deps.reportProgress("Resolving MCP servers");
   const transportPosture = resolveMcpTransportPosture(config.mode);
-  const platformValues = callerIdentityValues(
-    resolveCallerIdentity(
-      blueprint.sessionSpec.metadata,
-      session.status?.audit?.specAudit?.createdBy,
-    ),
-    sessionId,
-  );
+  const platformValues = turnPlatformValues(blueprint, session, sessionId);
   const platformServerSlugs = new Set<string>();
   let servers = resolvePluginServers(
     blueprint.plugins, values.tools, platformValues, transportPosture, config,
@@ -1016,6 +1013,14 @@ export async function resolveMcpServersAndPolicies(
   return { servers, channelMessaging, leases, mcpDefault, listing, platformServerSlugs, toolScope };
 }
 
+/** The caller-identity keys every plugin server of the turn may template (the main agent's and each subagent's). */
+function turnPlatformValues(blueprint: ResolvedBlueprint, session: Session, sessionId: string): ReturnType<typeof callerIdentityValues> {
+  return callerIdentityValues(
+    resolveCallerIdentity(blueprint.sessionSpec.metadata, session.status?.audit?.specAudit?.createdBy),
+    sessionId,
+  );
+}
+
 /**
  * The servers a turn connects: every one whose tools the scope can reach at
  * all (`ToolScope.allowsMcpFamily`), and the platform's own. A server
@@ -1061,21 +1066,20 @@ export function mainToolScope(blueprint: ResolvedBlueprint, spec: RunSpec | unde
  * plugin that cannot be mounted contributes no skills, warned, as a failed
  * skill does.
  *
- * The root's refs are the blueprint's merged set (agent plus session); a
- * sub-agent's are its own `skillRefs`. Each ref resolves through the same
- * resolver, so a skill the root and a sub-agent share is fetched per owner
- * but MOUNTED once (the hash-keyed mount marker turns the second write into
- * a no-op), and a ref that fails resolves to nothing for that owner alone,
- * warned and never thrown, as the root's always did. Sub-agent refs are
- * resolved only for a harness whose `capabilities.subAgents` is true: the
- * blueprint's sub-agents are that harness's to compile, so their skills are
- * its to render. One progress label for the whole phase, as before.
+ * The root's refs are the blueprint's merged set (agent plus session). A
+ * ref that fails resolves to nothing, warned and never thrown, as the
+ * root's always did. A plugin subagent's skills are mapped only for a
+ * harness whose `capabilities.subAgents` is true: the blueprint's plugin
+ * subagents are that harness's to compile, so their skills are its to
+ * render. A saved subagent's skills are its own context's
+ * ({@link resolveSubagents}). One progress label for the whole phase, as
+ * before.
  *
  * A scope that denies `Skill` hides skills (`ToolScope.hidesSkills`): the
- * root's when the main scope denies it, a sub-agent's when its own lists
- * narrowed from the main scope do. A hidden owner's skills are neither
- * fetched nor mounted, so no prompt lists them; the harness's confined read
- * refuses the skill files an earlier turn mounted.
+ * root's when the main scope denies it, a plugin subagent's when its own
+ * lists narrowed from the main scope do. A hidden owner's skills are
+ * neither fetched nor mounted, so no prompt lists them; the harness's
+ * confined read refuses the skill files an earlier turn mounted.
  *
  * The `.stigmer` link this and the attachment phase create is removed in
  * the runtime's finally, after the harness's own teardown. Until #1096 the
@@ -1103,14 +1107,6 @@ export async function mountSkills(
   }
   const root = toolScope.hidesSkills ? [] : [...(await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options))];
   const bySubAgent = new Map<string, readonly SkillMetadata[]>();
-  if (args.subAgents) {
-    for (const subAgent of args.blueprint.subAgents) {
-      if (subAgent.skillRefs.length === 0) continue;
-      const scope = toolScope.narrow(subAgent.name, { tools: subAgent.tools, disallowedTools: subAgent.disallowedTools });
-      if (scope.hidesSkills) continue;
-      bySubAgent.set(subAgent.name, await resolveSkills(deps.client, subAgent.skillRefs, options));
-    }
-  }
   for (const plugin of args.blueprint.plugins) {
     // The same rule for a plugin's skills: the root lists them unless the
     // main scope hides skills, and a plugin agent its own unless its lists,
@@ -1120,7 +1116,7 @@ export async function mountSkills(
       ? (plugin.status?.agents ?? []).filter(
           (agent) =>
             agent.skills.length > 0 &&
-            !toolScope.narrow(pluginAgentName(pluginName, agent.name), { tools: agent.tools, disallowedTools: agent.disallowedTools }).hidesSkills,
+            !pluginSubagentScope(toolScope, { name: pluginAgentName(pluginName, agent.name), tools: agent.tools, disallowedTools: agent.disallowedTools }).hidesSkills,
         )
       : [];
     if (toolScope.hidesSkills && agents.length === 0) continue;
@@ -1176,15 +1172,15 @@ async function mountPluginSkills(
 /** No hooks: the record of a turn whose plugins carry none and whose agent writes none. */
 const NO_HOOKS: TurnHooks = { sources: [], pluginServers: new Map() };
 
-/** The plugins of a turn that carry hooks. */
-function pluginsWithHooks(blueprint: ResolvedBlueprint): Plugin[] {
-  return blueprint.plugins.filter((plugin) => (plugin.status?.hooks?.groups.length ?? 0) > 0);
+/** The plugins among `plugins` that carry hooks. */
+function pluginsWithHooks(plugins: readonly Plugin[]): Plugin[] {
+  return plugins.filter((plugin) => (plugin.status?.hooks?.groups.length ?? 0) > 0);
 }
 
 /**
- * Phase 2b: refuse a turn whose agent has hooks when the harness does not
- * run them, right after the blueprint and before anything else is fetched
- * or provisioned. Run without them, the hooks would be policies that
+ * Phase 2b: refuse a turn whose agent or any of its subagents has hooks
+ * when the harness does not run them, right after the blueprint and before
+ * anything else is fetched or provisioned. Run without them, the hooks would be policies that
  * silently vanished; the refusal names them and says what to do. Both built
  * harnesses run hooks, so this refuses nothing today; it stays for the
  * next harness that does not.
@@ -1194,8 +1190,12 @@ export function refuseUnrunnableHooks(
   capabilities: Pick<HarnessCapabilities, "runsHooks">,
 ): Extract<TurnSettlement, { kind: "hooks-refused" }> | undefined {
   const described = [
-    ...pluginsWithHooks(blueprint).map((plugin) => `the plugin '${plugin.metadata?.name ?? ""}'`),
+    ...pluginsWithHooks(blueprint.plugins).map((plugin) => `the plugin '${plugin.metadata?.name ?? ""}'`),
     ...(blueprint.agent?.spec?.hooks ?? []).map(() => "the agent's own hooks block"),
+    ...blueprint.subagents.flatMap((subagent) => [
+      ...pluginsWithHooks(subagent.plugins).map((plugin) => `the plugin '${plugin.metadata?.name ?? ""}' of the subagent '${subagent.name}'`),
+      ...subagent.spec.hooks.map(() => `the subagent '${subagent.name}''s own hooks block`),
+    ]),
   ];
   if (described.length === 0 || capabilities.runsHooks) return undefined;
   return {
@@ -1231,18 +1231,47 @@ export async function resolveHooks(
     readonly servers: readonly ResolvedMcpServer[];
   },
 ): Promise<{ readonly kind: "ready"; readonly hooks: TurnHooks } | { readonly kind: "settled"; readonly settlement: TurnSettlement }> {
-  const plugins = pluginsWithHooks(args.blueprint);
+  const plugins = pluginsWithHooks(args.blueprint.plugins);
   const inline = args.blueprint.agent?.spec?.hooks ?? [];
   if (plugins.length === 0 && inline.length === 0) return { kind: "ready", hooks: NO_HOOKS };
   deps.enterPhase("resolve_hooks");
   await deps.reportProgress("Resolving hooks");
 
-  const platformDir = getPlatformDir(args.sessionId);
-  const resolved: TurnHookSource[] = [];
+  const resolved = await hookSources(deps, plugins, inline, args.sessionId);
+  if (resolved.kind === "settled") return resolved;
+
+  const pluginServers = new Map<string, PluginServerName>();
+  for (const server of args.servers) {
+    if (server.pluginOrigin !== null) {
+      pluginServers.set(server.slug, { plugin: server.pluginOrigin.plugin, server: server.pluginOrigin.server });
+    }
+  }
+
+  deps.timing.mark("resolve_hooks");
+  return { kind: "ready", hooks: { sources: resolved.sources, pluginServers } };
+}
+
+/**
+ * The hook sources of one agent: each plugin that records hooks, mounted
+ * from its verified archive, then its own inline block, taken as written.
+ * A plugin that cannot be mounted for a reason its owner fixes settles the
+ * turn naming it (`hooks-refused`); a transient fault is thrown.
+ */
+async function hookSources(
+  deps: ResolutionDeps,
+  plugins: readonly Plugin[],
+  inline: readonly HookSource[],
+  sessionId: string,
+): Promise<
+  | { readonly kind: "ready"; readonly sources: TurnHookSource[] }
+  | { readonly kind: "settled"; readonly settlement: TurnSettlement }
+> {
+  const platformDir = getPlatformDir(sessionId);
+  const sources: TurnHookSource[] = [];
   for (const plugin of plugins) {
     const hooks = plugin.status!.hooks!;
     try {
-      resolved.push({ plugin: await mountPlugin(deps.client, plugin, platformDir), format: formatOf(hooks.format), groups: hooks.groups });
+      sources.push({ plugin: await mountPlugin(deps.client, plugin, platformDir), format: formatOf(hooks.format), groups: hooks.groups });
     } catch (err) {
       if (!ownersToFix(err)) throw err;
       return {
@@ -1253,18 +1282,118 @@ export async function resolveHooks(
   }
   for (const source of inline) {
     if (source.source.case !== "inline") continue;
-    resolved.push({ plugin: null, format: formatOf(source.source.value.format), groups: source.source.value.groups });
+    sources.push({ plugin: null, format: formatOf(source.source.value.format), groups: source.source.value.groups });
   }
+  return { kind: "ready", sources };
+}
 
-  const pluginServers = new Map<string, PluginServerName>();
-  for (const server of args.servers) {
-    if (server.pluginOrigin !== null) {
-      pluginServers.set(server.slug, { plugin: server.pluginOrigin.plugin, server: server.pluginOrigin.server });
+/** Refuses a subagent's server that takes the name of a server already named, from another plugin. */
+function refuseSharedServerNames(
+  mainServers: readonly ResolvedMcpServer[],
+  servers: readonly ResolvedMcpServer[],
+): void {
+  for (const server of servers) {
+    const main = mainServers.find((candidate) => candidate.slug === server.slug);
+    if (main !== undefined && main.pluginOrigin?.pluginId !== server.pluginOrigin?.pluginId) {
+      throw new DuplicateServerNameError(server.slug, describeServer(main), describeServer(server));
     }
   }
+}
 
-  deps.timing.mark("resolve_hooks");
-  return { kind: "ready", hooks: { sources: resolved, pluginServers } };
+function describeServer(server: ResolvedMcpServer): string {
+  return server.pluginOrigin === null
+    ? `the platform's server '${server.slug}'`
+    : `plugin '${server.pluginOrigin.plugin}' server '${server.pluginOrigin.server}'`;
+}
+
+/**
+ * Phase 5c: each saved agent the turn's agent lists, as an agent of its
+ * own ({@link TurnSubagent}), for a harness whose `capabilities.subAgents`
+ * is true. The phases the main agent's context came from, run again over
+ * the subagent's own definition, with shared caches: a plugin mounts once
+ * by digest (`shared/plugin-mount.ts`), a skill once by version hash, and
+ * a server the main agent also has resolves to the same slug, which the
+ * engine connects once.
+ *
+ *  - Its servers: its plugins' (`shared/mcp-resolver.ts`), with the run's
+ *    tool values and the caller identity the main agent's get. None of the
+ *    platform's own servers: a subagent reports to the main agent, which
+ *    alone speaks to the person or the channel.
+ *  - Its skills: its own refs and its plugins', unless its scope hides them.
+ *  - Its hooks: its plugins', then its own block; the engine runs the
+ *    conversation's hooks first on its calls.
+ *  - Its model ({@link subagentModel}) and its values, by its name.
+ *
+ * A plugin of a subagent whose hooks cannot be prepared settles the turn
+ * naming it, as the main agent's do. A subagent's server that would take
+ * the name of a server the main agent or an earlier subagent has, from
+ * another plugin, refuses the turn
+ * (`DuplicateServerNameError`): the engine connects one server per name,
+ * so one would run with the other's values. Run planning refuses two
+ * plugins of one name first; this is the backstop for a plugin that
+ * appeared or changed since.
+ */
+export async function resolveSubagents(
+  deps: ResolutionDeps,
+  args: {
+    readonly execution: Run;
+    readonly session: Session;
+    readonly sessionId: string;
+    readonly blueprint: ResolvedBlueprint;
+    readonly values: RunValues;
+    readonly primaryDir: string;
+    readonly capabilities: Pick<HarnessCapabilities, "harness" | "subAgents">;
+    /** The main agent's resolved servers: a subagent's server of the same name must be the same plugin's. */
+    readonly mainServers: readonly ResolvedMcpServer[];
+  },
+): Promise<
+  | { readonly kind: "ready"; readonly subagents: readonly TurnSubagent[] }
+  | { readonly kind: "settled"; readonly settlement: TurnSettlement }
+> {
+  const { blueprint, values, sessionId } = args;
+  if (blueprint.subagents.length === 0 || !args.capabilities.subAgents) return { kind: "ready", subagents: [] };
+  deps.enterPhase("resolve_subagents");
+  await deps.reportProgress("Resolving subagents");
+  const transportPosture = resolveMcpTransportPosture(deps.config.mode);
+  const platformValues = turnPlatformValues(blueprint, args.session, sessionId);
+  const options = { sessionId, primaryWorkspaceDir: args.primaryDir };
+  const subagents: TurnSubagent[] = [];
+  // Every server named so far: the main agent's, then each subagent's.
+  const named: ResolvedMcpServer[] = [...args.mainServers];
+  for (const subagent of blueprint.subagents) {
+    const { spec } = subagent;
+    const toolScope = savedSubagentScope(subagent.name, spec, args.execution.spec);
+    const servers = resolvePluginServers(subagent.plugins, values.tools, platformValues, transportPosture, deps.config).resolvedServers;
+    refuseSharedServerNames(named, servers);
+    named.push(...servers);
+    const skills: SkillMetadata[] = [];
+    if (!toolScope.hidesSkills) {
+      skills.push(...(await resolveSkills(deps.client, spec.skillRefs, options)));
+      for (const plugin of subagent.plugins) {
+        skills.push(...(await mountPluginSkills(deps, plugin, sessionId, args.primaryDir)).values());
+      }
+    }
+    const hooks = await hookSources(deps, pluginsWithHooks(subagent.plugins), spec.hooks, sessionId);
+    if (hooks.kind === "settled") return hooks;
+    subagents.push({
+      name: subagent.name,
+      description: spec.description,
+      instructions: spec.instructions,
+      model: await subagentModel(spec.runConfig?.modelName ?? "", args.capabilities.harness, spec.harness),
+      toolScope,
+      servers,
+      skills,
+      hooks: hooks.sources,
+      values: values.subagents.get(subagent.name) ?? {},
+      bringsOwn: {
+        plugins: spec.plugins.length > 0,
+        hooks: spec.hooks.length > 0,
+        lists: spec.tools.length > 0 || spec.disallowedTools.length > 0,
+      },
+    });
+  }
+  deps.timing.mark("resolve_subagents");
+  return { kind: "ready", subagents };
 }
 
 /** A recorded hook format as the evaluator names it; an unset format is Claude Code's, as apply fills it. */
@@ -1596,6 +1725,17 @@ export async function resolveTurnContext(
   });
   const hookResolution = await resolveHooks(deps, { blueprint, sessionId, servers: mcp.servers });
   if (hookResolution.kind === "settled") return hookResolution;
+  const subagentResolution = await resolveSubagents(deps, {
+    execution,
+    session,
+    sessionId,
+    blueprint,
+    values,
+    primaryDir: workspace.primaryDir,
+    capabilities,
+    mainServers: mcp.servers,
+  });
+  if (subagentResolution.kind === "settled") return subagentResolution;
   const resolvedAttachments = await resolveTurnAttachments(deps, {
     spec,
     runConfig: execution.status?.runConfig,
@@ -1635,6 +1775,7 @@ export async function resolveTurnContext(
       mcp,
       skills,
       hooks: hookResolution.hooks,
+      subagents: subagentResolution.subagents,
       attachments,
       appliedToolCallIds,
       model: resolveModelPreferences(execution.status?.runConfig),

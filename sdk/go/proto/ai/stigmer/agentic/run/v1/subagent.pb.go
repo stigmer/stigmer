@@ -31,9 +31,9 @@ type SubAgentRun struct {
 	// Unique identifier for this sub-agent run.
 	// Matches the tool call ID from the LangGraph "task" tool invocation.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Name of the sub-agent being invoked.
-	// Examples: "code_editor", "researcher", "debugger"
-	// Extracted from tool call args.subagent_type field.
+	// Name of the subagent being invoked: a listed agent's slug, a plugin
+	// agent's <plugin>:<agent>, or a built-in (explore, shell,
+	// general-purpose).
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// Task/instruction given to the sub-agent.
 	// This is the input prompt that tells the sub-agent what to do.

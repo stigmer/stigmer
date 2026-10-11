@@ -118,60 +118,6 @@ public interface AgentSpecOrBuilder extends
 
   /**
    * <pre>
-   * Sub-agents that can be delegated to.
-   * A sub-agent starts from this agent's tools and may narrow them with its
-   * own tool lists, never widen them.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.agent.v1.SubAgent> 
-      getSubAgentsList();
-  /**
-   * <pre>
-   * Sub-agents that can be delegated to.
-   * A sub-agent starts from this agent's tools and may narrow them with its
-   * own tool lists, never widen them.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-   */
-  ai.stigmer.agentic.agent.v1.SubAgent getSubAgents(int index);
-  /**
-   * <pre>
-   * Sub-agents that can be delegated to.
-   * A sub-agent starts from this agent's tools and may narrow them with its
-   * own tool lists, never widen them.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-   */
-  int getSubAgentsCount();
-  /**
-   * <pre>
-   * Sub-agents that can be delegated to.
-   * A sub-agent starts from this agent's tools and may narrow them with its
-   * own tool lists, never widen them.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.agent.v1.SubAgentOrBuilder> 
-      getSubAgentsOrBuilderList();
-  /**
-   * <pre>
-   * Sub-agents that can be delegated to.
-   * A sub-agent starts from this agent's tools and may narrow them with its
-   * own tool lists, never widen them.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agent.v1.SubAgent sub_agents = 6 [json_name = "subAgents"];</code>
-   */
-  ai.stigmer.agentic.agent.v1.SubAgentOrBuilder getSubAgentsOrBuilder(
-      int index);
-
-  /**
-   * <pre>
    * Environment variable declarations for this agent.
    * Keys are variable names; values describe their metadata and optionality.
    * A secret is found by its name in a vault when a run starts; a plain
@@ -249,16 +195,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start; the Cursor engine cannot hold its
-   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-   * types. The lists hold on both engines, and under "approve everything"
+   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * also limits which subagents this agent may start; the Cursor engine
+   * cannot hold its built-in subagents back, so it refuses a turn whose agent
+   * limits Agent to types. The lists hold on both engines, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
    * keeps them, and a list holding only Skill names them, so it does not
    * refuse the turn, also under an outer list that omits Skill (a
-   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * plugin subagent's under its turn's, a turn's under the agent's). Denying
    * Skill in disallowed_tools removes them, and then a list of Skill alone
    * in a narrower layer refuses the turn.
    * </pre>
@@ -278,16 +224,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start; the Cursor engine cannot hold its
-   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-   * types. The lists hold on both engines, and under "approve everything"
+   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * also limits which subagents this agent may start; the Cursor engine
+   * cannot hold its built-in subagents back, so it refuses a turn whose agent
+   * limits Agent to types. The lists hold on both engines, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
    * keeps them, and a list holding only Skill names them, so it does not
    * refuse the turn, also under an outer list that omits Skill (a
-   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * plugin subagent's under its turn's, a turn's under the agent's). Denying
    * Skill in disallowed_tools removes them, and then a list of Skill alone
    * in a narrower layer refuses the turn.
    * </pre>
@@ -306,16 +252,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start; the Cursor engine cannot hold its
-   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-   * types. The lists hold on both engines, and under "approve everything"
+   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * also limits which subagents this agent may start; the Cursor engine
+   * cannot hold its built-in subagents back, so it refuses a turn whose agent
+   * limits Agent to types. The lists hold on both engines, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
    * keeps them, and a list holding only Skill names them, so it does not
    * refuse the turn, also under an outer list that omits Skill (a
-   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * plugin subagent's under its turn's, a turn's under the agent's). Denying
    * Skill in disallowed_tools removes them, and then a list of Skill alone
    * in a narrower layer refuses the turn.
    * </pre>
@@ -335,16 +281,16 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, shell) also limits
-   * which sub-agents this agent may start; the Cursor engine cannot hold its
-   * built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-   * types. The lists hold on both engines, and under "approve everything"
+   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * also limits which subagents this agent may start; the Cursor engine
+   * cannot hold its built-in subagents back, so it refuses a turn whose agent
+   * limits Agent to types. The lists hold on both engines, and under "approve everything"
    * too.
    *
    * Skill is a name here too, for the agent's skills: a list without Skill
    * keeps them, and a list holding only Skill names them, so it does not
    * refuse the turn, also under an outer list that omits Skill (a
-   * sub-agent's under its agent's, a turn's under the agent's). Denying
+   * plugin subagent's under its turn's, a turn's under the agent's). Denying
    * Skill in disallowed_tools removes them, and then a list of Skill alone
    * in a narrower layer refuses the turn.
    * </pre>
@@ -364,8 +310,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * Disallowing Skill hides every skill from this agent: no skill is listed
    * or mounted for its turns, and the Read tool refuses reads of skill and
    * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-   * refused, so they can still reach those files. On a sub-agent it hides
-   * that sub-agent's skills.
+   * refused, so they can still reach those files.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -381,8 +326,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * Disallowing Skill hides every skill from this agent: no skill is listed
    * or mounted for its turns, and the Read tool refuses reads of skill and
    * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-   * refused, so they can still reach those files. On a sub-agent it hides
-   * that sub-agent's skills.
+   * refused, so they can still reach those files.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -397,8 +341,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * Disallowing Skill hides every skill from this agent: no skill is listed
    * or mounted for its turns, and the Read tool refuses reads of skill and
    * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-   * refused, so they can still reach those files. On a sub-agent it hides
-   * that sub-agent's skills.
+   * refused, so they can still reach those files.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -414,8 +357,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * Disallowing Skill hides every skill from this agent: no skill is listed
    * or mounted for its turns, and the Read tool refuses reads of skill and
    * plugin-tree files. Grep, Glob and a shell the agent is granted are not
-   * refused, so they can still reach those files. On a sub-agent it hides
-   * that sub-agent's skills.
+   * refused, so they can still reach those files.
    * </pre>
    *
    * <code>repeated string disallowed_tools = 11 [json_name = "disallowedTools", (.buf.validate.field) = { ... }</code>
@@ -428,7 +370,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Hooks written in this agent itself, run around its tool calls and its
-   * sub-agents' calls, after the hooks of the plugins it lists.
+   * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
@@ -445,7 +387,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Hooks written in this agent itself, run around its tool calls and its
-   * sub-agents' calls, after the hooks of the plugins it lists.
+   * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
@@ -461,7 +403,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Hooks written in this agent itself, run around its tool calls and its
-   * sub-agents' calls, after the hooks of the plugins it lists.
+   * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
@@ -477,7 +419,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Hooks written in this agent itself, run around its tool calls and its
-   * sub-agents' calls, after the hooks of the plugins it lists.
+   * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
@@ -494,7 +436,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
   /**
    * <pre>
    * Hooks written in this agent itself, run around its tool calls and its
-   * sub-agents' calls, after the hooks of the plugins it lists.
+   * subagents' calls, after the hooks of the plugins it lists.
    *
    * A hook can refuse a call, ask a person first, or let it run
    * without the approval it would otherwise need. Both engines run hooks in
@@ -656,5 +598,89 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginsOrBuilder(
+      int index);
+
+  /**
+   * <pre>
+   * Saved agents this agent may hand work to, each running its own
+   * instructions, model, tools, plugins, skills, hooks and values.
+   *
+   * A subagent runs as the conversation's person and on its budget, under
+   * the conversation's hooks, and cannot hand work on to another agent: an
+   * agent that lists subagents of its own is refused here. Each reference is
+   * pinned when this agent is saved: a reference without a version takes the
+   * listed agent's latest version, and one naming a tag or a version keeps
+   * that version until a later save sends the list again. At most 20.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
+      getSubagentsList();
+  /**
+   * <pre>
+   * Saved agents this agent may hand work to, each running its own
+   * instructions, model, tools, plugins, skills, hooks and values.
+   *
+   * A subagent runs as the conversation's person and on its budget, under
+   * the conversation's hooks, and cannot hand work on to another agent: an
+   * agent that lists subagents of its own is refused here. Each reference is
+   * pinned when this agent is saved: a reference without a version takes the
+   * listed agent's latest version, and one naming a tag or a version keeps
+   * that version until a later save sends the list again. At most 20.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getSubagents(int index);
+  /**
+   * <pre>
+   * Saved agents this agent may hand work to, each running its own
+   * instructions, model, tools, plugins, skills, hooks and values.
+   *
+   * A subagent runs as the conversation's person and on its budget, under
+   * the conversation's hooks, and cannot hand work on to another agent: an
+   * agent that lists subagents of its own is refused here. Each reference is
+   * pinned when this agent is saved: a reference without a version takes the
+   * listed agent's latest version, and one naming a tag or a version keeps
+   * that version until a later save sends the list again. At most 20.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+   */
+  int getSubagentsCount();
+  /**
+   * <pre>
+   * Saved agents this agent may hand work to, each running its own
+   * instructions, model, tools, plugins, skills, hooks and values.
+   *
+   * A subagent runs as the conversation's person and on its budget, under
+   * the conversation's hooks, and cannot hand work on to another agent: an
+   * agent that lists subagents of its own is refused here. Each reference is
+   * pinned when this agent is saved: a reference without a version takes the
+   * listed agent's latest version, and one naming a tag or a version keeps
+   * that version until a later save sends the list again. At most 20.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getSubagentsOrBuilderList();
+  /**
+   * <pre>
+   * Saved agents this agent may hand work to, each running its own
+   * instructions, model, tools, plugins, skills, hooks and values.
+   *
+   * A subagent runs as the conversation's person and on its budget, under
+   * the conversation's hooks, and cannot hand work on to another agent: an
+   * agent that lists subagents of its own is refused here. Each reference is
+   * pinned when this agent is saved: a reference without a version takes the
+   * listed agent's latest version, and one naming a tag or a version keeps
+   * that version until a later save sends the list again. At most 20.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [json_name = "subagents", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getSubagentsOrBuilder(
       int index);
 }

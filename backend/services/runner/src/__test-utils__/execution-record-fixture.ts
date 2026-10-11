@@ -17,10 +17,12 @@
  * driver supplies its own fixture ids and model (`execute-cursor/__test-
  * utils__/hermetic-cursor.ts` `cursorExecutionRecord`); the runtime's own
  * tests use the defaults. Ids are fixed so goldens are readable and
- * byte-stable.
+ * byte-stable. `savedAgentFixture` builds a saved agent the record's agent
+ * can list as a subagent, at a version hash of its own.
  */
 
-import { create, type JsonObject } from "@bufbuild/protobuf";
+import { createHash } from "node:crypto";
+import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protobuf";
 import {
   RunSchema,
   RunStatusSchema,
@@ -34,7 +36,7 @@ import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
-import { AgentSpecSchema, type HookSource, type SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, type HookSource } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -96,8 +98,11 @@ export interface ExecutionRecordOptions {
   readonly approvalMode?: ApprovalMode;
   /** The request's own `spec.run_config`; absent when omitted. The runner must never read it. */
   readonly requestRunConfig?: RunConfig;
-  /** The agent's declared sub-agents (`AgentSpec.sub_agents`). */
-  readonly subAgents?: SubAgent[];
+  /**
+   * The saved agents the agent lists (`AgentSpec.subagents`), each listed at
+   * its `status.version_hash` and served by reference.
+   */
+  readonly subagents?: Agent[];
   /** The agent's `AgentSpec.tools` ("only these"), in Claude Code's names. */
   readonly tools?: string[];
   /** The agent's `AgentSpec.disallowed_tools` ("never these"). */
@@ -182,7 +187,14 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
     spec: create(AgentSpecSchema, {
       description: "Hermetic fixture agent",
       instructions: options.instructions ?? "You are the hermetic fixture agent. Answer briefly.",
-      subAgents: options.subAgents ?? [],
+      subagents: (options.subagents ?? []).map((subagent) =>
+        create(ApiResourceReferenceSchema, {
+          kind: ApiResourceKind.agent,
+          org: subagent.metadata?.org ?? ids.org,
+          slug: subagent.metadata?.slug ?? "",
+          version: subagent.status?.versionHash ?? "",
+        }),
+      ),
       tools: options.tools ?? [],
       disallowedTools: options.disallowedTools ?? [],
       hooks: options.hooks ?? [],
@@ -196,5 +208,19 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       status: { versionHash: `hash-${s.slug}` },
     }),
   );
-  return new ExecutionRecord({ execution, session, agent, controlSignal: options.controlSignal, skills });
+  return new ExecutionRecord({ execution, session, agent, controlSignal: options.controlSignal, skills, subagents: options.subagents ?? [] });
+}
+
+/**
+ * A saved agent a fixture's agent can list as a subagent (`subagents`): its
+ * slug is its name in the turn, and its version hash is derived from the
+ * slug, so the reference the parent pins is stable across runs.
+ */
+export function savedAgentFixture(slug: string, spec: MessageInitShape<typeof AgentSpecSchema>, org = DEFAULT_RECORD_IDS.org): Agent {
+  const versionHash = createHash("sha256").update(`saved-agent:${slug}`).digest("hex");
+  return create(AgentSchema, {
+    metadata: create(ApiResourceMetadataSchema, { id: `agt_${slug}`, org, name: slug, slug }),
+    spec: create(AgentSpecSchema, spec),
+    status: { versionHash },
+  });
 }

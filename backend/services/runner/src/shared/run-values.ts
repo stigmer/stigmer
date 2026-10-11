@@ -17,6 +17,8 @@
  *     group, and only while it still dials that URL (shared/mcp-resolver.ts).
  *   - `plugins`: each plugin's keys, by plugin id, for that plugin's hooks
  *     only (shared/hooks/setup.ts).
+ *   - `subagents`: each subagent's own keys, by its name in the turn, for
+ *     its shell and its own hooks only: what `agent` is for the agent.
  *   - `repositories`: each cloned repository's token, by entry name and
  *     URL, for its git commands and write-back only
  *     (shared/workspace/git-credential.ts).
@@ -60,11 +62,13 @@ export interface RunValues {
   readonly tools: ReadonlyMap<string, ToolValueGroup>;
   /** Each plugin's keys, by plugin id: its hooks' only. */
   readonly plugins: ReadonlyMap<string, Readonly<Record<string, string>>>;
+  /** Each subagent's own keys, by its name in the turn: its shell and its own hooks. */
+  readonly subagents: ReadonlyMap<string, Readonly<Record<string, string>>>;
   readonly repositories: readonly RepositoryToken[];
 }
 
 /** A run with no values: nothing declared anything, or nothing was found for an optional key. */
-export const NO_RUN_VALUES: RunValues = { agent: {}, tools: new Map(), plugins: new Map(), repositories: [] };
+export const NO_RUN_VALUES: RunValues = { agent: {}, tools: new Map(), plugins: new Map(), subagents: new Map(), repositories: [] };
 
 /** The key a tool's values are grouped by: its plugin, and its server's name in that plugin. */
 export function toolValuesKey(pluginId: string, server: string): string {
@@ -89,6 +93,7 @@ export function runValuesOf(answer: ExecutionValues): RunValues {
     agent: { ...answer.agent },
     tools,
     plugins: new Map(answer.plugins.map((plugin) => [plugin.pluginId, { ...plugin.values }])),
+    subagents: new Map(answer.subagents.map((subagent) => [subagent.name, { ...subagent.values }])),
     repositories: answer.repositories.map(({ name, url, token }) => ({ name, url, token })),
   };
 }

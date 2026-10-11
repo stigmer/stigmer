@@ -1,0 +1,24 @@
+# fare-search — the fare-search specialist traveler-assist hands work to.
+#
+# An agent of its own, listed under traveler-assist's `subagents`, so it
+# must be applied before traveler-assist is saved (seed.mjs, the cloud
+# seed and the transcript capture all apply it first). It works with its
+# own instructions and only the one meridian-ops tool it needs.
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: fare-search
+  org: meridian-travel
+spec:
+  description: Finds the best fare options across dates and times
+
+  instructions: |
+    You are a fare-search specialist. Given a route and a date range,
+    search the schedule and return the strongest options, cheapest
+    first, with times and per-class prices. You never modify bookings.
+
+  # Its tools: the meridian-ops plugin's flight search, and nothing else.
+  plugins:
+    - kind: plugin
+      slug: meridian-ops
+  tools: [mcp__plugin_meridian-ops_meridian-ops__search_flights]

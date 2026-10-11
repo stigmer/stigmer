@@ -332,7 +332,8 @@ describe("Plugin push — one row", () => {
     expect(status.hooks?.format).toBe(HookFormat.CURSOR);
     expect(status.hooks?.groups.map((g) => g.event)).toEqual(["preToolUse"]);
     expect(status.evals).toBeUndefined();
-    // The sub-agent's model hint is recorded, never applied.
+    // The agent's model is kept as its file wrote it; a bare alias is warned about.
+    expect(status.agents.map((a) => a.model)).toEqual(["sonnet"]);
     expect(status.warnings.map((w) => w.kind)).toContain(
       "model-hint-unresolved",
     );
