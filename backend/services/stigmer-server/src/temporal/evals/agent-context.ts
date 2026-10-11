@@ -23,10 +23,10 @@ import { Code, ConnectError } from "@connectrpc/connect";
 
 import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { agentVersionBinding } from "../../domain/agent/versions.js";
+import { agentTargetOf } from "../../domain/agent-eval/target.js";
 import type { EvalMatrix } from "../../domain/plugin-eval/matrix.js";
 import { planMatrix } from "../../domain/plugin-eval/matrix.js";
 import { pluginVersionedBinding } from "../../domain/plugin-eval/suite.js";
@@ -67,11 +67,7 @@ export async function loadAgentEvalContext(
     plugins.push(plugin.resource);
   }
   const agentSpec = agent.resource.spec;
-  const agentTarget = {
-    harness:
-      agentSpec === undefined || agentSpec.harness === Harness.UNSPECIFIED ? Harness.NATIVE : agentSpec.harness,
-    modelName: agentSpec?.runConfig?.modelName ?? "",
-  };
+  const agentTarget = agentTargetOf(agentSpec);
   const sources: Array<EvalCaseSource & { readonly pluginIndex: number }> = [];
   const caseSources: number[] = [];
   const matrix: EvalMatrix = { cases: [], cells: [] };

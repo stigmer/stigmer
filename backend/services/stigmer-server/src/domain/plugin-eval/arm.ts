@@ -18,7 +18,10 @@
  * A conversation's own plugin reference wins over its agent's at run
  * planning (domain/run/run-plugins.ts) and in the runner, and an open
  * conversation keeps its agent's version, so a plugin pushed or the agent
- * saved during the eval moves none of its tries. It has one arm: with.
+ * saved during the eval moves none of its tries. It has one arm: with. A
+ * subagent's own plugin references are its own: one that names no version
+ * resolves to the version installed when its turn starts, as in any
+ * conversation of the agent.
  *
  * Proven by __tests__/arm.test.ts.
  */

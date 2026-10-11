@@ -5,7 +5,10 @@
  * account that attached it; no My vault is admitted, since every viewer of
  * the agent in its organization can read a try's transcript.
  *
- * Proven by __tests__/agent-eval.test.ts (the create lane).
+ * Proven by __tests__/faults.test.ts (the options and the attachers slot);
+ * the step that reads them is the shared one, proven by
+ * domain/vault/__tests__/attachments.test.ts, and its tries' use of them by
+ * domain/vault/__tests__/resolve.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
 

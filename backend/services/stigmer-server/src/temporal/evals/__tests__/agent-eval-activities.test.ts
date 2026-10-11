@@ -15,7 +15,9 @@
  *     case's own unmocked ones;
  *   - a recorded try lands in its plugin's block by its flat index, and
  *     the totals are summed per plugin and over all; finish ends it;
- *   - the loader answers undefined once the agent version is gone.
+ *   - the loader answers undefined once the agent version is gone, and the
+ *     load ends an eval whose stamped plugin version is gone failed, naming
+ *     why, rather than leaving it pending.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -42,7 +44,7 @@ import {
   START_TRY_ACTIVITY_NAME,
 } from "../names.js";
 import type { CaseInput, TryResult } from "../names.js";
-import { createSuiteActivities } from "../suite-activities.js";
+import { EVAL_SUBJECT_GONE_ERROR, createSuiteActivities } from "../suite-activities.js";
 import { DIGEST, MODEL, ORG, PLUGIN_ID, catalog, lane, scoreChain, seedPlugin, silentLogger, suiteSource } from "./support.js";
 
 const AGENT_ID = "agt_1";
@@ -263,6 +265,17 @@ describe("an agent eval through the shared activities", () => {
     expect(status.aggregates?.meanDelta).toBeUndefined();
     expect(status.costUsd).toBeCloseTo(0.75);
     expect(status.triesFinished).toBe(2);
+  });
+
+  it("ends the eval failed, naming why, when a plugin version it stamped is gone", async () => {
+    await seeded();
+    await temp.store.deleteResource(ApiResourceKind.plugin, REFUNDS_ID);
+    const { suite } = build();
+    expect(await suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID)).toEqual({ kind: "stop" });
+    const status = (await readAgentEval()).status!;
+    expect(status.phase).toBe(PluginEvalPhase.failed);
+    expect(status.error).toBe(EVAL_SUBJECT_GONE_ERROR);
+    expect(status.finishedAt).toBeDefined();
   });
 
   it("answers no context once the agent is gone", async () => {

@@ -49,7 +49,6 @@ import {
   PluginEvalPartialReason,
   PluginEvalPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
-import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -91,7 +90,6 @@ import {
   pluginEvalTooLargeMessage,
 } from "../plugin-eval/constants.js";
 import { caseGlobError, evalModelCatalogOf, sizeOfMatrix } from "../plugin-eval/matrix.js";
-import type { AgentTarget } from "../plugin-eval/matrix.js";
 import { isActivePluginEval, pluginEvalOutlivedItsWorkflow } from "../plugin-eval/steps.js";
 import type { EvalSuiteSource } from "../plugin-eval/suite.js";
 import { loadEvalSuite } from "../plugin-eval/suite.js";
@@ -111,6 +109,7 @@ import {
   agentEvalUnknownPluginMessage,
 } from "./constants.js";
 import { listAgentEvals } from "./queries.js";
+import { agentTargetOf } from "./target.js";
 
 /** Context key for the agent a create evaluates, stashed by LoadEvaluatedAgent. */
 export const EVALUATED_AGENT_KEY = "evaluatedAgent";
@@ -125,14 +124,6 @@ export const AGENT_EVAL_RESULT_KEY = "agentEvalResult";
 export interface EvaluatedVersion {
   readonly spec: AgentSpec | undefined;
   readonly plugins: ReadonlyArray<Plugin>;
-}
-
-/** The agent version's default target, as a try with no target runs it (temporal/evals/agent-context.ts). */
-export function agentTargetOf(spec: AgentSpec | undefined): AgentTarget {
-  return {
-    harness: spec === undefined || spec.harness === Harness.UNSPECIFIED ? Harness.NATIVE : spec.harness,
-    modelName: spec?.runConfig?.modelName ?? "",
-  };
 }
 
 /**

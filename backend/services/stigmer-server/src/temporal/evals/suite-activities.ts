@@ -10,7 +10,9 @@
  *     tries in all, phase running, the start time, and whether the delta
  *     is provisional (domain/plugin-eval/arm.ts: it is not). An eval already running
  *     with its skeleton written (a retried load) is planned again without
- *     a rewrite; an eval gone or ended plans nothing, ended also when it
+ *     a rewrite; an eval gone or ended plans nothing, and an agent eval whose
+ *     agent version or stamped plugin version is gone ends failed
+ *     (EVAL_SUBJECT_GONE_ERROR), ended also when it
  *     ends between the load's read and its write (create marking a slow
  *     start failed, a cancel), which the write re-checks and leaves as is; a suite that cannot
  *     be read, past a few attempts, ends the eval failed, "the plugin's
@@ -92,6 +94,12 @@ import type {
 /** The failed eval's error when its suite cannot be read. */
 export const SUITE_UNREADABLE_ERROR = "the plugin's evals could not be read";
 
+/**
+ * The failed agent eval's error when the eval is there but what it runs is
+ * not: its agent's stamped version or one of its stamped plugin versions.
+ */
+export const EVAL_SUBJECT_GONE_ERROR = "what the eval runs is gone: its agent version or a plugin version it stamped";
+
 /** Load attempts before an unreadable suite fails the eval. */
 export const LOAD_ATTEMPTS_BEFORE_FAILING = 3;
 
@@ -149,6 +157,22 @@ export function createSuiteActivities(
         return { kind: "stop" };
       }
       if (context === undefined) {
+        if (evalKindOf(evalId) !== "agent") {
+          return { kind: "stop" };
+        }
+        // An agent eval's row is there but its agent version or a stamped
+        // plugin version is not (a plugin's delete does not cascade to the
+        // agent evals that stamped it): end it, so it never shows pending
+        // until its workflow's timeout.
+        await book.write(deps.store, evalId, ({ status }) => {
+          if (isEndedPhase(status.phase)) {
+            return SKIP_WRITE;
+          }
+          status.phase = PluginEvalPhase.failed;
+          status.error = EVAL_SUBJECT_GONE_ERROR;
+          status.finishedAt = timestampNow();
+          return undefined;
+        });
         return { kind: "stop" };
       }
       const ready = context;
