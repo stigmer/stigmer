@@ -17,6 +17,17 @@
 // and the FLOOR — an agent may not be more visible than a plugin it runs
 // with, at create and when its level is raised — because what a person can
 // run they must also be able to read. An agent lists each plugin once.
+//
+// Its subagents are saved agents it lists by reference (spec.subagents),
+// judged when the agent is saved: each reference is pinned to a version
+// hash (a reference without a version takes the subagent's current one, a
+// reference carrying a hash keeps it), so an edit to the subagent reaches
+// the parent only when the parent is saved again; a subagent that lists
+// subagents of its own is refused (one level); an agent lists each agent
+// once and never itself; and an agent another agent lists cannot be deleted
+// until no agent lists it. Who may list which agent is the run gate's
+// (run-gate.conformance.test.ts); what a subagent runs with is the
+// execution class's (run-subagent.conformance.test.ts).
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -28,7 +39,16 @@ import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { AGENT_API_VERSION, AGENT_KIND, makeAgent, makeAgentSpec } from "../support/agents";
+import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import {
+  AGENT_API_VERSION,
+  AGENT_KIND,
+  type AgentSpecOptions,
+  createSubagents,
+  makeAgent,
+  makeAgentSpec,
+  subagentSlugsOf,
+} from "../support/agents";
 import { uniqueName, uniqueOrg } from "../support/naming";
 import { createChildOrganization, organizationSlug } from "../support/organizations";
 import { pushPlugin, thermosLike } from "../support/plugins";
@@ -653,5 +673,109 @@ describe("Agent conformance — the reference rule at write", () => {
       visibility: ApiResourceVisibility.visibility_org,
     });
     expect(raised.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+  });
+});
+
+describe("Agent conformance — subagents, judged at save", () => {
+  /** Saves `agent` again with `spec`, keeping its identity. */
+  function saveAgain(agent: Agent, spec: AgentSpecOptions) {
+    const { id, name, slug, org } = agent.metadata!;
+    return clients.agentCommand.update({
+      apiVersion: AGENT_API_VERSION,
+      kind: AGENT_KIND,
+      metadata: { id, name, slug, org },
+      spec: makeAgentSpec(spec),
+    });
+  }
+
+  it("[rpc:AgentCommandController.create] the save pins each subagent: a reference without a version takes its current version, and one carrying a version keeps it", async () => {
+    const { org } = await target.provisionTenancy();
+    const [sub] = await createSubagents(clients, fixtures, org, [{ name: uniqueName("helper") }]);
+    const first = sub!.status!.versionHash;
+    const edited = await saveAgain(sub!, { instructions: "Answer every question with one short checked fact." });
+    const current = edited.status!.versionHash;
+    expect(current, "the edit is a new version").not.toBe(first);
+
+    const latest = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("parent"), subagents: subagentSlugsOf([sub!]) }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: latest.metadata!.id }));
+    expect(
+      latest.spec?.subagents.map((ref) => [ref.kind, ref.org, ref.slug, ref.version]),
+      "a reference without a version is pinned to the subagent's current version, its organization normalized",
+    ).toEqual([[ApiResourceKind.agent, org, sub!.metadata!.slug, current]]);
+
+    const pinnedInput = makeAgent({ org, name: uniqueName("parent-pinned") });
+    pinnedInput.spec = {
+      ...makeAgentSpec(),
+      subagents: [{ kind: ApiResourceKind.agent, slug: sub!.metadata!.slug, version: first }],
+    };
+    const pinned = await clients.agentCommand.create(pinnedInput);
+    fixtures.defer(() => clients.agentCommand.delete({ value: pinned.metadata!.id }));
+    expect(pinned.spec?.subagents.map((ref) => ref.version), "a reference carrying a version keeps it").toEqual([first]);
+  });
+
+  it("[rpc:AgentCommandController.create] a subagent that lists subagents of its own is refused: a subagent cannot hand work on (FailedPrecondition)", async () => {
+    const { org } = await target.provisionTenancy();
+    const [leaf] = await createSubagents(clients, fixtures, org, [{ name: uniqueName("leaf") }]);
+    const middle = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("middle"), subagents: subagentSlugsOf([leaf!]) }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: middle.metadata!.id }));
+    const slug = middle.metadata!.slug;
+
+    const err = await expectGrpcCode(
+      () => clients.agentCommand.create(makeAgent({ org, name: uniqueName("top"), subagents: [slug] })),
+      Code.FailedPrecondition,
+      "create an agent listing an agent that lists subagents",
+    );
+    expect(err.rawMessage).toBe(
+      `subagent '${slug}' lists subagents of its own; a subagent cannot hand work on to another agent. ` +
+        "List an agent without subagents, or remove its subagents and save it first",
+    );
+  });
+
+  it("[rpc:AgentCommandController.create] [rpc:AgentCommandController.update] an agent lists each agent once and never itself (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    const [sub] = await createSubagents(clients, fixtures, org, [{ name: uniqueName("helper") }]);
+    const slug = sub!.metadata!.slug;
+
+    const twice = await expectGrpcCode(
+      () => clients.agentCommand.create(makeAgent({ org, name: uniqueName("parent"), subagents: [slug, slug] })),
+      Code.InvalidArgument,
+      "create an agent listing one agent twice",
+    );
+    expect(twice.rawMessage).toContain(`subagents lists '${slug}' more than once; list each agent once`);
+
+    const parent = await createAgent(org, uniqueName("parent"));
+    const self = await expectGrpcCode(
+      () => saveAgain(parent, { subagents: [parent.metadata!.slug] }),
+      Code.InvalidArgument,
+      "update an agent to list itself",
+    );
+    expect(self.rawMessage).toContain(
+      `subagents lists this agent itself ('${parent.metadata!.slug}'); an agent cannot hand work to itself`,
+    );
+  });
+
+  it("[rpc:AgentCommandController.delete] an agent another agent lists is refused deletion, naming that agent, and is deleted once none does", async () => {
+    const { org } = await target.provisionTenancy();
+    const [sub] = await createSubagents(clients, fixtures, org, [{ name: uniqueName("helper") }]);
+    const parent = await createAgent(org, uniqueName("parent"));
+    const listing = await saveAgain(parent, { subagents: subagentSlugsOf([sub!]) });
+
+    const err = await expectGrpcCode(
+      () => clients.agentCommand.delete({ value: sub!.metadata!.id }),
+      Code.FailedPrecondition,
+      "delete a listed agent",
+    );
+    expect(err.rawMessage).toContain(
+      `agent '${sub!.metadata!.slug}' is still used by agent '${listing.metadata!.slug}'; remove it from their subagents first`,
+    );
+    await clients.agentQuery.get({ value: sub!.metadata!.id });
+
+    await saveAgain(parent, {});
+    await clients.agentCommand.delete({ value: sub!.metadata!.id });
+    await expectGrpcCode(() => clients.agentQuery.get({ value: sub!.metadata!.id }), Code.NotFound, "the subagent is gone");
   });
 });

@@ -1,6 +1,6 @@
 # ApiResourceReference Format
 
-When an Agent references another resource (plugin, skill), it uses the `ApiResourceReference` message defined in `ai/stigmer/commons/apiresource/io.proto`. This document is the single source of truth for that format.
+When an Agent references another resource (plugin, skill, or an agent it lists as a subagent), it uses the `ApiResourceReference` message defined in `ai/stigmer/commons/apiresource/io.proto`. This document is the single source of truth for that format.
 
 ## YAML Format
 
@@ -17,7 +17,7 @@ version: stable
 | `org` | No | `^$\|^[a-z][a-z0-9-]*[a-z0-9]$\|^org_[0-9a-z]{26}$`, at most 63 chars | Organization that owns the referenced resource. Empty = relative reference (resolved from the parent resource's `metadata.org` at write time). |
 | `kind` | Yes | Lowercase string enum name | Resource kind. See [Kind Values](#kind-values). |
 | `slug` | Yes | `^[a-z][a-z0-9-]*[a-z0-9]$`, 2 to 63 chars | Resource slug, unique within the organization. |
-| `version` | No | Tag, hash, or empty | Version pin. Only applicable to versioned resources (Skills, Plugins). Ignored for non-versioned resources. |
+| `version` | No | Tag, hash, or empty | Version pin. Only applicable to versioned resources (Skills, Plugins, and Agents listed in `subagents`). Ignored for non-versioned resources. |
 
 ## Kind Values
 
@@ -27,6 +27,7 @@ The `kind` field uses the **lowercase string name** of the `ApiResourceKind` enu
 |---|---|---|
 | `skill` | 43 | Skill — reusable knowledge package |
 | `plugin` | 58 | Plugin — an installed package of skills, agents, hooks and MCP servers |
+| `agent` | 40 | Agent — a saved agent this agent lists in `subagents` |
 
 **Important:** The proto enum uses integer values internally (e.g., `this.kind == 43` in CEL validation expressions). In YAML serialization, the YAML parser accepts the **lowercase string name**. Always use `kind: skill` or `kind: plugin` in YAML files.
 
@@ -103,7 +104,7 @@ slug: 2nd-reviewer     # starts with digit
 
 ## Version Pinning
 
-The `version` field is only meaningful for versioned resources: Skills and Plugins. A plugin's versions are its archive digests, each tagged with the manifest's `version`; a plugin reference with no `version` follows the installed version. For other resources, the field is ignored.
+The `version` field is only meaningful for versioned resources: Skills, Plugins, and Agents listed in `subagents`. A plugin's versions are its archive digests, each tagged with the manifest's `version`; a plugin reference with no `version` follows the installed version. A subagent reference is pinned when the agent listing it is saved: the saved reference carries the hash its version resolved to, so a later move of a tag, or a new version of the listed agent, changes nothing until the agent is saved again (see [subagents.md](subagents.md#which-version-runs)). For other resources, the field is ignored.
 
 | Value | Behavior |
 |---|---|
@@ -146,3 +147,4 @@ Additional CEL validation on Agent fields:
 
 - `plugins[*].kind` must equal `plugin` (enum value 58)
 - `skill_refs[*].kind` must equal `skill` (enum value 43)
+- `subagents[*].kind` must equal `agent` (enum value 40), at most 20 entries

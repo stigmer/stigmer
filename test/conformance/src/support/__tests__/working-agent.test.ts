@@ -10,9 +10,10 @@
 // previous session's edits; a directory that is not named for the workspace
 // is refused, so a wrong argument can never empty an unrelated tree; the
 // session bootstrap mounts that one workspace; provisioning (against stubbed
-// clients) starts sessions on the agent it created by reference, that agent
-// lists the plugin carrying the MCP server and every pushed skill, and every resource it
-// created is deleted at cleanup.
+// clients) starts sessions on the agent it created by reference, saves the
+// subagent before that agent, that agent lists the plugin carrying the MCP
+// server, every pushed skill and the subagent, and every resource it created
+// is deleted at cleanup.
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -28,6 +29,8 @@ import {
   seedWorkingWorkspace,
   WORKING_AGENT_FACTS,
   WORKING_AGENT_FIXTURE_DIR,
+  WORKING_AGENT_NAME,
+  WORKING_AGENT_SUB_AGENT_NAME,
   WORKING_AGENT_WORKSPACE_NAME,
   workingAgentSessionSpec,
   workingAgentSkillNames,
@@ -125,7 +128,8 @@ function recordingClients(): {
     agentCommand: {
       create: async (request: InitShape<typeof AgentSchema>) => {
         agentRequests.push(request);
-        return { metadata: { id: "agt_unit", org: request.metadata?.org, slug: "orders-agent" } };
+        const name = request.metadata?.name ?? "";
+        return { metadata: { id: `agt_${name}`, org: request.metadata?.org, slug: name } };
       },
       delete: async ({ value }: { value: string }) => void deleted.push(value),
     },
@@ -142,21 +146,25 @@ describe("provisionWorkingAgent", () => {
     const agent = await provisionWorkingAgent(clients, fixtures, { mcpUrl: "http://127.0.0.1:1/mcp", workspaceDir });
 
     expect(agent.org).toBe("retrorg-unit");
-    expect(agent.agentRef).toEqual({ org: "retrorg-unit", slug: "orders-agent" });
+    expect(agent.agentRef).toEqual({ org: "retrorg-unit", slug: WORKING_AGENT_NAME });
     expect(agent.workspace).toEqual({ name: WORKING_AGENT_WORKSPACE_NAME, path: workspaceDir });
     expect(agent.pluginSlug).toBe("orders-api");
     const skillSlugs = (await workingAgentSkillNames()).map((_, i) => `skill-${i + 1}`);
     expect(agent.skillSlugs).toEqual(skillSlugs);
 
-    expect(agentRequests).toHaveLength(1);
-    const spec = agentRequests[0]!.spec;
+    expect(agentRequests.map((request) => request.metadata?.name), "the subagent is saved before the agent").toEqual([
+      WORKING_AGENT_SUB_AGENT_NAME,
+      WORKING_AGENT_NAME,
+    ]);
+    const spec = agentRequests[1]!.spec;
     expect(spec?.plugins?.map((ref) => ref.slug)).toEqual(["orders-api"]);
     expect(spec?.skillRefs?.map((ref) => ref.slug)).toEqual(skillSlugs);
+    expect(spec?.subagents?.map((ref) => ref.slug)).toEqual([WORKING_AGENT_SUB_AGENT_NAME]);
 
     await fixtures.cleanup();
     const memoryIds = WORKING_AGENT_FACTS.map((_, i) => `mem_${i + 1}`);
     expect([...deleted].sort()).toEqual(
-      ["agt_unit", "plg_unit", "org_unit", ...memoryIds, ...skillSlugs.map((_, i) => `skl_${i + 1}`)].sort(),
+      [`agt_${WORKING_AGENT_SUB_AGENT_NAME}`, `agt_${WORKING_AGENT_NAME}`, "plg_unit", "org_unit", ...memoryIds, ...skillSlugs.map((_, i) => `skl_${i + 1}`)].sort(),
     );
   });
 });

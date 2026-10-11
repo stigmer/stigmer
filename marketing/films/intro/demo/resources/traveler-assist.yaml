@@ -3,7 +3,8 @@
 # This file is also the film's scene-3 hero shot: the camera walks it
 # top-to-bottom in narration order — instructions, then skills, then
 # tools (the server marks rebooking destructive, so it asks), then
-# sub-agents. Keep that order.
+# subagents. Keep that order. The subagent it lists, fare-search, is an
+# agent of its own (fare-search.yaml), applied before this one.
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
@@ -45,13 +46,8 @@ spec:
     - kind: plugin
       slug: meridian-ops
 
-  # Who the agent can delegate to: a fare-search specialist with just
-  # the tools it needs.
-  sub_agents:
-    - name: fare-search
-      description: Finds the best fare options across dates and times
-      instructions: |
-        You are a fare-search specialist. Given a route and a date range,
-        search the schedule and return the strongest options, cheapest
-        first, with times and per-class prices. You never modify bookings.
-      tools: [mcp__plugin_meridian-ops_meridian-ops__search_flights]
+  # Who the agent can hand work to: the fare-search specialist, an
+  # agent of its own with just the tools it needs.
+  subagents:
+    - kind: agent
+      slug: fare-search

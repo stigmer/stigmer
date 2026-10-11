@@ -17,9 +17,10 @@
 //   `stigmer` CLI must be on PATH wherever this agent runs;
 // - eight skills, the count at which the native harness once began choosing
 //   skills by the message (it now describes every one on every turn);
-// - one declared sub-agent with no skills of its own. The Cursor harness
-//   mounts but never reads a sub-agent's skills (stigmer#1288), so giving it
-//   some would measure that defect instead of the harness;
+// - one subagent, a saved agent of its own the agent lists, with no skills
+//   of its own. The Cursor harness mounts but never reads a subagent's
+//   skills (stigmer#1288), so giving it some would measure that defect
+//   instead of the harness;
 // - a seeded non-git workspace, a small Go module.
 //
 // Its instructions are the seeded default agent's own words
@@ -27,7 +28,7 @@
 // workspace, so the agent under measurement is the product's, not invented.
 //
 // Every name this module chooses that can reach the model's prompt is FIXED:
-// the skill, sub-agent, plugin and MCP server names, the workspace entry and its host
+// the skill, subagent, plugin and MCP server names, the workspace entry and its host
 // path, the facts, the instructions. Each provisioning gets a fresh
 // Organization, which is what makes fixed names legal, and fixed names are
 // what keep the prompt identical from session to session. A user's names and
@@ -52,7 +53,7 @@ import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/sessi
 import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
 import { LOOKUP_ORDER_TOOL_NAME, type FixtureTool } from "../harness/mcp-server";
-import { type AgentRefInit, agentRefOf, makeAgent } from "./agents";
+import { type AgentRefInit, agentRefOf, createSubagents, makeAgent, subagentSlugsOf } from "./agents";
 import { oneServerPlugin, pushPlugin } from "./plugins";
 import { provisionOrgWithFacts } from "./memories";
 import { localWorkspaceEntries, type LocalWorkspaceOption } from "./sessions";
@@ -114,7 +115,8 @@ export interface WorkingAgentOptions {
 
 /**
  * Seeds the workspace, then creates the organization with its facts, the
- * plugin carrying the MCP server, the eight skills and the agent, each deferred for cleanup on
+ * plugin carrying the MCP server, the eight skills, the subagent and the agent
+ * listing it, each deferred for cleanup on
  * `fixtures`. One call per session: a session's edits never reach the next.
  */
 export async function provisionWorkingAgent(
@@ -140,6 +142,14 @@ export async function provisionWorkingAgent(
     skillSlugs.push(skill.metadata!.slug);
   }
 
+  const subagents = await createSubagents(clients, fixtures, org, [
+    {
+      name: WORKING_AGENT_SUB_AGENT_NAME,
+      description: "reviews a change or a piece of code and reports findings by severity",
+      instructions: WORKING_AGENT_SUB_AGENT_INSTRUCTIONS,
+    },
+  ]);
+
   const agent = await clients.agentCommand.create(
     makeAgent({
       org,
@@ -148,13 +158,7 @@ export async function provisionWorkingAgent(
       instructions: WORKING_AGENT_INSTRUCTIONS,
       plugins: [plugin.metadata!.slug],
       skillRefs: skillSlugs,
-      subAgents: [
-        {
-          name: WORKING_AGENT_SUB_AGENT_NAME,
-          description: "reviews a change or a piece of code and reports findings by severity",
-          instructions: WORKING_AGENT_SUB_AGENT_INSTRUCTIONS,
-        },
-      ],
+      subagents: subagentSlugsOf(subagents),
     }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));

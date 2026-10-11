@@ -673,7 +673,8 @@ client reads off execution status is contract, and the execution class is its
 home. `run-messages` (the transcript: text, thinking, MCP tool
 calls that succeed or fail, the ToolCall field contract, and the model id the
 provider received after registry resolution), `run-subagent`
-(`task` delegation and `sub_agent_runs`), `run-provider-error`
+(`task` delegation to the saved agents an agent lists, each on its own
+definition, and `sub_agent_runs`), `run-provider-error`
 (who a proxy-mode provider fault is attributed to — the stigmer#330 incident
 shapes), `run-structured-output` (what the final message becomes on
 `structured_output`; the fallback's lack of schema validation is deliberately

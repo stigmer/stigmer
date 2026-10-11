@@ -25,7 +25,7 @@ spec:
     You are an agent that...
   plugins: []
   skill_refs: []
-  sub_agents: []
+  subagents: []
   hooks: []
   env_spec: {}
   harness: HARNESS_NATIVE
@@ -98,10 +98,10 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 | `spec.instructions` | Yes | System prompt defining the agent's behavior. Minimum 10 characters (enforced by `buf.validate`). |
 | `spec.plugins` | No | Plugins this agent uses, each whole: their skills, agents, hooks and MCP servers. See [plugin-integration.md](plugin-integration.md). |
 | `spec.skill_refs` | No | Skills providing agent knowledge. See [skill-integration.md](skill-integration.md). |
-| `spec.sub_agents` | No | Specialized sub-agents for delegation. See [sub-agents.md](sub-agents.md). |
+| `spec.subagents` | No | Saved agents this agent may hand work to, each running its own definition; pinned to a version when this agent is saved, at most 20. See [subagents.md](subagents.md). |
 | `spec.tools` | No | Tools this agent may use, in Claude Code's names (`Read`, `Bash(git push *)`, `mcp__plugin_<plugin>_<server>`). Empty means every tool it has. See [plugin-integration.md](plugin-integration.md). |
 | `spec.disallowed_tools` | No | Tools this agent may never use, in the same names. Applied before `spec.tools`. |
-| `spec.hooks` | No | A hooks block written in the agent, run around its tool calls and its sub-agents' calls after the hooks of the plugins it lists. See [Hooks](#hooks). |
+| `spec.hooks` | No | A hooks block written in the agent, run around its tool calls and its subagents' calls after the hooks of the plugins it lists. See [Hooks](#hooks). |
 | `spec.env_spec` | No | Required environment variables (schema only). See below. |
 | `spec.harness` | No | The engine (`HARNESS_NATIVE` or `HARNESS_CURSOR`) the run defaults were chosen for, and the engine a new conversation on this agent starts on when nobody names an engine or a model (a turn naming a model but no engine starts on native). Unspecified: native. See [Run Defaults](#run-defaults). |
 | `spec.run_config` | No | The author's run defaults: model, speed tier, thinking and run limits. Versioned with the agent. See [Run Defaults](#run-defaults). |
@@ -145,7 +145,7 @@ A hook is also code the agent's author chose, and it runs without asking anyone:
 What holds:
 
 - Both engines, native and Cursor, run hooks in Claude Code's format and in Cursor's, in the Cloud and on a laptop. A Cursor-format `ask` waits for a person on both engines, where Cursor itself lets the call run.
-- On the Cursor engine a hook sees no sub-agent identity (`agent_id`, `agent_type`), web fetch and web search reach no hook (an agent whose `PreToolUse` hooks would match them runs there without them; the sub-agent tool is hidden only when a matcher names it, since a sub-agent's own calls reach every hook), and a hook's rewrite applies only where Cursor applies one (a shell command, its directory or timeout, a file path, a search pattern, a URL); a rewrite of a file's content or of an MCP tool's arguments is refused with a sentence.
+- On the Cursor engine a hook sees no subagent identity (`agent_id`, `agent_type`), web fetch and web search reach no hook (an agent whose `PreToolUse` hooks would match them runs there without them; the subagent tool is hidden only when a matcher names it, since a subagent's own calls reach every hook), and a hook's rewrite applies only where Cursor applies one (a shell command, its directory or timeout, a file path, a search pattern, a URL); a rewrite of a file's content or of an MCP tool's arguments is refused with a sentence.
 - Workspace hook files never run for the agent. On the Cursor engine a repository's `.cursor/hooks.json` entries are set aside for the turn and restored; `.claude/settings*.json` hooks are set aside in a folder the runner cloned or created, and a turn on a person's own folder whose `.claude` settings carry hooks is refused, naming the file.
 - Apply checks an inline block in either format. In Claude Code's (the default): events `PreToolUse` or `PostToolUse`, every matcher and condition in the shape Claude Code accepts, no `fail_closed`, and `${user_config.KEY}` only in a handler with `args`; an omitted format is filled with Claude Code's. In Cursor's, which the block names (`format: HOOK_FORMAT_CURSOR`): events `preToolUse`, `beforeShellExecution`, `beforeMCPExecution`, `postToolUse` or `afterMCPExecution`, a matcher that is `*` or a regular expression, `fail_closed` allowed, and no `condition`, `args` or `${user_config.KEY}`. Apply also refuses more than one inline block, and a `plugins` list that names a plugin twice.
 - Installing a plugin with hooks, in either format, records them on the plugin and declares in the plugin's `env` every variable those hooks read. A conversation can list plugins of its own (the Session's `spec.plugins`); their hooks run too, in a chat with no agent as well.
@@ -241,6 +241,6 @@ stigmer delete agent my-agent
 - [resource-references.md](resource-references.md) — `ApiResourceReference` format for referencing plugins and skills
 - [plugin-integration.md](plugin-integration.md) — Plugins, their MCP servers, the two tool lists and which tools ask for approval
 - [skill-integration.md](skill-integration.md) — Skill integration and injection
-- [sub-agents.md](sub-agents.md) — Sub-agent delegation and permission model
+- [subagents.md](subagents.md) — Subagents: saved agents an agent lists, plugin subagents, pinning and what each runs with
 - [examples.md](examples.md) — Complete YAML examples from minimal to full-featured
 - [validation-checklist.md](validation-checklist.md) — Pre-apply checklist and common pitfalls

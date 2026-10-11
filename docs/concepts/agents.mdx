@@ -148,7 +148,7 @@ resumes from where it left off.
 ## Versions
 
 Every change to an Agent's definition is kept. The definition is what the Agent
-runs with: its instructions, Skills, tools, Sub-Agents, variables and
+runs with: its instructions, Skills, tools, subagents, variables and
 [run settings](#run-settings). When you apply an Agent whose definition differs
 from every version it has had, Stigmer records a new version under a fingerprint
 of its content. Applying it unchanged records nothing, applying an earlier
@@ -177,6 +177,62 @@ under the people in it; they reach an open conversation when someone updates it
 to the current version. Schedules, channels, and shares start each conversation
 on the version their reference names, or on the current version when it names
 none.
+
+## Subagents
+
+An Agent can hand a task to another Agent, its **subagent**: the word Claude
+Code and Claude Managed Agents use. The subagent works on the task in its own
+context and reports back, and the main Agent alone answers the person or the
+channel. An Agent lists its subagents in `subagents`, by reference:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: pr-bot
+spec:
+  description: Reviews pull requests and prepares releases.
+  instructions: |
+    You review pull requests and prepare releases. When someone asks for
+    release notes, hand the work to the release-notes subagent.
+  plugins:
+    - kind: plugin
+      slug: github
+  tools: [Read, Grep, Agent, mcp__plugin_github_github]
+  subagents:
+    - kind: agent
+      slug: release-notes
+```
+
+`release-notes` is an Agent of its own, saved before `pr-bot` lists it, and it
+works as itself: its own instructions and model, its own plugins and tools, its
+own Skills and hooks, and its own variables, which reach only its shell. It does
+not borrow `pr-bot`'s tools, so it can use a tool `pr-bot` may not, and it gets
+neither the conversation's own plugins nor the channel, conversation and memory
+tools. It runs as the person in the conversation, on the conversation's budget,
+and the conversation's hooks run on its calls before its own.
+
+- **Pinned when saved.** Saving `pr-bot` pins each subagent to the version it
+  names, or to its latest version when it names none. When the team improves
+  `release-notes`, `pr-bot` keeps the version it was saved with until someone
+  saves it again, and the console says a newer version exists. Applying a
+  manifest that names no version takes the latest.
+- **One level.** A subagent cannot hand work on: saving an Agent that lists an
+  Agent with subagents of its own is refused.
+- **Who may list one.** You can list only an Agent you can run, at most 20, and
+  an Agent may not be more visible than the Agents it lists. An Agent that
+  another Agent lists cannot be deleted until it is removed from that list.
+- **Which ones may start.** `Agent` in `tools` lets the Agent hand work to any
+  subagent; `Agent(release-notes)` limits it to those named.
+- **A plugin's agents.** Each joins as a subagent named `<plugin>:<agent>`, as
+  in Claude Code: it works with the main Agent's tools, narrowed by the lists in
+  its file, on the model its file names when the conversation's
+  [Harness](/docs/concepts/harnesses) lists that model.
+
+On the Cursor Harness a subagent runs with its instructions, model and Skills. A
+subagent that brings its own tool lists, or a saved one that brings its own
+plugins or hooks, is refused there, by name, since Cursor cannot tell its tool
+calls from the main Agent's; run such an Agent on the native Harness.
 
 ## Run settings
 
@@ -277,7 +333,7 @@ installation answers its first message at once.
 The assistant works with whatever the Session carries: the plugins and Skills
 you attach to the conversation are its tools, their hooks run, and the variables
 those plugins read are asked for the same way an Agent's are. What it does not
-have is anything of its own — no Skills, no plugins, no Sub-Agents. The value of
+have is anything of its own — no Skills, no plugins, no subagents. The value of
 Stigmer appears when you create Agents tailored to your domain, and a
 conversation can pick one up at any point: choosing an Agent binds the Session
 to it, and removing the Agent returns the Session to the assistant.

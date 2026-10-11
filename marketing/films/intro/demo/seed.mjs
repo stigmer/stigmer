@@ -60,7 +60,9 @@ try {
 // under the "stable" tag the agent pins.
 stigmer("--org", ORG, "push", "skill", join(here, "skills/rebooking-policy"), "--tag", "stable", "-m", "Initial rebooking policy");
 
-// 4. The agent (traveler-assist + fare-search sub-agent).
+// 4. The agents: fare-search first, since traveler-assist lists it as a
+// subagent and a listed agent must exist when the agent listing it is saved.
+stigmer("apply", "-f", join(here, "resources/fare-search.yaml"));
 stigmer("apply", "-f", join(here, "resources/traveler-assist.yaml"));
 
 // 5. The daily digest schedule.

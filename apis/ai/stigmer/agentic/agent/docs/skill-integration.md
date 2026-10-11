@@ -82,6 +82,6 @@ Skills are the only versioned resource type in the platform. Version resolution 
 
 For production agents that need reproducible behavior, pin skills to a specific content hash. For agents that should always use the latest knowledge, omit the version field.
 
-## Sub-Agent Skill Independence
+## Subagent Skills
 
-Sub-agent `skill_refs` are **independent** of the parent agent's skills. A sub-agent can reference any skill, even if the parent does not reference it. This allows sub-agents to have specialized knowledge without bloating the parent's context. See [sub-agents.md](sub-agents.md) for details.
+A subagent is a saved agent with skills of its own: its `skill_refs` and its plugins' skills, independent of the agent that lists it. A subagent can carry specialized knowledge without loading it into the main agent's context, and gets none of the main agent's skills. A plugin subagent gets the skills of its own plugin that its agent file names. See [subagents.md](subagents.md).

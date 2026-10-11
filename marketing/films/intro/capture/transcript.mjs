@@ -29,6 +29,11 @@ try {
   // Fine: the agent didn't exist yet.
 }
 
+// Off camera too: the fare-search agent traveler-assist lists as its
+// subagent must exist before traveler-assist is saved. Applying it again
+// is a no-op when it is unchanged.
+execFileSync(bin, ["--org", "meridian-travel", "apply", "-f", join(here, "../demo/resources/fare-search.yaml")], { stdio: "ignore" });
+
 // The CLI renders its human-readable result on stderr (stdout stays
 // machine-clean for piping) — the transcript wants exactly what a
 // terminal shows, so merge both streams in order.
