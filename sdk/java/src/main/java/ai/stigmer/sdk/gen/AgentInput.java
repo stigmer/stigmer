@@ -5,7 +5,6 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentSpec;
 import ai.stigmer.agentic.agent.v1.HookSource;
-import ai.stigmer.agentic.agent.v1.SubAgent;
 import ai.stigmer.agentic.plugin.v1.HookConfig;
 import ai.stigmer.agentic.plugin.v1.HookFormat;
 import ai.stigmer.agentic.plugin.v1.HookGroup;
@@ -33,7 +32,6 @@ public final class AgentInput {
     private final String iconUrl;
     private final String instructions;
     private final java.util.List<ResourceRef> skillRefs;
-    private final java.util.List<SubAgentInput> subAgents;
     private final java.util.Map<String, EnvVarDeclarationInput> env;
     private final java.util.List<String> tools;
     private final java.util.List<String> disallowedTools;
@@ -41,6 +39,7 @@ public final class AgentInput {
     private final RunConfigInput runConfig;
     private final Harness harness;
     private final java.util.List<ResourceRef> plugins;
+    private final java.util.List<ResourceRef> subagents;
 
     private AgentInput(Builder builder) {
         this.id = builder.id;
@@ -54,7 +53,6 @@ public final class AgentInput {
         this.iconUrl = builder.iconUrl;
         this.instructions = builder.instructions;
         this.skillRefs = builder.skillRefs;
-        this.subAgents = builder.subAgents;
         this.env = builder.env;
         this.tools = builder.tools;
         this.disallowedTools = builder.disallowedTools;
@@ -62,6 +60,7 @@ public final class AgentInput {
         this.runConfig = builder.runConfig;
         this.harness = builder.harness;
         this.plugins = builder.plugins;
+        this.subagents = builder.subagents;
     }
 
     Agent toProto() {
@@ -79,11 +78,6 @@ public final class AgentInput {
             for (ResourceRef item : this.skillRefs) {
                 spec.addSkillRefs(item.toProto().toBuilder()
                     .setKind(ApiResourceKind.skill).build());
-            }
-        }
-        if (this.subAgents != null) {
-            for (SubAgentInput item : this.subAgents) {
-                spec.addSubAgents(item.toProto());
             }
         }
         if (this.env != null && !this.env.isEmpty()) {
@@ -112,6 +106,12 @@ public final class AgentInput {
             for (ResourceRef item : this.plugins) {
                 spec.addPlugins(item.toProto().toBuilder()
                     .setKind(ApiResourceKind.plugin).build());
+            }
+        }
+        if (this.subagents != null) {
+            for (ResourceRef item : this.subagents) {
+                spec.addSubagents(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.agent).build());
             }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
@@ -158,7 +158,6 @@ public final class AgentInput {
         private String iconUrl;
         private String instructions;
         private java.util.List<ResourceRef> skillRefs;
-        private java.util.List<SubAgentInput> subAgents;
         private java.util.Map<String, EnvVarDeclarationInput> env;
         private java.util.List<String> tools;
         private java.util.List<String> disallowedTools;
@@ -166,6 +165,7 @@ public final class AgentInput {
         private RunConfigInput runConfig;
         private Harness harness;
         private java.util.List<ResourceRef> plugins;
+        private java.util.List<ResourceRef> subagents;
 
         private Builder() {}
 
@@ -185,7 +185,6 @@ public final class AgentInput {
         public Builder iconUrl(String iconUrl) { this.iconUrl = iconUrl; return this; }
         public Builder instructions(String instructions) { this.instructions = instructions; return this; }
         public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
-        public Builder subAgents(java.util.List<SubAgentInput> subAgents) { this.subAgents = subAgents; return this; }
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
         public Builder tools(java.util.List<String> tools) { this.tools = tools; return this; }
         public Builder disallowedTools(java.util.List<String> disallowedTools) { this.disallowedTools = disallowedTools; return this; }
@@ -193,82 +192,9 @@ public final class AgentInput {
         public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
         public Builder harness(Harness harness) { this.harness = harness; return this; }
         public Builder plugins(java.util.List<ResourceRef> plugins) { this.plugins = plugins; return this; }
+        public Builder subagents(java.util.List<ResourceRef> subagents) { this.subagents = subagents; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
-    }
-
-    /** SDK input type for SubAgent. */
-    public static final class SubAgentInput {
-        private final String name;
-        private final String description;
-        private final String instructions;
-        private final java.util.List<ResourceRef> skillRefs;
-        private final String modelOverride;
-        private final java.util.List<String> tools;
-        private final java.util.List<String> disallowedTools;
-
-        private SubAgentInput(Builder builder) {
-            this.name = builder.name;
-            this.description = builder.description;
-            this.instructions = builder.instructions;
-            this.skillRefs = builder.skillRefs;
-            this.modelOverride = builder.modelOverride;
-            this.tools = builder.tools;
-            this.disallowedTools = builder.disallowedTools;
-        }
-
-        SubAgent toProto() {
-            SubAgent.Builder builder = SubAgent.newBuilder();
-            if (this.name != null) {
-                builder.setName(this.name);
-            }
-            if (this.description != null) {
-                builder.setDescription(this.description);
-            }
-            if (this.instructions != null) {
-                builder.setInstructions(this.instructions);
-            }
-            if (this.skillRefs != null) {
-                for (ResourceRef item : this.skillRefs) {
-                    builder.addSkillRefs(item.toProto().toBuilder()
-                        .setKind(ApiResourceKind.skill).build());
-                }
-            }
-            if (this.modelOverride != null) {
-                builder.setModelOverride(this.modelOverride);
-            }
-            if (this.tools != null) {
-                builder.addAllTools(this.tools);
-            }
-            if (this.disallowedTools != null) {
-                builder.addAllDisallowedTools(this.disallowedTools);
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String name;
-            private String description;
-            private String instructions;
-            private java.util.List<ResourceRef> skillRefs;
-            private String modelOverride;
-            private java.util.List<String> tools;
-            private java.util.List<String> disallowedTools;
-
-            private Builder() {}
-
-            public Builder name(String name) { this.name = name; return this; }
-            public Builder description(String description) { this.description = description; return this; }
-            public Builder instructions(String instructions) { this.instructions = instructions; return this; }
-            public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
-            public Builder modelOverride(String modelOverride) { this.modelOverride = modelOverride; return this; }
-            public Builder tools(java.util.List<String> tools) { this.tools = tools; return this; }
-            public Builder disallowedTools(java.util.List<String> disallowedTools) { this.disallowedTools = disallowedTools; return this; }
-
-            public SubAgentInput build() { return new SubAgentInput(this); }
-        }
     }
 
     /** SDK input type for EnvVarDeclaration. */

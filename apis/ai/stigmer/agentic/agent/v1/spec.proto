@@ -42,10 +42,11 @@ message AgentSpec {
     }
   ];
 
-  // Sub-agents that can be delegated to.
-  // A sub-agent starts from this agent's tools and may narrow them with its
-  // own tool lists, never widen them.
-  repeated SubAgent sub_agents = 6;
+  // Field 6 held sub-agents written inside this agent, which narrowed its
+  // tools, until a subagent became a saved agent this agent lists in
+  // subagents.
+  reserved 6;
+  reserved "sub_agents";
 
   // Environment variable declarations for this agent.
   // Keys are variable names; values describe their metadata and optionality.
@@ -74,21 +75,21 @@ message AgentSpec {
   // tool. A plugin's server is named plugin_<plugin>_<server>, as Claude Code
   // names it, with every character outside letters, digits, _ and - written
   // as _. A specifier in parentheses, as in Bash(git push *), is
-  // accepted and governs the whole tool. Agent(explore, shell) also limits
-  // which sub-agents this agent may start; the Cursor engine cannot hold its
-  // built-in sub-agents back, so it refuses a turn whose agent limits Agent to
-  // types. The lists hold on both engines, and under "approve everything"
+  // accepted and governs the whole tool. Agent(explore, release-notes)
+  // also limits which subagents this agent may start; the Cursor engine
+  // cannot hold its built-in subagents back, so it refuses a turn whose agent
+  // limits Agent to types. The lists hold on both engines, and under "approve everything"
   // too.
   //
   // Skill is a name here too, for the agent's skills: a list without Skill
   // keeps them, and a list holding only Skill names them, so it does not
   // refuse the turn, also under an outer list that omits Skill (a
-  // sub-agent's under its agent's, a turn's under the agent's). Denying
+  // plugin subagent's under its turn's, a turn's under the agent's). Denying
   // Skill in disallowed_tools removes them, and then a list of Skill alone
   // in a narrower layer refuses the turn.
   //
   // @internal
-  // Resolution follows Claude Code's sub-agent rules: disallowed_tools is
+  // Resolution follows Claude Code's subagent rules: disallowed_tools is
   // applied first, then tools against what remains. An entry that names no
   // tool the turn has is ignored with a log line; a non-empty list in which
   // no entry resolves refuses the turn. The shape is checked at apply; names
@@ -108,15 +109,14 @@ message AgentSpec {
   // Disallowing Skill hides every skill from this agent: no skill is listed
   // or mounted for its turns, and the Read tool refuses reads of skill and
   // plugin-tree files. Grep, Glob and a shell the agent is granted are not
-  // refused, so they can still reach those files. On a sub-agent it hides
-  // that sub-agent's skills.
+  // refused, so they can still reach those files.
   repeated string disallowed_tools = 11 [(buf.validate.field).repeated.items.string = {
     max_len: 256
     pattern: "^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
   }];
 
   // Hooks written in this agent itself, run around its tool calls and its
-  // sub-agents' calls, after the hooks of the plugins it lists.
+  // subagents' calls, after the hooks of the plugins it lists.
   //
   // A hook can refuse a call, ask a person first, or let it run
   // without the approval it would otherwise need. Both engines run hooks in
@@ -182,6 +182,32 @@ message AgentSpec {
       expression: "this.kind == 58"
     }
   ];
+
+  // Saved agents this agent may hand work to, each running its own
+  // instructions, model, tools, plugins, skills, hooks and values.
+  //
+  // A subagent runs as the conversation's person and on its budget, under
+  // the conversation's hooks, and cannot hand work on to another agent: an
+  // agent that lists subagents of its own is refused here. Each reference is
+  // pinned when this agent is saved: a reference without a version takes the
+  // listed agent's latest version, and one naming a tag or a version keeps
+  // that version until a later save sends the list again. At most 20.
+  //
+  // @internal
+  // The save step resolves each version to its 64-hex hash through the
+  // version ladder, so a pin never tracks the head. The writer must be able
+  // to run each agent the write adds (can_execute); the floor rule keeps a
+  // subagent at least as visible as this agent. An agent another agent
+  // lists cannot be deleted.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference subagents = 17 [
+    (ai.stigmer.commons.apiresource.reference_kind) = agent,
+    (buf.validate.field).repeated.max_items = 20,
+    (buf.validate.field).repeated.items.cel = {
+      id: "subagents.kind"
+      message: "subagents must reference resources with kind=agent"
+      expression: "this.kind == 40"
+    }
+  ];
 }
 
 // HookSource is a hooks block written in the agent.
@@ -200,57 +226,4 @@ message HookSource {
     // An omitted format is filled with Claude Code's at apply.
     ai.stigmer.agentic.plugin.v1.HookConfig inline = 2;
   }
-}
-
-// SubAgent defines a specialized agent that the parent can delegate to.
-//
-// A sub-agent starts from the parent's tools and may narrow them with its own
-// tool lists, never widen them. Skills are independent of the parent.
-message SubAgent {
-  // Unique name of the sub-agent within the parent agent.
-  string name = 1 [(buf.validate.field).required = true];
-
-  // What this sub-agent specializes in.
-  string description = 2;
-
-  // System prompt for this sub-agent.
-  string instructions = 3 [(buf.validate.field).string.min_len = 10];
-
-  // Skill resources for this sub-agent.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [
-    (ai.stigmer.commons.apiresource.reference_kind) = skill,
-    (buf.validate.field).repeated.items.cel = {
-      id: "skill_refs.kind"
-      message: "skill_refs must reference resources with kind=skill"
-      expression: "this.kind == 43"
-    }
-  ];
-
-  // Model override for this sub-agent.
-  // When set, uses this model instead of the model the turn runs.
-  // When empty, inherits the model the turn runs.
-  string model_override = 6;
-
-  // Tools this sub-agent may use, from what the parent may use; empty means
-  // all of the parent's. Same names as AgentSpec.tools. Inside a sub-agent,
-  // the type list of an Agent(...) entry is ignored, as in Claude Code. The
-  // Cursor engine cannot tell which sub-agent made a call, so it refuses a
-  // turn whose sub-agent carries its own lists; the native engine runs it.
-  repeated string tools = 7 [(buf.validate.field).repeated.items.string = {
-    max_len: 256
-    pattern: "^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
-  }];
-
-  // Tools this sub-agent may never use, in the same names as tools.
-  // Disallowing Skill hides this sub-agent's skills, as on AgentSpec.
-  repeated string disallowed_tools = 8 [(buf.validate.field).repeated.items.string = {
-    max_len: 256
-    pattern: "^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$"
-  }];
-
-  // Field 4 held mcp_access, per-sub-agent grants over the parent's MCP
-  // servers. A sub-agent now narrows the parent's tools with tools and
-  // disallowed_tools, mcp__<server> entries included.
-  reserved 4;
-  reserved "mcp_access";
 }

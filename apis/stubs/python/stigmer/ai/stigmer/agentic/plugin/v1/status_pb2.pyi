@@ -52,20 +52,22 @@ class PluginSkill(_message.Message):
     def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., path: _Optional[str] = ...) -> None: ...
 
 class PluginAgent(_message.Message):
-    __slots__ = ("name", "description", "instructions", "tools", "disallowed_tools", "skills")
+    __slots__ = ("name", "description", "instructions", "tools", "disallowed_tools", "skills", "model")
     NAME_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     INSTRUCTIONS_FIELD_NUMBER: _ClassVar[int]
     TOOLS_FIELD_NUMBER: _ClassVar[int]
     DISALLOWED_TOOLS_FIELD_NUMBER: _ClassVar[int]
     SKILLS_FIELD_NUMBER: _ClassVar[int]
+    MODEL_FIELD_NUMBER: _ClassVar[int]
     name: str
     description: str
     instructions: str
     tools: _containers.RepeatedScalarFieldContainer[str]
     disallowed_tools: _containers.RepeatedScalarFieldContainer[str]
     skills: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., instructions: _Optional[str] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., skills: _Optional[_Iterable[str]] = ...) -> None: ...
+    model: str
+    def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., instructions: _Optional[str] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., skills: _Optional[_Iterable[str]] = ..., model: _Optional[str] = ...) -> None: ...
 
 class McpServerEntry(_message.Message):
     __slots__ = ("name", "stdio", "http", "env", "sign_in")

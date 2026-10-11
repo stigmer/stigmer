@@ -41,6 +41,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.LazyStringArrayList.emptyList();
     skills_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    model_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -369,6 +370,63 @@ private static final long serialVersionUID = 0L;
     return skills_.getByteString(index);
   }
 
+  public static final int MODEL_FIELD_NUMBER = 7;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object model_ = "";
+  /**
+   * <pre>
+   * The model the agent's file names, as written; empty when it names none.
+   *
+   * A turn runs the agent on it when it is a model id the conversation's
+   * engine lists. inherit, an alias such as sonnet, or any other value runs
+   * the turn's model; install records an alias or an unknown value in
+   * PluginStatus.warnings.
+   * </pre>
+   *
+   * <code>string model = 7 [json_name = "model"];</code>
+   * @return The model.
+   */
+  @java.lang.Override
+  public java.lang.String getModel() {
+    java.lang.Object ref = model_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      model_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The model the agent's file names, as written; empty when it names none.
+   *
+   * A turn runs the agent on it when it is a model id the conversation's
+   * engine lists. inherit, an alias such as sonnet, or any other value runs
+   * the turn's model; install records an alias or an unknown value in
+   * PluginStatus.warnings.
+   * </pre>
+   *
+   * <code>string model = 7 [json_name = "model"];</code>
+   * @return The bytes for model.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getModelBytes() {
+    java.lang.Object ref = model_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      model_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -400,6 +458,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < skills_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, skills_.getRaw(i));
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(model_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 7, model_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -443,6 +504,9 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 1 * getSkillsList().size();
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(model_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, model_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -470,6 +534,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDisallowedToolsList())) return false;
     if (!getSkillsList()
         .equals(other.getSkillsList())) return false;
+    if (!getModel()
+        .equals(other.getModel())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -499,6 +565,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + SKILLS_FIELD_NUMBER;
       hash = (53 * hash) + getSkillsList().hashCode();
     }
+    hash = (37 * hash) + MODEL_FIELD_NUMBER;
+    hash = (53 * hash) + getModel().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -643,6 +711,7 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.LazyStringArrayList.emptyList();
       skills_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      model_ = "";
       return this;
     }
 
@@ -696,6 +765,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000020) != 0)) {
         skills_.makeImmutable();
         result.skills_ = skills_;
+      }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.model_ = model_;
       }
     }
 
@@ -756,6 +828,11 @@ private static final long serialVersionUID = 0L;
         }
         onChanged();
       }
+      if (!other.getModel().isEmpty()) {
+        model_ = other.model_;
+        bitField0_ |= 0x00000040;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -812,6 +889,11 @@ private static final long serialVersionUID = 0L;
               skills_.add(input.readStringRequireUtf8());
               break;
             } // case 50
+            case 58: {
+              model_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1560,6 +1642,123 @@ private static final long serialVersionUID = 0L;
       ensureSkillsIsMutable();
       skills_.add(value);
       bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object model_ = "";
+    /**
+     * <pre>
+     * The model the agent's file names, as written; empty when it names none.
+     *
+     * A turn runs the agent on it when it is a model id the conversation's
+     * engine lists. inherit, an alias such as sonnet, or any other value runs
+     * the turn's model; install records an alias or an unknown value in
+     * PluginStatus.warnings.
+     * </pre>
+     *
+     * <code>string model = 7 [json_name = "model"];</code>
+     * @return The model.
+     */
+    public java.lang.String getModel() {
+      java.lang.Object ref = model_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        model_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The model the agent's file names, as written; empty when it names none.
+     *
+     * A turn runs the agent on it when it is a model id the conversation's
+     * engine lists. inherit, an alias such as sonnet, or any other value runs
+     * the turn's model; install records an alias or an unknown value in
+     * PluginStatus.warnings.
+     * </pre>
+     *
+     * <code>string model = 7 [json_name = "model"];</code>
+     * @return The bytes for model.
+     */
+    public com.google.protobuf.ByteString
+        getModelBytes() {
+      java.lang.Object ref = model_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        model_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The model the agent's file names, as written; empty when it names none.
+     *
+     * A turn runs the agent on it when it is a model id the conversation's
+     * engine lists. inherit, an alias such as sonnet, or any other value runs
+     * the turn's model; install records an alias or an unknown value in
+     * PluginStatus.warnings.
+     * </pre>
+     *
+     * <code>string model = 7 [json_name = "model"];</code>
+     * @param value The model to set.
+     * @return This builder for chaining.
+     */
+    public Builder setModel(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      model_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The model the agent's file names, as written; empty when it names none.
+     *
+     * A turn runs the agent on it when it is a model id the conversation's
+     * engine lists. inherit, an alias such as sonnet, or any other value runs
+     * the turn's model; install records an alias or an unknown value in
+     * PluginStatus.warnings.
+     * </pre>
+     *
+     * <code>string model = 7 [json_name = "model"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearModel() {
+      model_ = getDefaultInstance().getModel();
+      bitField0_ = (bitField0_ & ~0x00000040);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The model the agent's file names, as written; empty when it names none.
+     *
+     * A turn runs the agent on it when it is a model id the conversation's
+     * engine lists. inherit, an alias such as sonnet, or any other value runs
+     * the turn's model; install records an alias or an unknown value in
+     * PluginStatus.warnings.
+     * </pre>
+     *
+     * <code>string model = 7 [json_name = "model"];</code>
+     * @param value The bytes for model to set.
+     * @return This builder for chaining.
+     */
+    public Builder setModelBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      model_ = value;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }

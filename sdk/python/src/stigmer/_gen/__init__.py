@@ -2,7 +2,7 @@
 
 from ._bidi import BidiStream
 from ._client import GeneratedClient
-from ._agent import AgentClient, AgentInput, SubAgentInput, EnvVarDeclarationInput, HookSourceInput, HookConfigInput, HookGroupInput, HookHandlerInput, RunConfigInput
+from ._agent import AgentClient, AgentInput, EnvVarDeclarationInput, HookSourceInput, HookConfigInput, HookGroupInput, HookHandlerInput, RunConfigInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
@@ -51,7 +51,6 @@ __all__ = [
     "GeneratedClient",
     "AgentClient",
     "AgentInput",
-    "SubAgentInput",
     "EnvVarDeclarationInput",
     "HookSourceInput",
     "HookConfigInput",

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/vault/v1/values.proto.
  */
 export const file_ai_stigmer_agentic_vault_v1_values: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvdmF1bHQvdjEvdmFsdWVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEiOgoZRmV0Y2hFeGVjdXRpb25WYWx1ZXNJbnB1dBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAEiwAIKD0V4ZWN1dGlvblZhbHVlcxJGCgVhZ2VudBgBIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5FeGVjdXRpb25WYWx1ZXMuQWdlbnRFbnRyeRI2CgV0b29scxgCIAMoCzInLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5Ub29sVmFsdWVzEkMKDHJlcG9zaXRvcmllcxgDIAMoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5SZXBvc2l0b3J5VmFsdWVzEjoKB3BsdWdpbnMYBCADKAsyKS5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuUGx1Z2luVmFsdWVzGiwKCkFnZW50RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASLFAQoKVG9vbFZhbHVlcxIRCglwbHVnaW5faWQYBCABKAkSDgoGc2VydmVyGAUgASgJEgsKA3VybBgCIAEoCRJDCgZ2YWx1ZXMYAyADKAsyMy5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuVG9vbFZhbHVlcy5WYWx1ZXNFbnRyeRotCgtWYWx1ZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBSgQIARACUg1tY3Bfc2VydmVyX2lkIpcBCgxQbHVnaW5WYWx1ZXMSEQoJcGx1Z2luX2lkGAEgASgJEkUKBnZhbHVlcxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5QbHVnaW5WYWx1ZXMuVmFsdWVzRW50cnkaLQoLVmFsdWVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI8ChBSZXBvc2l0b3J5VmFsdWVzEgwKBG5hbWUYASABKAkSCwoDdXJsGAIgASgJEg0KBXRva2VuGAMgASgJMpEBChRWYXVsdFZhbHVlQ29udHJvbGxlchJ5CgtmZXRjaFZhbHVlcxI2LmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5GZXRjaEV4ZWN1dGlvblZhbHVlc0lucHV0GiwuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLkV4ZWN1dGlvblZhbHVlcyIE0LgYAWIGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvdmF1bHQvdjEvdmFsdWVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEiOgoZRmV0Y2hFeGVjdXRpb25WYWx1ZXNJbnB1dBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAEigAMKD0V4ZWN1dGlvblZhbHVlcxJGCgVhZ2VudBgBIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5FeGVjdXRpb25WYWx1ZXMuQWdlbnRFbnRyeRI2CgV0b29scxgCIAMoCzInLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5Ub29sVmFsdWVzEkMKDHJlcG9zaXRvcmllcxgDIAMoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5SZXBvc2l0b3J5VmFsdWVzEjoKB3BsdWdpbnMYBCADKAsyKS5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuUGx1Z2luVmFsdWVzEj4KCXN1YmFnZW50cxgFIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5TdWJhZ2VudFZhbHVlcxosCgpBZ2VudEVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEixQEKClRvb2xWYWx1ZXMSEQoJcGx1Z2luX2lkGAQgASgJEg4KBnNlcnZlchgFIAEoCRILCgN1cmwYAiABKAkSQwoGdmFsdWVzGAMgAygLMjMuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlRvb2xWYWx1ZXMuVmFsdWVzRW50cnkaLQoLVmFsdWVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUoECAEQAlINbWNwX3NlcnZlcl9pZCKXAQoMUGx1Z2luVmFsdWVzEhEKCXBsdWdpbl9pZBgBIAEoCRJFCgZ2YWx1ZXMYAiADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuUGx1Z2luVmFsdWVzLlZhbHVlc0VudHJ5Gi0KC1ZhbHVlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEilgEKDlN1YmFnZW50VmFsdWVzEgwKBG5hbWUYASABKAkSRwoGdmFsdWVzGAIgAygLMjcuYWkuc3RpZ21lci5hZ2VudGljLnZhdWx0LnYxLlN1YmFnZW50VmFsdWVzLlZhbHVlc0VudHJ5Gi0KC1ZhbHVlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiPAoQUmVwb3NpdG9yeVZhbHVlcxIMCgRuYW1lGAEgASgJEgsKA3VybBgCIAEoCRINCgV0b2tlbhgDIAEoCTKRAQoUVmF1bHRWYWx1ZUNvbnRyb2xsZXISeQoLZmV0Y2hWYWx1ZXMSNi5haS5zdGlnbWVyLmFnZW50aWMudmF1bHQudjEuRmV0Y2hFeGVjdXRpb25WYWx1ZXNJbnB1dBosLmFpLnN0aWdtZXIuYWdlbnRpYy52YXVsdC52MS5FeGVjdXRpb25WYWx1ZXMiBNC4GAFiBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * Which execution's values to fetch.
@@ -71,6 +71,14 @@ export type ExecutionValues = Message<"ai.stigmer.agentic.vault.v1.ExecutionValu
    * @generated from field: repeated ai.stigmer.agentic.vault.v1.PluginValues plugins = 4;
    */
   plugins: PluginValues[];
+
+  /**
+   * Each subagent's own keys, for its shell and its own hooks: what
+   * agent holds for the agent, for a saved agent the turn's agent lists.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5;
+   */
+  subagents: SubagentValues[];
 };
 
 /**
@@ -154,6 +162,34 @@ export const PluginValuesSchema: GenMessage<PluginValues> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_vault_v1_values, 3);
 
 /**
+ * SubagentValues are the keys one subagent of the execution declared.
+ *
+ * @generated from message ai.stigmer.agentic.vault.v1.SubagentValues
+ */
+export type SubagentValues = Message<"ai.stigmer.agentic.vault.v1.SubagentValues"> & {
+  /**
+   * The subagent's name in the turn: the listed agent's slug.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Its keys and their values.
+   *
+   * @generated from field: map<string, string> values = 2;
+   */
+  values: { [key: string]: string };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.vault.v1.SubagentValues.
+ * Use `create(SubagentValuesSchema)` to create a new message.
+ */
+export const SubagentValuesSchema: GenMessage<SubagentValues> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_vault_v1_values, 4);
+
+/**
  * RepositoryValues is the token of one repository the execution clones.
  *
  * @generated from message ai.stigmer.agentic.vault.v1.RepositoryValues
@@ -186,7 +222,7 @@ export type RepositoryValues = Message<"ai.stigmer.agentic.vault.v1.RepositoryVa
  * Use `create(RepositoryValuesSchema)` to create a new message.
  */
 export const RepositoryValuesSchema: GenMessage<RepositoryValues> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_vault_v1_values, 4);
+  messageDesc(file_ai_stigmer_agentic_vault_v1_values, 5);
 
 /**
  * VaultValueController hands a runner the values one execution uses, read

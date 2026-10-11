@@ -240,7 +240,14 @@ type PluginAgent struct {
 	// Tools this agent may never use, in the same names as tools.
 	DisallowedTools []string `protobuf:"bytes,5,rep,name=disallowed_tools,json=disallowedTools,proto3" json:"disallowed_tools,omitempty"`
 	// The plugin's own skills this agent uses, by name.
-	Skills        []string `protobuf:"bytes,6,rep,name=skills,proto3" json:"skills,omitempty"`
+	Skills []string `protobuf:"bytes,6,rep,name=skills,proto3" json:"skills,omitempty"`
+	// The model the agent's file names, as written; empty when it names none.
+	//
+	// A turn runs the agent on it when it is a model id the conversation's
+	// engine lists. inherit, an alias such as sonnet, or any other value runs
+	// the turn's model; install records an alias or an unknown value in
+	// PluginStatus.warnings.
+	Model         string `protobuf:"bytes,7,opt,name=model,proto3" json:"model,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -315,6 +322,13 @@ func (x *PluginAgent) GetSkills() []string {
 		return x.Skills
 	}
 	return nil
+}
+
+func (x *PluginAgent) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
 }
 
 // McpServerEntry is one MCP server a plugin carries: a local program or an
@@ -849,14 +863,15 @@ const file_ai_stigmer_agentic_plugin_v1_status_proto_rawDesc = "" +
 	"\vPluginSkill\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x12\n" +
-	"\x04path\x18\x03 \x01(\tR\x04path\"\xc0\x01\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\"\xd6\x01\n" +
 	"\vPluginAgent\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\"\n" +
 	"\finstructions\x18\x03 \x01(\tR\finstructions\x12\x14\n" +
 	"\x05tools\x18\x04 \x03(\tR\x05tools\x12)\n" +
 	"\x10disallowed_tools\x18\x05 \x03(\tR\x0fdisallowedTools\x12\x16\n" +
-	"\x06skills\x18\x06 \x03(\tR\x06skills\"\x94\x02\n" +
+	"\x06skills\x18\x06 \x03(\tR\x06skills\x12\x14\n" +
+	"\x05model\x18\a \x01(\tR\x05model\"\x94\x02\n" +
 	"\x0eMcpServerEntry\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12D\n" +
 	"\x05stdio\x18\x02 \x01(\v2,.ai.stigmer.agentic.plugin.v1.StdioMcpServerH\x00R\x05stdio\x12A\n" +

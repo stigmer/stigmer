@@ -1214,6 +1214,9 @@ enum RunValueDeclarerKind {
 
   // A plugin the turn uses, for its hooks.
   RUN_VALUE_DECLARER_KIND_PLUGIN = 4;
+
+  // A saved agent the turn's agent lists as a subagent, in its env.
+  RUN_VALUE_DECLARER_KIND_SUBAGENT = 5;
 }
 
 // Where a value a turn uses lives.

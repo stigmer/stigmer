@@ -82,7 +82,10 @@ type ExecutionValues struct {
 	// Each repository's token, for its clone and write-back only.
 	Repositories []*RepositoryValues `protobuf:"bytes,3,rep,name=repositories,proto3" json:"repositories,omitempty"`
 	// Each plugin's keys, for that plugin's hooks only.
-	Plugins       []*PluginValues `protobuf:"bytes,4,rep,name=plugins,proto3" json:"plugins,omitempty"`
+	Plugins []*PluginValues `protobuf:"bytes,4,rep,name=plugins,proto3" json:"plugins,omitempty"`
+	// Each subagent's own keys, for its shell and its own hooks: what
+	// agent holds for the agent, for a saved agent the turn's agent lists.
+	Subagents     []*SubagentValues `protobuf:"bytes,5,rep,name=subagents,proto3" json:"subagents,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -141,6 +144,13 @@ func (x *ExecutionValues) GetRepositories() []*RepositoryValues {
 func (x *ExecutionValues) GetPlugins() []*PluginValues {
 	if x != nil {
 		return x.Plugins
+	}
+	return nil
+}
+
+func (x *ExecutionValues) GetSubagents() []*SubagentValues {
+	if x != nil {
+		return x.Subagents
 	}
 	return nil
 }
@@ -276,6 +286,61 @@ func (x *PluginValues) GetValues() map[string]string {
 	return nil
 }
 
+// SubagentValues are the keys one subagent of the execution declared.
+type SubagentValues struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The subagent's name in the turn: the listed agent's slug.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Its keys and their values.
+	Values        map[string]string `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubagentValues) Reset() {
+	*x = SubagentValues{}
+	mi := &file_ai_stigmer_agentic_vault_v1_values_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubagentValues) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubagentValues) ProtoMessage() {}
+
+func (x *SubagentValues) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_vault_v1_values_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubagentValues.ProtoReflect.Descriptor instead.
+func (*SubagentValues) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_vault_v1_values_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SubagentValues) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SubagentValues) GetValues() map[string]string {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
 // RepositoryValues is the token of one repository the execution clones.
 type RepositoryValues struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -291,7 +356,7 @@ type RepositoryValues struct {
 
 func (x *RepositoryValues) Reset() {
 	*x = RepositoryValues{}
-	mi := &file_ai_stigmer_agentic_vault_v1_values_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_vault_v1_values_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -303,7 +368,7 @@ func (x *RepositoryValues) String() string {
 func (*RepositoryValues) ProtoMessage() {}
 
 func (x *RepositoryValues) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_vault_v1_values_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_vault_v1_values_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -316,7 +381,7 @@ func (x *RepositoryValues) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RepositoryValues.ProtoReflect.Descriptor instead.
 func (*RepositoryValues) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_vault_v1_values_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_vault_v1_values_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *RepositoryValues) GetName() string {
@@ -346,12 +411,13 @@ const file_ai_stigmer_agentic_vault_v1_values_proto_rawDesc = "" +
 	"\n" +
 	"(ai/stigmer/agentic/vault/v1/values.proto\x12\x1bai.stigmer.agentic.vault.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1bbuf/validate/validate.proto\"G\n" +
 	"\x19FetchExecutionValuesInput\x12*\n" +
-	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\"\xf1\x02\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\"\xbc\x03\n" +
 	"\x0fExecutionValues\x12M\n" +
 	"\x05agent\x18\x01 \x03(\v27.ai.stigmer.agentic.vault.v1.ExecutionValues.AgentEntryR\x05agent\x12=\n" +
 	"\x05tools\x18\x02 \x03(\v2'.ai.stigmer.agentic.vault.v1.ToolValuesR\x05tools\x12Q\n" +
 	"\frepositories\x18\x03 \x03(\v2-.ai.stigmer.agentic.vault.v1.RepositoryValuesR\frepositories\x12C\n" +
-	"\aplugins\x18\x04 \x03(\v2).ai.stigmer.agentic.vault.v1.PluginValuesR\aplugins\x1a8\n" +
+	"\aplugins\x18\x04 \x03(\v2).ai.stigmer.agentic.vault.v1.PluginValuesR\aplugins\x12I\n" +
+	"\tsubagents\x18\x05 \x03(\v2+.ai.stigmer.agentic.vault.v1.SubagentValuesR\tsubagents\x1a8\n" +
 	"\n" +
 	"AgentEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
@@ -368,6 +434,12 @@ const file_ai_stigmer_agentic_vault_v1_values_proto_rawDesc = "" +
 	"\fPluginValues\x12\x1b\n" +
 	"\tplugin_id\x18\x01 \x01(\tR\bpluginId\x12M\n" +
 	"\x06values\x18\x02 \x03(\v25.ai.stigmer.agentic.vault.v1.PluginValues.ValuesEntryR\x06values\x1a9\n" +
+	"\vValuesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb0\x01\n" +
+	"\x0eSubagentValues\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12O\n" +
+	"\x06values\x18\x02 \x03(\v27.ai.stigmer.agentic.vault.v1.SubagentValues.ValuesEntryR\x06values\x1a9\n" +
 	"\vValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"N\n" +
@@ -391,31 +463,35 @@ func file_ai_stigmer_agentic_vault_v1_values_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_vault_v1_values_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_vault_v1_values_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ai_stigmer_agentic_vault_v1_values_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_ai_stigmer_agentic_vault_v1_values_proto_goTypes = []any{
 	(*FetchExecutionValuesInput)(nil), // 0: ai.stigmer.agentic.vault.v1.FetchExecutionValuesInput
 	(*ExecutionValues)(nil),           // 1: ai.stigmer.agentic.vault.v1.ExecutionValues
 	(*ToolValues)(nil),                // 2: ai.stigmer.agentic.vault.v1.ToolValues
 	(*PluginValues)(nil),              // 3: ai.stigmer.agentic.vault.v1.PluginValues
-	(*RepositoryValues)(nil),          // 4: ai.stigmer.agentic.vault.v1.RepositoryValues
-	nil,                               // 5: ai.stigmer.agentic.vault.v1.ExecutionValues.AgentEntry
-	nil,                               // 6: ai.stigmer.agentic.vault.v1.ToolValues.ValuesEntry
-	nil,                               // 7: ai.stigmer.agentic.vault.v1.PluginValues.ValuesEntry
+	(*SubagentValues)(nil),            // 4: ai.stigmer.agentic.vault.v1.SubagentValues
+	(*RepositoryValues)(nil),          // 5: ai.stigmer.agentic.vault.v1.RepositoryValues
+	nil,                               // 6: ai.stigmer.agentic.vault.v1.ExecutionValues.AgentEntry
+	nil,                               // 7: ai.stigmer.agentic.vault.v1.ToolValues.ValuesEntry
+	nil,                               // 8: ai.stigmer.agentic.vault.v1.PluginValues.ValuesEntry
+	nil,                               // 9: ai.stigmer.agentic.vault.v1.SubagentValues.ValuesEntry
 }
 var file_ai_stigmer_agentic_vault_v1_values_proto_depIdxs = []int32{
-	5, // 0: ai.stigmer.agentic.vault.v1.ExecutionValues.agent:type_name -> ai.stigmer.agentic.vault.v1.ExecutionValues.AgentEntry
+	6, // 0: ai.stigmer.agentic.vault.v1.ExecutionValues.agent:type_name -> ai.stigmer.agentic.vault.v1.ExecutionValues.AgentEntry
 	2, // 1: ai.stigmer.agentic.vault.v1.ExecutionValues.tools:type_name -> ai.stigmer.agentic.vault.v1.ToolValues
-	4, // 2: ai.stigmer.agentic.vault.v1.ExecutionValues.repositories:type_name -> ai.stigmer.agentic.vault.v1.RepositoryValues
+	5, // 2: ai.stigmer.agentic.vault.v1.ExecutionValues.repositories:type_name -> ai.stigmer.agentic.vault.v1.RepositoryValues
 	3, // 3: ai.stigmer.agentic.vault.v1.ExecutionValues.plugins:type_name -> ai.stigmer.agentic.vault.v1.PluginValues
-	6, // 4: ai.stigmer.agentic.vault.v1.ToolValues.values:type_name -> ai.stigmer.agentic.vault.v1.ToolValues.ValuesEntry
-	7, // 5: ai.stigmer.agentic.vault.v1.PluginValues.values:type_name -> ai.stigmer.agentic.vault.v1.PluginValues.ValuesEntry
-	0, // 6: ai.stigmer.agentic.vault.v1.VaultValueController.fetchValues:input_type -> ai.stigmer.agentic.vault.v1.FetchExecutionValuesInput
-	1, // 7: ai.stigmer.agentic.vault.v1.VaultValueController.fetchValues:output_type -> ai.stigmer.agentic.vault.v1.ExecutionValues
-	7, // [7:8] is the sub-list for method output_type
-	6, // [6:7] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	4, // 4: ai.stigmer.agentic.vault.v1.ExecutionValues.subagents:type_name -> ai.stigmer.agentic.vault.v1.SubagentValues
+	7, // 5: ai.stigmer.agentic.vault.v1.ToolValues.values:type_name -> ai.stigmer.agentic.vault.v1.ToolValues.ValuesEntry
+	8, // 6: ai.stigmer.agentic.vault.v1.PluginValues.values:type_name -> ai.stigmer.agentic.vault.v1.PluginValues.ValuesEntry
+	9, // 7: ai.stigmer.agentic.vault.v1.SubagentValues.values:type_name -> ai.stigmer.agentic.vault.v1.SubagentValues.ValuesEntry
+	0, // 8: ai.stigmer.agentic.vault.v1.VaultValueController.fetchValues:input_type -> ai.stigmer.agentic.vault.v1.FetchExecutionValuesInput
+	1, // 9: ai.stigmer.agentic.vault.v1.VaultValueController.fetchValues:output_type -> ai.stigmer.agentic.vault.v1.ExecutionValues
+	9, // [9:10] is the sub-list for method output_type
+	8, // [8:9] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_vault_v1_values_proto_init() }
@@ -429,7 +505,7 @@ func file_ai_stigmer_agentic_vault_v1_values_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_vault_v1_values_proto_rawDesc), len(file_ai_stigmer_agentic_vault_v1_values_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

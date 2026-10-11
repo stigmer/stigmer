@@ -2509,6 +2509,8 @@ const (
 	RunValueDeclarerKind_RUN_VALUE_DECLARER_KIND_REPOSITORY RunValueDeclarerKind = 3
 	// A plugin the turn uses, for its hooks.
 	RunValueDeclarerKind_RUN_VALUE_DECLARER_KIND_PLUGIN RunValueDeclarerKind = 4
+	// A saved agent the turn's agent lists as a subagent, in its env.
+	RunValueDeclarerKind_RUN_VALUE_DECLARER_KIND_SUBAGENT RunValueDeclarerKind = 5
 )
 
 // Enum value maps for RunValueDeclarerKind.
@@ -2519,6 +2521,7 @@ var (
 		2: "RUN_VALUE_DECLARER_KIND_TOOL",
 		3: "RUN_VALUE_DECLARER_KIND_REPOSITORY",
 		4: "RUN_VALUE_DECLARER_KIND_PLUGIN",
+		5: "RUN_VALUE_DECLARER_KIND_SUBAGENT",
 	}
 	RunValueDeclarerKind_value = map[string]int32{
 		"RUN_VALUE_DECLARER_KIND_UNSPECIFIED": 0,
@@ -2526,6 +2529,7 @@ var (
 		"RUN_VALUE_DECLARER_KIND_TOOL":        2,
 		"RUN_VALUE_DECLARER_KIND_REPOSITORY":  3,
 		"RUN_VALUE_DECLARER_KIND_PLUGIN":      4,
+		"RUN_VALUE_DECLARER_KIND_SUBAGENT":    5,
 	}
 )
 
@@ -2813,13 +2817,14 @@ const file_ai_stigmer_agentic_run_v1_enum_proto_rawDesc = "" +
 	"$FILE_REVIEW_BLOCK_REASON_UNSPECIFIED\x10\x00\x12,\n" +
 	"(FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD\x10\x01\x12(\n" +
 	"$FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED\x10\x02\x12)\n" +
-	"%FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE\x10\x03*\xd0\x01\n" +
+	"%FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE\x10\x03*\xf6\x01\n" +
 	"\x14RunValueDeclarerKind\x12'\n" +
 	"#RUN_VALUE_DECLARER_KIND_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dRUN_VALUE_DECLARER_KIND_AGENT\x10\x01\x12 \n" +
 	"\x1cRUN_VALUE_DECLARER_KIND_TOOL\x10\x02\x12&\n" +
 	"\"RUN_VALUE_DECLARER_KIND_REPOSITORY\x10\x03\x12\"\n" +
-	"\x1eRUN_VALUE_DECLARER_KIND_PLUGIN\x10\x04*\xda\x01\n" +
+	"\x1eRUN_VALUE_DECLARER_KIND_PLUGIN\x10\x04\x12$\n" +
+	" RUN_VALUE_DECLARER_KIND_SUBAGENT\x10\x05*\xda\x01\n" +
 	"\x0eRunValueOrigin\x12 \n" +
 	"\x1cRUN_VALUE_ORIGIN_UNSPECIFIED\x10\x00\x12%\n" +
 	"!RUN_VALUE_ORIGIN_REPOSITORY_TOKEN\x10\x01\x12\x1d\n" +

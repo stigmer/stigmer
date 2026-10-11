@@ -36,6 +36,7 @@ private static final long serialVersionUID = 0L;
     tools_ = java.util.Collections.emptyList();
     repositories_ = java.util.Collections.emptyList();
     plugins_ = java.util.Collections.emptyList();
+    subagents_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -354,6 +355,72 @@ java.lang.String defaultValue) {
     return plugins_.get(index);
   }
 
+  public static final int SUBAGENTS_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.vault.v1.SubagentValues> subagents_;
+  /**
+   * <pre>
+   * Each subagent's own keys, for its shell and its own hooks: what
+   * agent holds for the agent, for a saved agent the turn's agent lists.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.vault.v1.SubagentValues> getSubagentsList() {
+    return subagents_;
+  }
+  /**
+   * <pre>
+   * Each subagent's own keys, for its shell and its own hooks: what
+   * agent holds for the agent, for a saved agent the turn's agent lists.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.vault.v1.SubagentValuesOrBuilder> 
+      getSubagentsOrBuilderList() {
+    return subagents_;
+  }
+  /**
+   * <pre>
+   * Each subagent's own keys, for its shell and its own hooks: what
+   * agent holds for the agent, for a saved agent the turn's agent lists.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+   */
+  @java.lang.Override
+  public int getSubagentsCount() {
+    return subagents_.size();
+  }
+  /**
+   * <pre>
+   * Each subagent's own keys, for its shell and its own hooks: what
+   * agent holds for the agent, for a saved agent the turn's agent lists.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.vault.v1.SubagentValues getSubagents(int index) {
+    return subagents_.get(index);
+  }
+  /**
+   * <pre>
+   * Each subagent's own keys, for its shell and its own hooks: what
+   * agent holds for the agent, for a saved agent the turn's agent lists.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.vault.v1.SubagentValuesOrBuilder getSubagentsOrBuilder(
+      int index) {
+    return subagents_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -382,6 +449,9 @@ java.lang.String defaultValue) {
     }
     for (int i = 0; i < plugins_.size(); i++) {
       output.writeMessage(4, plugins_.get(i));
+    }
+    for (int i = 0; i < subagents_.size(); i++) {
+      output.writeMessage(5, subagents_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -429,6 +499,15 @@ java.lang.String defaultValue) {
           }
           size += 1 * count;
         }
+
+        {
+          final int count = subagents_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(subagents_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -452,6 +531,8 @@ java.lang.String defaultValue) {
         .equals(other.getRepositoriesList())) return false;
     if (!getPluginsList()
         .equals(other.getPluginsList())) return false;
+    if (!getSubagentsList()
+        .equals(other.getSubagentsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -478,6 +559,10 @@ java.lang.String defaultValue) {
     if (getPluginsCount() > 0) {
       hash = (37 * hash) + PLUGINS_FIELD_NUMBER;
       hash = (53 * hash) + getPluginsList().hashCode();
+    }
+    if (getSubagentsCount() > 0) {
+      hash = (37 * hash) + SUBAGENTS_FIELD_NUMBER;
+      hash = (53 * hash) + getSubagentsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -659,6 +744,13 @@ java.lang.String defaultValue) {
         pluginsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000008);
+      if (subagentsBuilder_ == null) {
+        subagents_ = java.util.Collections.emptyList();
+      } else {
+        subagents_ = null;
+        subagentsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000010);
       return this;
     }
 
@@ -718,6 +810,15 @@ java.lang.String defaultValue) {
         result.plugins_ = plugins_;
       } else {
         result.plugins_ = pluginsBuilder_.build();
+      }
+      if (subagentsBuilder_ == null) {
+        if (((bitField0_ & 0x00000010) != 0)) {
+          subagents_ = java.util.Collections.unmodifiableList(subagents_);
+          bitField0_ = (bitField0_ & ~0x00000010);
+        }
+        result.subagents_ = subagents_;
+      } else {
+        result.subagents_ = subagentsBuilder_.build();
       }
     }
 
@@ -822,6 +923,32 @@ java.lang.String defaultValue) {
           }
         }
       }
+      if (subagentsBuilder_ == null) {
+        if (!other.subagents_.isEmpty()) {
+          if (subagents_.isEmpty()) {
+            subagents_ = other.subagents_;
+            bitField0_ = (bitField0_ & ~0x00000010);
+          } else {
+            ensureSubagentsIsMutable();
+            subagents_.addAll(other.subagents_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.subagents_.isEmpty()) {
+          if (subagentsBuilder_.isEmpty()) {
+            subagentsBuilder_.dispose();
+            subagentsBuilder_ = null;
+            subagents_ = other.subagents_;
+            bitField0_ = (bitField0_ & ~0x00000010);
+            subagentsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetSubagentsFieldBuilder() : null;
+          } else {
+            subagentsBuilder_.addAllMessages(other.subagents_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -896,6 +1023,19 @@ java.lang.String defaultValue) {
               }
               break;
             } // case 34
+            case 42: {
+              ai.stigmer.agentic.vault.v1.SubagentValues m =
+                  input.readMessage(
+                      ai.stigmer.agentic.vault.v1.SubagentValues.parser(),
+                      extensionRegistry);
+              if (subagentsBuilder_ == null) {
+                ensureSubagentsIsMutable();
+                subagents_.add(m);
+              } else {
+                subagentsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2016,6 +2156,336 @@ java.lang.String defaultValue) {
         plugins_ = null;
       }
       return pluginsBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.vault.v1.SubagentValues> subagents_ =
+      java.util.Collections.emptyList();
+    private void ensureSubagentsIsMutable() {
+      if (!((bitField0_ & 0x00000010) != 0)) {
+        subagents_ = new java.util.ArrayList<ai.stigmer.agentic.vault.v1.SubagentValues>(subagents_);
+        bitField0_ |= 0x00000010;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.vault.v1.SubagentValues, ai.stigmer.agentic.vault.v1.SubagentValues.Builder, ai.stigmer.agentic.vault.v1.SubagentValuesOrBuilder> subagentsBuilder_;
+
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.vault.v1.SubagentValues> getSubagentsList() {
+      if (subagentsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(subagents_);
+      } else {
+        return subagentsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public int getSubagentsCount() {
+      if (subagentsBuilder_ == null) {
+        return subagents_.size();
+      } else {
+        return subagentsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public ai.stigmer.agentic.vault.v1.SubagentValues getSubagents(int index) {
+      if (subagentsBuilder_ == null) {
+        return subagents_.get(index);
+      } else {
+        return subagentsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public Builder setSubagents(
+        int index, ai.stigmer.agentic.vault.v1.SubagentValues value) {
+      if (subagentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSubagentsIsMutable();
+        subagents_.set(index, value);
+        onChanged();
+      } else {
+        subagentsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public Builder setSubagents(
+        int index, ai.stigmer.agentic.vault.v1.SubagentValues.Builder builderForValue) {
+      if (subagentsBuilder_ == null) {
+        ensureSubagentsIsMutable();
+        subagents_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        subagentsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public Builder addSubagents(ai.stigmer.agentic.vault.v1.SubagentValues value) {
+      if (subagentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSubagentsIsMutable();
+        subagents_.add(value);
+        onChanged();
+      } else {
+        subagentsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public Builder addSubagents(
+        int index, ai.stigmer.agentic.vault.v1.SubagentValues value) {
+      if (subagentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSubagentsIsMutable();
+        subagents_.add(index, value);
+        onChanged();
+      } else {
+        subagentsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public Builder addSubagents(
+        ai.stigmer.agentic.vault.v1.SubagentValues.Builder builderForValue) {
+      if (subagentsBuilder_ == null) {
+        ensureSubagentsIsMutable();
+        subagents_.add(builderForValue.build());
+        onChanged();
+      } else {
+        subagentsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public Builder addSubagents(
+        int index, ai.stigmer.agentic.vault.v1.SubagentValues.Builder builderForValue) {
+      if (subagentsBuilder_ == null) {
+        ensureSubagentsIsMutable();
+        subagents_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        subagentsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public Builder addAllSubagents(
+        java.lang.Iterable<? extends ai.stigmer.agentic.vault.v1.SubagentValues> values) {
+      if (subagentsBuilder_ == null) {
+        ensureSubagentsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, subagents_);
+        onChanged();
+      } else {
+        subagentsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public Builder clearSubagents() {
+      if (subagentsBuilder_ == null) {
+        subagents_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000010);
+        onChanged();
+      } else {
+        subagentsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public Builder removeSubagents(int index) {
+      if (subagentsBuilder_ == null) {
+        ensureSubagentsIsMutable();
+        subagents_.remove(index);
+        onChanged();
+      } else {
+        subagentsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public ai.stigmer.agentic.vault.v1.SubagentValues.Builder getSubagentsBuilder(
+        int index) {
+      return internalGetSubagentsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public ai.stigmer.agentic.vault.v1.SubagentValuesOrBuilder getSubagentsOrBuilder(
+        int index) {
+      if (subagentsBuilder_ == null) {
+        return subagents_.get(index);  } else {
+        return subagentsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.vault.v1.SubagentValuesOrBuilder> 
+         getSubagentsOrBuilderList() {
+      if (subagentsBuilder_ != null) {
+        return subagentsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(subagents_);
+      }
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public ai.stigmer.agentic.vault.v1.SubagentValues.Builder addSubagentsBuilder() {
+      return internalGetSubagentsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.vault.v1.SubagentValues.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public ai.stigmer.agentic.vault.v1.SubagentValues.Builder addSubagentsBuilder(
+        int index) {
+      return internalGetSubagentsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.vault.v1.SubagentValues.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Each subagent's own keys, for its shell and its own hooks: what
+     * agent holds for the agent, for a saved agent the turn's agent lists.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.vault.v1.SubagentValues.Builder> 
+         getSubagentsBuilderList() {
+      return internalGetSubagentsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.vault.v1.SubagentValues, ai.stigmer.agentic.vault.v1.SubagentValues.Builder, ai.stigmer.agentic.vault.v1.SubagentValuesOrBuilder> 
+        internalGetSubagentsFieldBuilder() {
+      if (subagentsBuilder_ == null) {
+        subagentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.vault.v1.SubagentValues, ai.stigmer.agentic.vault.v1.SubagentValues.Builder, ai.stigmer.agentic.vault.v1.SubagentValuesOrBuilder>(
+                subagents_,
+                ((bitField0_ & 0x00000010) != 0),
+                getParentForChildren(),
+                isClean());
+        subagents_ = null;
+      }
+      return subagentsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.vault.v1.ExecutionValues)

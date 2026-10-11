@@ -47,7 +47,7 @@ export type Agent = Message<"ai.stigmer.agentic.agent.v1.Agent"> & {
   metadata?: ApiResourceMetadata;
 
   /**
-   * Configurable properties: instructions, plugins, skills, and sub-agents.
+   * Configurable properties: instructions, plugins, skills, and subagents.
    *
    * @generated from field: ai.stigmer.agentic.agent.v1.AgentSpec spec = 4;
    */

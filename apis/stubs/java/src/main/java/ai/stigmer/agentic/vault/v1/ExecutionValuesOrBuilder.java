@@ -205,4 +205,53 @@ java.lang.String defaultValue);
    */
   ai.stigmer.agentic.vault.v1.PluginValuesOrBuilder getPluginsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Each subagent's own keys, for its shell and its own hooks: what
+   * agent holds for the agent, for a saved agent the turn's agent lists.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.vault.v1.SubagentValues> 
+      getSubagentsList();
+  /**
+   * <pre>
+   * Each subagent's own keys, for its shell and its own hooks: what
+   * agent holds for the agent, for a saved agent the turn's agent lists.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+   */
+  ai.stigmer.agentic.vault.v1.SubagentValues getSubagents(int index);
+  /**
+   * <pre>
+   * Each subagent's own keys, for its shell and its own hooks: what
+   * agent holds for the agent, for a saved agent the turn's agent lists.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+   */
+  int getSubagentsCount();
+  /**
+   * <pre>
+   * Each subagent's own keys, for its shell and its own hooks: what
+   * agent holds for the agent, for a saved agent the turn's agent lists.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.vault.v1.SubagentValuesOrBuilder> 
+      getSubagentsOrBuilderList();
+  /**
+   * <pre>
+   * Each subagent's own keys, for its shell and its own hooks: what
+   * agent holds for the agent, for a saved agent the turn's agent lists.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.SubagentValues subagents = 5 [json_name = "subagents"];</code>
+   */
+  ai.stigmer.agentic.vault.v1.SubagentValuesOrBuilder getSubagentsOrBuilder(
+      int index);
 }

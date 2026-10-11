@@ -131,9 +131,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object name_ = "";
   /**
    * <pre>
-   * Name of the sub-agent being invoked.
-   * Examples: "code_editor", "researcher", "debugger"
-   * Extracted from tool call args.subagent_type field.
+   * Name of the subagent being invoked: a listed agent's slug, a plugin
+   * agent's &lt;plugin&gt;:&lt;agent&gt;, or a built-in (explore, shell,
+   * general-purpose).
    * </pre>
    *
    * <code>string name = 2 [json_name = "name"];</code>
@@ -154,9 +154,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Name of the sub-agent being invoked.
-   * Examples: "code_editor", "researcher", "debugger"
-   * Extracted from tool call args.subagent_type field.
+   * Name of the subagent being invoked: a listed agent's slug, a plugin
+   * agent's &lt;plugin&gt;:&lt;agent&gt;, or a built-in (explore, shell,
+   * general-purpose).
    * </pre>
    *
    * <code>string name = 2 [json_name = "name"];</code>
@@ -1499,9 +1499,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     private java.lang.Object name_ = "";
     /**
      * <pre>
-     * Name of the sub-agent being invoked.
-     * Examples: "code_editor", "researcher", "debugger"
-     * Extracted from tool call args.subagent_type field.
+     * Name of the subagent being invoked: a listed agent's slug, a plugin
+     * agent's &lt;plugin&gt;:&lt;agent&gt;, or a built-in (explore, shell,
+     * general-purpose).
      * </pre>
      *
      * <code>string name = 2 [json_name = "name"];</code>
@@ -1521,9 +1521,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Name of the sub-agent being invoked.
-     * Examples: "code_editor", "researcher", "debugger"
-     * Extracted from tool call args.subagent_type field.
+     * Name of the subagent being invoked: a listed agent's slug, a plugin
+     * agent's &lt;plugin&gt;:&lt;agent&gt;, or a built-in (explore, shell,
+     * general-purpose).
      * </pre>
      *
      * <code>string name = 2 [json_name = "name"];</code>
@@ -1544,9 +1544,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Name of the sub-agent being invoked.
-     * Examples: "code_editor", "researcher", "debugger"
-     * Extracted from tool call args.subagent_type field.
+     * Name of the subagent being invoked: a listed agent's slug, a plugin
+     * agent's &lt;plugin&gt;:&lt;agent&gt;, or a built-in (explore, shell,
+     * general-purpose).
      * </pre>
      *
      * <code>string name = 2 [json_name = "name"];</code>
@@ -1563,9 +1563,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Name of the sub-agent being invoked.
-     * Examples: "code_editor", "researcher", "debugger"
-     * Extracted from tool call args.subagent_type field.
+     * Name of the subagent being invoked: a listed agent's slug, a plugin
+     * agent's &lt;plugin&gt;:&lt;agent&gt;, or a built-in (explore, shell,
+     * general-purpose).
      * </pre>
      *
      * <code>string name = 2 [json_name = "name"];</code>
@@ -1579,9 +1579,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * Name of the sub-agent being invoked.
-     * Examples: "code_editor", "researcher", "debugger"
-     * Extracted from tool call args.subagent_type field.
+     * Name of the subagent being invoked: a listed agent's slug, a plugin
+     * agent's &lt;plugin&gt;:&lt;agent&gt;, or a built-in (explore, shell,
+     * general-purpose).
      * </pre>
      *
      * <code>string name = 2 [json_name = "name"];</code>
