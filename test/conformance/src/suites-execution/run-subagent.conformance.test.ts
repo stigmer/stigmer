@@ -22,8 +22,8 @@
 //     that model, under its plugin's lists for it;
 //   - a subagent's declared value reaches its shell alone, and the parent's
 //     never reaches the subagent's shell;
-//   - the parent's plugin hook decides a subagent's tool call, the row
-//     naming the plugin (a delegation never escapes the conversation's hooks);
+//   - the parent's plugin hook decides a subagent's tool call (a delegation
+//     never escapes the conversation's hooks);
 //   - one level: no subagent's model request offers the `task` tool;
 //   - a subagent is not given the conversation's own plugin, nor the
 //     platform's own tools (the memory tool stands for them where the target
@@ -423,7 +423,7 @@ describe("Run — a subagent runs its own definition", () => {
     expect(afterSubagentShell, "the parent's value never reaches the subagent's shell").not.toContain("parent-held-value");
   });
 
-  it("the parent's plugin hook decides a subagent's tool call, the row naming the plugin", async () => {
+  it("the parent's plugin hook decides a subagent's tool call", async () => {
     const { org } = await target.provisionTenancy();
     const plugin = await pushPlugin(
       clients,
@@ -455,8 +455,9 @@ describe("Run — a subagent runs its own definition", () => {
     const refused = record.messages.flatMap((message) => message.toolCalls).find((call) => call.id === "call_subagent_rm");
     expect(refused, "the subagent's refused delete has a row on its record").toBeDefined();
     expect(ToolCallStatus[refused!.status]).toBe(ToolCallStatus[ToolCallStatus.TOOL_CALL_FAILED]);
+    // The hook's own refusal text: the parent's plugin decided the call. A
+    // row inside a subagent carries no decider attribution (#1133).
     expect(refused!.error).toContain("recursive deletes are not allowed");
-    expect(refused!.approvalPolicyHook, "the row names the parent's plugin whose hook decided").toBe(plugin.metadata!.slug);
   });
 });
 
