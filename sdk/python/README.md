@@ -153,6 +153,8 @@ StigmerClient(
 )
 ```
 
+For a CI job or a script, use a [service account's](https://stigmer.ai/docs/guides/authentication/service-accounts) API key, not a person's: it keeps working when that person leaves and works only in its own organization.
+
 ## Code Generation
 
 The resource clients in `src/stigmer/_gen/` are generated from protobuf service schemas. To regenerate after proto changes:

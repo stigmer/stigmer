@@ -254,10 +254,10 @@ member who also belongs to other Organizations.
 
 ### Why start with viewer
 
-The viewer role gives read-only access to the Organization's resources. It does
-**not** allow creating runs, which incur usage costs. This protects the
-Organization from unexpected charges when new users sign in, which is why the
-console fills in `viewer` as the sign-in role.
+The viewer role lets a person see what is shared with the Organization. It does
+**not** let them start conversations or create runs, which incur usage costs.
+This protects the Organization from unexpected charges when new users sign in,
+which is why the console fills in `viewer` as the sign-in role.
 
 To give a team member full access, an Organization admin upgrades them to the
 **member** role. See
@@ -374,8 +374,9 @@ Token validation failed. The most common cause is an audience mismatch.
 
 ### User is provisioned automatically but can't do anything
 
-This is expected when the sign-in role is `viewer`, which is read-only. An
-Organization admin must upgrade them to member or admin.
+This is expected when the sign-in role is `viewer`: a viewer sees what is shared
+with the Organization and cannot start conversations. An Organization admin must
+upgrade them to member or admin.
 
 </Step>
 </Steps>

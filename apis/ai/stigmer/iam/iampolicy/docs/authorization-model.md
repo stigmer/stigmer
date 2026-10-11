@@ -114,14 +114,16 @@ Relations are defined per resource kind in the authorization model. The common s
 
 | Relation | Scope | Typical usage |
 |---|---|---|
-| `owner` | Strongest | Creator of the resource. Full control including deletion and access delegation. |
-| `admin` | Strong | Manages the resource and its members. Cannot delete the resource itself. |
-| `editor` | Write | Read and modify the resource. No access management capabilities. |
-| `viewer` | Read-only | Read the resource. Cannot modify it. |
-| `member` | Membership | Basic membership in a group resource (team, organization). |
-| `operator` | Platform | Reserved for machine accounts. Used for platform-level system operations. |
+| `owner` | Strongest | Creator of the resource. Everything, including deleting it and deciding who has access. |
+| `admin` | Organization | Manages the organization's people, settings and resources. Cannot read private conversations, delete the organization or change its owners. |
+| `editor` | Write | Changes and uses the resource. Cannot delete it or decide who has access. |
+| `viewer` | See | Sees the resource and changes nothing. What seeing allows is the kind's own: an agent's viewer runs it, a conversation's viewer sends nothing. |
+| `member` | Membership | Belongs to a group resource (team, organization). |
+| `participant` | Conversation | Reads a conversation, or a channel's conversations, and sends messages. |
+| `user` | Vault | Shown as "Can use": uses a vault's logins and secrets in their runs. |
+| `operator` | Platform | People with platform-level privileges, granted on the platform resource. |
 
-Not all relations exist on every resource kind. The specific relations for each resource kind are defined in the OpenFGA authorization model schema.
+Not all relations exist on every resource kind. The specific relations for each resource kind are defined in the OpenFGA authorization model schema; [Roles and general access](../../../../../../docs/sdk/resources/roles.mdx) lists the grantable ones per kind, generated from the API contract.
 
 ## Bootstrap Problem and Solution
 

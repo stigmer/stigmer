@@ -1,0 +1,133 @@
+---
+title: Sharing and access
+description:
+  Who can see and use what in Stigmer. Learn general access, the Viewer, Editor
+  and Owner roles, what an Organization's roles allow, how conversations and
+  chat links are shared, and how automation gets an account of its own.
+---
+
+Two settings decide who reaches a resource in Stigmer, the same two you know
+from Google Drive or GitHub:
+
+- **General access** decides who in your Organization reaches the resource
+  without being added to it.
+- **A role** decides what one person, or one team, may do with it.
+
+On top of both sits the role each person holds in the Organization itself, which
+decides what they may do there at all: an Organization Viewer can be added to an
+Agent and still not start a conversation with it.
+
+## General access
+
+Agents, Skills, Plugins and shared vaults have a general access setting. Open
+the resource and choose **Manage access** to change it.
+
+| General access          | Who reaches it                                                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Private**             | The person who created it, the people it is shared with, and, for an Agent, Skill or Plugin, the Organization's admins |
+| **Organization**        | Everyone in the Organization. The default for Agents, Skills and Plugins                                               |
+| **Child organizations** | Everyone in every child organization of the Organization. Agents, Skills and Plugins only                              |
+
+An Organization's admins own every Agent, Skill and Plugin in it, whatever its
+general access, so a private Agent stays manageable after the person who made it
+leaves. A shared vault offers Private and Organization only: its logins and
+secrets never leave the Organization. Nothing reaches another Organization
+except through
+[child organizations](/docs/concepts/organizations#parent-and-child-organizations).
+
+Conversations have no general access setting. A conversation is private to the
+person who started it.
+
+## Roles
+
+A role is granted to a person, a team, or a
+[service account](/docs/guides/authentication/service-accounts). Stigmer uses
+the three roles you know from shared documents:
+
+- **Viewer** sees the resource and changes nothing.
+- **Editor** changes it, and never deletes it or decides who has access.
+- **Owner** does everything, including deleting it and deciding who has access.
+
+Two kinds of resource use a different word, because Viewer would understate what
+the role does there:
+
+- **Participant**, on a conversation or an Agent Channel, reads the conversation
+  and sends messages. A Viewer of a conversation only reads it.
+- **Can use**, on a shared vault, lets a person's runs use the vault's logins
+  and secrets. Handing secrets to a run with a shell is more than reading.
+
+What a role allows is the resource's own: a Viewer of an Agent runs it, a Viewer
+of a Skill uses it, a Viewer of a conversation sends nothing. Every kind's roles
+and their meaning are listed on
+[Roles and general access](/docs/sdk/resources/roles), generated from the API
+contract the server enforces.
+
+## Organization roles
+
+Everyone in an Organization holds one of four roles in it:
+
+| Role       | What it allows                                                                                                                                             |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Owner**  | Everything, including deleting the Organization and choosing its owners                                                                                    |
+| **Admin**  | Manage people, settings, billing, and the Organization's Agents and tools; cannot read private conversations, delete the Organization or change its owners |
+| **Member** | Start conversations with the Agents shared with them, and create Agents when the Organization allows it                                                    |
+| **Viewer** | See what is shared with the Organization; cannot start conversations                                                                                       |
+
+**Members can create Agents** while the Organization's **Members can create
+agents** policy is on, which it is by default; an admin turns it off under
+**Settings > Policies**, and then only admins create Agents. A member's Agent is
+theirs: private or shared with the Organization, never with child organizations,
+which stays an admin's choice. Skills and Plugins are installed for the whole
+Organization by its admins.
+
+The two kinds of role combine. Starting a conversation with an Agent needs both
+a role on the Agent (Viewer or higher, or general access that reaches you) and
+the Organization's Member role or higher. An Organization Viewer sees the Agents
+shared with the Organization and how they are set up, and starts no conversation
+with them.
+
+## Conversations
+
+A conversation is private to the person who started it. Its Organization's
+admins do not read it. In the Enterprise and Cloud editions, its owner may share
+it with people, one by one:
+
+- A **Participant** reads the conversation and sends messages. Each message runs
+  in the conversation's own workspace, as the person who started it, with the
+  vaults the conversation names. Stopping a run and approving a tool call stay
+  with the conversation's owner.
+- A **Viewer** reads the conversation and sends nothing.
+
+A conversation is never shared with a team. Sending a message also needs
+permission to run the conversation's Agent, asked again on every message:
+[Who may send a message](/docs/concepts/sessions#who-may-send-a-message).
+
+## Chat links
+
+A chat link is a hosted chat page for one Agent. It reaches signed-in members of
+your Organization unless someone picks **Anyone with the link**, and only that
+explicit choice puts it on the internet. A chat link spends the Organization's
+credits with everyone who holds it, so creating one, and connecting an Agent to
+a channel such as Slack, is an admin's act.
+
+A chat link lets people chat with the Agent. It does not let them see how the
+Agent is set up or change it: that stays with the Agent's general access and
+roles. [Share an Agent](/docs/guides/sharing/share-an-agent) walks through it.
+
+## Automation
+
+A CI job, a script or a backend that calls Stigmer should not use a person's API
+key: it stops working when that person leaves, and everything it does is
+recorded as them. Give it a
+[service account](/docs/guides/authentication/service-accounts), your
+Organization's own account for automation. A service account holds one
+Organization role, never Owner, acts only through API keys your admins create
+for it, and works only in its own Organization.
+
+## Editions
+
+Every edition has general access, the Organization's four roles, chat links and
+service accounts. The open-source edition grants roles on the Organization only.
+Granting a role on one resource, to a person, a team or a service account, and
+so sharing a conversation, is a feature of the Enterprise and Cloud editions.
+Teams are Enterprise and Cloud too.

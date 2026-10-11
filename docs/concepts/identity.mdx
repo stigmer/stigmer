@@ -1,29 +1,38 @@
 ---
 title: Identity
 description:
-  How Stigmer identifies users and services. Learn the four account types, how
+  How Stigmer identifies users and services. Learn the five account types, how
   Identity Providers and PlatformClients establish trust, and how your
   platform's users access Stigmer.
 ---
 
 Every API call to Stigmer is made by an **Identity Account**---a principal that
-Stigmer can authenticate and authorize. Identity Accounts come in four types,
+Stigmer can authenticate and authorize. Identity Accounts come in five types,
 each suited to a different integration pattern.
 
 ## Account types
 
-| Type          | How it's created                                                       | Use case                                              |
-| ------------- | ---------------------------------------------------------------------- | ----------------------------------------------------- |
-| **Direct**    | User signs up on Stigmer or through a Stigmer-hosted login             | Organizations using Stigmer's own auth                |
-| **Federated** | Created via JIT provisioning or explicit `createFederatedAccount` call | Organizations bringing their own OIDC provider        |
-| **Platform**  | Created automatically when your backend calls `mintUserToken`          | Embedding Stigmer in your product without OIDC setup  |
-| **Machine**   | Created via API with client credentials                                | Service-to-service communication (backend-to-backend) |
+| Type                     | How it's created                                                                                                           | Use case                                                     |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **Direct**               | User signs up on Stigmer or through a Stigmer-hosted login                                                                 | Organizations using Stigmer's own auth                       |
+| **Federated**            | Created via JIT provisioning or explicit `createFederatedAccount` call                                                     | Organizations bringing their own OIDC provider               |
+| **Platform** (app users) | Created automatically when your backend calls `mintUserToken`                                                              | Embedding Stigmer in your product without OIDC setup         |
+| **Service account**      | Created by your Organization's admins (`stigmer service-account create`)                                                   | CI jobs, scripts and backends that act for your Organization |
+| **Machine**              | Assigned by the hosted platform to its own services when they sign in with client credentials; never created by a customer | Stigmer's own service-to-service calls                       |
 
 Direct accounts use Stigmer's own authentication tenant. Federated and Platform
 accounts both represent your platform's users, but they establish trust
 differently---federated accounts authenticate with tokens from an external OIDC
 provider, while Platform accounts authenticate with tokens that Stigmer itself
-signs. Machine accounts use client credentials and have no interactive login.
+signs. The console lists Platform accounts as **App users**, apart from your
+Organization's own people.
+
+A [service account](/docs/guides/authentication/service-accounts) is your
+Organization's own account for automation: it acts only through API keys your
+admins create for it, holds one Organization role, and keeps working when the
+person who set it up leaves. Use one for anything that calls Stigmer unattended,
+never a person's API key. Machine accounts are Stigmer's own and have no
+interactive login.
 
 ## Identity Providers
 
@@ -155,9 +164,9 @@ binds three things:
 
 - **WHO** --- the Identity Account (principal)
 - **WHAT** --- the resource (Organization, Vault, Agent, etc.)
-- **HOW** --- the relation (`admin`, `viewer`, `owner`; on an Agent or an MCP
-  Server also `editor`, who may change it but not delete it or decide who else
-  reaches it)
+- **HOW** --- the relation, a role such as `owner`, `admin`, `member` or
+  `viewer` (see [Sharing and access](/docs/concepts/sharing-and-access) and each
+  kind's roles on [Roles and general access](/docs/sdk/resources/roles))
 
 ```yaml
 apiVersion: iam.stigmer.ai/v1

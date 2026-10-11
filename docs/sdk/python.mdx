@@ -24,6 +24,9 @@ from stigmer import StigmerClient
 client = StigmerClient(os.environ["STIGMER_API_KEY"])
 ```
 
+In a CI job or a script, use a service account's key, not a person's: see
+[SDK Overview > Automation](/docs/sdk/overview#automation).
+
 The client also supports the context manager protocol, which closes the
 connection when the block exits:
 

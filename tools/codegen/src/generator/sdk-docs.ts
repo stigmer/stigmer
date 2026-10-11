@@ -261,12 +261,13 @@ function rolesDocEdition(tier: ResourceTier): string {
   }
 }
 
-// The levels a kind offers, Private first and the default marked; a kind
-// with no visibility block is private only.
+// The levels a kind offers, Private first and the default marked. A kind
+// with no visibility block has no general access setting: it is private,
+// and shared only by granting a role.
 function rolesDocGeneralAccess(kind: KindMetaEntry): string {
   const visibility = kind.visibility;
   if (visibility === null || (!visibility.supportsOrg && !visibility.supportsChildOrgs)) {
-    return "Private only. It is reached through the roles below.";
+    return "none; it is shared only through the roles below.";
   }
   const levels = [visibility.defaultsToOrg ? "Private" : "Private (the default)"];
   if (visibility.supportsOrg) levels.push(visibility.defaultsToOrg ? "Organization (the default)" : "Organization");

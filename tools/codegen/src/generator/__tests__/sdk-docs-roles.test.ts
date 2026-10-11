@@ -72,7 +72,7 @@ describe("the roles reference page", () => {
   it("gives a conversation a Participant who sends and a Viewer who does not, granted to people only", () => {
     const session = section(page, "Session");
     expect(session).toContain(
-      "**General access**: Private only. It is reached through the roles below.\n",
+      "**General access**: none; it is shared only through the roles below.\n",
     );
     expect(session).toContain(
       "| Participant | Read the conversation and send messages |\n",
