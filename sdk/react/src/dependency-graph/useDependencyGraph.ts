@@ -43,12 +43,12 @@ export function useDependencyGraph({
   return useMemo(() => {
     if (!spec) return { tree: null, isEmpty: true };
 
-    const { plugins, skillRefs, subAgents } = spec;
+    const { plugins, skillRefs, subagents } = spec;
 
     const hasDeps =
       plugins.length > 0 ||
       skillRefs.length > 0 ||
-      subAgents.length > 0;
+      subagents.length > 0;
 
     if (!hasDeps) return { tree: null, isEmpty: true };
 
@@ -84,48 +84,31 @@ export function useDependencyGraph({
       };
     });
 
-    const subAgentNodes: DependencyNode[] = subAgents.map((sa) => {
+    // A subagent is an agent of its own: a link to its page at the version
+    // this agent pinned, whose own dependencies that page shows.
+    const subagentNodes: DependencyNode[] = subagents.map((ref) => {
       nodeCount++;
-
-      // A sub-agent reaches the parent's plugins through its tool lists,
-      // not edges of its own, so its children are its skills.
-      const saSkillNodes: DependencyNode[] = sa.skillRefs.map((ref) => {
-        nodeCount++;
-        return {
-          id: `sub-agent:${sa.name}:skill:${ref.slug}`,
-          kind: "skill" as const,
-          label: ref.slug,
-          qualifiedLabel:
-            ref.org && ref.org !== agentOrg
-              ? `${slugForOrg(ref.org)}/${ref.slug}`
-              : undefined,
-          children: [],
-          ref: { org: ref.org || agentOrg, slug: ref.slug },
-        };
-      });
-
-      const metadata: Record<string, string> = {};
-      if (sa.modelOverride) {
-        metadata.model = sa.modelOverride;
-      }
-
       return {
-        id: `sub-agent:${sa.name}`,
-        kind: "sub-agent" as const,
-        label: sa.name,
-        description: sa.description || undefined,
-        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-        children: saSkillNodes,
+        id: `subagent:${ref.slug}`,
+        kind: "subagent" as const,
+        label: ref.slug,
+        qualifiedLabel:
+          ref.org && ref.org !== agentOrg
+            ? `${slugForOrg(ref.org)}/${ref.slug}`
+            : undefined,
+        metadata: ref.version ? { version: ref.version.slice(0, 8) } : undefined,
+        children: [],
+        ref: { org: ref.org || agentOrg, slug: ref.slug },
       };
     });
 
     // Child ordering mirrors the Overview sections: plugins, skills,
-    // then sub-agents.
+    // then subagents.
     const root: DependencyNode = {
       id: `agent:${agentName}`,
       kind: "agent",
       label: agentName,
-      children: [...pluginNodes, ...skillNodes, ...subAgentNodes],
+      children: [...pluginNodes, ...skillNodes, ...subagentNodes],
     };
 
     return {

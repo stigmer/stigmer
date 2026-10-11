@@ -17,7 +17,7 @@ const KIND_LABELS: Record<NodeKind, string> = {
   agent: "Agent",
   plugin: "Plugin",
   skill: "Skill",
-  "sub-agent": "Sub-Agent",
+  subagent: "Subagent",
 };
 
 /**
@@ -25,11 +25,11 @@ const KIND_LABELS: Record<NodeKind, string> = {
  * label, metadata, and (for expandable nodes) an expand/collapse
  * chevron with nested children.
  *
- * Leaf nodes (plugins, skills) with a `ref` are clickable —
+ * Leaf nodes (plugins, skills, subagents) with a `ref` are clickable —
  * firing `onNodeClick` for consumer-wired navigation.
  *
- * Sub-agent nodes are collapsible containers, and the root agent
- * node always renders its children expanded. Both recurse using
+ * The root agent node always renders its children expanded; a node of
+ * another kind that carries children is collapsible. Both recurse using
  * the same component, keeping the ARIA tree structure correct
  * (`<li role="treeitem">` wrapping a nested `<ul role="group">`).
  */
@@ -41,7 +41,7 @@ export function DependencyTreeNode({
 }: DependencyTreeNodeProps) {
   const hasChildren = node.children.length > 0;
   const isRoot = node.kind === "agent";
-  const isCollapsible = node.kind === "sub-agent" && hasChildren;
+  const isCollapsible = !isRoot && hasChildren;
   const isAlwaysExpanded = isRoot && hasChildren;
   const [expanded, setExpanded] = useState(defaultExpanded);
   const isNavigable = node.ref != null && onNodeClick != null;
@@ -182,8 +182,8 @@ function kindBadgeClasses(kind: NodeKind): string {
     case "skill":
       return "stg:bg-[var(--stgm-status-pending-subtle)] stg:text-[var(--stgm-status-pending)]";
     // Badges borrow status hues as category colors (plugin=running,
-    // skill=pending, sub-agent=ready).
-    case "sub-agent":
+    // skill=pending, subagent=ready).
+    case "subagent":
       return "stg:bg-[var(--stgm-status-ready-subtle)] stg:text-[var(--stgm-status-ready)]";
     case "agent":
       return "stg:bg-muted stg:text-muted-foreground";
@@ -203,7 +203,7 @@ function NodeIcon({
 }) {
   switch (kind) {
     case "agent":
-    case "sub-agent":
+    case "subagent":
       return <AgentIcon className={className} />;
     case "plugin":
       return <PluginIcon className={className} />;

@@ -1,8 +1,9 @@
 /**
  * useDependencyGraph derives an agent's dependency tree from its spec: one
- * node per plugin, skill and sub-agent, each with a navigation ref, and a
+ * node per plugin, skill and subagent, each with a navigation ref, and a
  * qualified label (the org's slug, then the resource's) for a reference into
- * another organization.
+ * another organization. A subagent is a saved agent of its own, so its node
+ * is a link at its pinned version, never a subtree.
  */
 import { describe, it, expect } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -12,7 +13,7 @@ import { ACME_ID, GLOBEX_ID, orgWrapper } from "../../organization/__tests__/org
 const emptySpec = {
   plugins: [],
   skillRefs: [],
-  subAgents: [],
+  subagents: [],
 };
 
 function graphFor(spec: Parameters<typeof useDependencyGraph>[0]["spec"]) {
@@ -61,24 +62,17 @@ describe("useDependencyGraph", () => {
     expect(relative.ref).toEqual({ org: "acme", slug: "local-guide" });
   });
 
-  it("orders children to mirror the Overview sections: plugins, skills, sub-agents", () => {
+  it("orders children to mirror the Overview sections: plugins, skills, subagents", () => {
     const { tree } = graphFor({
       plugins: [{ org: "acme", slug: "github" }],
       skillRefs: [{ org: "acme", slug: "triage-guide" }],
-      subAgents: [
-        {
-          name: "researcher",
-          description: "",
-          skillRefs: [],
-          modelOverride: "",
-        },
-      ],
+      subagents: [{ org: "acme", slug: "researcher", version: "f".repeat(64) }],
     });
 
     expect(tree!.root.children.map((c) => c.kind)).toEqual([
       "plugin",
       "skill",
-      "sub-agent",
+      "subagent",
     ]);
     expect(tree!.nodeCount).toBe(4);
   });
@@ -102,14 +96,7 @@ describe("useDependencyGraph", () => {
               { org: GLOBEX_ID, slug: "shared-guide" },
               { org: ACME_ID, slug: "own-guide" },
             ],
-            subAgents: [
-              {
-                name: "researcher",
-                description: "",
-                skillRefs: [{ org: GLOBEX_ID, slug: "research-guide" }],
-                modelOverride: "",
-              },
-            ],
+            subagents: [{ org: GLOBEX_ID, slug: "researcher", version: "f".repeat(64) }],
           },
         }),
       { wrapper: orgWrapper() },
@@ -118,34 +105,42 @@ describe("useDependencyGraph", () => {
     await waitFor(() =>
       expect(result.current.tree!.root.children[0].qualifiedLabel).toBe("globex/github"),
     );
-    const [plugin, crossSkill, ownSkill, subAgent] = result.current.tree!.root.children;
+    const [plugin, crossSkill, ownSkill, subagent] = result.current.tree!.root.children;
     expect(plugin.ref).toEqual({ org: GLOBEX_ID, slug: "github" });
     expect(crossSkill.qualifiedLabel).toBe("globex/shared-guide");
     expect(crossSkill.ref).toEqual({ org: GLOBEX_ID, slug: "shared-guide" });
     expect(ownSkill.qualifiedLabel).toBeUndefined();
-    const subSkill = subAgent.children[0];
-    expect(subSkill.qualifiedLabel).toBe("globex/research-guide");
-    expect(subSkill.ref).toEqual({ org: GLOBEX_ID, slug: "research-guide" });
+    expect(subagent.qualifiedLabel).toBe("globex/researcher");
+    expect(subagent.ref).toEqual({ org: GLOBEX_ID, slug: "researcher" });
   });
 
-  it("draws no sub-agent plugin edges: a sub-agent's children are its skills", () => {
+  it("draws a subagent as a link to the listed agent at its pinned version, with no subtree", () => {
+    const pin = "0123456789abcdef".repeat(4);
     const { tree } = graphFor({
       plugins: [{ org: "acme", slug: "github" }],
       skillRefs: [],
-      subAgents: [
-        {
-          name: "researcher",
-          description: "",
-          skillRefs: [{ org: "acme", slug: "log-analysis" }],
-          modelOverride: "",
-        },
-      ],
+      subagents: [{ org: "", slug: "release-notes", version: pin }],
     });
 
-    const subAgent = tree!.root.children[1];
-    expect(subAgent.kind).toBe("sub-agent");
-    expect(subAgent.children.map((c) => c.kind)).toEqual(["skill"]);
-    // root + github + researcher + its skill
-    expect(tree!.nodeCount).toBe(4);
+    const subagent = tree!.root.children[1];
+    expect(subagent).toMatchObject({
+      id: "subagent:release-notes",
+      kind: "subagent",
+      label: "release-notes",
+      metadata: { version: "01234567" },
+      children: [],
+      ref: { org: "acme", slug: "release-notes" },
+    });
+    expect(subagent.qualifiedLabel).toBeUndefined();
+    // root + github + release-notes
+    expect(tree!.nodeCount).toBe(3);
+  });
+
+  it("counts a subagent-only agent as having dependencies", () => {
+    const { isEmpty } = graphFor({
+      ...emptySpec,
+      subagents: [{ org: "acme", slug: "release-notes", version: "" }],
+    });
+    expect(isEmpty).toBe(false);
   });
 });
