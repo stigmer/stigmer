@@ -108,6 +108,37 @@ public final class ApiKeyQueryControllerGrpc {
     return getFindAllMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.ApiKeyAccountId,
+      ai.stigmer.iam.apikey.v1.ApiKeys> getFindByAccountMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "findByAccount",
+      requestType = ai.stigmer.iam.apikey.v1.ApiKeyAccountId.class,
+      responseType = ai.stigmer.iam.apikey.v1.ApiKeys.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.ApiKeyAccountId,
+      ai.stigmer.iam.apikey.v1.ApiKeys> getFindByAccountMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.ApiKeyAccountId, ai.stigmer.iam.apikey.v1.ApiKeys> getFindByAccountMethod;
+    if ((getFindByAccountMethod = ApiKeyQueryControllerGrpc.getFindByAccountMethod) == null) {
+      synchronized (ApiKeyQueryControllerGrpc.class) {
+        if ((getFindByAccountMethod = ApiKeyQueryControllerGrpc.getFindByAccountMethod) == null) {
+          ApiKeyQueryControllerGrpc.getFindByAccountMethod = getFindByAccountMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.apikey.v1.ApiKeyAccountId, ai.stigmer.iam.apikey.v1.ApiKeys>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "findByAccount"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.apikey.v1.ApiKeyAccountId.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.apikey.v1.ApiKeys.getDefaultInstance()))
+              .setSchemaDescriptor(new ApiKeyQueryControllerMethodDescriptorSupplier("findByAccount"))
+              .build();
+        }
+      }
+    }
+    return getFindByAccountMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -197,12 +228,26 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * List all API keys belonging to the authenticated user.
-     * Returns only the keys owned by the identity account in the auth header.
+     * Returns only the keys that speak for the identity account in the auth
+     * header; a service account's keys are listed with findByAccount.
      * </pre>
      */
     default void findAll(com.google.protobuf.Empty request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKeys> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getFindAllMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List the API keys that speak for an identity account.
+     * An organization's admins list a service account's keys with it; a person
+     * lists their own.
+     * Authorization: Requires can_view on the identity account.
+     * </pre>
+     */
+    default void findByAccount(ai.stigmer.iam.apikey.v1.ApiKeyAccountId request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKeys> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getFindByAccountMethod(), responseObserver);
     }
   }
 
@@ -264,13 +309,28 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * List all API keys belonging to the authenticated user.
-     * Returns only the keys owned by the identity account in the auth header.
+     * Returns only the keys that speak for the identity account in the auth
+     * header; a service account's keys are listed with findByAccount.
      * </pre>
      */
     public void findAll(com.google.protobuf.Empty request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKeys> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getFindAllMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List the API keys that speak for an identity account.
+     * An organization's admins list a service account's keys with it; a person
+     * lists their own.
+     * Authorization: Requires can_view on the identity account.
+     * </pre>
+     */
+    public void findByAccount(ai.stigmer.iam.apikey.v1.ApiKeyAccountId request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKeys> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getFindByAccountMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -316,12 +376,26 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * List all API keys belonging to the authenticated user.
-     * Returns only the keys owned by the identity account in the auth header.
+     * Returns only the keys that speak for the identity account in the auth
+     * header; a service account's keys are listed with findByAccount.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKeys findAll(com.google.protobuf.Empty request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getFindAllMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List the API keys that speak for an identity account.
+     * An organization's admins list a service account's keys with it; a person
+     * lists their own.
+     * Authorization: Requires can_view on the identity account.
+     * </pre>
+     */
+    public ai.stigmer.iam.apikey.v1.ApiKeys findByAccount(ai.stigmer.iam.apikey.v1.ApiKeyAccountId request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getFindByAccountMethod(), getCallOptions(), request);
     }
   }
 
@@ -367,12 +441,26 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * List all API keys belonging to the authenticated user.
-     * Returns only the keys owned by the identity account in the auth header.
+     * Returns only the keys that speak for the identity account in the auth
+     * header; a service account's keys are listed with findByAccount.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKeys findAll(com.google.protobuf.Empty request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getFindAllMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List the API keys that speak for an identity account.
+     * An organization's admins list a service account's keys with it; a person
+     * lists their own.
+     * Authorization: Requires can_view on the identity account.
+     * </pre>
+     */
+    public ai.stigmer.iam.apikey.v1.ApiKeys findByAccount(ai.stigmer.iam.apikey.v1.ApiKeyAccountId request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getFindByAccountMethod(), getCallOptions(), request);
     }
   }
 
@@ -420,7 +508,8 @@ public final class ApiKeyQueryControllerGrpc {
     /**
      * <pre>
      * List all API keys belonging to the authenticated user.
-     * Returns only the keys owned by the identity account in the auth header.
+     * Returns only the keys that speak for the identity account in the auth
+     * header; a service account's keys are listed with findByAccount.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKeys> findAll(
@@ -428,11 +517,26 @@ public final class ApiKeyQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getFindAllMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List the API keys that speak for an identity account.
+     * An organization's admins list a service account's keys with it; a person
+     * lists their own.
+     * Authorization: Requires can_view on the identity account.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKeys> findByAccount(
+        ai.stigmer.iam.apikey.v1.ApiKeyAccountId request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getFindByAccountMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_KEY_HASH = 1;
   private static final int METHODID_FIND_ALL = 2;
+  private static final int METHODID_FIND_BY_ACCOUNT = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -461,6 +565,10 @@ public final class ApiKeyQueryControllerGrpc {
           break;
         case METHODID_FIND_ALL:
           serviceImpl.findAll((com.google.protobuf.Empty) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKeys>) responseObserver);
+          break;
+        case METHODID_FIND_BY_ACCOUNT:
+          serviceImpl.findByAccount((ai.stigmer.iam.apikey.v1.ApiKeyAccountId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKeys>) responseObserver);
           break;
         default:
@@ -502,6 +610,13 @@ public final class ApiKeyQueryControllerGrpc {
               com.google.protobuf.Empty,
               ai.stigmer.iam.apikey.v1.ApiKeys>(
                 service, METHODID_FIND_ALL)))
+        .addMethod(
+          getFindByAccountMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.apikey.v1.ApiKeyAccountId,
+              ai.stigmer.iam.apikey.v1.ApiKeys>(
+                service, METHODID_FIND_BY_ACCOUNT)))
         .build();
   }
 
@@ -553,6 +668,7 @@ public final class ApiKeyQueryControllerGrpc {
               .addMethod(getGetMethod())
               .addMethod(getGetByKeyHashMethod())
               .addMethod(getFindAllMethod())
+              .addMethod(getFindByAccountMethod())
               .build();
         }
       }

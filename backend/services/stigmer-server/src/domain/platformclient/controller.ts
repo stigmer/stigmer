@@ -70,6 +70,8 @@ import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { newRefuseServiceAccountCallerStep } from "../../pipeline/steps/refuse-service-account.js";
+import type { ServiceAccountLookup } from "../../pipeline/steps/refuse-service-account.js";
 import {
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
@@ -130,7 +132,17 @@ export interface PlatformClientControllerDeps {
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
   /** The composed list read scope — listByOrg narrows through it; undefined = every client of the org. */
   readonly listReadScope: ListReadScope | undefined;
+  /** The identity-account port: whether the caller is a service account, which makes and changes no platform client. */
+  readonly accounts: ServiceAccountLookup;
 }
+
+/**
+ * What a service account is refused here (pipeline/steps/
+ * refuse-service-account.ts): a client's sign-in role makes members and
+ * its secret mints users, so creating one, changing one or rotating its
+ * secret decides who belongs to the organization.
+ */
+const PLATFORM_CLIENT_ACT = "create or change platform clients";
 
 /** A platform client's users' runs have no person: each asks the account that attached each vault. */
 const PLATFORM_CLIENT_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof PlatformClientSchema> = {
@@ -192,6 +204,7 @@ async function createClient(
         deps.authorizer,
       ),
     )
+    .addStep(newRefuseServiceAccountCallerStep(PLATFORM_CLIENT_ACT, deps.accounts))
     .addStep(newResolveSlugStep())
     .addStep(newValidateProtoStep())
     .addStep(newValidateSignInRoleStep())
@@ -246,6 +259,7 @@ async function updateClient(
         deps.authorizer,
       ),
     )
+    .addStep(newRefuseServiceAccountCallerStep(PLATFORM_CLIENT_ACT, deps.accounts))
     .addStep(newValidateProtoStep())
     .addStep(newValidateSignInRoleStep())
     .addStep(newResolveSlugStep({ update: true }))
@@ -336,6 +350,7 @@ async function rotateSecret(
         deps.authorizer,
       ),
     )
+    .addStep(newRefuseServiceAccountCallerStep(PLATFORM_CLIENT_ACT, deps.accounts))
     .addStep(newValidateProtoStep())
     .addStep(newLoadTargetClientStep<RotateInput>(deps.clients))
     .addStep(

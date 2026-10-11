@@ -13,6 +13,8 @@
  *     person whose identity origin says `platform_client`; every other
  *     origin, a missing origin (an entry the server could not resolve) and
  *     any other kind read as not one;
+ *   - an entry is an organization's service account by the same rule with
+ *     the `service_account` origin, and the two predicates never both hold;
  *   - a team may only ever be offered a subset of a person's roles, never
  *     `owner`, and nothing on `organization` (the circular grant the
  *     model's membership bound forbids).
@@ -35,6 +37,7 @@ import {
   granteeFromView,
   granteeRef,
   isPlatformClientAccount,
+  isServiceAccount,
   personGrantee,
   teamGrantee,
 } from "../iam-principal";
@@ -93,6 +96,40 @@ describe("isPlatformClientAccount — telling a product's users from the organiz
       isPlatformClientAccount({
         kind: "team",
         identityOrigin: origin(IdentityAccountProvisioningMode.platform_client),
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("isServiceAccount — telling an organization's automation from its people", () => {
+  const origin = (provisioningMode: IdentityAccountProvisioningMode) =>
+    create(IdentityOriginSchema, { provisioningMode });
+  const account = (provisioningMode: IdentityAccountProvisioningMode) => ({
+    kind: "identity_account",
+    identityOrigin: origin(provisioningMode),
+  });
+
+  it("is true for a service account, which is never also a product's user", () => {
+    const serviceAccount = account(IdentityAccountProvisioningMode.service_account);
+    expect(isServiceAccount(serviceAccount)).toBe(true);
+    expect(isPlatformClientAccount(serviceAccount)).toBe(false);
+  });
+
+  it("is false for every other origin, for an entry with no origin, and for any other kind", () => {
+    for (const mode of [
+      IdentityAccountProvisioningMode.direct,
+      IdentityAccountProvisioningMode.federated,
+      IdentityAccountProvisioningMode.machine,
+      IdentityAccountProvisioningMode.platform_client,
+      IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,
+    ]) {
+      expect(isServiceAccount(account(mode)), IdentityAccountProvisioningMode[mode]).toBe(false);
+    }
+    expect(isServiceAccount({ kind: "identity_account", identityOrigin: undefined })).toBe(false);
+    expect(
+      isServiceAccount({
+        kind: "team",
+        identityOrigin: origin(IdentityAccountProvisioningMode.service_account),
       }),
     ).toBe(false);
   });

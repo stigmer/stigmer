@@ -21,12 +21,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IdentityAccountQueryController_Get_FullMethodName              = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/get"
-	IdentityAccountQueryController_WhoAmI_FullMethodName           = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/whoAmI"
-	IdentityAccountQueryController_GetByEmail_FullMethodName       = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByEmail"
-	IdentityAccountQueryController_GetByIdpId_FullMethodName       = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByIdpId"
-	IdentityAccountQueryController_GetByExternalSub_FullMethodName = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByExternalSub"
-	IdentityAccountQueryController_GetActorInfo_FullMethodName     = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getActorInfo"
+	IdentityAccountQueryController_Get_FullMethodName                 = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/get"
+	IdentityAccountQueryController_WhoAmI_FullMethodName              = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/whoAmI"
+	IdentityAccountQueryController_GetByEmail_FullMethodName          = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByEmail"
+	IdentityAccountQueryController_GetByIdpId_FullMethodName          = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByIdpId"
+	IdentityAccountQueryController_GetByExternalSub_FullMethodName    = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByExternalSub"
+	IdentityAccountQueryController_ListServiceAccounts_FullMethodName = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/listServiceAccounts"
+	IdentityAccountQueryController_GetActorInfo_FullMethodName        = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getActorInfo"
 )
 
 // IdentityAccountQueryControllerClient is the client API for IdentityAccountQueryController service.
@@ -64,6 +65,13 @@ type IdentityAccountQueryControllerClient interface {
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	GetByExternalSub(ctx context.Context, in *ExternalSubLookup, opts ...grpc.CallOption) (*IdentityAccount, error)
+	// List an organization's service accounts, newest first.
+	//
+	// Lists every service account of the organization, including one whose
+	// role was removed, so it can still be found and deleted.
+	//
+	// Authorization: Requires can_create_identity_account on the organization.
+	ListServiceAccounts(ctx context.Context, in *ListWithIdentityOrg, opts ...grpc.CallOption) (*IdentityAccountsList, error)
 	// Get lightweight actor information for an identity account.
 	GetActorInfo(ctx context.Context, in *IdentityAccountId, opts ...grpc.CallOption) (*apiresource.ApiResourceAuditActor, error)
 }
@@ -126,6 +134,16 @@ func (c *identityAccountQueryControllerClient) GetByExternalSub(ctx context.Cont
 	return out, nil
 }
 
+func (c *identityAccountQueryControllerClient) ListServiceAccounts(ctx context.Context, in *ListWithIdentityOrg, opts ...grpc.CallOption) (*IdentityAccountsList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdentityAccountsList)
+	err := c.cc.Invoke(ctx, IdentityAccountQueryController_ListServiceAccounts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *identityAccountQueryControllerClient) GetActorInfo(ctx context.Context, in *IdentityAccountId, opts ...grpc.CallOption) (*apiresource.ApiResourceAuditActor, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(apiresource.ApiResourceAuditActor)
@@ -171,6 +189,13 @@ type IdentityAccountQueryControllerServer interface {
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	GetByExternalSub(context.Context, *ExternalSubLookup) (*IdentityAccount, error)
+	// List an organization's service accounts, newest first.
+	//
+	// Lists every service account of the organization, including one whose
+	// role was removed, so it can still be found and deleted.
+	//
+	// Authorization: Requires can_create_identity_account on the organization.
+	ListServiceAccounts(context.Context, *ListWithIdentityOrg) (*IdentityAccountsList, error)
 	// Get lightweight actor information for an identity account.
 	GetActorInfo(context.Context, *IdentityAccountId) (*apiresource.ApiResourceAuditActor, error)
 }
@@ -196,6 +221,9 @@ func (UnimplementedIdentityAccountQueryControllerServer) GetByIdpId(context.Cont
 }
 func (UnimplementedIdentityAccountQueryControllerServer) GetByExternalSub(context.Context, *ExternalSubLookup) (*IdentityAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByExternalSub not implemented")
+}
+func (UnimplementedIdentityAccountQueryControllerServer) ListServiceAccounts(context.Context, *ListWithIdentityOrg) (*IdentityAccountsList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListServiceAccounts not implemented")
 }
 func (UnimplementedIdentityAccountQueryControllerServer) GetActorInfo(context.Context, *IdentityAccountId) (*apiresource.ApiResourceAuditActor, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetActorInfo not implemented")
@@ -310,6 +338,24 @@ func _IdentityAccountQueryController_GetByExternalSub_Handler(srv interface{}, c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityAccountQueryController_ListServiceAccounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListWithIdentityOrg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityAccountQueryControllerServer).ListServiceAccounts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityAccountQueryController_ListServiceAccounts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityAccountQueryControllerServer).ListServiceAccounts(ctx, req.(*ListWithIdentityOrg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IdentityAccountQueryController_GetActorInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IdentityAccountId)
 	if err := dec(in); err != nil {
@@ -354,6 +400,10 @@ var IdentityAccountQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByExternalSub",
 			Handler:    _IdentityAccountQueryController_GetByExternalSub_Handler,
+		},
+		{
+			MethodName: "listServiceAccounts",
+			Handler:    _IdentityAccountQueryController_ListServiceAccounts_Handler,
 		},
 		{
 			MethodName: "getActorInfo",

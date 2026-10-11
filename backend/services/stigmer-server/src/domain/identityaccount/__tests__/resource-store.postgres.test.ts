@@ -69,6 +69,7 @@ const CONTRACT_CASE_NAMES = [
   "an outage is a fault on both federated reads, never 'no account'",
   "findDirectByEmail answers the direct account when federated and platform-client rows share its email",
   "findDirectByIdpId and findDirectByEmail never answer a platform-client account, while findByIdpId (any mode) does",
+  "findDirectByIdpId and findDirectByEmail never answer a service account, while findByIdpId (any mode) and findByOrg do",
   "findByOrg answers the accounts whose row names the organization, and never a person's own",
   "findByIds answers one row per distinct id, in first-occurrence order; an empty request answers an empty list",
   "update of an unknown id is a no-op: no row appears",

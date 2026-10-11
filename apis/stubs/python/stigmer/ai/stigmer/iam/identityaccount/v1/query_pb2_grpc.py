@@ -43,6 +43,11 @@ class IdentityAccountQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ExternalSubLookup.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
                 _registered_method=True)
+        self.listServiceAccounts = channel.unary_unary(
+                '/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/listServiceAccounts',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ListWithIdentityOrg.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountsList.FromString,
+                _registered_method=True)
         self.getActorInfo = channel.unary_unary(
                 '/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getActorInfo',
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountId.SerializeToString,
@@ -108,6 +113,18 @@ class IdentityAccountQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def listServiceAccounts(self, request, context):
+        """List an organization's service accounts, newest first.
+
+        Lists every service account of the organization, including one whose
+        role was removed, so it can still be found and deleted.
+
+        Authorization: Requires can_create_identity_account on the organization.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def getActorInfo(self, request, context):
         """Get lightweight actor information for an identity account.
         """
@@ -142,6 +159,11 @@ def add_IdentityAccountQueryControllerServicer_to_server(servicer, server):
                     servicer.getByExternalSub,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ExternalSubLookup.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
+            ),
+            'listServiceAccounts': grpc.unary_unary_rpc_method_handler(
+                    servicer.listServiceAccounts,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ListWithIdentityOrg.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountsList.SerializeToString,
             ),
             'getActorInfo': grpc.unary_unary_rpc_method_handler(
                     servicer.getActorInfo,
@@ -285,6 +307,33 @@ class IdentityAccountQueryController(object):
             '/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/getByExternalSub',
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ExternalSubLookup.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listServiceAccounts(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController/listServiceAccounts',
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.ListWithIdentityOrg.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountsList.FromString,
             options,
             channel_credentials,
             insecure,

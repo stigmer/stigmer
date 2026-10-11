@@ -1,6 +1,6 @@
 {
   "name": "IdentityAccountSpec",
-  "description": "IdentityAccountSpec defines the configuration for an identity account.\n\n An identity account represents a user or machine principal in Stigmer.\n Accounts can be direct (signed up via Stigmer), federated (provisioned\n through an external identity provider), machine (service-to-service\n credentials), or platform_client (provisioned via a PlatformClient's\n mintUserToken endpoint).",
+  "description": "IdentityAccountSpec defines the configuration for an identity account.\n\n An identity account represents a user or machine principal in Stigmer.\n Accounts can be direct (signed up via Stigmer), federated (provisioned\n through an external identity provider), machine (service-to-service\n credentials), platform_client (provisioned via a PlatformClient's\n mintUserToken endpoint), or service_account (an organization's own\n non-person account, created by its admins for automation).",
   "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec",
   "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/spec.proto",
   "fields": [
@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "IDP ID of the identity account.\n\n For direct accounts: the subject (`sub`) asserted by the server's own\n issuer — Stigmer Cloud's tenant or a self-hosted server's OIDC provider\n (e.g., \"auth0|abc123\"). Immutable after create: a direct account's id is\n derived from it, and an update that changes it is refused with\n FAILED_PRECONDITION — a different subject is a different account.\n For federated accounts: the raw OIDC sub claim from the external identity\n provider (e.g., \"google-oauth2|109876543210\"). Uniqueness is scoped by\n identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.\n For machine accounts: the Auth0 client ID with \"@clients\" suffix.\n For platform_client accounts: composite \"stgm_pc|{org}|{external_user_id}\"\n where org is the Stigmer org that owns the PlatformClient(s) and\n external_user_id is the platform builder's stable identifier for the user.\n Scoping by org (not by PlatformClient) means the same user_id presented\n via any PlatformClient in the same org resolves to the same IdentityAccount.\n Globally unique by construction — no additional scope field is needed.",
+      "description": "IDP ID of the identity account.\n\n For direct accounts: the subject (`sub`) asserted by the server's own\n issuer — Stigmer Cloud's tenant or a self-hosted server's OIDC provider\n (e.g., \"auth0|abc123\"). Immutable after create: a direct account's id is\n derived from it, and an update that changes it is refused with\n FAILED_PRECONDITION — a different subject is a different account.\n For federated accounts: the raw OIDC sub claim from the external identity\n provider (e.g., \"google-oauth2|109876543210\"). Uniqueness is scoped by\n identity_provider_ref — the pair (identity_provider_ref, idp_id) is unique.\n For machine accounts: the Auth0 client ID with \"@clients\" suffix.\n For platform_client accounts: composite \"stgm_pc|{org}|{external_user_id}\"\n where org is the Stigmer org that owns the PlatformClient(s) and\n external_user_id is the platform builder's stable identifier for the user.\n Scoping by org (not by PlatformClient) means the same user_id presented\n via any PlatformClient in the same org resolves to the same IdentityAccount.\n Globally unique by construction — no additional scope field is needed.\n For service_account accounts: composite \"stgm_sa|{org}|{random}\", assigned\n by the server at createServiceAccount and never supplied by a caller.",
       "required": true,
       "validation": {
         "required": true
@@ -78,7 +78,8 @@
           "direct",
           "federated",
           "machine",
-          "platform_client"
+          "platform_client",
+          "service_account"
         ]
       },
       "description": "How this identity account was provisioned.\n Unspecified for legacy accounts created before this field was introduced.\n (ignored for create) this value is assigned by backend.",

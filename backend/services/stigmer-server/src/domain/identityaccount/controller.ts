@@ -56,7 +56,7 @@ import type { DescMessage, DescMethod, Message } from "@bufbuild/protobuf";
 import { create } from "@bufbuild/protobuf";
 import type { Empty } from "@bufbuild/protobuf/wkt";
 
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceAuditActorSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import type { ApiResourceAuditActor } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
@@ -64,11 +64,15 @@ import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityacc
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import type {
+  CreateServiceAccountInput,
   IdentityAccountEmail,
   IdentityAccountId,
+  IdentityAccountsList,
   IdpId,
+  ListWithIdentityOrg,
 } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/io_pb";
 import { IdentityAccountQueryController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/query_pb";
+import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -78,6 +82,7 @@ import { isPlatformPipelineCaller } from "../../extensions/identity.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { IdentityFederation } from "../../extensions/identity-federation.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
+import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import { internalError, invalidArgumentError } from "../../pipeline/errors.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
@@ -97,7 +102,13 @@ import { newExtractResourceIdStep } from "../../pipeline/steps/delete.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
+import {
+  newRefuseServiceAccountCallerStep,
+  refuseServiceAccountCaller,
+} from "../../pipeline/steps/refuse-service-account.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { ownerNamesOf } from "../apikey/queries.js";
+import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
 import { accountDisplayName } from "./actor.js";
 import {
   ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE,
@@ -118,6 +129,11 @@ import type {
 import { UserInfoFetchError, owningOrganizationOf } from "./provisioning.js";
 import { accountForCaller, mayProvisionDirectAccount } from "./resolve.js";
 import {
+  createServiceAccount as createServiceAccountHandler,
+  listServiceAccounts as listServiceAccountsHandler,
+} from "./service-accounts.js";
+import type { ServiceAccountDeps } from "./service-accounts.js";
+import {
   accountNotFoundError,
   newAssignBackendFieldsStep,
   newCheckDuplicateStep,
@@ -132,6 +148,7 @@ import {
   newPersistNewAccountStep,
   newPersistUpdatedAccountStep,
   newPreserveBackendFieldsStep,
+  newRenameServiceAccountStep,
 } from "./steps.js";
 import type { IdentityAccountStore } from "./store.js";
 
@@ -165,6 +182,28 @@ export interface IdentityAccountControllerDeps extends CreateAccountPathDeps {
    * the delete and a retry finishes it.
    */
   readonly deleteMyVaults: (person: string, caller: CallerIdentity) => Promise<number>;
+  /**
+   * Deletes every API key that speaks for the deleted account
+   * (domain/apikey/account-keys.ts), by its id and, for a direct account,
+   * its subject (domain/apikey/queries.ts `ownerNamesOf`). Runs before
+   * the row goes, failing the delete on a fault, so a person who signs up
+   * again under the same subject does not get their old keys back
+   * (stigmer/stigmer#1771) and a deleted service account's keys end at once.
+   */
+  readonly deleteAccountKeys: (
+    owners: ReadonlyArray<string>,
+    caller: CallerIdentity,
+  ) => Promise<number>;
+  /**
+   * The one grant path: the delete revokes every row naming the account
+   * before its row goes (`cleanupResource`), and a service account's create
+   * grants its role through it.
+   */
+  readonly grantPath: Pick<IamPolicyGrantPath, "grant" | "cleanupResource">;
+  /** The domain's one create path, which createServiceAccount runs as the admin. */
+  readonly createAccount: CreateAccount;
+  /** Whether sign-in is on: a service account is refused without it (service-accounts.ts). */
+  readonly signInRequired: boolean;
 }
 
 /** Registers both identityaccount services on the router (routes stage). */
@@ -204,6 +243,8 @@ export function registerIdentityAccountServices(
           federation.deprovisionFederatedAccount(input, ref, caller),
       ),
     provisionMyAccount: (empty, ctx) => provisionMyAccount(deps, empty, ctx),
+    createServiceAccount: (input, ctx) =>
+      createServiceAccount(deps, input, ctx),
   });
   router.service(IdentityAccountQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
@@ -220,11 +261,45 @@ export function registerIdentityAccountServices(
           federation.getByExternalSub(lookup, ref, caller),
       ),
     getActorInfo: (id, ctx) => getActorInfo(deps, id, ctx),
+    listServiceAccounts: (input, ctx) => listServiceAccounts(deps, input, ctx),
   });
 }
 
 function kindOf(ctx: HandlerContext): ApiResourceKind {
   return ctx.values.get(apiResourceKindKey);
+}
+
+/** What a service account's own key is refused on update and delete. */
+const CHANGE_ACCOUNTS_ACT = "change or delete identity accounts";
+
+function serviceAccountDepsOf(
+  deps: IdentityAccountControllerDeps,
+): ServiceAccountDeps {
+  return {
+    accounts: deps.accounts,
+    logger: deps.logger,
+    authorizer: deps.authorizer,
+    authorizationLifecycle: deps.authorizationLifecycle,
+    createAccount: deps.createAccount,
+    grantPath: deps.grantPath,
+    signInRequired: deps.signInRequired,
+  };
+}
+
+function createServiceAccount(
+  deps: IdentityAccountControllerDeps,
+  input: CreateServiceAccountInput,
+  ctx: HandlerContext,
+): Promise<IdentityAccount> {
+  return createServiceAccountHandler(serviceAccountDepsOf(deps), input, ctx);
+}
+
+function listServiceAccounts(
+  deps: IdentityAccountControllerDeps,
+  input: ListWithIdentityOrg,
+  ctx: HandlerContext,
+): Promise<IdentityAccountsList> {
+  return listServiceAccountsHandler(serviceAccountDepsOf(deps), input, ctx);
 }
 
 // ---------------------------------------------------------------------------
@@ -284,9 +359,9 @@ async function runCreateChain(
  * The create path as its in-process callers see it (provisioning.ts
  * `CreateAccount`): the input becomes the resource envelope the chain
  * expects, tagged with the kind this controller serves. A platform-client
- * account carries its owning organization and a federated account its
- * provider's, as the cloud has always written them; a direct account
- * belongs to no organization.
+ * account and a service account carry their owning organization and a
+ * federated account its provider's, as the cloud has always written the
+ * first two; a direct account belongs to no organization.
  */
 export function newCreateAccountPath(
   deps: CreateAccountPathDeps,
@@ -300,6 +375,7 @@ export function newCreateAccountPath(
         kind: "IdentityAccount",
         metadata: {
           name: input.name,
+          ...(input.slug !== undefined ? { slug: input.slug } : {}),
           org: owningOrganizationOf(input.provisioning),
         },
         spec: input.spec,
@@ -368,11 +444,13 @@ async function update(
         deps.authorizer,
       ),
     )
+    .addStep(newRefuseServiceAccountCallerStep(CHANGE_ACCOUNTS_ACT, deps.accounts))
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingAccountStep(deps.accounts))
     .addStep(newGuardImmutableSubjectStep())
     .addStep(newBuildUpdateStateStep())
     .addStep(newPreserveBackendFieldsStep())
+    .addStep(newRenameServiceAccountStep(deps.accounts))
     .addStep(newPersistUpdatedAccountStep(deps.accounts))
     .build()
     .execute(reqCtx);
@@ -400,20 +478,61 @@ async function deleteAccount(
         deps.authorizer,
       ),
     )
+    .addStep(newRefuseServiceAccountCallerStep(CHANGE_ACCOUNTS_ACT, deps.accounts))
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingAccountForDeleteStep(deps.accounts))
-    // The person's My vaults go first: a failure here fails the delete with
-    // the account still in place, so the same delete, retried, finishes the
-    // job, where a failure after the row was gone would leave sealed values
-    // nobody could reach to delete.
+    // What the account holds goes before its row, each step failing the
+    // delete on a fault: the delete fails with the account still in place,
+    // so the same delete, retried, finishes the job, where a failure after
+    // the row was gone would leave sealed values, live keys or grants
+    // nobody could reach to delete. The person's My vaults first, then
+    // every key that speaks for the account, then every row naming it
+    // (its roles, its shares, a service account's organization link).
     .addStep({
       name: "DeleteMyVaults",
       async execute(ctx) {
         await deps.deleteMyVaults(ctx.input.value, ctx.callerIdentity);
       },
     })
+    .addStep({
+      name: "DeleteAccountKeys",
+      async execute(ctx) {
+        const account = ctx.get(EXISTING_RESOURCE_KEY) as
+          | IdentityAccount
+          | undefined;
+        try {
+          await deps.deleteAccountKeys(
+            ownerNamesOf(ctx.input.value, account),
+            ctx.callerIdentity,
+          );
+        } catch (error) {
+          throw internalError(error, "failed to delete the account's API keys");
+        }
+      },
+    })
+    .addStep({
+      name: "RevokeAccountPolicies",
+      async execute(ctx) {
+        try {
+          await deps.grantPath.cleanupResource(
+            create(ApiResourceRefSchema, {
+              kind: kindEnumName(ApiResourceKind.identity_account),
+              id: ctx.input.value,
+            }),
+            ctx.callerIdentity,
+          );
+        } catch (error) {
+          throw internalError(
+            error,
+            "failed to remove the account's access policies",
+          );
+        }
+      },
+    })
     .addStep(newDeleteAccountStep(deps.accounts))
+    // The backstop the organization's delete keeps too: whatever a
+    // concurrent write named the account with in between.
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )
@@ -696,6 +815,16 @@ async function federated<Input extends FederatedInput>(
     caller: CallerIdentity,
   ) => Promise<IdentityAccount>,
 ): Promise<IdentityAccount> {
+  // A service account makes, changes and removes no federated account,
+  // asked before the edition's federation, so every edition answers the
+  // same (pipeline/steps/refuse-service-account.ts).
+  if (method.parent.typeName === IdentityAccountCommandController.typeName) {
+    await refuseServiceAccountCaller(
+      callerIdentityOf(ctx),
+      "create, change or remove federated accounts",
+      deps.accounts,
+    );
+  }
   const federation = deps.federation;
   if (federation === undefined) {
     throw new ConnectError(

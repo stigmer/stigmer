@@ -90,6 +90,7 @@ export {
   granteeFromView,
   granteeKey,
   isPlatformClientAccount,
+  isServiceAccount,
 } from "./iam-principal.js";
 export {
   iamRoleToString,

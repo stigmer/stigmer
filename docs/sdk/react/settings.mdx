@@ -16,7 +16,10 @@ first while the server has not answered), plus the
 [`PLATFORM_SETTINGS_NAV_GROUP`](#platform_settings_nav_group) items the
 caller's platform permissions unlock (per-item `requiredPermission`,
 checked against `platform:stigmer`). The group appears when at least
-one of its items is visible.
+one of its items is visible. The [`ORG_ADMIN_SETTINGS_NAV_ITEMS`](#org_admin_settings_nav_items) the
+caller's permissions on the active organization unlock join the first
+group after Teams; outside an `OrgProvider`, or with no organization
+active, none do.
 
 The checks run fail-closed — the opposite of the `useCheckPermission`
 default — because navigation is *discoverability*, not *capability*:
@@ -118,6 +121,14 @@ is the door; where it does not (open source), people join the
 organization the first time they sign in and the server records their
 role, so this section says so.
 
+**Props** — `MembersSectionProps`
+
+<TypeTable
+  type={{
+    serviceAccountsHref: { type: "string", description: "Where the members list's \"Service accounts\" group links. Defaults to `/settings/service-accounts`; a host that routes by hash (the desktop app) passes its own spelling." },
+  }}
+/>
+
 
 ### MemorySection
 
@@ -180,6 +191,11 @@ that the organization's admins manage them rather than that none is
 configured.
 
 
+### ServiceAccountsSection
+
+Settings section for creating and managing service accounts.
+
+
 ### TeamsSection
 
 Settings section for an organization's teams.
@@ -196,6 +212,20 @@ Settings section for My vault and the organization's shared vaults.
 
 
 ## Types
+
+### ORG_ADMIN_SETTINGS_NAV_ITEMS
+
+Organization entries shown only to a caller who holds their permission on
+the active organization, each placed in the first group (Organization, or
+General on a server that holds one) after Teams.
+
+Kept out of [`SETTINGS_NAV_GROUPS`](#settings_nav_groups) for the reason the platform group
+is: that constant is what every signed-in user sees. Service accounts are
+managed by the organization's admins (`can_create_identity_account`), and a
+page a member could only be told about is discoverability, not capability,
+so it stays hidden until the server says yes. Use
+[`useSettingsNavGroups`](#usesettingsnavgroups) for the permission-aware list.
+
 
 ### PLATFORM_SETTINGS_NAV_GROUP
 
@@ -239,7 +269,7 @@ Single navigable entry in the settings sidebar.
     href: { type: "string", description: "Route for the settings page entry.", required: true },
     icon: { type: "ComponentType<{ className?: string }>", description: "Lucide icon component rendered next to the label.", required: true },
     label: { type: "string", description: "Short, user-facing label shown in navigation.", required: true },
-    requiredPermission: { type: "string", description: "Platform-level permission (on `platform:stigmer`) required for this entry to appear. Only meaningful inside PLATFORM_SETTINGS_NAV_GROUP — items in the base groups are visible to every signed-in user and leave this unset. useSettingsNavGroups checks it fail-closed." },
+    requiredPermission: { type: "string", description: "Permission required for this entry to appear: on `platform:stigmer` for the items of PLATFORM_SETTINGS_NAV_GROUP, on the active organization for ORG_ADMIN_SETTINGS_NAV_ITEMS. Items in the base groups are visible to every signed-in user and leave this unset. useSettingsNavGroups checks it fail-closed." },
   }}
 />
 

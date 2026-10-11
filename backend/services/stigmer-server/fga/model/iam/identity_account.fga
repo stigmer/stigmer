@@ -11,8 +11,19 @@ module iam
 # provisions, can_create_identity_account on that organization; an
 # operator holds neither.
 #
+# A service account is the organization's own, so its organization's
+# current admins manage it and its API keys, as they manage a team or a
+# platform client. Only a service account's row carries the organization
+# link; a person's account has none, so nobody but the person reaches a
+# person's account or keys. A service account's own key never manages
+# keys or accounts, its own included: the server refuses that caller
+# class on those RPCs, which an admin service account's role here would
+# otherwise admit.
+#
 # FGA tuples on account creation:
 # - identity_account:alice#owner@identity_account:alice
+# A service account, besides its self-owner tuple:
+# - identity_account:ida_sa#organization@organization:acme
 
 type identity_account
   relations
@@ -22,13 +33,25 @@ type identity_account
     # Each user owns their own identity account data
     # FGA tuple: identity_account:<user_id>#owner@identity_account:<user_id>
     define owner: [identity_account]
-    
+
+    # ========================================
+    # OWNING ORGANIZATION (service accounts only)
+    # ========================================
+    define organization: [organization]
+
     # ========================================
     # CRUD OPERATIONS
     # ========================================
-    define can_view: owner
-    define can_edit: owner
-    define can_delete: owner
+    define can_view: owner or admin from organization
+    define can_edit: owner or admin from organization
+    define can_delete: owner or admin from organization
+
+    # ========================================
+    # API KEY MANAGEMENT
+    # ========================================
+    # Creating, listing and revoking the keys that speak for a service
+    # account; read by api_key through its owner.
+    define can_manage_keys: admin from organization
     
     # ========================================
     # IAM POLICY MANAGEMENT

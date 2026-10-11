@@ -26,6 +26,7 @@ const (
 	IdentityAccountCommandController_CreateFederatedAccount_FullMethodName      = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/createFederatedAccount"
 	IdentityAccountCommandController_UpdateFederatedAccount_FullMethodName      = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/updateFederatedAccount"
 	IdentityAccountCommandController_DeprovisionFederatedAccount_FullMethodName = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/deprovisionFederatedAccount"
+	IdentityAccountCommandController_CreateServiceAccount_FullMethodName        = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/createServiceAccount"
 	IdentityAccountCommandController_ProvisionMyAccount_FullMethodName          = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/provisionMyAccount"
 )
 
@@ -87,6 +88,22 @@ type IdentityAccountCommandControllerClient interface {
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	DeprovisionFederatedAccount(ctx context.Context, in *DeprovisionFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
+	// Create a service account: an organization's own non-person account for
+	// automation, holding one organization role.
+	//
+	// The account belongs to `org` for its whole life. It holds `role` on the
+	// organization (admin, member or viewer; never owner) and acts only through
+	// API keys created for it with ApiKeyCommandController.createForServiceAccount.
+	// Its name is unique among the organization's service accounts; a name in
+	// use answers ALREADY_EXISTS. A server running without sign-in answers
+	// FAILED_PRECONDITION, since no key could authenticate there.
+	//
+	// Rename it with update, change its role through IAM policies, and delete
+	// it with delete, which ends every key it has.
+	//
+	// Authorization: Requires can_create_identity_account on the organization.
+	// A service account's own key is refused.
+	CreateServiceAccount(ctx context.Context, in *CreateServiceAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// Provision the caller's own identity account.
 	//
 	// The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
@@ -168,6 +185,16 @@ func (c *identityAccountCommandControllerClient) DeprovisionFederatedAccount(ctx
 	return out, nil
 }
 
+func (c *identityAccountCommandControllerClient) CreateServiceAccount(ctx context.Context, in *CreateServiceAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdentityAccount)
+	err := c.cc.Invoke(ctx, IdentityAccountCommandController_CreateServiceAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *identityAccountCommandControllerClient) ProvisionMyAccount(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IdentityAccount, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IdentityAccount)
@@ -236,6 +263,22 @@ type IdentityAccountCommandControllerServer interface {
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	DeprovisionFederatedAccount(context.Context, *DeprovisionFederatedAccountInput) (*IdentityAccount, error)
+	// Create a service account: an organization's own non-person account for
+	// automation, holding one organization role.
+	//
+	// The account belongs to `org` for its whole life. It holds `role` on the
+	// organization (admin, member or viewer; never owner) and acts only through
+	// API keys created for it with ApiKeyCommandController.createForServiceAccount.
+	// Its name is unique among the organization's service accounts; a name in
+	// use answers ALREADY_EXISTS. A server running without sign-in answers
+	// FAILED_PRECONDITION, since no key could authenticate there.
+	//
+	// Rename it with update, change its role through IAM policies, and delete
+	// it with delete, which ends every key it has.
+	//
+	// Authorization: Requires can_create_identity_account on the organization.
+	// A service account's own key is refused.
+	CreateServiceAccount(context.Context, *CreateServiceAccountInput) (*IdentityAccount, error)
 	// Provision the caller's own identity account.
 	//
 	// The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
@@ -273,6 +316,9 @@ func (UnimplementedIdentityAccountCommandControllerServer) UpdateFederatedAccoun
 }
 func (UnimplementedIdentityAccountCommandControllerServer) DeprovisionFederatedAccount(context.Context, *DeprovisionFederatedAccountInput) (*IdentityAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeprovisionFederatedAccount not implemented")
+}
+func (UnimplementedIdentityAccountCommandControllerServer) CreateServiceAccount(context.Context, *CreateServiceAccountInput) (*IdentityAccount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateServiceAccount not implemented")
 }
 func (UnimplementedIdentityAccountCommandControllerServer) ProvisionMyAccount(context.Context, *emptypb.Empty) (*IdentityAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ProvisionMyAccount not implemented")
@@ -405,6 +451,24 @@ func _IdentityAccountCommandController_DeprovisionFederatedAccount_Handler(srv i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityAccountCommandController_CreateServiceAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateServiceAccountInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityAccountCommandControllerServer).CreateServiceAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityAccountCommandController_CreateServiceAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityAccountCommandControllerServer).CreateServiceAccount(ctx, req.(*CreateServiceAccountInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IdentityAccountCommandController_ProvisionMyAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
@@ -453,6 +517,10 @@ var IdentityAccountCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "deprovisionFederatedAccount",
 			Handler:    _IdentityAccountCommandController_DeprovisionFederatedAccount_Handler,
+		},
+		{
+			MethodName: "createServiceAccount",
+			Handler:    _IdentityAccountCommandController_CreateServiceAccount_Handler,
 		},
 		{
 			MethodName: "provisionMyAccount",

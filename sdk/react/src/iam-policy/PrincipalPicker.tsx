@@ -10,11 +10,12 @@
  * identity sources, a person shows a {@link ProviderBadge} when it
  * disambiguates. With teams offered, or with accounts an integrator's
  * product created for its own users in the organization, results come in
- * labelled groups, Teams, People, then Users from your product (the
- * Members page's name for them), and the arrow keys walk them as one
- * list. A product's users are labelled, never passed off as the
- * organization's people; a team's picker leaves them out
- * (`includeAppUsers={false}`). Teams lead
+ * labelled groups, Teams, People, Users from your product (the Members
+ * page's name for them), then Service accounts, and the arrow keys walk
+ * them as one list. A product's users and the organization's service
+ * accounts are labelled, never passed off as its people; a team's picker
+ * leaves both out (`includeAppUsers={false}`,
+ * `includeServiceAccounts={false}`). Teams lead
  * because an organization has few of them and many people: listed second,
  * they would sit below the scroll in any organization of size, and sharing
  * with a team is the act that scales.
@@ -26,7 +27,8 @@
  */
 import { useCallback, useId, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, granteeKey, type Grantee } from "@stigmer/sdk";
+import { getUserMessage, granteeKey, isServiceAccount, type Grantee } from "@stigmer/sdk";
+import { SERVICE_ACCOUNT_LABEL } from "../service-account/copy.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { GranteeAvatar } from "./GranteeAvatar.js";
 import { ProviderBadge, providerLabel } from "./ProviderBadge.js";
@@ -59,6 +61,12 @@ export interface PrincipalPickerProps {
    * organization's people.
    */
   readonly includeAppUsers?: boolean;
+  /**
+   * Offer the organization's service accounts, grouped as "Service
+   * accounts". Defaults to `true`; a team's member picker passes `false`,
+   * since a team is a group of the organization's people.
+   */
+  readonly includeServiceAccounts?: boolean;
   /** Grantees shown disabled because they already have access. */
   readonly excludeGrantees?: readonly Grantee[];
   /** Disable the control. */
@@ -90,6 +98,7 @@ export function PrincipalPicker({
   onChange,
   includeTeams = false,
   includeAppUsers = true,
+  includeServiceAccounts = true,
   excludeGrantees,
   disabled = false,
   label,
@@ -97,10 +106,11 @@ export function PrincipalPicker({
   className,
 }: PrincipalPickerProps) {
   const listboxId = useId();
-  const { people, appUsers, teams, isLoading, error } = useGranteeCandidates({
+  const { people, appUsers, serviceAccounts, teams, isLoading, error } = useGranteeCandidates({
     org: org || null,
     includeTeams,
     includeAppUsers,
+    includeServiceAccounts,
   });
 
   const [query, setQuery] = useState("");
@@ -128,28 +138,29 @@ export function PrincipalPicker({
     return new Set([...counts.entries()].filter(([, n]) => n > 1).map(([email]) => email));
   }, [people, appUsers]);
 
-  const { matchingPeople, matchingAppUsers, matchingTeams } = useMemo(() => {
+  const { matchingPeople, matchingAppUsers, matchingServiceAccounts, matchingTeams } = useMemo(() => {
     const q = query.trim().toLowerCase();
     const matches = (p: PersonCandidate) =>
       p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q);
     return {
       matchingPeople: q ? people.filter(matches) : people,
       matchingAppUsers: q ? appUsers.filter(matches) : appUsers,
+      matchingServiceAccounts: q ? serviceAccounts.filter(matches) : serviceAccounts,
       matchingTeams: q
         ? teams.filter((t) => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q))
         : teams,
     };
-  }, [people, appUsers, teams, query]);
+  }, [people, appUsers, serviceAccounts, teams, query]);
 
-  // One flat order for the keyboard: teams, people, then a product's
-  // users, as rendered.
+  // One flat order for the keyboard: teams, people, a product's users,
+  // then service accounts, as rendered.
   const options = useMemo<readonly GranteeCandidate[]>(
-    () => [...matchingTeams, ...matchingPeople, ...matchingAppUsers],
-    [matchingPeople, matchingAppUsers, matchingTeams],
+    () => [...matchingTeams, ...matchingPeople, ...matchingAppUsers, ...matchingServiceAccounts],
+    [matchingPeople, matchingAppUsers, matchingServiceAccounts, matchingTeams],
   );
   // Groups render once there is more than one kind of candidate to tell
   // apart; a list of the organization's people alone stays flat.
-  const grouped = includeTeams || appUsers.length > 0;
+  const grouped = includeTeams || appUsers.length > 0 || serviceAccounts.length > 0;
 
   const commitSelection = useCallback(
     (candidate: GranteeCandidate) => {
@@ -343,6 +354,14 @@ export function PrincipalPicker({
                     renderOption(person, matchingTeams.length + matchingPeople.length + index),
                   )}
                 </OptionGroup>
+                <OptionGroup label="Service accounts" count={matchingServiceAccounts.length}>
+                  {matchingServiceAccounts.map((account, index) =>
+                    renderOption(
+                      account,
+                      matchingTeams.length + matchingPeople.length + matchingAppUsers.length + index,
+                    ),
+                  )}
+                </OptionGroup>
               </>
             )}
           </ul>
@@ -407,6 +426,14 @@ function CandidateSubline({ candidate }: { readonly candidate: GranteeCandidate 
 function SelectedSubline({ value }: { readonly value: SelectedGrantee }) {
   if (value.kind === "team") {
     return <span className="stg:block stg:truncate stg:text-[0.6rem] stg:text-muted-foreground">Team</span>;
+  }
+  // Out of its group, a chosen service account still says what it is.
+  if (isServiceAccount(value.view)) {
+    return (
+      <span className="stg:block stg:truncate stg:text-[0.6rem] stg:text-muted-foreground">
+        {SERVICE_ACCOUNT_LABEL}
+      </span>
+    );
   }
   return <CandidateSubline candidate={value} />;
 }

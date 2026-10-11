@@ -114,6 +114,7 @@ import { newBuiltInRoleLifecycle } from "../domain/iampolicy/role-lifecycle.js";
 import { newIssuerDiscovery } from "../identity/oidc-discovery.js";
 import { newOidcUserInfoClient } from "../identity/oidc-userinfo.js";
 import { newApiKeyIdentityVerifier } from "../domain/apikey/verifier.js";
+import { deleteKeysOwnedBy } from "../domain/apikey/account-keys.js";
 import type { IdentityVerifier } from "../extensions/identity.js";
 import { newOidcIdentityVerifier } from "../identity/oidc-verifier.js";
 import {
@@ -735,6 +736,7 @@ export async function composeServer(
     rowReaders: extensions.drivers.resourceRowReaders,
     policies: iamPolicies,
     platformClients,
+    identityAccounts,
     lifecycle: organizationLifecycle,
   });
   const authorizer: Authorizer = bindAuthorizer(
@@ -1656,6 +1658,7 @@ export async function composeServer(
       orgLimit: extensions.orgLimit,
       // The delete hands an accepted organization to the purge.
       purge: organizationPurge,
+      accounts: identityAccounts,
     });
     // ApiKey is the first domain born AFTER the Go port (the apikey
     // contract is wholly OSS), so it has no Go
@@ -1668,6 +1671,7 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       listReadScope,
+      accounts: identityAccounts,
     });
     // IdentityAccount: served once by open source in every
     // edition over the store PORT bound in the identity-accounts stage; a
@@ -1693,6 +1697,22 @@ export async function composeServer(
           person,
           caller,
         ),
+      deleteAccountKeys: (owners, caller) =>
+        deleteKeysOwnedBy(
+          {
+            store,
+            logger,
+            grantPath: iamPolicyGrantPath,
+            authorizationLifecycle,
+          },
+          owners,
+          caller,
+        ),
+      grantPath: iamPolicyGrantPath,
+      createAccount: createIdentityAccount,
+      // Without sign-in no API-key verifier is composed (the verifier
+      // chain below), so no service account could ever authenticate.
+      signInRequired: requireAuthentication,
     });
     // IamPolicy: the ROW half served once by open source in
     // every edition over the store port and the grant path bound in the
@@ -1776,6 +1796,7 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       listReadScope,
+      accounts: identityAccounts,
     });
     registerPlatformClientTokenService(router, {
       mint: {

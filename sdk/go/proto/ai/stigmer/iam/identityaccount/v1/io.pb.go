@@ -10,6 +10,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -321,7 +322,7 @@ func (x *IdentityAccountsList) GetEntries() []*IdentityAccount {
 // ListWithIdentityOrg is the input for paginated queries scoped to an organization.
 type ListWithIdentityOrg struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization slug to list identity accounts for.
+	// Organization to list identity accounts for, by id or slug.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Pagination parameters.
 	Page          *rpc.PageInfo `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
@@ -763,11 +764,79 @@ func (x *DeprovisionFederatedAccountInput) GetDeleteAccount() bool {
 	return false
 }
 
+// CreateServiceAccountInput is the command for creating an organization's
+// service account.
+type CreateServiceAccountInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization the service account belongs to, by id or slug.
+	// Used as the authorization scope: caller must have can_create_identity_account
+	// permission on this organization.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// The service account's name, unique among the organization's service
+	// accounts (e.g., "ci-deploy").
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// The organization role the service account holds: admin, member or viewer.
+	Role          v1.IamRole `protobuf:"varint,3,opt,name=role,proto3,enum=ai.stigmer.iam.v1.IamRole" json:"role,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateServiceAccountInput) Reset() {
+	*x = CreateServiceAccountInput{}
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateServiceAccountInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateServiceAccountInput) ProtoMessage() {}
+
+func (x *CreateServiceAccountInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateServiceAccountInput.ProtoReflect.Descriptor instead.
+func (*CreateServiceAccountInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *CreateServiceAccountInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *CreateServiceAccountInput) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateServiceAccountInput) GetRole() v1.IamRole {
+	if x != nil {
+		return x.Role
+	}
+	return v1.IamRole(0)
+}
+
 var File_ai_stigmer_iam_identityaccount_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/iam/identityaccount/v1/io.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"`\n" +
+	"*ai/stigmer/iam/identityaccount/v1/io.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"`\n" +
 	"\x10IdentityAccounts\x12L\n" +
 	"\aentries\x18\x01 \x03(\v22.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\aentries\"1\n" +
 	"\x11IdentityAccountId\x12\x1c\n" +
@@ -814,7 +883,12 @@ const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12h\n" +
 	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12)\n" +
 	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\x12%\n" +
-	"\x0edelete_account\x18\x04 \x01(\bR\rdeleteAccountB\xb9\x02\n" +
+	"\x0edelete_account\x18\x04 \x01(\bR\rdeleteAccount\"\xb9\x02\n" +
+	"\x19CreateServiceAccountInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1f\n" +
+	"\x04name\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x04name\x12.\n" +
+	"\x04role\x18\x03 \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\x04role:\xb0\x01\xbaH\xac\x01\x1a\xa9\x01\n" +
+	"\x1eservice_account.role_not_owner\x12Srole must be admin, member or viewer; a service account never owns its organization\x1a2this.role == 2 || this.role == 3 || this.role == 4B\xb9\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\aIoProtoP\x01Z^github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var (
@@ -829,7 +903,7 @@ func file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_ai_stigmer_iam_identityaccount_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ai_stigmer_iam_identityaccount_v1_io_proto_goTypes = []any{
 	(*IdentityAccounts)(nil),                 // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts
 	(*IdentityAccountId)(nil),                // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountId
@@ -842,24 +916,27 @@ var file_ai_stigmer_iam_identityaccount_v1_io_proto_goTypes = []any{
 	(*CreateFederatedAccountInput)(nil),      // 8: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput
 	(*UpdateFederatedAccountInput)(nil),      // 9: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput
 	(*DeprovisionFederatedAccountInput)(nil), // 10: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput
-	(*IdentityAccount)(nil),                  // 11: ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	(*rpc.PageInfo)(nil),                     // 12: ai.stigmer.commons.rpc.PageInfo
-	(*apiresource.ApiResourceReference)(nil), // 13: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*CreateServiceAccountInput)(nil),        // 11: ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput
+	(*IdentityAccount)(nil),                  // 12: ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	(*rpc.PageInfo)(nil),                     // 13: ai.stigmer.commons.rpc.PageInfo
+	(*apiresource.ApiResourceReference)(nil), // 14: ai.stigmer.commons.apiresource.ApiResourceReference
+	(v1.IamRole)(0),                          // 15: ai.stigmer.iam.v1.IamRole
 }
 var file_ai_stigmer_iam_identityaccount_v1_io_proto_depIdxs = []int32{
-	11, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	12, // 1: ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	11, // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	12, // 3: ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	13, // 4: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	13, // 5: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	13, // 6: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	13, // 7: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	12, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccounts.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	13, // 1: ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq.page:type_name -> ai.stigmer.commons.rpc.PageInfo
+	12, // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountsList.entries:type_name -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	13, // 3: ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg.page:type_name -> ai.stigmer.commons.rpc.PageInfo
+	14, // 4: ai.stigmer.iam.identityaccount.v1.ExternalSubLookup.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	14, // 5: ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	14, // 6: ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	14, // 7: ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	15, // 8: ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput.role:type_name -> ai.stigmer.iam.v1.IamRole
+	9,  // [9:9] is the sub-list for method output_type
+	9,  // [9:9] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_identityaccount_v1_io_proto_init() }
@@ -874,7 +951,7 @@ func file_ai_stigmer_iam_identityaccount_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc), len(file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

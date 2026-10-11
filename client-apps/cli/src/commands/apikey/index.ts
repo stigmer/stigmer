@@ -8,28 +8,40 @@
 // it, the key works in every organization its owner holds a role in, unless
 // the CLI's own credential is limited to one, whose organization it then
 // takes.
+//
+// `--service-account <name>` creates the key for one of the organization's
+// service accounts instead of for the caller: the key speaks for the service
+// account, keeps working when the caller leaves, and works only in the
+// service account's organization, so `--bound-org` does not apply. The name
+// is resolved in the organization every org-scoped command uses (`--org`,
+// `STIGMER_ORG`, then the context), and the key needs a `--name` of its own.
 
 import { createHash } from "node:crypto";
 import { create } from "@bufbuild/protobuf";
-import { timestampDate } from "@bufbuild/protobuf/wkt";
+import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   type ApiKey,
   ApiKeySchema,
 } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import { ApiKeyHashSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
-import type { ApiKeyInput } from "@stigmer/sdk";
+import {
+  ApiKeyHashSchema,
+  CreateServiceAccountKeyInputSchema,
+} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+import type { ApiKeyInput, Stigmer } from "@stigmer/sdk";
 import type { Command } from "commander";
 import {
   ensureAuthenticated,
   resolveContextOrganization,
+  resolveOrganization,
 } from "../../config/index.js";
+import { UsageError } from "../../errors/usage-error.js";
 import {
   type OutputFlags,
   type OutputFormat,
   renderProtoJson,
   renderProtoYaml,
 } from "../../output/index.js";
-import { addReadFlags, readFormat } from "../shared.js";
+import { addReadFlags, globalOrg, readFormat } from "../shared.js";
 import { parseExpiration } from "./duration.js";
 
 const DEFAULT_EXPIRATION_DAYS = 90;
@@ -39,6 +51,7 @@ export interface ApiKeyCreateFlags extends OutputFlags {
   neverExpires?: boolean;
   expiresIn?: string;
   boundOrg?: string;
+  serviceAccount?: string;
 }
 
 export function registerApiKey(program: Command): void {
@@ -56,8 +69,12 @@ export function registerApiKey(program: Command): void {
       "--bound-org <org>",
       "limit the key to one organization (slug or id); it is refused everywhere else",
     )
-    .action(async (options: ApiKeyCreateFlags) => {
-      await runCreate(options);
+    .option(
+      "--service-account <name>",
+      "create the key for this service account of the organization; it speaks for the service account, not for you",
+    )
+    .action(async (options: ApiKeyCreateFlags, command: Command) => {
+      await runCreate(options, command);
     });
   addReadFlags(create);
 
@@ -70,20 +87,30 @@ export function registerApiKey(program: Command): void {
   addReadFlags(fingerprint);
 }
 
-async function runCreate(options: ApiKeyCreateFlags): Promise<void> {
+async function runCreate(options: ApiKeyCreateFlags, command: Command): Promise<void> {
   const expiresAt = resolveExpiry(options);
+  const serviceAccount = options.serviceAccount?.trim() ?? "";
+  if (serviceAccount !== "") refuseServiceAccountMisuse(options);
 
   const { connectBackend } = await import("../../backend.js");
   const client = connectBackend();
   ensureAuthenticated(client.config);
 
-  const created = await client.stigmer.apiKey.create(
-    apiKeyCreateInput(
-      options,
-      resolveContextOrganization(client.config),
-      expiresAt,
-    ),
-  );
+  const created =
+    serviceAccount === ""
+      ? await client.stigmer.apiKey.create(
+          apiKeyCreateInput(
+            options,
+            resolveContextOrganization(client.config),
+            expiresAt,
+          ),
+        )
+      : await createForServiceAccount(client.stigmer, {
+          org: resolveOrganization(client.config, globalOrg(command)),
+          serviceAccount,
+          name: options.name ?? "",
+          expiresAt,
+        });
 
   const format = readFormat(options);
   if (format === "json") {
@@ -94,7 +121,51 @@ async function runCreate(options: ApiKeyCreateFlags): Promise<void> {
     process.stdout.write(renderProtoYaml(ApiKeySchema, created));
     return;
   }
-  process.stdout.write(renderCreatedBanner(created));
+  process.stdout.write(renderCreatedBanner(created, serviceAccount));
+}
+
+/**
+ * The flags a service account's key cannot take: a limit (its key works in
+ * its own organization alone) and an empty name (the key needs one to be
+ * told apart in the service account's list).
+ */
+function refuseServiceAccountMisuse(options: ApiKeyCreateFlags): void {
+  if (options.boundOrg !== undefined && options.boundOrg !== "") {
+    throw new UsageError(
+      "--bound-org does not apply to a service account's key\n\n" +
+        "Its key works only in the service account's organization. Drop --bound-org.",
+    );
+  }
+  if ((options.name ?? "").trim() === "") {
+    throw new UsageError(
+      "a service account's key needs a name\n\n" +
+        "Pass --name, e.g. --name github-actions, so its keys can be told apart.",
+    );
+  }
+}
+
+/** Resolve the service account by name, then create the key that speaks for it. */
+async function createForServiceAccount(
+  stigmer: Stigmer,
+  request: { org: string; serviceAccount: string; name: string; expiresAt: Date | undefined },
+): Promise<ApiKey> {
+  const [{ requireOrganization }, { findServiceAccount }] = await Promise.all([
+    import("../../client/single-org.js"),
+    import("../../resources/service-account.js"),
+  ]);
+  await requireOrganization(stigmer, request.org, [
+    "stigmer apikey create --service-account <name> --org <org>",
+    "stigmer config context set --org <org>",
+  ]);
+  const account = await findServiceAccount(stigmer, request.org, request.serviceAccount);
+  return stigmer.apiKey.createForServiceAccount(
+    create(CreateServiceAccountKeyInputSchema, {
+      serviceAccountId: account.metadata?.id ?? "",
+      name: request.name.trim(),
+      neverExpires: request.expiresAt === undefined,
+      ...(request.expiresAt === undefined ? {} : { expiresAt: timestampFromDate(request.expiresAt) }),
+    }),
+  );
 }
 
 async function runFingerprint(
@@ -163,7 +234,7 @@ function renderApiKey(key: ApiKey, format: OutputFormat): void {
   process.stdout.write(`${lines.join("\n")}\n`);
 }
 
-function renderCreatedBanner(key: ApiKey): string {
+function renderCreatedBanner(key: ApiKey, serviceAccount: string): string {
   const divider = "═".repeat(63);
   const lines = [
     "",
@@ -178,6 +249,8 @@ function renderCreatedBanner(key: ApiKey): string {
     `  ID:          ${key.metadata?.id ?? ""}`,
   ];
   if (key.metadata?.name) lines.push(`  Name:        ${key.metadata.name}`);
+  if (serviceAccount !== "")
+    lines.push(`  Speaks for:  service account ${serviceAccount}`);
   if (key.spec?.fingerprint)
     lines.push(`  Fingerprint: ***${key.spec.fingerprint}`);
   lines.push(
