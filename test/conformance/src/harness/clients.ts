@@ -14,6 +14,8 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { ActivityQueryController } from "@stigmer/protos/ai/stigmer/activity/v1/query_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentEvalCommandController } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/command_pb";
+import { AgentEvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/query_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
 import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
@@ -135,6 +137,8 @@ export interface ConformanceClients {
   pluginQuery: Client<typeof PluginQueryController>;
   pluginEvalCommand: Client<typeof PluginEvalCommandController>;
   pluginEvalQuery: Client<typeof PluginEvalQueryController>;
+  agentEvalCommand: Client<typeof AgentEvalCommandController>;
+  agentEvalQuery: Client<typeof AgentEvalQueryController>;
   platformQuery: Client<typeof PlatformQueryController>;
   // The standard gRPC health service — an external proto both editions serve
   // on the RPC port. The authentication suite pins its tokenless reachability
@@ -267,6 +271,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     pluginQuery: createClient(PluginQueryController, transport),
     pluginEvalCommand: createClient(PluginEvalCommandController, transport),
     pluginEvalQuery: createClient(PluginEvalQueryController, transport),
+    agentEvalCommand: createClient(AgentEvalCommandController, transport),
+    agentEvalQuery: createClient(AgentEvalQueryController, transport),
     platformQuery: createClient(PlatformQueryController, transport),
     health: createClient(Health, transport),
     githubQuery: createClient(GitHubQueryController, transport),

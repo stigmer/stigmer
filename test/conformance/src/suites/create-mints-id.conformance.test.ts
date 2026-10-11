@@ -63,6 +63,7 @@ import { makeApiKey } from "../support/apikeys";
 import { makeSlackChannelApp } from "../support/channelapps";
 import { makeSharedVault } from "../support/vaults";
 import { makeEvaluator } from "../support/evaluators";
+import { cancelAndDeleteAgentEval, createAgentWith, makeAgentEval } from "../support/agent-evals";
 import {
   cancelAndDeletePluginEval,
   installPlugin,
@@ -403,6 +404,35 @@ const ROWS: readonly Row[] = [
     },
     async read(id) {
       return (await clients.pluginEvalQuery.get({ value: id })).metadata?.id;
+    },
+  },
+  {
+    // As the PluginEval row: on a server with no engine the eval is stored
+    // failed, which still mints and stores its id.
+    title: "[rpc:AgentEvalCommandController.create] AgentEval",
+    key: "AgentEvalCommandController.create",
+    kind: ApiResourceKind.agent_eval,
+    async send({ org }, chosenId) {
+      const name = uniqueName("mint-aev");
+      const plugin = await installPlugin(
+        clients,
+        fixtures,
+        org,
+        skillPluginWithEvals(name, {
+          skill: `${name}-notes`,
+          cases: [{ name: "only", prompt: "Say DONE.", graders: [lastMessageGrader("says-done", "DONE")] }],
+        }),
+      );
+      const agent = await createAgentWith(clients, fixtures, org, [plugin], { name: uniqueName("mint-aev-agent") });
+      const created = await clients.agentEvalCommand.create({
+        ...makeAgentEval({ org, agentId: agent.metadata!.id, maxCostUsd: 0.01 }),
+        metadata: { id: chosenId, org },
+      });
+      fixtures.defer(() => cancelAndDeleteAgentEval(clients, created.metadata!.id));
+      return answerOf(this.key, created.metadata);
+    },
+    async read(id) {
+      return (await clients.agentEvalQuery.get({ value: id })).metadata?.id;
     },
   },
   {
