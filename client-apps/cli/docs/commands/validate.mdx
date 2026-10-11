@@ -38,7 +38,7 @@ stigmer validate -f ./my-plugin/
 - Required fields (apiVersion, kind, metadata, spec)
 - Resource-specific schema rules per kind
 - Multi-document YAML (`---` separated)
-- An Agent that still writes sub-agents inside it (`sub_agents`) is refused,
+- An Agent that still writes subagents inside it (`sub_agents`) is refused,
   with a sentence saying to save each as an Agent and list it in `subagents`
 - For a plugin directory: the manifest, every `SKILL.md`, the MCP server
   configuration, every subagent file and the declared variables
@@ -71,7 +71,7 @@ Plugin:
 Installs:
   Skills         none
   MCP servers    1: github (http)
-  Sub-agents     none
+  Subagents      none
   Hooks          none
   Variables      1: GITHUB_PERSONAL_ACCESS_TOKEN
 

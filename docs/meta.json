@@ -12,6 +12,7 @@
     "---Agents---",
     "concepts/agents",
     "concepts/skills",
+    "concepts/plugins",
     "guides/plugins",
     "concepts/sessions",
     "concepts/scores",
