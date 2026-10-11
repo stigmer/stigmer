@@ -1,26 +1,38 @@
 /**
- * Pins the sub-agent transformer: the built-in types and their prompts, the
- * proto-to-spec transform (model override, web_fetch, no think), each
- * sub-agent's tool scope (narrowed from the parent's, never widened; a
- * built-in runs under the parent's), the main agent's `Agent(type, …)`
- * filter, skills prompts, and compilation (a stack per invocation, a refused
- * spec skipped at setup, the invocation id hooks see kept across a resume).
+ * Pins the subagent transformer: the built-in types and their prompts; a
+ * plugin subagent's transform (its plugin's instructions and skills, the
+ * model its file names where this engine lists it, web_fetch and no think,
+ * the parent's scope narrowed by its lists, never widened); a saved
+ * subagent's transform (its own servers' tools and web_fetch, never the
+ * parent's MCP tools, its own model, scope, gate and shell); one level
+ * (every compiled subagent's scope, the built-ins' included, denies `Agent`,
+ * so deepagents' `task` tool is out of scope inside it); the main agent's
+ * `Agent(type, …)` filter over built-ins, plugin and saved subagents alike;
+ * and compilation (a stack per invocation, a saved subagent's own gate, a
+ * refused spec skipped at setup, the invocation id hooks see kept across a
+ * resume).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { StructuredTool } from "@langchain/core/tools";
+import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 
 import {
   BUILTIN_SUBAGENT_TYPES,
   createBuiltinSubagents,
-  transformSingleSubagent,
-  resolveSubagentSkillPrompt,
   compileSubagents,
   subAgentInvocationId,
-  subAgentScope,
   transformAndCompileSubagents,
+  transformPluginSubagent,
+  transformSavedSubagent,
+  type SavedSubagentGraph,
   type SubagentScopeBase,
+  type SubagentTransformOptions,
   type TransformedSubagent,
 } from "../subagent-transformer.js";
+import type { TurnSubagent } from "../../../harness/types.js";
+import type { ApprovalGateConfig } from "../../../middleware/approval-gate.js";
+import type { PluginSubagent } from "../../../shared/blueprint-resolver.js";
+import type { HookEvaluator } from "../../../shared/hooks/evaluate.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
 import type { ToolScopeConfig } from "../../../middleware/tool-scope.js";
 import { _resetRegistryCache } from "../../../shared/model-registry.js";
@@ -48,26 +60,59 @@ function mockTool(name: string): StructuredTool {
   return { name, description: `Mock tool: ${name}` } as unknown as StructuredTool;
 }
 
-function mockSubAgentProto(overrides: Partial<{
-  name: string;
-  description: string;
-  instructions: string;
-  tools: string[];
-  disallowedTools: string[];
-  skillRefs: { slug: string }[];
-  modelOverride: string;
-}> = {}) {
+function pluginAgent(overrides: Partial<PluginSubagent> = {}): PluginSubagent {
   return {
-    name: overrides.name ?? "test-agent",
-    description: overrides.description ?? "A test sub-agent",
-    instructions: overrides.instructions ?? "You are a test agent.",
-    tools: overrides.tools ?? [],
-    disallowedTools: overrides.disallowedTools ?? [],
-    skillRefs: overrides.skillRefs ?? [],
-    modelOverride: overrides.modelOverride ?? "",
-  } as unknown as import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent;
+    name: "kit:reviewer",
+    description: "Reviews code",
+    instructions: "You review code.",
+    tools: [],
+    disallowedTools: [],
+    model: "",
+    ...overrides,
+  };
 }
 
+function savedContext(overrides: Partial<TurnSubagent> = {}): TurnSubagent {
+  return {
+    name: "release-notes",
+    description: "Writes release notes",
+    instructions: "You write release notes.",
+    model: undefined,
+    toolScope: ToolScope.ofMain([{ owner: "A subagent", lists: { tools: [], disallowedTools: ["Agent"] } }]),
+    servers: [],
+    skills: [],
+    hooks: [],
+    values: {},
+    bringsOwn: { plugins: false, hooks: false, lists: false },
+    ...overrides,
+  };
+}
+
+function gateConfig(hooks: HookEvaluator | null = null): ApprovalGateConfig {
+  return {
+    mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
+    toolServerMap: new Map(),
+    hooks,
+  };
+}
+
+function savedGraph(subagent: TurnSubagent, mcpTools: StructuredTool[] = [], approvalGate: ApprovalGateConfig | null = null): SavedSubagentGraph {
+  return { subagent, mcpTools, approvalGate, shellEnv: undefined };
+}
+
+/** A registry with one native model and one Cursor model. */
+function mockRegistry(): void {
+  vi.spyOn(global, "fetch").mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve({
+      models: [
+        { id: "claude-sonnet-4-6", provider: "anthropic", harness: "native" },
+        { id: "claude-haiku-4.5", provider: "anthropic", harness: "native" },
+        { id: "composer-2.5", provider: "cursor", harness: "cursor" },
+      ],
+    }),
+  } as Response);
+}
 
 // =========================================================================
 // Tests: Built-in subagent types
@@ -150,10 +195,13 @@ describe("createBuiltinSubagents", () => {
     }
   });
 
-  it("built-ins run under the parent's own scope: they declare no lists", () => {
+  it("built-ins run under the parent's own scope, with Agent denied: they declare no lists and hand no work on", () => {
     const parent = ToolScope.of("Agent \"a\"", { tools: ["Read", "Agent"], disallowedTools: [] });
     for (const sa of createBuiltinSubagents(true, parent)) {
-      expect(sa.scope, sa.name).toBe(parent);
+      expect(sa.scope.allowsClaudeTool("Read"), sa.name).toBe(true);
+      expect(sa.scope.allowsClaudeTool("Write"), sa.name).toBe(false);
+      expect(sa.scope.allowsClaudeTool("Agent"), sa.name).toBe(false);
+      expect(sa.scope.allowsEngineTool("task", NATIVE_TOOL_COVERS), sa.name).toBe(false);
     }
   });
 
@@ -173,150 +221,98 @@ describe("createBuiltinSubagents", () => {
 });
 
 // =========================================================================
-// Tests: transformSingleSubagent
+// Tests: transformPluginSubagent
 // =========================================================================
 
-describe("transformSingleSubagent", () => {
-  const baseOpts = {
-    parentScope: UNRESTRICTED,
-    parentModelName: "claude-sonnet-4-6",
-    webFetchPosture: "strict" as const,
-  };
+describe("transformPluginSubagent", () => {
+  const opts = { parentScope: UNRESTRICTED, webFetchPosture: "strict" as const, skills: new Map() };
 
   beforeEach(() => {
-    vi.spyOn(global, "fetch").mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        models: [
-          { id: "claude-sonnet-4-6", provider: "anthropic" },
-          { id: "claude-haiku-4.5", provider: "anthropic" },
-          { id: "gpt-4o-mini", provider: "openai" },
-        ],
-      }),
-    } as Response);
+    _resetRegistryCache();
+    mockRegistry();
+    vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
   afterEach(() => {
+    _resetRegistryCache();
     vi.restoreAllMocks();
   });
 
-  it("transforms proto fields to TransformedSubagent", async () => {
-    const proto = mockSubAgentProto({
-      name: "code-reviewer",
-      description: "Reviews code quality",
-      instructions: "You review code.",
-    });
-
-    const result = await transformSingleSubagent(proto, baseOpts);
-
-    expect(result).not.toBeNull();
-    expect(result!.name).toBe("code-reviewer");
-    expect(result!.description).toBe("Reviews code quality");
-    expect(result!.systemPrompt).toContain("You review code.");
+  it("carries its plugin's description and instructions, the response rules after them", async () => {
+    const result = await transformPluginSubagent(pluginAgent(), opts);
+    expect(result.name).toBe("kit:reviewer");
+    expect(result.description).toBe("Reviews code");
+    expect(result.systemPrompt).toContain("You review code.");
+    expect(result.systemPrompt).toContain("## Response rules");
+    expect(result.own, "a plugin subagent runs the parent's gate and shell").toBeUndefined();
   });
 
-  it("uses default description when proto description is empty", async () => {
-    const proto = mockSubAgentProto({ name: "helper", description: "" });
-    const result = await transformSingleSubagent(proto, baseOpts);
-
-    expect(result!.description).toBe("Sub-agent: helper");
+  it("uses a default description when its file gives none", async () => {
+    expect((await transformPluginSubagent(pluginAgent({ name: "kit:helper", description: "" }), opts)).description).toBe("Sub-agent: kit:helper");
   });
 
-  it("appends response rules to system prompt", async () => {
-    const proto = mockSubAgentProto({ instructions: "Do things." });
-    const result = await transformSingleSubagent(proto, baseOpts);
-
-    expect(result!.systemPrompt).toContain("Do things.");
-    expect(result!.systemPrompt).toContain("## Response rules");
+  it("binds web_fetch and nothing else of its own: no think tool (#1976)", async () => {
+    expect((await transformPluginSubagent(pluginAgent(), opts)).tools.map((t) => t.name)).toEqual(["web_fetch"]);
   });
 
-  it("always injects web_fetch", async () => {
-    const result = await transformSingleSubagent(mockSubAgentProto(), baseOpts);
-    expect(result!.tools.some((t) => t.name === "web_fetch")).toBe(true);
+  it("runs on the model its file names when this engine lists it", async () => {
+    expect((await transformPluginSubagent(pluginAgent({ model: "claude-haiku-4.5" }), opts)).model).toBe("claude-haiku-4.5");
   });
 
-  describe("no sub-agent binds a think tool (#1976)", () => {
-    beforeEach(() => {
-      _resetRegistryCache();
-      vi.restoreAllMocks();
-      vi.spyOn(global, "fetch").mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({
-          models: [
-            { id: "claude-sonnet-4-6", provider: "anthropic", harness: "native", capabilities: { adaptiveThinking: true, thinkingRequired: false } },
-            { id: "claude-haiku-4.5", provider: "anthropic", harness: "native", capabilities: { thinking: true, thinkingRequired: false } },
-            { id: "claude-fable-5", provider: "anthropic", harness: "native", capabilities: { adaptiveThinking: true, thinkingRequired: true } },
-            { id: "composer-2.5", provider: "cursor", harness: "cursor" },
-          ],
-        }),
-      } as Response);
-    });
-
-    afterEach(() => {
-      _resetRegistryCache();
-    });
-
-    it("on the parent's model or its own, adaptive, budget, required or with no native row: reasoning is the thinking mode's", async () => {
-      for (const modelOverride of ["", "claude-sonnet-4-6", "claude-haiku-4.5", "claude-fable-5", "composer-2.5"]) {
-        const result = await transformSingleSubagent(mockSubAgentProto({ modelOverride }), baseOpts);
-        expect(result, modelOverride || "no override").not.toBeNull();
-        expect(result!.tools.map((t) => t.name), modelOverride || "no override").toEqual(["web_fetch"]);
-      }
-    });
+  it.each(["", "inherit", "sonnet", "composer-2.5", "nonexistent-model-xyz"])("runs on the turn's model when its file names %j", async (model) => {
+    expect((await transformPluginSubagent(pluginAgent({ model }), opts)).model).toBeUndefined();
   });
 
-  it("returns null for invalid model override", async () => {
-    const proto = mockSubAgentProto({ modelOverride: "nonexistent-model-xyz" });
-    const result = await transformSingleSubagent(proto, baseOpts);
-    expect(result).toBeNull();
+  it("renders the skills mounted for it, keyed by its name, and no other's", async () => {
+    const skills = new Map([
+      ["kit:reviewer", [{ name: "kit:triage", description: "Sort the inbox", path: ".stigmer/plugins/d/skills/triage/SKILL.md" }]],
+      ["kit:other", [{ name: "kit:not-mine", description: "Another agent's", path: ".stigmer/plugins/d/skills/not-mine/SKILL.md" }]],
+    ]);
+    const result = await transformPluginSubagent(pluginAgent(), { ...opts, skills });
+    expect(result.systemPrompt).toContain("## Skills");
+    expect(result.systemPrompt).toContain("### kit:triage");
+    expect(result.systemPrompt).not.toContain("not-mine");
   });
 
-  it("accepts valid model override", async () => {
-    const proto = mockSubAgentProto({ modelOverride: "claude-haiku-4.5" });
-    const result = await transformSingleSubagent(proto, baseOpts);
+  it("narrows the parent's scope by its lists, never widens it, and denies Agent", async () => {
+    const parentScope = ToolScope.of("Agent \"a\"", { tools: ["Read", "Bash", "Agent"], disallowedTools: [] });
+    const result = await transformPluginSubagent(pluginAgent({ tools: ["Read", "Write"] }), { ...opts, parentScope });
+    expect(result.scope.allowsClaudeTool("Read")).toBe(true);
+    expect(result.scope.allowsClaudeTool("Bash"), "narrowed by its tools").toBe(false);
+    expect(result.scope.allowsClaudeTool("Write"), "the parent excludes it").toBe(false);
+    expect(result.scope.allowsEngineTool("task", NATIVE_TOOL_COVERS), "one level").toBe(false);
+  });
+});
 
-    expect(result).not.toBeNull();
-    expect(result!.model).toBe("claude-haiku-4.5");
+// =========================================================================
+// Tests: transformSavedSubagent
+// =========================================================================
+
+describe("transformSavedSubagent", () => {
+  it("binds its own servers' tools and web_fetch, under its own scope, gate and shell", () => {
+    const evaluator = { preToolUse: vi.fn() } as unknown as HookEvaluator;
+    const gate = gateConfig(evaluator);
+    const scope = ToolScope.of("Subagent \"release-notes\"", { tools: ["Read"], disallowedTools: ["Agent"] });
+    const result = transformSavedSubagent(
+      { subagent: savedContext({ toolScope: scope, model: "claude-haiku-4.5" }), mcpTools: [mockTool("changelog_write")], approvalGate: gate, shellEnv: { NOTES_KEY: "n" } },
+      "strict",
+    );
+    expect(result.tools.map((t) => t.name)).toEqual(["changelog_write", "web_fetch"]);
+    expect(result.model).toBe("claude-haiku-4.5");
+    expect(result.scope).toBe(scope);
+    expect(result.own).toEqual({ approvalGate: gate, shellEnv: { NOTES_KEY: "n" } });
   });
 
-  it("omits model field when no override specified", async () => {
-    const proto = mockSubAgentProto({ modelOverride: "" });
-    const result = await transformSingleSubagent(proto, baseOpts);
-
-    expect(result!.model).toBeUndefined();
-  });
-
-  it("narrows the parent's scope by the sub-agent's own lists, under its own name", async () => {
-    const parentScope = ToolScope.of("Agent \"a\"", { tools: ["Read", "Bash"], disallowedTools: [] });
-    const proto = mockSubAgentProto({ name: "reader", tools: ["Read"], disallowedTools: [] });
-    const result = await transformSingleSubagent(proto, { ...baseOpts, parentScope });
-
-    expect(result!.scope.allowsClaudeTool("Read")).toBe(true);
-    expect(result!.scope.allowsClaudeTool("Bash"), "narrowed by the sub-agent's tools").toBe(false);
-    expect(result!.scope.owner).toBe('Sub-agent "reader"');
-  });
-
-  it("never widens the parent's scope", async () => {
-    const parentScope = ToolScope.of("Agent \"a\"", { tools: ["Read"], disallowedTools: [] });
-    const proto = mockSubAgentProto({ name: "wide", tools: ["Read", "Bash"], disallowedTools: [] });
-    const result = await transformSingleSubagent(proto, { ...baseOpts, parentScope });
-
-    expect(result!.scope.allowsClaudeTool("Bash"), "the parent excludes it").toBe(false);
-  });
-
-  it("a sub-agent with no lists keeps the parent's scope", async () => {
-    const parentScope = ToolScope.of("Agent \"a\"", { tools: ["Read"], disallowedTools: [] });
-    const result = await transformSingleSubagent(mockSubAgentProto(), { ...baseOpts, parentScope });
-    expect(result!.scope).toBe(parentScope);
-    expect(subAgentScope(parentScope, mockSubAgentProto())).toBe(parentScope);
-  });
-
-  it("handles empty instructions gracefully", async () => {
-    const proto = mockSubAgentProto({ instructions: "" });
-    const result = await transformSingleSubagent(proto, baseOpts);
-
-    expect(result).not.toBeNull();
-    expect(result!.systemPrompt).toContain("## Response rules");
+  it("runs the turn's model when its context names none, and renders its own skills", () => {
+    const result = transformSavedSubagent(
+      savedGraph(savedContext({ description: "", skills: [{ name: "changelog:changelog", description: "Write one", path: ".stigmer/plugins/d/skills/changelog/SKILL.md" }] })),
+      "strict",
+    );
+    expect(result.model).toBeUndefined();
+    expect(result.description).toBe("Subagent: release-notes");
+    expect(result.systemPrompt).toContain("You write release notes.");
+    expect(result.systemPrompt).toContain("### changelog:changelog");
+    expect(result.systemPrompt).toContain("## Response rules");
   });
 });
 
@@ -465,114 +461,125 @@ describe("compileSubagents: one middleware stack per invocation", () => {
 // =========================================================================
 
 describe("transformAndCompileSubagents", () => {
-  const baseOptions = {
-    subAgents: [] as unknown[],
-    parentMcpTools: [] as StructuredTool[],
+  const baseOptions: SubagentTransformOptions = {
+    pluginAgents: [],
+    subagents: [],
+    parentMcpTools: [],
     parentScope: UNRESTRICTED,
     scopeBase: SCOPE_BASE,
     skills: new Map(),
     workspaceBackend: mockWorkspaceBackend(),
     approvalGate: null,
     parentModelName: "claude-sonnet-4-6",
-    webFetchPosture: "strict" as const,
-    costCap: undefined,
+    webFetchPosture: "strict",
   };
 
   beforeEach(() => {
-    vi.spyOn(global, "fetch").mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        models: [
-          { id: "claude-sonnet-4-6", provider: "anthropic" },
-          { id: "claude-haiku-4.5", provider: "anthropic" },
-        ],
-      }),
-    } as Response);
+    _resetRegistryCache();
+    mockRegistry();
   });
 
   afterEach(() => {
+    _resetRegistryCache();
     vi.restoreAllMocks();
   });
 
-  it("returns null when no subAgents and no workspace", async () => {
-    const result = await transformAndCompileSubagents({
-      ...baseOptions,
-      workspaceBackend: mockWorkspaceBackend({ rootDir: "" }),
-    } as Parameters<typeof transformAndCompileSubagents>[0]);
+  /** Each compile log line, by subagent name: its model and how many tools it binds. */
+  function compiledLines(log: ReturnType<typeof vi.spyOn>): Map<string, string> {
+    const lines = new Map<string, string>();
+    for (const [line] of log.mock.calls) {
+      const match = /Compiled sub-agent '([^']+)' \((.*)\)/.exec(String(line));
+      if (match) lines.set(match[1]!, match[2]!);
+    }
+    return lines;
+  }
 
+  it("returns null when there is no subagent and no workspace", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const result = await transformAndCompileSubagents({ ...baseOptions, workspaceBackend: mockWorkspaceBackend({ rootDir: "" }) });
     expect(result).toBeNull();
   });
 
-  it("creates built-in subagents when workspace exists even without proto subagents", async () => {
-    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
-    const result = await transformAndCompileSubagents(
-      baseOptions as Parameters<typeof transformAndCompileSubagents>[0],
-    );
-
-    expect(result).not.toBeNull();
-    const names = result!.map((r) => r.name);
-    expect(names).toContain("explore");
-    expect(names).toContain("shell");
-    expect(names).toContain("general-purpose");
-
-    logSpy.mockRestore();
+  it("creates the built-ins when a workspace exists, even without subagents of the agent's", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const names = (await transformAndCompileSubagents(baseOptions))!.map((r) => r.name);
+    expect(names.sort()).toEqual(["explore", "general-purpose", "shell"]);
   });
 
-  it("proto subagent with built-in name overrides the built-in", async () => {
-    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
+  it("merges the built-ins with plugin and saved subagents", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
     const result = await transformAndCompileSubagents({
       ...baseOptions,
-      subAgents: [mockSubAgentProto({ name: "explore", instructions: "Custom explore." })],
-    } as Parameters<typeof transformAndCompileSubagents>[0]);
-
-    expect(result).not.toBeNull();
-    const exploreCount = result!.filter((r) => r.name === "explore").length;
-    expect(exploreCount).toBe(1);
-
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("conflicts with built-in type"),
-    );
-
-    logSpy.mockRestore();
-    warnSpy.mockRestore();
+      pluginAgents: [pluginAgent()],
+      subagents: [savedGraph(savedContext())],
+    });
+    expect(result!.map((r) => r.name).sort()).toEqual(["explore", "general-purpose", "kit:reviewer", "release-notes", "shell"]);
   });
 
-  it("a sub-agent name declared twice resolves to the later declaration", async () => {
-    // deepagents refuses duplicate sub-agent names and would fail the turn;
-    // the runner keeps the behaviour agents were written against.
-    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
+  it("lets a saved subagent with a built-in's name override the built-in, warned", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const result = await transformAndCompileSubagents({
       ...baseOptions,
-      subAgents: [
-        mockSubAgentProto({ name: "reviewer", description: "The first reviewer." }),
-        mockSubAgentProto({ name: "reviewer", description: "The later reviewer." }),
-      ],
-    } as Parameters<typeof transformAndCompileSubagents>[0]);
+      subagents: [savedGraph(savedContext({ name: "explore", description: "Our own explorer." }))],
+    });
+    const explore = result!.filter((r) => r.name === "explore");
+    expect(explore).toHaveLength(1);
+    expect(explore[0]!.description).toBe("Our own explorer.");
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("it overrides the built-in"));
+  });
 
-    expect(result).not.toBeNull();
-    const reviewers = result!.filter((r) => r.name === "reviewer");
-    expect(reviewers).toHaveLength(1);
-    expect(reviewers[0].description).toBe("The later reviewer.");
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("declared more than once"));
+  it("binds a plugin subagent the parent's MCP tools, and a saved subagent only its own servers' tools", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    await transformAndCompileSubagents({
+      ...baseOptions,
+      parentMcpTools: [mockTool("github_search"), mockTool("stigmer_memory_recall")],
+      pluginAgents: [pluginAgent()],
+      subagents: [savedGraph(savedContext(), [mockTool("changelog_write")])],
+    });
+    const lines = compiledLines(log);
+    expect(lines.get("kit:reviewer"), "the parent's two tools and web_fetch").toBe("model=claude-sonnet-4-6, tools=3");
+    expect(lines.get("release-notes"), "its own server's tool and web_fetch").toBe("model=claude-sonnet-4-6, tools=2");
+  });
 
-    logSpy.mockRestore();
-    warnSpy.mockRestore();
+  it("runs each subagent on its own model, a saved one's and a listed plugin one's, else the parent's", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    await transformAndCompileSubagents({
+      ...baseOptions,
+      pluginAgents: [pluginAgent({ model: "claude-haiku-4.5" }), pluginAgent({ name: "kit:alias", model: "sonnet" })],
+      subagents: [savedGraph(savedContext({ model: "claude-haiku-4.5" }))],
+    });
+    const lines = compiledLines(log);
+    expect(lines.get("kit:reviewer")).toContain("model=claude-haiku-4.5");
+    expect(lines.get("kit:alias")).toContain("model=claude-sonnet-4-6");
+    expect(lines.get("release-notes")).toContain("model=claude-haiku-4.5");
+  });
+
+  it("gates a saved subagent with its own gate config, and every other subagent with the parent's", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const build = vi.spyOn(subagentWiringModule, "buildSubAgentMiddleware");
+    const parentGate = gateConfig({ preToolUse: vi.fn() } as unknown as HookEvaluator);
+    const ownGate = gateConfig({ preToolUse: vi.fn() } as unknown as HookEvaluator);
+    const result = await transformAndCompileSubagents({
+      ...baseOptions,
+      approvalGate: parentGate,
+      pluginAgents: [pluginAgent()],
+      subagents: [savedGraph(savedContext(), [], ownGate)],
+    });
+    const gates = new Map<string, ApprovalGateConfig | null | undefined>();
+    result!.forEach((compiled, i) => gates.set(compiled.name, build.mock.calls[i]![0]!.approvalGate));
+    expect(gates.get("release-notes")?.hooks).toBe(ownGate.hooks);
+    expect(gates.get("release-notes")?.subAgent?.type).toBe("release-notes");
+    expect(gates.get("kit:reviewer")?.hooks).toBe(parentGate.hooks);
+    expect(gates.get("general-purpose")?.hooks).toBe(parentGate.hooks);
   });
 
   describe("tool scopes", () => {
-    /** Each compiled sub-agent's scope, read off the middleware its validation build was given. */
-    async function compiledScopes(options: Partial<Parameters<typeof transformAndCompileSubagents>[0]>) {
+    /** Each compiled subagent's scope, read off the middleware its validation build was given. */
+    async function compiledScopes(options: Partial<SubagentTransformOptions>) {
       vi.spyOn(console, "log").mockImplementation(() => {});
       const build = vi.spyOn(subagentWiringModule, "buildSubAgentMiddleware");
-      const result = await transformAndCompileSubagents({
-        ...baseOptions,
-        ...options,
-      } as Parameters<typeof transformAndCompileSubagents>[0]);
+      const result = await transformAndCompileSubagents({ ...baseOptions, ...options });
       const scopes = new Map<string, ToolScope | undefined>();
       result!.forEach((compiled, i) => {
         const toolScope = build.mock.calls[i]![0]!.toolScope as ToolScopeConfig | undefined;
@@ -581,182 +588,61 @@ describe("transformAndCompileSubagents", () => {
       return { names: result!.map((r) => r.name), scopes };
     }
 
-    it("gives every sub-agent its scope with the parent's attribution: a declared one narrowed, a built-in the parent's", async () => {
+    it("gives a built-in the parent's scope, a plugin subagent the parent's narrowed, a saved one its own", async () => {
       const parentScope = ToolScope.of("Agent \"a\"", { tools: [], disallowedTools: ["Bash"] });
+      const savedScope = ToolScope.of("Subagent \"release-notes\"", { tools: ["Bash"], disallowedTools: ["Agent"] });
       const { scopes } = await compiledScopes({
         parentScope,
-        subAgents: [mockSubAgentProto({ name: "reader", tools: ["Read"] })],
+        pluginAgents: [pluginAgent({ tools: ["Read"] })],
+        subagents: [savedGraph(savedContext({ toolScope: savedScope }))],
       });
 
-      expect(scopes.get("explore")).toBe(parentScope);
-      expect(scopes.get("general-purpose")).toBe(parentScope);
-      const reader = scopes.get("reader")!;
-      expect(reader.allowsClaudeTool("Read")).toBe(true);
-      expect(reader.allowsClaudeTool("Write"), "the sub-agent's allow-list").toBe(false);
-      expect(reader.allowsClaudeTool("Bash"), "the parent's deny-list").toBe(false);
+      for (const builtin of ["explore", "shell", "general-purpose"]) {
+        expect(scopes.get(builtin)!.allowsClaudeTool("Write"), builtin).toBe(true);
+        expect(scopes.get(builtin)!.allowsClaudeTool("Bash"), builtin).toBe(false);
+      }
+      const reviewer = scopes.get("kit:reviewer")!;
+      expect(reviewer.allowsClaudeTool("Read")).toBe(true);
+      expect(reviewer.allowsClaudeTool("Write"), "the plugin's allow-list").toBe(false);
+      expect(reviewer.allowsClaudeTool("Bash"), "the parent's deny-list").toBe(false);
+      expect(scopes.get("release-notes"), "never the parent's lists").toBe(savedScope);
+      expect(scopes.get("release-notes")!.allowsClaudeTool("Bash")).toBe(true);
     });
 
-    it("compiles only the types the main agent's Agent(type, …) names, built-ins included, case-insensitively", async () => {
-      const parentScope = ToolScope.of("Agent \"a\"", { tools: ["Read", "Agent(Explore, reviewer)"], disallowedTools: [] });
+    it("takes the task tool out of every subagent's scope: none hands work on", async () => {
+      const { scopes } = await compiledScopes({
+        parentScope: ToolScope.of("Agent \"a\"", { tools: ["Read", "Agent"], disallowedTools: [] }),
+        pluginAgents: [pluginAgent()],
+        subagents: [savedGraph(savedContext())],
+      });
+      expect([...scopes.keys()].sort()).toEqual(["explore", "general-purpose", "kit:reviewer", "release-notes", "shell"]);
+      for (const [name, scope] of scopes) {
+        expect(scope!.allowsClaudeTool("Agent"), name).toBe(false);
+        expect(scope!.allowsEngineTool("task", NATIVE_TOOL_COVERS), name).toBe(false);
+      }
+    });
+
+    it("compiles only the types the main agent's Agent(type, …) names: built-ins, plugin and saved subagents alike", async () => {
+      const parentScope = ToolScope.of("Agent \"a\"", { tools: ["Read", "Agent(Explore, release-notes, kit:reviewer)"], disallowedTools: [] });
       const { names } = await compiledScopes({
         parentScope,
-        subAgents: [mockSubAgentProto({ name: "reviewer" }), mockSubAgentProto({ name: "writer" })],
+        pluginAgents: [pluginAgent(), pluginAgent({ name: "kit:other" })],
+        subagents: [savedGraph(savedContext()), savedGraph(savedContext({ name: "triage" }))],
       });
-
-      expect(names.sort()).toEqual(["explore", "reviewer"]);
+      expect(names.sort()).toEqual(["explore", "kit:reviewer", "release-notes"]);
     });
 
-    it("compiles no sub-agent when the main agent's lists exclude Agent", async () => {
+    it("compiles no subagent when the main agent's lists exclude Agent", async () => {
+      vi.spyOn(console, "log").mockImplementation(() => {});
       vi.spyOn(console, "warn").mockImplementation(() => {});
-      const parentScope = ToolScope.of("Agent \"a\"", { tools: [], disallowedTools: ["Agent"] });
       const result = await transformAndCompileSubagents({
         ...baseOptions,
-        parentScope,
-        subAgents: [mockSubAgentProto({ name: "reviewer" })],
-      } as Parameters<typeof transformAndCompileSubagents>[0]);
-
+        parentScope: ToolScope.of("Agent \"a\"", { tools: [], disallowedTools: ["Agent"] }),
+        pluginAgents: [pluginAgent()],
+        subagents: [savedGraph(savedContext())],
+      });
       expect(result).toBeNull();
     });
-  });
-
-  it("gracefully handles transform failures for individual subagents", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-    const result = await transformAndCompileSubagents({
-      ...baseOptions,
-      subAgents: [
-        mockSubAgentProto({ name: "good-agent", modelOverride: "claude-haiku-4.5" }),
-        mockSubAgentProto({ name: "bad-agent", modelOverride: "nonexistent-xyz" }),
-      ],
-    } as Parameters<typeof transformAndCompileSubagents>[0]);
-
-    expect(result).not.toBeNull();
-    const names = result!.map((r) => r.name);
-    expect(names).toContain("good-agent");
-    expect(names).not.toContain("bad-agent");
-
-    errorSpy.mockRestore();
-    logSpy.mockRestore();
-    warnSpy.mockRestore();
-  });
-});
-
-// =========================================================================
-// Tests: resolveSubagentSkillPrompt
-// =========================================================================
-
-describe("resolveSubagentSkillPrompt", () => {
-  const asSubAgent = (proto: unknown): import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent =>
-    proto as import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent;
-
-  it("returns empty string for a sub-agent the runtime mounted no skills for", () => {
-    const proto = mockSubAgentProto({ name: "researcher", skillRefs: [] });
-    expect(resolveSubagentSkillPrompt(asSubAgent(proto), new Map())).toBe("");
-  });
-
-  it("renders the skills section from the sub-agent's own mounted skills, keyed by its name", () => {
-    const proto = mockSubAgentProto({ name: "researcher", skillRefs: [{ slug: "org/my-skill" }] });
-    const skills = new Map([
-      ["researcher", [{ name: "my-skill", description: "A test skill", path: ".stigmer/skills/my-skill/SKILL.md" }]],
-      ["other", [{ name: "not-mine", description: "Another agent's", path: ".stigmer/skills/not-mine/SKILL.md" }]],
-    ]);
-
-    const result = resolveSubagentSkillPrompt(asSubAgent(proto), skills);
-
-    expect(result).toContain("## Skills");
-    expect(result).toContain("### my-skill");
-    expect(result).toContain("**Location**: `.stigmer/skills/my-skill/`");
-    expect(result).not.toContain("not-mine");
-  });
-});
-
-// =========================================================================
-// Tests: Edge cases and integration
-// =========================================================================
-
-describe("subagent-transformer edge cases", () => {
-  beforeEach(() => {
-    vi.spyOn(global, "fetch").mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        models: [
-          { id: "claude-sonnet-4-6", provider: "anthropic" },
-          { id: "claude-haiku-4.5", provider: "anthropic" },
-        ],
-      }),
-    } as Response);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("transformSingleSubagent with empty name still transforms", async () => {
-    const proto = mockSubAgentProto({ name: "", description: "" });
-    const result = await transformSingleSubagent(proto, {
-      parentScope: UNRESTRICTED,
-      parentModelName: "claude-sonnet-4-6",
-      webFetchPosture: "strict",
-    });
-
-    expect(result).not.toBeNull();
-    expect(result!.name).toBe("");
-    expect(result!.description).toBe("Sub-agent: ");
-  });
-
-  it("transformAndCompileSubagents returns null when all subagents fail", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-    const result = await transformAndCompileSubagents({
-      subAgents: [
-        mockSubAgentProto({ name: "bad1", modelOverride: "invalid1" }),
-        mockSubAgentProto({ name: "bad2", modelOverride: "invalid2" }),
-      ],
-      parentMcpTools: [],
-      parentScope: UNRESTRICTED,
-      scopeBase: SCOPE_BASE,
-      skills: new Map(),
-      workspaceBackend: mockWorkspaceBackend({ rootDir: "" }),
-      approvalGate: null,
-      parentModelName: "claude-sonnet-4-6",
-      webFetchPosture: "strict",
-      costCap: undefined,
-    } as Parameters<typeof transformAndCompileSubagents>[0]);
-
-    expect(result).toBeNull();
-
-    errorSpy.mockRestore();
-    logSpy.mockRestore();
-    warnSpy.mockRestore();
-  });
-
-  it("transformAndCompileSubagents merges built-ins with proto subagents", async () => {
-    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
-    const result = await transformAndCompileSubagents({
-      subAgents: [mockSubAgentProto({ name: "custom-agent" })],
-      parentMcpTools: [],
-      parentScope: UNRESTRICTED,
-      scopeBase: SCOPE_BASE,
-      skills: new Map(),
-      workspaceBackend: mockWorkspaceBackend(),
-      approvalGate: null,
-      parentModelName: "claude-sonnet-4-6",
-      webFetchPosture: "strict",
-      costCap: undefined,
-    } as Parameters<typeof transformAndCompileSubagents>[0]);
-
-    expect(result).not.toBeNull();
-    const names = result!.map((r) => r.name);
-    expect(names).toContain("explore");
-    expect(names).toContain("shell");
-    expect(names).toContain("custom-agent");
-
-    logSpy.mockRestore();
   });
 });
 

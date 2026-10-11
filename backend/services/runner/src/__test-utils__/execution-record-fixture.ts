@@ -17,10 +17,12 @@
  * driver supplies its own fixture ids and model (`execute-cursor/__test-
  * utils__/hermetic-cursor.ts` `cursorExecutionRecord`); the runtime's own
  * tests use the defaults. Ids are fixed so goldens are readable and
- * byte-stable.
+ * byte-stable. `savedAgentFixture` builds a saved agent the record's agent
+ * can list as a subagent, at a version hash of its own.
  */
 
-import { create, type JsonObject } from "@bufbuild/protobuf";
+import { createHash } from "node:crypto";
+import { create, type JsonObject, type MessageInitShape } from "@bufbuild/protobuf";
 import {
   RunSchema,
   RunStatusSchema,
@@ -207,4 +209,18 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
     }),
   );
   return new ExecutionRecord({ execution, session, agent, controlSignal: options.controlSignal, skills, subagents: options.subagents ?? [] });
+}
+
+/**
+ * A saved agent a fixture's agent can list as a subagent (`subagents`): its
+ * slug is its name in the turn, and its version hash is derived from the
+ * slug, so the reference the parent pins is stable across runs.
+ */
+export function savedAgentFixture(slug: string, spec: MessageInitShape<typeof AgentSpecSchema>, org = DEFAULT_RECORD_IDS.org): Agent {
+  const versionHash = createHash("sha256").update(`saved-agent:${slug}`).digest("hex");
+  return create(AgentSchema, {
+    metadata: create(ApiResourceMetadataSchema, { id: `agt_${slug}`, org, name: slug, slug }),
+    spec: create(AgentSpecSchema, spec),
+    status: { versionHash },
+  });
 }

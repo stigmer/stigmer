@@ -43,7 +43,7 @@ describe("the built-in judge", () => {
     expect(spec.tools).toEqual([]);
     expect(spec.plugins).toEqual([]);
     expect(spec.skillRefs).toEqual([]);
-    expect(spec.subAgents).toEqual([]);
+    expect(spec.subagents).toEqual([]);
     expect(spec.hooks).toEqual([]);
     expect(spec.env).toEqual({});
   });
