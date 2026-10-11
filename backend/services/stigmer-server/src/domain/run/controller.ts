@@ -142,6 +142,8 @@ import {
   newValidateSessionOrganizationStep,
 } from "./session-binding.js";
 import type { StreamBroker } from "./stream-broker.js";
+import type { SessionEventBroker } from "../session/events/broker.js";
+import { runCreateWriter, runRemover } from "../session/events/run-writes.js";
 import { submitApproval } from "./submit-approval.js";
 import { submitFileDecision } from "./submit-file-decision.js";
 import { subscribeExecution } from "./subscribe.js";
@@ -212,6 +214,13 @@ export interface AgentExecutionControllerDeps {
    */
   readonly broker: StreamBroker;
   /**
+   * The fan-out of each session's event log. Every run write that can
+   * change whether a run is working appends its session's events in the
+   * same transaction and publishes them here after the commit
+   * (domain/session/events/run-writes.ts).
+   */
+  readonly sessionEventBroker: SessionEventBroker;
+  /**
    * Recover's per-execution turn (pipeline/keyed-serializer.ts). ONE
    * instance spans both routers, as the broker does; the composition root
    * owns it, so a recover over either router waits for the other.
@@ -273,6 +282,7 @@ export function registerAgentExecutionServices(
     authorizer: deps.authorizer,
     recoverSerializer: deps.recoverSerializer,
     broker: deps.broker,
+    sessionEventBroker: deps.sessionEventBroker,
     engineState: deps.engineState,
     runValuePlanner: deps.runValuePlanner,
     gateSteps: deps.gateSteps,
@@ -453,7 +463,9 @@ async function createExecution(
     .addStep(newStampRunCredentialsStep())
     .addStep(newPlanRunValuesStep(deps.runValuePlanner))
     .addStep(newProcessAttachmentsStep(deps.logger))
-    .addStep(newPersistStep(deps.store))
+    // The run commits with its user message and, when it starts its
+    // session's work, the session's running status.
+    .addStep(newPersistStep(deps.store, runCreateWriter(deps)))
     .addStep(
       newCreateAuthorizationTuplesStep(
         deps.authorizationLifecycle,
@@ -473,6 +485,7 @@ async function createExecution(
         logger: deps.logger,
         engineState: deps.engineState,
         statusObservers: deps.statusObservers,
+        sessionEventBroker: deps.sessionEventBroker,
       }),
     )
     // The session-lane sandbox ensure: after StartWorkflow,
@@ -581,7 +594,9 @@ async function deleteExecution(
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, RunSchema))
     .addStep(newCascadeDeleteScoresStep(deps.runScores))
-    .addStep(newDeleteResourceStep(deps.store))
+    // The run's own events go with it, and a working run's removal ends
+    // its session's turn when nothing else in the session works.
+    .addStep(newDeleteResourceStep(deps.store, runRemover(deps)))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

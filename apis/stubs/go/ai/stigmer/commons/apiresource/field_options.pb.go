@@ -47,6 +47,14 @@ var file_ai_stigmer_commons_apiresource_field_options_proto_extTypes = []protoim
 		Tag:           "varint,90204,opt,name=reference_kind,enum=ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
 		Filename:      "ai/stigmer/commons/apiresource/field_options.proto",
 	},
+	{
+		ExtendedType:  (*descriptorpb.FieldOptions)(nil),
+		ExtensionType: (*string)(nil),
+		Field:         90206,
+		Name:          "ai.stigmer.commons.apiresource.event_type",
+		Tag:           "bytes,90206,opt,name=event_type",
+		Filename:      "ai/stigmer/commons/apiresource/field_options.proto",
+	},
 }
 
 // Extension fields to descriptorpb.FieldOptions.
@@ -64,6 +72,12 @@ var (
 	//
 	// optional ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind reference_kind = 90204;
 	E_ReferenceKind = &file_ai_stigmer_commons_apiresource_field_options_proto_extTypes[2]
+	// Names the outside format's type string a oneof member carries on the
+	// wire ("agent.message"), so a message copied from that format keeps no
+	// type field of its own and the name is declared once.
+	//
+	// optional string event_type = 90206;
+	E_EventType = &file_ai_stigmer_commons_apiresource_field_options_proto_extTypes[3]
 )
 
 var File_ai_stigmer_commons_apiresource_field_options_proto protoreflect.FileDescriptor
@@ -73,7 +87,9 @@ const file_ai_stigmer_commons_apiresource_field_options_proto_rawDesc = "" +
 	"2ai/stigmer/commons/apiresource/field_options.proto\x12\x1eai.stigmer.commons.apiresource\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a google/protobuf/descriptor.proto:;\n" +
 	"\bcomputed\x12\x1d.google.protobuf.FieldOptions\x18\xd9\xc0\x05 \x01(\bR\bcomputed:=\n" +
 	"\timmutable\x12\x1d.google.protobuf.FieldOptions\x18\xda\xc0\x05 \x01(\bR\timmutable:\x87\x01\n" +
-	"\x0ereference_kind\x12\x1d.google.protobuf.FieldOptions\x18\xdc\xc0\x05 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\rreferenceKindB\x9c\x02\n" +
+	"\x0ereference_kind\x12\x1d.google.protobuf.FieldOptions\x18\xdc\xc0\x05 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\rreferenceKind:>\n" +
+	"\n" +
+	"event_type\x12\x1d.google.protobuf.FieldOptions\x18\xde\xc0\x05 \x01(\tR\teventTypeB\x9c\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\x11FieldOptionsProtoP\x01ZGgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var file_ai_stigmer_commons_apiresource_field_options_proto_goTypes = []any{
@@ -84,11 +100,12 @@ var file_ai_stigmer_commons_apiresource_field_options_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.commons.apiresource.computed:extendee -> google.protobuf.FieldOptions
 	0, // 1: ai.stigmer.commons.apiresource.immutable:extendee -> google.protobuf.FieldOptions
 	0, // 2: ai.stigmer.commons.apiresource.reference_kind:extendee -> google.protobuf.FieldOptions
-	1, // 3: ai.stigmer.commons.apiresource.reference_kind:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	3, // [3:4] is the sub-list for extension type_name
-	0, // [0:3] is the sub-list for extension extendee
+	0, // 3: ai.stigmer.commons.apiresource.event_type:extendee -> google.protobuf.FieldOptions
+	1, // 4: ai.stigmer.commons.apiresource.reference_kind:type_name -> ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	4, // [4:5] is the sub-list for extension type_name
+	0, // [0:4] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
 }
 
@@ -104,7 +121,7 @@ func file_ai_stigmer_commons_apiresource_field_options_proto_init() {
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_commons_apiresource_field_options_proto_rawDesc), len(file_ai_stigmer_commons_apiresource_field_options_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   0,
-			NumExtensions: 3,
+			NumExtensions: 4,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_commons_apiresource_field_options_proto_goTypes,

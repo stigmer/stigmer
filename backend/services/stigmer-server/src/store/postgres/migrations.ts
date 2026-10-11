@@ -187,11 +187,14 @@ export const SCHEMA_VERSION_20 = 20;
 /** v21: the MCP server rows removed; a plugin's parts became its plugins; a connect attempt names a plugin's server. */
 export const SCHEMA_VERSION_21 = 21;
 
-/** v22: the sub-agents written inside agents removed, each logged as an agent manifest. */
+/** v22: each session's ordered event log (DDL only). */
 export const SCHEMA_VERSION_22 = 22;
 
+/** v23: the sub-agents written inside agents removed, each logged as an agent manifest. */
+export const SCHEMA_VERSION_23 = 23;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_22;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_23;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -253,7 +256,8 @@ export async function runMigrations(
       [SCHEMA_VERSION_19, migrateToV19],
       [SCHEMA_VERSION_20, migrateToV20],
       [SCHEMA_VERSION_21, (migrating) => migrateToV21(migrating, logger)],
-      [SCHEMA_VERSION_22, (migrating) => migrateToV22(migrating, logger)],
+      [SCHEMA_VERSION_22, migrateToV22],
+      [SCHEMA_VERSION_23, (migrating) => migrateToV23(migrating, logger)],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1538,15 +1542,15 @@ async function migrateToV21(client: PoolClient, logger: StoreLogger): Promise<vo
 }
 
 /**
- * v22: a subagent is a saved agent the parent lists
+ * v23: a subagent is a saved agent the parent lists
  * (../sub-agents-retired.ts says what each row becomes and why a sub-agent
  * is logged rather than created). Every agent holding sub-agents written
  * inside it loses them, as a new current version archived like any saved
  * one, and each one is logged as an agent manifest; every session on a
- * changed agent moves to its new version. The SQLite driver's v27 in this
+ * changed agent moves to its new version. The SQLite driver's v28 in this
  * engine's terms. Runs inside applyInTransaction's BEGIN.
  */
-async function migrateToV22(client: PoolClient, logger: StoreLogger): Promise<void> {
+async function migrateToV23(client: PoolClient, logger: StoreLogger): Promise<void> {
   const forEachRow = async (
     kind: string,
     visit: (row: { id: string; data: Uint8Array }) => Promise<void>,
@@ -1607,4 +1611,47 @@ async function migrateToV22(client: PoolClient, logger: StoreLogger): Promise<vo
       await update(SUB_AGENT_RETIREMENT_SESSION_KIND, row.id, migrated);
     }
   });
+}
+
+/**
+ * v22: each session's ordered event log (../session-events.ts). One row per
+ * event, numbered per session: the primary key is the order, the event id
+ * is unique per session (a runner's resend is recognised by it), and each
+ * read the log serves has its index: a type filter and a session's newest
+ * status event (type, seq), a run's own events at its delete (run_id, seq),
+ * and an organization's purge (org). `processed_at` is fixed-width UTC
+ * text, compared as bytes like every ledger time here. The SQLite driver's
+ * v27 in this engine's terms.
+ */
+async function migrateToV22(client: PoolClient): Promise<void> {
+  await client.query(`
+    CREATE TABLE session_events (
+      session_id TEXT NOT NULL,
+      seq BIGINT NOT NULL,
+      event_id TEXT NOT NULL,
+      run_id TEXT NOT NULL DEFAULT '',
+      thread_id TEXT NOT NULL DEFAULT '',
+      type TEXT NOT NULL,
+      org TEXT NOT NULL DEFAULT '',
+      processed_at TEXT NOT NULL,
+      data BYTEA NOT NULL,
+      PRIMARY KEY (session_id, seq)
+    );
+
+    CREATE UNIQUE INDEX idx_session_events_event_id ON session_events (session_id, event_id);
+    CREATE INDEX idx_session_events_type ON session_events (session_id, type, seq);
+    CREATE INDEX idx_session_events_run ON session_events (session_id, run_id, seq);
+    CREATE INDEX idx_session_events_org ON session_events (org);
+    -- A session's high-water mark: the last seq and accepted time it handed
+    -- out. Numbers come from here, never from the newest row, so a run's
+    -- removal (which deletes its own events) never lowers it and no number
+    -- is handed out twice.
+    CREATE TABLE session_event_heads (
+      session_id TEXT PRIMARY KEY,
+      org TEXT NOT NULL DEFAULT '',
+      last_seq BIGINT NOT NULL,
+      last_processed_at TEXT NOT NULL
+    );
+    CREATE INDEX idx_session_event_heads_org ON session_event_heads (org);
+  `);
 }

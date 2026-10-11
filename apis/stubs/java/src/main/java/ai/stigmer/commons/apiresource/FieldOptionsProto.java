@@ -22,6 +22,7 @@ public final class FieldOptionsProto extends com.google.protobuf.GeneratedFile {
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.computed);
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.immutable);
     registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.referenceKind);
+    registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.eventType);
   }
 
   public static void registerAllExtensions(
@@ -75,6 +76,23 @@ public final class FieldOptionsProto extends com.google.protobuf.GeneratedFile {
           .newFileScopedGeneratedExtension(
         ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind.class,
         null);
+  public static final int EVENT_TYPE_FIELD_NUMBER = 90206;
+  /**
+   * <pre>
+   * Names the outside format's type string a oneof member carries on the
+   * wire ("agent.message"), so a message copied from that format keeps no
+   * type field of its own and the name is declared once.
+   * </pre>
+   *
+   * <code>extend .google.protobuf.FieldOptions { ... }</code>
+   */
+  public static final
+    com.google.protobuf.GeneratedMessage.GeneratedExtension<
+      com.google.protobuf.DescriptorProtos.FieldOptions,
+      java.lang.String> eventType = com.google.protobuf.GeneratedMessage
+          .newFileScopedGeneratedExtension(
+        java.lang.String.class,
+        null);
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -95,11 +113,13 @@ public final class FieldOptionsProto extends com.google.protobuf.GeneratedFile {
       "eference_kind\022\035.google.protobuf.FieldOpt" +
       "ions\030\334\300\005 \001(\0162?.ai.stigmer.commons.apires" +
       "ource.apiresourcekind.ApiResourceKindR\rr" +
-      "eferenceKindB\257\001B\021FieldOptionsProtoP\001\242\002\004A" +
-      "SCA\252\002\036Ai.Stigmer.Commons.Apiresource\312\002\036A" +
-      "i\\Stigmer\\Commons\\Apiresource\342\002*Ai\\Stigm" +
-      "er\\Commons\\Apiresource\\GPBMetadata\352\002!Ai:" +
-      ":Stigmer::Commons::Apiresourceb\006proto3"
+      "eferenceKind:>\n\nevent_type\022\035.google.prot" +
+      "obuf.FieldOptions\030\336\300\005 \001(\tR\teventTypeB\257\001B" +
+      "\021FieldOptionsProtoP\001\242\002\004ASCA\252\002\036Ai.Stigmer" +
+      ".Commons.Apiresource\312\002\036Ai\\Stigmer\\Common" +
+      "s\\Apiresource\342\002*Ai\\Stigmer\\Commons\\Apire" +
+      "source\\GPBMetadata\352\002!Ai::Stigmer::Common" +
+      "s::Apiresourceb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -110,6 +130,7 @@ public final class FieldOptionsProto extends com.google.protobuf.GeneratedFile {
     computed.internalInit(descriptor.getExtension(0));
     immutable.internalInit(descriptor.getExtension(1));
     referenceKind.internalInit(descriptor.getExtension(2));
+    eventType.internalInit(descriptor.getExtension(3));
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindProto.getDescriptor();
     com.google.protobuf.DescriptorProtos.getDescriptor();

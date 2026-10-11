@@ -341,9 +341,13 @@ export function newFinalStage(deps: FinalStageDeps): OrganizationPurgeStage {
       ctx.set(EXISTING_RESOURCE_KEY, organization);
       // The kind purges remove each row's search entry and each schedule's
       // fire ledger through steps that log a fault and go on; both tables
-      // name the organization, so a sweep here leaves neither behind.
+      // name the organization, so a sweep here leaves neither behind. The
+      // session purge removes each session's event log; the sweep also
+      // takes the events of a run created into a session while it was
+      // being deleted.
       await deps.store.deleteSearchIndexByOrg(id);
       await deps.store.deleteScheduleFiresByOrg(id);
+      await deps.store.sessionEvents.deleteByOrg(id);
       await newPipeline<DeleteInput>("organization-purge-final", deps.logger)
         .addStep(newRevokeOrganizationPoliciesStep<DeleteInput>(deps.grantPath))
         .addStep(newDeleteSearchIndexStep(deps.store, deps.logger))

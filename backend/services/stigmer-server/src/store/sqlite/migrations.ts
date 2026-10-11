@@ -187,11 +187,13 @@ export const SCHEMA_VERSION_24 = 24;
 export const SCHEMA_VERSION_25 = 25;
 /** v26: the MCP server rows removed; a plugin's parts became its plugins; a connect attempt names a plugin's server. */
 export const SCHEMA_VERSION_26 = 26;
-/** v27: the sub-agents written inside agents removed, each logged as an agent manifest. */
+/** v27: each session's ordered event log (DDL only). */
 export const SCHEMA_VERSION_27 = 27;
+/** v28: the sub-agents written inside agents removed, each logged as an agent manifest. */
+export const SCHEMA_VERSION_28 = 28;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_27;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_28;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -243,7 +245,8 @@ export function runMigrations(
     [SCHEMA_VERSION_24, migrateToV24],
     [SCHEMA_VERSION_25, migrateToV25],
     [SCHEMA_VERSION_26, (migrating) => migrateToV26(migrating, logger)],
-    [SCHEMA_VERSION_27, (migrating) => migrateToV27(migrating, logger)],
+    [SCHEMA_VERSION_27, migrateToV27],
+    [SCHEMA_VERSION_28, (migrating) => migrateToV28(migrating, logger)],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1505,15 +1508,15 @@ function migrateToV26(db: DatabaseSync, logger: StoreLogger): void {
 }
 
 /**
- * v27: a subagent is a saved agent the parent lists
+ * v28: a subagent is a saved agent the parent lists
  * (../sub-agents-retired.ts says what each row becomes and why a sub-agent
  * is logged rather than created). Every agent holding sub-agents written
  * inside it loses them, as a new current version archived like any saved
  * one, and each one is logged as an agent manifest; every session on a
- * changed agent moves to its new version. The Postgres driver's v22 in
+ * changed agent moves to its new version. The Postgres driver's v23 in
  * this engine's terms. Runs inside applyInTransaction's BEGIN.
  */
-function migrateToV27(db: DatabaseSync, logger: StoreLogger): void {
+function migrateToV28(db: DatabaseSync, logger: StoreLogger): void {
   const page = db.prepare(
     `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
   );
@@ -1564,4 +1567,45 @@ function migrateToV27(db: DatabaseSync, logger: StoreLogger): void {
       update.run(migrated, SUB_AGENT_RETIREMENT_SESSION_KIND, row.id);
     }
   });
+}
+
+/**
+ * v27: each session's ordered event log (../session-events.ts): the
+ * Postgres driver's v22 in this engine's terms, with the same keys and
+ * indexes. An ordinary rowid table, not WITHOUT ROWID: an event's payload
+ * can be hundreds of kilobytes, past the small rows WITHOUT ROWID suits.
+ * Every write runs under BEGIN IMMEDIATE, so a session's numbers and times
+ * are assigned one writer at a time.
+ */
+function migrateToV27(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE session_events (
+      session_id    TEXT NOT NULL,
+      seq           INTEGER NOT NULL,
+      event_id      TEXT NOT NULL,
+      run_id        TEXT NOT NULL DEFAULT '',
+      thread_id     TEXT NOT NULL DEFAULT '',
+      type          TEXT NOT NULL,
+      org           TEXT NOT NULL DEFAULT '',
+      processed_at  TEXT NOT NULL,
+      data          BLOB NOT NULL,
+      PRIMARY KEY (session_id, seq)
+    );
+
+    CREATE UNIQUE INDEX idx_session_events_event_id ON session_events (session_id, event_id);
+    CREATE INDEX idx_session_events_type ON session_events (session_id, type, seq);
+    CREATE INDEX idx_session_events_run ON session_events (session_id, run_id, seq);
+    CREATE INDEX idx_session_events_org ON session_events (org);
+    -- A session's high-water mark: the last seq and accepted time it handed
+    -- out. Numbers come from here, never from the newest row, so a run's
+    -- removal (which deletes its own events) never lowers it and no number
+    -- is handed out twice.
+    CREATE TABLE session_event_heads (
+      session_id TEXT PRIMARY KEY,
+      org TEXT NOT NULL DEFAULT '',
+      last_seq INTEGER NOT NULL,
+      last_processed_at TEXT NOT NULL
+    );
+    CREATE INDEX idx_session_event_heads_org ON session_event_heads (org);
+  `);
 }

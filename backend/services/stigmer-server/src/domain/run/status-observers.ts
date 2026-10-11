@@ -18,6 +18,12 @@
  * Initial-phase stamping at creation (SetInitialPhase → PENDING) is by
  * definition not a transition and does not notify.
  *
+ * Every one of these sites, creation and the run delete chain write
+ * through domain/session/events/run-writes.ts, so the session's status
+ * events commit in the same transaction as the run. The observers below
+ * run after that commit and are a separate concern: a crash between the
+ * two loses an observer call, never a status event.
+ *
  * Contract rendered here (status-hooks.ts carries the full text):
  *   - fires only when the phase actually changed (runner
  *     progress reports repeat the phase many times per execution; the

@@ -4,6 +4,7 @@ package gen
 
 import (
 	"context"
+	"io"
 
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
@@ -61,6 +62,11 @@ func (s *SessionClient) Delete(ctx context.Context, id string) (*sessionv1.Sessi
 	return resp, wrapErr(err)
 }
 
+func (s *SessionClient) AppendEvents(ctx context.Context, input *sessionv1.AppendSessionEventsInput) (*sessionv1.AppendSessionEventsResponse, error) {
+	resp, err := s.command.AppendEvents(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SessionClient) Get(ctx context.Context, id string) (*sessionv1.Session, error) {
 	resp, err := s.query.Get(ctx, &sessionv1.SessionId{Value: id})
 	return resp, wrapErr(err)
@@ -79,6 +85,35 @@ func (s *SessionClient) ListByAgent(ctx context.Context, input *sessionv1.ListSe
 func (s *SessionClient) ListByChannel(ctx context.Context, input *sessionv1.ListSessionsByChannelRequest) (*sessionv1.SessionList, error) {
 	resp, err := s.query.ListByChannel(ctx, input)
 	return resp, wrapErr(err)
+}
+
+func (s *SessionClient) ListEvents(ctx context.Context, input *sessionv1.ListSessionEventsRequest) (*sessionv1.SessionEventList, error) {
+	resp, err := s.query.ListEvents(ctx, input)
+	return resp, wrapErr(err)
+}
+
+// SessionStreamEventsStream wraps the server stream for StreamEvents.
+type SessionStreamEventsStream struct {
+	stream sessionv1.SessionQueryController_StreamEventsClient
+}
+
+func (s *SessionStreamEventsStream) Recv() (*sessionv1.StreamSessionEventsResponse, error) {
+	msg, err := s.stream.Recv()
+	if err != nil {
+		if err == io.EOF {
+			return nil, io.EOF
+		}
+		return nil, wrapErr(err)
+	}
+	return msg, nil
+}
+
+func (s *SessionClient) StreamEvents(ctx context.Context, input *sessionv1.StreamSessionEventsRequest) (*SessionStreamEventsStream, error) {
+	stream, err := s.query.StreamEvents(ctx, input)
+	if err != nil {
+		return nil, wrapErr(err)
+	}
+	return &SessionStreamEventsStream{stream: stream}, nil
 }
 
 // SessionInput holds the fields for creating/updating a Session.

@@ -1,12 +1,12 @@
 /**
- * Pins the Postgres driver's v22, the sub-agent retirement
- * (../sub-agents-retired.ts says what each row becomes), on a v21
+ * Pins the Postgres driver's v23, the sub-agent retirement
+ * (../sub-agents-retired.ts says what each row becomes), on a v22
  * database seeded with the shared estate (retired-sub-agent-rows.ts), to
- * the outcome the SQLite driver's v27 owes the same rows
+ * the outcome the SQLite driver's v28 owes the same rows
  * (`expectSubAgentsRetired`); agents are read across keyset pages, none
  * missed past the first; a store whose agents hold no sub-agents reads no
  * session; and an unreadable agent fails the step naming the row, the
- * rewrites before it roll back, and the database stays at v21.
+ * rewrites before it roll back, and the database stays at v22.
  *
  * Gated on TEST_DATABASE_URL (../postgres/__tests__/support.ts): a visible
  * skip without one; each test gets its own throwaway database.
@@ -19,7 +19,7 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 
 import { readSubAgents } from "../frozen-sub-agent.js";
 import type { StoreLogger } from "../logger.js";
-import { SCHEMA_VERSION_22, runMigrations } from "../postgres/migrations.js";
+import { SCHEMA_VERSION_23, runMigrations } from "../postgres/migrations.js";
 import {
   createTestDatabase,
   testDatabaseAdminUrl,
@@ -97,17 +97,17 @@ function view(client: pg.Client): SubAgentStoreView {
 }
 
 describe.skipIf(testDatabaseAdminUrl() === undefined)(
-  "postgres v22: a subagent is a saved agent, and sub-agents written inside agents leave",
+  "postgres v23: a subagent is a saved agent, and sub-agents written inside agents leave",
   () => {
     let db: TestDatabase;
     let client: pg.Client;
 
     beforeEach(async () => {
       db = await createTestDatabase();
-      await migrateTo(db.databaseUrl, SCHEMA_VERSION_22 - 1);
+      await migrateTo(db.databaseUrl, SCHEMA_VERSION_23 - 1);
       client = new pg.Client({ connectionString: db.databaseUrl });
       await client.connect();
-      expect(await version(client)).toBe(SCHEMA_VERSION_22 - 1);
+      expect(await version(client)).toBe(SCHEMA_VERSION_23 - 1);
     });
 
     afterEach(async () => {
@@ -119,9 +119,9 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       await seedEstate(client);
       const logger = recordingLogger();
 
-      await migrateTo(db.databaseUrl, SCHEMA_VERSION_22, logger);
+      await migrateTo(db.databaseUrl, SCHEMA_VERSION_23, logger);
 
-      expect(await version(client)).toBe(SCHEMA_VERSION_22);
+      expect(await version(client)).toBe(SCHEMA_VERSION_23);
       await expectSubAgentsRetired(view(client), logger);
     });
 
@@ -142,7 +142,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         );
       }
 
-      await migrateTo(db.databaseUrl, SCHEMA_VERSION_22, recordingLogger());
+      await migrateTo(db.databaseUrl, SCHEMA_VERSION_23, recordingLogger());
 
       for (const id of ids) {
         const spec = fromBinary(AgentSchema, (await data(client, "agent", id))!).spec;
@@ -163,21 +163,21 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
       // A session row the step would fail on, were it read.
       await insert(client, "session", "ses_bad", new Uint8Array([0xff, 0xff, 0xff]));
 
-      await migrateTo(db.databaseUrl, SCHEMA_VERSION_22, recordingLogger());
+      await migrateTo(db.databaseUrl, SCHEMA_VERSION_23, recordingLogger());
 
-      expect(await version(client)).toBe(SCHEMA_VERSION_22);
+      expect(await version(client)).toBe(SCHEMA_VERSION_23);
     });
 
-    it("an unreadable agent fails the step naming it, rolls back the agents before it, and leaves the database at v21", async () => {
+    it("an unreadable agent fails the step naming it, rolls back the agents before it, and leaves the database at v22", async () => {
       await seedEstate(client);
       const before = await data(client, "agent", "agt_parent");
       await insert(client, "agent", "agt_zz_bad", new Uint8Array([0xff, 0xff, 0xff]));
 
-      await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_22, recordingLogger())).rejects.toThrow(
+      await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_23, recordingLogger())).rejects.toThrow(
         "agent 'agt_zz_bad'",
       );
 
-      expect(await version(client)).toBe(SCHEMA_VERSION_22 - 1);
+      expect(await version(client)).toBe(SCHEMA_VERSION_23 - 1);
       expect(await data(client, "agent", "agt_parent")).toEqual(before);
     });
   },

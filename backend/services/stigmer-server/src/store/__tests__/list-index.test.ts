@@ -12,6 +12,7 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -21,8 +22,10 @@ import {
   compareListIndexOrder,
   declareListIndex,
   field,
+  fieldWhen,
   label,
   listIndexFactsOf,
+  listIndexFingerprint,
   listIndexInstant,
   listIndexInstantOfMillis,
   matchesListIndexQuery,
@@ -165,6 +168,48 @@ describe("listIndexFactsOf", () => {
         create(RunSchema, {}),
       ),
     ).toThrow("was not made by declareListIndex");
+  });
+});
+
+describe("a conditional key (fieldWhen)", () => {
+  const working = declareListIndex({
+    kind: ApiResourceKind.run,
+    schema: RunSchema,
+    revision: 1,
+    keys: {
+      working_session: fieldWhen("spec.session_id", "status.phase", [
+        RunPhase.RUN_PENDING,
+        RunPhase.RUN_IN_PROGRESS,
+      ]),
+    },
+  });
+  const run = (phase: RunPhase) =>
+    create(RunSchema, {
+      spec: { target: { case: "sessionId", value: "ses_1" } },
+      status: { phase },
+    });
+
+  it("holds the field's value only while the condition field holds a listed value", () => {
+    expect(listIndexFactsOf(working, run(RunPhase.RUN_IN_PROGRESS)).keys).toEqual([
+      { key: "working_session", value: "ses_1" },
+    ]);
+    expect(listIndexFactsOf(working, run(RunPhase.RUN_COMPLETED)).keys).toEqual([]);
+    expect(listIndexFactsOf(working, create(RunSchema, { spec: { target: { case: "sessionId", value: "ses_1" } } })).keys).toEqual([]);
+  });
+
+  it("fingerprints its source, its condition and the sorted values, so a change bumps the revision", () => {
+    expect(listIndexFingerprint(working)).toBe("run{working_session=fieldWhen:spec.session_id?status.phase=1|2}");
+  });
+
+  it("refuses a condition that is not an enum or integer field, at declaration", () => {
+    expect(() =>
+      declareListIndex({
+        kind: ApiResourceKind.run,
+        schema: RunSchema,
+        revision: 1,
+        keys: { bad: fieldWhen("spec.session_id", "spec.message", [1]) },
+      }),
+    ).toThrow(/is not an enum or 32-bit integer field/);
   });
 });
 

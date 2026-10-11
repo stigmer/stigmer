@@ -1,6 +1,6 @@
 /**
- * Pins the SQLite driver's v27, the sub-agent retirement
- * (../sub-agents-retired.ts says what each row becomes), on a v26
+ * Pins the SQLite driver's v28, the sub-agent retirement
+ * (../sub-agents-retired.ts says what each row becomes), on a v27
  * database seeded with the shared estate (retired-sub-agent-rows.ts):
  *   - the outcome both drivers owe (`expectSubAgentsRetired`): every
  *     sub-agent dropped and logged, the changed agents heading new archived
@@ -9,8 +9,8 @@
  *   - agents are read across keyset pages, none missed past the first;
  *   - a store whose agents hold no sub-agents reads no session;
  *   - an unreadable agent fails the step naming the row, the rewrites
- *     before it roll back, and the database stays at v26.
- * The Postgres driver's v22 is held to the same outcome in
+ *     before it roll back, and the database stays at v27.
+ * The Postgres driver's v23 is held to the same outcome in
  * sub-agents-retired.postgres.test.ts.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -24,7 +24,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 
 import { readSubAgents } from "../frozen-sub-agent.js";
-import { SCHEMA_VERSION_27, getSchemaVersion, runMigrations } from "../sqlite/migrations.js";
+import { SCHEMA_VERSION_28, getSchemaVersion, runMigrations } from "../sqlite/migrations.js";
 import { SUB_AGENT_RETIREMENT_PAGE_SIZE } from "../sub-agents-retired.js";
 import { recordingLogger, retiredAgentRow } from "./retired-mcp-server-rows.js";
 import {
@@ -42,16 +42,16 @@ afterEach(() => {
   }
 });
 
-/** A v26 database: the chain replayed up to the step before v27. */
-function v26Database(): DatabaseSync {
+/** A v27 database: the chain replayed up to the step before v28. */
+function v27Database(): DatabaseSync {
   const dir = mkdtempSync(path.join(tmpdir(), "stigmer-sub-agents-retired-"));
   const db = new DatabaseSync(path.join(dir, "stigmer.db"));
   cleanups.push(() => {
     db.close();
     rmSync(dir, { recursive: true, force: true });
   });
-  runMigrations(db, SCHEMA_VERSION_27 - 1);
-  expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_27 - 1);
+  runMigrations(db, SCHEMA_VERSION_28 - 1);
+  expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_28 - 1);
   return db;
 }
 
@@ -96,20 +96,20 @@ function view(db: DatabaseSync): SubAgentStoreView {
   };
 }
 
-describe("sqlite v27: a subagent is a saved agent, and sub-agents written inside agents leave", () => {
+describe("sqlite v28: a subagent is a saved agent, and sub-agents written inside agents leave", () => {
   it("rewrites the estate as both drivers must", async () => {
-    const db = v26Database();
+    const db = v27Database();
     seedEstate(db);
     const logger = recordingLogger();
 
-    runMigrations(db, SCHEMA_VERSION_27, logger);
+    runMigrations(db, SCHEMA_VERSION_28, logger);
 
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_27);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_28);
     await expectSubAgentsRetired(view(db), logger);
   });
 
   it("reads agents across keyset pages, missing none past the first", () => {
-    const db = v26Database();
+    const db = v27Database();
     const ids: string[] = [];
     for (let i = 0; i <= SUB_AGENT_RETIREMENT_PAGE_SIZE; i++) {
       const id = `agt_${String(i).padStart(4, "0")}`;
@@ -126,7 +126,7 @@ describe("sqlite v27: a subagent is a saved agent, and sub-agents written inside
       );
     }
 
-    runMigrations(db, SCHEMA_VERSION_27, recordingLogger());
+    runMigrations(db, SCHEMA_VERSION_28, recordingLogger());
 
     for (const id of ids) {
       const spec = fromBinary(AgentSchema, data(db, "agent", id)!).spec;
@@ -135,7 +135,7 @@ describe("sqlite v27: a subagent is a saved agent, and sub-agents written inside
   });
 
   it("reads no session when no agent held a sub-agent", () => {
-    const db = v26Database();
+    const db = v27Database();
     insert(
       db,
       "agent",
@@ -148,30 +148,30 @@ describe("sqlite v27: a subagent is a saved agent, and sub-agents written inside
     // A session row the step would fail on, were it read.
     insert(db, "session", "ses_bad", new Uint8Array([0xff, 0xff, 0xff]));
 
-    runMigrations(db, SCHEMA_VERSION_27, recordingLogger());
+    runMigrations(db, SCHEMA_VERSION_28, recordingLogger());
 
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_27);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_28);
   });
 
-  it("an unreadable agent fails the step naming it, rolls back the agents before it, and leaves the database at v26", () => {
-    const db = v26Database();
+  it("an unreadable agent fails the step naming it, rolls back the agents before it, and leaves the database at v27", () => {
+    const db = v27Database();
     seedEstate(db);
     const before = data(db, "agent", "agt_parent");
     insert(db, "agent", "agt_zz_bad", new Uint8Array([0xff, 0xff, 0xff]));
 
-    expect(() => runMigrations(db, SCHEMA_VERSION_27, recordingLogger())).toThrow("agent 'agt_zz_bad'");
+    expect(() => runMigrations(db, SCHEMA_VERSION_28, recordingLogger())).toThrow("agent 'agt_zz_bad'");
 
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_27 - 1);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_28 - 1);
     expect(data(db, "agent", "agt_parent")).toEqual(before);
   });
 
   it("an unreadable session on a store with changed agents fails the step naming it", () => {
-    const db = v26Database();
+    const db = v27Database();
     seedEstate(db);
     insert(db, "session", "ses_zz_bad", new Uint8Array([0xff, 0xff, 0xff]));
 
-    expect(() => runMigrations(db, SCHEMA_VERSION_27, recordingLogger())).toThrow("session 'ses_zz_bad'");
+    expect(() => runMigrations(db, SCHEMA_VERSION_28, recordingLogger())).toThrow("session 'ses_zz_bad'");
 
-    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_27 - 1);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_28 - 1);
   });
 });

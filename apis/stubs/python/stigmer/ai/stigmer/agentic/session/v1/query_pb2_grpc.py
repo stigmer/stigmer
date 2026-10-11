@@ -36,6 +36,16 @@ class SessionQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByChannelRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.FromString,
                 _registered_method=True)
+        self.listEvents = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionQueryController/listEvents',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionEventsRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionEventList.FromString,
+                _registered_method=True)
+        self.streamEvents = channel.unary_stream(
+                '/ai.stigmer.agentic.session.v1.SessionQueryController/streamEvents',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamSessionEventsRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamSessionEventsResponse.FromString,
+                _registered_method=True)
 
 
 class SessionQueryControllerServicer(object):
@@ -81,6 +91,30 @@ class SessionQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def listEvents(self, request, context):
+        """List a session's events, oldest first unless desc is asked for.
+
+        The events are Claude Managed Agents session events, in the order they
+        were appended; a page holds at most page_size of them.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def streamEvents(self, request, context):
+        """Stream a session's events as they are appended.
+
+        Without after_seq the stream starts at the moment it opens, as Managed
+        Agents' does. With after_seq it first sends the stored events after
+        that seq, then the new ones, with none missing: a client that listed
+        up to some seq, or whose stream ended, resumes from the last seq it
+        has. A watcher that falls too far behind is ended with
+        RESOURCE_EXHAUSTED; it resumes the same way.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SessionQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -103,6 +137,16 @@ def add_SessionQueryControllerServicer_to_server(servicer, server):
                     servicer.listByChannel,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByChannelRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.SerializeToString,
+            ),
+            'listEvents': grpc.unary_unary_rpc_method_handler(
+                    servicer.listEvents,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionEventsRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionEventList.SerializeToString,
+            ),
+            'streamEvents': grpc.unary_stream_rpc_method_handler(
+                    servicer.streamEvents,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamSessionEventsRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamSessionEventsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -214,6 +258,60 @@ class SessionQueryController(object):
             '/ai.stigmer.agentic.session.v1.SessionQueryController/listByChannel',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByChannelRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listEvents(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionQueryController/listEvents',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionEventsRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionEventList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def streamEvents(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionQueryController/streamEvents',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamSessionEventsRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamSessionEventsResponse.FromString,
             options,
             channel_credentials,
             insecure,

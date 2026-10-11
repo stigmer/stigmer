@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SessionSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_session_v1_api } from "./api_pb.js";
-import type { SessionIdSchema, UpdateSessionSubjectRequestSchema } from "./io_pb.js";
+import type { AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, SessionIdSchema, UpdateSessionSubjectRequestSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_session_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/session/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9jb21tYW5kLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MTLtBQoYU2Vzc2lvbkNvbW1hbmRDb250cm9sbGVyElcKBWFwcGx5EiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbhomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24SpQEKBmNyZWF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkvCuBhHCAgQHiIMbWV0YWRhdGEub3JnKjN1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHNlc3Npb24gaW4gdGhpcyBvcmdhbml6YXRpb24SjwEKBnVwZGF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIjXCuBgxCAIQKiILbWV0YWRhdGEuaWQqHnVuYXV0aG9yaXplZCB0byB1cGRhdGUgc2Vzc2lvbhKpAQoNdXBkYXRlU3ViamVjdBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlVwZGF0ZVNlc3Npb25TdWJqZWN0UmVxdWVzdBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iNMK4GDAIAhAqIgJpZComdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBzZXNzaW9uIHN1YmplY3QSiwEKBmRlbGV0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25JZBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iL8K4GCsIAxAqIgV2YWx1ZSoedW5hdXRob3JpemVkIHRvIGRlbGV0ZSBzZXNzaW9uGgSg/ysqYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9jb21tYW5kLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MTL5BgoYU2Vzc2lvbkNvbW1hbmRDb250cm9sbGVyElcKBWFwcGx5EiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbhomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24SpQEKBmNyZWF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkvCuBhHCAgQHiIMbWV0YWRhdGEub3JnKjN1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHNlc3Npb24gaW4gdGhpcyBvcmdhbml6YXRpb24SjwEKBnVwZGF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIjXCuBgxCAIQKiILbWV0YWRhdGEuaWQqHnVuYXV0aG9yaXplZCB0byB1cGRhdGUgc2Vzc2lvbhKpAQoNdXBkYXRlU3ViamVjdBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlVwZGF0ZVNlc3Npb25TdWJqZWN0UmVxdWVzdBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iNMK4GDAIAhAqIgJpZComdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBzZXNzaW9uIHN1YmplY3QSiwEKBmRlbGV0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25JZBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iL8K4GCsIAxAqIgV2YWx1ZSoedW5hdXRob3JpemVkIHRvIGRlbGV0ZSBzZXNzaW9uEokBCgxhcHBlbmRFdmVudHMSNy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5BcHBlbmRTZXNzaW9uRXZlbnRzSW5wdXQaOi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5BcHBlbmRTZXNzaW9uRXZlbnRzUmVzcG9uc2UiBNC4GAEaBKD/KypiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SessionCommandController handles write operations for agent sessions.
@@ -84,6 +84,21 @@ export const SessionCommandController: GenService<{
     methodKind: "unary";
     input: typeof SessionIdSchema;
     output: typeof SessionSchema;
+  },
+  /**
+   * Append a run's events to its session's log.
+   *
+   * Only the runner acting for the run may call it, while the run is not
+   * finished. It accepts the events a runner produces: agent.*,
+   * session.thread_* and session.error. The batch is appended whole or not
+   * at all.
+   *
+   * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.appendEvents
+   */
+  appendEvents: {
+    methodKind: "unary";
+    input: typeof AppendSessionEventsInputSchema;
+    output: typeof AppendSessionEventsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_session_v1_command, 0);

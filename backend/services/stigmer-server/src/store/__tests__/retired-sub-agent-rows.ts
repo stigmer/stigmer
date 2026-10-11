@@ -2,7 +2,7 @@
  * Test support: one seeded estate for the sub-agent retirement
  * (../sub-agents-retired.ts) and the outcome both drivers' migration tests
  * check against it (`SUB_AGENT_ESTATE`, `expectSubAgentsRetired`), so the
- * SQLite step (v27) and the Postgres step (v22) are held to the same
+ * SQLite step (v28) and the Postgres step (v23) are held to the same
  * outcome over the same rows. The agent rows carry their sub-agents in
  * the retired AgentSpec field 6, written by wire number
  * (retired-mcp-server-rows.ts):
