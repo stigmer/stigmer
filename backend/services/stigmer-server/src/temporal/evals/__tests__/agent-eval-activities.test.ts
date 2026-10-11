@@ -278,6 +278,26 @@ describe("an agent eval through the shared activities", () => {
     expect(status.finishedAt).toBeDefined();
   });
 
+  it("leaves an eval that ended while its versions were found gone as it ended", async () => {
+    await seeded();
+    const suite = createSuiteActivities({
+      store: temp.store,
+      logger: silentLogger,
+      // A cancel lands between the load's first read and its write.
+      contexts: async () => {
+        await temp.store.updateResource(ApiResourceKind.agent_eval, EVAL_ID, AgentEvalSchema, (live) => {
+          live.status!.phase = PluginEvalPhase.partial;
+        });
+        return undefined;
+      },
+      attempt: () => 1,
+    });
+    expect(await suite[LOAD_SUITE_ACTIVITY_NAME](EVAL_ID)).toEqual({ kind: "stop" });
+    const status = (await readAgentEval()).status!;
+    expect(status.phase).toBe(PluginEvalPhase.partial);
+    expect(status.error).toBe("");
+  });
+
   it("answers no context once the agent is gone", async () => {
     await seeded();
     await temp.store.deleteResource(ApiResourceKind.agent, AGENT_ID);
