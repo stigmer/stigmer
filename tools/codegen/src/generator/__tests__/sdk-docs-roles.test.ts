@@ -69,7 +69,7 @@ describe("the roles reference page", () => {
     );
   });
 
-  it("gives a conversation a Participant who sends and a Viewer who does not, granted to people only", () => {
+  it("gives a conversation a Participant who sends and a Viewer who does not, never to a team", () => {
     const session = section(page, "Session");
     expect(session).toContain(
       "**General access**: none; it is shared only through the roles below.\n",
@@ -80,7 +80,7 @@ describe("the roles reference page", () => {
     expect(session).toContain(
       "| Viewer | Read the conversation; cannot send messages |\n",
     );
-    expect(session).toContain("Granted to people only, never to a team.\n");
+    expect(session).toContain("Never granted to a team.\n");
   });
 
   it("names a vault's one role Can use, with Organization offered and Private the default", () => {

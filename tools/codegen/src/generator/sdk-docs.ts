@@ -242,7 +242,7 @@ export function generateRolesDocPage(
       if (withTeams) cells.push(teamRoles.has(role) ? "Yes" : "No");
       buf.push(`| ${cells.join(" | ")} |\n`);
     }
-    if (!withTeams) buf.push("\nGranted to people only, never to a team.\n");
+    if (!withTeams) buf.push("\nNever granted to a team.\n");
   }
 
   return buf.join("");
