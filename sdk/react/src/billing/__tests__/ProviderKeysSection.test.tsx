@@ -176,6 +176,16 @@ describe("ProviderKeysSection", () => {
     expect(within(await row("OpenAI")).queryByRole("button")).toBeNull();
   });
 
+  it("shows an own endpoint by its host, and a stored value that is no URL as it is", async () => {
+    renderSection(
+      mockClient({
+        keys: [key("openai", { baseUrl: "https://llm.acme.example/openai/v1" }), key("anthropic", { baseUrl: "gateway" })],
+      }),
+    );
+    expect(within(await row("OpenAI")).getByText(/on llm\.acme\.example ·/)).toBeTruthy();
+    expect(within(await row("Anthropic")).getByText(/on gateway ·/)).toBeTruthy();
+  });
+
   it("shows an inherited key read-only, named by the organization that provides it", async () => {
     renderSection(mockClient({ keys: [key("anthropic", { inheritedFromOrg: "integrator" })] }));
     const anthropic = await row("Anthropic");
