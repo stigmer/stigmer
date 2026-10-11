@@ -45,6 +45,7 @@
  * arm below behaves exactly as before; the conformance suites pin that
  * byte-identity.
  */
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -69,7 +70,12 @@ import type {
 import type { SingleOrganization } from "../../pipeline/interceptors/single-organization.js";
 import type { Logger } from "../../boot/logger.js";
 import type { LicenseStatusProvider } from "../../extensions/license-status.js";
-import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
+import { isServiceAccountCaller } from "../../extensions/identity.js";
+import {
+  callerIdentityKey,
+  callerIdentityOf,
+} from "../../pipeline/interceptors/auth.js";
+import { serviceAccountRefusedMessage } from "../../pipeline/steps/refuse-service-account.js";
 import type {
   RunnerCredentialProvider,
   RunnerScopedTokenRequest,
@@ -300,6 +306,18 @@ async function getRunnerScopedToken(
   input: GetRunnerScopedTokenInput,
   ctx: HandlerContext,
 ): Promise<GetRunnerScopedTokenOutput> {
+  // A service account's own key never trades itself for a run credential:
+  // that credential has no expiry and would outlive the key's revocation
+  // (pipeline/steps/refuse-service-account.ts). Its runs get their
+  // credential from the dispatch, never from this exchange; a runner that
+  // speaks for one of its runs presents its own class and is not refused.
+  const asking = ctx.values.get(callerIdentityKey);
+  if (asking !== undefined && isServiceAccountCaller(asking)) {
+    throw new ConnectError(
+      serviceAccountRefusedMessage("mint run credentials"),
+      Code.PermissionDenied,
+    );
+  }
   const exchange = deps.runnerAuthService.exchangeScopedToken?.bind(
     deps.runnerAuthService,
   );

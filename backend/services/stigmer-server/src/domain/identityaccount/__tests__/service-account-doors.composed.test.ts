@@ -27,6 +27,7 @@ import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
+import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 
 import { serviceAccountRefusedMessage } from "../../../pipeline/steps/refuse-service-account.js";
 import {
@@ -115,6 +116,18 @@ describe("an admin service account's key, at the doors that decide membership or
     );
     expect(error.code).toBe(Code.PermissionDenied);
     expect(error.rawMessage).toBe(serviceAccountRefusedMessage("delete organizations"));
+  });
+});
+
+describe("an admin service account's key, at the runner credential exchange", () => {
+  it("is refused minting a run credential, which would outlive the key's revocation, before any run is read", async () => {
+    const error = await refusal(
+      createClient(PlatformQueryController, at.presenting(ciKey)).getRunnerScopedToken({
+        scope: { case: "runId", value: "run_00000000000000000000000000" },
+      }),
+    );
+    expect(error.code).toBe(Code.PermissionDenied);
+    expect(error.rawMessage).toBe(serviceAccountRefusedMessage("mint run credentials"));
   });
 });
 
