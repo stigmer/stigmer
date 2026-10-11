@@ -446,10 +446,12 @@ export { GradingCallerRefusedError } from "./extensions/grading-caller.js";
 // which records the try as not graded instead of retrying.
 export type { PluginEvalCallerMint } from "./extensions/plugin-eval-caller.js";
 export { PluginEvalCallerRefusedError } from "./extensions/plugin-eval-caller.js";
-// The predicate and label that tell a plugin eval's runs apart, for a
-// composition that treats them differently (the hosted edition's lane).
+// The predicate and label that tell an eval's runs apart, and which eval
+// (a plugin eval or an agent eval) a run belongs to, for a composition that
+// treats them differently (the hosted edition's lane).
 export { PLUGIN_EVAL_LABEL } from "./domain/plugin-eval/constants.js";
-export { isPluginEvalRun } from "./domain/plugin-eval/plugin-eval-run.js";
+export { evalKindOf, evalOfRun, isPluginEvalRun } from "./domain/plugin-eval/plugin-eval-run.js";
+export type { EvalKind } from "./domain/plugin-eval/plugin-eval-run.js";
 // The one predicate that tells an AI judge run apart (its reserved label),
 // for a composition that treats judge runs differently.
 export { GRADES_RUN_LABEL, isJudgeRun } from "./domain/score/judge/judge-run.js";

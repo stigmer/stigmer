@@ -24,6 +24,13 @@
  *     finish time and the final aggregates; an eval already ended is left
  *     as it is.
  *
+ * Both kinds of eval go through the same three activities: the eval's id
+ * names its kind, and a status book (a plugin eval's here, an agent eval's
+ * in agent-status.ts) reads and writes that kind's row. An agent eval's
+ * cases are its plugins' cases one after another, so a try's flat case
+ * index finds its place in its plugin's block, and its totals are summed
+ * per plugin and over all.
+ *
  * Proven by __tests__/suite-activities.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
@@ -46,21 +53,28 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import type {
   PluginEvalArm,
+  PluginEvalCase,
   PluginEvalStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import { evalKindOf } from "../../domain/plugin-eval/plugin-eval-run.js";
 import { PROVISIONAL_DELTA } from "../../domain/plugin-eval/arm.js";
 import {
   DEFAULT_THRESHOLD,
   recomputeStatus,
 } from "../../domain/plugin-eval/scoring.js";
+import type { PlannedCase } from "../../domain/plugin-eval/matrix.js";
 import { caseNotesOf, mockedServersOf } from "../../domain/plugin-eval/try-run.js";
 import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import type { EvalContext, EvalContextLoader } from "./context.js";
+import { agentStatusBook } from "./agent-status.js";
+import { SKIP_WRITE } from "./status-book.js";
+import type { EvalStatusBook } from "./status-book.js";
+import type { EvalContext, EvalContextLoader, PluginEvalContext } from "./context.js";
+import { caseWorkflowPrefixOf, orgOf, specOf } from "./context.js";
 import {
   FINISH_EVAL_ACTIVITY_NAME,
   LOAD_SUITE_ACTIVITY_NAME,
@@ -89,8 +103,6 @@ export interface SuiteActivityDeps {
   readonly attempt?: () => number;
 }
 
-/** What a status write's `modify` answers to write nothing at all. */
-const SKIP_WRITE = "skip";
 
 /** Thrown inside the store's update to leave the row untouched (the store skips a write its modify throws from). */
 class SkippedWrite extends Error {}
@@ -108,8 +120,9 @@ export function createSuiteActivities(
 
   return {
     [LOAD_SUITE_ACTIVITY_NAME]: async (evalId): Promise<SuitePlan> => {
-      const stored = await loadEval(deps.store, evalId);
-      if (stored === undefined || hasEnded(stored)) {
+      const book = statusBookOf(evalId);
+      const stored = await book.read(deps.store, evalId);
+      if (stored === undefined || isEndedPhase(stored.phase)) {
         return { kind: "stop" };
       }
       let context: EvalContext | undefined;
@@ -124,7 +137,7 @@ export function createSuiteActivities(
         if (attempt() < LOAD_ATTEMPTS_BEFORE_FAILING) {
           throw error;
         }
-        await writeStatus(deps.store, evalId, (status) => {
+        await book.write(deps.store, evalId, ({ status }) => {
           if (isEndedPhase(status.phase)) {
             return SKIP_WRITE;
           }
@@ -140,24 +153,25 @@ export function createSuiteActivities(
       }
       const ready = context;
       let ended = false;
-      await writeStatus(deps.store, evalId, (status) => {
+      await book.write(deps.store, evalId, (view) => {
+        const { status } = view;
         if (isEndedPhase(status.phase)) {
           ended = true;
           return SKIP_WRITE;
         }
         if (
           status.phase === PluginEvalPhase.running &&
-          status.cases.length > 0
+          view.planned()
         ) {
           return SKIP_WRITE;
         }
-        writeSkeleton(status, ready);
+        view.skeleton(ready);
         return undefined;
       });
       if (ended) {
         return { kind: "stop" };
       }
-      const spec = ready.pluginEval.spec;
+      const spec = specOf(ready);
       const cells: SuiteCell[] = ready.matrix.cells.map((cell) => ({
         ...cell,
         timeoutSeconds:
@@ -165,24 +179,26 @@ export function createSuiteActivities(
       }));
       return {
         kind: "run",
-        org: ready.pluginEval.metadata?.org ?? "",
+        org: orgOf(ready),
         cells,
         maxCostUsd: spec?.maxCostUsd ?? 0,
         concurrency:
           spec?.concurrency !== undefined && spec.concurrency > 0
             ? spec.concurrency
             : 1,
+        caseWorkflowPrefix: caseWorkflowPrefixOf(ready),
       };
     },
 
     [RECORD_TRY_ACTIVITY_NAME]: async (evalId, cell, result) => {
-      const stored = await loadEval(deps.store, evalId);
+      const book = statusBookOf(evalId);
+      const stored = await book.read(deps.store, evalId);
       if (stored === undefined) {
         return;
       }
-      const threshold = stored.spec?.threshold ?? DEFAULT_THRESHOLD;
-      await writeStatus(deps.store, evalId, (status) => {
-        const evalCase = status.cases[cell.caseIndex];
+      const { threshold } = stored;
+      await book.write(deps.store, evalId, (view) => {
+        const evalCase = view.caseAt(cell.caseIndex);
         const target = evalCase?.targets[cell.targetIndex];
         const arm =
           cell.arm === "with" ? target?.withPlugin : target?.withoutPlugin;
@@ -215,17 +231,19 @@ export function createSuiteActivities(
         ) {
           evalCase.notes.push(PLUGIN_UPDATED_NOTE);
         }
-        recomputeStatus(status, threshold);
+        view.recompute(threshold);
       });
     },
 
     [FINISH_EVAL_ACTIVITY_NAME]: async (evalId, end) => {
-      const stored = await loadEval(deps.store, evalId);
-      if (stored === undefined || hasEnded(stored)) {
+      const book = statusBookOf(evalId);
+      const stored = await book.read(deps.store, evalId);
+      if (stored === undefined || isEndedPhase(stored.phase)) {
         return;
       }
-      const threshold = stored.spec?.threshold ?? DEFAULT_THRESHOLD;
-      await writeStatus(deps.store, evalId, (status) => {
+      const { threshold } = stored;
+      await book.write(deps.store, evalId, (view) => {
+        const { status } = view;
         if (isEndedPhase(status.phase)) {
           return SKIP_WRITE;
         }
@@ -249,18 +267,73 @@ export function createSuiteActivities(
           }
         }
         status.finishedAt = timestampNow();
-        recomputeStatus(status, threshold);
+        view.recompute(threshold);
       });
     },
   };
 }
 
+/** The book of the kind an eval id names; an id naming neither is read as a plugin eval's, which finds no row. */
+export function statusBookOf(evalId: string): EvalStatusBook {
+  return evalKindOf(evalId) === "agent" ? agentStatusBook : pluginStatusBook;
+}
+
+/** A plugin eval's book: its row, written through writeStatus. */
+const pluginStatusBook: EvalStatusBook = {
+  async read(store, evalId) {
+    const stored = await loadEval(store, evalId);
+    return stored === undefined
+      ? undefined
+      : {
+          phase: stored.status?.phase ?? PluginEvalPhase.unspecified,
+          threshold: stored.spec?.threshold ?? DEFAULT_THRESHOLD,
+        };
+  },
+  write: (store, evalId, modify) =>
+    writeStatus(store, evalId, (status) =>
+      modify({
+        status,
+        caseAt: (caseIndex) => status.cases[caseIndex],
+        planned: () => status.cases.length > 0,
+        recompute: (threshold) => recomputeStatus(status, threshold),
+        skeleton: (context) => {
+          if (context.kind === "plugin") {
+            writeSkeleton(status, context);
+          }
+        },
+      }),
+    ),
+};
+
 /** The status skeleton of a planned eval (the module header). */
 export function writeSkeleton(
   status: PluginEvalStatus,
-  context: EvalContext,
+  context: PluginEvalContext,
 ): void {
   const spec = context.pluginEval.spec;
+  status.cases = context.matrix.cases.map((planned) =>
+    skeletonCaseOf(planned, spec, context.plugin.metadata?.name ?? "", context.suite.servers, context.twoArms),
+  );
+  status.triesTotal = context.matrix.cells.length;
+  status.phase = PluginEvalPhase.running;
+  status.startedAt = timestampNow();
+  status.provisionalDelta = PROVISIONAL_DELTA;
+  recomputeStatus(status, spec?.threshold ?? DEFAULT_THRESHOLD);
+}
+
+/**
+ * One planned case's skeleton: its tags, notes and mocked servers, each
+ * target with its pending tries in the with-plugin arm, and in the
+ * without-plugin arm too when the eval compares (`twoArms`).
+ */
+export function skeletonCaseOf(
+  planned: PlannedCase,
+  spec: Parameters<typeof caseNotesOf>[1] | undefined,
+  pluginName: string,
+  servers: ReadonlyArray<string>,
+  twoArms: boolean,
+  extraNotes: ReadonlyArray<string> = [],
+): PluginEvalCase {
   const pendingArm = (runs: number): PluginEvalArm =>
     create(PluginEvalArmSchema, {
       tries: Array.from({ length: runs }, (_, index) =>
@@ -270,61 +343,43 @@ export function writeSkeleton(
         }),
       ),
     });
-  status.cases = context.matrix.cases.map((planned) =>
-    create(PluginEvalCaseSchema, {
-      caseName: planned.evalCase.name,
-      path: planned.evalCase.dir,
-      caseTags: [...planned.evalCase.tags],
-      notRunReason: planned.notRunReason ?? "",
-      notes:
-        planned.notRunReason === undefined && spec !== undefined
-          ? caseNotesOf(planned.evalCase, spec)
-          : [],
-      mockedServers:
-        planned.notRunReason === undefined && spec !== undefined
-          ? mockedServersOf(
-              planned.evalCase,
-              spec,
-              context.plugin.metadata?.name ?? "",
-              context.suite.servers,
-            )
-          : [],
-      targets: planned.targets.map((target) =>
-        create(PluginEvalCaseTargetSchema, {
-          target: create(PluginEvalTargetSchema, {
-            harness: target.target.harness,
-            modelName: target.target.modelName,
-          }),
-          notRunReason: target.notRunReason ?? "",
-          ...(target.notRunReason === undefined
-            ? {
-                withPlugin: pendingArm(target.runs),
-                ...(context.twoArms
-                  ? { withoutPlugin: pendingArm(target.runs) }
-                  : {}),
-              }
-            : {}),
+  return create(PluginEvalCaseSchema, {
+    caseName: planned.evalCase.name,
+    path: planned.evalCase.dir,
+    caseTags: [...planned.evalCase.tags],
+    notRunReason: planned.notRunReason ?? "",
+    notes:
+      planned.notRunReason === undefined && spec !== undefined
+        ? [...caseNotesOf(planned.evalCase, spec), ...extraNotes]
+        : [],
+    mockedServers:
+      planned.notRunReason === undefined && spec !== undefined
+        ? mockedServersOf(planned.evalCase, spec, pluginName, servers)
+        : [],
+    targets: planned.targets.map((target) =>
+      create(PluginEvalCaseTargetSchema, {
+        target: create(PluginEvalTargetSchema, {
+          harness: target.target.harness,
+          modelName: target.target.modelName,
         }),
-      ),
-    }),
-  );
-  status.triesTotal = context.matrix.cells.length;
-  status.phase = PluginEvalPhase.running;
-  status.startedAt = timestampNow();
-  status.provisionalDelta = PROVISIONAL_DELTA;
-  recomputeStatus(status, spec?.threshold ?? DEFAULT_THRESHOLD);
+        notRunReason: target.notRunReason ?? "",
+        ...(target.notRunReason === undefined
+          ? {
+              withPlugin: pendingArm(target.runs),
+              ...(twoArms ? { withoutPlugin: pendingArm(target.runs) } : {}),
+            }
+          : {}),
+      }),
+    ),
+  });
 }
 
-function isEndedPhase(phase: PluginEvalPhase): boolean {
+export function isEndedPhase(phase: PluginEvalPhase): boolean {
   return (
     phase === PluginEvalPhase.completed ||
     phase === PluginEvalPhase.partial ||
     phase === PluginEvalPhase.failed
   );
-}
-
-function hasEnded(pluginEval: PluginEval): boolean {
-  return isEndedPhase(pluginEval.status?.phase ?? PluginEvalPhase.unspecified);
 }
 
 async function loadEval(

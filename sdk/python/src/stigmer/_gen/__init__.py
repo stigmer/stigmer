@@ -4,6 +4,7 @@ from ._bidi import BidiStream
 from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, EnvVarDeclarationInput, HookSourceInput, HookConfigInput, HookGroupInput, HookHandlerInput, RunConfigInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput
+from ._agenteval import AgentEvalClient, AgentEvalInput, PluginEvalTargetInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput, WhatsAppChannelAppConfigInput
@@ -19,7 +20,7 @@ from ._organization import OrganizationClient, OrganizationInput, OrganizationPr
 from ._plan import PlanClient, PlanInput, PlanTermsInput
 from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._plugin import PluginClient, PluginInput, PluginAuthorInput
-from ._plugineval import PluginEvalClient, PluginEvalInput, PluginEvalTargetInput
+from ._plugineval import PluginEvalClient, PluginEvalInput
 from ._providerkey import ProviderKeyClient
 from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput, PluginEvalCaseContextInput, PluginEvalMockServerInput, PluginEvalMockToolInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
@@ -61,6 +62,9 @@ __all__ = [
     "AgentChannelInput",
     "SlackChannelConfigInput",
     "WhatsAppChannelConfigInput",
+    "AgentEvalClient",
+    "AgentEvalInput",
+    "PluginEvalTargetInput",
     "AgentShareClient",
     "AgentShareInput",
     "AgentShareMessagesInput",
@@ -106,7 +110,6 @@ __all__ = [
     "PluginAuthorInput",
     "PluginEvalClient",
     "PluginEvalInput",
-    "PluginEvalTargetInput",
     "ProviderKeyClient",
     "RunClient",
     "RunInput",

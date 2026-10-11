@@ -6,6 +6,7 @@ import grpc
 
 from ._agent import AgentClient
 from ._agentchannel import AgentChannelClient
+from ._agenteval import AgentEvalClient
 from ._agentshare import AgentShareClient
 from ._apikey import ApiKeyClient
 from ._channelapp import ChannelAppClient
@@ -39,6 +40,7 @@ class GeneratedClient:
     def __init__(self, channel: grpc.Channel) -> None:
         self.agents = AgentClient(channel)
         self.agent_channels = AgentChannelClient(channel)
+        self.agentevals = AgentEvalClient(channel)
         self.agent_shares = AgentShareClient(channel)
         self.api_keys = ApiKeyClient(channel)
         self.channelapps = ChannelAppClient(channel)

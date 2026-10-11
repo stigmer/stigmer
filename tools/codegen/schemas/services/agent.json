@@ -239,6 +239,7 @@
               "score",
               "evaluator",
               "plugin_eval",
+              "agent_eval",
               "plan",
               "subscription",
               "license"
@@ -646,6 +647,11 @@
           "name": "plugin_eval",
           "number": 63,
           "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
+        },
+        {
+          "name": "agent_eval",
+          "number": 64,
+          "description": "One run of the eval cases of the plugins an agent attaches, on the\n agent itself: each plugin's cases at the version the agent attaches,\n on the models the eval names, stamped with the agent's version."
         },
         {
           "name": "plan",

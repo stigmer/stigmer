@@ -7,7 +7,8 @@
  * entry naming a server segment the plugin does not have (another
  * plugin's, or a server it lacks) is refused with the entry and the
  * segment; Claude tools, specifiers and non-plugin MCP names are never
- * read.
+ * read. An agent eval passes every plugin its agent attaches, and an entry
+ * naming a server of any of them passes.
  */
 import { describe, expect, it } from "vitest";
 
@@ -22,17 +23,17 @@ describe("checkAllowTools", () => {
       "mcp__plugin_Thermos_issue_tracker__create_issue",
       "mcp__plugin_Thermos_files",
     ];
-    expect(checkAllowTools(tools, plugin)).toEqual({ ok: true, tools });
+    expect(checkAllowTools(tools, [plugin])).toEqual({ ok: true, tools });
   });
 
   it("keeps Claude tools, specifiers and non-plugin MCP names as written", () => {
     const tools = ["Write", "Bash(npm test *)", "mcp__github__*", "mcp__*"];
-    expect(checkAllowTools(tools, plugin)).toEqual({ ok: true, tools });
+    expect(checkAllowTools(tools, [plugin])).toEqual({ ok: true, tools });
   });
 
   it("refuses an entry naming another plugin's server", () => {
     expect(
-      checkAllowTools(["Read", "mcp__plugin_other_github__*"], plugin),
+      checkAllowTools(["Read", "mcp__plugin_other_github__*"], [plugin]),
     ).toEqual({
       ok: false,
       entry: "mcp__plugin_other_github__*",
@@ -43,12 +44,12 @@ describe("checkAllowTools", () => {
   it("refuses a server the plugin does not have, and compares the segment whole", () => {
     // The plugin's name as written (`Thermos`) builds the segment; a
     // lowercased name is another plugin's.
-    expect(checkAllowTools(["mcp__plugin_thermos_github"], plugin)).toEqual({
+    expect(checkAllowTools(["mcp__plugin_thermos_github"], [plugin])).toEqual({
       ok: false,
       entry: "mcp__plugin_thermos_github",
       server: "plugin_thermos_github",
     });
-    expect(checkAllowTools(["mcp__plugin_Thermos_jira__search"], plugin)).toEqual({
+    expect(checkAllowTools(["mcp__plugin_Thermos_jira__search"], [plugin])).toEqual({
       ok: false,
       entry: "mcp__plugin_Thermos_jira__search",
       server: "plugin_Thermos_jira",
@@ -57,7 +58,20 @@ describe("checkAllowTools", () => {
 
   it("refuses every plugin server entry when the plugin has none", () => {
     expect(
-      checkAllowTools(["mcp__plugin_Thermos_github__*"], { name: "Thermos", servers: [] }),
+      checkAllowTools(["mcp__plugin_Thermos_github__*"], [{ name: "Thermos", servers: [] }]),
     ).toMatchObject({ ok: false, server: "plugin_Thermos_github" });
+  });
+
+  it("accepts a server of any plugin in the list, and refuses one of none", () => {
+    const plugins = [plugin, { name: "refunds", servers: ["ledger"] }];
+    expect(checkAllowTools(["mcp__plugin_refunds_ledger__post"], plugins)).toEqual({
+      ok: true,
+      tools: ["mcp__plugin_refunds_ledger__post"],
+    });
+    expect(checkAllowTools(["mcp__plugin_other_ledger__post"], plugins)).toEqual({
+      ok: false,
+      entry: "mcp__plugin_other_ledger__post",
+      server: "plugin_other_ledger",
+    });
   });
 });

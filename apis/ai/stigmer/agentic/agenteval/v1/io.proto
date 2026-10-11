@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agenteval.v1;
+
+import "ai/stigmer/agentic/agenteval/v1/api.proto";
+import "buf/validate/validate.proto";
+
+// AgentEvalId wraps an agent eval identifier.
+message AgentEvalId {
+  // Unique identifier of the agent eval.
+  string value = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 128
+  ];
+}
+
+// ListAgentEvalsByAgentRequest names the agent whose evals to list.
+message ListAgentEvalsByAgentRequest {
+  // ID of the agent.
+  string agent_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+}
+
+// AgentEvalList is a list of agent evals.
+message AgentEvalList {
+  // Number of evals in the list.
+  int32 total_count = 1;
+
+  // The evals, newest first.
+  repeated AgentEval items = 2;
+}

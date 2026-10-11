@@ -136,6 +136,8 @@ import {
   newValidateHooksStep,
 } from "./steps.js";
 import { newCascadeDeleteEvaluatorsStep } from "../evaluator/cascade.js";
+import { newCascadeDeleteAgentEvalsStep } from "../agent-eval/cascade.js";
+import type { AgentEvalCascadeDeps } from "../agent-eval/cascade.js";
 import {
   TAG_VERSION_RESULT_KEY,
   agentVersionBinding,
@@ -168,6 +170,8 @@ export interface AgentControllerDeps {
    * defaults against the engine they name.
    */
   readonly modelRegistry: ModelCatalogProvider;
+  /** The agent evals the delete removes with the agent; absent, it removes none (a composition serving no evals). */
+  readonly agentEvals?: AgentEvalCascadeDeps;
 }
 
 /** Registers both agent services on the router (routes stage). */
@@ -331,9 +335,9 @@ async function apply(
 /**
  * Delete — refused while another agent of the organization lists this
  * one in its subagents (GuardUnlisted, naming them); then cascades
- * children before the parent (delete_cascade.go):
- * same-org shares and the agent's evaluator, each one's access cleaned with
- * its row, then the agent's version rows (best-effort), the agent row, its
+ * children before the parent (delete_cascade.go): the agent's evals,
+ * refused while one runs, then same-org shares and the agent's evaluator,
+ * each one's access cleaned with its row, then the agent's version rows (best-effort), the agent row, its
  * access and its index entry. Returns the deleted agent (the audit-trail
  * convention).
  */
@@ -363,6 +367,9 @@ async function deleteAgent(
         deps.store,
         UNLISTED_AGENT,
       ),
+    )
+    .addStep(
+      newCascadeDeleteAgentEvalsStep<typeof AgentCommandController.method.delete.input>(deps.agentEvals),
     )
     .addStep(
       newCascadeDeleteSharesStep(

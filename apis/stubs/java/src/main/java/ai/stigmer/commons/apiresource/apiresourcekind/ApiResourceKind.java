@@ -237,6 +237,16 @@ public enum ApiResourceKind
   plugin_eval(63),
   /**
    * <pre>
+   * One run of the eval cases of the plugins an agent attaches, on the
+   * agent itself: each plugin's cases at the version the agent attaches,
+   * on the models the eval names, stamped with the agent's version.
+   * </pre>
+   *
+   * <code>agent_eval = 64 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  agent_eval(64),
+  /**
+   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -507,6 +517,16 @@ public enum ApiResourceKind
   public static final int plugin_eval_VALUE = 63;
   /**
    * <pre>
+   * One run of the eval cases of the plugins an agent attaches, on the
+   * agent itself: each plugin's cases at the version the agent attaches,
+   * on the models the eval names, stamped with the agent's version.
+   * </pre>
+   *
+   * <code>agent_eval = 64 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int agent_eval_VALUE = 64;
+  /**
+   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -595,6 +615,7 @@ public enum ApiResourceKind
       case 61: return score;
       case 62: return evaluator;
       case 63: return plugin_eval;
+      case 64: return agent_eval;
       case 70: return plan;
       case 71: return subscription;
       case 72: return license;

@@ -11,9 +11,12 @@
  * may meet the session an earlier attempt left, names its own); its
  * subject is the case's name, so no titling call is made; its harness is
  * the target's; it runs the built-in assistant with the plugins its arm
- * lists (arm.ts). The run:
+ * lists (arm.ts), or in an agent eval the agent at its stamped version with
+ * every plugin it attaches. The run:
  *
- *   - the target's model, and as its own cap the budget the suite workflow
+ *   - the target's model (none on an agent eval's default target, so the
+ *     agent's own model, tier and thinking apply), and as its own cap the
+ *     budget the suite workflow
  *     hands the try when it starts (tryBudgetUsd): an equal share of what
  *     the eval has left for the tries that may run at once, within what
  *     the caps of the tries still running leave;
@@ -25,7 +28,8 @@
  *     `tools`; `Skill` in `disallowed_tools` when the case does not list
  *     it, since an allow-list without `Skill` keeps skills in Stigmer; and,
  *     unless the eval runs real servers, each of the plugin's MCP servers
- *     disallowed (`mcp__plugin_<plugin>_<server>`, as a turn names it), the
+ *     disallowed, and in an agent eval every server of the agent's other
+ *     plugins, which the case cannot mock, (`mcp__plugin_<plugin>_<server>`, as a turn names it), the
  *     format's default of not starting them. A server the case mocks is
  *     not disallowed: in the with-plugin arm each mocked tool is granted
  *     (`mcp__plugin_<plugin>_<server>__<tool>`), as the format allows a
@@ -170,6 +174,7 @@ export function tryToolsOf(
   spec: Pick<PluginEvalSpec, "allowTools" | "realMcpServers" | "allowRealServers">,
   pluginServers: ReadonlyArray<PluginServer>,
   arm: EvalArm = "with",
+  otherServers: ReadonlyArray<PluginServer> = [],
 ): TryTools {
   const readOnly = new Set(READ_ONLY_EVAL_TOOLS);
   const granted: string[] = [];
@@ -202,6 +207,9 @@ export function tryToolsOf(
       } else if (arm === "with") {
         for (const tool of mocks.tools) add(`mcp__${server.slug}__${tool.tool}`);
       }
+    }
+    if (!spec.allowRealServers) {
+      for (const server of otherServers) offServers.push(`mcp__${server.slug}`);
     }
   }
   const grantedNames = new Set(granted.map(baseName));
@@ -360,6 +368,9 @@ export function sessionNameOf(runName: string, attempt: number): string {
   return attempt > 1 ? `${runName}-attempt-${attempt}` : runName;
 }
 
+/** The spec fields a try's requests read, which both eval kinds' specs share by name. */
+export type TrySpec = Pick<PluginEvalSpec, "allowTools" | "realMcpServers" | "allowRealServers" | "judgeModel">;
+
 /** The session a try runs in (the module header). */
 export function trySessionRequest(input: {
   readonly org: string;
@@ -383,6 +394,7 @@ export function trySessionRequest(input: {
       subject: input.caseName,
       harness:
         input.harness === Harness.UNSPECIFIED ? Harness.NATIVE : input.harness,
+      ...(input.attachment.agentRef === undefined ? {} : { agentRef: input.attachment.agentRef }),
       plugins: [...input.attachment.plugins],
     }),
   });
@@ -395,15 +407,17 @@ export function tryRunRequest(input: {
   readonly cell: TryCell;
   readonly sessionId: string;
   readonly evalCase: EvalCase;
-  readonly spec: PluginEvalSpec;
+  readonly spec: TrySpec;
   readonly modelName: string;
   /** The run's spending cap: the try's share of what the eval has left (temporal/evals/names.ts CaseInput). */
   readonly budgetUsd: number;
   readonly pluginServers: ReadonlyArray<PluginServer>;
+  /** In an agent eval, the servers of the agent's other plugins, every one off (the module header). */
+  readonly otherServers?: ReadonlyArray<PluginServer>;
   readonly arm: EvalArm;
   readonly source: CaseSource;
 }): Run {
-  const tools = tryToolsOf(input.evalCase, input.spec, input.pluginServers, input.arm);
+  const tools = tryToolsOf(input.evalCase, input.spec, input.pluginServers, input.arm, input.otherServers);
   const caseContext = tryCaseContextOf({
     evalCase: input.evalCase,
     spec: input.spec,

@@ -33,14 +33,17 @@
  *     failures, is left out of both counts whatever its without-plugin
  *     tries did, as a try not graded is left out of every mean),
  *     `mean_delta` the mean of the cases' deltas where one exists, and
- *     `cases_not_run` the cases listed but not run.
+ *     `cases_not_run` the cases listed but not run. An agent eval adds
+ *     these up per plugin and over every plugin's cases (`recomputeCases`).
  *
  * Proven by __tests__/scoring.test.ts (a hand-computed suite: weights,
  * indicators, `arm: both`, the delta, pass^k).
  */
 import type { EvalGrader } from "@stigmer/plugin-package";
 import type {
+  PluginEvalAggregates,
   PluginEvalArm,
+  PluginEvalCase,
   PluginEvalCaseTarget,
   PluginEvalStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
@@ -184,6 +187,28 @@ export function recomputeStatus(
   status: PluginEvalStatus,
   threshold: number,
 ): void {
+  const totals = recomputeCases(status.cases, threshold);
+  status.aggregates = totals.aggregates;
+  status.costUsd = totals.costUsd;
+  status.triesFinished = totals.triesFinished;
+}
+
+/** What a list of cases adds up to: its aggregates, its cost and its finished tries. */
+export interface CaseTotals {
+  readonly aggregates: PluginEvalAggregates;
+  readonly costUsd: number;
+  readonly triesFinished: number;
+}
+
+/**
+ * Recomputes every summary of `cases` from its tries, in place (each arm,
+ * case and target), and answers their totals: a plugin eval's suite, or
+ * one plugin's cases and then all of them in an agent eval.
+ */
+export function recomputeCases(
+  cases: ReadonlyArray<PluginEvalCase>,
+  threshold: number,
+): CaseTotals {
   const caseScores: number[] = [];
   const caseDeltas: number[] = [];
   let casesPassed = 0;
@@ -192,7 +217,7 @@ export function recomputeStatus(
   let cost = 0;
   let finished = 0;
 
-  for (const evalCase of status.cases) {
+  for (const evalCase of cases) {
     const ran =
       evalCase.notRunReason === ""
         ? evalCase.targets.filter((target) => target.notRunReason === "")
@@ -239,15 +264,17 @@ export function recomputeStatus(
     }
   }
 
-  status.aggregates = create(PluginEvalAggregatesSchema, {
-    overallScore: caseScores.length === 0 ? 0 : mean(caseScores),
-    casesPassed,
-    casesTotal,
-    meanDelta: caseDeltas.length === 0 ? undefined : mean(caseDeltas),
-    casesNotRun,
-  });
-  status.costUsd = cost;
-  status.triesFinished = finished;
+  return {
+    aggregates: create(PluginEvalAggregatesSchema, {
+      overallScore: caseScores.length === 0 ? 0 : mean(caseScores),
+      casesPassed,
+      casesTotal,
+      meanDelta: caseDeltas.length === 0 ? undefined : mean(caseDeltas),
+      casesNotRun,
+    }),
+    costUsd: cost,
+    triesFinished: finished,
+  };
 }
 
 /** Whether any with-plugin try of `target` was graded. */
