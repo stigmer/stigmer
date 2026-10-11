@@ -543,12 +543,23 @@ pages:
     medium: diagram
     why: Tenancy fan-out is structure; the two existing mermaids carry it.
 
+  concepts/sharing-and-access:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      Who reaches a resource — general access, the Viewer, Editor and Owner
+      roles with Participant and Can use, what an Organization's roles allow and
+      how they combine with a resource's, conversations, chat links, service
+      accounts, and what each edition grants.
+    medium: none
+
   concepts/identity:
     fate: keep
     diataxis: explanation
     teaches:
-      The four Identity Account types and the two trust models — external OIDC
-      federation vs Stigmer-signed PlatformClient tokens.
+      The five Identity Account types, service accounts for automation among
+      them, and the two trust models — external OIDC federation vs
+      Stigmer-signed PlatformClient tokens.
     medium: diagram
     why:
       Both trust models are eight-step sequences already rendered as sequence

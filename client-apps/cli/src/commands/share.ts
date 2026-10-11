@@ -1,5 +1,6 @@
-// `stigmer share agent <ref>` — enable (default) or disable (--off) public
-// sharing for an agent, printing the hosted chat link and embed snippet.
+// `stigmer share agent <ref>` — turn an agent's chat link on (organization
+// members, unless `--audience public`) or off (--off), printing the hosted
+// chat link and embed snippet.
 //
 // Thin handler: resolve credentials/org and the console origin, delegate the
 // merge-preserving toggle to resources/share, render the result. `--open` is a

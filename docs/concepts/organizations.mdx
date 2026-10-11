@@ -240,9 +240,13 @@ read it:
 
 | Visibility              | Meaning                                                                                                                                 |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `visibility_private`    | The person who created it, and anyone granted access to it directly                                                                     |
+| `visibility_private`    | The person who created it, anyone granted access to it directly, and, for an Agent, Skill or Plugin, the Organization's admins          |
 | `visibility_org`        | Everyone in the owning Organization (the default for Agents, Skills and Plugins)                                                        |
 | `visibility_child_orgs` | Everyone in every child organization of the owning Organization (see [Parent and child organizations](#parent-and-child-organizations)) |
+
+What each person may do with what they can see is their role, on the resource
+and in the Organization: [Sharing and access](/docs/concepts/sharing-and-access)
+explains how the two combine.
 
 Nothing an Organization owns is visible outside it unless it is a parent sharing
 it with its child organizations. To use another Organization's Agent, Skill or

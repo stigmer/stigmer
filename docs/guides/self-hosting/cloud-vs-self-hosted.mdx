@@ -34,18 +34,18 @@ change, not a rewrite.
 
 ## Side by side
 
-| Capability                            | Self-hosted                                                                   | Stigmer Cloud                                               |
-| ------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Agents, Skills, Sessions, MCP servers | Full — the same contracts                                                     | Full — the same contracts                                   |
-| Storage                               | Your Postgres                                                                 | Managed                                                     |
-| Authentication                        | Your OIDC provider, API keys and PlatformClient                               | Hosted login, SSO/SAML, identity federation, PlatformClient |
-| Organizations                         | One team's — the server does not stop a signed-in person creating more        | As many as you need                                         |
-| Permissions                           | Owner, admin, member and viewer roles per Organization; Private stays private | Fine-grained, per-resource roles and sharing                |
-| Sandbox isolation                     | Pluggable drivers: local process, Docker, Kubernetes (off by default)         | Managed Kubernetes isolation                                |
-| Channels (Slack, WhatsApp)            | Not available                                                                 | Included                                                    |
-| LLM costs                             | Your provider keys, billed by providers directly                              | Metered prepaid credits, one bill                           |
-| Model catalog                         | Bundled, refreshes automatically                                              | Always current                                              |
-| Operations, backups, upgrades         | Yours                                                                         | Managed                                                     |
+| Capability                            | Self-hosted                                                                   | Stigmer Cloud                                                                       |
+| ------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Agents, Skills, Sessions, MCP servers | Full — the same contracts                                                     | Full — the same contracts                                                           |
+| Storage                               | Your Postgres                                                                 | Managed                                                                             |
+| Authentication                        | Your OIDC provider, API keys, service accounts and PlatformClient             | Hosted login, SSO/SAML, identity federation, service accounts, PlatformClient       |
+| Organizations                         | One team's — the server does not stop a signed-in person creating more        | As many as you need                                                                 |
+| Permissions                           | Owner, admin, member and viewer roles per Organization; Private stays private | The Organization's roles, plus per-resource roles (Viewer, Editor, Owner) and Teams |
+| Sandbox isolation                     | Pluggable drivers: local process, Docker, Kubernetes (off by default)         | Managed Kubernetes isolation                                                        |
+| Channels (Slack, WhatsApp)            | Not available                                                                 | Included                                                                            |
+| LLM costs                             | Your provider keys, billed by providers directly                              | Metered prepaid credits, one bill                                                   |
+| Model catalog                         | Bundled, refreshes automatically                                              | Always current                                                                      |
+| Operations, backups, upgrades         | Yours                                                                         | Managed                                                                             |
 
 ## What self-hosting includes
 
@@ -58,8 +58,9 @@ that executes your Agents — with durable state in volumes you own and back up.
   capability works exactly as it does on Stigmer Cloud, through the same API,
   CLI, and SDKs.
 - **Authentication on your terms.** Point the server at any OIDC provider you
-  control — Keycloak, Okta, Auth0, Dex — mint API keys for machines, and let
-  your product's backend mint tokens for its own users with a
+  control — Keycloak, Okta, Auth0, Dex — give your automation a
+  [service account](/docs/guides/authentication/service-accounts) and its API
+  keys, and let your product's backend mint tokens for its own users with a
   [PlatformClient](/docs/guides/authentication/platform-client/overview). See
   [Enable authentication](/docs/guides/self-hosting/authentication).
 - **Your LLM relationships.** You bring your own provider API keys and pay
@@ -72,12 +73,12 @@ that executes your Agents — with durable state in volumes you own and back up.
 - **One Organization, one team.** Everyone who signs in joins it as a member.
   Owners and admins author Skills and Plugins, and Agents too; members run them,
   create Agents of their own while the Organization allows it (on by default),
-  and schedule, share or connect an Agent to a channel only when they may edit
-  it; each person's Sessions, vault and API keys are their own. Roles are per
-  Organization; there is no per-resource sharing, so a shared vault is shared
-  with every member or with none. The server does not stop a signed-in person
-  from creating a second Organization, but one is the shape self-hosting is
-  built for.
+  and schedule an Agent only when they may edit it; sharing an Agent on a chat
+  link is an admin's act. Each person's Sessions, vault and API keys are their
+  own. Roles are per Organization; there is no per-resource sharing, so a shared
+  vault is shared with every member or with none. The server does not stop a
+  signed-in person from creating a second Organization, but one is the shape
+  self-hosting is built for.
 
 ## What Stigmer Cloud adds
 

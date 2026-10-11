@@ -34,7 +34,7 @@ A Session is not ephemeral. It is a resource you create explicitly (or let the p
 
 ## Session in the Platform Lifecycle
 
-Sessions are scoped to an organization and are always `visibility_private`. They are not designed to be shared across organizations — they are runtime artifacts, not reusable templates.
+Sessions are scoped to an organization and are always `visibility_private`: a conversation is its author's. In the Enterprise and Cloud editions the author may share it with people one by one, as a participant (reads it and sends messages) or a viewer (reads it). Sessions are not designed to be shared across organizations — they are runtime artifacts, not reusable templates.
 
 Sessions are created in two ways:
 

@@ -273,7 +273,7 @@ Organizations organizations = client.organizations().findMyOrganizations();
 
 Create or update an organization.
 
-Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED included.
+Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and LICENSE_RENEWAL_REQUIRED included.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -365,6 +365,10 @@ On Stigmer Cloud, creating a child organization is a plan feature of its parent.
 A server composed to hold a limited number of organizations (the open-source edition holds one, which it makes the first time it starts) refuses a create once it holds that many, with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is written:
 
 - ORGANIZATION_LIMIT_REACHED — the server holds as many organizations as it is composed to. Metadata: limit.
+
+On Stigmer Enterprise, a new organization is growth the server's license pays for. Once the license and its grace period have ended, a create is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is written:
+
+- LICENSE_RENEWAL_REQUIRED — the server's license has ended; every organization that exists keeps working. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">

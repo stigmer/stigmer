@@ -21,6 +21,7 @@
     "plugin",
     "plugin-eval",
     "provider-key",
+    "roles",
     "run",
     "schedule",
     "score",

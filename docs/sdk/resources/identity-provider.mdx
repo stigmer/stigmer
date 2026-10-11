@@ -241,6 +241,8 @@ Create or update an identity provider.
 
 If the resource does not exist, creates a new identity provider. If the resource exists, updates the existing identity provider.
 
+Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED included.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -334,6 +336,10 @@ Create an identity provider.
 
 The creator's organization owns the identity provider.
 
+On Stigmer Enterprise, a new identity provider is growth the server's license pays for. Once the license and its grace period have ended, a create is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is written:
+
+- LICENSE_RENEWAL_REQUIRED — the server's license has ended; every identity provider that exists keeps signing people in. No metadata.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -424,6 +430,10 @@ IdentityProvider identityProvider = client.identityProviders().create(IdentityPr
 ### update
 
 Update an existing identity provider.
+
+On Stigmer Enterprise, changing how people sign in is growth the server's license pays for. Once the license and its grace period have ended, an update is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is written:
+
+- LICENSE_RENEWAL_REQUIRED — the server's license has ended; the identity provider keeps signing people in as it is, and can still be deleted. No metadata.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -656,10 +666,10 @@ IamRole defines the roles that can be assigned to principals on resources via IA
 
 | Value | Description |
 |-------|-------------|
-| `owner` | Full control of the resource. |
-| `admin` | Administrative access. |
-| `member` | Membership-level access. |
-| `viewer` | Read-only access to the resource. |
+| `owner` | Full control of the resource, including deleting it and deciding who has access. |
+| `admin` | Administers an organization: its people, settings and resources, short of its owners, its deletion and its private conversations. |
+| `member` | Belongs to an organization or a team. |
+| `viewer` | Sees the resource and changes nothing. |
 | `participant` | A person who takes part in a conversation: reads it and sends messages. |
 | `editor` | Editor of a blueprint (an agent): may change its definition and do whatever a viewer can, and may not delete it, change its visibility, publish it on a share link or a channel, or decide who else has access. |
 | `user` | May use a shared vault: the runs of a person who holds it use the vault's logins and secrets. |

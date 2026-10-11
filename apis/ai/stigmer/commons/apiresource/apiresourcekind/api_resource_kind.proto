@@ -322,9 +322,9 @@ enum ApiResourceKind {
     is_versioned: false
     not_search_indexed: true
     // Grouping people so access is shared with a team rather than person by
-    // person is fine-grained control a security team asks for; the
-    // open-source edition shares with people and with the whole
-    // organization.
+    // person is fine-grained control a security team asks for. The
+    // open-source edition grants roles on the organization only; granting
+    // one resource to a person or a team is Enterprise and Cloud.
     tier: enterprise
     authorization: {
       // A team belongs to its organization; its membership is bounded by

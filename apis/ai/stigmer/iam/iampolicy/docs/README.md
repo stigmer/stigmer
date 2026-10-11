@@ -24,7 +24,7 @@ IamPolicies are the source of truth for authorization. They are synced to [OpenF
 |---|---|
 | **Principal** | The entity being granted access. Can be an `identity_account`, `team`, `organization`, or any resource that acts as an identity. |
 | **Resource** | The entity being protected. Can be any API resource: `organization`, `vault`, `agent`, `plugin`, etc. |
-| **Relation** | The permission being granted. Maps to a role code (e.g., `admin`, `editor`, `viewer`, `owner`, `member`). |
+| **Relation** | The permission being granted. Maps to a role code (e.g., `admin`, `editor`, `viewer`, `owner`, `member`, `participant`, `user`); [Roles and general access](../../../../../../docs/sdk/resources/roles.mdx) lists each kind's. |
 | **OpenFGA tuple** | The underlying representation. Each IamPolicy produces a tuple: `principal_kind:principal_id#principal_relation@resource_kind:resource_id#relation`. |
 | **Idempotency** | Creating a policy that already exists is a no-op — no error, no duplicate. |
 
@@ -34,7 +34,7 @@ IamPolicies are the source of truth for authorization. They are synced to [OpenF
 IamPolicy
   ├── spec.principal  ──► ApiResourceRef { kind, id, relation? }
   ├── spec.resource   ──► ApiResourceRef { kind, id }
-  └── spec.relation   ──► "admin" | "editor" | "viewer" | "owner" | "member" | ...
+  └── spec.relation   ──► "admin" | "editor" | "viewer" | "owner" | "member" | "participant" | "user" | ...
 ```
 
 For team-based access, the principal's `relation` field qualifies which members of the team are included. For example, `{ kind: "team", id: "tm-123", relation: "member" }` means "all members of team tm-123", not just the team itself.

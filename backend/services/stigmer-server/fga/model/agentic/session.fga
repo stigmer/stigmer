@@ -8,7 +8,7 @@ module agentic
 #
 # Authorization model (PERSONAL RESOURCE — always private):
 # Sessions are always personal by default. Even if the agent a session names
-# has ORG or PLATFORM visibility, the session does NOT inherit that
+# has ORG or CHILD_ORGS visibility, the session does NOT inherit that
 # visibility. This preserves conversation privacy: my chat with a shared bot
 # is private. The agent a session names is a server check, not a relation:
 # naming or changing it asks agent#can_execute, and so does every turn

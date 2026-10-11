@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Create or update an identity provider.\n\n If the resource does not exist, creates a new identity provider.\n If the resource exists, updates the existing identity provider."
+          "description": "Create or update an identity provider.\n\n If the resource does not exist, creates a new identity provider.\n If the resource exists, updates the existing identity provider.\n\n Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED\n included."
         },
         {
           "name": "Create",
@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Create an identity provider.\n\n The creator's organization owns the identity provider."
+          "description": "Create an identity provider.\n\n The creator's organization owns the identity provider.\n\n On Stigmer Enterprise, a new identity provider is growth the server's\n license pays for. Once the license and its grace period have ended, a\n create is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every\n     identity provider that exists keeps signing people in. No metadata."
         },
         {
           "name": "Update",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Update an existing identity provider."
+          "description": "Update an existing identity provider.\n\n On Stigmer Enterprise, changing how people sign in is growth the\n server's license pays for. Once the license and its grace period have\n ended, an update is refused with FAILED_PRECONDITION carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"), before anything is\n written:\n\n   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the\n     identity provider keeps signing people in as it is, and can still\n     be deleted. No metadata."
         },
         {
           "name": "Delete",
@@ -471,22 +471,22 @@
         {
           "name": "owner",
           "number": 1,
-          "description": "Full control of the resource. Typically assigned to the creator."
+          "description": "Full control of the resource, including deleting it and deciding who\n has access. Typically assigned to the creator."
         },
         {
           "name": "admin",
           "number": 2,
-          "description": "Administrative access. Grants most permissions except ownership transfer."
+          "description": "Administers an organization: its people, settings and resources, short\n of its owners, its deletion and its private conversations."
         },
         {
           "name": "member",
           "number": 3,
-          "description": "Membership-level access. Grants read and limited write permissions."
+          "description": "Belongs to an organization or a team. In an organization, a member\n starts conversations with what is shared with them and creates agents\n while the organization allows it; in a team, a member holds what the\n team is given."
         },
         {
           "name": "viewer",
           "number": 4,
-          "description": "Read-only access to the resource."
+          "description": "Sees the resource and changes nothing. What seeing allows is the kind's\n own (role_descriptions): an agent's viewer runs it in the conversations\n they may start, a conversation's viewer sends no message, and an\n organization's viewer starts no conversation, since starting one needs\n the organization's member role or higher."
         },
         {
           "name": "participant",

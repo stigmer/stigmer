@@ -293,22 +293,22 @@
         {
           "name": "owner",
           "number": 1,
-          "description": "Full control of the resource. Typically assigned to the creator."
+          "description": "Full control of the resource, including deleting it and deciding who\n has access. Typically assigned to the creator."
         },
         {
           "name": "admin",
           "number": 2,
-          "description": "Administrative access. Grants most permissions except ownership transfer."
+          "description": "Administers an organization: its people, settings and resources, short\n of its owners, its deletion and its private conversations."
         },
         {
           "name": "member",
           "number": 3,
-          "description": "Membership-level access. Grants read and limited write permissions."
+          "description": "Belongs to an organization or a team. In an organization, a member\n starts conversations with what is shared with them and creates agents\n while the organization allows it; in a team, a member holds what the\n team is given."
         },
         {
           "name": "viewer",
           "number": 4,
-          "description": "Read-only access to the resource."
+          "description": "Sees the resource and changes nothing. What seeing allows is the kind's\n own (role_descriptions): an agent's viewer runs it in the conversations\n they may start, a conversation's viewer sends no message, and an\n organization's viewer starts no conversation, since starting one needs\n the organization's member role or higher."
         },
         {
           "name": "participant",

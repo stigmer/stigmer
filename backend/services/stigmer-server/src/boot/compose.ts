@@ -2225,8 +2225,8 @@ export async function composeServer(
   // The hand-over (extensions/composed-services.ts): every unit receives
   // the composition's own instances — the one Authorizer the Authorize
   // step calls, the list read scope, the policy check, the tuple lifecycle,
-  // the in-process transport and the identity accounts' store binding and
-  // create path — before composeServer returns, because a
+  // the in-process transport, the identity accounts' store binding and
+  // create path, and the policy store binding — before composeServer returns, because a
   // unit's lanes may be called by anyone from then on. The policy check is
   // the registered engine's, or under the built-in posture the evaluator's.
   const composedServices: ComposedServices = {
@@ -2250,6 +2250,7 @@ export async function composeServer(
       store: identityAccounts,
       create: createIdentityAccount,
     },
+    iamPolicies,
   };
   for (const { hook } of extensions.onComposed) {
     hook(composedServices);
