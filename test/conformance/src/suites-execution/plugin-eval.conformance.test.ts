@@ -256,7 +256,7 @@ function describeTries(pluginEval: PluginEval): string {
 }
 
 describe.skipIf(!runnerServesTries)("PluginEval — a suite with and without the plugin", () => {
-  it("[rpc:PluginEvalCommandController.create] [rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] [rpc:SessionQueryController.list] [rpc:SessionQueryController.get] two cases, two tries per arm: the with-arm reads the skill, the regex scores, Δ is computed and provisional", async () => {
+  it("[rpc:PluginEvalCommandController.create] [rpc:PluginEvalQueryController.get] [rpc:ScoreQueryController.listByRun] [rpc:SessionQueryController.list] [rpc:SessionQueryController.get] two cases, two tries per arm: the with-arm reads the skill, the regex scores, Δ is computed and not provisional", async () => {
     const installation = await installed((skill) => [
       scoredCase("first-notes", skill),
       scoredCase("second-notes", skill),
