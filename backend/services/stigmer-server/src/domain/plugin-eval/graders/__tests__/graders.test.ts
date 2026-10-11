@@ -471,6 +471,24 @@ describe("the AI-graded checks", () => {
     expect(readVote(undefined, "criteria")).toHaveProperty("refused");
   });
 
+  it("keeps a vote whose reason runs past the bound, its reason cut; a wrong result is still refused", () => {
+    // A real judge working through arithmetic writes past the schema's
+    // maxLength, which the provider does not enforce (stigmer#2143).
+    const long = "step ".repeat(400);
+    expect(
+      readVote({ criteria: { result: "failed", reason: long } }, "criteria"),
+    ).toEqual({ passed: false, reason: `${long.slice(0, 494)} [cut]` });
+    expect(
+      readVote({ criteria: { result: "maybe", reason: long } }, "criteria"),
+    ).toHaveProperty("refused");
+    expect(
+      readVote({ criteria: { result: "passed", reason: "" } }, "criteria"),
+    ).toHaveProperty("refused");
+    for (const answer of [null, [], "passed", { result: "passed", reason: 5 }]) {
+      expect(readVote({ criteria: answer }, "criteria")).toHaveProperty("refused");
+    }
+  });
+
   it("renders a baseline's reference transcript, or names it missing", () => {
     const content = [
       JSON.stringify({

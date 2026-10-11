@@ -43,6 +43,7 @@ import { readVerdict } from "../../score/judge/verdict.js";
 import type { GraderVerdict } from "./verdict.js";
 import {
   binaryFileReason,
+  cutReason,
   focusLabel,
   focusText,
   normalisePath,
@@ -222,14 +223,20 @@ export type VoteResult =
   | { readonly kind: "vote"; readonly passed: boolean; readonly reason: string }
   | { readonly kind: "failed"; readonly reason: string };
 
-/** A vote run's structured output read as one vote, or the reason it cannot be. */
+/**
+ * A vote run's structured output read as one vote, or the reason it cannot
+ * be. A reason past the schema's maxLength, which the provider does not
+ * enforce, is cut to the bound before the strict read, so a long-winded vote
+ * keeps its result (stigmer#2143); anything else the reader refuses stays
+ * refused.
+ */
 export function readVote(
   output: JsonObject | undefined,
   rubric: string,
 ):
   | { readonly passed: boolean; readonly reason: string }
   | { readonly refused: string } {
-  const reading = readVerdict(output, {
+  const reading = readVerdict(withReasonCut(output, rubric), {
     rubrics: [rubric],
     results: ["passed", "failed"],
   });
@@ -245,6 +252,24 @@ export function readVote(
     passed: verdict.result === CriterionResult.passed,
     reason: verdict.reason,
   };
+}
+
+/** `output` with its rubric's string reason cut to the bound; any other shape as it came. */
+function withReasonCut(
+  output: JsonObject | undefined,
+  rubric: string,
+): JsonObject | undefined {
+  const answer = output?.[rubric];
+  if (
+    output === undefined ||
+    typeof answer !== "object" ||
+    answer === null ||
+    Array.isArray(answer) ||
+    typeof answer["reason"] !== "string"
+  ) {
+    return output;
+  }
+  return { ...output, [rubric]: { ...answer, reason: cutReason(answer["reason"]) } };
 }
 
 /** The grader's verdict from its votes: two decide (the module header). */
