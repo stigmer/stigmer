@@ -125,7 +125,7 @@ A service account is an organization's own non-person account: the principal its
 - `idp_id`: the reserved `stgm_sa|` composite, assigned by the server; no sign-in ever resolves to it
 - `metadata.name`: its one name, unique among the organization's service accounts; `email`, `first_name`, `last_name` and `picture_url` stay empty
 - Managed by the organization's admins: they rename it, change its role, list, create and revoke its keys, and delete it, which ends every key at once
-- Its key is never a person: it is refused creating keys, service accounts or organizations, changing any identity account, granting or revoking a role on the organization, and creating invitations; it is never a team member
+- It is never a person: whatever credential speaks for it, it is refused creating or changing keys, service accounts and platform clients, creating or deleting organizations, changing any identity account, granting or revoking a role on the organization, creating invitations, identity providers or federated accounts; it is never a team member
 - Deleted and created again under the same name, it is a new principal: the random part of its subject is never reissued
 
 ## Related Documentation
