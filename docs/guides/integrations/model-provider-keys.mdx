@@ -1,0 +1,104 @@
+---
+title: Model Provider Keys
+description:
+  Run your Agents on Stigmer Cloud with your Organization's own Anthropic and
+  OpenAI keys, on the provider's API or on your own compatible endpoint.
+---
+
+On Stigmer Cloud every model call a native Agent run makes runs on a key your
+Organization owns, on every plan. An admin adds an Anthropic key, an OpenAI key,
+or both, and your Agents run on them: the provider bills your Organization
+directly, and Stigmer meters the calls and charges nothing for them. Stigmer
+never runs a model call on a key of its own.
+
+A run whose model needs a provider your Organization has no key for is refused
+before it starts:
+
+```
+This organization has no Anthropic key for model 'claude-sonnet-4-6', so the run
+was not started. An admin can add one in Settings → Provider keys.
+```
+
+## Add a key
+
+1. Open **Settings → Provider keys**. Every member sees the list; adding,
+   replacing and removing a key needs an admin.
+2. Choose **Add key** on the Anthropic or OpenAI row and paste the key.
+3. Leave **Base URL** empty to use the provider's own API, or give your own
+   endpoint (see below).
+4. Choose **Save key**.
+
+Stigmer checks the key once against the provider before saving it, and refuses a
+key the provider rejects. A saved key is never shown again, only its last four
+characters. **Replace** saves a new key over it; **Remove** deletes it, and runs
+that need that provider are refused until a key serves your Organization again.
+
+## The rules
+
+- **One key per provider.** Your Organization holds at most one Anthropic key
+  and one OpenAI key. Saving another replaces the one you have.
+- **A provider is a protocol.** The Anthropic slot serves Anthropic's API or any
+  endpoint that speaks it; the OpenAI slot serves OpenAI's API or any endpoint
+  that speaks OpenAI's API (an Azure OpenAI deployment that accepts a bearer
+  key, a company gateway such as LiteLLM, a vLLM server you run).
+- **Base URL is what the provider's SDK takes.** OpenAI's usually ends in `/v1`
+  (`https://gateway.example.com/v1`), Anthropic's does not
+  (`https://gateway.example.com`). Stigmer appends the provider's request path
+  and does not repeat a trailing `/v1`, so
+  `https://my-resource.openai.azure.com/openai/v1` serves chat completions at
+  `/openai/v1/chat/completions`.
+- **Only `https`, only public addresses.** A base URL must be an `https` URL
+  with no user name, password, query or fragment, and it must resolve to a
+  public address. Stigmer refuses a plain `http` URL, `localhost`, and private
+  or link-local addresses, both when you save the key and on every call.
+- **The key is sent the provider's way.** Anthropic-compatible endpoints receive
+  it as `x-api-key`; OpenAI-compatible ones as `Authorization: Bearer`. An
+  endpoint that needs another header or cloud credentials (Bedrock, Vertex) is
+  not served by a key.
+- **A child Organization uses its parent's key.** An Organization created under
+  another is served by the parent's key for any provider it holds none of. The
+  child sees that key read-only; its own key for a provider always wins.
+
+## Run a model your endpoint serves
+
+A model the Stigmer catalog does not list, served by your own endpoint, is named
+with its provider slot as a prefix: `openai:<name>` or `anthropic:<name>`. For
+example, with the OpenAI slot pointed at your vLLM server, an Agent whose model
+is `openai:llama-3.3-70b` runs on it:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: support-triage
+spec:
+  instructions: Sort incoming tickets by urgency.
+  harness: HARNESS_NATIVE
+  run_config:
+    model_name: openai:llama-3.3-70b
+```
+
+Stigmer accepts the form wherever a native model is named, sub-agents included.
+Settings that depend on what Stigmer knows about a model, the fast service tier
+and explicit thinking, stay limited to the catalog's models.
+
+## When a call fails on your key
+
+A failure on your key, such as a rejected key or an exhausted provider balance,
+is reported as your key's, with the provider's own message, so you know to fix
+it in your provider account or replace the key here. Stigmer never retries the
+call on another key.
+
+## Visitors of a shared Agent
+
+Someone chatting with your Agent through a share link or a channel is not told
+about your keys. When your Organization has no key for the Agent's model, they
+read: "This agent isn't set up to answer yet. Its owner needs to connect a model
+provider." Try your own share link to see it; the fix is a key in **Settings →
+Provider keys**.
+
+## Self-hosted servers
+
+A self-hosted Stigmer server has no provider-keys page: its runner calls the
+providers with the operator's own keys from its environment. The `openai:<name>`
+and `anthropic:<name>` forms work there too.

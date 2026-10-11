@@ -22,6 +22,7 @@ import { SessionPanelChip } from "./SessionPanelChip.js";
 import { AutoApproveIndicator } from "./AutoApproveIndicator.js";
 import { includesMyVaultByDefault, type SessionAudience, type SessionPanelMode } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
+import { ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
 
 /** Props for {@link NewSessionViewer}. */
 export interface NewSessionViewerProps {
@@ -505,6 +506,12 @@ export function NewSessionViewer({
           autoFocus={autoFocus}
           ariaLabel="Start a new session"
         />
+
+        {/* A run refused for want of a provider key says where an admin
+            adds one; every other refusal reaches the host's onError. */}
+        {flow.submitFailure !== null && providerKeyRequired(flow.submitFailure) !== null && (
+          <ProviderKeyNotice error={flow.submitFailure} />
+        )}
 
         {/* Armed-only disclosure (#816 rework): a persisted account preference
             or the host's approvalDefaults can pre-arm the session this surface

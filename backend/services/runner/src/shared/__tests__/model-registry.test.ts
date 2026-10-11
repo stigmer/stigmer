@@ -5,6 +5,7 @@ import {
   getDefaultModel,
   getModelVisionCapability,
   getNativeRequestProfile,
+  isModelRegistered,
   resolveToApiModelId,
   _resetRegistryCache,
 } from "../model-registry.js";
@@ -458,3 +459,27 @@ function mockRegistryResponse(models: MockModel[]) {
     }),
   );
 }
+
+describe("isModelRegistered", () => {
+  beforeEach(() => {
+    _resetRegistryCache();
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    _resetRegistryCache();
+  });
+
+  it("accepts an explicit openai: or anthropic: model without asking the registry", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    expect(await isModelRegistered("openai:llama-3.3-70b")).toBe(true);
+    expect(await isModelRegistered("anthropic:house-claude")).toBe(true);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("accepts a registered id and refuses any other name", async () => {
+    mockRegistryResponse([{ id: "claude-haiku-4.5", provider: "anthropic", costTier: "economy", harness: "native" }]);
+    expect(await isModelRegistered("claude-haiku-4.5")).toBe(true);
+    expect(await isModelRegistered("ollama:llama3")).toBe(false);
+  });
+});

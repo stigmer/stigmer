@@ -166,9 +166,9 @@ public interface ProviderKeyOrBuilder extends
 
   /**
    * <pre>
-   * False when the organization's plan no longer includes bring-your-own
-   * provider keys: the key is kept and can be removed, but the proxy serves
-   * the organization on the platform's key, metered, until the plan does.
+   * No longer used: always true. Every plan serves calls on the
+   * organization's own key, and list never returns a parent's key the
+   * organization's own key shadows. Kept because it is a wire field.
    * </pre>
    *
    * <code>bool in_use = 8 [json_name = "inUse"];</code>
@@ -199,4 +199,30 @@ public interface ProviderKeyOrBuilder extends
    */
   com.google.protobuf.ByteString
       getInheritedFromOrgBytes();
+
+  /**
+   * <pre>
+   * The endpoint the key is used against, as the provider's own SDK takes
+   * it as its base URL; empty means the provider's own API. For example
+   * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
+   * gateway. Always empty on an inherited row.
+   * </pre>
+   *
+   * <code>string base_url = 10 [json_name = "baseUrl"];</code>
+   * @return The baseUrl.
+   */
+  java.lang.String getBaseUrl();
+  /**
+   * <pre>
+   * The endpoint the key is used against, as the provider's own SDK takes
+   * it as its base URL; empty means the provider's own API. For example
+   * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
+   * gateway. Always empty on an inherited row.
+   * </pre>
+   *
+   * <code>string base_url = 10 [json_name = "baseUrl"];</code>
+   * @return The bytes for baseUrl.
+   */
+  com.google.protobuf.ByteString
+      getBaseUrlBytes();
 }

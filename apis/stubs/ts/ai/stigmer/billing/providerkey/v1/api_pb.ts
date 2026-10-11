@@ -12,16 +12,20 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/providerkey/v1/api.proto.
  */
 export const file_ai_stigmer_billing_providerkey_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEikAIKC1Byb3ZpZGVyS2V5EgsKA29yZxgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIQCghrZXlfaGludBgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGaW5fdXNlGAggASgIEhoKEmluaGVyaXRlZF9mcm9tX29yZxgJIAEoCWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEiogIKC1Byb3ZpZGVyS2V5EgsKA29yZxgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIQCghrZXlfaGludBgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGaW5fdXNlGAggASgIEhoKEmluaGVyaXRlZF9mcm9tX29yZxgJIAEoCRIQCghiYXNlX3VybBgKIAEoCWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * An organization's own LLM provider key, as every caller sees it: the key
  * itself never leaves the server, only which provider it is for, a hint to
  * tell two keys apart, and who saved it and when.
  *
- * An organization holds at most one key per provider. While its plan
- * includes bring-your-own provider keys, the Stigmer Cloud proxy serves the
- * organization's calls to that provider on this key: the provider bills the
+ * An organization holds at most one key per provider, where the provider
+ * names the wire protocol: "anthropic" is Anthropic's API or any endpoint
+ * that speaks it, "openai" is OpenAI's API or any endpoint that speaks it.
+ * The Stigmer Cloud proxy serves every one of the organization's calls to
+ * that provider on this key, on every plan, and on no other: a run whose
+ * model needs a provider the organization holds no key for is refused with
+ * FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED. The provider bills the
  * organization directly, and Stigmer meters the calls without charging them.
  *
  * Provider keys are not an API resource. They are keyed by organization and
@@ -80,9 +84,9 @@ export type ProviderKey = Message<"ai.stigmer.billing.providerkey.v1.ProviderKey
   lastUsedAt?: Timestamp;
 
   /**
-   * False when the organization's plan no longer includes bring-your-own
-   * provider keys: the key is kept and can be removed, but the proxy serves
-   * the organization on the platform's key, metered, until the plan does.
+   * No longer used: always true. Every plan serves calls on the
+   * organization's own key, and list never returns a parent's key the
+   * organization's own key shadows. Kept because it is a wire field.
    *
    * @generated from field: bool in_use = 8;
    */
@@ -96,6 +100,16 @@ export type ProviderKey = Message<"ai.stigmer.billing.providerkey.v1.ProviderKey
    * @generated from field: string inherited_from_org = 9;
    */
   inheritedFromOrg: string;
+
+  /**
+   * The endpoint the key is used against, as the provider's own SDK takes
+   * it as its base URL; empty means the provider's own API. For example
+   * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
+   * gateway. Always empty on an inherited row.
+   *
+   * @generated from field: string base_url = 10;
+   */
+  baseUrl: string;
 };
 
 /**

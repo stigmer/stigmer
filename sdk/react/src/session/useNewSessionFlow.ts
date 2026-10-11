@@ -23,6 +23,7 @@ import {
   type AgentRunDefaults,
 } from "../agent/run-defaults.js";
 import { useRunAgentSpec } from "../agent/useRunAgentSpec.js";
+import { toError } from "../internal/toError.js";
 import { readRememberedPluginPicks, rememberPluginPicks } from "../plugin/rememberedPluginPicks.js";
 
 const STORAGE_KEY_HARNESS = "stigmer:session:harness";
@@ -285,6 +286,12 @@ export interface UseNewSessionFlowReturn {
   readonly isSubmitting: boolean;
   /** Human-readable error from the last failed submission, or `null`. */
   readonly submitError: string | null;
+  /**
+   * The last failed submission's error itself, or `null`: for a caller that
+   * renders a typed refusal (a `PROVIDER_KEY_REQUIRED` one, say) by its
+   * reason rather than its text.
+   */
+  readonly submitFailure: Error | null;
 
   /**
    * Create a session with the first run.
@@ -494,6 +501,7 @@ export function useNewSessionFlow(
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitFailure, setSubmitFailure] = useState<Error | null>(null);
 
   const validModelId = modelId && getModel(modelId) ? modelId : undefined;
 
@@ -608,6 +616,7 @@ export function useNewSessionFlow(
 
       setIsSubmitting(true);
       setSubmitError(null);
+      setSubmitFailure(null);
 
       try {
         // The vaults the conversation uses: the person's pick in the
@@ -708,6 +717,7 @@ export function useNewSessionFlow(
       } catch (err) {
         const detail = getUserMessage(err, "Failed to start session");
         setSubmitError(detail);
+        setSubmitFailure(toError(err));
         onError?.(detail);
       } finally {
         setIsSubmitting(false);
@@ -762,6 +772,7 @@ export function useNewSessionFlow(
     setAutoApproveAll,
     isSubmitting,
     submitError,
+    submitFailure,
     submit,
   };
 }

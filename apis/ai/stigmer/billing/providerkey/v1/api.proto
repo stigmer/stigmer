@@ -8,9 +8,13 @@ import "google/protobuf/timestamp.proto";
 // itself never leaves the server, only which provider it is for, a hint to
 // tell two keys apart, and who saved it and when.
 //
-// An organization holds at most one key per provider. While its plan
-// includes bring-your-own provider keys, the Stigmer Cloud proxy serves the
-// organization's calls to that provider on this key: the provider bills the
+// An organization holds at most one key per provider, where the provider
+// names the wire protocol: "anthropic" is Anthropic's API or any endpoint
+// that speaks it, "openai" is OpenAI's API or any endpoint that speaks it.
+// The Stigmer Cloud proxy serves every one of the organization's calls to
+// that provider on this key, on every plan, and on no other: a run whose
+// model needs a provider the organization holds no key for is refused with
+// FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED. The provider bills the
 // organization directly, and Stigmer meters the calls without charging them.
 //
 // Provider keys are not an API resource. They are keyed by organization and
@@ -44,13 +48,19 @@ message ProviderKey {
   // Updated at most once a minute.
   google.protobuf.Timestamp last_used_at = 7;
 
-  // False when the organization's plan no longer includes bring-your-own
-  // provider keys: the key is kept and can be removed, but the proxy serves
-  // the organization on the platform's key, metered, until the plan does.
+  // No longer used: always true. Every plan serves calls on the
+  // organization's own key, and list never returns a parent's key the
+  // organization's own key shadows. Kept because it is a wire field.
   bool in_use = 8;
 
   // Set when the row is the parent organization's key, serving this child
   // organization because it holds none of its own for the provider. Such a
   // row is read-only here; it is managed on the parent.
   string inherited_from_org = 9;
+
+  // The endpoint the key is used against, as the provider's own SDK takes
+  // it as its base URL; empty means the provider's own API. For example
+  // "https://gateway.example.com/openai/v1" for an OpenAI-compatible
+  // gateway. Always empty on an inherited row.
+  string base_url = 10;
 }

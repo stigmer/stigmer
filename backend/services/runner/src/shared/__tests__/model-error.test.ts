@@ -14,6 +14,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   ORGANIZATION_PROVIDER_KEY_SENTINEL,
+  PROVIDER_KEY_REQUIRED_SENTINEL,
   PLATFORM_CAPACITY_SENTINEL,
   classifyModelCallError,
   describeExecutionError,
@@ -586,5 +587,28 @@ describe("classifyModelCallError on the organization's own provider key", () => 
   it("leaves an unmarked proxied 401 on the platform wording", () => {
     const classified = classifyModelCallError(sdkError(401, "401 unauthorized"), proxied);
     expect(classified?.message).toContain("Stigmer platform rejected");
+  });
+});
+
+describe("classifyModelCallError when the organization has no key for the provider", () => {
+  const refusal = `403 {"type":"error","error":{"type":"permission_error","message":"no key [code: ${PROVIDER_KEY_REQUIRED_SENTINEL}]"}}`;
+
+  it("names the missing provider key and where an admin adds it, before any status or proxy-mode wording", () => {
+    const classified = classifyModelCallError(middlewareWrap(sdkError(403, refusal)), {
+      proxyMode: true,
+      provider: "anthropic",
+      modelId: "claude-sonnet-4-6",
+    });
+    expect(classified).toEqual({
+      code: "LLM_PROVIDER_KEY_REQUIRED",
+      message: "This organization has no Anthropic key. An admin can add one in Settings → Provider keys.",
+    });
+  });
+
+  it("names the model's provider generically when the caller does not know it", () => {
+    const classified = classifyModelCallError(sdkError(403, refusal), { proxyMode: true });
+    expect(classified?.message).toBe(
+      "This organization has no key for this model's provider. An admin can add one in Settings → Provider keys.",
+    );
   });
 });

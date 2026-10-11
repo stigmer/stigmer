@@ -53,4 +53,36 @@ public interface SetProviderKeyInputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getApiKeyBytes();
+
+  /**
+   * <pre>
+   * The endpoint to use the key against, as the provider's own SDK takes it
+   * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+   * Empty means the provider's own API. Otherwise an absolute https URL
+   * with no credentials, query or fragment, that resolves to a public
+   * address; the proxy appends the provider's request path to it, without
+   * repeating a trailing /v1. For example
+   * "https://my-resource.openai.azure.com/openai/v1".
+   * </pre>
+   *
+   * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
+   * @return The baseUrl.
+   */
+  java.lang.String getBaseUrl();
+  /**
+   * <pre>
+   * The endpoint to use the key against, as the provider's own SDK takes it
+   * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+   * Empty means the provider's own API. Otherwise an absolute https URL
+   * with no credentials, query or fragment, that resolves to a public
+   * address; the proxy appends the provider's request path to it, without
+   * repeating a trailing /v1. For example
+   * "https://my-resource.openai.azure.com/openai/v1".
+   * </pre>
+   *
+   * <code>string base_url = 4 [json_name = "baseUrl", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for baseUrl.
+   */
+  com.google.protobuf.ByteString
+      getBaseUrlBytes();
 }

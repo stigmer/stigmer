@@ -48,8 +48,10 @@ public enum Feature
   platform_client(2),
   /**
    * <pre>
-   * Bringing the customer's own LLM provider keys instead of the platform's
-   * metered proxy credentials.
+   * No longer used: gates nothing. Every plan serves model calls on the
+   * organization's own provider keys, and no edition reads this value. It
+   * stays because plans and licenses already issued carry it and an enum
+   * value is a wire identifier. A new plan or license does not list it.
    * </pre>
    *
    * <code>byo_provider_keys = 3;</code>
@@ -148,8 +150,10 @@ public enum Feature
   public static final int platform_client_VALUE = 2;
   /**
    * <pre>
-   * Bringing the customer's own LLM provider keys instead of the platform's
-   * metered proxy credentials.
+   * No longer used: gates nothing. Every plan serves model calls on the
+   * organization's own provider keys, and no edition reads this value. It
+   * stays because plans and licenses already issued carry it and an enum
+   * value is a wire identifier. A new plan or license does not list it.
    * </pre>
    *
    * <code>byo_provider_keys = 3;</code>

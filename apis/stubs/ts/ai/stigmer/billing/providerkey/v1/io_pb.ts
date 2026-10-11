@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/providerkey/v1/io.proto.
  */
 export const file_ai_stigmer_billing_providerkey_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MSJ0ChNTZXRQcm92aWRlcktleUlucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIqCghwcm92aWRlchgCIAEoCUIYukgVchNSCWFudGhyb3BpY1IGb3BlbmFpEhsKB2FwaV9rZXkYAyABKAlCCrpIB3IFEAgYgAQiWgoWRGVsZXRlUHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESKgoIcHJvdmlkZXIYAiABKAlCGLpIFXITUglhbnRocm9waWNSBm9wZW5haSItChVMaXN0UHJvdmlkZXJLZXlzSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABIlYKFkxpc3RQcm92aWRlcktleXNPdXRwdXQSPAoEa2V5cxgBIAMoCzIuLmFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MS5Qcm92aWRlcktleWIGcHJvdG8z", [file_ai_stigmer_billing_providerkey_v1_api, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MSKgAQoTU2V0UHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESKgoIcHJvdmlkZXIYAiABKAlCGLpIFXITUglhbnRocm9waWNSBm9wZW5haRIbCgdhcGlfa2V5GAMgASgJQgq6SAdyBRAIGIAEEioKCGJhc2VfdXJsGAQgASgJQhi6SBXYAQFyEBiAEDoIaHR0cHM6Ly+IAQEiWgoWRGVsZXRlUHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESKgoIcHJvdmlkZXIYAiABKAlCGLpIFXITUglhbnRocm9waWNSBm9wZW5haSItChVMaXN0UHJvdmlkZXJLZXlzSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABIlYKFkxpc3RQcm92aWRlcktleXNPdXRwdXQSPAoEa2V5cxgBIAMoCzIuLmFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MS5Qcm92aWRlcktleWIGcHJvdG8z", [file_ai_stigmer_billing_providerkey_v1_api, file_buf_validate_validate]);
 
 /**
  * Save the organization's key for a provider, replacing any key it holds for
@@ -38,6 +38,19 @@ export type SetProviderKeyInput = Message<"ai.stigmer.billing.providerkey.v1.Set
    * @generated from field: string api_key = 3;
    */
   apiKey: string;
+
+  /**
+   * The endpoint to use the key against, as the provider's own SDK takes it
+   * as its base URL: OpenAI's usually ends in /v1, Anthropic's does not.
+   * Empty means the provider's own API. Otherwise an absolute https URL
+   * with no credentials, query or fragment, that resolves to a public
+   * address; the proxy appends the provider's request path to it, without
+   * repeating a trailing /v1. For example
+   * "https://my-resource.openai.azure.com/openai/v1".
+   *
+   * @generated from field: string base_url = 4;
+   */
+  baseUrl: string;
 };
 
 /**

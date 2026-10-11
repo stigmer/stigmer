@@ -15,6 +15,10 @@
 // Provider is decided by PATH, since both base URLs point here:
 //   POST /v1/messages          → Anthropic (SSE when `stream: true`, else JSON)
 //   POST /v1/chat/completions  → OpenAI    (SSE when `stream: true`, else JSON)
+//   GET  /v1/models            → the provider-key check a key save makes
+//                                (an empty model list, 200), never captured:
+//                                it is not a model call, and a suite that
+//                                saves a key must still read an empty log
 // Anything else answers 404 with a loud body — a lane the suite did not mean
 // to exercise must fail legibly, never consume a queued turn.
 //
@@ -171,6 +175,10 @@ export class FakeLlmUpstream {
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const rawBody = await readBody(req);
     const path = new URL(req.url ?? "/", "http://fake").pathname;
+    if (req.method === "GET" && path === "/v1/models") {
+      writeJson(res, 200, { object: "list", data: [] });
+      return;
+    }
     const provider = path === "/v1/messages" ? "anthropic" : path === "/v1/chat/completions" ? "openai" : "unknown";
     this.captured.push({
       provider,

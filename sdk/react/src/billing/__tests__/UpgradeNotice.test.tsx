@@ -22,9 +22,10 @@ describe("planUpgradeFeature", () => {
     expect(
       planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "child_orgs", org: "p" })),
     ).toBe(Feature.child_orgs);
+    // Provider keys are on every plan: a refusal naming the retired feature names nothing.
     expect(
       planUpgradeFeature(refusal("x", "PLAN_UPGRADE_REQUIRED", { feature: "byo_provider_keys", org: "acme" })),
-    ).toBe(Feature.byo_provider_keys);
+    ).toBeNull();
     expect(planUpgradeFeature(new StigmerError("failed-precondition", TEAMS_COPY, 9))).toBeNull();
     expect(planUpgradeFeature(refusal("x", "PAYMENT_METHOD_REQUIRED", { org: "acme" }))).toBeNull();
   });

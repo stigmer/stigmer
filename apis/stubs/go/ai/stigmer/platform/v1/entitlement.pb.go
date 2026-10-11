@@ -42,8 +42,10 @@ const (
 	// because licenses already issued carry it and an enum value is a wire
 	// identifier. A new plan or license does not list it.
 	Feature_platform_client Feature = 2
-	// Bringing the customer's own LLM provider keys instead of the platform's
-	// metered proxy credentials.
+	// No longer used: gates nothing. Every plan serves model calls on the
+	// organization's own provider keys, and no edition reads this value. It
+	// stays because plans and licenses already issued carry it and an enum
+	// value is a wire identifier. A new plan or license does not list it.
 	Feature_byo_provider_keys Feature = 3
 	// Delivering agents over messaging channels (Slack, WhatsApp) through a
 	// channel runtime. The channel kinds themselves are open source; this

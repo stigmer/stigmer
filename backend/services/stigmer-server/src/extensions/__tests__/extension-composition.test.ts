@@ -816,6 +816,8 @@ describe("extension composition (driver substitution)", () => {
         canonicalModelsWithVariantForHarness: () => ["fake/model"],
         hasCapabilityForHarness: () => true,
         canonicalModelsWithCapabilityForHarness: () => ["fake/model"],
+        providerOf: () => "anthropic",
+        defaultModel: () => "fake/model",
       },
       runnerCredentialProvider: {
         isEnabled: () => true,

@@ -5,29 +5,27 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ProviderKey } from "@stigmer/protos/ai/stigmer/billing/providerkey/v1/api_pb";
-import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { Button } from "../button/index.js";
 import { ApiResourceKind, useDeploymentMode, useResourceAvailable } from "../deployment-mode.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useOrg } from "../organization/OrgProvider.js";
-import { lowestPlanWith } from "./plan-features.js";
-import { planUpgradeFeature, UpgradeNotice } from "./UpgradeNotice.js";
-import { useEntitlements } from "./useEntitlements.js";
-import { usePlans } from "./usePlans.js";
 import { useProviderKeyActions, useProviderKeys, type ProviderKeyProvider } from "./useProviderKeys.js";
 
-/** The providers, in the order the section lists them. */
-const PROVIDERS: ReadonlyArray<{ readonly id: ProviderKeyProvider; readonly name: string; readonly placeholder: string }> = [
-  { id: "anthropic", name: "Anthropic", placeholder: "sk-ant-…" },
-  { id: "openai", name: "OpenAI", placeholder: "sk-…" },
+/** The providers, in the order the section lists them, with the base URL each one's SDK takes. */
+const PROVIDERS: ReadonlyArray<{
+  readonly id: ProviderKeyProvider;
+  readonly name: string;
+  readonly placeholder: string;
+  readonly baseUrlExample: string;
+}> = [
+  { id: "anthropic", name: "Anthropic", placeholder: "sk-ant-…", baseUrlExample: "https://gateway.example.com" },
+  { id: "openai", name: "OpenAI", placeholder: "sk-…", baseUrlExample: "https://gateway.example.com/v1" },
 ];
 
 /** Props for {@link ProviderKeysSection}. */
 export interface ProviderKeysSectionProps {
-  /** Where the plans are, in the host's routing. Defaults to the billing settings route. */
-  readonly billingHref?: string;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -35,18 +33,17 @@ export interface ProviderKeysSectionProps {
 /**
  * Settings section for an organization's own LLM provider keys.
  *
- * On a plan that includes bring-your-own provider keys (Business and
- * above), an admin saves an Anthropic or OpenAI key, and the organization's
- * agents then run on it: the provider bills the organization
- * directly, and those tokens carry no Stigmer commission and do not count
- * toward the plan's usage share. A saved key is never shown again, only its
- * last four characters. A child organization is served by its parent's
- * key for a provider it holds none of, shown read-only.
+ * On Stigmer Cloud every model call runs on a key the organization owns, on
+ * every plan: an admin saves an Anthropic or OpenAI key, optionally against
+ * the organization's own Anthropic- or OpenAI-compatible endpoint (a company
+ * gateway, a model server it runs), and its agents run on it. The provider
+ * bills the organization directly. A run whose model needs a provider with
+ * no key is refused until one is added. A saved key is never shown again,
+ * only its last four characters. A child organization is served by its
+ * parent's key for a provider it holds none of, shown read-only.
  *
- * A key the plan no longer allows is kept and listed as not in use, and
- * can be removed; the organization's calls run on Stigmer's keys again,
- * billed as usage. Every member sees the list; admins
- * (`can_manage_billing`) save, replace and remove.
+ * Every member sees the list; admins (`can_manage_billing`) save, replace
+ * and remove.
  *
  * Cloud-only: in local mode the runner already uses the developer's own
  * keys directly.
@@ -56,7 +53,7 @@ export interface ProviderKeysSectionProps {
  * <ProviderKeysSection />
  * ```
  */
-export function ProviderKeysSection({ billingHref, className }: ProviderKeysSectionProps) {
+export function ProviderKeysSection({ className }: ProviderKeysSectionProps) {
   const headingId = useId();
   const { activeOrg } = useOrg();
   const mode = useDeploymentMode();
@@ -69,62 +66,46 @@ export function ProviderKeysSection({ billingHref, className }: ProviderKeysSect
         Provider keys
       </h2>
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Run your agents on your organization&apos;s own Anthropic and OpenAI keys. The provider bills you directly;
-        those tokens carry no Stigmer commission and do not count toward your plan&apos;s usage share.
+        Your agents run on your organization&apos;s own Anthropic and OpenAI keys, on the provider&apos;s API or on
+        your own compatible endpoint. The provider bills you directly. A run whose model needs a provider with no key
+        here is refused until an admin adds one.
       </p>
       {mode === "local" || !available ? (
         <CloudFeatureNotice>
-          Your own provider keys are a Stigmer Cloud plan feature. Local mode already calls the providers with your
-          own keys directly.
+          Provider keys are a Stigmer Cloud setting. Local mode already calls the providers with your own keys
+          directly.
         </CloudFeatureNotice>
       ) : !org ? (
         <p className="stg:text-muted-foreground stg:py-4 stg:text-center stg:text-xs">
           Select an organization to manage its provider keys.
         </p>
       ) : (
-        <ProviderKeysContent org={org} billingHref={billingHref} />
+        <ProviderKeysContent org={org} />
       )}
     </section>
   );
 }
 
-function ProviderKeysContent({ org, billingHref }: { readonly org: string; readonly billingHref?: string }) {
+function ProviderKeysContent({ org }: { readonly org: string }) {
   const listed = useProviderKeys(org);
-  const entitlements = useEntitlements(org);
-  const plans = usePlans();
   const manage = useCheckPermission({ kind: "organization", id: org }, "can_manage_billing");
   const canManage = !manage.isLoading && manage.allowed;
   const actions = useProviderKeyActions();
   const [editing, setEditing] = useState<ProviderKeyProvider | null>(null);
 
-  const allowed = entitlements.allows(Feature.byo_provider_keys);
-  const unlockingPlanName = lowestPlanWith(plans.plans ?? [], Feature.byo_provider_keys)?.metadata?.name;
   const keys = listed.keys ?? [];
-  const refused = planUpgradeFeature(actions.error);
-
-  const refresh = useCallback(() => {
-    listed.refetch();
-    entitlements.refetch();
-  }, [listed, entitlements]);
+  const { refetch } = listed;
+  const refresh = useCallback(() => refetch(), [refetch]);
 
   if (listed.error) {
     return <p className="stg:text-destructive stg:text-xs">{getUserMessage(listed.error)}</p>;
   }
-  if (listed.keys === null || allowed === null) {
+  if (listed.keys === null) {
     return <p className="stg:text-muted-foreground stg:text-xs">Loading provider keys…</p>;
   }
 
   return (
     <div className="stg:space-y-3">
-      {!allowed && (
-        <UpgradeNotice feature={Feature.byo_provider_keys} unlockingPlanName={unlockingPlanName} billingHref={billingHref} />
-      )}
-      {!allowed && keys.length > 0 && (
-        <p className="stg:text-muted-foreground stg:text-xs">
-          Your saved keys are kept but not used on this plan: your agents run on Stigmer&apos;s keys, billed as usage.
-          You can remove them at any time.
-        </p>
-      )}
       <ul
         aria-label="Provider keys"
         className={cn(UNSTYLED_LIST, "stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border")}
@@ -135,8 +116,7 @@ function ProviderKeysContent({ org, billingHref }: { readonly org: string; reado
             org={org}
             provider={provider}
             stored={keys.find((key) => key.provider === provider.id)}
-            canSave={canManage && allowed}
-            canRemove={canManage}
+            canManage={canManage}
             editing={editing === provider.id}
             onEdit={() => {
               actions.clearError();
@@ -151,27 +131,32 @@ function ProviderKeysContent({ org, billingHref }: { readonly org: string; reado
           />
         ))}
       </ul>
-      {refused !== null ? (
-        <UpgradeNotice feature={refused} error={actions.error} billingHref={billingHref} />
-      ) : actions.error ? (
+      {actions.error && (
         <p role="alert" className="stg:text-destructive stg:text-xs">
           {getUserMessage(actions.error)}
         </p>
-      ) : null}
+      )}
       <p className="stg:text-muted-foreground stg:text-[0.65rem]">
-        A failure on your own key, such as a rejected key or an exhausted provider balance, is reported as your key&apos;s;
-        calls are never retried on Stigmer&apos;s keys.
+        A failure on your key, such as a rejected key or an exhausted provider balance, is reported as your key&apos;s.
+        Stigmer never serves a call on keys of its own.
       </p>
     </div>
   );
 }
 
+/** The text inputs' classes. */
+const INPUT_CLASSES = cn(
+  "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
+  "stg:placeholder:text-muted-foreground",
+  "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
+  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+);
+
 function ProviderRow({
   org,
   provider,
   stored,
-  canSave,
-  canRemove,
+  canManage,
   editing,
   onEdit,
   onDone,
@@ -181,8 +166,7 @@ function ProviderRow({
   readonly org: string;
   readonly provider: (typeof PROVIDERS)[number];
   readonly stored: ProviderKey | undefined;
-  readonly canSave: boolean;
-  readonly canRemove: boolean;
+  readonly canManage: boolean;
   readonly editing: boolean;
   readonly onEdit: () => void;
   readonly onDone: () => void;
@@ -190,14 +174,17 @@ function ProviderRow({
   readonly actions: ReturnType<typeof useProviderKeyActions>;
 }) {
   const inputId = useId();
+  const baseUrlId = useId();
+  const baseUrlHintId = useId();
   const [value, setValue] = useState("");
   const [confirming, setConfirming] = useState(false);
   const inherited = stored !== undefined && stored.inheritedFromOrg !== "";
   const own = stored !== undefined && !inherited;
+  const [baseUrl, setBaseUrl] = useState(own ? (stored?.baseUrl ?? "") : "");
 
   const save = async () => {
     try {
-      await actions.setKey(org, provider.id, value.trim());
+      await actions.setKey(org, provider.id, value.trim(), baseUrl.trim());
       setValue("");
       onDone();
     } catch {
@@ -219,16 +206,24 @@ function ProviderRow({
       <div className="stg:flex stg:items-start stg:justify-between stg:gap-3">
         <div className="stg:min-w-0">
           <p className="stg:text-foreground stg:text-xs stg:font-medium">{provider.name}</p>
-          <p className="stg:text-muted-foreground stg:text-[0.7rem]">{describe(stored)}</p>
+          <p className="stg:text-muted-foreground stg:text-[0.7rem]">{describe(stored, provider.name)}</p>
         </div>
         {!editing && !confirming && (
           <div className="stg:flex stg:shrink-0 stg:gap-2">
-            {canSave && !inherited && (
-              <Button size="sm" variant="outline" onClick={onEdit} disabled={actions.isSubmitting}>
+            {canManage && !inherited && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setBaseUrl(own ? (stored?.baseUrl ?? "") : "");
+                  onEdit();
+                }}
+                disabled={actions.isSubmitting}
+              >
                 {own ? "Replace" : "Add key"}
               </Button>
             )}
-            {canRemove && own && (
+            {canManage && own && (
               <Button
                 size="sm"
                 variant="ghost"
@@ -247,9 +242,7 @@ function ProviderRow({
       {confirming && (
         <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-2 stg:rounded-md stg:border stg:border-destructive/30 stg:bg-destructive-subtle stg:px-2.5 stg:py-2">
           <p className="stg:text-foreground stg:min-w-0 stg:flex-1 stg:text-xs">
-            {stored?.inUse
-              ? `Remove your ${provider.name} key? Your agents' ${provider.name} calls go back to Stigmer's keys, billed as usage.`
-              : `Remove your ${provider.name} key? It is not in use on this plan.`}
+            {`Remove your ${provider.name} key? Runs that need ${provider.name} are refused until a key serves this organization again.`}
           </p>
           <div className="stg:flex stg:shrink-0 stg:gap-2">
             <Button size="sm" variant="destructive" onClick={() => void remove()} disabled={actions.isSubmitting}>
@@ -281,14 +274,30 @@ function ProviderRow({
               onChange={(event) => setValue(event.target.value)}
               placeholder={provider.placeholder}
               disabled={actions.isSubmitting}
-              className={cn(
-                "stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground",
-                "stg:placeholder:text-muted-foreground",
-                "stg:focus-visible:outline-none stg:focus-visible:ring-1 stg:focus-visible:ring-ring",
-                "stg:disabled:pointer-events-none stg:disabled:opacity-50",
-              )}
+              className={INPUT_CLASSES}
             />
           </div>
+          <div className="stg:min-w-48 stg:flex-1 stg:space-y-1">
+            <label htmlFor={baseUrlId} className="stg:text-foreground stg:text-xs stg:font-medium">
+              Base URL (optional)
+            </label>
+            <input
+              id={baseUrlId}
+              type="url"
+              inputMode="url"
+              autoComplete="off"
+              value={baseUrl}
+              onChange={(event) => setBaseUrl(event.target.value)}
+              placeholder={provider.baseUrlExample}
+              aria-describedby={baseUrlHintId}
+              disabled={actions.isSubmitting}
+              className={INPUT_CLASSES}
+            />
+          </div>
+          <p id={baseUrlHintId} className="stg:text-muted-foreground stg:w-full stg:text-[0.65rem]">
+            Empty uses {provider.name}&apos;s own API. For your own {provider.name}-compatible endpoint, give an https
+            URL as {provider.name}&apos;s SDK takes it, such as {provider.baseUrlExample}.
+          </p>
           <Button size="sm" type="submit" disabled={actions.isSubmitting || value.trim() === ""}>
             {actions.isSubmitting ? "Saving…" : "Save key"}
           </Button>
@@ -301,22 +310,31 @@ function ProviderRow({
   );
 }
 
-/** One line about a provider's key: none, own, or inherited, with its use. */
-function describe(key: ProviderKey | undefined): string {
+/** One line about a provider's key: none, own (with its endpoint), or inherited. */
+function describe(key: ProviderKey | undefined, providerName: string): string {
   if (key === undefined) {
-    return "Not set: calls run on Stigmer's keys, billed as usage.";
+    return `Not set: runs that need ${providerName} are refused until a key is added.`;
   }
   const parts = [`Key ending in ${key.keyHint}`];
+  if (key.baseUrl !== "") {
+    parts.push(`on ${endpointHost(key.baseUrl)}`);
+  }
   if (key.inheritedFromOrg !== "") {
     parts.push(`provided by ${key.inheritedFromOrg}`);
   } else if (key.updatedAt !== undefined) {
     parts.push(`saved ${formatDay(timestampDate(key.updatedAt))}`);
   }
   parts.push(key.lastUsedAt === undefined ? "not used yet" : `last used ${formatDay(timestampDate(key.lastUsedAt))}`);
-  if (!key.inUse) {
-    parts.push("not in use on this plan");
-  }
   return parts.join(" · ");
+}
+
+/** The host a base URL names, or the URL itself when it does not parse. */
+function endpointHost(baseUrl: string): string {
+  try {
+    return new URL(baseUrl).host;
+  } catch {
+    return baseUrl;
+  }
 }
 
 function formatDay(date: Date): string {

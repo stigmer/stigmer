@@ -70,7 +70,9 @@ describe("PlanSection", () => {
     const plans = await screen.findByRole("list", { name: "Plans" });
     const business = await planOption("Business");
     expect(within(business).getByText("5 child organizations included, then $25.00/month each")).toBeTruthy();
-    expect(within(business).getByText("Bring your own provider keys")).toBeTruthy();
+    expect(within(business).getByText("Child organizations")).toBeTruthy();
+    // Provider keys are on every plan, so no plan sells them.
+    expect(within(plans).queryByText("Bring your own provider keys")).toBeNull();
     expect(within(plans).queryByText("Team 2026")).toBeNull();
     expect(within(plans).getByRole("link", { name: "Talk to us" }).getAttribute("href")).toBe(
       "https://stigmer.ai/contact-sales",
@@ -156,11 +158,9 @@ describe("PlanSection", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Switch to Team" }));
     const down = await screen.findByRole("dialog");
-    expect(within(down).getByText(/Team does not include Bring your own provider keys and Child organizations\./)).toBeTruthy();
-    expect(
-      within(down).getByText(/Your own provider keys are kept but stop being used: your agents run on Stigmer's keys, billed as usage\./),
-    ).toBeTruthy();
-    expect(within(down).queryByText(/Everything you built keeps working/)).toBeNull();
+    expect(within(down).getByText(/Team does not include Child organizations\./)).toBeTruthy();
+    expect(within(down).getByText(/Everything you built keeps working/)).toBeTruthy();
+    expect(within(down).queryByText(/provider keys/)).toBeNull();
     await userEvent.click(within(down).getByRole("button", { name: "Not now" }));
 
     cleanup();

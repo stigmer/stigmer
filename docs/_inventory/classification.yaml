@@ -430,6 +430,15 @@ pages:
       The most console-centric integrations page — a form procedure quoted by
       exact UI labels, read at the reader's pace.
 
+  guides/integrations/model-provider-keys:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Add your Organization's own Anthropic or OpenAI key on Stigmer Cloud,
+      optionally on your own compatible endpoint, and the rules a key and its
+      base URL follow.
+    medium: none
+
   guides/integrations/caller-identity-for-mcp-servers:
     fate: keep
     diataxis: how-to
