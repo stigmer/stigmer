@@ -30,7 +30,7 @@ function logDouble() {
   const events: SessionEvent[] = [];
   const previews: SessionEventPreview[] = [];
   const answers: Array<"refuse" | "fail"> = [];
-  const appendSessionEvents = vi.fn(async (_run: string, batch: readonly SessionEvent[], sent: readonly SessionEventPreview[]) => {
+  const appendSessionEvents = vi.fn(async (_run: string, batch: readonly SessionEvent[], sent: readonly SessionEventPreview[], _token?: string) => {
     const answer = answers.shift();
     if (answer === "refuse") throw new ConnectError("bad event", Code.InvalidArgument);
     if (answer === "fail") throw new ConnectError("unavailable", Code.Unavailable);
@@ -331,3 +331,88 @@ describe("a failed or refused append", () => {
     expect(log.client.appendSessionEvents).toHaveBeenCalledTimes(4);
   });
 });
+
+describe("what never stops a turn", () => {
+  it("a failed read of what the run wrote is logged, and the turn writes on", async () => {
+    const log = logDouble();
+    log.client.listRunSessionEvents.mockRejectedValueOnce(new Error("log unreachable"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const e = emitter(log);
+    await e.begin({ sessionId: "ses_1", resumed: true, status: create(RunStatusSchema) });
+    await e.flush(status({ messages: [{ type: AI, content: "Still here." }] }), { final: true });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("reading what the run already wrote failed"));
+    warn.mockRestore();
+    expect(ids(log)).toEqual(["root.m0"]);
+  });
+
+  it("a fault reading the rows is logged, and what was queued before it is still sent", async () => {
+    const log = logDouble();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const e = emitter(log, { boundaryRewritesRow: () => { throw new Error("predicate fell over"); } });
+    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.flush(status({ messages: [{ type: AI, content: "Before.", toolCalls: [row("x")] }] }), { final: false });
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("reading the rows failed"));
+    error.mockRestore();
+    expect(ids(log)).toEqual(["root.m0"]);
+  });
+
+  it("a credential that cannot be acquired appends with the ambient one", async () => {
+    const log = logDouble();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const e = emitter(log, { credential: async () => { throw new Error("exchange refused"); } });
+    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.flush(status({ messages: [{ type: AI, content: "Hi." }] }), { final: true });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("no scoped credential"));
+    warn.mockRestore();
+    expect(log.client.appendSessionEvents.mock.calls[0]![3]).toBeUndefined();
+    expect(ids(log)).toEqual(["root.m0"]);
+  });
+
+  it("waits between transient retries by default", async () => {
+    const log = logDouble();
+    const e = new SessionEventEmitter({ client: log.client, runId: RUN, credential: async () => undefined });
+    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    log.answers.push("fail");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await e.flush(status({ messages: [{ type: AI, content: "Retried." }] }), { final: false });
+    warn.mockRestore();
+    expect(ids(log)).toEqual(["root.m0"]);
+  });
+});
+
+describe("rows the log does not carry, and big batches", () => {
+  it("a HUMAN row writes nothing and holds nothing back (the turn's message is the server's)", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.flush(status({ messages: [{ type: MessageType.MESSAGE_HUMAN, content: "hi" }, { type: AI, content: "Hello." }] }), { final: false });
+    expect(ids(log)).toEqual(["root.m1"]);
+  });
+
+  it("splits a queue past an append's limit across appends, in order", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    const messages = Array.from({ length: 1001 }, (_, i) => ({ type: AI, content: `m${i}` }));
+    await e.flush(status({ messages }), { final: true });
+    expect(log.client.appendSessionEvents.mock.calls.map((c) => c[1].length)).toEqual([1000, 1]);
+    expect(ids(log).at(-1)).toBe("root.m1000");
+  });
+
+  it("a sub-agent that finished while its task's row still runs writes its idle once, and the result when the row settles", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    const st = status({
+      messages: [{ type: AI, content: "Delegating.", toolCalls: [row("t1", { name: "task", status: S.TOOL_CALL_RUNNING, result: "" })] }],
+      subAgentRuns: [{ id: "t1", name: "helper", status: SubAgentStatus.SUB_AGENT_COMPLETED, output: "done", messages: [] }],
+    });
+    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.flush(st, { final: false });
+    expect(ids(log).slice(-2)).toEqual(["t1.received", "t1.idle"]);
+    st.messages[0]!.toolCalls[0]!.status = S.TOOL_CALL_COMPLETED;
+    st.messages[0]!.toolCalls[0]!.result = "done";
+    await e.flush(st, { final: false });
+    expect(ids(log).slice(-3)).toEqual(["t1.received", "t1.idle", "t1.r"]);
+  });
+});
+

@@ -1201,6 +1201,33 @@ describe("TranscriptBuilder — the observer sees every folded event, after the 
   });
 });
 
+describe("the place of a delta's row, which names the session event it previews", () => {
+  it("tells the observer where a text or reasoning delta's row sits, and nothing for any other fact or an unknown scope", () => {
+    const status = create(RunStatusSchema);
+    const places: Array<[string, number | undefined]> = [];
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const builder = new TranscriptBuilder("exe-place", status, (event, _at, place) => void places.push([event.kind, place?.messageIndex]));
+    builder.apply({ kind: "reasoning_delta", runId: "r1", text: "weigh" });
+    builder.apply({ kind: "text_delta", runId: "r1", text: "Hello" });
+    builder.apply({ kind: "message_finish", runId: "r1" });
+    builder.apply({ kind: "text_delta", runId: "r2", text: "Again", subAgentId: "missing" });
+    errors.mockRestore();
+    expect(places).toEqual([
+      ["reasoning_delta", 0],
+      ["text_delta", 1],
+      ["message_finish", undefined],
+      ["text_delta", undefined],
+    ]);
+  });
+
+  it("relays the host's place unchanged", () => {
+    const places: Array<number | undefined> = [];
+    const builder = new TranscriptBuilder("exe-place", create(RunStatusSchema), (_event, _at, place) => void places.push(place?.messageIndex));
+    builder.relayObserved({ kind: "text_delta", runId: "r", text: "x" }, 1, { messageIndex: 7 });
+    expect(places).toEqual([7]);
+  });
+});
+
 describe("relayObserved (an event the agent host's builder folded)", () => {
   it("tells the observer the event and its instant, folds nothing, and survives a failing observer", () => {
     const status = create(RunStatusSchema);

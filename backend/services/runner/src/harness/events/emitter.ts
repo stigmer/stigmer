@@ -414,8 +414,10 @@ export class SessionEventEmitter {
       row.status === ToolCallStatus.TOOL_CALL_FAILED ||
       row.status === ToolCallStatus.TOOL_CALL_SKIPPED ||
       (row.status === ToolCallStatus.TOOL_CALL_INTERRUPTED && final);
-    if (!settled) return final; // waiting or still running: at the terminal write it holds nothing back
-    if (this.awaitsBoundary(row, final)) return false;
+    // waiting or still running: at the terminal write it holds nothing back
+    if (!settled) return final;
+    // A row the boundary may still rewrite never reaches here: its tool use
+    // held the walk back first (writeToolUse), whether or not it was sent.
     const isError = row.status !== ToolCallStatus.TOOL_CALL_COMPLETED;
     const text = isError ? row.error || row.result : row.result;
     const content = text === "" ? [] : [{ type: "text", text }];

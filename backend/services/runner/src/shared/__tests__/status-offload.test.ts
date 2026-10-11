@@ -19,6 +19,8 @@ import {
   offloadCandidateChangesToFit,
   enforceStatusSizeLimit,
   detectImagePayload,
+  elideToEncodedSize,
+  ELISION_MARKER,
 } from "../status-offload.js";
 import {
   appendFileReviewEvents,
@@ -479,6 +481,31 @@ describe("sub-agent message size bounding", () => {
     expect(elided).toBe(true);
     expect(encodedSize(status)).toBeLessThanOrEqual(8_000);
     expect(status.subAgentRuns[0].messages[0].content).toContain("elided");
+  });
+});
+
+describe("elideToEncodedSize", () => {
+  it("returns a message that fits unchanged", () => {
+    const tc = create(ToolCallSchema, { id: "a", result: "small" });
+    expect(elideToEncodedSize(ToolCallSchema, tc, 1024)).toBe(tc);
+  });
+
+  it("cuts the largest strings first, at any depth, arrays included, until it fits", () => {
+    const big = "x".repeat(200_000);
+    const tc = create(ToolCallSchema, { id: "a", result: "y".repeat(50_000), args: { lines: [big, "short"] } });
+    const bounded = elideToEncodedSize(ToolCallSchema, tc, 100_000);
+    expect(toBinary(ToolCallSchema, bounded).length).toBeLessThanOrEqual(100_000);
+    const lines = bounded.args?.lines as string[];
+    expect(lines[0]).toContain(ELISION_MARKER);
+    expect(lines[1]).toBe("short");
+    expect(bounded.result, "the smaller field is cut only when the larger was not enough").toBe("y".repeat(50_000));
+  });
+
+  it("returns the most it could shed when nothing large is left to cut", () => {
+    const tc = create(ToolCallSchema, { id: "a", args: Object.fromEntries(Array.from({ length: 400 }, (_, i) => [`k${i}`, "v".repeat(500)])) });
+    const bounded = elideToEncodedSize(ToolCallSchema, tc, 1_000);
+    expect(toBinary(ToolCallSchema, bounded).length).toBeGreaterThan(1_000);
+    expect(JSON.stringify(bounded.args)).not.toContain(ELISION_MARKER);
   });
 });
 
