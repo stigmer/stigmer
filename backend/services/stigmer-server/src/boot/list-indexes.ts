@@ -26,8 +26,11 @@
  * completed run that names an agent (domain/evaluator/list-index.ts).
  * And `plugin_eval` joins for its parent: a plugin's page lists its evals
  * newest first, and the plugin's delete reads them
- * (domain/plugin-eval/list-index.ts).
+ * (domain/plugin-eval/list-index.ts). And `api_key` joins for its owner:
+ * a person's key list, a service account's key list and an account's
+ * delete read one owner's keys (domain/apikey/list-index.ts).
  */
+import { apiKeyListIndex } from "../domain/apikey/list-index.js";
 import { agentExecutionListIndex } from "../domain/run/list-index.js";
 import { evaluatorListIndex } from "../domain/evaluator/list-index.js";
 import { pluginEvalListIndex } from "../domain/plugin-eval/list-index.js";
@@ -41,6 +44,7 @@ import type { ListIndexDeclaration } from "../store/list-index.js";
 
 export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   agentExecutionListIndex,
+  apiKeyListIndex,
   evaluatorListIndex,
   pluginEvalListIndex,
   iamPolicyListIndex,

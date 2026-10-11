@@ -86,6 +86,7 @@ beforeEach(() => {
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
         listReadScope: undefined,
+        accounts: { findById: () => Promise.resolve(undefined) },
       }),
     {
       router: {

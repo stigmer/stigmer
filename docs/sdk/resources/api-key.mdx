@@ -50,9 +50,11 @@ ApiKey apiKey = client.apiKeys().get("key_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get an API key by its unique identifier. |
 | [`getByKeyHash`](#getbykeyhash) | Get an API key by its hashed key value. |
 | [`findAll`](#findall) | List all API keys belonging to the authenticated user. |
+| [`findByAccount`](#findbyaccount) | List the API keys that speak for an identity account. |
 | [`create`](#create) | Create an API key for the authenticated user. |
 | [`update`](#update) | Update an existing API key. |
 | [`delete`](#delete) | Delete an API key. |
+| [`createForServiceAccount`](#createforserviceaccount) | Create an API key for a service account. |
 
 ### get
 
@@ -132,7 +134,7 @@ ApiKey apiKey = client.apiKeys().getByKeyHash(ApiKeyHash.builder()
 
 List all API keys belonging to the authenticated user.
 
-Returns only the keys owned by the identity account in the auth header.
+Returns only the keys that speak for the identity account in the auth header; a service account's keys are listed with findByAccount.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -156,6 +158,45 @@ ApiKeys apiKeys = client.apiKeys().findAll();
 ```
 </Tab>
 </SDKTabs>
+
+**Returns**: [`ApiKeys`](#apikeys)
+
+### findByAccount
+
+List the API keys that speak for an identity account.
+
+An organization's admins list a service account's keys with it; a person lists their own.
+
+Authorization: Requires can_view on the identity account.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const apiKeys = await stigmer.apiKey.findByAccount(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+apiKeys, err := client.ApiKey.FindByAccount(ctx, id)
+```
+</Tab>
+<Tab value="Python">
+```python
+api_keys = client.api_keys.find_by_account(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+ApiKeys apiKeys = client.apiKeys().findByAccount(id);
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | API Key identifier. |
 
 **Returns**: [`ApiKeys`](#apikeys)
 
@@ -338,6 +379,61 @@ ApiKey apiKey = client.apiKeys().delete(id);
 
 **Returns**: [`ApiKey`](#apikey)
 
+### createForServiceAccount
+
+Create an API key for a service account.
+
+The key speaks for the service account, not for the caller who creates it: it keeps working when that caller leaves, it works only in the service account's organization, and resources it creates name the service account as their creator. The raw key value is included in the response and is never returned again.
+
+Authorization: Requires can_manage_keys on the service account, which its organization's admins hold. A service account's own key is refused.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const apiKey = await stigmer.apiKey.createForServiceAccount({
+  serviceAccountId: "...",
+  name: "...",
+  expiresAt: "...",
+  neverExpires: false,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+apiKey, err := client.ApiKey.CreateForServiceAccount(ctx, &stigmer.CreateServiceAccountKeyInput{
+  ServiceAccountId: "...",
+  Name:             "...",
+  ExpiresAt:        "...",
+  NeverExpires:     false,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+api_key = client.api_keys.create_for_service_account(CreateServiceAccountKeyInput(
+    service_account_id="...",
+    name="...",
+    expires_at="...",
+    never_expires=False,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ApiKey apiKey = client.apiKeys().createForServiceAccount(CreateServiceAccountKeyInput.builder()
+    .serviceAccountId("...")
+    .name("...")
+    .expiresAt("...")
+    .neverExpires(false)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CreateServiceAccountKeyInput`](#createserviceaccountkeyinput)
+
+**Returns**: [`ApiKey`](#apikey)
+
 ## Types
 
 ### ApiKeyInput
@@ -355,6 +451,19 @@ Input for creating or updating an API Key.
     expiresAt: { type: "string", description: "Expiration time for the API key." },
     neverExpires: { type: "boolean", description: "When true, the API key never expires regardless of expires_at." },
     boundOrg: { type: "string", description: "The organization this key works in, by id or slug; the server stores the id." },
+  }}
+/>
+
+### CreateServiceAccountKeyInput
+
+CreateServiceAccountKeyInput is the command for creating an API key that speaks for a service account.
+
+<TypeTable
+  type={{
+    serviceAccountId: { type: "string", description: "Identity account id of the service account the key speaks for.", required: true },
+    name: { type: "string", description: "The key's name, shown beside its fingerprint (e.g., \"github-actions\").", required: true },
+    expiresAt: { type: "string", description: "Expiration time for the key." },
+    neverExpires: { type: "boolean", description: "When true, the key never expires regardless of expires_at." },
   }}
 />
 

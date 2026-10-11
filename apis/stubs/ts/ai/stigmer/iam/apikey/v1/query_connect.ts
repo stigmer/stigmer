@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ApiKeyHash, ApiKeyId, ApiKeys } from "./io_pbjs";
+import { ApiKeyAccountId, ApiKeyHash, ApiKeyId, ApiKeys } from "./io_pbjs";
 import { ApiKey } from "./api_pbjs";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
 
@@ -40,13 +40,30 @@ export const ApiKeyQueryController = {
     /**
      * List all API keys belonging to the authenticated user.
      *
-     * Returns only the keys owned by the identity account in the auth header.
+     * Returns only the keys that speak for the identity account in the auth
+     * header; a service account's keys are listed with findByAccount.
      *
      * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyQueryController.findAll
      */
     findAll: {
       name: "findAll",
       I: Empty,
+      O: ApiKeys,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List the API keys that speak for an identity account.
+     *
+     * An organization's admins list a service account's keys with it; a person
+     * lists their own.
+     *
+     * Authorization: Requires can_view on the identity account.
+     *
+     * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyQueryController.findByAccount
+     */
+    findByAccount: {
+      name: "findByAccount",
+      I: ApiKeyAccountId,
       O: ApiKeys,
       kind: MethodKind.Unary,
     },

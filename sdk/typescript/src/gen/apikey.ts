@@ -9,7 +9,7 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiKeySchema, type ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyCommandController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/command_pb";
-import { ApiKeyIdSchema, ApiKeyHashSchema, ApiKeysSchema, type ApiKeyHash, type ApiKeys } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+import { ApiKeyIdSchema, CreateServiceAccountKeyInputSchema, ApiKeyHashSchema, ApiKeysSchema, ApiKeyAccountIdSchema, type CreateServiceAccountKeyInput, type ApiKeyHash, type ApiKeys } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
 import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
 
@@ -26,6 +26,12 @@ export class ApiKeyClient {
   async create(input: ApiKeyInput): Promise<ApiKey> {
     try {
       return await this.command.create(buildApiKeyProto(input));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async createForServiceAccount(input: CreateServiceAccountKeyInput): Promise<ApiKey> {
+    try {
+      return await this.command.createForServiceAccount(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -56,6 +62,12 @@ export class ApiKeyClient {
   async findAll(): Promise<ApiKeys> {
     try {
       return await this.query.findAll(create(EmptySchema, {}));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async findByAccount(id: string): Promise<ApiKeys> {
+    try {
+      return await this.query.findByAccount(create(ApiKeyAccountIdSchema, { value: id }));
     } catch (e) { throw wrapError(e); }
   }
 }

@@ -2,12 +2,15 @@
 
 import { useMemo } from "react";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
+import { useOptionalOrg } from "../organization/OrgProvider.js";
 import { useSingleOrg } from "../server-info.js";
 import {
+  ORG_ADMIN_SETTINGS_NAV_ITEMS,
   PLATFORM_SETTINGS_NAV_GROUP,
   SETTINGS_NAV_GROUPS,
   SINGLE_ORG_SETTINGS_NAV_GROUPS,
   type SettingsNavGroup,
+  type SettingsNavItem,
 } from "./settings-nav.js";
 
 /**
@@ -26,6 +29,9 @@ const PLATFORM_RESOURCE = { kind: "platform", id: "stigmer" } as const;
 const AWAITING_ANSWER_NAV_GROUPS: readonly SettingsNavGroup[] =
   SETTINGS_NAV_GROUPS.slice(1);
 
+/** The entry the organization-gated items follow in the first group. */
+const ORG_ADMIN_ITEMS_AFTER = "/settings/teams";
+
 /**
  * Permission-aware settings navigation: {@link SETTINGS_NAV_GROUPS}
  * for everyone ({@link SINGLE_ORG_SETTINGS_NAV_GROUPS} on a server that
@@ -34,7 +40,10 @@ const AWAITING_ANSWER_NAV_GROUPS: readonly SettingsNavGroup[] =
  * {@link PLATFORM_SETTINGS_NAV_GROUP} items the
  * caller's platform permissions unlock (per-item `requiredPermission`,
  * checked against `platform:stigmer`). The group appears when at least
- * one of its items is visible.
+ * one of its items is visible. The {@link ORG_ADMIN_SETTINGS_NAV_ITEMS} the
+ * caller's permissions on the active organization unlock join the first
+ * group after Teams; outside an `OrgProvider`, or with no organization
+ * active, none do.
  *
  * The checks run fail-closed — the opposite of the `useCheckPermission`
  * default — because navigation is *discoverability*, not *capability*:
@@ -56,6 +65,12 @@ const AWAITING_ANSWER_NAV_GROUPS: readonly SettingsNavGroup[] =
  * ```
  */
 export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
+  const orgId = useOptionalOrg()?.activeOrg?.metadata?.id ?? "";
+  const serviceAccounts = useCheckPermission(
+    orgId ? { kind: "organization", id: orgId } : null,
+    "can_create_identity_account",
+    { fail: "closed" },
+  );
   const pricing = useCheckPermission(
     PLATFORM_RESOURCE,
     "can_manage_model_pricing",
@@ -87,6 +102,7 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
   const providerStandingAllowed = providerStanding.allowed;
   const licensesAllowed = licenses.allowed;
   const plansAllowed = plans.allowed;
+  const serviceAccountsAllowed = serviceAccounts.allowed;
   const singleOrg = useSingleOrg();
   const baseGroups =
     singleOrg === undefined
@@ -112,12 +128,51 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
         verdicts[item.requiredPermission] === true,
     );
 
+    const orgVerdicts: Record<string, boolean> = {
+      can_create_identity_account: serviceAccountsAllowed,
+    };
+    const orgItems = ORG_ADMIN_SETTINGS_NAV_ITEMS.filter(
+      (item) =>
+        item.requiredPermission !== undefined &&
+        orgVerdicts[item.requiredPermission] === true,
+    );
+    // While the server has not said whether it holds one organization the
+    // first group is held back, so there is nowhere to add these yet.
+    const groups =
+      orgItems.length === 0 || baseGroups === AWAITING_ANSWER_NAV_GROUPS
+        ? baseGroups
+        : baseGroups.map((group, index) =>
+            index === 0 ? withItemsAfter(group, ORG_ADMIN_ITEMS_AFTER, orgItems) : group,
+          );
+
     if (visibleItems.length === 0) {
-      return baseGroups;
+      return groups;
     }
     return [
-      ...baseGroups,
+      ...groups,
       { ...PLATFORM_SETTINGS_NAV_GROUP, items: visibleItems },
     ];
-  }, [baseGroups, pricingAllowed, cursorAccountsAllowed, providerStandingAllowed, licensesAllowed, plansAllowed]);
+  }, [
+    baseGroups,
+    pricingAllowed,
+    cursorAccountsAllowed,
+    providerStandingAllowed,
+    licensesAllowed,
+    plansAllowed,
+    serviceAccountsAllowed,
+  ]);
+}
+
+/** The group with `items` placed after the entry at `afterHref`, or at its end. */
+function withItemsAfter(
+  group: SettingsNavGroup,
+  afterHref: string,
+  items: readonly SettingsNavItem[],
+): SettingsNavGroup {
+  const at = group.items.findIndex((item) => item.href === afterHref);
+  const cut = at === -1 ? group.items.length : at + 1;
+  return {
+    ...group,
+    items: [...group.items.slice(0, cut), ...items, ...group.items.slice(cut)],
+  };
 }

@@ -2,7 +2,11 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { PLATFORM_SETTINGS_NAV_GROUP, SETTINGS_NAV_GROUPS } from "@stigmer/react";
+import {
+  ORG_ADMIN_SETTINGS_NAV_ITEMS,
+  PLATFORM_SETTINGS_NAV_GROUP,
+  SETTINGS_NAV_GROUPS,
+} from "@stigmer/react";
 import { LIBRARY_RESOURCE_TYPES } from "@/domain/library/library-navigation";
 
 // These tests pin two bug classes specific to static-export deployments
@@ -55,9 +59,12 @@ describe("settings nav pages", () => {
   // added there without either client growing its page; the desktop app
   // shipped Provider Standing that way (stigmer#1227). Every href the
   // sidebar can show must have a page file, or a click on it 404s.
-  const hrefs = [...SETTINGS_NAV_GROUPS, PLATFORM_SETTINGS_NAV_GROUP].flatMap((group) =>
-    group.items.map((item) => item.href),
-  );
+  const hrefs = [
+    ...[...SETTINGS_NAV_GROUPS, PLATFORM_SETTINGS_NAV_GROUP].flatMap((group) =>
+      group.items.map((item) => item.href),
+    ),
+    ...ORG_ADMIN_SETTINGS_NAV_ITEMS.map((item) => item.href),
+  ];
   for (const href of hrefs) {
     it(`${href} has a page`, () => {
       const pageFile = join(APP_DIR, ...href.split("/").filter(Boolean), "page.tsx");

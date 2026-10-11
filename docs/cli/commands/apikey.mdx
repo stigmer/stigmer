@@ -29,6 +29,9 @@ stigmer apikey create --name "ci-pipeline"
 # Create a key that never expires
 stigmer apikey create --name "automation" --never-expires
 
+# Create a key for a service account of the Organization
+stigmer apikey create --service-account ci-deploy --name "github-actions"
+
 # Look up which key matches a raw token
 stigmer apikey fingerprint stk_abc123...
 
@@ -67,14 +70,15 @@ create a new API key
 stigmer apikey create [flags]
 ```
 
-| Flag              | Type     | Default | Description                                                                   |
-| ----------------- | -------- | ------- | ----------------------------------------------------------------------------- |
-| `--bound-org`     | `string` |         | limit the key to one organization (slug or id); it is refused everywhere else |
-| `--expires-in`    | `string` |         | custom expiration (e.g. 30d, 6h, 1y)                                          |
-| `--json`          | `bool`   |         | shorthand for --output json                                                   |
-| `--name`          | `string` |         | display name for the API key                                                  |
-| `--never-expires` | `bool`   |         | create a key that never expires                                               |
-| `--output`, `-o`  | `string` |         | output format: table, json, or yaml                                           |
+| Flag                | Type     | Default | Description                                                                                                 |
+| ------------------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `--bound-org`       | `string` |         | limit the key to one organization (slug or id); it is refused everywhere else                               |
+| `--expires-in`      | `string` |         | custom expiration (e.g. 30d, 6h, 1y)                                                                        |
+| `--json`            | `bool`   |         | shorthand for --output json                                                                                 |
+| `--name`            | `string` |         | display name for the API key                                                                                |
+| `--never-expires`   | `bool`   |         | create a key that never expires                                                                             |
+| `--output`, `-o`    | `string` |         | output format: table, json, or yaml                                                                         |
+| `--service-account` | `string` |         | create the key for this service account of the organization; it speaks for the service account, not for you |
 
 ### stigmer apikey fingerprint
 
@@ -98,6 +102,16 @@ stigmer apikey create --name "github-actions"
 ```
 
 Save the displayed key as a CI secret.
+
+### Create a key for a service account
+
+```bash
+stigmer apikey create --service-account ci-deploy --name "github-actions"
+```
+
+The key speaks for the service account, not for you: it keeps working when you
+leave, and it works only in the service account's Organization, so it takes no
+`--bound-org`. It needs a `--name`.
 
 ### Create a short-lived key
 
@@ -124,12 +138,13 @@ Computes a SHA-256 hash and looks up the matching key record.
 
 ## Related commands
 
-| Command                             | Description                  |
-| ----------------------------------- | ---------------------------- |
-| [`stigmer auth`](./auth)            | Browser-based authentication |
-| [`stigmer get apikey`](./get)       | Get API key details by ID    |
-| [`stigmer list apikey`](./list)     | List all API keys            |
-| [`stigmer delete apikey`](./delete) | Delete an API key            |
+| Command                                        | Description                                |
+| ---------------------------------------------- | ------------------------------------------ |
+| [`stigmer auth`](./auth)                       | Browser-based authentication               |
+| [`stigmer service-account`](./service-account) | The Organization's accounts for automation |
+| [`stigmer get apikey`](./get)                  | Get API key details by ID                  |
+| [`stigmer list apikey`](./list)                | List all API keys                          |
+| [`stigmer delete apikey`](./delete)            | Delete an API key                          |
 
 ## See also
 

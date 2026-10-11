@@ -95,6 +95,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   // Configuration
   auth: "config",
   apikey: "config",
+  "service-account": "config",
   config: "config",
   marketplace: "config",
   completion: "config",

@@ -1,4 +1,10 @@
 {
   "title": "Authentication",
-  "pages": ["overview", "federation", "platform-client", "customer-keys"]
+  "pages": [
+    "overview",
+    "service-accounts",
+    "federation",
+    "platform-client",
+    "customer-keys"
+  ]
 }

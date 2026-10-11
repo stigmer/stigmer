@@ -37,6 +37,15 @@
  * subject that merely looks like an email is still admitted idp-shaped,
  * and an account-stamped key costs no extra read.
  *
+ * A key whose creator stamp is an organization's service account is that
+ * account, never a person: class `service_account`, bound to the
+ * account's organization, named by the account row's CURRENT name (a
+ * rename reaches the next request; the key's stamped display name is
+ * never read), recording its use as any key does. A service-account key
+ * whose `bound_org` is not the account's organization cannot come from
+ * the create path and is refused with the unknown-key copy, recording no
+ * use. A person's key stays a `user`.
+ *
  * An accepted key's use lands on its own row (stigmer/stigmer#1255):
  * stamped on the first verify, left alone inside the resolution, moved
  * forward after it; a refused key records nothing; a stamp that cannot be
@@ -65,6 +74,7 @@ import { SqliteStore } from "../../../store/sqlite/store.js";
 import {
   accountIdFor,
   localIdpIdFor,
+  serviceAccountSubjectFor,
 } from "../../identityaccount/constants.js";
 import type { AccountsByCaller } from "../../identityaccount/resolve.js";
 import { newResourceIdentityAccountStore } from "../../identityaccount/resource-store.js";
@@ -615,5 +625,102 @@ describe("last use (stigmer/stigmer#1255)", () => {
       error: "disk full",
     });
     expect(lines[0], "the token is never logged").not.toContain(plaintext);
+  });
+});
+
+describe("a key that speaks for an organization's service account", () => {
+  const SA_ORG = "org_sa_home";
+
+  /** A service account as createServiceAccount writes it, through the real adapter. */
+  async function provisionServiceAccount(name: string): Promise<string> {
+    const subject = serviceAccountSubjectFor(SA_ORG);
+    const id = accountIdFor(subject);
+    await accounts.save(
+      create(IdentityAccountSchema, {
+        apiVersion: "iam.stigmer.ai/v1",
+        kind: "IdentityAccount",
+        metadata: { id, name, slug: name, org: SA_ORG },
+        spec: {
+          idpId: subject,
+          provisioningMode: IdentityAccountProvisioningMode.service_account,
+        },
+      }),
+    );
+    return id;
+  }
+
+  it("authenticates as class service_account, bound to its organization, named by the account row", async () => {
+    const accountId = await provisionServiceAccount("ci-deploy");
+    const { plaintext, id } = await seedKey({
+      ownerId: accountId,
+      email: "",
+      displayName: "Minting Admin",
+      boundOrg: SA_ORG,
+    });
+    expect(await verifier().verify(plaintext)).toEqual({
+      identityId: accountId,
+      callerClass: "service_account",
+      boundOrg: SA_ORG,
+      displayName: "ci-deploy",
+      issuer: "",
+      rawToken: plaintext,
+    });
+    expect((await storedKey(id)).status?.lastUsedAt).toBeDefined();
+  });
+
+  it("is named by the account's CURRENT name after a rename, never the key's stamped display name", async () => {
+    const accountId = await provisionServiceAccount("nightly");
+    const { plaintext } = await seedKey({
+      ownerId: accountId,
+      email: "",
+      displayName: "nightly",
+      boundOrg: SA_ORG,
+    });
+    const row = await accounts.findById(accountId);
+    if (row?.metadata === undefined) throw new Error("fixture row missing");
+    row.metadata.name = "nightly-renamed";
+    row.metadata.slug = "nightly-renamed";
+    await accounts.update(row);
+    expect((await verifier().verify(plaintext))?.displayName).toBe(
+      "nightly-renamed",
+    );
+  });
+
+  it("a service-account key bound to another organization is refused as an invalid token and records no use", async () => {
+    const accountId = await provisionServiceAccount("misbound");
+    for (const boundOrg of ["org_someone_else", ""]) {
+      const { plaintext, id } = await seedKey({
+        ownerId: accountId,
+        email: "",
+        boundOrg,
+      });
+      const error = await verifier()
+        .verify(plaintext)
+        .then(
+          () => {
+            throw new Error("expected rejection");
+          },
+          (e: unknown) => e,
+        );
+      const refusal = ConnectError.from(error);
+      expect(refusal.code).toBe(Code.Unauthenticated);
+      expect(refusal.rawMessage).toBe(INVALID_TOKEN_MESSAGE);
+      expect((await storedKey(id)).status?.lastUsedAt).toBeUndefined();
+    }
+  });
+
+  it("a person's key bound to an organization still authenticates as a user, bound by its own spec", async () => {
+    const accountId = await provisionAccount(
+      "auth0|person-beside-sa",
+      "person@example.com",
+    );
+    const { plaintext } = await seedKey({
+      ownerId: accountId,
+      boundOrg: SA_ORG,
+    });
+    const identity = await verifier().verify(plaintext);
+    expect(identity?.callerClass).toBe("user");
+    expect(identity?.identityId).toBe(accountId);
+    expect(identity?.boundOrg).toBe(SA_ORG);
   });
 });

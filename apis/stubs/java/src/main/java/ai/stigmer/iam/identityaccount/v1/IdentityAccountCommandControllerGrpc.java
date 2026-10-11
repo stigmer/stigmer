@@ -201,6 +201,37 @@ public final class IdentityAccountCommandControllerGrpc {
     return getDeprovisionFederatedAccountMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput,
+      ai.stigmer.iam.identityaccount.v1.IdentityAccount> getCreateServiceAccountMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "createServiceAccount",
+      requestType = ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput.class,
+      responseType = ai.stigmer.iam.identityaccount.v1.IdentityAccount.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput,
+      ai.stigmer.iam.identityaccount.v1.IdentityAccount> getCreateServiceAccountMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput, ai.stigmer.iam.identityaccount.v1.IdentityAccount> getCreateServiceAccountMethod;
+    if ((getCreateServiceAccountMethod = IdentityAccountCommandControllerGrpc.getCreateServiceAccountMethod) == null) {
+      synchronized (IdentityAccountCommandControllerGrpc.class) {
+        if ((getCreateServiceAccountMethod = IdentityAccountCommandControllerGrpc.getCreateServiceAccountMethod) == null) {
+          IdentityAccountCommandControllerGrpc.getCreateServiceAccountMethod = getCreateServiceAccountMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput, ai.stigmer.iam.identityaccount.v1.IdentityAccount>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "createServiceAccount"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityaccount.v1.IdentityAccount.getDefaultInstance()))
+              .setSchemaDescriptor(new IdentityAccountCommandControllerMethodDescriptorSupplier("createServiceAccount"))
+              .build();
+        }
+      }
+    }
+    return getCreateServiceAccountMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<com.google.protobuf.Empty,
       ai.stigmer.iam.identityaccount.v1.IdentityAccount> getProvisionMyAccountMethod;
 
@@ -388,6 +419,27 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create a service account: an organization's own non-person account for
+     * automation, holding one organization role.
+     * The account belongs to `org` for its whole life. It holds `role` on the
+     * organization (admin, member or viewer; never owner) and acts only through
+     * API keys created for it with ApiKeyCommandController.createForServiceAccount.
+     * Its name is unique among the organization's service accounts; a name in
+     * use answers ALREADY_EXISTS. A server running without sign-in answers
+     * FAILED_PRECONDITION, since no key could authenticate there.
+     * Rename it with update, change its role through IAM policies, and delete
+     * it with delete, which ends every key it has.
+     * Authorization: Requires can_create_identity_account on the organization.
+     * A service account's own key is refused.
+     * </pre>
+     */
+    default void createServiceAccount(ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateServiceAccountMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Provision the caller's own identity account.
      * The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
      * the console's identity gate, `stigmer auth login` and `stigmer auth whoami`,
@@ -534,6 +586,28 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create a service account: an organization's own non-person account for
+     * automation, holding one organization role.
+     * The account belongs to `org` for its whole life. It holds `role` on the
+     * organization (admin, member or viewer; never owner) and acts only through
+     * API keys created for it with ApiKeyCommandController.createForServiceAccount.
+     * Its name is unique among the organization's service accounts; a name in
+     * use answers ALREADY_EXISTS. A server running without sign-in answers
+     * FAILED_PRECONDITION, since no key could authenticate there.
+     * Rename it with update, change its role through IAM policies, and delete
+     * it with delete, which ends every key it has.
+     * Authorization: Requires can_create_identity_account on the organization.
+     * A service account's own key is refused.
+     * </pre>
+     */
+    public void createServiceAccount(ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreateServiceAccountMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Provision the caller's own identity account.
      * The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
      * the console's identity gate, `stigmer auth login` and `stigmer auth whoami`,
@@ -661,6 +735,27 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create a service account: an organization's own non-person account for
+     * automation, holding one organization role.
+     * The account belongs to `org` for its whole life. It holds `role` on the
+     * organization (admin, member or viewer; never owner) and acts only through
+     * API keys created for it with ApiKeyCommandController.createForServiceAccount.
+     * Its name is unique among the organization's service accounts; a name in
+     * use answers ALREADY_EXISTS. A server running without sign-in answers
+     * FAILED_PRECONDITION, since no key could authenticate there.
+     * Rename it with update, change its role through IAM policies, and delete
+     * it with delete, which ends every key it has.
+     * Authorization: Requires can_create_identity_account on the organization.
+     * A service account's own key is refused.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccount createServiceAccount(ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCreateServiceAccountMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Provision the caller's own identity account.
      * The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
      * the console's identity gate, `stigmer auth login` and `stigmer auth whoami`,
@@ -783,6 +878,27 @@ public final class IdentityAccountCommandControllerGrpc {
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount deprovisionFederatedAccount(ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeprovisionFederatedAccountMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Create a service account: an organization's own non-person account for
+     * automation, holding one organization role.
+     * The account belongs to `org` for its whole life. It holds `role` on the
+     * organization (admin, member or viewer; never owner) and acts only through
+     * API keys created for it with ApiKeyCommandController.createForServiceAccount.
+     * Its name is unique among the organization's service accounts; a name in
+     * use answers ALREADY_EXISTS. A server running without sign-in answers
+     * FAILED_PRECONDITION, since no key could authenticate there.
+     * Rename it with update, change its role through IAM policies, and delete
+     * it with delete, which ends every key it has.
+     * Authorization: Requires can_create_identity_account on the organization.
+     * A service account's own key is refused.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccount createServiceAccount(ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreateServiceAccountMethod(), getCallOptions(), request);
     }
 
     /**
@@ -919,6 +1035,28 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create a service account: an organization's own non-person account for
+     * automation, holding one organization role.
+     * The account belongs to `org` for its whole life. It holds `role` on the
+     * organization (admin, member or viewer; never owner) and acts only through
+     * API keys created for it with ApiKeyCommandController.createForServiceAccount.
+     * Its name is unique among the organization's service accounts; a name in
+     * use answers ALREADY_EXISTS. A server running without sign-in answers
+     * FAILED_PRECONDITION, since no key could authenticate there.
+     * Rename it with update, change its role through IAM policies, and delete
+     * it with delete, which ends every key it has.
+     * Authorization: Requires can_create_identity_account on the organization.
+     * A service account's own key is refused.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> createServiceAccount(
+        ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreateServiceAccountMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Provision the caller's own identity account.
      * The first-sign-in step every client runs when whoAmI() returns NOT_FOUND:
      * the console's identity gate, `stigmer auth login` and `stigmer auth whoami`,
@@ -943,7 +1081,8 @@ public final class IdentityAccountCommandControllerGrpc {
   private static final int METHODID_CREATE_FEDERATED_ACCOUNT = 3;
   private static final int METHODID_UPDATE_FEDERATED_ACCOUNT = 4;
   private static final int METHODID_DEPROVISION_FEDERATED_ACCOUNT = 5;
-  private static final int METHODID_PROVISION_MY_ACCOUNT = 6;
+  private static final int METHODID_CREATE_SERVICE_ACCOUNT = 6;
+  private static final int METHODID_PROVISION_MY_ACCOUNT = 7;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -984,6 +1123,10 @@ public final class IdentityAccountCommandControllerGrpc {
           break;
         case METHODID_DEPROVISION_FEDERATED_ACCOUNT:
           serviceImpl.deprovisionFederatedAccount((ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
+          break;
+        case METHODID_CREATE_SERVICE_ACCOUNT:
+          serviceImpl.createServiceAccount((ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
           break;
         case METHODID_PROVISION_MY_ACCOUNT:
@@ -1051,6 +1194,13 @@ public final class IdentityAccountCommandControllerGrpc {
               ai.stigmer.iam.identityaccount.v1.IdentityAccount>(
                 service, METHODID_DEPROVISION_FEDERATED_ACCOUNT)))
         .addMethod(
+          getCreateServiceAccountMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.identityaccount.v1.CreateServiceAccountInput,
+              ai.stigmer.iam.identityaccount.v1.IdentityAccount>(
+                service, METHODID_CREATE_SERVICE_ACCOUNT)))
+        .addMethod(
           getProvisionMyAccountMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
@@ -1111,6 +1261,7 @@ public final class IdentityAccountCommandControllerGrpc {
               .addMethod(getCreateFederatedAccountMethod())
               .addMethod(getUpdateFederatedAccountMethod())
               .addMethod(getDeprovisionFederatedAccountMethod())
+              .addMethod(getCreateServiceAccountMethod())
               .addMethod(getProvisionMyAccountMethod())
               .build();
         }

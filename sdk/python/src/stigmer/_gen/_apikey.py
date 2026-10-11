@@ -30,6 +30,12 @@ class ApiKeyClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def create_for_service_account(self, input: io_pb2.CreateServiceAccountKeyInput) -> api_pb2.ApiKey:
+        try:
+            return self._command.createForServiceAccount(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def update(self, input: ApiKeyInput) -> api_pb2.ApiKey:
         try:
             return self._command.update(input._to_proto())
@@ -57,6 +63,12 @@ class ApiKeyClient:
     def find_all(self) -> io_pb2.ApiKeys:
         try:
             return self._query.findAll(empty_pb2.Empty())
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def find_by_account(self, id: str) -> io_pb2.ApiKeys:
+        try:
+            return self._query.findByAccount(io_pb2.ApiKeyAccountId(value=id))
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
