@@ -847,5 +847,38 @@ public interface RunSpecOrBuilder extends
    */
   ai.stigmer.agentic.run.v1.ConversationCatchupOrBuilder getConversationCatchupOrBuilder();
 
+  /**
+   * <pre>
+   * What a plugin-eval case gives this try beyond its message: a starting
+   * folder, reference folders, an earlier conversation, variables and MCP
+   * stand-ins. Absent on every other run.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+   * @return Whether the pluginEvalCase field is set.
+   */
+  boolean hasPluginEvalCase();
+  /**
+   * <pre>
+   * What a plugin-eval case gives this try beyond its message: a starting
+   * folder, reference folders, an earlier conversation, variables and MCP
+   * stand-ins. Absent on every other run.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+   * @return The pluginEvalCase.
+   */
+  ai.stigmer.agentic.run.v1.PluginEvalCaseContext getPluginEvalCase();
+  /**
+   * <pre>
+   * What a plugin-eval case gives this try beyond its message: a starting
+   * folder, reference folders, an earlier conversation, variables and MCP
+   * stand-ins. Absent on every other run.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+   */
+  ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder getPluginEvalCaseOrBuilder();
+
   ai.stigmer.agentic.run.v1.RunSpec.TargetCase getTargetCase();
 }

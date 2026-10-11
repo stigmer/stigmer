@@ -54,6 +54,7 @@
  * writes the same status.
  */
 
+import type { TranscriptMessage } from "@stigmer/eval-runtime";
 import { create, fromBinary, toBinary, type DescField, type DescMessage, type MessageShape } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
 import type { JsonObject } from "@bufbuild/protobuf";
@@ -221,6 +222,8 @@ export interface WireTurnInput {
   };
   /** Whether the runtime resolved a store; the host's stand-in forwards uploads to it. */
   readonly artifactStorage: boolean;
+  /** A plugin-eval try's recorded conversation (`TurnInput.resumedHistory`), or `null` for none. Plain JSON already. */
+  readonly resumedHistory: readonly TranscriptMessage[] | null;
 }
 
 export function encodeTurnInput(input: TurnInput): WireTurnInput {
@@ -321,6 +324,7 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
       conversationCatchup: standing.conversationCatchup ?? null,
     },
     artifactStorage: input.artifactStorage !== undefined,
+    resumedHistory: input.resumedHistory ?? null,
   };
 }
 
@@ -437,6 +441,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       selectRecalledMemories: services.selectRecalledMemories,
     },
     artifactStorage: wire.artifactStorage ? services.artifactStorage : undefined,
+    ...(wire.resumedHistory === null ? {} : { resumedHistory: wire.resumedHistory }),
   };
 }
 

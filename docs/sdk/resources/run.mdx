@@ -640,6 +640,7 @@ const run = await stigmer.run.create({
   workspaceFileRefs: [],
   supersedesRunId: "...",
   conversationCatchup: {},
+  pluginEvalCase: {},
 });
 ```
 </Tab>
@@ -665,6 +666,7 @@ run, err := client.Run.Create(ctx, &stigmer.RunInput{
   WorkspaceFileRefs:      []string{},
   SupersedesRunId:        "...",
   ConversationCatchup:    &stigmer.ConversationCatchupInput{},
+  PluginEvalCase:         &stigmer.PluginEvalCaseContextInput{},
 })
 ```
 </Tab>
@@ -690,6 +692,7 @@ run = client.runs.create(RunInput(
     workspace_file_refs=[],
     supersedes_run_id="...",
     conversation_catchup=None,
+    plugin_eval_case=None,
 ))
 ```
 </Tab>
@@ -715,6 +718,7 @@ Run run = client.runs().create(RunInput.builder()
     .workspaceFileRefs(List.of())
     .supersedesRunId("...")
     .conversationCatchup(null)
+    .pluginEvalCase(null)
     .build());
 ```
 </Tab>
@@ -751,6 +755,7 @@ const run = await stigmer.run.update({
   workspaceFileRefs: [],
   supersedesRunId: "...",
   conversationCatchup: {},
+  pluginEvalCase: {},
 });
 ```
 </Tab>
@@ -776,6 +781,7 @@ run, err := client.Run.Update(ctx, &stigmer.RunInput{
   WorkspaceFileRefs:      []string{},
   SupersedesRunId:        "...",
   ConversationCatchup:    &stigmer.ConversationCatchupInput{},
+  PluginEvalCase:         &stigmer.PluginEvalCaseContextInput{},
 })
 ```
 </Tab>
@@ -801,6 +807,7 @@ run = client.runs.update(RunInput(
     workspace_file_refs=[],
     supersedes_run_id="...",
     conversation_catchup=None,
+    plugin_eval_case=None,
 ))
 ```
 </Tab>
@@ -826,6 +833,7 @@ Run run = client.runs().update(RunInput.builder()
     .workspaceFileRefs(List.of())
     .supersedesRunId("...")
     .conversationCatchup(null)
+    .pluginEvalCase(null)
     .build());
 ```
 </Tab>
@@ -1326,6 +1334,7 @@ Input for creating or updating a Run.
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on." },
     supersedesRunId: { type: "string", description: "ID of the run this one supersedes via edit-and-resubmit (optional)." },
     conversationCatchup: { type: "ConversationCatchupInput", description: "Conversation events the agent has not yet seen, composed by the platform for this turn (optional).", typeDescriptionLink: "#conversationcatchupinput" },
+    pluginEvalCase: { type: "PluginEvalCaseContextInput", description: "What a plugin-eval case gives this try beyond its message: a starting folder, reference folders, an earlier conversation, variables and MCP stand-ins.", typeDescriptionLink: "#pluginevalcasecontextinput" },
   }}
 />
 
@@ -1449,6 +1458,56 @@ ConversationCatchup carries the channel-conversation events an agent missed, com
   type={{
     digest: { type: "string", description: "Plain-text digest of what the agent missed, oldest first; empty when nothing was missed." },
     windowEnd: { type: "string", description: "The timeline instant this digest conveys through." },
+  }}
+/>
+
+### PluginEvalCaseContextInput
+
+PluginEvalCaseContext is what one plugin-eval case gives its try beyond the prompt: a starting folder, reference folders, an earlier conversation, variables, and stand-ins for the plugin's MCP servers.
+
+<TypeTable
+  type={{
+    pluginId: { type: "string", description: "ID of the plugin whose case this is." },
+    pluginDigest: { type: "string", description: "The plugin version (archive digest) the eval runs." },
+    suiteDir: { type: "string", description: "The suite's directory, as in \"evals\"." },
+    caseDir: { type: "string", description: "The case's directory, as in \"evals/fix-the-test\"." },
+    scaffoldScript: { type: "string", description: "The Bash script that builds the starting folder; empty for none." },
+    addDirs: { type: "string[]", description: "Directories the agent may read during the run." },
+    historyFile: { type: "string", description: "A Claude Code transcript (.jsonl) the try resumes; empty for none." },
+    env: { type: "Record<string, string>", description: "EVAL_* variables the agent's shell and the plugin's hooks receive." },
+    mocks: { type: "PluginEvalMockServerInput[]", description: "The plugin's MCP servers answered by stand-ins, one per server.", typeDescriptionLink: "#pluginevalmockserverinput" },
+    agentMockModel: { type: "string", description: "The model agent stand-ins answer with; empty uses the runner's default." },
+    agentMockCallBudget: { type: "number", description: "Calls the agent stand-ins may answer in this try, together." },
+    readFiles: { type: "string[]", description: "The files the case's graders read, relative to the workspace." },
+    pluginName: { type: "string", description: "The plugin's name, as a turn names its MCP servers (`plugin_<plugin>_<server>`) and a hook reads a stand-in's origin." },
+  }}
+/>
+
+### PluginEvalMockServerInput
+
+PluginEvalMockServer is one plugin MCP server answered by a stand-in.
+
+<TypeTable
+  type={{
+    server: { type: "string", description: "The server's key in the plugin's MCP configuration." },
+    segment: { type: "string", description: "The name the stand-in is registered under in the turn, the plugin server's own." },
+    tools: { type: "PluginEvalMockToolInput[]", description: "The mocked tools; a tool not listed is not offered.", typeDescriptionLink: "#pluginevalmocktoolinput" },
+    toolsFile: { type: "string", description: "The server's saved tools/list response, for real descriptions and input schemas; empty for none." },
+  }}
+/>
+
+### PluginEvalMockToolInput
+
+PluginEvalMockTool is one mocked tool and how it answers.
+
+<TypeTable
+  type={{
+    tool: { type: "string", description: "The tool's name." },
+    file: { type: "string", description: "The mock file whose body answers, or instructs the agent stand-in." },
+    kind: { type: "PluginEvalMockKind", description: "How the tool answers.", typeDescriptionLink: "#pluginevalmockkind" },
+    error: { type: "boolean", description: "Whether a fixed answer is returned as a tool error." },
+    expectJson: { type: "string", description: "The input guard, as the mock's expect block in JSON; empty for none." },
+    abortWhen: { type: "string", description: "The only conditions under which an agent stand-in may end the run." },
   }}
 />
 
@@ -1848,6 +1907,7 @@ RunStatus contains all run results and state.
     runConfig: { type: "RunConfig", description: "The settings this turn runs with: spec.run_config (or the saved settings of the surface it came through), the defaults of the agent version the turn runs, and the lane's operator profile, resolved by RunConfig's rule.", typeDescriptionLink: "#runconfig" },
     approvalMode: { type: "ApprovalMode", description: "How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never UNSPECIFIED.", typeDescriptionLink: "#approvalmode" },
     credentials: { type: "RunCredentials", description: "Whose logins and secrets this turn uses: decided once when the turn is created, and kept when it is recovered.", typeDescriptionLink: "#runcredentials" },
+    pluginEvalFiles: { type: "PluginEvalFiles", description: "The files a plugin eval's graders read, as the try's turn left them.", typeDescriptionLink: "#pluginevalfiles" },
   }}
 />
 
@@ -2198,6 +2258,30 @@ A pending approval request for a tool call that requires user consent before exe
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of the tool, copied from ToolCall.tool_kind by the server-side projection (exactly as mcp_server_slug above is).", typeDescriptionLink: "#toolkind" },
     approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this tool call, copied from ToolCall.approval_policy_source by the server-side projection (exactly as tool_kind above is).", typeDescriptionLink: "#approvalpolicysource" },
     approvalPolicyHook: { type: "string", description: "Slug of the plugin whose hook asked for this approval; empty when no plugin's hook asked." },
+  }}
+/>
+
+### PluginEvalFile
+
+PluginEvalFile is one file's content after the turn.
+
+<TypeTable
+  type={{
+    path: { type: "string", description: "The path as the case's graders name it." },
+    text: { type: "string", description: "The file's text." },
+    binary: { type: "boolean", description: "The file is not text." },
+    absent: { type: "boolean", description: "Nothing is at the path." },
+    unreadable: { type: "string", description: "The file could not be read, and why (too large, not a regular file, outside the workspace)." },
+  }}
+/>
+
+### PluginEvalFiles
+
+PluginEvalFiles is the content, after a plugin-eval try's turn, of each file its case's graders read (PluginEvalCaseContext.read_files).
+
+<TypeTable
+  type={{
+    files: { type: "PluginEvalFile[]", description: "Each file, once, in the order read_files names them.", typeDescriptionLink: "#pluginevalfile" },
   }}
 />
 
@@ -2690,6 +2774,7 @@ FileDecisionOrigin records which authority authored a FileDecision: a human revi
 |-------|-------------|
 | `FILE_DECISION_ORIGIN_USER` | A human reviewer decided via SubmitFileDecision. |
 | `FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND` | Platform policy auto-kept the set because every mutation in its turn came from commands the human explicitly authorized (per-command approval, APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified against server-authored approval records before authoring. |
+| `FILE_DECISION_ORIGIN_POLICY_EVAL_TRY` | Platform policy kept the set because its run is a plugin eval's try: a try's edits apply as they do in Claude Code's evals, and nobody reviews a try. |
 
 ### FileReviewEventType
 
@@ -2884,4 +2969,13 @@ GitWriteBackMode controls the platform's git workflow for a git-backed workspace
 | Value | Description |
 |-------|-------------|
 | `GIT_WRITE_BACK_BRANCH_AND_PR` | Create a branch and pull request from the agent's file changes after the run completes. |
+
+### PluginEvalMockKind
+
+PluginEvalMockKind is how a mocked tool answers.
+
+| Value | Description |
+|-------|-------------|
+| `plugin_eval_mock_kind_fixed` | The mock file's body, with its substitutions. |
+| `plugin_eval_mock_kind_agent` | A model acting as the server from the mock file's instructions. |
 

@@ -1,19 +1,14 @@
-// Unit arms for the end-state readers, over temp directories and a scripted
-// command runner.
+// Unit arms for the end-state reader, over temp directories.
 // Domain: conformance benchmark.
 //
 // Pinned: the comparison lists added, modified and deleted files, sorted by
-// code point,
-// ignores an empty directory (what Cursor's teardown can leave), and counts a
-// symbolic link as an entry of its own without following it; a named file
-// reads as its content or null; `go_test` runs `go test ./...` in the
-// workspace with GOWORK=off and reads passed, failed with the exit code and
-// the output's tail, or not-run by name when `go` is absent.
+// code point, ignores an empty directory (what Cursor's teardown can leave),
+// and counts a symbolic link as an entry of its own without following it.
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { changedFiles, readWorkspaceFile, runChecks, type CommandRunner } from "../workspace-facts";
+import { changedFiles } from "../workspace-facts";
 
 let base: string;
 let before: string;
@@ -60,49 +55,5 @@ describe("changedFiles", () => {
       { path: ".cursor/hooks.json", change: "added" },
       { path: ".stigmer", change: "added" },
     ]);
-  });
-});
-
-describe("readWorkspaceFile", () => {
-  it("reads a file's content, and null for one that does not exist", async () => {
-    expect(await readWorkspaceFile(after, "README.md")).toBe("# orders-sync\n");
-    expect(await readWorkspaceFile(after, "missing.go")).toBeNull();
-  });
-});
-
-describe("runChecks go_test", () => {
-  function scripted(result: Awaited<ReturnType<CommandRunner>>): { run: CommandRunner; calls: Parameters<CommandRunner>[] } {
-    const calls: Parameters<CommandRunner>[] = [];
-    return {
-      calls,
-      run: async (...args) => {
-        calls.push(args);
-        return result;
-      },
-    };
-  }
-
-  it("runs go test ./... in the workspace with GOWORK=off and reads a pass", async () => {
-    const { run, calls } = scripted({ exitCode: 0, output: "ok  example.com/orders-sync/duration\n", notFound: false });
-    const [check] = await runChecks(["go_test"], after, run);
-    expect(check).toEqual({ name: "go_test", outcome: "passed", detail: "go test ./...: exit 0\nok  example.com/orders-sync/duration" });
-    expect(calls[0]?.[0]).toBe("go");
-    expect(calls[0]?.[1]).toEqual(["test", "./..."]);
-    expect(calls[0]?.[2].cwd).toBe(after);
-    expect(calls[0]?.[2].env["GOWORK"]).toBe("off");
-  });
-
-  it("reads a failure with the exit code and the output's tail", async () => {
-    const lines = Array.from({ length: 60 }, (_, i) => `line ${i}`).join("\n");
-    const [check] = await runChecks(["go_test"], after, scripted({ exitCode: 1, output: lines, notFound: false }).run);
-    expect(check?.outcome).toBe("failed");
-    expect(check?.detail.startsWith("go test ./...: exit 1\n")).toBe(true);
-    expect(check?.detail).toContain("line 59");
-    expect(check?.detail).not.toContain("line 19\n");
-  });
-
-  it("reads not-run, by name, when go is not on PATH", async () => {
-    const [check] = await runChecks(["go_test"], after, scripted({ exitCode: null, output: "", notFound: true }).run);
-    expect(check).toEqual({ name: "go_test", outcome: "not-run", detail: "not run: go is not on PATH" });
   });
 });

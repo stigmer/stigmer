@@ -238,6 +238,6 @@ message PluginEvalSuiteCase {
   repeated string case_tags = 3;
 
   // Why Stigmer cannot run the case yet, naming the feature, as in
-  // "context.scaffold_script"; empty when it can.
+  // "plugins" for a case that runs with another plugin; empty when it can.
   string unsupported = 4;
 }

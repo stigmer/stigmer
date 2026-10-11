@@ -1,0 +1,177 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.run.v1;
+
+import "buf/validate/validate.proto";
+
+// PluginEvalCaseContext is what one plugin-eval case gives its try beyond
+// the prompt: a starting folder, reference folders, an earlier
+// conversation, variables, and stand-ins for the plugin's MCP servers.
+//
+// @internal
+// Composed only by the server's plugin-eval case workflow; run create
+// refuses it on any request that is not server-composed. Every path is
+// relative to the plugin's root and names a file in the plugin's archive
+// at plugin_digest, which the runner downloads and verifies itself, so no
+// suite byte travels in this message. The server decides what the try runs
+// (the reader's checks, the per-target plan, which servers are mocked);
+// the runner executes it and never re-reads the suite.
+message PluginEvalCaseContext {
+  // ID of the plugin whose case this is.
+  string plugin_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The plugin version (archive digest) the eval runs.
+  string plugin_digest = 2 [(buf.validate.field).string.pattern = "^[a-f0-9]{64}$"];
+
+  // The suite's directory, as in "evals".
+  //
+  // @internal
+  // A scaffold may reach files beside its case (a shared fixture), as it
+  // does in Claude Code, so the whole suite is extracted for it.
+  string suite_dir = 3 [(buf.validate.field).string.min_len = 1];
+
+  // The case's directory, as in "evals/fix-the-test".
+  string case_dir = 4 [(buf.validate.field).string.min_len = 1];
+
+  // The Bash script that builds the starting folder; empty for none.
+  string scaffold_script = 5;
+
+  // Directories the agent may read during the run.
+  repeated string add_dirs = 6 [(buf.validate.field).repeated.max_items = 32];
+
+  // A Claude Code transcript (.jsonl) the try resumes; empty for none.
+  string history_file = 7;
+
+  // EVAL_* variables the agent's shell and the plugin's hooks receive.
+  map<string, string> env = 8 [(buf.validate.field).map = {
+    max_pairs: 64
+    keys: {
+      string: {pattern: "^EVAL_[A-Z0-9_]*$"}
+    }
+    values: {
+      string: {max_len: 4096}
+    }
+  }];
+
+  // The plugin's MCP servers answered by stand-ins, one per server.
+  repeated PluginEvalMockServer mocks = 9 [(buf.validate.field).repeated.max_items = 32];
+
+  // The model agent stand-ins answer with; empty uses the runner's default.
+  string agent_mock_model = 10 [(buf.validate.field).string.max_len = 128];
+
+  // Calls the agent stand-ins may answer in this try, together.
+  int32 agent_mock_call_budget = 11 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 800
+  }];
+
+  // The files the case's graders read, relative to the workspace. The
+  // runner returns their contents after the turn in
+  // RunStatus.plugin_eval_files, so a grader can read a file the try did not
+  // change (one the scaffold wrote, for example).
+  repeated string read_files = 12 [(buf.validate.field).repeated = {
+    max_items: 64
+    items: {
+      string: {
+        min_len: 1
+        max_len: 1024
+      }
+    }
+  }];
+
+  // The plugin's name, as a turn names its MCP servers
+  // (`plugin_<plugin>_<server>`) and a hook reads a stand-in's origin.
+  string plugin_name = 13 [(buf.validate.field).string.max_len = 256];
+}
+
+// PluginEvalFiles is the content, after a plugin-eval try's turn, of each
+// file its case's graders read (PluginEvalCaseContext.read_files).
+//
+// @internal
+// Written once by the runner with the turn's terminal status, read only by
+// the case workflow's graders.
+message PluginEvalFiles {
+  // Each file, once, in the order read_files names them.
+  repeated PluginEvalFile files = 1 [(buf.validate.field).repeated.max_items = 64];
+}
+
+// PluginEvalFile is one file's content after the turn.
+message PluginEvalFile {
+  // The path as the case's graders name it.
+  string path = 1 [(buf.validate.field).string.min_len = 1];
+
+  // What the runner found at the path.
+  oneof content {
+    // The file's text.
+    string text = 2;
+
+    // The file is not text.
+    bool binary = 3;
+
+    // Nothing is at the path.
+    bool absent = 4;
+
+    // The file could not be read, and why (too large, not a regular file,
+    // outside the workspace).
+    string unreadable = 5;
+  }
+}
+
+// PluginEvalMockServer is one plugin MCP server answered by a stand-in.
+message PluginEvalMockServer {
+  // The server's key in the plugin's MCP configuration.
+  string server = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The name the stand-in is registered under in the turn, the plugin
+  // server's own.
+  string segment = 2 [(buf.validate.field).string.min_len = 1];
+
+  // The mocked tools; a tool not listed is not offered.
+  repeated PluginEvalMockTool tools = 3 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 128
+  }];
+
+  // The server's saved tools/list response, for real descriptions and
+  // input schemas; empty for none.
+  string tools_file = 4;
+}
+
+// PluginEvalMockTool is one mocked tool and how it answers.
+message PluginEvalMockTool {
+  // The tool's name.
+  string tool = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The mock file whose body answers, or instructs the agent stand-in.
+  string file = 2 [(buf.validate.field).string.min_len = 1];
+
+  // How the tool answers.
+  PluginEvalMockKind kind = 3 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+
+  // Whether a fixed answer is returned as a tool error.
+  bool error = 4;
+
+  // The input guard, as the mock's expect block in JSON; empty for none.
+  //
+  // @internal
+  // Checked and compiled by the server at read; the runner compiles it
+  // again with the same library (@stigmer/eval-runtime).
+  string expect_json = 5 [(buf.validate.field).string.max_len = 16384];
+
+  // The only conditions under which an agent stand-in may end the run.
+  string abort_when = 6 [(buf.validate.field).string.max_len = 4096];
+}
+
+// PluginEvalMockKind is how a mocked tool answers.
+enum PluginEvalMockKind {
+  plugin_eval_mock_kind_unspecified = 0;
+
+  // The mock file's body, with its substitutions.
+  plugin_eval_mock_kind_fixed = 1;
+
+  // A model acting as the server from the mock file's instructions.
+  plugin_eval_mock_kind_agent = 2;
+}

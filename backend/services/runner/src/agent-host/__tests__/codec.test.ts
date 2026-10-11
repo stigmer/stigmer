@@ -17,6 +17,8 @@
  *    the artifact upload and a plugin's verify call back, never run locally;
  *  - a vision image crosses once even when an attachment and the vision
  *    list share it;
+ *  - a plugin-eval try's recorded conversation crosses whole, and a turn
+ *    without one crosses none;
  *  - the adapter-owned projection replaces the runtime's fields IN PLACE
  *    (the builder holds the arrays), and touches no runtime-owned field;
  *  - the runtime-owned fields cross back only when they changed, and never
@@ -277,6 +279,16 @@ describe("the turn input across the pipe", () => {
 
     expect(decoded.appendSystemPrompt).toBe("Answer in one line.");
     expect(decoded.mcp.toolScope.hidesSkills).toBe(true);
+  });
+
+  it("carries a plugin-eval try's recorded conversation, and none for a turn without one", () => {
+    const history = [
+      { role: "user" as const, blocks: [{ type: "text" as const, text: "Draft a note." }] },
+      { role: "assistant" as const, blocks: [{ type: "tool_use" as const, id: "t1", name: "Read", input: { file_path: "a" } }] },
+      { role: "user" as const, blocks: [{ type: "tool_result" as const, toolUseId: "t1", content: "A", isError: false }] },
+    ];
+    expect(crossed({ ...turnInputFixture(), resumedHistory: history }).resumedHistory).toEqual(history);
+    expect(crossed(turnInputFixture()).resumedHistory).toBeUndefined();
   });
 
   it("carries no artifact store when the runtime resolved none", () => {

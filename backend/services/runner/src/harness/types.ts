@@ -68,6 +68,7 @@
  * `registry.ts`, no barrel.
  */
 
+import type { TranscriptMessage } from "@stigmer/eval-runtime";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -415,6 +416,13 @@ export interface TurnInput extends NormalizedActivityInput {
   readonly standing: TurnStandingContext;
   /** Resolved once by the runtime before any phase; absent when no substrate works. */
   readonly artifactStorage: ArtifactStorage | undefined;
+  /**
+   * A plugin-eval try's recorded conversation, which the native engine
+   * resumes ahead of this turn's message on a thread that holds none
+   * (`shared/plugin-eval/prepare-case.ts`); absent on every other turn. The
+   * server never plans such a try on an engine that cannot resume one.
+   */
+  readonly resumedHistory?: readonly TranscriptMessage[];
 }
 
 // ---------------------------------------------------------------------------

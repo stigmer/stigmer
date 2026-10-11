@@ -21,7 +21,7 @@ plugin_eval_ablation_with_without: PluginEvalAblation
 plugin_eval_ablation_none: PluginEvalAblation
 
 class PluginEvalSpec(_message.Message):
-    __slots__ = ("plugin_id", "plugin_digest", "targets", "runs", "ablation", "threshold", "case_glob", "case_tags", "judge_model", "max_cost_usd", "concurrency", "allow_tools", "real_mcp_servers", "vaults")
+    __slots__ = ("plugin_id", "plugin_digest", "targets", "runs", "ablation", "threshold", "case_glob", "case_tags", "judge_model", "max_cost_usd", "concurrency", "allow_tools", "real_mcp_servers", "vaults", "skip_scaffold", "allow_real_servers")
     PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
     PLUGIN_DIGEST_FIELD_NUMBER: _ClassVar[int]
     TARGETS_FIELD_NUMBER: _ClassVar[int]
@@ -36,6 +36,8 @@ class PluginEvalSpec(_message.Message):
     ALLOW_TOOLS_FIELD_NUMBER: _ClassVar[int]
     REAL_MCP_SERVERS_FIELD_NUMBER: _ClassVar[int]
     VAULTS_FIELD_NUMBER: _ClassVar[int]
+    SKIP_SCAFFOLD_FIELD_NUMBER: _ClassVar[int]
+    ALLOW_REAL_SERVERS_FIELD_NUMBER: _ClassVar[int]
     plugin_id: str
     plugin_digest: str
     targets: _containers.RepeatedCompositeFieldContainer[PluginEvalTarget]
@@ -50,7 +52,9 @@ class PluginEvalSpec(_message.Message):
     allow_tools: _containers.RepeatedScalarFieldContainer[str]
     real_mcp_servers: bool
     vaults: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
-    def __init__(self, plugin_id: _Optional[str] = ..., plugin_digest: _Optional[str] = ..., targets: _Optional[_Iterable[_Union[PluginEvalTarget, _Mapping]]] = ..., runs: _Optional[int] = ..., ablation: _Optional[_Union[PluginEvalAblation, str]] = ..., threshold: _Optional[float] = ..., case_glob: _Optional[str] = ..., case_tags: _Optional[_Iterable[str]] = ..., judge_model: _Optional[str] = ..., max_cost_usd: _Optional[float] = ..., concurrency: _Optional[int] = ..., allow_tools: _Optional[_Iterable[str]] = ..., real_mcp_servers: bool = ..., vaults: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...
+    skip_scaffold: bool
+    allow_real_servers: bool
+    def __init__(self, plugin_id: _Optional[str] = ..., plugin_digest: _Optional[str] = ..., targets: _Optional[_Iterable[_Union[PluginEvalTarget, _Mapping]]] = ..., runs: _Optional[int] = ..., ablation: _Optional[_Union[PluginEvalAblation, str]] = ..., threshold: _Optional[float] = ..., case_glob: _Optional[str] = ..., case_tags: _Optional[_Iterable[str]] = ..., judge_model: _Optional[str] = ..., max_cost_usd: _Optional[float] = ..., concurrency: _Optional[int] = ..., allow_tools: _Optional[_Iterable[str]] = ..., real_mcp_servers: bool = ..., vaults: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., skip_scaffold: bool = ..., allow_real_servers: bool = ...) -> None: ...
 
 class PluginEvalTarget(_message.Message):
     __slots__ = ("harness", "model_name")

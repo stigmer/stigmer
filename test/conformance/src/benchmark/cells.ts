@@ -1,5 +1,6 @@
 // The benchmark's cell matrix: the scenarios every run measures,
-// the models the parity cells are pinned to, the judge, and the pure planner
+// the models the parity cells are pinned to, the judge, the quality arm's
+// targets, and the pure planner
 // that decides — before anything boots — which cells the environment and the
 // flags allow and which are refused by name.
 // Domain: conformance benchmark (what is measured).
@@ -11,8 +12,12 @@
 // one reads, then edits, then follows up; the other asks three read-only
 // questions that each reach a different skill, the session whose later turns
 // show whether the system prompt, and so the provider's prompt cache, held
-// from one message to the next. The quality tasks (quality-tasks.ts) run on
-// it too.
+// from one message to the next.
+//
+// The quality arm is the working agent as a plugin with an `evals/` suite
+// (fixtures/working-agent, the plugin-eval format), run by Stigmer's own
+// plugin evals: one eval, with each harness on its parity model as a
+// target, graded by the platform's judge on JUDGE_MODEL.
 //
 // The six first-turn scenarios and their prompts are the July cost benchmark's,
 // verbatim, so a category keeps its meaning from one run to the next:
@@ -27,16 +32,16 @@
 // photograph (support/agents.ts BARE_AGENT_INSTRUCTIONS), by import, so a
 // change to it moves the goldens and this baseline together.
 //
-// Every working-agent cell and quality cell needs the `stigmer` CLI on PATH:
-// with memory on, the runner spawns `stigmer mcp-server` each turn, and
-// without the CLI those turns fail. So the planner refuses them by name when
-// the CLI is absent, the way it refuses a cell whose key is missing.
+// Every working-agent timing cell needs the `stigmer` CLI on PATH: with memory
+// on, the runner spawns `stigmer mcp-server` each turn, and without the CLI
+// those turns fail. So the planner refuses them by name when the CLI is
+// absent, the way it refuses a cell whose key is missing. A plugin eval's try
+// loads no memory, so the quality arm needs no CLI.
 //
 // Refusals are by name and never silent: a cell the environment cannot run
 // (no key for its provider, no key for the judge) or the flags exclude is a
 // `RefusedCell` in the report, so a reader has one question to ask ("is the
 // side present") and one place to see why not.
-import type { QualityTask } from "./quality-tasks";
 import type { AgentShape, BenchmarkHarness, ComparisonMode, RefusedCell, SessionShape } from "./report";
 
 /** The registry ids the parity cells pin, per harness: one served model, two registry rows. */
@@ -45,7 +50,7 @@ export const PARITY_MODEL: Record<BenchmarkHarness, string> = {
   cursor: "claude-sonnet-4-6",
 };
 
-/** The judge the quality fixture requests; the grade records what the runner used. */
+/** The judge model the quality arm's eval names for its AI-graded checks. */
 export const JUDGE_MODEL = "claude-sonnet-4.6";
 
 /** The subject every benchmark session is created with, so the background titling call returns early. */
@@ -119,11 +124,10 @@ export interface BenchmarkCell {
   modelRequested: string | null;
 }
 
-/** One quality task on one harness. */
-export interface QualityCell {
-  /** `quality/<task>/<harness>`. */
+/** One target of the quality arm's eval: a harness on its parity model. */
+export interface QualityTarget {
+  /** `quality/<harness>`. */
   id: string;
-  task: QualityTask;
   harness: BenchmarkHarness;
   modelRequested: string;
 }
@@ -132,7 +136,6 @@ export interface PlanFlags {
   only?: BenchmarkHarness;
   /** A glob over cell ids (`*` matches any run of characters). */
   cells?: string;
-  includePlaceholders: boolean;
   /**
    * Every execution asks for thinking. A cell on the harness's default model
    * is refused: thinking is a per-model capability, and the server refuses
@@ -150,7 +153,7 @@ export interface PlanEnvironment {
 
 export interface CellPlan {
   cells: BenchmarkCell[];
-  quality: QualityCell[];
+  quality: QualityTarget[];
   refused: RefusedCell[];
 }
 
@@ -165,28 +168,20 @@ export function benchmarkCells(): BenchmarkCell[] {
   );
 }
 
-export function qualityCells(tasks: readonly QualityTask[]): QualityCell[] {
-  return tasks.flatMap((task) =>
-    HARNESSES.map((harness) => ({
-      id: `quality/${task.id}/${harness}`,
-      task,
-      harness,
-      modelRequested: PARITY_MODEL[harness],
-    })),
-  );
+export function qualityTargets(): QualityTarget[] {
+  return HARNESSES.map((harness) => ({ id: `quality/${harness}`, harness, modelRequested: PARITY_MODEL[harness] }));
 }
 
 /**
  * What the environment and the flags allow, decided before the stack boots.
  * A native cell needs the Anthropic key; a Cursor cell the Cursor key; a
- * quality cell needs its harness's key AND the Anthropic key, because the
- * judge runs on the native path. Every cell on the working agent (the
- * working scenario and every quality cell) also needs the `stigmer` CLI.
- * Placeholder tasks run only when asked. A thinking run refuses the cells on
- * a harness's default model. The first reason that applies is the one
- * recorded: flags, then keys, then the CLI.
+ * quality target needs its harness's key AND the Anthropic key, because the
+ * judge runs on the native path. Every working-agent timing cell also needs
+ * the `stigmer` CLI. A thinking run refuses the cells on a harness's default
+ * model. The first reason that applies is the one recorded: flags, then
+ * keys, then the CLI.
  */
-export function planCells(tasks: readonly QualityTask[], env: PlanEnvironment, flags: PlanFlags): CellPlan {
+export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
   const refused: RefusedCell[] = [];
   const keyFor = (harness: BenchmarkHarness): boolean => (harness === "cursor" ? env.cursorKey : env.anthropicKey);
   const keyReason = (harness: BenchmarkHarness): RefusedCell["reason"] =>
@@ -218,7 +213,7 @@ export function planCells(tasks: readonly QualityTask[], env: PlanEnvironment, f
     return true;
   });
 
-  const quality = qualityCells(tasks.filter((task) => flags.includePlaceholders || !task.placeholder)).filter((cell) => {
+  const quality = qualityTargets().filter((cell) => {
     const flagReason = excludedByFlags(cell.id, cell.harness);
     if (flagReason !== undefined) {
       refused.push({ cell: cell.id, reason: flagReason });
@@ -230,10 +225,6 @@ export function planCells(tasks: readonly QualityTask[], env: PlanEnvironment, f
     }
     if (!env.anthropicKey) {
       refused.push({ cell: cell.id, reason: "missing ANTHROPIC_API_KEY" });
-      return false;
-    }
-    if (!env.stigmerCli) {
-      refused.push({ cell: cell.id, reason: "missing stigmer CLI" });
       return false;
     }
     return true;

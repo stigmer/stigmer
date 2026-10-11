@@ -1644,7 +1644,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Why Stigmer cannot run the case yet, naming the feature, as in\n \"context.scaffold_script\"; empty when it can.",
+          "description": "Why Stigmer cannot run the case yet, naming the feature, as in\n \"plugins\" for a case that runs with another plugin; empty when it can.",
           "required": false
         }
       ]

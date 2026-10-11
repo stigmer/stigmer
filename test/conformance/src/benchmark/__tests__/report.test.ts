@@ -5,9 +5,9 @@
 // Pinned: the median is an observed sample for odd and even counts; a null
 // axis is left out of its median, never counted as zero; the cache-hit ratio
 // divides by cache-inclusive input tokens; failed samples are counted and kept
-// but excluded from every median; a task's quality median is over its graded
-// attempts only; the reader refuses a wrong version, a missing field and a
-// malformed side by name.
+// but excluded from every median; the reader accepts a report with or
+// without the quality eval and refuses a wrong version, a missing field, a
+// malformed side and a quality eval without its document object by name.
 import { describe, expect, it } from "vitest";
 import {
   BENCHMARK_REPORT_SCHEMA_VERSION,
@@ -18,9 +18,7 @@ import {
   readBenchmarkReport,
   spread,
   summarize,
-  summarizeQuality,
   type BenchmarkReport,
-  type QualityCell,
 } from "../report";
 import { makeSample } from "./sample-fixture";
 
@@ -94,41 +92,6 @@ describe("summarize", () => {
   });
 });
 
-describe("summarizeQuality", () => {
-  function grade(taskId: string, harness: "deep-agent" | "cursor", score: number | null, outcome: QualityCell["outcome"]): QualityCell {
-    return {
-      task_id: taskId,
-      placeholder: false,
-      harness,
-      rep: 1,
-      model_requested: "claude-sonnet-4.6",
-      judge_model: "claude-sonnet-4-6",
-      score,
-      criteria: [],
-      reasoning: "",
-      subject: "",
-      files_changed: [],
-      checks: [],
-      turns: [],
-      judge_run_id: "",
-      outcome,
-    };
-  }
-
-  it("medians each task per harness over its graded attempts and counts the rest as failed", () => {
-    const summary = summarizeQuality([
-      grade("fix", "deep-agent", 0.9, "completed"),
-      grade("fix", "deep-agent", 0.5, "completed"),
-      grade("fix", "deep-agent", null, "failed"),
-      grade("fix", "cursor", 0.7, "completed"),
-    ]);
-    expect(summary).toEqual([
-      { task_id: "fix", harness: "deep-agent", graded: 2, failed: 1, median_score: 0.9 },
-      { task_id: "fix", harness: "cursor", graded: 1, failed: 0, median_score: 0.7 },
-    ]);
-  });
-});
-
 describe("readBenchmarkReport", () => {
   function validReport(): BenchmarkReport {
     return {
@@ -155,8 +118,14 @@ describe("readBenchmarkReport", () => {
           native: summarize("deep-agent", makeSample(), [makeSample()], null),
         },
       ],
-      quality: [],
-      quality_summary: [],
+      quality: {
+        plugin: "working-agent",
+        eval_id: "pev_1",
+        targets: ["native/claude-sonnet-4.6"],
+        judge_model: "claude-sonnet-4.6",
+        runs: 3,
+        document: { schemaVersion: 1, cases: [] },
+      },
       refused: [],
     };
   }
@@ -170,10 +139,20 @@ describe("readBenchmarkReport", () => {
     expect(() => readBenchmarkReport({ ...validReport(), schema_version: 2 })).toThrow("schema_version is 2");
   });
 
-  it("refuses a report without the quality summary or the comparison's agent", () => {
-    const withoutSummary = validReport() as unknown as Record<string, unknown>;
-    delete withoutSummary["quality_summary"];
-    expect(() => readBenchmarkReport(withoutSummary)).toThrow("quality_summary is not an array");
+  it("accepts a report with no quality eval, and one whose eval failed before its document", () => {
+    expect(readBenchmarkReport({ ...validReport(), quality: null }).quality).toBeNull();
+    const failed = validReport();
+    failed.quality = { ...failed.quality!, document: null, failure: { stage: "create", message: "push failed" } };
+    expect(readBenchmarkReport(failed).quality?.failure?.stage).toBe("create");
+  });
+
+  it("refuses a report without the quality eval, a document that is not an object, or the comparison's agent", () => {
+    const withoutQuality = validReport() as unknown as Record<string, unknown>;
+    delete withoutQuality["quality"];
+    expect(() => readBenchmarkReport(withoutQuality)).toThrow("report.quality is missing");
+    const badDocument = validReport();
+    (badDocument.quality as unknown as { document: unknown }).document = [];
+    expect(() => readBenchmarkReport(badDocument)).toThrow("report.quality.document is an array");
     const withoutAgent = validReport();
     delete (withoutAgent.comparisons[0] as unknown as Record<string, unknown>)["agent"];
     expect(() => readBenchmarkReport(withoutAgent)).toThrow("report.comparisons[0].agent is missing");

@@ -1,0 +1,67 @@
+schema_version: "1.1"
+name: multi-part-change
+tags: [quality]
+context:
+  scaffold_script: "scaffold.sh"
+execution:
+  prompt: "Before Friday's release: fix both problems in FindByCustomer in orders/store.go (the customer is formatted straight into the SQL, and page 1 skips the first page of results), fix config/sync.yaml so the service starts (it rejects max_attempts 50, the limit is 10, and the misspelled \"timout\" key), and add a line for each fix to the changelog. Then run `go test ./...` and write its full output to test-output.txt."
+  max_turns: 40
+  allowed_tools: ["Read", "Glob", "Grep", "Skill"]
+  append_system_prompt: "Be direct and concise. Act on requests rather than explaining steps. When you do not know something, say so.\n\nYour workspace is the orders-sync repository."
+graders:
+  - name: offset-fixed
+    type: "regex"
+    pattern: "\\(page\\s*-\\s*1\\)\\s*\\*\\s*pageSize"
+    target:
+      source: "file"
+      path: "orders/store.go"
+    weight: 2
+  - name: no-formatted-sql
+    type: "regex"
+    pattern: "WHERE customer = '%s'"
+    match: "not_contains"
+    target:
+      source: "file"
+      path: "orders/store.go"
+    weight: 2
+  - name: config-fixed
+    type: "regex"
+    pattern: "^\\s*max_attempts:\\s*([1-9]|10)\\s*$[\\s\\S]*^\\s*timeout:\\s*30s\\s*$"
+    flags: "m"
+    target:
+      source: "file"
+      path: "config/sync.yaml"
+    weight: 2
+  - name: changelog-fixed-section
+    type: "regex"
+    pattern: "## \\[Unreleased\\][\\s\\S]*?### Fixed[\\s\\S]*## \\[1\\.4\\.0\\]"
+    target:
+      source: "file"
+      path: "CHANGELOG.md"
+    weight: 1
+  - name: tests-pass
+    type: "regex"
+    pattern: "FAIL"
+    match: "not_contains"
+    target:
+      source: "file"
+      path: "test-output.txt"
+    weight: 1
+  - name: no-unrelated-edits
+    type: "regex"
+    pattern: "^(?!orders/[^/]+_test\\.go$|test-output\\.txt$).+"
+    flags: "m"
+    match: "not_contains"
+    target: "files"
+    weight: 1
+  - name: each-part-correct
+    type: "llm"
+    weight: 3
+    focus:
+      source: "file"
+      path: "orders/store.go"
+    criteria: "PASS if FindByCustomer passes the customer as a query argument (a parameterised query, no string formatting of the customer into the SQL), computes the offset as (page - 1) * pageSize, and refuses a page below 1. FAIL otherwise."
+  - name: reports-what-changed
+    type: "llm"
+    weight: 1
+    criteria: "PASS if the reply says what was changed in orders/store.go, config/sync.yaml and CHANGELOG.md. FAIL otherwise."

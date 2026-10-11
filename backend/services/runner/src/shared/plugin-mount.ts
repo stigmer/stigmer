@@ -120,7 +120,7 @@ interface ExpectedFile {
  */
 const OWNER_EXEC = 0o100;
 
-function sha256Hex(bytes: Uint8Array): string {
+export function sha256Hex(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
@@ -198,7 +198,7 @@ export function withoutEvalSuite(entries: readonly ZipFileEntry[], ...dirs: read
  * `sanitizePath`): backslashes as slashes, `.` and `..` resolved against
  * the root, no leading slash.
  */
-function cleanEntryPath(name: string): string {
+export function cleanEntryPath(name: string): string {
   return posix.normalize(`/${name.replaceAll("\\", "/")}`).slice(1);
 }
 

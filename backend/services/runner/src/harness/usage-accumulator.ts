@@ -19,6 +19,12 @@
  * snapshot are unchanged, so `streamingUsage` is byte-for-byte what the
  * Cursor orchestrator wrote.
  *
+ * A model call the runtime itself makes for the turn, not the engine (a
+ * plugin-eval try's agent mock), adds its cost alone
+ * ({@link UsageAccumulator.addAuxiliaryCost}): the estimate and the cap see
+ * it, while the token counts, the model and the turn count stay the
+ * engine's.
+ *
  * This data is display-only. The authoritative billing source is the BiDi
  * proxy, which records usage from the wire.
  */
@@ -92,12 +98,18 @@ export class UsageAccumulator {
     this.observedAt = new Date().toISOString();
   }
 
+  /** Add the cost of a call the runtime made for the turn, outside the engine (the module header). */
+  addAuxiliaryCost(costUsd: number): void {
+    this.estimatedCostUsd += costUsd;
+    this.observedAt = new Date().toISOString();
+  }
+
   get hasTurns(): boolean {
     return this.turnCount > 0;
   }
 
   snapshot(): UsageSnapshot {
-    if (this.turnCount === 0) return EMPTY_SNAPSHOT;
+    if (this.turnCount === 0 && this.estimatedCostUsd === 0) return EMPTY_SNAPSHOT;
 
     return {
       inputTokens: BigInt(this.inputTokens),

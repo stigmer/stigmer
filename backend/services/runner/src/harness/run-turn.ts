@@ -51,6 +51,7 @@ import { runWithExecutionContext } from "../shared/execution-context.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { describeExecutionError } from "../shared/model-error.js";
 import { publishPlanArtifact } from "../shared/plan-artifact.js";
+import { readEvalFiles } from "../shared/plugin-eval/read-files.js";
 import { StallTimeoutError, startStallWatchdog, type StallWatchdog } from "../shared/stall-watchdog.js";
 import { reportSetupProgress, slimStatus, utcTimestamp } from "../shared/status.js";
 import { cancelInProgressSubAgentProtos } from "../shared/subagent-rows.js";
@@ -70,6 +71,8 @@ import {
   awaitingApprovalArm,
   awaitingReviewArm,
   costCapArm,
+  evalScaffoldFailedArm,
+  mockAbortArm,
   failedArm,
   fileReviewResolvedArm,
   infrastructureCancelArm,
@@ -190,7 +193,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   const artifactStorage = await resolveUsableArtifactStorage(loadArtifactStorageConfig(config), { executionId });
   setupTiming.mark("resolve_artifact_storage");
 
-  const frame: TurnFrame = { primaryDir: undefined, releaseWorkspaceLock: undefined, writeback: null };
+  const frame: TurnFrame = {
+    primaryDir: undefined,
+    releaseWorkspaceLock: undefined,
+    writeback: null,
+    evalMocks: undefined,
+    evalReadFiles: undefined,
+  };
   const stop = new StopController();
   let usage: UsageAccumulator | undefined;
   /** The turn's capture once the baseline is pinned (capture mode only); the chokepoint reads its progress at every write. */
@@ -253,6 +262,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
    */
   const settleWith = async (arm: TerminalArm, failure?: CancelledFailure): Promise<Settled> => {
     applyTerminalArm(status, arm);
+    await recordEvalFiles();
     if (arm.disposition.kind === "return") {
       await chokepoint.write();
       return { kind: "return", value: slimStatus(status) };
@@ -261,6 +271,17 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     await chokepoint.write();
     return { kind: "throw", error: failure ?? new CancelledFailure(arm.disposition.message) };
   };
+
+  /**
+   * A plugin-eval try's graders read the files they name as the turn left
+   * them, the ones it did not change included: read now, with every terminal
+   * write and the review pause, so the status the case workflow reads back
+   * carries them.
+   */
+  async function recordEvalFiles(): Promise<void> {
+    if (frame.evalReadFiles === undefined || frame.evalReadFiles.length === 0 || frame.primaryDir === undefined) return;
+    status.pluginEvalFiles = await readEvalFiles(frame.primaryDir, frame.evalReadFiles);
+  }
 
   // ── The turn ended during resolution ──────────────────────────────────────
 
@@ -280,6 +301,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         if (!settlement.failed && frame.writeback) {
           await frame.writeback.finalize();
         }
+        await recordEvalFiles();
         await chokepoint.write();
         console.log(
           `${activityName} file-review resume short-circuit: execution=${executionId}, ` +
@@ -303,6 +325,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         console.warn(`${activityName} could not fetch the run's values: execution=${executionId}, ${settlement.message}`);
         return settleWith(failedArm(settlement.message, "actionable"));
       }
+      case "eval-scaffold-failed": {
+        // A plugin-eval try's scaffold failed before the engine started:
+        // the eval reads the sentence back (`parseTryStop`) and scores the
+        // try 0. A retry would run the same script.
+        console.warn(`${activityName} eval scaffold failed: execution=${executionId}, ${settlement.message}`);
+        return settleWith(evalScaffoldFailedArm(settlement.message));
+      }
       default: {
         const exhaustive: never = settlement;
         throw new Error(`${activityName}: unknown resolution settlement ${String(exhaustive)}`);
@@ -317,6 +346,16 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     const costCap = new CostCapWatch(maxCostUsd, turn.model.serviceTier, turn.model.thinkingMode);
     const accumulator = costCap.accumulator;
     usage = accumulator;
+
+    // A plugin-eval try's mocks report through the turn's own stop and cap:
+    // a mock that stops the try, and an agent mock's cost, which joins the
+    // estimate the cap is enforced against.
+    frame.evalMocks?.bind({
+      onAbort: (abort) => stop.stop({ kind: "mock-abort", abort }),
+      onCost: (costUsd) => {
+        if (costCap.addAuxiliary(costUsd)) stop.stop({ kind: "cost-cap" });
+      },
+    });
 
     // The stall watchdog: the periodic heartbeat proves the process is alive,
     // not that the engine is progressing; if the engine wedges, nothing
@@ -478,8 +517,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
 
   /**
    * The table for an `interrupted` outcome, in the orchestrator's precedence:
-   * a stall (FAILED, return) outranks everything; a cost cap (TERMINATED,
-   * return); then Temporal's cancellation as the signal's reason reads it —
+   * a stall (FAILED, return) outranks everything; a plugin-eval mock's abort
+   * (TERMINATED, return); a cost cap (TERMINATED, return); then Temporal's cancellation as the signal's reason reads it —
    * the runner's drain, the orchestrator's stop, an infrastructure cancel
    * (all thrown); last a platform stop (COMPLETED, return).
    */
@@ -488,6 +527,11 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     if (evidence.stall) {
       const outcome = await settleWith(stallArm(evidence.stall));
       console.warn(`${activityName} stalled: execution=${executionId}, error=${status.error}`);
+      return outcome;
+    }
+    if (evidence.mockAbort) {
+      const outcome = await settleWith(mockAbortArm(evidence.mockAbort));
+      console.warn(`${activityName} stopped by an eval mock: execution=${executionId}, error=${status.error}`);
       return outcome;
     }
     if (evidence.costCapExceeded) {
@@ -580,6 +624,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     }
 
     // NOW persist — the subscriber sees the phase and structured_output atomically.
+    await recordEvalFiles();
     await chokepoint.write();
     console.log(
       `${activityName} completed: execution=${executionId}, phase=${RunPhase[status.phase]}, ` +
@@ -747,6 +792,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     periodicHeartbeat.stop();
     watchdog?.stop();
     cancellationSignal.removeEventListener("abort", onCancellation);
+    // A plugin-eval try's mock endpoint serves this turn only.
+    await frame.evalMocks?.close();
     // Remove the workspace's `.stigmer` link the skill and attachment phases
     // created, so attaching a real repo leaves it untouched between turns
     // (issue #173). After the adapter's own teardown (its gate), before the

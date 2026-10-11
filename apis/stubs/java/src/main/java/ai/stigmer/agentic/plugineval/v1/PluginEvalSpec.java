@@ -676,6 +676,42 @@ private static final long serialVersionUID = 0L;
     return vaults_.get(index);
   }
 
+  public static final int SKIP_SCAFFOLD_FIELD_NUMBER = 15;
+  private boolean skipScaffold_ = false;
+  /**
+   * <pre>
+   * Skips each case's scaffold script, as Claude Code's --no-scaffold; a
+   * case that has one is then listed as not run.
+   *
+   * A scaffold runs in the try's own sandbox, as the agent, with none of
+   * the eval's vaults, so no opt-in is asked for it.
+   * </pre>
+   *
+   * <code>bool skip_scaffold = 15 [json_name = "skipScaffold"];</code>
+   * @return The skipScaffold.
+   */
+  @java.lang.Override
+  public boolean getSkipScaffold() {
+    return skipScaffold_;
+  }
+
+  public static final int ALLOW_REAL_SERVERS_FIELD_NUMBER = 16;
+  private boolean allowRealServers_ = false;
+  /**
+   * <pre>
+   * Starts the plugin's real MCP servers for the servers no mock answers,
+   * as Claude Code's --allow-real-servers; mocked tools still answer from
+   * their files. Their tools still need allow_tools.
+   * </pre>
+   *
+   * <code>bool allow_real_servers = 16 [json_name = "allowRealServers"];</code>
+   * @return The allowRealServers.
+   */
+  @java.lang.Override
+  public boolean getAllowRealServers() {
+    return allowRealServers_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -731,6 +767,12 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < vaults_.size(); i++) {
       output.writeMessage(14, vaults_.get(i));
+    }
+    if (skipScaffold_ != false) {
+      output.writeBool(15, skipScaffold_);
+    }
+    if (allowRealServers_ != false) {
+      output.writeBool(16, allowRealServers_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -811,6 +853,14 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (skipScaffold_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(15, skipScaffold_);
+    }
+    if (allowRealServers_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(16, allowRealServers_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -858,6 +908,10 @@ private static final long serialVersionUID = 0L;
         != other.getRealMcpServers()) return false;
     if (!getVaultsList()
         .equals(other.getVaultsList())) return false;
+    if (getSkipScaffold()
+        != other.getSkipScaffold()) return false;
+    if (getAllowRealServers()
+        != other.getAllowRealServers()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -910,6 +964,12 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + VAULTS_FIELD_NUMBER;
       hash = (53 * hash) + getVaultsList().hashCode();
     }
+    hash = (37 * hash) + SKIP_SCAFFOLD_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getSkipScaffold());
+    hash = (37 * hash) + ALLOW_REAL_SERVERS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getAllowRealServers());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1074,6 +1134,8 @@ private static final long serialVersionUID = 0L;
         vaultsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00002000);
+      skipScaffold_ = false;
+      allowRealServers_ = false;
       return this;
     }
 
@@ -1168,6 +1230,12 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00001000) != 0)) {
         result.realMcpServers_ = realMcpServers_;
+      }
+      if (((from_bitField0_ & 0x00004000) != 0)) {
+        result.skipScaffold_ = skipScaffold_;
+      }
+      if (((from_bitField0_ & 0x00008000) != 0)) {
+        result.allowRealServers_ = allowRealServers_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1294,6 +1362,12 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (other.getSkipScaffold() != false) {
+        setSkipScaffold(other.getSkipScaffold());
+      }
+      if (other.getAllowRealServers() != false) {
+        setAllowRealServers(other.getAllowRealServers());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1406,6 +1480,16 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 114
+            case 120: {
+              skipScaffold_ = input.readBool();
+              bitField0_ |= 0x00004000;
+              break;
+            } // case 120
+            case 128: {
+              allowRealServers_ = input.readBool();
+              bitField0_ |= 0x00008000;
+              break;
+            } // case 128
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3249,6 +3333,112 @@ private static final long serialVersionUID = 0L;
         vaults_ = null;
       }
       return vaultsBuilder_;
+    }
+
+    private boolean skipScaffold_ ;
+    /**
+     * <pre>
+     * Skips each case's scaffold script, as Claude Code's --no-scaffold; a
+     * case that has one is then listed as not run.
+     *
+     * A scaffold runs in the try's own sandbox, as the agent, with none of
+     * the eval's vaults, so no opt-in is asked for it.
+     * </pre>
+     *
+     * <code>bool skip_scaffold = 15 [json_name = "skipScaffold"];</code>
+     * @return The skipScaffold.
+     */
+    @java.lang.Override
+    public boolean getSkipScaffold() {
+      return skipScaffold_;
+    }
+    /**
+     * <pre>
+     * Skips each case's scaffold script, as Claude Code's --no-scaffold; a
+     * case that has one is then listed as not run.
+     *
+     * A scaffold runs in the try's own sandbox, as the agent, with none of
+     * the eval's vaults, so no opt-in is asked for it.
+     * </pre>
+     *
+     * <code>bool skip_scaffold = 15 [json_name = "skipScaffold"];</code>
+     * @param value The skipScaffold to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSkipScaffold(boolean value) {
+
+      skipScaffold_ = value;
+      bitField0_ |= 0x00004000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Skips each case's scaffold script, as Claude Code's --no-scaffold; a
+     * case that has one is then listed as not run.
+     *
+     * A scaffold runs in the try's own sandbox, as the agent, with none of
+     * the eval's vaults, so no opt-in is asked for it.
+     * </pre>
+     *
+     * <code>bool skip_scaffold = 15 [json_name = "skipScaffold"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSkipScaffold() {
+      bitField0_ = (bitField0_ & ~0x00004000);
+      skipScaffold_ = false;
+      onChanged();
+      return this;
+    }
+
+    private boolean allowRealServers_ ;
+    /**
+     * <pre>
+     * Starts the plugin's real MCP servers for the servers no mock answers,
+     * as Claude Code's --allow-real-servers; mocked tools still answer from
+     * their files. Their tools still need allow_tools.
+     * </pre>
+     *
+     * <code>bool allow_real_servers = 16 [json_name = "allowRealServers"];</code>
+     * @return The allowRealServers.
+     */
+    @java.lang.Override
+    public boolean getAllowRealServers() {
+      return allowRealServers_;
+    }
+    /**
+     * <pre>
+     * Starts the plugin's real MCP servers for the servers no mock answers,
+     * as Claude Code's --allow-real-servers; mocked tools still answer from
+     * their files. Their tools still need allow_tools.
+     * </pre>
+     *
+     * <code>bool allow_real_servers = 16 [json_name = "allowRealServers"];</code>
+     * @param value The allowRealServers to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAllowRealServers(boolean value) {
+
+      allowRealServers_ = value;
+      bitField0_ |= 0x00008000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Starts the plugin's real MCP servers for the servers no mock answers,
+     * as Claude Code's --allow-real-servers; mocked tools still answer from
+     * their files. Their tools still need allow_tools.
+     * </pre>
+     *
+     * <code>bool allow_real_servers = 16 [json_name = "allowRealServers"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAllowRealServers() {
+      bitField0_ = (bitField0_ & ~0x00008000);
+      allowRealServers_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.plugineval.v1.PluginEvalSpec)

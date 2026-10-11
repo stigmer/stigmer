@@ -106,6 +106,14 @@ export function unsupportedFeatureReason(feature: string): string {
   return `not run: ${feature}`;
 }
 
+/** A target whose engine cannot run one of the case's features (domain/plugin-eval/matrix.ts). */
+export function engineUnsupportedReason(engine: string, feature: string): string {
+  return `not run on ${engine}: ${feature}`;
+}
+
+/** A plugin MCP server a case leaves unmocked (domain/plugin-eval/try-run.ts). */
+export const NOT_STARTED_NO_MOCK = "not started: no mock";
+
 /** A try its own share of the eval's spending limit stopped: not graded. */
 export const SPENDING_SHARE_REASON = "stopped at its share of the eval's spending limit";
 
@@ -194,8 +202,10 @@ export interface SkillPluginOptions {
   readonly cases: readonly EvalCaseFixture[];
   /** `hooks/hooks.json`'s event map; a plugin with hooks is mounted into each try's session. */
   readonly hooks?: Readonly<Record<string, unknown>>;
-  /** Other files in the plugin. */
+  /** Other files in the plugin, a suite's `evals/mocks/` and shared fixtures included. */
   readonly files?: Readonly<Record<string, string>>;
+  /** `.mcp.json`'s servers, by key. */
+  readonly mcpServers?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }
 
 /**
@@ -220,6 +230,7 @@ export function skillPluginWithEvals(
       ],
       ...(options.hooks === undefined ? {} : { hooks: options.hooks }),
       ...(options.files === undefined ? {} : { files: options.files }),
+      ...(options.mcpServers === undefined ? {} : { mcpServers: options.mcpServers }),
     }),
     options.cases,
   );
@@ -284,6 +295,8 @@ export interface PluginEvalOptions {
   readonly maxCostUsd?: number;
   readonly concurrency?: number;
   readonly allowTools?: readonly string[];
+  readonly skipScaffold?: boolean;
+  readonly judgeModel?: string;
   readonly name?: string;
 }
 
@@ -312,6 +325,8 @@ export function makePluginEval(
       maxCostUsd: opts.maxCostUsd ?? 10,
       concurrency: opts.concurrency ?? 1,
       allowTools: [...(opts.allowTools ?? [])],
+      skipScaffold: opts.skipScaffold ?? false,
+      judgeModel: opts.judgeModel ?? "",
     },
   };
 }

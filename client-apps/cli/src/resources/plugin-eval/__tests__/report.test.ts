@@ -1,6 +1,7 @@
 // Pins what `plugin eval` prints and its exit code: a progress line per
 // finished try (case, target, arm, try, score or not-graded reason, and the
-// run's error); the format's table, one block per target, with Stigmer's
+// run's error or the mock that stopped it), and a case's mocked: line once,
+// before its first finished try; the format's table, one block per target, with Stigmer's
 // PASS^k column (no block for a target nothing ran on), and SCORE PASS%
 // when the eval made no comparison; the summary line with "Δ provisional";
 // the not-run cases with the feature named; a target's model name, which a
@@ -11,7 +12,9 @@
 import { create } from "@bufbuild/protobuf";
 import { PluginEvalAblation, PluginEvalTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import {
+  PluginEvalAbortSchema,
   PluginEvalCaseTargetSchema,
+  PluginEvalMockedServerSchema,
   PluginEvalPartialReason,
   PluginEvalPhase,
   PluginEvalTryState,
@@ -39,6 +42,27 @@ describe("finishedTries", () => {
       "first-case · native/claude-sonnet-4-6 · without · try 1/2 · 0.33 (timed out after 300s)",
     ]);
     expect(new Set(tries.map((attempt) => attempt.key)).size).toBe(3);
+  });
+});
+
+describe("a case's mocks", () => {
+  it("prints the mocked: line once before the case's first finished try, and an abort on its try and in NOTES", () => {
+    const pluginEval = finishedEval();
+    const evalCase = pluginEval.status!.cases[0]!;
+    evalCase.mockedServers = [
+      create(PluginEvalMockedServerSchema, { name: "plugin_kit_tracker", tools: ["create_issue", "close_issue"] }),
+      create(PluginEvalMockedServerSchema, { name: "plugin_kit_wiki", notStartedReason: "not started: no mock" }),
+    ];
+    const first = evalCase.targets[0]!.withPlugin!.tries[0]!;
+    first.score = 0;
+    first.aborted = create(PluginEvalAbortSchema, { server: "tracker", tool: "create_issue", reason: "input.title must be a string" });
+    const lines = finishedTries(pluginEval).map((attempt) => attempt.line);
+    expect(lines.slice(0, 2)).toEqual([
+      "first-case · mocked: plugin_kit_tracker(create_issue, close_issue), plugin_kit_wiki[not started: no mock]",
+      "first-case · native/claude-sonnet-4-6 · with · try 1/2 · 0.00 (aborted by tracker.create_issue: input.title must be a string)",
+    ]);
+    expect(lines.filter((line) => line.includes("mocked:"))).toHaveLength(1);
+    expect(renderEvalTables(pluginEval)).toContain("aborted by tracker.create_issue");
   });
 });
 
@@ -97,7 +121,7 @@ describe("renderNotRun", () => {
     expect(renderNotRun(pluginEval)).toBe(
       "Not run:\n" +
         "  first-case on native/claude-sonnet-4-6: not run: model 'sonnet' is not in Stigmer's catalog\n" +
-        "  needs-fixture: not run: context.scaffold_script\n",
+        "  needs-fixture: not run: plugins\n",
     );
   });
 });

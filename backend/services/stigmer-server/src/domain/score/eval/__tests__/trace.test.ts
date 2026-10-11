@@ -16,7 +16,10 @@
  * (an engine newer than it) is left out as a system message is, never
  * answered in place of the trace; a run with no assistant text has an
  * empty final message; a change with no captured body reads as empty
- * text.
+ * text. The mock calls are the calls to the servers the run's case mocked,
+ * by the server's key, with the answer the mock gave. A path no change set
+ * touched is read from the files the runner returned for the graders, a
+ * change set's content winning where both have one.
  */
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -43,6 +46,11 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+
+import {
+  PluginEvalCaseContextSchema,
+  PluginEvalMockServerSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 
 import {
   PLUGIN_SKILL_READ_PATH,
@@ -186,6 +194,26 @@ describe("the eval trace, native transcript", () => {
     expect(trace.traceLines[1]).toContain(
       '"name":"mcp__plugin_thermos_My_Server__search"',
     );
+  });
+
+  it("lists the calls to the servers the case mocked, by the server's key, with the mock's answer", async () => {
+    const run = runOf(
+      [
+        call("m1", "create_issue", { title: "Crash" }, { mcpServerSlug: "tracker-acme" }),
+        call("m2", "close_issue", { id: "9" }, { mcpServerSlug: "tracker-acme", error: "No such issue." }),
+        call("m3", "search", { q: "bug" }, { mcpServerSlug: "github" }),
+      ],
+      [],
+    );
+    run.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
+      mocks: [create(PluginEvalMockServerSchema, { server: "tracker", segment: "tracker-acme" })],
+    });
+    const trace = await evalTraceOf(run, deps(Harness.NATIVE));
+    expect(trace.mockCalls.map((line) => JSON.parse(line) as unknown)).toEqual([
+      { server: "tracker", tool: "create_issue", input: { title: "Crash" }, answer: "result of m1" },
+      { server: "tracker", tool: "close_issue", input: { id: "9" }, answer: "No such issue." },
+    ]);
+    expect((await evalTraceOf(runOf([], []), deps(Harness.NATIVE))).mockCalls).toEqual([]);
   });
 
   it("writes the trace as Claude Code's JSON lines and keeps the final message", async () => {
@@ -339,6 +367,34 @@ describe("the eval trace's files", () => {
       deps(Harness.NATIVE, { wantedFiles: ["a"] }),
     );
     expect(trace.files).toEqual({ kind: "not-recorded" });
+  });
+
+  it("reads a path no change set touched from the files the runner returned, a change set winning", async () => {
+    const run = runOf([], [baseline("t1"), candidate("t1", [created])]);
+    run.status!.pluginEvalFiles = create(RunStatusSchema, {
+      pluginEvalFiles: {
+        files: [
+          { path: "./app.txt", content: { case: "text", value: "version = 1\n" } },
+          { path: "logo.png", content: { case: "binary", value: true } },
+          { path: "huge.log", content: { case: "unreadable", value: "'huge.log' is larger than 128 KiB" } },
+          { path: "gone.md", content: { case: "absent", value: true } },
+          { path: "CHANGELOG.md", content: { case: "text", value: "stale" } },
+        ],
+      },
+    }).pluginEvalFiles;
+    const trace = await evalTraceOf(
+      run,
+      deps(Harness.NATIVE, { wantedFiles: ["app.txt", "logo.png", "huge.log", "gone.md", "CHANGELOG.md", "never.md"] }),
+    );
+    const contents = trace.files.kind === "recorded" ? trace.files.contents : new Map();
+    expect(Object.fromEntries(contents)).toEqual({
+      "app.txt": { kind: "text", text: "version = 1\n" },
+      "logo.png": { kind: "binary" },
+      "huge.log": { kind: "unreadable", reason: "'huge.log' is larger than 128 KiB" },
+      "gone.md": { kind: "absent" },
+      "CHANGELOG.md": { kind: "text", text: "## 1.0.0" },
+      "never.md": { kind: "absent" },
+    });
   });
 
   it("takes each change set's last candidate, offloaded, binary, deleted and unreadable bodies", async () => {

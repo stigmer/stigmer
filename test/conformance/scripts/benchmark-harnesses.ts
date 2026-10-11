@@ -7,8 +7,9 @@
 // real money: at the defaults, nine scenarios on two harnesses, one warm-up
 // plus five samples each, three turns per sample on the three three-turn
 // scenarios (the bare turn-2 cell and the working agent's read-edit and
-// cross-turn cells) — 180 executions — plus every quality task's turns, three graded attempts
-// per task per harness, each with one judge call. It is in no vitest config and
+// cross-turn cells) — 180 executions — plus the quality arm: one plugin eval of
+// the working agent's nine cases, three tries per case on each harness, the
+// AI-graded checks judged by three votes each. It is in no vitest config and
 // `npm test` cannot reach it. Its numbers are a new baseline for the machine,
 // the model versions and the runner they were taken on, never a comparison
 // with an earlier run. They are internal: the benchmark's numbers never
@@ -17,41 +18,35 @@
 //
 // Needs: the `temporal` CLI on PATH (the dev server backs the stack);
 // ANTHROPIC_API_KEY for the native cells and the judge; CURSOR_API_KEY for
-// the Cursor cells; the `stigmer` CLI on PATH for every cell on the working
-// agent (its memory spawns `stigmer mcp-server`; `make install-cli-shim`);
+// the Cursor cells; the `stigmer` CLI on PATH for every timing cell on the
+// working agent (its memory spawns `stigmer mcp-server`; `make
+// install-cli-shim`); `go` on PATH for the quality cases that run `go test`;
 // the network. A missing key or CLI refuses the cells that need it BY NAME in
-// the report and the run goes on with the rest. `go` on PATH lets the
-// `go_test` check run; without it the check reads "not run", by name. The
-// working agent's workspace is seeded outside the repository (the OS temp
-// directory); nothing is written into the tree. Thin over src/benchmark/ (the lib/script split of
+// the report and the run goes on with the rest. The working agent's
+// workspace is seeded outside the repository (the OS temp directory); nothing
+// is written into the tree. Thin over src/benchmark/ (the lib/script split of
 // check-inventory.ts): flags and the environment here, the driver there.
 //
 // Flags:
 //   --reps N                 warm samples per cell (default 5; odd keeps the median an observed sample)
-//   --quality-reps N         graded attempts per quality task per harness (default 3)
+//   --quality-reps N         tries per quality case per harness (default 3)
 //   --cells <glob>           run only cells whose id matches (`report-parity-*`, `*/cursor`)
 //   --only native|cursor     one harness
-//   --tasks <path>           the quality tasks file (default: scripts/benchmark-harnesses/quality-tasks.yaml)
-//   --include-placeholders   run the tasks marked placeholder
 //   --pr N                   the pull request the measuring checkout belongs to, recorded on the report
 //   --thinking enabled       every execution asks for thinking (the judge's does not); the cells on a
 //                            harness's default model are refused, since the server refuses thinking on Auto
 //   --out <dir>              where the report lands (default: .test-output/benchmark-harnesses)
 import { execFile } from "node:child_process";
 import { accessSync, constants } from "node:fs";
-import { readFile } from "node:fs/promises";
 import { delimiter, join, resolve } from "node:path";
 import { promisify } from "node:util";
-import yaml from "js-yaml";
 import { planCells, type PlanFlags } from "../src/benchmark/cells";
-import { parseQualityTasks, type QualityTask } from "../src/benchmark/quality-tasks";
 import { bootBenchmarkStack, renderSummary, runBenchmark, writeReport } from "../src/benchmark/run";
 import type { BenchmarkHarness, BenchmarkReport } from "../src/benchmark/report";
 
 const execFileAsync = promisify(execFile);
 const PACKAGE_ROOT = resolve(import.meta.dirname, "..");
 const REPOSITORY_ROOT = resolve(PACKAGE_ROOT, "..", "..");
-const DEFAULT_TASKS = resolve(PACKAGE_ROOT, "scripts", "benchmark-harnesses", "quality-tasks.yaml");
 const DEFAULT_OUT = resolve(PACKAGE_ROOT, ".test-output", "benchmark-harnesses");
 const DEFAULT_REPS = 5;
 const DEFAULT_QUALITY_REPS = 3;
@@ -59,7 +54,6 @@ const DEFAULT_QUALITY_REPS = 3;
 interface Flags extends PlanFlags {
   reps: number;
   qualityReps: number;
-  tasks: string;
   out: string;
   pr: number | undefined;
 }
@@ -68,10 +62,8 @@ function parseFlags(argv: readonly string[]): Flags {
   const flags: Flags = {
     reps: DEFAULT_REPS,
     qualityReps: DEFAULT_QUALITY_REPS,
-    tasks: DEFAULT_TASKS,
     out: DEFAULT_OUT,
     pr: undefined,
-    includePlaceholders: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
@@ -103,12 +95,6 @@ function parseFlags(argv: readonly string[]): Flags {
         flags.only = (only === "native" ? "deep-agent" : "cursor") satisfies BenchmarkHarness;
         break;
       }
-      case "--tasks":
-        flags.tasks = resolve(value());
-        break;
-      case "--include-placeholders":
-        flags.includePlaceholders = true;
-        break;
       case "--thinking": {
         const mode = value();
         if (mode !== "enabled") throw new Error("--thinking needs enabled");
@@ -129,10 +115,6 @@ function parseFlags(argv: readonly string[]): Flags {
     }
   }
   return flags;
-}
-
-async function readTasks(path: string): Promise<QualityTask[]> {
-  return parseQualityTasks(yaml.load(await readFile(path, "utf8")), path);
 }
 
 /** Whether an executable named `name` is on PATH, found the way a shell would find it. */
@@ -164,13 +146,12 @@ async function gitFacts(pr: number | undefined): Promise<BenchmarkReport["git"]>
 
 async function main(): Promise<void> {
   const flags = parseFlags(process.argv.slice(2));
-  const tasks = await readTasks(flags.tasks);
   const env = {
     anthropicKey: Boolean(process.env["ANTHROPIC_API_KEY"]),
     cursorKey: Boolean(process.env["CURSOR_API_KEY"]),
     stigmerCli: onPath("stigmer"),
   };
-  const plan = planCells(tasks, env, flags);
+  const plan = planCells(env, flags);
 
   for (const refusal of plan.refused) console.error(`refused ${refusal.cell}: ${refusal.reason}`);
   if (plan.cells.length === 0 && plan.quality.length === 0) {
@@ -178,10 +159,9 @@ async function main(): Promise<void> {
     process.exit(2);
   }
   const executions = plan.cells.reduce((sum, cell) => sum + (flags.reps + 1) * cell.scenario.prompts.length, 0);
-  const qualityTurns = plan.quality.reduce((sum, cell) => sum + flags.qualityReps * cell.task.turns.length, 0);
   console.error(
-    `benchmark: ${plan.cells.length} cells (${executions} executions) and ${plan.quality.length} quality cells ` +
-      `(${qualityTurns} executions, ${plan.quality.length * flags.qualityReps} judge calls) on real providers; this spends money`,
+    `benchmark: ${plan.cells.length} cells (${executions} executions) and the quality eval on ${plan.quality.length} ` +
+      `target(s), ${flags.qualityReps} tries per case, on real providers; this spends money`,
   );
 
   const git = await gitFacts(flags.pr);

@@ -31,6 +31,7 @@ import {
   WORKING_AGENT_FIXTURE_DIR,
   WORKING_AGENT_NAME,
   WORKING_AGENT_SUB_AGENT_NAME,
+  WORKING_AGENT_WORKSPACE_FIXTURE_DIR,
   WORKING_AGENT_WORKSPACE_NAME,
   workingAgentSessionSpec,
   workingAgentSkillNames,
@@ -63,12 +64,12 @@ describe("seedWorkingWorkspace", () => {
   it("copies the fixture workspace byte for byte, and replaces a previous session's edits", async () => {
     const dir = join(base, WORKING_AGENT_WORKSPACE_NAME);
     await seedWorkingWorkspace(dir);
-    expect(await changedFiles(join(WORKING_AGENT_FIXTURE_DIR, "workspace"), dir)).toEqual([]);
+    expect(await changedFiles(WORKING_AGENT_WORKSPACE_FIXTURE_DIR, dir)).toEqual([]);
 
     await writeFile(join(dir, "NOTES.md"), "left by the last session\n");
     await writeFile(join(dir, "go.mod"), "module edited\n");
     await seedWorkingWorkspace(dir);
-    expect(await changedFiles(join(WORKING_AGENT_FIXTURE_DIR, "workspace"), dir)).toEqual([]);
+    expect(await changedFiles(WORKING_AGENT_WORKSPACE_FIXTURE_DIR, dir)).toEqual([]);
   });
 
   it("refuses a directory not named for the workspace", async () => {

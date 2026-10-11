@@ -67,9 +67,10 @@ stigmer plugin eval cancel pev_01abc123
 | 4    | Not signed in, or the sign-in expired, the CLI's own code for a sign-in failure                                                                                                                                                                                                                                                                   |
 | 130  | Interrupted: the eval was cancelled, by Ctrl+C or any other cancel (the console's Cancel, `stigmer plugin eval cancel`); the results of the tries that finished are printed. If Ctrl+C's cancel cannot reach the server, the command says the eval may still be running and how to cancel it                                                      |
 
-A case Stigmer does not run yet (it needs a feature such as
-`context.scaffold_script`) is listed under "Not run" with the feature named, and
-does not change the exit code.
+A case Stigmer does not run (one that runs with another plugin, a case whose
+scaffold `--no-scaffold` skips, or a resumed conversation or `env` on a Cursor
+model) is listed under "Not run" with the reason, and does not change the exit
+code.
 
 ### How it differs from `claude plugin eval`
 
@@ -77,7 +78,9 @@ does not change the exit code.
 because Stigmer runs a model on one of its engines; a bare model ID is the
 native engine's. `--max-cost-usd` is always set: 5 when you omit it. A try the
 platform could not grade, such as one refused for lack of credit, is shown as
-not graded and left out of every score instead of scoring 0. See
+not graded and left out of every score instead of scoring 0. A scaffold runs
+without `--scaffold`, inside the try's own sandbox; `--scaffold` is accepted and
+changes nothing. See
 [Test a plugin with evals](/docs/guides/plugins/test-a-plugin-with-evals) for
 the result file, the support table and every difference.
 
@@ -92,21 +95,25 @@ score them
 stigmer plugin eval <plugin> [flags]
 ```
 
-| Flag                  | Type          | Default | Description                                                                                      |
-| --------------------- | ------------- | ------- | ------------------------------------------------------------------------------------------------ |
-| `--ablation`          | `string`      |         | with-without also runs each case without the plugin; none runs one arm                           |
-| `--allow-tools`       | `stringArray` |         | tools every try may use beyond the read-only set, in Claude Code's names                         |
-| `--case`              | `string`      |         | run only the cases whose name matches this glob                                                  |
-| `--concurrency`, `-j` | `string`      |         | tries running at once, 1 to 8 (default 1)                                                        |
-| `--json`              | `string`      |         | print the result document, or write it to a path ending in .json; no progress or table           |
-| `--judge-model`       | `string`      |         | the model AI-graded checks use (default: the platform's judge model)                             |
-| `--max-cost-usd`      | `string`      |         | the most the eval may spend, in estimated US dollars (default 5)                                 |
-| `--model`             | `string`      |         | an engine and model to run on, as native/claude-sonnet-4-6 or cursor/gpt-5 (repeatable, up to 6) |
-| `--no-wait`           | `bool`        |         | start the eval, print its id, and return                                                         |
-| `--real-mcp-servers`  | `bool`        |         | run the plugin's MCP servers for real, with the organization's connections                       |
-| `--runs`              | `string`      |         | tries per case, arm and model, 1 to 50 (default: each case's runs, else 3)                       |
-| `--tag`               | `stringArray` |         | run only the cases with any of these tags (repeatable)                                           |
-| `--threshold`         | `string`      |         | the score from 0 to 1 a case needs to pass (default 1)                                           |
+| Flag                   | Type          | Default | Description                                                                                      |
+| ---------------------- | ------------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `--ablation`           | `string`      |         | with-without also runs each case without the plugin; none runs one arm                           |
+| `--allow-real-servers` | `bool`        |         | also start the plugin's real MCP servers that no mock answers                                    |
+| `--allow-tools`        | `stringArray` |         | tools every try may use beyond the read-only set, in Claude Code's names                         |
+| `--case`               | `string`      |         | run only the cases whose name matches this glob                                                  |
+| `--concurrency`, `-j`  | `string`      |         | tries running at once, 1 to 8 (default 1)                                                        |
+| `--json`               | `string`      |         | print the result document, or write it to a path ending in .json; no progress or table           |
+| `--judge-model`        | `string`      |         | the model AI-graded checks use (default: the platform's judge model)                             |
+| `--max-cost-usd`       | `string`      |         | the most the eval may spend, in estimated US dollars (default 5)                                 |
+| `--mocks`              | `string`      |         | record answers MCP calls from the suite's mocks (the default); off runs every server for real    |
+| `--model`              | `string`      |         | an engine and model to run on, as native/claude-sonnet-4-6 or cursor/gpt-5 (repeatable, up to 6) |
+| `--no-scaffold`        | `bool`        |         | skip each case's scaffold script, listing such a case as not run                                 |
+| `--no-wait`            | `bool`        |         | start the eval, print its id, and return                                                         |
+| `--real-mcp-servers`   | `bool`        |         | the same as --mocks off                                                                          |
+| `--runs`               | `string`      |         | tries per case, arm and model, 1 to 50 (default: each case's runs, else 3)                       |
+| `--scaffold`           | `bool`        |         | accepted for Claude Code's command lines; a scaffold always runs, in the try's own sandbox       |
+| `--tag`                | `stringArray` |         | run only the cases with any of these tags (repeatable)                                           |
+| `--threshold`          | `string`      |         | the score from 0 to 1 a case needs to pass (default 1)                                           |
 
 ## Global Flags
 

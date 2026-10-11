@@ -7,11 +7,12 @@
  *   - Which graders score (`scoringOf`). In a two-arm eval, a grader that
  *     cannot pass without the plugin is excluded from the score in both
  *     arms and reported as an indicator: every `tool_used` grader whose
- *     tool is `Skill`, and every grader marked `arm: with-only`. When every
- *     grader of a case would be excluded, all score instead, since nothing
- *     would be left; `arm: both` forces a grader to score; with ablation
- *     `none` nothing is excluded. Mock-call graders are excluded by the
- *     format too, but a case using them is not run yet.
+ *     tool is `Skill`, every grader over `mock_calls` (every mocked server
+ *     is the plugin's own, so the without-plugin arm makes no such call),
+ *     and every grader marked `arm: with-only`. When every grader of a case
+ *     would be excluded, all score instead, since nothing would be left;
+ *     `arm: both` forces a grader to score; with ablation `none` nothing is
+ *     excluded.
  *   - A try's score: the weighted share of its scored graders that passed.
  *     A try passes when every scored grader passed, which is a score of 1,
  *     since weights are positive.
@@ -68,7 +69,23 @@ function excludedInTwoArms(grader: EvalGrader): boolean {
   if (grader.arm === "with-only") {
     return true;
   }
-  return grader.check.type === "tool_used" && grader.check.tool === "Skill";
+  switch (grader.check.type) {
+    case "tool_used":
+      return grader.check.tool === "Skill";
+    case "regex":
+      return grader.check.target.kind === "mock_calls";
+    case "llm":
+      return grader.check.focus.kind === "mock_calls";
+    case "tool_order":
+    case "file_exists":
+    case "baseline":
+      return false;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+    default: {
+      const exhausted: never = grader.check;
+      return exhausted;
+    }
+  }
 }
 
 /** How each grader of a case counts, in the eval's arm mode. */

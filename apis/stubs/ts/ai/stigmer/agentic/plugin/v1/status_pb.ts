@@ -481,7 +481,7 @@ export type PluginEvalSuiteCase = Message<"ai.stigmer.agentic.plugin.v1.PluginEv
 
   /**
    * Why Stigmer cannot run the case yet, naming the feature, as in
-   * "context.scaffold_script"; empty when it can.
+   * "plugins" for a case that runs with another plugin; empty when it can.
    *
    * @generated from field: string unsupported = 4;
    */
