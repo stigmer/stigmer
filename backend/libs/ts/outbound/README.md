@@ -2,9 +2,10 @@
 
 The rules a Stigmer process follows when it dials a URL a user supplied, shared by the control plane (`@stigmer/server`), the runner (`@stigmer/runner`) and the catalogue audit (`plugins/scripts/audit`).
 
-Two entry points:
+Three entry points:
 
 - `@stigmer/outbound/egress`: which addresses a process refuses to dial (`blockedReason`, two postures, `strict` for managed cloud processes and `relaxed` for a machine that belongs to the user), the check that applies a policy to a URL after resolving every address it has (`checkEgress`), and the fetch that applies it to every redirect hop and bounds every response body (`guardedFetch`). A process composes one guarded fetch at its root and hands it to every module that dials; the modules hold no `fetch` of their own.
+- `@stigmer/outbound/dial`: the pinned dialer (`pinnedFetch`), whose every socket opens to an address the policy judged at connect time, and `nodeGuardedFetch`, the guarded fetch over it that a server composes at its root. The check alone would leave a window: a name can resolve to a public address for the check and a private one for the socket. This entry stands apart because importing it loads undici, which registers itself as the process's dispatcher; a server already carries undici, while a process that does not would change every `fetch` it makes by importing the egress rules.
 - `@stigmer/outbound/mcp-oauth`: how an MCP endpoint's authentication is read without a credential (`isOAuthChallenge`, the complete `initializeRequest`, `probeEndpointAuth`) and how its login server is found (`resolveAuthorizationServers` over RFC 9728, `readAuthorizationServerMetadata` over RFC 8414 with the issuer's path and OpenID's document).
 
 ## Why one library
@@ -13,7 +14,7 @@ Each rule here was first written where it was first needed: the address classifi
 
 ## Shape
 
-Pure over injected `fetch` and `lookup`; the one Node-bound module is `egress/node-lookup.ts`. Every function that can fail on the network returns a value (`EgressCheck`, `EndpointAuthOutcome`, `MetadataRead`) rather than throwing, so a caller renders its own sentence; `EgressError` wraps a refusal for the guarded fetch. `OutboundFetch` is the fetch shape consumers take (`(url: string | URL, init?) => Promise<Response>`); the global `fetch` satisfies it.
+Pure over injected `fetch` and `lookup`; the Node-bound modules are `egress/node-lookup.ts` and the dialer, `dial/pinned-fetch.ts`, which is the library's one runtime dependency (undici, pinned to the exact version the server already resolves) and its one module with side effects. Every function that can fail on the network returns a value (`EgressCheck`, `EndpointAuthOutcome`, `MetadataRead`) rather than throwing, so a caller renders its own sentence; `EgressError` wraps a refusal for the guarded fetch. `OutboundFetch` is the fetch shape consumers take (`(url: string | URL, init?) => Promise<Response>`); the global `fetch` satisfies it.
 
 Published in lockstep with the other `backend/libs/ts` libraries by `scripts/publish-libs.mjs`; the server and runner link it with `file:` and pin the release version at stamp time.
 
