@@ -735,6 +735,7 @@ export async function composeServer(
     rowReaders: extensions.drivers.resourceRowReaders,
     policies: iamPolicies,
     platformClients,
+    identityAccounts,
     lifecycle: organizationLifecycle,
   });
   const authorizer: Authorizer = bindAuthorizer(
@@ -1656,6 +1657,7 @@ export async function composeServer(
       orgLimit: extensions.orgLimit,
       // The delete hands an accepted organization to the purge.
       purge: organizationPurge,
+      accounts: identityAccounts,
     });
     // ApiKey is the first domain born AFTER the Go port (the apikey
     // contract is wholly OSS), so it has no Go
@@ -1793,6 +1795,7 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       listReadScope,
+      accounts: identityAccounts,
     });
     registerPlatformClientTokenService(router, {
       mint: {

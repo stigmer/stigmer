@@ -100,9 +100,9 @@ import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibil
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 import { serviceAccountCallerOf } from "../identityaccount/actor.js";
-import { accountNotFoundMessage, idpIdOf } from "../identityaccount/constants.js";
+import { accountNotFoundMessage } from "../identityaccount/constants.js";
 import type { IdentityAccountStore } from "../identityaccount/store.js";
-import { keysOwnedBy } from "./queries.js";
+import { keysOwnedBy, ownerNamesOf } from "./queries.js";
 import {
   newBindApiKeyOrganizationStep,
   newCheckDuplicateKeyNameStep,
@@ -175,7 +175,7 @@ async function createApiKey(
     .addStep(
       newAuthorizeStep(ApiKeyCommandController.method.create, deps.authorizer),
     )
-    .addStep(newRefuseServiceAccountCallerStep(CREATE_KEY_ACT))
+    .addStep(newRefuseServiceAccountCallerStep(CREATE_KEY_ACT, deps.accounts))
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
@@ -223,7 +223,7 @@ async function createForServiceAccount(
   const admin = callerIdentityOf(ctx);
   const method = ApiKeyCommandController.method.createForServiceAccount;
   await authorizeDirect(method, deps.authorizer, admin, input);
-  refuseServiceAccountCaller(admin, CREATE_KEY_ACT);
+  await refuseServiceAccountCaller(admin, CREATE_KEY_ACT, deps.accounts);
   const account = await loadAccount(deps, input.serviceAccountId);
   const asAccount = serviceAccountCallerOf(account);
   if (asAccount === undefined) {
@@ -309,7 +309,7 @@ async function update(
     .addStep(
       newAuthorizeStep(ApiKeyCommandController.method.update, deps.authorizer),
     )
-    .addStep(newRefuseServiceAccountCallerStep(UPDATE_KEY_ACT))
+    .addStep(newRefuseServiceAccountCallerStep(UPDATE_KEY_ACT, deps.accounts))
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
@@ -422,8 +422,9 @@ async function getByKeyHash(
 
 /**
  * FindAll — the caller's own keys: those whose creator stamp is the
- * caller's account id, or the issuer subject a key minted before the
- * account existed carries (queries.ts), newest first. A composed
+ * caller's account id, or, for a direct account, the issuer subject a key
+ * minted before the account existed carries (queries.ts `ownerNamesOf`),
+ * newest first. An unprovisioned caller's identity is its subject already. A composed
  * ListReadScope still narrows the answer, so a list is never wider than
  * the keys the caller may view. Stored hashes ride the response exactly
  * as the cloud's do — the plaintext exists nowhere. Newest first, as
@@ -451,7 +452,13 @@ async function findAll(
     )
     .build()
     .execute(reqCtx);
-  return listOwnedKeys(deps, identity, [identity.identityId, idpIdOf(identity)]);
+  let account: IdentityAccount | undefined;
+  try {
+    account = await deps.accounts.findById(identity.identityId);
+  } catch (error) {
+    throw internalError(error, "failed to load identity account");
+  }
+  return listOwnedKeys(deps, identity, ownerNamesOf(identity.identityId, account));
 }
 
 /**
@@ -473,10 +480,7 @@ async function findByAccount(
     input,
   );
   const account = await loadAccount(deps, input.value);
-  return listOwnedKeys(deps, identity, [
-    account.metadata?.id ?? "",
-    account.spec?.idpId ?? "",
-  ]);
+  return listOwnedKeys(deps, identity, ownerNamesOf(input.value, account));
 }
 
 /** The owners' keys, narrowed by the composed read scope, newest first. */

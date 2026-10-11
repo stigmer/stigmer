@@ -82,6 +82,7 @@ import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newRefuseServiceAccountCallerStep } from "../../pipeline/steps/refuse-service-account.js";
+import type { ServiceAccountLookup } from "../../pipeline/steps/refuse-service-account.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
 import { newBuildUpdateStateStep } from "../../pipeline/steps/build-update-state.js";
@@ -175,6 +176,8 @@ export interface OrganizationControllerDeps {
   readonly orgLimit: number | undefined;
   /** The purge runner the delete hands an accepted organization to (purge/runner.ts). */
   readonly purge: OrganizationPurgeKick;
+  /** The identity-account port: whether the caller is a service account, which creates and deletes no organization. */
+  readonly accounts: ServiceAccountLookup;
 }
 
 /** Registers both organization services on the router (routes stage). */
@@ -267,7 +270,7 @@ async function createOrganization(
     // A service account never creates an organization, a child of its own
     // included: a bound credential may create a child of its organization,
     // and a service account's key is bound (pipeline/steps/refuse-service-account.ts).
-    .addStep(newRefuseServiceAccountCallerStep("create organizations"))
+    .addStep(newRefuseServiceAccountCallerStep("create organizations", deps.accounts))
     .addStep(newRefuseBoundCredentialStep())
     .addStep(newResolveSlugStep())
     .addStep(newValidateProtoStep())
@@ -541,6 +544,9 @@ async function deleteOrganization(
         deps.authorizer,
       ),
     )
+    // A service account deletes no organization, a child of its own
+    // included (pipeline/steps/refuse-service-account.ts).
+    .addStep(newRefuseServiceAccountCallerStep("delete organizations", deps.accounts))
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, OrganizationSchema));

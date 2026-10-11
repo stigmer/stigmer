@@ -369,7 +369,7 @@ async function grantThroughChain(
     .addStep(newAuthorizeStep(method, deps.authorizer))
     .addStep(newValidateProtoStep());
   if (validateRole) {
-    pipeline.addStep(newRefuseServiceAccountMembershipChangeStep());
+    pipeline.addStep(newRefuseServiceAccountMembershipChangeStep(deps.accounts));
     pipeline.addStep(newValidateGrantableRoleStep(deps.grantScope));
     pipeline.addStep(newRefuseServiceAccountOwnerStep(deps.accounts));
     pipeline.addStep(
@@ -410,7 +410,7 @@ async function deletePolicy(
   );
   await newPipeline<typeof IamPolicySpecSchema>("iampolicy-delete", deps.logger)
     .addStep(newAuthorizeStep(method, deps.authorizer))
-    .addStep(newRefuseServiceAccountMembershipChangeStep())
+    .addStep(newRefuseServiceAccountMembershipChangeStep(deps.accounts))
     .addStep(newValidateProtoStep())
     .addStep(
       newAuthorizeOwnerAssignmentStep(deps.authorizer, specOwnerRoleChange),
@@ -447,7 +447,7 @@ async function revokeOrgAccess(
     deps.logger,
   )
     .addStep(newAuthorizeStep(method, deps.authorizer))
-    .addStep(newRefuseServiceAccountOrgAccessStep())
+    .addStep(newRefuseServiceAccountOrgAccessStep(deps.accounts))
     .addStep(newValidateProtoStep());
   if (guardOwners) {
     const ownerRoleChange = orgAccessOwnerRoleChange(deps.policies);

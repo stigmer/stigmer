@@ -36,7 +36,7 @@ function handlerContext(): HandlerContext {
   return { signal: new AbortController().signal, values } as HandlerContext;
 }
 
-function deps(accounts: Pick<IdentityAccountStore, "findByOrg">, created: string[]): ServiceAccountDeps {
+function deps(accounts: Pick<IdentityAccountStore, "findByOrg" | "findById">, created: string[]): ServiceAccountDeps {
   const createAccount: CreateAccount = (input) => {
     created.push(input.name);
     return Promise.reject(new Error("the create path must not be reached"));
@@ -68,6 +68,9 @@ async function refusal(work: Promise<unknown>): Promise<ConnectError> {
 
 const noAccounts = { findByOrg: () => Promise.resolve([]) };
 
+/** The admin's own row, which the refusal of a service account reads: a person's. */
+const findById = () => Promise.resolve(undefined);
+
 describe("createServiceAccount, past the wire's validator", () => {
   it.each([IamRole.owner, IamRole.iam_role_unspecified])(
     "refuses the role %s INVALID_ARGUMENT and creates nothing",
@@ -75,7 +78,7 @@ describe("createServiceAccount, past the wire's validator", () => {
       const created: string[] = [];
       const error = await refusal(
         createServiceAccount(
-          deps(noAccounts, created),
+          deps({ ...noAccounts, findById }, created),
           create(CreateServiceAccountInputSchema, { org: "org_acme", name: "ci", role }),
           handlerContext(),
         ),
@@ -89,7 +92,7 @@ describe("createServiceAccount, past the wire's validator", () => {
     const created: string[] = [];
     const error = await refusal(
       createServiceAccount(
-        deps({ findByOrg: () => Promise.reject(new Error("must not be read")) }, created),
+        deps({ findByOrg: () => Promise.reject(new Error("must not be read")), findById }, created),
         create(CreateServiceAccountInputSchema, { org: "org_acme", name: "部署", role: IamRole.member }),
         handlerContext(),
       ),
@@ -103,7 +106,7 @@ describe("createServiceAccount, past the wire's validator", () => {
     const created: string[] = [];
     const error = await refusal(
       createServiceAccount(
-        deps({ findByOrg: () => Promise.reject(new Error("account store down")) }, created),
+        deps({ findByOrg: () => Promise.reject(new Error("account store down")), findById }, created),
         create(CreateServiceAccountInputSchema, { org: "org_acme", name: "ci", role: IamRole.member }),
         handlerContext(),
       ),

@@ -133,6 +133,7 @@ import {
   newRefuseServiceAccountCallerStep,
   refuseServiceAccountCaller,
 } from "../../pipeline/steps/refuse-service-account.js";
+import type { ServiceAccountLookup } from "../../pipeline/steps/refuse-service-account.js";
 import {
   requireKnownPrincipalKind,
   requireKnownResourceKind,
@@ -456,24 +457,24 @@ export const SERVICE_ACCOUNT_OWNER_MESSAGE =
   "a service account cannot own an organization; give it the admin, member or viewer role";
 
 /** `create` and `delete`: refused for a service account when the resource is an organization. */
-export function newRefuseServiceAccountMembershipChangeStep(): PipelineStep<
-  typeof IamPolicySpecSchema
-> {
+export function newRefuseServiceAccountMembershipChangeStep(
+  accounts: ServiceAccountLookup,
+): PipelineStep<typeof IamPolicySpecSchema> {
   return {
     name: "RefuseServiceAccountMembershipChange",
-    execute(ctx: RequestContext<typeof IamPolicySpecSchema>): void {
+    async execute(ctx: RequestContext<typeof IamPolicySpecSchema>): Promise<void> {
       if (ctx.input.resource?.kind === ORGANIZATION_KIND_NAME) {
-        refuseServiceAccountCaller(ctx.callerIdentity, MEMBERSHIP_ACT);
+        await refuseServiceAccountCaller(ctx.callerIdentity, MEMBERSHIP_ACT, accounts);
       }
     },
   };
 }
 
 /** `revokeOrgAccess`: always the organization's membership. */
-export function newRefuseServiceAccountOrgAccessStep(): PipelineStep<
-  typeof RevokeOrgAccessInputSchema
-> {
-  return newRefuseServiceAccountCallerStep(MEMBERSHIP_ACT);
+export function newRefuseServiceAccountOrgAccessStep(
+  accounts: ServiceAccountLookup,
+): PipelineStep<typeof RevokeOrgAccessInputSchema> {
+  return newRefuseServiceAccountCallerStep(MEMBERSHIP_ACT, accounts);
 }
 
 /** `create`: `owner` on an organization is refused when the principal is a service account. */

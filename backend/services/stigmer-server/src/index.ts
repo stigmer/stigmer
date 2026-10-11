@@ -121,7 +121,9 @@ export {
   newRefuseServiceAccountCallerStep,
   refuseServiceAccountCaller,
   serviceAccountRefusedMessage,
+  speaksForServiceAccount,
 } from "./pipeline/steps/refuse-service-account.js";
+export type { ServiceAccountLookup } from "./pipeline/steps/refuse-service-account.js";
 // The credential binding (ComposedServices.credentialBinding): the rule
 // that a credential naming an organization works there only, for a
 // composition's own lane that acts on an organization without asking the

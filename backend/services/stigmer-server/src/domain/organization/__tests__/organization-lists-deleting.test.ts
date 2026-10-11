@@ -67,6 +67,7 @@ function query(
       registerOrganizationServices(router, {
         store: temp.store,
         logger: silentLogger,
+        accounts: { findById: () => Promise.resolve(undefined) },
         authorizer: newPermissiveSingleTeamAuthorizer(),
         gateSteps: new Map(),
         grantPath: {} as never,

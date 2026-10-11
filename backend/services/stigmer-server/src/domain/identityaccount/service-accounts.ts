@@ -116,7 +116,7 @@ export async function createServiceAccount(
     caller,
     input,
   );
-  refuseServiceAccountCaller(caller, CREATE_ACT);
+  await refuseServiceAccountCaller(caller, CREATE_ACT, deps.accounts);
   if (!deps.signInRequired) {
     throw failedPreconditionError(SERVICE_ACCOUNTS_NEED_SIGN_IN_MESSAGE);
   }

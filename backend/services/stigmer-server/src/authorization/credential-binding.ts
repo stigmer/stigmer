@@ -31,6 +31,10 @@
  *   - an API key limited to the bound organization (`spec.bound_org`): a
  *     key is its owner's, but a bound credential manages only the keys
  *     limited where it is, never an unlimited key or one limited elsewhere;
+ *   - an organization's service account in the bound organization: an
+ *     account belongs to no organization, so a person's account stays
+ *     reachable, but a service account is its organization's, and a
+ *     credential limited to another may not mint its keys or change it;
  *   - a kind that belongs to no organization: owner-only (the person's own
  *     account) or unscoped (plans, the platform). These are nobody's
  *     organization data.
@@ -90,10 +94,13 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { IamPolicyStore } from "../domain/iampolicy/store.js";
+import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
 import type { PlatformClientStore } from "../domain/platformclient/store.js";
 import type {
   Authorizer,
@@ -182,6 +189,13 @@ export interface CredentialBindingDeps {
   readonly policies: Pick<IamPolicyStore, "findById">;
   /** The PlatformClient port the composition bound, for the same reason. */
   readonly platformClients: Pick<PlatformClientStore, "findById">;
+  /**
+   * The identity-account port the composition bound, for the same reason:
+   * a service account belongs to an organization, so a bound credential
+   * reaches one only in its own. Absent, every account reads as a person's
+   * (a test's binding).
+   */
+  readonly identityAccounts?: Pick<IdentityAccountStore, "findById">;
   /** The declarations whose schemas decode a row; the built-in model unless a test says otherwise. */
   readonly model?: Model;
   /** The deleting rule's predicate; nothing is deleting when absent (a test's binding). */
@@ -234,6 +248,9 @@ export function newCredentialBinding(
     }
     if (kind === ApiResourceKind.platform_client) {
       return deps.platformClients.findById(id);
+    }
+    if (kind === ApiResourceKind.identity_account && deps.identityAccounts !== undefined) {
+      return deps.identityAccounts.findById(id);
     }
     const schema = model.byKind(kind)?.schema;
     if (schema === undefined) {
@@ -360,6 +377,33 @@ export function newCredentialBinding(
       : "outside";
   }
 
+  // An account belongs to no organization, so a bound credential reaches
+  // a person's account as before, but an organization's service account
+  // belongs to its organization: a credential limited to another may not
+  // mint its keys, list them or change it, though its person administers
+  // both organizations.
+  async function accountVerdict(
+    caller: CallerIdentity,
+    id: string,
+    bound: string,
+  ): Promise<BindingVerdict> {
+    if (deps.identityAccounts === undefined) {
+      return "inside";
+    }
+    const found = await targetFacts(caller, ApiResourceKind.identity_account, id);
+    if (found === undefined) {
+      return "missing";
+    }
+    if (found === UNREADABLE || !isMessage(found.row, IdentityAccountSchema)) {
+      return "outside";
+    }
+    const row = found.row;
+    if (row.spec?.provisioningMode !== IdentityAccountProvisioningMode.service_account) {
+      return "inside";
+    }
+    return (row.metadata?.org ?? "") === bound ? "inside" : "outside";
+  }
+
   async function verdict(
     caller: CallerIdentity,
     target: BindingTarget,
@@ -373,6 +417,9 @@ export function newCredentialBinding(
     }
     if (target.kind === ApiResourceKind.api_key) {
       return keyVerdict(caller, target.id, bound);
+    }
+    if (target.kind === ApiResourceKind.identity_account) {
+      return accountVerdict(caller, target.id, bound);
     }
     if (!declaresKind(target.kind)) {
       // A kind the contract never declared (an unrecognised stored kind)

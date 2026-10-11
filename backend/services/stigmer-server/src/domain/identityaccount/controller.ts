@@ -102,8 +102,12 @@ import { newExtractResourceIdStep } from "../../pipeline/steps/delete.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
-import { newRefuseServiceAccountCallerStep } from "../../pipeline/steps/refuse-service-account.js";
+import {
+  newRefuseServiceAccountCallerStep,
+  refuseServiceAccountCaller,
+} from "../../pipeline/steps/refuse-service-account.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { ownerNamesOf } from "../apikey/queries.js";
 import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
 import { accountDisplayName } from "./actor.js";
 import {
@@ -180,7 +184,8 @@ export interface IdentityAccountControllerDeps extends CreateAccountPathDeps {
   readonly deleteMyVaults: (person: string, caller: CallerIdentity) => Promise<number>;
   /**
    * Deletes every API key that speaks for the deleted account
-   * (domain/apikey/account-keys.ts), by its id and its subject. Runs before
+   * (domain/apikey/account-keys.ts), by its id and, for a direct account,
+   * its subject (domain/apikey/queries.ts `ownerNamesOf`). Runs before
    * the row goes, failing the delete on a fault, so a person who signs up
    * again under the same subject does not get their old keys back
    * (stigmer/stigmer#1771) and a deleted service account's keys end at once.
@@ -439,7 +444,7 @@ async function update(
         deps.authorizer,
       ),
     )
-    .addStep(newRefuseServiceAccountCallerStep(CHANGE_ACCOUNTS_ACT))
+    .addStep(newRefuseServiceAccountCallerStep(CHANGE_ACCOUNTS_ACT, deps.accounts))
     .addStep(newValidateProtoStep())
     .addStep(newLoadExistingAccountStep(deps.accounts))
     .addStep(newGuardImmutableSubjectStep())
@@ -473,7 +478,7 @@ async function deleteAccount(
         deps.authorizer,
       ),
     )
-    .addStep(newRefuseServiceAccountCallerStep(CHANGE_ACCOUNTS_ACT))
+    .addStep(newRefuseServiceAccountCallerStep(CHANGE_ACCOUNTS_ACT, deps.accounts))
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingAccountForDeleteStep(deps.accounts))
@@ -498,7 +503,7 @@ async function deleteAccount(
           | undefined;
         try {
           await deps.deleteAccountKeys(
-            [ctx.input.value, account?.spec?.idpId ?? ""],
+            ownerNamesOf(ctx.input.value, account),
             ctx.callerIdentity,
           );
         } catch (error) {
@@ -810,6 +815,16 @@ async function federated<Input extends FederatedInput>(
     caller: CallerIdentity,
   ) => Promise<IdentityAccount>,
 ): Promise<IdentityAccount> {
+  // A service account makes, changes and removes no federated account,
+  // asked before the edition's federation, so every edition answers the
+  // same (pipeline/steps/refuse-service-account.ts).
+  if (method.parent.typeName === IdentityAccountCommandController.typeName) {
+    await refuseServiceAccountCaller(
+      callerIdentityOf(ctx),
+      "create, change or remove federated accounts",
+      deps.accounts,
+    );
+  }
   const federation = deps.federation;
   if (federation === undefined) {
     throw new ConnectError(

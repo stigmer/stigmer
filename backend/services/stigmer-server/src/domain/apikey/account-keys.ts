@@ -7,7 +7,8 @@
  * and a deleted service account's keys end at once.
  *
  * The keys are read by owner through the key list index (queries.ts), by
- * the account's id and by its subject, the two stamps a key has carried.
+ * the names its keys are stamped with (queries.ts `ownerNamesOf`): its id,
+ * and a direct account's own subject.
  * Each is removed as the organization purge removes a key
  * (purge.ts, the kind purge's row removal): its access rows through the
  * grant path, then the key's own delete chain's cleanup (its row, then its

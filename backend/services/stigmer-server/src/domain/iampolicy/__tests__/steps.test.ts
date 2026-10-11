@@ -669,6 +669,8 @@ describe("the service-account steps", () => {
   const MEMBERSHIP_REFUSAL = serviceAccountRefusedMessage(
     "grant or revoke roles on the organization",
   );
+  // No row: the class alone decides in these arms.
+  const NO_ROWS = { findById: () => Promise.resolve(undefined) };
   const serviceAccountCaller: CallerIdentity = {
     identityId: "ida_ci",
     callerClass: "service_account",
@@ -693,7 +695,7 @@ describe("the service-account steps", () => {
   }
 
   describe("RefuseServiceAccountMembershipChange", () => {
-    const step = newRefuseServiceAccountMembershipChangeStep();
+    const step = newRefuseServiceAccountMembershipChangeStep(NO_ROWS);
 
     it("refuses a service account on an organization's roles with PERMISSION_DENIED and the refusal copy", async () => {
       const error = await refusal(() =>
@@ -705,8 +707,8 @@ describe("the service-account steps", () => {
       expect(error.rawMessage).toBe(MEMBERSHIP_REFUSAL);
     });
 
-    it("passes a service account sharing one resource that is not the organization", () => {
-      expect(
+    it("passes a service account sharing one resource that is not the organization", async () => {
+      await expect(
         step.execute(
           specContext(
             triple({ kind: "identity_account", id: "ida_bob" }, "editor", {
@@ -716,15 +718,15 @@ describe("the service-account steps", () => {
             serviceAccountCaller,
           ),
         ),
-      ).toBeUndefined();
+      ).resolves.toBeUndefined();
     });
 
-    it("passes a person on an organization's roles", () => {
-      expect(
+    it("passes a person on an organization's roles", async () => {
+      await expect(
         step.execute(
           specContext(orgRole("ida_bob", "member", "acme"), personCaller),
         ),
-      ).toBeUndefined();
+      ).resolves.toBeUndefined();
     });
   });
 
@@ -743,7 +745,7 @@ describe("the service-account steps", () => {
 
     it("refuses a service account with PERMISSION_DENIED and the refusal copy", async () => {
       const error = await refusal(() =>
-        newRefuseServiceAccountOrgAccessStep().execute(
+        newRefuseServiceAccountOrgAccessStep(NO_ROWS).execute(
           revokeContext(serviceAccountCaller),
         ),
       );
@@ -751,12 +753,12 @@ describe("the service-account steps", () => {
       expect(error.rawMessage).toBe(MEMBERSHIP_REFUSAL);
     });
 
-    it("passes a person", () => {
-      expect(
-        newRefuseServiceAccountOrgAccessStep().execute(
+    it("passes a person", async () => {
+      await expect(
+        newRefuseServiceAccountOrgAccessStep(NO_ROWS).execute(
           revokeContext(personCaller),
         ),
-      ).toBeUndefined();
+      ).resolves.toBeUndefined();
     });
   });
 
