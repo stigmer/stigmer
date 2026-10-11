@@ -6,14 +6,20 @@
 // Pinned: the run refuses a quality target whose model the registry does not
 // carry for its harness, and runs one eval for the rest; a failure to push the
 // plugin lands in the report by stage, never thrown; a plan with no quality
-// target leaves `quality` null; the summary ends with the quality table, read
+// target leaves `quality` null. runQualityEval itself, over fake clients:
+// each stage's failure lands by stage with what it cleans up, a failed eval
+// keeps its document beside the failure, and a finished one keeps its
+// document alone. The summary ends with the quality table, read
 // from the result document as JSON: one row per case and target (a score that
 // is not a number reads "n/a"), then the cases not run, with their target
 // where the document names one, then the eval's failure.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { JUDGE_MODEL, PARITY_MODEL, type CellPlan } from "../cells";
-import { renderQuality } from "../quality-eval";
+import { create } from "@bufbuild/protobuf";
+import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
+import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import { renderQuality, runQualityEval } from "../quality-eval";
 import type { QualityEval } from "../report";
 import { renderSummary, runBenchmark, type BenchmarkStack, type RunOptions } from "../run";
 
@@ -139,5 +145,62 @@ describe("renderQuality", () => {
       "",
       "Quality eval: execution: the eval failed: out of credit",
     ]);
+  });
+});
+
+describe("runQualityEval", () => {
+  const TARGETS = [{ id: "quality/deep-agent", harness: "deep-agent", modelRequested: "claude-sonnet-4.6" }] as const;
+  const ended = (phase: PluginEvalPhase, error = "") =>
+    create(PluginEvalSchema, { metadata: { id: "pev_1" }, status: { phase, error } });
+
+  /** Clients whose every seam answers, unless a test overrides one; the deletes are recorded. */
+  function fakeClients(over: { push?: () => Promise<unknown>; create?: () => Promise<unknown>; get?: () => Promise<unknown> } = {}) {
+    const deleted: string[] = [];
+    const remove = ({ value }: { value: string }): Promise<object> => {
+      deleted.push(value);
+      return Promise.resolve({});
+    };
+    const clients = {
+      organizationCommand: { create: () => Promise.resolve({ metadata: { id: "org_1", slug: "org-1" } }), delete: remove },
+      pluginCommand: { push: over.push ?? (() => Promise.resolve({ metadata: { id: "plg_1", name: "working-agent" } })), delete: remove },
+      pluginEvalCommand: { create: over.create ?? (() => Promise.resolve({ metadata: { id: "pev_1" } })) },
+      pluginEvalQuery: { get: over.get ?? (() => Promise.resolve(ended(PluginEvalPhase.completed))) },
+    } as unknown as ConformanceClients;
+    return { clients, deleted };
+  }
+
+  const run = (clients: ConformanceClients, lines: string[] = []) =>
+    runQualityEval(clients, TARGETS, { runs: 1, judgeModel: JUDGE_MODEL }, { log: (line) => lines.push(line) });
+
+  it("records a refused push by stage, and removes the organization it made", async () => {
+    const { clients, deleted } = fakeClients({ push: () => Promise.reject(new Error("too large")) });
+    const quality = await run(clients);
+    expect(quality.failure).toEqual({ stage: "create", message: "push the working agent's plugin: too large" });
+    expect(deleted).toEqual(["org_1"]);
+  });
+
+  it("records a refused eval create by stage, and removes the plugin and the organization", async () => {
+    const { clients, deleted } = fakeClients({ create: () => Promise.reject(new Error("no model")) });
+    const quality = await run(clients);
+    expect(quality.plugin).toBe("working-agent");
+    expect(quality.failure).toEqual({ stage: "create", message: "create the eval: no model" });
+    expect(deleted).toEqual(["plg_1", "org_1"]);
+  });
+
+  it("records an eval it could not follow, and one that failed with its document", async () => {
+    const lost = await run(fakeClients({ get: () => Promise.reject(new Error("stack gone")) }).clients);
+    expect([lost.eval_id, lost.document, lost.failure]).toEqual(["pev_1", null, { stage: "execution", message: "follow the eval: stack gone" }]);
+    const failed = await run(fakeClients({ get: () => Promise.resolve(ended(PluginEvalPhase.failed, "the suite did not load")) }).clients);
+    expect(failed.failure).toEqual({ stage: "execution", message: "the eval failed: the suite did not load" });
+    expect(failed.document).toMatchObject({ evalId: "pev_1" });
+  });
+
+  it("keeps a finished eval's result document, and says it started", async () => {
+    const lines: string[] = [];
+    const quality = await run(fakeClients().clients, lines);
+    expect(quality.failure).toBeUndefined();
+    expect(quality).toMatchObject({ plugin: "working-agent", eval_id: "pev_1", targets: ["native/claude-sonnet-4.6"], runs: 1 });
+    expect(quality.document).toMatchObject({ evalId: "pev_1" });
+    expect(lines).toEqual(["quality: eval pev_1 started"]);
   });
 });

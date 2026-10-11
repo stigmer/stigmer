@@ -14,9 +14,10 @@
  * try's sandbox and none of the runner's. The whole suite directory is
  * extracted beside it for its lifetime and removed before the engine
  * starts, so `$(dirname "$0")/../_fixture` reaches a shared fixture as it
- * does in Claude Code, and the agent never sees the suite. A non-zero exit
- * or the limit ends the try before the engine starts, scored 0 with
- * "scaffold failed" by the eval.
+ * does in Claude Code, and the agent never sees the suite. A non-zero exit,
+ * the limit, or output past SCAFFOLD_MAX_OUTPUT_BYTES on a stream ends the
+ * try before the engine starts, scored 0 with "scaffold failed" by the
+ * eval.
  *
  * Retries. A marker in the session's platform directory records a
  * finished scaffold, so a retried turn does not run it again on the tree it
@@ -49,6 +50,12 @@ import { type CaseArchive, CaseArchiveError } from "./case-archive.js";
 
 /** The scaffold's wall-clock limit, the format's. */
 export const SCAFFOLD_TIMEOUT_MS = 120_000;
+
+/** The most a scaffold may print on each of its streams; a verbose install or clone stays well under it. */
+export const SCAFFOLD_MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
+
+/** Node's code for a process stopped for printing more than its buffer holds. */
+const MAX_BUFFER_CODE = "ERR_CHILD_PROCESS_STDIO_MAXBUFFER";
 
 /** Under the session's platform directory: the case's own scratch space. */
 const EVAL_CASE_SUBDIR = "eval-case";
@@ -125,15 +132,17 @@ async function scaffoldOnce(
     }
     await agentFs().mkdir(home, { recursive: true });
     await agentFs().mkdir(tmp, { recursive: true });
+    const started = Date.now();
     try {
       await agentFs().execFile("bash", [script], {
         cwd: primaryDir,
         env: { PATH: buildShellEnv({})["PATH"] ?? "/usr/local/bin:/usr/bin:/bin", HOME: home, TMPDIR: tmp, TERM: "dumb" },
         replaceEnv: true,
         timeoutMs: SCAFFOLD_TIMEOUT_MS,
+        maxBuffer: SCAFFOLD_MAX_OUTPUT_BYTES,
       });
     } catch (err) {
-      return failureDetail(err);
+      return failureDetail(err, Date.now() - started);
     }
   } finally {
     for (const dir of [suiteRoot, home, tmp]) await agentFs().rm(dir, { recursive: true, force: true });
@@ -151,17 +160,26 @@ async function emptyWorkspace(primaryDir: string): Promise<void> {
   }
 }
 
-/** A failed scaffold as one line: how it ended, then the tail of what it printed. */
-export function failureDetail(err: unknown): string {
+/**
+ * A failed scaffold as one line: how it ended, then the tail of what it
+ * printed. The error's code decides first (its output overran, it could not
+ * start, it exited); a SIGKILL is the time limit only once `elapsedMs` has
+ * reached it, and any other kill is named by its signal.
+ */
+export function failureDetail(err: unknown, elapsedMs = 0): string {
   if (!(err instanceof AgentExecError)) return err instanceof Error ? err.message : String(err);
   const how =
-    err.signal === "SIGKILL"
-      ? `timed out after ${SCAFFOLD_TIMEOUT_MS / 1000}s`
-      : typeof err.code === "number"
-        ? `exit ${err.code}`
-        : err.signal !== null
-          ? `killed by ${err.signal}`
-          : `could not start (${String(err.code)})`;
+    err.code === MAX_BUFFER_CODE
+      ? `printed more than ${SCAFFOLD_MAX_OUTPUT_BYTES / (1024 * 1024)} MiB`
+      : typeof err.code === "string"
+        ? `could not start (${err.code})`
+        : typeof err.code === "number"
+          ? `exit ${err.code}`
+          : err.signal === "SIGKILL" && elapsedMs >= SCAFFOLD_TIMEOUT_MS
+            ? `timed out after ${SCAFFOLD_TIMEOUT_MS / 1000}s`
+            : err.signal !== null
+              ? `killed by ${err.signal}`
+              : `could not start (${String(err.code)})`;
   const output = Buffer.concat([err.stderr, err.stdout]).toString("utf8").trim();
   if (output === "") return how;
   const tail = output.length > FAILURE_OUTPUT_BYTES ? `…${output.slice(-FAILURE_OUTPUT_BYTES)}` : output;

@@ -69,7 +69,6 @@ export async function readPluginDirectory(dir: string): Promise<PluginFixture> {
 }
 
 /** Runs the quality eval on `targets` and returns what the report keeps (the module header). */
-/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects; the benchmark-readers smoke drives it on the scripted model */
 export async function runQualityEval(
   clients: ConformanceClients,
   targets: readonly QualityTarget[],

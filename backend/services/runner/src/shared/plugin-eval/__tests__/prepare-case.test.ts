@@ -19,7 +19,7 @@ import { PluginEvalCaseContextSchema, type PluginEvalCaseContext } from "@stigme
 import { AgentExecError } from "../../agent-fs.js";
 import { getPlatformDir } from "../../workspace/platform-dir.js";
 import { caseArchiveOf } from "../case-archive.js";
-import { failureDetail, prepareEvalCase, SCAFFOLD_TIMEOUT_MS } from "../prepare-case.js";
+import { failureDetail, prepareEvalCase, SCAFFOLD_MAX_OUTPUT_BYTES, SCAFFOLD_TIMEOUT_MS } from "../prepare-case.js";
 
 const encode = (text: string): Uint8Array => new TextEncoder().encode(text);
 
@@ -118,10 +118,24 @@ describe("the scaffold", () => {
     expect(readdirSync(join(getPlatformDir("s4"), "eval-case"))).toEqual([]);
   });
 
-  it("names the time limit for a killed script", () => {
-    const killed = new AgentExecError("killed", null, "SIGKILL", Buffer.from(""), Buffer.from(""));
-    expect(failureDetail(killed)).toBe(`timed out after ${SCAFFOLD_TIMEOUT_MS / 1000}s`);
-    expect(failureDetail(new AgentExecError("x", "ENOENT", null, Buffer.from(""), Buffer.from("")))).toBe("could not start (ENOENT)");
+  it("names the time limit only for a script killed at it, and every other ending by its code or signal", () => {
+    const failed = (code: number | string | null, signal: string | null) =>
+      new AgentExecError("x", code, signal, Buffer.from(""), Buffer.from(""));
+    expect(failureDetail(failed(null, "SIGKILL"), SCAFFOLD_TIMEOUT_MS)).toBe(`timed out after ${SCAFFOLD_TIMEOUT_MS / 1000}s`);
+    expect(failureDetail(failed(null, "SIGKILL"), 5_000)).toBe("killed by SIGKILL");
+    expect(failureDetail(failed("ERR_CHILD_PROCESS_STDIO_MAXBUFFER", "SIGTERM"))).toBe(
+      `printed more than ${SCAFFOLD_MAX_OUTPUT_BYTES / (1024 * 1024)} MiB`,
+    );
+    expect(failureDetail(failed("ENOENT", null))).toBe("could not start (ENOENT)");
+  });
+
+  it("lets a scaffold print more than a process's default buffer", async () => {
+    const chatty = caseArchiveOf([
+      { path: "evals/fix/setup.sh", content: encode("head -c 3000000 /dev/zero | tr '\\0' a\necho done > app.txt") },
+    ]);
+    const outcome = await prepareEvalCase({ context: contextOf({ scaffoldScript: "setup.sh" }), archive: chatty, sessionId: "s7", primaryDir: workspace });
+    expect(outcome.kind).toBe("ready");
+    expect(readFileSync(join(workspace, "app.txt"), "utf8")).toBe("done\n");
   });
 
   it("reads a failure that is not the script's own as its message", () => {
