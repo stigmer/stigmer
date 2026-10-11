@@ -49,6 +49,8 @@ import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { CHANNEL_ID_LABEL } from "../../shared/conversation-attachment.js";
 import { _resetRegistryCache } from "../../shared/model-registry.js";
 import { toolServerSegment } from "../../shared/plugin-servers.js";
+import { DuplicateServerNameError, resolvePluginServers } from "../../shared/mcp-resolver.js";
+import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
 import { NO_RUN_VALUES, toolValuesKey, type RunValues } from "../../shared/run-values.js";
 import { ToolScope } from "../../shared/tool-lists.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
@@ -215,6 +217,14 @@ async function run(
     values: options.values ?? NO_RUN_VALUES,
     primaryDir,
     capabilities: options.capabilities ?? { harness: Harness.NATIVE, subAgents: true },
+    // The main agent's servers, as the MCP phase resolves them from the conversation's plugins.
+    mainServers: resolvePluginServers(
+      blueprint.plugins,
+      (options.values ?? NO_RUN_VALUES).tools,
+      {},
+      resolveMcpTransportPosture(deps.config.mode),
+      deps.config,
+    ).resolvedServers,
   });
   return { result, labels };
 }
@@ -267,6 +277,22 @@ describe("resolveSubagents: what a subagent runs with", () => {
     };
     const { result } = await run([saved("release-notes", { plugins: [ref("github")] }, [shared])], { conversationPlugins: [shared], values });
     expect(ready(result)[0]!.servers.map((s) => s.slug)).toEqual([toolServerSegment("github", "api")]);
+  });
+
+  it("refuses the turn when a subagent's server would take a main server's name from another plugin", async () => {
+    const theirs = plugin("github", { hooks: false });
+    const other = create(PluginSchema, { ...theirs, metadata: { ...theirs.metadata!, id: "plg_github_other_org", org: "parent" } });
+    const group = { url: "https://github.example.com/mcp", values: { TOKEN: "t" } };
+    const values: RunValues = {
+      ...NO_RUN_VALUES,
+      tools: new Map([
+        [toolValuesKey("plg_github", "api"), group],
+        [toolValuesKey("plg_github_other_org", "api"), group],
+      ]),
+    };
+    await expect(
+      run([saved("release-notes", { plugins: [ref("github")] }, [other])], { conversationPlugins: [theirs], values }),
+    ).rejects.toThrow(DuplicateServerNameError);
   });
 
   it("mounts its own skills and its plugins' skills where the main agent's are", async () => {

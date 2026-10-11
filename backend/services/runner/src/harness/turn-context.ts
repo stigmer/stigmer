@@ -95,7 +95,7 @@ import {
   type ReleaseWorkspaceLock,
 } from "../shared/workspace/workspace-lock.js";
 import { LocalWorkspaceBackend } from "../shared/workspace/local-backend.js";
-import { resolvePluginServers } from "../shared/mcp-resolver.js";
+import { DuplicateServerNameError, resolvePluginServers } from "../shared/mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../shared/mcp-transport-guard.js";
 import { callerIdentityValues, resolveCallerIdentity } from "../shared/caller-identity.js";
 import { discoverChannelMessaging, synthesizeChannelAttachment } from "../shared/channel-attachment.js";
@@ -1287,6 +1287,25 @@ async function hookSources(
   return { kind: "ready", sources };
 }
 
+/** Refuses a subagent's server that takes a main server's name from another plugin. */
+function refuseSharedServerNames(
+  mainServers: readonly ResolvedMcpServer[],
+  servers: readonly ResolvedMcpServer[],
+): void {
+  for (const server of servers) {
+    const main = mainServers.find((candidate) => candidate.slug === server.slug);
+    if (main !== undefined && main.pluginOrigin?.pluginId !== server.pluginOrigin?.pluginId) {
+      throw new DuplicateServerNameError(server.slug, describeServer(main), describeServer(server));
+    }
+  }
+}
+
+function describeServer(server: ResolvedMcpServer): string {
+  return server.pluginOrigin === null
+    ? `the platform's server '${server.slug}'`
+    : `plugin '${server.pluginOrigin.plugin}' server '${server.pluginOrigin.server}'`;
+}
+
 /**
  * Phase 5c: each saved agent the turn's agent lists, as an agent of its
  * own ({@link TurnSubagent}), for a harness whose `capabilities.subAgents`
@@ -1306,7 +1325,12 @@ async function hookSources(
  *  - Its model ({@link subagentModel}) and its values, by its name.
  *
  * A plugin of a subagent whose hooks cannot be prepared settles the turn
- * naming it, as the main agent's do.
+ * naming it, as the main agent's do. A subagent's server that would take a
+ * main agent's server's name from another plugin refuses the turn
+ * (`DuplicateServerNameError`): the engine connects one server per name,
+ * so one would run with the other's values. Run planning refuses two
+ * plugins of one name first; this is the backstop for a plugin that
+ * appeared or changed since.
  */
 export async function resolveSubagents(
   deps: ResolutionDeps,
@@ -1318,6 +1342,8 @@ export async function resolveSubagents(
     readonly values: RunValues;
     readonly primaryDir: string;
     readonly capabilities: Pick<HarnessCapabilities, "harness" | "subAgents">;
+    /** The main agent's resolved servers: a subagent's server of the same name must be the same plugin's. */
+    readonly mainServers: readonly ResolvedMcpServer[];
   },
 ): Promise<
   | { readonly kind: "ready"; readonly subagents: readonly TurnSubagent[] }
@@ -1335,6 +1361,7 @@ export async function resolveSubagents(
     const { spec } = subagent;
     const toolScope = savedSubagentScope(subagent.name, spec, args.execution.spec);
     const servers = resolvePluginServers(subagent.plugins, values.tools, platformValues, transportPosture, deps.config).resolvedServers;
+    refuseSharedServerNames(args.mainServers, servers);
     const skills: SkillMetadata[] = [];
     if (!toolScope.hidesSkills) {
       skills.push(...(await resolveSkills(deps.client, spec.skillRefs, options)));
@@ -1702,6 +1729,7 @@ export async function resolveTurnContext(
     values,
     primaryDir: workspace.primaryDir,
     capabilities,
+    mainServers: mcp.servers,
   });
   if (subagentResolution.kind === "settled") return subagentResolution;
   const resolvedAttachments = await resolveTurnAttachments(deps, {
