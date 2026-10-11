@@ -375,6 +375,13 @@ export {
   canSign,
   platformTokenKeyRingFromPem,
 } from "./platformtoken/key-ring.js";
+// Open source's own ring, on its key ladder (STIGMER_PLATFORM_TOKEN_KEY,
+// else ~/.stigmer/platform-token.key, else generated and kept there): for
+// a self-hosted edition above open source that signs its tokens the way
+// the open-source server does. The library generates it unasked for open
+// source alone, so such an edition registers it as its driver, by choice.
+export { openSourcePlatformTokenKeyRing } from "./platformtoken/key-ring.js";
+export type { KeyLoaderOptions } from "./encryption/key-manager.js";
 // The kinds whose missing row the built-in authorizer denies instead of
 // answering not-found: exported so a composition that authorizes with its
 // own engine and probes existence itself pins its exemptions to this set.

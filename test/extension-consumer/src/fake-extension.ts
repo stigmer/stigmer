@@ -118,6 +118,7 @@ import {
   rethrownStatusError,
   runServer,
   openSourceEdition,
+  openSourcePlatformTokenKeyRing,
   newSubstrateSandboxDriver,
   newSubstrateSettingsFromEnv,
   ROUTING_SESSION,
@@ -1673,9 +1674,24 @@ export function runLicensedEditionProcess(
       boot.logger.info("licensed edition", {
         database: boot.config.databaseUrl === "" ? "sqlite" : "postgres",
       });
-      return Promise.resolve([fakeExtension]);
+      return Promise.resolve([selfHostedEdition()]);
     },
   });
+}
+
+/**
+ * A self-hosted edition above open source: it signs its own tokens with
+ * open source's ring on its key ladder, registered as its driver by
+ * choice, since the library generates that ring unasked for open source
+ * alone. Built when the entry decides, never at import: the ladder may
+ * write the key it generates.
+ */
+function selfHostedEdition(): ServerExtension {
+  return {
+    name: "self-hosted-edition",
+    edition: ServerEdition.enterprise,
+    drivers: { platformTokenKeys: openSourcePlatformTokenKeyRing() },
+  };
 }
 
 /**
