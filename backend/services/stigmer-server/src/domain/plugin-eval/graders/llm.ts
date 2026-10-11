@@ -28,7 +28,7 @@
  * Proven by __tests__/graders.test.ts.
  */
 import { renderTranscript } from "@stigmer/eval-runtime";
-import type { JsonObject } from "@bufbuild/protobuf";
+import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 
 import type {
   EvalGrader,
@@ -43,6 +43,7 @@ import { readVerdict } from "../../score/judge/verdict.js";
 import type { GraderVerdict } from "./verdict.js";
 import {
   binaryFileReason,
+  cutReason,
   focusLabel,
   focusText,
   normalisePath,
@@ -222,14 +223,20 @@ export type VoteResult =
   | { readonly kind: "vote"; readonly passed: boolean; readonly reason: string }
   | { readonly kind: "failed"; readonly reason: string };
 
-/** A vote run's structured output read as one vote, or the reason it cannot be. */
+/**
+ * A vote run's structured output read as one vote, or the reason it cannot
+ * be. A reason past the schema's maxLength, which the provider does not
+ * enforce, is cut to the bound before the strict read, so a long-winded vote
+ * keeps its result (stigmer#2143); anything else the reader refuses stays
+ * refused.
+ */
 export function readVote(
   output: JsonObject | undefined,
   rubric: string,
 ):
   | { readonly passed: boolean; readonly reason: string }
   | { readonly refused: string } {
-  const reading = readVerdict(output, {
+  const reading = readVerdict(withReasonCut(output, rubric), {
     rubrics: [rubric],
     results: ["passed", "failed"],
   });
@@ -245,6 +252,81 @@ export function readVote(
     passed: verdict.result === CriterionResult.passed,
     reason: verdict.reason,
   };
+}
+
+/** The longest result value, and object key, a refused answer's description quotes. */
+const DESCRIBED_VALUE_MAX = 40;
+
+/** At most this many keys are named. */
+const DESCRIBED_KEYS_MAX = 8;
+
+/**
+ * A refused vote's answer described for the server's log: its keys, its
+ * result value, and its reason's type and length, never the reason's text.
+ * The strict reader names only that the answer is wrong; this says how, so
+ * a refusal seen on a real judge model can be told apart from the others
+ * (stigmer#2143).
+ */
+export function describeVoteAnswer(
+  output: JsonObject | undefined,
+  rubric: string,
+): string {
+  if (output === undefined) {
+    return "no structured output";
+  }
+  const answer = output[rubric];
+  if (answer === undefined) {
+    return `no ${JSON.stringify(rubric)}; output keys ${keysOf(output)}`;
+  }
+  if (Array.isArray(answer)) {
+    return "an array";
+  }
+  if (typeof answer !== "object" || answer === null) {
+    return kindOf(answer);
+  }
+  const result = answer["result"];
+  const reason = answer["reason"];
+  return [
+    `keys ${keysOf(answer)}`,
+    `result ${typeof result === "string" ? JSON.stringify(quoted(result)) : kindOf(result)}`,
+    `reason ${typeof reason === "string" ? `a string of ${reason.length} characters` : kindOf(reason)}`,
+  ].join("; ");
+}
+
+function keysOf(value: JsonObject): string {
+  return JSON.stringify(Object.keys(value).slice(0, DESCRIBED_KEYS_MAX).map(quoted));
+}
+
+function quoted(text: string): string {
+  return text.length <= DESCRIBED_VALUE_MAX ? text : `${text.slice(0, DESCRIBED_VALUE_MAX)}…`;
+}
+
+function kindOf(value: JsonValue | undefined): string {
+  if (value === undefined) {
+    return "absent";
+  }
+  if (value === null) {
+    return "null";
+  }
+  return `a ${typeof value}`;
+}
+
+/** `output` with its rubric's string reason cut to the bound; any other shape as it came. */
+function withReasonCut(
+  output: JsonObject | undefined,
+  rubric: string,
+): JsonObject | undefined {
+  const answer = output?.[rubric];
+  if (
+    output === undefined ||
+    typeof answer !== "object" ||
+    answer === null ||
+    Array.isArray(answer) ||
+    typeof answer["reason"] !== "string"
+  ) {
+    return output;
+  }
+  return { ...output, [rubric]: { ...answer, reason: cutReason(answer["reason"]) } };
 }
 
 /** The grader's verdict from its votes: two decide (the module header). */

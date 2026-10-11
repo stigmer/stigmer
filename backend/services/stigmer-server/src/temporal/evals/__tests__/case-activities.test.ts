@@ -1206,7 +1206,7 @@ describe("read-vote beside a readable answer", () => {
     expect(lines[0]).toMatchObject({
       level: "warn",
       message: "a vote's answer could not be read",
-      fields: { voteRunId: id },
+      fields: { voteRunId: id, answer: 'keys ["result","reason"]; result "maybe"; reason a string of 6 characters' },
     });
     expect(record.deletedSessions).toEqual([]);
   });

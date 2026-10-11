@@ -10,7 +10,7 @@
 // Pure: a string (or a number) in, a string out. No target, no spawn.
 // Domain: test support (stack spawns).
 import { describe, expect, it } from "vitest";
-import { describeRunnerForceKill, describeRunnerSlowExit, runnerHomeEnv, spawnRunner } from "../runner-process.ts";
+import { describeRunnerForceKill, describeRunnerSlowExit, runnerArtifactEnv, runnerHomeEnv, spawnRunner } from "../runner-process.ts";
 
 // The Temporal SDK prints each worker state change as a five-line object.
 function workerStateChanged(state: string): string[] {
@@ -166,6 +166,29 @@ describe("describeRunnerSlowExit", () => {
 describe("runnerHomeEnv", () => {
   it("relocates both home variables the runner reads to the harness-owned directory", () => {
     expect(runnerHomeEnv("/tmp/harness-home")).toEqual({ HOME: "/tmp/harness-home", USERPROFILE: "/tmp/harness-home" });
+  });
+});
+
+// The runner's artifact store, set in either LLM mode: a direct-mode runner
+// left on its default wrote file-review blobs under its own HOME, where the
+// server never reads them (stigmer#2142).
+describe("runnerArtifactEnv", () => {
+  it("points the runner at the given directory, the server's when shared", () => {
+    expect(runnerArtifactEnv({}, "/tmp/server-artifacts")).toEqual({
+      ARTIFACT_STORAGE_TYPE: "local",
+      LOCAL_ARTIFACT_PATH: "/tmp/server-artifacts",
+    });
+  });
+
+  it("routes artifacts at a presign-capable lane when one is given", () => {
+    expect(runnerArtifactEnv({ artifactProxy: { endpoint: "http://127.0.0.1:2" } }, "/tmp/unused")).toEqual({
+      ARTIFACT_STORAGE_TYPE: "proxy",
+      STIGMER_ARTIFACT_PROXY_ENDPOINT: "http://127.0.0.1:2",
+    });
+  });
+
+  it("boots with no store for the none posture", () => {
+    expect(runnerArtifactEnv({ artifactStore: "none" }, "/tmp/unused")).toEqual({ ARTIFACT_STORAGE_TYPE: "none" });
   });
 });
 

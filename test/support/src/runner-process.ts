@@ -41,7 +41,9 @@
 // UNLESS `artifactProxy` routes them at a real presign-capable endpoint via
 // STIGMER_ARTIFACT_PROXY_ENDPOINT (stigmer#803): the cloud-execution target
 // points artifacts at the composition's HTTP port while LLM traffic stays on
-// the mock.
+// the mock. The artifact store is set in both modes (runnerArtifactEnv): in
+// direct mode too, the runner's file-review blobs must land where the server
+// reads them back (stigmer#2142).
 import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -96,6 +98,25 @@ export function runnerHomeEnv(homeDir: string): Record<string, string> {
   return { HOME: homeDir, USERPROFILE: homeDir };
 }
 
+// The env that picks the runner's artifact store, in either LLM mode: none,
+// the presign-capable proxy lane, or the local directory at `artifactDir`
+// (the server's, when shared). Never left to the runner's default, which is
+// a directory under the harness-owned HOME that the server never reads: a
+// non-git workspace's file-review blobs written there cannot be read back
+// (stigmer#2142). Exported so the unit arm pins each posture.
+export function runnerArtifactEnv(
+  opts: Pick<RunnerOptions, "artifactStore" | "artifactProxy">,
+  artifactDir: string,
+): Record<string, string> {
+  if (opts.artifactStore === "none") {
+    return { ARTIFACT_STORAGE_TYPE: "none" };
+  }
+  if (opts.artifactProxy !== undefined) {
+    return { ARTIFACT_STORAGE_TYPE: "proxy", STIGMER_ARTIFACT_PROXY_ENDPOINT: opts.artifactProxy.endpoint };
+  }
+  return { ARTIFACT_STORAGE_TYPE: "local", LOCAL_ARTIFACT_PATH: artifactDir };
+}
+
 // Hermetic LLM wiring for agent executions. Omit it entirely for direct mode,
 // where the runner reaches real providers.
 export interface RunnerProxyOptions {
@@ -140,11 +161,12 @@ export interface RunnerOptions {
   cloudBootstrap?: { token: string };
   // Optional hermetic LLM wiring; present only for agent-execution runs.
   proxy?: RunnerProxyOptions;
-  // The server's artifact root. When provided (with a proxy), the runner
-  // shares the server's local store so a storage-key attachment the server
-  // wrote resolves here (#285). Omitted → a throwaway store, which is fine for
-  // runs that never resolve a cross-process artifact. The runner mints no
-  // download links from it, so it needs no serve URL.
+  // The server's artifact root. When provided, the runner shares the server's
+  // local store, with a proxy or without: a storage-key attachment the server
+  // wrote resolves here (#285), and a file-review blob the runner wrote is read
+  // back by the server (stigmer#2142). Omitted → a throwaway store, which is
+  // fine for runs that never resolve a cross-process artifact. The runner mints
+  // no download links from it, so it needs no serve URL.
   artifactDir?: string;
   // Presign-capable artifact lane (stigmer#803): base URL of a REAL service
   // serving /v1/proxy/artifacts/... (the hermetic Java service's HTTP port).
@@ -252,13 +274,11 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
       LOG_LEVEL: "info",
       // Avoid a boot-time MCP backfill network call (hermetic test detail).
       SKIP_MCP_CONNECT_BACKFILL: "true",
+      // The artifact store, in both LLM modes (runnerArtifactEnv).
+      ...runnerArtifactEnv(opts, artifactDir),
       // Hermetic LLM wiring, only when the caller asks for the mock. Absent in
-      // direct mode, where the runner reaches real providers. When present:
-      // - STIGMER_PROXY_ENDPOINT/STIGMER_TOKEN route LLM calls to the mock proxy;
-      // - artifacts go to a local on-disk store (a configured proxy would
-      //   otherwise default artifacts to presign calls against the mock and
-      //   throw at setup) — UNLESS artifactProxy routes them at a real
-      //   presign-capable endpoint (stigmer#803).
+      // direct mode, where the runner reaches real providers. When present,
+      // STIGMER_PROXY_ENDPOINT/STIGMER_TOKEN route LLM calls to the mock proxy.
       // STIGMER_CHECKPOINTER_TYPE is deliberately NOT set: MODE=local makes the
       // runner pick its production default, the durable SQLite saver under the
       // harness-owned HOME above (header).
@@ -274,17 +294,6 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
             // queued agent turns (#715). Keep every LLM caller on the one
             // provider the mock implements.
             STIGMER_PRIMARY_MODEL: "claude-sonnet-4-6",
-            ...(opts.artifactStore === "none"
-              ? { ARTIFACT_STORAGE_TYPE: "none" }
-              : opts.artifactProxy !== undefined
-              ? {
-                  ARTIFACT_STORAGE_TYPE: "proxy",
-                  STIGMER_ARTIFACT_PROXY_ENDPOINT: opts.artifactProxy.endpoint,
-                }
-              : {
-                  ARTIFACT_STORAGE_TYPE: "local",
-                  LOCAL_ARTIFACT_PATH: artifactDir,
-                }),
           }
         : {}),
     },
