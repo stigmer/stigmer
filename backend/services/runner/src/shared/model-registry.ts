@@ -17,7 +17,6 @@ import {
   REGISTRY_RETRY_POLICY,
 } from "./registry-endpoint.js";
 import { fetchWithRetry } from "./http-retry.js";
-import { hasExplicitProvider } from "./llm-proxy.js";
 
 const CACHE_TTL_MS = 3_600_000;
 // Failed fetches are cached much shorter than successes: a transient failure
@@ -167,25 +166,6 @@ async function getRegistry(): Promise<readonly RegistryModel[]> {
     });
 
   return inflightFetch;
-}
-
-/**
- * Check whether a model identifier is one the runner can serve: known to the
- * registry, or an explicit `openai:<name>` / `anthropic:<name>` reference to
- * a model on the organization's own endpoint, which {@link inferProvider}
- * routes by its prefix and no registry lists (the server's write-time pin
- * check accepts the same form).
- *
- * Used to validate SubAgent model_override values. Returns false for any
- * other name when the registry is empty (fetch failed) — callers should
- * treat this as "unknown" and reject the override to avoid running on an
- * unintended model.
- */
-export async function isModelRegistered(modelId: string): Promise<boolean> {
-  if (hasExplicitProvider(modelId)) return true;
-  const registry = await getRegistry();
-  if (registry.length === 0) return false;
-  return registry.some((m) => m.id === modelId);
 }
 
 /**

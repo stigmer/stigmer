@@ -92,14 +92,6 @@ export function tryInferProvider(modelName: string): LlmProvider | null {
 }
 
 /**
- * Whether a model name carries the explicit "provider:model-name" syntax
- * {@link inferProvider} reads first ("openai:llama-3.3-70b").
- */
-export function hasExplicitProvider(modelName: string): boolean {
-  return stripProviderPrefix(modelName) !== modelName;
-}
-
-/**
  * Strip an explicit "provider:" prefix from the model name, returning
  * just the model ID portion. If no explicit prefix is present, returns
  * the original name unchanged.
