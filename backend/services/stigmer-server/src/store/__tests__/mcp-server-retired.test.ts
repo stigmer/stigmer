@@ -499,6 +499,31 @@ describe("migrateAgentRow", () => {
     );
   });
 
+  it("keeps the agent's own organization's plugin when it was named first, and logs the one left out", () => {
+    const all = facts();
+    all.addPlugin({ id: "plg_parent_gh", org: OTHER_ORG, slug: "gh-tools-shared", name: "GH Tools" });
+    all.addServer({ id: "mcp_parent_gh", org: OTHER_ORG, slug: "shared-github", name: "github", pluginId: "plg_parent_gh" });
+    const logger = recordingLogger();
+    const result = migrateAgentRow(
+      agent({ serverUsages: [serverRef("github"), serverRef("shared-github", OTHER_ORG)] }),
+      all,
+      logger,
+    );
+    const spec = fromBinary(AgentSchema, result!.data).spec;
+    expect(spec?.plugins.map((ref) => `${ref.org}/${ref.slug}`)).toEqual([`${ORG}/gh-tools`]);
+    expect(logger.warnings).toEqual([
+      expect.objectContaining({
+        message: "Two plugins of one name were used; only one can be listed, so the other was left out",
+        fields: expect.objectContaining({ kept: `${ORG}/gh-tools`, left: `${OTHER_ORG}/gh-tools-shared` }),
+      }),
+    ]);
+  });
+
+  it("reads a usage's server reference past the other fields the usage carries", () => {
+    const result = migrated(agent({ serverUsages: [serverRef("github")], usageOthers: ["create_issue", "list_issues"] }));
+    expect(slugs(result.spec?.plugins)).toEqual(["gh-tools"]);
+  });
+
   it("heads a new version: the recomputed hash, the previous one named, the retirement message", () => {
     const result = migrateAgentRow(
       agent({ serverUsages: [serverRef("github")] }),

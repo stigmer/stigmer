@@ -2335,6 +2335,7 @@ export async function composeServer(
           logger,
         });
       } catch (error) {
+        /* v8 ignore next -- @preserve: boot wiring; reached only when the store fails to list plugins during a composed boot, and refreshLegacyPluginStatuses' own failures are pinned in legacy-status.test.ts */
         logger.warn("Failed to fill the status of plugins installed before plugins were whole", {
           error: error instanceof Error ? error.message : String(error),
         });

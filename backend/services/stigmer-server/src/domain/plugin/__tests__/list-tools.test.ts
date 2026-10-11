@@ -154,13 +154,15 @@ class AttemptTable {
 /** A store answering the plugin read and the attempt table only; any other member throws. */
 function fakeStore(
   attempts: AttemptTable,
-  plugin: Plugin | null = storedPlugin(),
+  plugin: Plugin | null | Error = storedPlugin(),
 ): Store {
   const answers: Partial<Store> = {
     getResource: (() =>
       plugin === null
         ? Promise.reject(new ResourceNotFoundError(`plugin/${PLUGIN_ID}`))
-        : Promise.resolve(plugin)) as Store["getResource"],
+        : plugin instanceof Error
+          ? Promise.reject(plugin)
+          : Promise.resolve(plugin)) as Store["getResource"],
     connectAttempts: attempts,
   };
   return new Proxy(answers as Store, {
@@ -311,6 +313,18 @@ describe("listTools — refusals before anything starts", () => {
     );
     expect(noServer.code).toBe(Code.NotFound);
     expect(noServer.rawMessage).toContain("MCP server of plugin 'acme'");
+  });
+
+  it("answers Internal when the plugin cannot be read", async () => {
+    const error = await refusal(
+      listTools(
+        deps({ attempts, store: fakeStore(attempts, new Error("connection reset")) }),
+        input("github"),
+        caller,
+      ),
+    );
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to load plugin");
   });
 
   it("answers FailedPrecondition when no engine is connected", async () => {
@@ -474,6 +488,56 @@ describe("listTools — a listing", () => {
       server: "github",
       execution_context_id: starts[0]?.attemptId,
     });
+  });
+
+  it("degrades to the attempt alone when minting the credential fails, and starts the run", async () => {
+    const { engine, starts } = fakeEngine(attempts, { ok: true, output: {} });
+    const failingMint: RunnerCredentialProvider = {
+      isEnabled: () => true,
+      mint: () => {
+        throw new Error("signing key unavailable");
+      },
+      verify: () => {
+        throw new Error("not used");
+      },
+    };
+    await listTools(
+      deps({
+        attempts,
+        runnerAuth: failingMint,
+        engineState: () => ({ connected: true, engine }),
+      }),
+      input("github"),
+      caller,
+    );
+    expect(starts[0]?.input).toEqual({
+      plugin_id: PLUGIN_ID,
+      server: "github",
+      execution_context_id: starts[0]?.attemptId,
+    });
+  });
+
+  it("answers Internal and starts nothing when the attempt cannot be recorded", async () => {
+    class FailingTable extends AttemptTable {
+      override create(): Promise<void> {
+        return Promise.reject(new Error("disk full"));
+      }
+    }
+    const table = new FailingTable();
+    const { engine, starts } = fakeEngine(table, { ok: true, output: {} });
+    const error = await refusal(
+      listTools(
+        deps({
+          attempts: table,
+          engineState: () => ({ connected: true, engine }),
+        }),
+        input("github"),
+        caller,
+      ),
+    );
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to record the tools listing");
+    expect(starts).toEqual([]);
   });
 
   it("runs in a connect sandbox when the lane is enabled, and releases it after", async () => {

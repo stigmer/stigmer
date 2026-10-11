@@ -158,6 +158,31 @@ describe("resolvePluginServers: the transport guard", () => {
   });
 });
 
+describe("resolvePluginServers: a resolution hiccup", () => {
+  it("skips the server it failed, naming it and the failure, and keeps the others", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const failingKey = toolValuesKey("plg_1", "broken");
+    const tools: ReadonlyMap<string, ToolValueGroup> = {
+      get: (key: string) => {
+        if (key === failingKey) throw new Error("values unreadable");
+        return undefined;
+      },
+    } as unknown as ReadonlyMap<string, ToolValueGroup>;
+
+    const result = resolvePluginServers(
+      [plugin("plg_1", "p", [httpEntry("broken"), httpEntry("fine")])],
+      tools,
+      {},
+      "stdio-forbidden",
+      PLATFORM_ENDPOINTS,
+    );
+
+    expect(result.resolvedServers.map((server) => server.slug)).toEqual(["plugin_p_fine"]);
+    expect(warn).toHaveBeenCalledWith("Failed to resolve MCP server 'plugin_p_broken': values unreadable");
+    warn.mockRestore();
+  });
+});
+
 describe("resolvePluginServers: each server only from its own values", () => {
   beforeEach(() => {
     vi.restoreAllMocks();

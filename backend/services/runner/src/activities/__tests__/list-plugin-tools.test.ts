@@ -179,6 +179,17 @@ describe("the activity factory", () => {
     expect(activityStarted).toHaveBeenCalledTimes(1);
     expect(activityFinished).toHaveBeenCalledTimes(1);
   });
+
+  it("heartbeats every 15s with the listing's phase, plugin and server", async () => {
+    const { startHeartbeat } = await import("../../shared/heartbeat.js");
+    const { DiscoverMcpServerCapabilities } = createListPluginToolsActivities(testConfig());
+
+    await expect(DiscoverMcpServerCapabilities({ pluginId: PLUGIN_ID, server: "api" })).rejects.toThrow();
+
+    const [intervalMs, details] = vi.mocked(startHeartbeat).mock.calls[0] ?? [];
+    expect(intervalMs).toBe(15_000);
+    expect(details?.()).toEqual({ phase: "listing_plugin_tools", pluginId: PLUGIN_ID, server: "api" });
+  });
 });
 
 describe("listing one server of a plugin", () => {
@@ -219,6 +230,12 @@ describe("listing one server of a plugin", () => {
   it("refuses to start a local program under a forbidding transport posture, before connecting", async () => {
     const promise = run(fakeClient(pluginWith([stdioEntry("api")])), {}, { posture: "stdio-forbidden" });
     await expect(promise).rejects.toThrow(McpTransportError);
+    expect(mcp.initializeConnections).not.toHaveBeenCalled();
+  });
+
+  it("refuses a server that names neither a command nor a URL, before connecting", async () => {
+    const promise = run(fakeClient(pluginWith([httpEntry("api", "")])));
+    await expect(promise).rejects.toThrow(`MCP server '${SLUG}' names neither a command nor a URL`);
     expect(mcp.initializeConnections).not.toHaveBeenCalled();
   });
 

@@ -13,6 +13,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { detectOAuthChallenge, OAuthRequiredError } from "../mcp-oauth-detect.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import {
   initTimeoutMessageFor,
@@ -37,7 +38,8 @@ vi.mock("@langchain/mcp-adapters", () => ({
   })),
 }));
 
-vi.mock("../mcp-oauth-detect.js", () => ({
+vi.mock("../mcp-oauth-detect.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../mcp-oauth-detect.js")>()),
   detectOAuthChallenge: vi.fn().mockResolvedValue(null),
 }));
 
@@ -139,6 +141,43 @@ describe("listServerTools", () => {
     mcp.initializeConnections.mockRejectedValue(new Error("Connection refused"));
     await expect(listServerTools(pluginServer("plugin_a_api"))).rejects.toThrow("Connection refused");
     expect(mcp.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails naming the server when its client is missing after initialization", async () => {
+    mcp.initializeConnections.mockResolvedValue({});
+    mcp.getClient.mockResolvedValue(undefined);
+    await expect(listServerTools(pluginServer("plugin_a_api"))).rejects.toThrow(
+      "Failed to get MCP client for server 'plugin_a_api' after initialization",
+    );
+    expect(mcp.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws the sign-in failure when a failed HTTP server asks for one", async () => {
+    const signIn = new OAuthRequiredError("plugin_a_api");
+    vi.mocked(detectOAuthChallenge).mockResolvedValueOnce(signIn);
+    mcp.initializeConnections.mockRejectedValue(new Error("aggregate failure"));
+
+    await expect(listServerTools(pluginServer("plugin_a_api"))).rejects.toBe(signIn);
+    expect(detectOAuthChallenge).toHaveBeenCalledWith("https://plugin_a_api.example/mcp", undefined, "plugin_a_api");
+  });
+
+  it("never re-probes a local program for a sign-in", async () => {
+    mcp.initializeConnections.mockRejectedValue(new Error("spawn ENOENT"));
+    const server = pluginServer("plugin_a_cli", { connectionType: "stdio", command: "orders-mcp", env: { A: "1" } });
+
+    await expect(listServerTools(server)).rejects.toThrow("spawn ENOENT");
+    expect(detectOAuthChallenge).not.toHaveBeenCalled();
+  });
+
+  it("answers the listing when closing the client fails, and says so", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    mcp.initializeConnections.mockResolvedValue({});
+    mcp.getClient.mockResolvedValue({ listTools: vi.fn().mockResolvedValue({ tools: [{ name: "read_rows" }] }) });
+    mcp.close.mockRejectedValue(new Error("socket already closed"));
+
+    expect(await listServerTools(pluginServer("plugin_a_api"))).toEqual([{ name: "read_rows", description: "", destructive: false }]);
+    expect(warn.mock.calls.flat().join("\n")).toContain("Error closing MCP client for 'plugin_a_api': socket already closed");
+    warn.mockRestore();
   });
 });
 

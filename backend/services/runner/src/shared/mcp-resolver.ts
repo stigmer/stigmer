@@ -226,6 +226,7 @@ export function entryToResolved(
     }
     case undefined:
       return null;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over the transport oneof; a decoded entry's case is one of the arms above or undefined */
     default: {
       const exhaustive: never = entry.transport;
       return exhaustive;

@@ -1518,6 +1518,32 @@ describe("the fetch opens exactly the planned entries, as they are now", () => {
     expect(failure.rawMessage).not.toContain("linear-login");
   });
 
+  it("refuses a tool's login once the plugin version the run planned is gone", async () => {
+    const mine = await anasVault({});
+    await rig.vaults.setConnection(
+      mine,
+      "https://mcp.linear.example/mcp",
+      { token: "linear-login", source: VaultConnectionSource.pasted },
+      ana,
+    );
+    const OLDER = "a".repeat(64);
+    const pinned = tool("linear", { target: "LINEAR_TOKEN" });
+    pinned.status.digest = OLDER;
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), plugins: [pinned] }, async () => {
+        // A later push moves the head; the planned version was never archived.
+        const moved = tool("linear", { target: "LINEAR_TOKEN" });
+        moved.status.digest = "b".repeat(64);
+        await install(moved);
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain(
+      "plugin:linear:linear needs LINEAR_TOKEN, but the tool is no longer at https://mcp.linear.example/mcp",
+    );
+    expect(failure.rawMessage).not.toContain("linear-login");
+  });
+
   it("refuses a repository's token the conversation no longer holds, naming the repository", async () => {
     const failure = await refusal(
       open(
@@ -2162,6 +2188,19 @@ describe("a plugin's hooks", () => {
     ]);
     expect(values.tools).toEqual([]);
     expect(agentValues(values)).toEqual({});
+  });
+
+  it("refuse a key removed after the plan at the fetch, naming the plugin's hooks", async () => {
+    const mine = await anasVault({ SLACK_HOOK_TOKEN: "slack-secret" });
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), plugins: [notifier()] }, async () => {
+        await rig.vaults.removeSecrets(mine, ["SLACK_HOOK_TOKEN"], testCallerIdentity({ identityId: ANA }));
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toBe(
+      "the hooks of plugin notify needs SLACK_HOOK_TOKEN, but My vault no longer holds a secret named SLACK_HOOK_TOKEN. Fix it, then recover the turn",
+    );
   });
 
   it("refuse a run missing a key they need, naming the plugin's hooks", async () => {

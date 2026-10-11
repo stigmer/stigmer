@@ -71,6 +71,8 @@ const silentLogger = createLogger({
   write: () => {},
 });
 const ORG = "acme";
+/** A second organization: its agents never block a delete in ORG. */
+const OTHER_ORG = "beta";
 // The id the server minted for ORG: rows store the organization by id.
 let ORG_ID: string;
 
@@ -142,7 +144,7 @@ beforeAll(async () => {
   const transport: Transport = createGrpcTransport({
     baseUrl: `http://127.0.0.1:${port}`,
   });
-  ORG_ID = organizationId(await seedOrganizations(transport, [ORG]), ORG);
+  ORG_ID = organizationId(await seedOrganizations(transport, [ORG, OTHER_ORG]), ORG);
   plugins = createClient(PluginCommandController, transport);
   pluginQuery = createClient(PluginQueryController, transport);
   agents = createClient(AgentCommandController, transport);
@@ -178,26 +180,26 @@ async function rowCount(kind: ApiResourceKind): Promise<number> {
 }
 
 /** A plugin's reference, as an agent lists it. */
-function pluginRef(slug: string) {
+function pluginRef(slug: string, org: string = ORG) {
   return createMessage(ApiResourceReferenceSchema, {
-    org: ORG,
+    org,
     kind: ApiResourceKind.plugin,
     slug,
   });
 }
 
-/** A user's own agent that lists plugin `plugin`. */
-function agentListing(plugin: string, agent: string): Agent {
+/** A user's own agent of `org` that lists plugin `plugin` of the same organization. */
+function agentListing(plugin: string, agent: string, org: string = ORG): Agent {
   return createMessage(AgentSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
     metadata: createMessage(ApiResourceMetadataSchema, {
-      org: ORG,
+      org,
       name: agent,
     }),
     spec: createMessage(AgentSpecSchema, {
       instructions: "You work with the plugin's skills and servers.",
-      plugins: [pluginRef(plugin)],
+      plugins: [pluginRef(plugin, org)],
     }),
   });
 }
@@ -791,6 +793,27 @@ describe("Plugin delete and visibility", () => {
       artifact: archiveOf(thermosLike(name)),
     });
     expect(again.metadata?.id).not.toBe(installed.metadata?.id);
+  });
+
+  it("is never refused for an agent of another organization that lists its own plugin of the same name", async () => {
+    const name = uniqueName("elsewhere");
+    const installed = await plugins.push({
+      org: ORG,
+      artifact: archiveOf(thermosLike(name)),
+    });
+    await plugins.push({
+      org: OTHER_ORG,
+      artifact: archiveOf(thermosLike(name)),
+    });
+    const theirs = await agents.create(
+      agentListing(name, `${name}-user`, OTHER_ORG),
+    );
+    expect(theirs.spec?.plugins.map((ref) => ref.slug)).toEqual([name]);
+
+    const deleted = await plugins.delete({ value: installed.metadata!.id });
+    expect(deleted.metadata?.id).toBe(installed.metadata?.id);
+
+    await agents.delete({ value: theirs.metadata!.id });
   });
 
   it("updateVisibility moves the plugin alone: an agent that lists it keeps its level and its definition", async () => {

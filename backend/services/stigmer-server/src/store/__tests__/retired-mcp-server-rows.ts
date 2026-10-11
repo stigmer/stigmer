@@ -78,12 +78,13 @@ function metadataBytes(init: MetadataInit): Uint8Array {
   );
 }
 
-/** One retired McpServerUsage: `{ mcp_server_ref = 1 }`. */
-function usageBytes(ref: ReferenceInit): Uint8Array {
-  return new BinaryWriter()
-    .tag(1, WireType.LengthDelimited)
-    .bytes(referenceBytes(ref))
-    .finish();
+/** One retired McpServerUsage: `{ mcp_server_ref = 1 }`, after any strings in its field 2, which the step never reads. */
+function usageBytes(ref: ReferenceInit, others: readonly string[] = []): Uint8Array {
+  const usage = new BinaryWriter();
+  for (const other of others) {
+    usage.tag(2, WireType.LengthDelimited).string(other);
+  }
+  return usage.tag(1, WireType.LengthDelimited).bytes(referenceBytes(ref)).finish();
 }
 
 /** An McpServer row as an earlier release stored it. */
@@ -118,13 +119,15 @@ export function retiredAgentRow(options: {
   readonly spec?: MessageInitShape<typeof AgentSpecSchema>;
   readonly status?: MessageInitShape<typeof AgentStatusSchema>;
   readonly serverUsages?: readonly ReferenceInit[];
+  /** Strings every server usage also carries in its field 2, before its reference. */
+  readonly usageOthers?: readonly string[];
   readonly pluginHooks?: readonly ReferenceInit[];
 }): Uint8Array {
   const spec = new BinaryWriter().raw(
     toBinary(AgentSpecSchema, create(AgentSpecSchema, options.spec ?? {})),
   );
   for (const ref of options.serverUsages ?? []) {
-    spec.tag(4, WireType.LengthDelimited).bytes(usageBytes(ref));
+    spec.tag(4, WireType.LengthDelimited).bytes(usageBytes(ref, options.usageOthers));
   }
   for (const ref of options.pluginHooks ?? []) {
     const source = new BinaryWriter()

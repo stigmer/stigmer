@@ -45,12 +45,13 @@ import {
 
 const encoder = new TextEncoder();
 
-/** The archive a legacy plugin was installed from: a skill, an agent, a URL-only server, a hook, an eval case. */
+/** The archive a legacy plugin was installed from: a skill, an agent, a URL-only server, a hook, an eval case, and a manifest field the reader warns about. */
 const ARCHIVE = writeArchive(
   [
     ...claudePlugin({
       name: "legacy",
       version: "1.0.0",
+      manifest: { colour: "blue" },
       skills: [
         {
           name: "review",
@@ -356,8 +357,12 @@ describe("refreshLegacyPluginStatuses", () => {
       isSecret: true,
       optional: false,
     });
-    // The old install's warnings are replaced by this reading's.
+    // The old install's warnings are replaced by this reading's, the
+    // package reader's own among them.
     expect(status.warnings.map((w) => w.kind)).not.toContain("stale");
+    const unknownField = status.warnings.find((w) => w.kind === "manifest-field-unknown");
+    expect(unknownField?.path).toBe(".claude-plugin/plugin.json");
+    expect(unknownField?.message).toContain("colour");
 
     const again = await refreshLegacyPluginStatuses({
       store: rows.store(),

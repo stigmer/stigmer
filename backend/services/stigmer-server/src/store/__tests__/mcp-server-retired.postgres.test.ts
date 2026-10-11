@@ -3,17 +3,22 @@
  * (../mcp-server-retired.ts says what each row becomes), on a v20
  * database seeded with the shared estate (retired-mcp-server-rows.ts), to
  * the outcome the SQLite driver's v26 owes the same rows
- * (`expectEstateRetired`); and an unreadable agent fails the step naming
+ * (`expectEstateRetired`); agents are read across keyset pages, none missed
+ * past the first; and an unreadable agent fails the step naming
  * the row, the rewrites before it roll back, and the database stays at
  * v20.
  *
  * Gated on TEST_DATABASE_URL (../postgres/__tests__/support.ts): a visible
  * skip without one; each test gets its own throwaway database.
  */
+import { fromBinary } from "@bufbuild/protobuf";
 import pg from "pg";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+
 import type { StoreLogger } from "../logger.js";
+import { RETIREMENT_PAGE_SIZE } from "../mcp-server-retired.js";
 import { SCHEMA_VERSION_21, runMigrations } from "../postgres/migrations.js";
 import {
   createTestDatabase,
@@ -21,9 +26,16 @@ import {
   type TestDatabase,
 } from "../postgres/__tests__/support.js";
 import {
+  ESTATE_NEW_PREFIX,
+  ESTATE_ORG,
+  PLUGIN_LABEL,
   RETIREMENT_ESTATE,
   expectEstateRetired,
+  pluginRow,
   recordingLogger,
+  retiredAgentRow,
+  retiredServerRow,
+  serverRef,
 } from "./retired-mcp-server-rows.js";
 import type { RetiredStoreView } from "./retired-mcp-server-rows.js";
 
@@ -187,6 +199,64 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
 
       expect(await version(client)).toBe(SCHEMA_VERSION_21);
       await expectEstateRetired(view(client), logger);
+    });
+
+    it("reads agents across keyset pages, missing none past the first", async () => {
+      await insert(
+        client,
+        "plugin",
+        "plg_gh",
+        pluginRow({
+          id: "plg_gh",
+          org: ESTATE_ORG,
+          slug: "gh-tools",
+          name: "GH Tools",
+        }),
+      );
+      await insert(
+        client,
+        "mcp_server",
+        "mcp_gh",
+        retiredServerRow({
+          metadata: {
+            id: "mcp_gh",
+            org: ESTATE_ORG,
+            slug: "github",
+            name: "github",
+            labels: { [PLUGIN_LABEL]: "plg_gh" },
+          },
+        }),
+      );
+      const ids: string[] = [];
+      for (let i = 0; i <= RETIREMENT_PAGE_SIZE; i++) {
+        const id = `agt_${String(i).padStart(4, "0")}`;
+        ids.push(id);
+        await insert(
+          client,
+          "agent",
+          id,
+          retiredAgentRow({
+            metadata: { id, org: ESTATE_ORG, slug: `agent-${i}` },
+            spec: {
+              instructions: "Use the GitHub tools well.",
+              tools: ["mcp__github__*"],
+            },
+            serverUsages: [serverRef("github")],
+          }),
+        );
+      }
+
+      await migrateTo(db.databaseUrl, SCHEMA_VERSION_21);
+
+      for (const id of ids) {
+        const row = await data(client, "agent", id);
+        const spec = fromBinary(AgentSchema, row!).spec;
+        expect(
+          spec?.plugins.map((ref) => ref.slug),
+          id,
+        ).toEqual(["gh-tools"]);
+        expect(spec?.tools, id).toEqual([`${ESTATE_NEW_PREFIX}__*`]);
+      }
     });
 
     it("an unreadable agent fails the step naming it, rolls back the agents before it, and leaves the database at v20", async () => {

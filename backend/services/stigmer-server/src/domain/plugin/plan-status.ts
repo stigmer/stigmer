@@ -203,6 +203,7 @@ export function planPluginStatus(plugin: PluginPackage, files: PluginFiles): Plu
             }),
           };
           break;
+        /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
         default: {
           const exhaustive: never = server;
           throw new Error(`unknown transport ${JSON.stringify(exhaustive)}`);

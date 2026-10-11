@@ -179,6 +179,10 @@ describe("probeSignIns — every other answer leaves the entry as read", () => {
       () => Promise.resolve(new Response(null, { status: 503 })),
     ],
     ["no answer", () => Promise.reject(new TypeError("fetch failed"))],
+    [
+      "a malformed answer from a defective fetch, which throws inside the probe",
+      () => Promise.resolve({ status: 401, body: null } as unknown as Response),
+    ],
   ];
   for (const [label, answer] of answers) {
     it(label, async () => {

@@ -283,6 +283,7 @@ export function mapListingFailure(
       return unavailableError(`listing the tools of ${name} is temporarily unavailable`);
     case "other":
       return new ConnectError(listingFailureMessage(name, server.entry, failure.message), Code.Internal);
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhaustive: never = failure;
       throw new Error(`unhandled listing failure ${String(exhaustive)}`);
