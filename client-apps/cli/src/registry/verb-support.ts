@@ -105,6 +105,10 @@ export const VERB_SUPPORT: ReadonlyMap<
   // plugin's Evals tab, never applied from a manifest; the CLI reads one by
   // id and deletes it with its tries.
   [ApiResourceKind.plugin_eval, new Set<Verb>([Verb.Get, Verb.Delete])],
+  // An agent eval is likewise one run of an agent's plugins' cases, started
+  // by `stigmer agent eval`; the CLI reads one by id and deletes it with
+  // its tries.
+  [ApiResourceKind.agent_eval, new Set<Verb>([Verb.Get, Verb.Delete])],
 ]);
 
 export function verbsForKind(kind: ApiResourceKind): ReadonlySet<Verb> {

@@ -20,6 +20,11 @@
 //
 // A refusal exits 1, as the format exits 1 for an invalid option, not the
 // CLI's usual usage code 2, which the format keeps for a partial run.
+//
+// `agent eval` takes the same flags but `--ablation` (an agent eval runs
+// one arm), so the shared reading is `readEvalOptions`, parameterized by
+// the command's noun for its one refusal that names the command, and
+// resources/agent-eval/options.ts adds its own flag to it.
 
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -46,13 +51,12 @@ const TOOL_PATTERN =
 /** A full plugin version digest. */
 const DIGEST_PATTERN = /^[a-f0-9]{64}$/;
 
-/** The options as commander hands them over. */
-export interface PluginEvalFlags {
+/** The options both eval commands take, as commander hands them over. */
+export interface EvalFlags {
   readonly case?: string;
   readonly tag?: readonly string[];
   readonly runs?: string;
   readonly model?: readonly string[];
-  readonly ablation?: string;
   readonly threshold?: string;
   readonly maxCostUsd?: string;
   readonly concurrency?: string;
@@ -69,17 +73,21 @@ export interface PluginEvalFlags {
   readonly wait?: boolean;
 }
 
+/** The options as commander hands them over. */
+export interface PluginEvalFlags extends EvalFlags {
+  readonly ablation?: string;
+}
+
 /** Where the result document goes. */
 export type JsonTarget = { readonly kind: "none" } | { readonly kind: "stdout" } | { readonly kind: "file"; readonly path: string };
 
-/** The options, checked. */
-export interface PluginEvalOptions {
+/** The options both eval commands take, checked. */
+export interface EvalOptions {
   readonly caseGlob: string;
   readonly caseTags: readonly string[];
   /** 0 uses each case's own value. */
   readonly runs: number;
   readonly targets: readonly PluginEvalTargetInput[];
-  readonly ablation: PluginEvalAblation;
   readonly threshold?: number;
   readonly maxCostUsd: number;
   /** True when the CLI filled the limit itself. */
@@ -94,6 +102,21 @@ export interface PluginEvalOptions {
   readonly json: JsonTarget;
   readonly wait: boolean;
 }
+
+/** The options, checked. */
+export interface PluginEvalOptions extends EvalOptions {
+  readonly ablation: PluginEvalAblation;
+}
+
+/** How a command names what it evaluates, for the refusals that show a command line. */
+export interface EvalNoun {
+  /** The thing evaluated, as in `plugin`. */
+  readonly noun: string;
+  /** A command line that evaluates one, as in `stigmer plugin eval thermos`. */
+  readonly example: string;
+}
+
+const PLUGIN_NOUN: EvalNoun = { noun: "plugin", example: "stigmer plugin eval thermos" };
 
 /** A plugin as the command names it: by id or name, and optionally a version. */
 export interface PluginTarget {
@@ -122,6 +145,12 @@ export function parsePluginTarget(raw: string): PluginTarget {
 
 /** Checks every option and fills the defaults. */
 export function readPluginEvalOptions(flags: PluginEvalFlags): PluginEvalOptions {
+  const shared = readEvalOptions(flags, PLUGIN_NOUN);
+  return { ...shared, ablation: ablationOf(flags.ablation) };
+}
+
+/** Checks every option both eval commands take and fills the defaults. */
+export function readEvalOptions(flags: EvalFlags, noun: EvalNoun): EvalOptions {
   const maxCostDefaulted = flags.maxCostUsd === undefined;
   const maxCostUsd = maxCostDefaulted ? DEFAULT_MAX_COST_USD : number("--max-cost-usd", flags.maxCostUsd);
   if (!(maxCostUsd > 0 && maxCostUsd <= 1000)) {
@@ -157,7 +186,6 @@ export function readPluginEvalOptions(flags: PluginEvalFlags): PluginEvalOptions
     caseTags: (flags.tag ?? []).map((tag) => tag.trim()).filter((tag) => tag !== ""),
     runs: flags.runs === undefined ? 0 : integer("--runs", flags.runs, 1, 50),
     targets,
-    ablation: ablationOf(flags.ablation),
     ...(threshold !== undefined && { threshold }),
     maxCostUsd,
     maxCostDefaulted,
@@ -167,7 +195,7 @@ export function readPluginEvalOptions(flags: PluginEvalFlags): PluginEvalOptions
     realMcpServers,
     allowRealServers,
     skipScaffold: flags.scaffold === false,
-    json: jsonTargetOf(flags.json),
+    json: jsonTargetOf(flags.json, noun),
     wait: flags.wait !== false,
   };
 }
@@ -213,13 +241,11 @@ function ablationOf(raw: string | undefined): PluginEvalAblation {
   }
 }
 
-function jsonTargetOf(raw: boolean | string | undefined): JsonTarget {
+function jsonTargetOf(raw: boolean | string | undefined, noun: EvalNoun): JsonTarget {
   if (raw === undefined || raw === false) return { kind: "none" };
   if (raw === true) return { kind: "stdout" };
   if (!raw.endsWith(".json")) {
-    throw invalid(
-      "--json output path must end in .json; put the plugin before --json, as in `stigmer plugin eval thermos --json`",
-    );
+    throw invalid(`--json output path must end in .json; put the ${noun.noun} before --json, as in \`${noun.example} --json\``);
   }
   return { kind: "file", path: raw };
 }
@@ -240,6 +266,7 @@ function integer(flag: string, raw: string, min: number, max: number): number {
   return value;
 }
 
-function invalid(message: string): CliExitError {
+/** A refusal of an option: exit 1, as the module header says. */
+export function invalid(message: string): CliExitError {
   return new CliExitError(message, INVALID_OPTION_EXIT);
 }
