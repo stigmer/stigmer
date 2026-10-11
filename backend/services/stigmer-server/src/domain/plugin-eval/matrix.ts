@@ -15,18 +15,22 @@
  *     `not run: <feature>` and no cells, never run degraded; so is a case
  *     with a scaffold script when the eval skips scaffolds (`not run:
  *     scaffold skipped`, Claude Code's `--no-scaffold`);
- *   - the targets are the spec's; with none, the case's own `model` on the
- *     native harness when the catalog knows it there, else the native
- *     harness's default. A `model` the catalog does not know is that
- *     target's `not run: model '<name>' is not in Stigmer's catalog`: no
- *     alias is guessed, since "sonnet" names nothing Stigmer runs;
+ *   - the targets are the spec's; with none, an agent eval's one target is
+ *     the agent as it runs (`agentTarget`: its engine, its model as the
+ *     label, and no model on the run, so its own tier and thinking apply),
+ *     and a plugin eval's is the case's own `model` on the native harness
+ *     when the catalog knows it there, else the native harness's default.
+ *     A `model` the catalog does not know is that target's `not run: model
+ *     '<name>' is not in Stigmer's catalog`: no alias is guessed, since
+ *     "sonnet" names nothing Stigmer runs;
  *   - a target on an engine that cannot run one of the case's features is
  *     that target's `not run on <engine>: <feature>`, and the case runs on
  *     the others: the Cursor engine resumes no recorded conversation and
  *     passes no `env` (`@stigmer/plugin-package`
  *     `evalCaseUnsupportedOnCursor`);
  *   - tries per arm are the spec's `runs`, else the case's, else 3;
- *   - ablation `none` plans the with-arm only.
+ *   - ablation `none` plans the with-arm only, as does an agent eval,
+ *     whose spec has no ablation.
  *
  * Every index is zero-based into the arrays this module returns: a cell's
  * `caseIndex` into `cases`, its `targetIndex` into that case's `targets`,
@@ -36,7 +40,7 @@
  * Proven by __tests__/matrix.test.ts.
  */
 import { evalCaseUnsupportedOnCursor, type EvalCase, type EvalSuite } from "@stigmer/plugin-package";
-import type { PluginEvalSpec } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import type { PluginEvalSpec, PluginEvalTarget } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
@@ -62,6 +66,28 @@ export interface PlannedTarget {
   notRunReason?: string;
   /** Tries per arm. */
   runs: number;
+  /**
+   * Set on an agent eval's default target: the try names no model, so the
+   * agent's own model, tier and thinking apply; `target.modelName` is the
+   * agent's model, for the label only.
+   */
+  runsAgentModel?: boolean;
+}
+
+/**
+ * The spec fields the planner reads, which a plugin eval's and an agent
+ * eval's specs share by name; an agent eval has no ablation, and runs the
+ * with-arm only.
+ */
+export type MatrixSpec = Pick<PluginEvalSpec, "caseGlob" | "caseTags" | "runs" | "skipScaffold"> & {
+  readonly targets: ReadonlyArray<Pick<PluginEvalTarget, "harness" | "modelName">>;
+  readonly ablation?: PluginEvalSpec["ablation"];
+};
+
+/** An agent eval's default target: the agent's engine, and its model as the label. */
+export interface AgentTarget {
+  readonly harness: Harness;
+  readonly modelName: string;
 }
 
 /** One case the filter kept, with its targets. */
@@ -127,35 +153,38 @@ export interface EvalMatrixSize {
 
 export function planMatrix(
   suite: EvalSuite,
-  spec: PluginEvalSpec,
+  spec: MatrixSpec,
   catalog: EvalModelCatalog,
+  agentTarget?: AgentTarget,
 ): EvalMatrix {
   const cells: EvalCell[] = [];
-  const { cases } = walkMatrix(suite, spec, catalog, (cell) => cells.push(cell));
+  const { cases } = walkMatrix(suite, spec, catalog, agentTarget, (cell) => cells.push(cell));
   return { cases, cells };
 }
 
 /** The matrix's cases and tries, as planMatrix would plan them, with no cell built. */
 export function sizeOfMatrix(
   suite: EvalSuite,
-  spec: PluginEvalSpec,
+  spec: MatrixSpec,
   catalog: EvalModelCatalog,
+  agentTarget?: AgentTarget,
 ): EvalMatrixSize {
-  const { cases, tries } = walkMatrix(suite, spec, catalog, undefined);
+  const { cases, tries } = walkMatrix(suite, spec, catalog, agentTarget, undefined);
   return { cases: cases.length, tries };
 }
 
 /** The kept cases and the tries in all, handing each cell to `onCell` when one is given. */
 function walkMatrix(
   suite: EvalSuite,
-  spec: PluginEvalSpec,
+  spec: MatrixSpec,
   catalog: EvalModelCatalog,
+  agentTarget: AgentTarget | undefined,
   onCell: ((cell: EvalCell) => void) | undefined,
 ): { cases: PlannedCase[]; tries: number } {
   const matchesGlob = caseGlobMatcher(spec.caseGlob);
   const wantedTags = new Set(spec.caseTags);
   const arms: ReadonlyArray<"with" | "without"> =
-    spec.ablation === PluginEvalAblation.none ? ["with"] : ["with", "without"];
+    spec.ablation === undefined || spec.ablation === PluginEvalAblation.none ? ["with"] : ["with", "without"];
 
   const cases: PlannedCase[] = [];
   let tries = 0;
@@ -183,7 +212,7 @@ function walkMatrix(
       cases.push({ evalCase, notRunReason: SCAFFOLD_SKIPPED_REASON, targets: [] });
       continue;
     }
-    const targets = targetsOf(evalCase, spec, catalog, runs);
+    const targets = targetsOf(evalCase, spec, catalog, runs, agentTarget);
     cases.push({ evalCase, targets });
     targets.forEach((planned, targetIndex) => {
       if (planned.notRunReason !== undefined) {
@@ -205,11 +234,12 @@ function walkMatrix(
 
 function targetsOf(
   evalCase: EvalCase,
-  spec: PluginEvalSpec,
+  spec: MatrixSpec,
   catalog: EvalModelCatalog,
   runs: number,
+  agentTarget: AgentTarget | undefined,
 ): PlannedTarget[] {
-  return candidateTargets(evalCase, spec, catalog, runs).map((planned) => {
+  return candidateTargets(evalCase, spec, catalog, runs, agentTarget).map((planned) => {
     if (planned.notRunReason !== undefined || planned.target.harness !== Harness.CURSOR) {
       return planned;
     }
@@ -220,10 +250,14 @@ function targetsOf(
 
 function candidateTargets(
   evalCase: EvalCase,
-  spec: PluginEvalSpec,
+  spec: MatrixSpec,
   catalog: EvalModelCatalog,
   runs: number,
+  agentTarget: AgentTarget | undefined,
 ): PlannedTarget[] {
+  if (spec.targets.length === 0 && agentTarget !== undefined) {
+    return [{ target: { harness: agentTarget.harness, modelName: agentTarget.modelName }, runs, runsAgentModel: true }];
+  }
   if (spec.targets.length > 0) {
     return spec.targets.map((target) => ({
       target: {

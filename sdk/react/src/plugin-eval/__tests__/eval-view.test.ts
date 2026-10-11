@@ -7,13 +7,17 @@
  * grade shows why, never 0), the phase words (a phase or try state this
  * client does not know reads in words with its number), and two evals
  * compared case by case with moved and one-sided cases flagged, moved
- * meaning the cells read differently to two decimals.
+ * meaning the cells read differently to two decimals. Also the pieces an
+ * agent eval shares: the targets the run settings send, the allowed tools
+ * as typed and as the API's pattern judges them, and a case list read and
+ * compared alone, as each plugin block of an agent eval is.
  */
 import { describe, expect, it } from "vitest";
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { create } from "@bufbuild/protobuf";
 import {
   PluginEvalMockedServerSchema,
+  PluginEvalPartialReason,
   PluginEvalPhase,
   PluginEvalTrySchema,
   PluginEvalTryState,
@@ -21,6 +25,15 @@ import {
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   DEFAULT_EVAL_FORM,
+  MAX_ALLOW_TOOLS,
+  allowToolsProblem,
+  caseSourceRowsOf,
+  caseSourceTargetLabelsOf,
+  compareCaseSources,
+  evalCaseSourceOf,
+  evalTargetsOf,
+  parseAllowTools,
+  partialLabel,
   compareEvals,
   evalCaseRowsOf,
   evalFormProblem,
@@ -366,5 +379,73 @@ describe("compareEvals", () => {
     expect(compareEvals(unscored, evalWith([{ name: "a" }]))[0]?.changed).toBe(
       false,
     );
+  });
+});
+
+describe("the pieces an agent eval shares", () => {
+  it("sends no targets while no models are picked, and each picked model's engine otherwise", () => {
+    expect(evalTargetsOf(DEFAULT_EVAL_FORM)).toEqual([]);
+    expect(
+      evalTargetsOf({
+        ...DEFAULT_EVAL_FORM,
+        caseModels: false,
+        targets: [
+          { harness: "native", modelName: "" },
+          { harness: "cursor", modelName: "gpt-5" },
+        ],
+      }),
+    ).toEqual([
+      { harness: Harness.NATIVE },
+      { harness: Harness.CURSOR, modelName: "gpt-5" },
+    ]);
+  });
+
+  it("reads allowed tools one per line or comma-separated, keeping a comma inside a specifier", () => {
+    expect(
+      parseAllowTools("Skill, Agent\nBash(git log, *)\n\n  mcp__github__* "),
+    ).toEqual(["Skill", "Agent", "Bash(git log, *)", "mcp__github__*"]);
+    expect(parseAllowTools("  ")).toEqual([]);
+  });
+
+  it("judges allowed tools by the API's pattern, naming the first it would refuse", () => {
+    expect(
+      allowToolsProblem([
+        "Skill",
+        "Agent",
+        "Bash(npm test *)",
+        "mcp__*",
+        "mcp__github__*",
+        "mcp__plugin_thermos_github__create_issue",
+      ]),
+    ).toBeNull();
+    expect(allowToolsProblem(["Skill", "bash"])).toMatch(
+      /^'bash' is not a tool name/,
+    );
+    expect(allowToolsProblem(["mcp__plugin__github__*"])).toMatch(
+      /is not a tool name/,
+    );
+    expect(
+      allowToolsProblem(Array.from({ length: MAX_ALLOW_TOOLS + 1 }, () => "Skill")),
+    ).toMatch(/at most 64 tools/);
+  });
+
+  it("reads and compares a case list alone exactly as the eval it came from", () => {
+    const before = evalWith([{ name: "a", score: 1 }], [SONNET, GPT], "pev_1");
+    const after = evalWith([{ name: "a", score: 0.5 }], [SONNET, GPT], "pev_2");
+    expect(caseSourceRowsOf(evalCaseSourceOf(before))).toEqual(
+      evalCaseRowsOf(before),
+    );
+    expect(caseSourceTargetLabelsOf(evalCaseSourceOf(before))).toEqual(
+      evalTargetLabelsOf(before),
+    );
+    expect(
+      compareCaseSources(evalCaseSourceOf(before), evalCaseSourceOf(after)),
+    ).toEqual(compareEvals(before, after));
+  });
+
+  it("names why an eval stopped early, and a reason this client does not know as stopped early", () => {
+    expect(partialLabel(PluginEvalPartialReason.cost_ceiling)).toBe("cost limit reached");
+    expect(partialLabel(PluginEvalPartialReason.unspecified)).toBe("");
+    expect(partialLabel(99 as PluginEvalPartialReason)).toBe("stopped early");
   });
 });

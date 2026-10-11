@@ -132,7 +132,8 @@ describe("the eval context loader", () => {
     const load = loader(source);
 
     for (let index = 1; index <= 8; index++) {
-      expect((await load(`pev_${index}`))?.digest).toBe(digests[index - 1]);
+      const context = await load(`pev_${index}`);
+      expect(context?.kind === "plugin" ? context.digest : undefined).toBe(digests[index - 1]);
     }
     expect(source.reads).toBe(8);
 

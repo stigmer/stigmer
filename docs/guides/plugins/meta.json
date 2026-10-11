@@ -6,6 +6,7 @@
     "install-from-the-console",
     "use-hooks",
     "test-a-plugin-with-evals",
+    "test-an-agent-with-its-plugins-evals",
     "marketplace-file"
   ]
 }

@@ -38,7 +38,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   },
   {
     label: "Agents",
-    slugs: ["agent", "sharing", "channel", "channel-app", "conversation", "schedule"],
+    slugs: ["agent", "agent-eval", "sharing", "channel", "channel-app", "conversation", "schedule"],
   },
   {
     label: "Tools & Knowledge",

@@ -1,0 +1,285 @@
+# Store tests for agent evals: an agent's editors start, cancel and delete
+# its evals; its viewers in its own organization read them and, through
+# the session link, open each try's conversation, run and score, read-only.
+# A child organization's viewer of a shared agent reads none of it: a try
+# spends the agent organization's money and may act with its connections.
+#
+# An eval carries a single parent link
+#   agent_eval#agent@agent:<id>
+# and no owner tuple (OWNER_ATTRIBUTION_TYPE_NONE). A try's session, in the
+# hosted edition, is owned by the organization's system-eval account and
+# carries
+#   session#agent_eval@agent_eval:<id>
+# which composes the eval's viewers into the session's can_view only.
+#
+# Run with:
+#   fga model test --tests agent-eval-access.fga.yaml
+#
+# Scenario: org "acme" has admin alice, member bob (created the support
+# agent, visible to the organization and shared with child organizations),
+# member carol (no grant, sees support through its organization visibility),
+# member dave (no grant; bob's private agent "secret" is invisible to him)
+# and member gina (an editor of support). "acme-labs" is acme's child
+# organization; its member frank sees support through the
+# child-organization share. "rival" is another org whose admin eve must see
+# nothing. The try's session is owned by acme's system-eval account.
+name: agent-eval-access
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # --- Org roles ---
+  - user: identity_account:alice
+    relation: admin
+    object: organization:acme
+  - user: identity_account:alice
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:bob
+    relation: member
+    object: organization:acme
+  - user: identity_account:bob
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:carol
+    relation: member
+    object: organization:acme
+  - user: identity_account:carol
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:dave
+    relation: member
+    object: organization:acme
+  - user: identity_account:dave
+    relation: affiliated
+    object: organization:acme
+  - user: identity_account:eve
+    relation: admin
+    object: organization:rival
+  - user: identity_account:eve
+    relation: affiliated
+    object: organization:rival
+  - user: organization:acme
+    relation: parent_org
+    object: organization:acme-labs
+  - user: organization:acme-labs
+    relation: child_org
+    object: organization:acme
+  - user: identity_account:frank
+    relation: member
+    object: organization:acme-labs
+  - user: identity_account:frank
+    relation: affiliated
+    object: organization:acme-labs
+
+  - user: identity_account:gina
+    relation: member
+    object: organization:acme
+  - user: identity_account:gina
+    relation: affiliated
+    object: organization:acme
+
+  # --- bob's support agent: organization-visible and shared with child organizations ---
+  - user: organization:acme
+    relation: organization
+    object: agent:support
+  - user: identity_account:bob
+    relation: owner
+    object: agent:support
+  - user: identity_account:gina
+    relation: editor
+    object: agent:support
+  - user: organization:acme#viewer
+    relation: viewer
+    object: agent:support
+  - user: organization:acme#child_org_viewer
+    relation: child_org_viewer
+    object: agent:support
+  - user: agent:support
+    relation: agent
+    object: agent_eval:support-eval
+
+  # --- bob's private agent ---
+  - user: organization:acme
+    relation: organization
+    object: agent:secret
+  - user: identity_account:bob
+    relation: owner
+    object: agent:secret
+  - user: agent:secret
+    relation: agent
+    object: agent_eval:secret-eval
+
+  # --- One try of support-eval: its session, run and score ---
+  - user: identity_account:sys-eval-acme
+    relation: guest
+    object: organization:acme
+  - user: identity_account:sys-eval-acme
+    relation: affiliated
+    object: organization:acme
+  - user: organization:acme
+    relation: organization
+    object: session:try-1
+  - user: identity_account:sys-eval-acme
+    relation: owner
+    object: session:try-1
+  - user: agent_eval:support-eval
+    relation: agent_eval
+    object: session:try-1
+  - user: session:try-1
+    relation: session
+    object: run:try-1-run
+  - user: run:try-1-run
+    relation: run
+    object: score:try-1-score
+
+  # --- bob's own conversation with the agent (no eval link) ---
+  - user: organization:acme
+    relation: organization
+    object: session:bobs-chat
+  - user: identity_account:bob
+    relation: owner
+    object: session:bobs-chat
+
+tests:
+  - name: the agent's owner, an editor and an organization admin start, cancel and delete evals
+    check:
+      - user: identity_account:bob
+        object: agent_eval:support-eval
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+      - user: identity_account:gina
+        object: agent_eval:support-eval
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+      - user: identity_account:alice
+        object: agent_eval:secret-eval
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+
+  - name: an agent viewer in the organization reads the eval and cannot change it
+    check:
+      - user: identity_account:carol
+        object: agent_eval:support-eval
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+
+  - name: an agent viewer in the organization opens a try read-only, with its run and score
+    check:
+      - user: identity_account:carol
+        object: session:try-1
+        assertions:
+          can_view: true
+          can_create_run_in: false
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+      - user: identity_account:carol
+        object: run:try-1-run
+        assertions:
+          can_view: true
+          can_edit: false
+      - user: identity_account:carol
+        object: score:try-1-score
+        assertions:
+          can_view: true
+          can_delete: false
+      - user: identity_account:bob
+        object: session:try-1
+        assertions:
+          can_view: true
+          can_create_run_in: false
+
+  - name: a member who cannot see a private agent sees none of its evals
+    check:
+      - user: identity_account:dave
+        object: agent_eval:secret-eval
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+      - user: identity_account:carol
+        object: agent_eval:secret-eval
+        assertions:
+          can_view: false
+
+  - name: a child organization's viewer of the agent sees neither the eval nor its tries
+    check:
+      - user: identity_account:frank
+        object: agent_eval:support-eval
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+      - user: identity_account:frank
+        object: session:try-1
+        assertions:
+          can_view: false
+          can_create_run_in: false
+      - user: identity_account:frank
+        object: run:try-1-run
+        assertions:
+          can_view: false
+      - user: identity_account:frank
+        object: score:try-1-score
+        assertions:
+          can_view: false
+
+  - name: another organization's admin sees nothing
+    check:
+      - user: identity_account:eve
+        object: agent_eval:support-eval
+        assertions:
+          can_view: false
+          can_edit: false
+      - user: identity_account:eve
+        object: session:try-1
+        assertions:
+          can_view: false
+
+  - name: the agent's viewers and runners are exactly who they were before org_viewer was named
+    check:
+      - user: identity_account:carol
+        object: agent:support
+        assertions:
+          viewer: true
+          org_viewer: true
+          can_execute: true
+          can_edit: false
+      - user: identity_account:frank
+        object: agent:support
+        assertions:
+          viewer: true
+          org_viewer: false
+          can_view: true
+          can_execute: true
+      - user: identity_account:gina
+        object: agent:support
+        assertions:
+          org_viewer: true
+          can_edit: true
+          can_delete: false
+      - user: identity_account:dave
+        object: agent:secret
+        assertions:
+          viewer: false
+          org_viewer: false
+          can_execute: false
+
+  - name: an ordinary conversation of the agent gains no eval viewers
+    check:
+      - user: identity_account:carol
+        object: session:bobs-chat
+        assertions:
+          can_view: false
+      - user: identity_account:alice
+        object: session:bobs-chat
+        assertions:
+          can_view: false

@@ -7,11 +7,15 @@
  * to viewer, or gone from the organization) is the seam's DETERMINISTIC
  * refusal, the try not graded "the eval's creator can no longer run it",
  * as is an eval whose stamp names no person this server knows; a missing
- * eval and an authorizer that cannot answer stay infrastructure throws.
+ * eval and an authorizer that cannot answer stay infrastructure throws. An
+ * agent eval, named by its id, is read from its own row: its tries act as
+ * its creator while that creator may still edit the eval's agent, and a
+ * creator who may no longer is the same refusal, naming the agent.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -27,6 +31,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import {
   CREATOR_CANNOT_RUN_EVAL_REASON,
+  creatorCannotEditAgentMessage,
   creatorCannotEditPluginMessage,
   newBuiltInPluginEvalCaller,
   pluginEvalHasNoPersonMessage,
@@ -40,7 +45,7 @@ const PRIYA = accountIdFor(SUBJECT);
 afterAll(dropPostgresFixture);
 
 describe.each(
-  driverFixtures([ApiResourceKind.plugin_eval, ApiResourceKind.identity_account]),
+  driverFixtures([ApiResourceKind.plugin_eval, ApiResourceKind.agent_eval, ApiResourceKind.identity_account]),
 )("the built-in plugin-eval caller on $name", (fixture) => {
   describe.skipIf(fixture.skip)("mintPluginEvalCaller", () => {
     let opened: OpenedStore;
@@ -73,6 +78,19 @@ describe.each(
         create(PluginEvalSchema, {
           metadata: { id, name: id, org: "acme" },
           spec: { pluginId: "plg_1", maxCostUsd: 5 },
+          status: { audit: { specAudit: { createdBy: { id: createdBy } } } },
+        }),
+      );
+    }
+
+    async function agentEval(id: string, createdBy: string): Promise<void> {
+      await opened.store.saveResource(
+        ApiResourceKind.agent_eval,
+        id,
+        AgentEvalSchema,
+        create(AgentEvalSchema, {
+          metadata: { id, name: id, org: "acme" },
+          spec: { agentId: "agt_1", maxCostUsd: 5 },
           status: { audit: { specAudit: { createdBy: { id: createdBy } } } },
         }),
       );
@@ -132,6 +150,23 @@ describe.each(
         .catch((error: unknown) => error);
       expect(failure).toBeInstanceOf(PluginEvalCallerRefusedError);
       expect((failure as Error).message).toBe(pluginEvalHasNoPersonMessage("pev_nobody"));
+    });
+
+    it("an agent eval's try acts as its creator while they may edit its agent, and is refused naming the agent once not", async () => {
+      await agentEval("aev_by_id", PRIYA);
+      asked.length = 0;
+      expect((await mint().mintPluginEvalCaller("acme", "aev_by_id")).identityId).toBe(PRIYA);
+      expect(asked, "the creator must still edit the eval's agent").toEqual([`${PRIYA} can_edit agt_1`]);
+
+      const refused = await mint("deny")
+        .mintPluginEvalCaller("acme", "aev_by_id")
+        .catch((error: unknown) => error);
+      expect(refused).toBeInstanceOf(PluginEvalCallerRefusedError);
+      expect((refused as Error).message).toBe(creatorCannotEditAgentMessage("aev_by_id", "agt_1"));
+      expect((refused as Error).message).toBe(
+        "the creator of agent eval aev_by_id may no longer edit agent agt_1, so its tries cannot act as them",
+      );
+      expect((refused as PluginEvalCallerRefusedError).notGradedReason).toBe(CREATOR_CANNOT_RUN_EVAL_REASON);
     });
 
     it("an eval that no longer exists is an infrastructure throw, never a refusal", async () => {

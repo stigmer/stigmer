@@ -1,7 +1,8 @@
 /**
- * The plugin-eval caller seam: WHO a plugin eval's tries and AI-graded
- * checks act as when the eval's workflow creates their sessions and runs
- * through the in-process pipelines. The grading caller
+ * The plugin-eval caller seam: WHO an eval's tries and AI-graded checks act
+ * as when the eval's workflow creates their sessions and runs through the
+ * in-process pipelines: a plugin eval's (`pev_…`) or an agent eval's
+ * (`aev_…`), the id naming which. The grading caller
  * (grading-caller.ts) met the same question first, and this seam answers
  * it the same way.
  *
@@ -12,8 +13,8 @@
  * authorization posture, makes the work act as the eval's CREATOR
  * (authorization/plugin-eval-caller.ts), who then owns the tries; the
  * hosted edition mints a token for the organization's own eval system
- * account, carrying the eval's id as a verified claim, from which it
- * writes the tries' read-only session link to the eval.
+ * account, carrying the eval's id as a verified claim of its kind, from
+ * which it writes the tries' read-only session link to the eval.
  *
  * Single-instance point, minted per try and per vote. Two failure shapes,
  * told apart by type:

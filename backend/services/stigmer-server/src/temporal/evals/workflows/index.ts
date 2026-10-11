@@ -7,4 +7,6 @@
  * runs in the deterministic sandbox (see each workflow's header).
  */
 export { runPluginEval as "stigmer/evals/run-plugin-eval" } from "./run-plugin-eval.js";
+// An agent eval's suite runs the same function under its own type.
+export { runPluginEval as "stigmer/evals/run-agent-eval" } from "./run-plugin-eval.js";
 export { runCase as "stigmer/evals/run-case" } from "./run-case.js";

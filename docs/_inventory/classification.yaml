@@ -279,6 +279,16 @@ pages:
       Code, who sees an eval and who pays; and turn a bad run into a case.
     medium: none
 
+  guides/plugins/test-an-agent-with-its-plugins-evals:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Run the eval cases of the plugins an agent uses on the agent itself, from
+      the console or the CLI; know which versions run, the one arm, the default
+      model and a named one, the tools a try may use, who sees an eval and who
+      pays; and compare two versions of the agent.
+    medium: none
+
   guides/plugins/marketplace-file:
     fate: keep
     diataxis: reference

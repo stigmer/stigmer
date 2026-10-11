@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agenteval.v1;
+
+import "ai/stigmer/agentic/agenteval/v1/spec.proto";
+import "ai/stigmer/agentic/agenteval/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// AgentEval is one run of the eval cases of the plugins an agent attaches,
+// on the agent itself.
+//
+// A plugin author writes test cases in the plugin's evals/ folder, in
+// Claude Code's plugin-eval format. An agent that attaches plugins can be
+// measured on those cases: an AgentEval runs each plugin's cases, at the
+// version the agent attaches, on the agent with its own instructions,
+// several times each, on each model it names, and records per plugin and
+// per case the score and whether every try passed. Each eval is stamped
+// with the agent's version, so two evals of two versions compare side by
+// side. Every try is a conversation: in Stigmer Cloud the eval's viewers
+// open it, read-only; in open source the eval's creator owns it, and the
+// other viewers read its scores.
+//
+// @internal
+// A child of its agent (kind_meta: scope PARENT through spec.agent_id): the
+// agent's editors start, cancel and delete evals; the agent's viewers in
+// its own organization read them. Kind number 64, id prefix "aev". The
+// agent's organization pays for every try and every AI-graded check. A try
+// runs with no without-plugin arm: the plugin's own eval measures the
+// plugin alone. The cases stay the plugins'; an agent has none of its own.
+message AgentEval {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'AgentEval'];
+
+  // Resource metadata including name, organization, and labels.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Which agent version runs, which of its plugins' cases, on which
+  // models, how many times, within what spend.
+  AgentEvalSpec spec = 4;
+
+  // System-managed state: progress and results.
+  AgentEvalStatus status = 5;
+}

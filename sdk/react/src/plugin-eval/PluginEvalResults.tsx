@@ -28,7 +28,6 @@
  * All visual properties flow through `--stgm-*` tokens.
  */
 
-import { useState } from "react";
 import {
   PluginEvalPartialReason,
   PluginEvalPhase,
@@ -37,20 +36,18 @@ import { cn } from "@stigmer/theme";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { useWhoAmI } from "../iam-policy/useWhoAmI.js";
-import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { Section } from "../resource-detail/Section.js";
 import { DANGER_BUTTON_CLASS } from "../vault/styles.js";
+import { EvalCaseTable } from "./EvalCaseTable.js";
 import {
   evalCaseRowsOf,
   evalLabelOf,
   formatDelta,
-  formatScore,
   formatUsd,
   isEvalActive,
+  partialLabel,
   phaseLabel,
   evalTargetLabelsOf,
-  type EvalCaseRow,
-  type EvalCaseCell,
 } from "./eval-view.js";
 import { useCancelPluginEval } from "./useCancelPluginEval.js";
 import { usePluginEval } from "./usePluginEval.js";
@@ -86,7 +83,6 @@ export function PluginEvalResults({
 }: PluginEvalResultsProps) {
   const { pluginEval, isLoading, error, refetch } = usePluginEval(evalId);
   const { cancel, isCancelling, error: cancelError } = useCancelPluginEval();
-  const [openCase, setOpenCase] = useState<string | null>(null);
   // Stigmer Cloud writes each try's session link for the plugin's viewers;
   // elsewhere only the eval's creator opens a try.
   const viewersOpenTries = useDeploymentMode() === "cloud";
@@ -116,8 +112,6 @@ export function PluginEvalResults({
   const status = pluginEval.status;
   const labels = evalTargetLabelsOf(pluginEval);
   const rows = evalCaseRowsOf(pluginEval);
-  const ran = rows.filter((row) => row.notRun === "");
-  const notRun = rows.filter((row) => row.notRun !== "");
   const provisional = status?.provisionalDelta === true;
   const aggregates = status?.aggregates;
   const partial = partialLabel(
@@ -181,73 +175,13 @@ export function PluginEvalResults({
             agent as well as the plugin.
           </p>
         )}
-        {ran.length > 0 && (
-          <div className="stg:overflow-x-auto">
-            <table className="stg:w-full stg:text-xs">
-              <thead>
-                {labels.length > 1 && (
-                  <tr className="stg:text-left stg:text-muted-foreground">
-                    <td />
-                    {labels.map((label) => (
-                      <th
-                        key={label}
-                        scope="colgroup"
-                        colSpan={4}
-                        className={cn(CELL_CLASS, "stg:font-mono")}
-                      >
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                )}
-                <tr className="stg:border-b stg:border-border stg:text-left stg:text-muted-foreground">
-                  <th scope="col" className={CELL_CLASS}>
-                    Case
-                  </th>
-                  {labels.map((label) => (
-                    <TargetHeaders
-                      key={label}
-                      label={label}
-                      provisional={provisional}
-                    />
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {ran.map((row) => (
-                  <CaseRowView
-                    key={row.name}
-                    row={row}
-                    labels={labels}
-                    open={openCase === row.name}
-                    onToggle={() =>
-                      setOpenCase(openCase === row.name ? null : row.name)
-                    }
-                    onNavigateToRun={openRun}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {notRun.length > 0 && (
-          <ul
-            className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-0.5")}
-            aria-label="Cases not run"
-          >
-            {notRun.map((row) => (
-              <li
-                key={row.name}
-                className="stg:text-xs stg:text-muted-foreground"
-              >
-                <span className="stg:font-medium stg:text-foreground">
-                  {row.name}
-                </span>
-                : {row.notRun}
-              </li>
-            ))}
-          </ul>
-        )}
+        <EvalCaseTable
+          rows={rows}
+          labels={labels}
+          arms="both"
+          provisional={provisional}
+          onNavigateToRun={openRun}
+        />
         {cancelError !== null && (
           <p role="alert" className="stg:text-xs stg:text-destructive">
             {cancelError.message}
@@ -257,210 +191,3 @@ export function PluginEvalResults({
     </Section>
   );
 }
-
-function TargetHeaders({
-  label,
-  provisional,
-}: {
-  readonly label: string;
-  readonly provisional: boolean;
-}) {
-  return (
-    <>
-      <th
-        scope="col"
-        className={CELL_CLASS}
-        aria-label={`With the plugin, ${label}`}
-      >
-        WITH
-      </th>
-      <th
-        scope="col"
-        className={CELL_CLASS}
-        aria-label={`Without the plugin, ${label}`}
-      >
-        W/OUT
-      </th>
-      <th
-        scope="col"
-        className={CELL_CLASS}
-        aria-label={`Difference, ${label}${provisional ? ", provisional" : ""}`}
-      >
-        Δ{provisional ? "*" : ""}
-      </th>
-      <th
-        scope="col"
-        className={CELL_CLASS}
-        aria-label={`Every try passed, ${label}`}
-      >
-        PASS^k
-      </th>
-    </>
-  );
-}
-
-function CaseRowView({
-  row,
-  labels,
-  open,
-  onToggle,
-  onNavigateToRun,
-}: {
-  readonly row: EvalCaseRow;
-  readonly labels: readonly string[];
-  readonly open: boolean;
-  readonly onToggle: () => void;
-  readonly onNavigateToRun?: (runId: string) => void;
-}) {
-  const cells = labels.map((label) =>
-    row.cells.find((cell) => cell.target === label),
-  );
-  return (
-    <>
-      <tr className="stg:border-b stg:border-border stg:last:border-b-0">
-        <th
-          scope="row"
-          className={cn(
-            CELL_CLASS,
-            "stg:text-left stg:font-medium stg:text-foreground",
-          )}
-        >
-          <button
-            type="button"
-            aria-expanded={open}
-            onClick={onToggle}
-            className="stg:text-left stg:hover:underline stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-          >
-            {row.name}
-          </button>
-        </th>
-        {cells.map((cell, index) => (
-          <CellView key={labels[index]} cell={cell} />
-        ))}
-      </tr>
-      {open && (
-        <tr>
-          <td
-            colSpan={1 + labels.length * 4}
-            className={cn(CELL_CLASS, "stg:bg-muted-subtle")}
-          >
-            <TryList row={row} onNavigateToRun={onNavigateToRun} />
-          </td>
-        </tr>
-      )}
-    </>
-  );
-}
-
-function CellView({ cell }: { readonly cell: EvalCaseCell | undefined }) {
-  if (cell === undefined || cell.notRun !== "") {
-    return (
-      <td colSpan={4} className={cn(CELL_CLASS, "stg:text-muted-foreground")}>
-        {cell?.notRun ?? "—"}
-      </td>
-    );
-  }
-  return (
-    <>
-      <td
-        className={cn(
-          CELL_CLASS,
-          cell.passed ? "stg:text-foreground" : "stg:text-warning",
-        )}
-      >
-        {formatScore(cell.withScore)}
-      </td>
-      <td className={cn(CELL_CLASS, "stg:text-muted-foreground")}>
-        {formatScore(cell.withoutScore)}
-      </td>
-      <td className={CELL_CLASS}>{formatDelta(cell.delta)}</td>
-      <td className={CELL_CLASS}>{cell.passK ? "yes" : "no"}</td>
-    </>
-  );
-}
-
-function TryList({
-  row,
-  onNavigateToRun,
-}: {
-  readonly row: EvalCaseRow;
-  readonly onNavigateToRun?: (runId: string) => void;
-}) {
-  return (
-    <div className="stg:flex stg:flex-col stg:gap-2">
-      {row.notes.length > 0 && (
-        <ul
-          className={cn(UNSTYLED_LIST, "stg:text-muted-foreground")}
-          aria-label={`Notes on ${row.name}`}
-        >
-          {row.notes.map((note) => (
-            <li key={note}>{note}</li>
-          ))}
-        </ul>
-      )}
-      {row.mocked.length > 0 && (
-        <ul
-          className={cn(UNSTYLED_LIST, "stg:font-mono stg:text-muted-foreground")}
-          aria-label={`MCP servers of ${row.name}`}
-        >
-          {row.mocked.map((server) => (
-            <li key={server}>{server}</li>
-          ))}
-        </ul>
-      )}
-      {row.cells.map((cell) => (
-        <div key={cell.target} className="stg:flex stg:flex-col stg:gap-0.5">
-          <span className="stg:font-mono stg:text-muted-foreground">
-            {cell.target}
-          </span>
-          <ul
-            className={cn(
-              UNSTYLED_LIST,
-              "stg:flex stg:flex-wrap stg:gap-x-3 stg:gap-y-0.5",
-            )}
-            aria-label={`Tries on ${cell.target}`}
-          >
-            {cell.tries.map((attempt) => {
-              const label = `${attempt.arm === "with" ? "with" : "without"} #${attempt.index}: ${attempt.summary}`;
-              return (
-                <li key={`${attempt.arm}:${attempt.index}`}>
-                  {onNavigateToRun !== undefined && attempt.runId !== "" ? (
-                    <button
-                      type="button"
-                      onClick={() => onNavigateToRun(attempt.runId)}
-                      className="stg:text-foreground stg:underline stg:underline-offset-2 stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring"
-                    >
-                      {label}
-                    </button>
-                  ) : (
-                    <span className="stg:text-muted-foreground">{label}</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function partialLabel(reason: PluginEvalPartialReason): string {
-  switch (reason) {
-    case PluginEvalPartialReason.cost_ceiling:
-      return "cost limit reached";
-    case PluginEvalPartialReason.out_of_credit:
-      return "out of credit";
-    case PluginEvalPartialReason.cancelled:
-      return "cancelled";
-    case PluginEvalPartialReason.unspecified:
-      return "";
-    default: {
-      // A reason a newer server added: the eval still stopped early.
-      const unknown: never = reason;
-      return typeof unknown === "number" ? "stopped early" : "";
-    }
-  }
-}
-
-const CELL_CLASS = "stg:px-2 stg:py-1.5";

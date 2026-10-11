@@ -96,7 +96,8 @@ export interface InProcessClients {
    */
   readonly judgeSessionDeleter: JudgeSessionDeleter;
   /**
-   * A plugin eval's tries and votes (temporal/evals/ports.ts): each
+   * An eval's tries and votes, a plugin eval's or an agent eval's
+   * (temporal/evals/ports.ts): each
    * session, then its run, through their FULL create chains AS THE EVAL'S
    * CALLER when the composition minted one (the asCaller lane), else as
    * the server, so the session may carry the reserved plugin-eval label

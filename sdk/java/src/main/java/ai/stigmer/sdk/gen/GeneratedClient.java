@@ -8,6 +8,7 @@ import io.grpc.Channel;
 public class GeneratedClient {
     public final AgentClient agent;
     public final AgentChannelClient agentChannel;
+    public final AgentEvalClient agenteval;
     public final AgentShareClient agentShare;
     public final ApiKeyClient apiKey;
     public final ChannelAppClient channelapp;
@@ -37,6 +38,7 @@ public class GeneratedClient {
     public GeneratedClient(Channel channel) {
         this.agent = new AgentClient(channel);
         this.agentChannel = new AgentChannelClient(channel);
+        this.agenteval = new AgentEvalClient(channel);
         this.agentShare = new AgentShareClient(channel);
         this.apiKey = new ApiKeyClient(channel);
         this.channelapp = new ChannelAppClient(channel);

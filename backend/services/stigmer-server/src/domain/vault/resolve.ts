@@ -138,6 +138,7 @@ import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { McpServerEntry, PluginStatus } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
+import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import { RunValueSourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
@@ -182,7 +183,7 @@ import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { RunSubagent } from "../run/run-subagents.js";
-import { PLUGIN_EVAL_LABEL } from "../plugin-eval/constants.js";
+import { evalOfRun } from "../plugin-eval/plugin-eval-run.js";
 import type { PlatformClientStore } from "../platformclient/store.js";
 import { sessionIdOf } from "../run/target.js";
 
@@ -1088,32 +1089,39 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
   }
 
   /**
-   * The plugin eval a try belongs to (the run's stigmer.ai/plugin-eval,
-   * which only the eval's workflow stamps), as a surface; undefined when
-   * the run is no try, or its eval is gone or of another organization.
+   * The eval a try belongs to (the run's stigmer.ai/plugin-eval, which only
+   * the eval's workflow stamps), a plugin eval's or an agent eval's by the
+   * id's kind (domain/plugin-eval/plugin-eval-run.ts evalOfRun), as a
+   * surface; undefined when the run is no try, or its eval is gone or of
+   * another organization. Both kinds name their vaults and attachers alike.
    */
   async function pluginEvalSurfaceOf(execution: Run): Promise<RunSurface | undefined> {
-    const evalId = execution.metadata?.labels[PLUGIN_EVAL_LABEL] ?? "";
-    if (evalId === "") {
+    const named = evalOfRun(execution);
+    if (named === undefined) {
       return undefined;
     }
+    const evalId = named.id;
     const executionOrg = execution.metadata?.org ?? "";
-    const pluginEval = await loadOptional(ApiResourceKind.plugin_eval, evalId, PluginEvalSchema);
-    if (pluginEval === undefined) {
+    const row =
+      named.kind === "agent"
+        ? await loadOptional(ApiResourceKind.agent_eval, evalId, AgentEvalSchema)
+        : await loadOptional(ApiResourceKind.plugin_eval, evalId, PluginEvalSchema);
+    if (row === undefined) {
       return undefined;
     }
-    if ((pluginEval.metadata?.org ?? "") !== executionOrg) {
+    const noun = named.kind === "agent" ? "agent eval" : "plugin eval";
+    if ((row.metadata?.org ?? "") !== executionOrg) {
       logger.warn("A run's surface belongs to another organization; its vaults are not used", {
-        kind: "plugin eval",
+        kind: noun,
         id: evalId,
         executionId: execution.metadata?.id ?? "",
       });
       return undefined;
     }
     return {
-      what: `plugin eval '${pluginEval.metadata?.name ?? evalId}'`,
-      refs: pluginEval.spec?.vaults ?? [],
-      attachers: pluginEval.status?.vaultAttachers ?? {},
+      what: `${noun} '${row.metadata?.name ?? evalId}'`,
+      refs: row.spec?.vaults ?? [],
+      attachers: row.status?.vaultAttachers ?? {},
       org: executionOrg,
     };
   }

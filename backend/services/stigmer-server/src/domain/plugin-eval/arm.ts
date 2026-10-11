@@ -12,6 +12,17 @@
  * plugin and nothing else: no prompt of an agent rides along, and
  * `status.provisional_delta` is false (PROVISIONAL_DELTA).
  *
+ * An agent eval's try (agentAttachment) runs the agent instead, pinned to
+ * the version the eval stamped through the session's `agent_ref`, with
+ * every plugin the agent attaches listed at the archive the eval stamped.
+ * A conversation's own plugin reference wins over its agent's at run
+ * planning (domain/run/run-plugins.ts) and in the runner, and an open
+ * conversation keeps its agent's version, so a plugin pushed or the agent
+ * saved during the eval moves none of its tries. It has one arm: with. A
+ * subagent's own plugin references are its own: one that names no version
+ * resolves to the version installed when its turn starts, as in any
+ * conversation of the agent.
+ *
  * Proven by __tests__/arm.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
@@ -47,6 +58,8 @@ export interface PluginAttachmentFacts {
 
 /** What a try's session attaches. */
 export interface ArmAttachment {
+  /** The agent the session runs, pinned to a version; absent runs the built-in assistant. */
+  readonly agentRef?: ApiResourceReference;
   /** The plugins the session lists; empty runs the assistant alone. */
   readonly plugins: ReadonlyArray<ApiResourceReference>;
 }
@@ -85,5 +98,29 @@ export function pluginAttachmentFacts(plugin: Plugin, digest: string): PluginAtt
     slug: plugin.metadata?.slug ?? "",
     digest,
     serverSegments: (plugin.status?.mcpServers ?? []).map((server) => toolServerSegment(name, server.name)),
+  };
+}
+
+/** The agent an agent eval's tries run: its organization, slug and the version the eval stamped. */
+export interface AgentAttachmentFacts {
+  readonly org: string;
+  readonly slug: string;
+  /** The agent version's hash, which the session's agent reference pins. */
+  readonly versionHash: string;
+}
+
+/** An agent eval's try: the agent at its stamped version, every attached plugin at its stamped archive (the module header). */
+export function agentAttachment(
+  agent: AgentAttachmentFacts,
+  plugins: ReadonlyArray<Pick<PluginAttachmentFacts, "org" | "slug" | "digest">>,
+): ArmAttachment {
+  return {
+    agentRef: create(ApiResourceReferenceSchema, {
+      org: agent.org,
+      kind: ApiResourceKind.agent,
+      slug: agent.slug,
+      version: agent.versionHash,
+    }),
+    plugins: plugins.map((plugin) => armAttachment("with", plugin).plugins[0]!),
   };
 }

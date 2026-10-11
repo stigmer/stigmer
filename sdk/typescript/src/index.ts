@@ -290,7 +290,24 @@ export {
   type ResultPartialReason,
   type ResultRun,
   type ResultTarget,
+  resultBlockOf,
+  type ResultBlock,
 } from "./plugin-eval/result-document.js";
+// Agent evals: one run of an agent on the eval cases of the plugins it
+// attaches. Started and read, never applied; the result document is the
+// pure read the CLI and the console share.
+export {
+  AgentEvalClient,
+  buildAgentEvalProto,
+  type AgentEvalInput,
+} from "./gen/agenteval.js";
+export { ALLOW_TOOL_PATTERN } from "./plugin-eval/allow-tools.js";
+export {
+  toAgentEvalResultDocument,
+  type AgentEvalPluginResult,
+  type AgentEvalResultDocument,
+  type AgentEvalResultDocumentOptions,
+} from "./agent-eval/result-document.js";
 export {
   caseFromRun,
   suggestCaseName,

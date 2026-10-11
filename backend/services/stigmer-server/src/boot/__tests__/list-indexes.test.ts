@@ -54,6 +54,10 @@ const PINNED: Readonly<
     revision: 1,
     fingerprint: "plugin_eval{plugin=field:spec.plugin_id}",
   },
+  agent_eval: {
+    revision: 1,
+    fingerprint: "agent_eval{agent=field:spec.agent_id}",
+  },
   // Revision 3 added the plugin eval label's key.
   session: {
     revision: 3,
