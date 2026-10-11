@@ -288,6 +288,7 @@ const result = await stigmer.session.listEvents({
   createdAtGte: "...",
   createdAtLt: "...",
   createdAtLte: "...",
+  runId: "...",
 });
 ```
 </Tab>
@@ -303,6 +304,7 @@ result, err := client.Session.ListEvents(ctx, &stigmer.ListSessionEventsRequest{
   CreatedAtGte: "...",
   CreatedAtLt:  "...",
   CreatedAtLte: "...",
+  RunId:        "...",
 })
 ```
 </Tab>
@@ -318,6 +320,7 @@ result = client.sessions.list_events(ListSessionEventsRequest(
     created_at_gte="...",
     created_at_lt="...",
     created_at_lte="...",
+    run_id="...",
 ))
 ```
 </Tab>
@@ -333,6 +336,7 @@ SessionEventList result = client.sessions().listEvents(ListSessionEventsRequest.
     .createdAtGte("...")
     .createdAtLt("...")
     .createdAtLte("...")
+    .runId("...")
     .build());
 ```
 </Tab>
@@ -1017,6 +1021,7 @@ ListSessionEventsRequest pages through one session's event log.
     createdAtGte: { type: "string", description: "Only events appended at or after this RFC 3339 instant." },
     createdAtLt: { type: "string", description: "Only events appended before this RFC 3339 instant." },
     createdAtLte: { type: "string", description: "Only events appended at or before this RFC 3339 instant." },
+    runId: { type: "string", description: "Only the events of this run (turn); empty lists every run's." },
   }}
 />
 
@@ -1038,7 +1043,7 @@ StreamSessionEventsRequest opens a live stream of one session's events.
 <TypeTable
   type={{
     sessionId: { type: "string", description: "The session whose events to stream.", required: true },
-    eventDeltas: { type: "string[]", description: "The event types to preview while they are produced: agent.message, agent.thinking." },
+    eventDeltas: { type: "string[]", description: "The event types to preview while they are produced: agent.message, agent.thinking, and Stigmer's stigmer.tool_output_delta (a running tool's output)." },
     afterSeq: { type: "number", description: "Where to resume: the seq of the last event the client already has." },
   }}
 />
@@ -1052,6 +1057,7 @@ StreamSessionEventsResponse is one frame of a session's event stream: a stored e
     event: { type: "SessionEventInput", description: "An event appended to the session's log." },
     eventStart: { type: "EventStartInput", description: "A preview of an event opened." },
     eventDelta: { type: "EventDeltaInput", description: "A fragment of a previewed event." },
+    stigmerToolOutputDelta: { type: "ToolOutputDeltaInput", description: "A fragment of a running tool's output." },
   }}
 />
 
@@ -1116,4 +1122,17 @@ GitWriteBackMode controls the platform's git workflow for a git-backed workspace
 | Value | Description |
 |-------|-------------|
 | `GIT_WRITE_BACK_BRANCH_AND_PR` | Create a branch and pull request from the agent's file changes after the run completes. |
+
+### ApprovalPolicySource
+
+ApprovalPolicySource is the policy layer that decided a tool call's approval requirement — the provenance recorded on every gated or auto-approved tool call so a run's authorizations are auditable.
+
+| Value | Description |
+|-------|-------------|
+| `APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL` | Layer 4: the pre-armed RunSpec.auto_approve_all whole-run global bypass cleared this call. |
+| `APPROVAL_POLICY_SOURCE_APPROVAL_LEASE` | Layer 4: a run-lifetime scoped lease (the successor to a global "approve all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched the leased class. |
+| `APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY` | The default asked for a built-in tool of an approval class (write / delete / shell). |
+| `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (the tool's MCP destructiveHint annotation, read live from the server's tools each turn), or because its server's tools could not be listed. |
+| `APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP` | The unattended approval mode (RunStatus.approval_mode = APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip: the lane the run came through (a schedule's fire, a messaging channel, a guest share) has no approver, so the platform skipped the tool and told the model to adapt. |
+| `APPROVAL_POLICY_SOURCE_HOOK` | A hook decided this call: it refused it, asked a person first, or let it run without the approval it would otherwise need. |
 
