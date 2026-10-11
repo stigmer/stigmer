@@ -390,8 +390,11 @@ describe("startEvalMocks — a plugin-eval try's stand-ins take their servers' p
         { server: "plugin_linear_api", tools: ["search"] },
         { server: "plugin_wiki_api", tools: ["read_page"] },
       ],
-      destructive: [],
-      unlisted: [],
+      destructive: [
+        { server: "plugin_linear_api", tool: "delete_issue" },
+        { server: "plugin_wiki_api", tool: "delete_page" },
+      ],
+      unlisted: ["plugin_linear_api", "plugin_ghost_api"],
     });
     endpoint.served = served;
     try {
@@ -439,12 +442,16 @@ describe("startEvalMocks — a plugin-eval try's stand-ins take their servers' p
     expect(into.evalMocks, "the turn's finally closes it").toBeDefined();
   });
 
-  it("lists each stand-in's mocked tools in place of its server's, for an engine that does not read its tools' marks", async () => {
+  it("lists each stand-in's mocked tools in place of its server's marks, for an engine that does not read its tools' marks", async () => {
     const { out } = await standIns(served, false);
-    expect(out.listing?.listed).toEqual([
-      { server: "plugin_wiki_api", tools: ["read_page"] },
-      { server: "plugin_linear_api", tools: ["create_issue"] },
-    ]);
+    expect(out.listing).toEqual({
+      listed: [
+        { server: "plugin_wiki_api", tools: ["read_page"] },
+        { server: "plugin_linear_api", tools: ["create_issue"] },
+      ],
+      destructive: [{ server: "plugin_wiki_api", tool: "delete_page" }],
+      unlisted: ["plugin_ghost_api"],
+    });
   });
 
   it("keeps the list as it was when the endpoint starts no stand-in", async () => {
