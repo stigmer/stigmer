@@ -9,8 +9,10 @@
  *    Cursor lays it, and a rewrite this engine cannot take is refused;
  *  - paths become real and absolute, names change only where Claude's
  *    differ, extra arguments ride along;
- *  - MCP tools are named `mcp__<server>__<tool>`, a plugin's own server as
- *    Claude names it, and the platform's own servers are never shown;
+ *  - MCP tools are named `mcp__<server>__<tool>`, where every server is a
+ *    plugin's and its name in the turn is already Claude Code's segment
+ *    (`plugin_<plugin>_<server>`), its server shown as
+ *    `plugin:<plugin>:<server>`; the platform's own servers are never shown;
  *  - `tool_response` takes Claude's shape where it can be derived.
  */
 
@@ -24,14 +26,14 @@ import { claudeToolResponse, NATIVE_VIEWED_TOOLS, NativeToolViews } from "../too
 const ROOT = "/work/repo";
 const SERVERS = new Map([
   ["create_issue", "github"],
-  ["run_check", "safety-checks"],
+  ["run_check", "plugin_safety_checks"],
   ["send_message", "channel"],
 ]);
 const views = new NativeToolViews({
   workspaceRoot: ROOT,
   toVirtualPath: (path) => normalizeWorkspacePathArg(path, ROOT),
   toolServerMap: SERVERS,
-  pluginServers: new Map([["safety-checks", { plugin: "safety", server: "checks" }]]),
+  pluginServers: new Map([["plugin_safety_checks", { plugin: "safety", server: "checks" }]]),
   platformServerSlugs: new Set(["channel"]),
 });
 
@@ -104,11 +106,11 @@ describe("the native views", () => {
 });
 
 describe("MCP and platform tools", () => {
-  it("names an organisation's server's tool as managed", () => {
+  it("names a server the turn has no plugin name for by its slug, still a plugin's", () => {
     expect(views.viewOf("create_issue", { title: "x" })).toEqual({
       toolName: "mcp__github__create_issue",
       toolInput: { title: "x" },
-      mcpServer: { name: "github", source: "managed" },
+      mcpServer: { name: "github", source: "plugin" },
     });
   });
 
@@ -211,7 +213,7 @@ describe("claudeToolResponse", () => {
       isImage: false,
     });
     expect(claudeToolResponse({ toolName: "Write", toolInput: { file_path: "/w/a" } }, "ok")).toEqual({ filePath: "/w/a", output: "ok" });
-    expect(claudeToolResponse({ toolName: "mcp__s__t", toolInput: {}, mcpServer: { name: "s", source: "managed" } }, "r")).toEqual([
+    expect(claudeToolResponse({ toolName: "mcp__s__t", toolInput: {}, mcpServer: { name: "s", source: "plugin" } }, "r")).toEqual([
       { type: "text", text: "r" },
     ]);
     expect(claudeToolResponse({ toolName: "Glob", toolInput: {} }, "a\nb")).toBe("a\nb");

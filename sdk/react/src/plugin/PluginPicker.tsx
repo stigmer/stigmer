@@ -1,0 +1,338 @@
+"use client";
+
+/**
+ * Searchable picker for the plugins a conversation or an agent uses: a
+ * search over the organization's installed plugins, and the picked ones
+ * above it, each removable. Picks are references with the plugin kind,
+ * written as they are to `plugins` (a session's or an agent's). The shape
+ * and keyboard model are `SkillPicker`'s, so the composer's Configure
+ * panels read alike.
+ */
+
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+  type KeyboardEvent,
+} from "react";
+import type { ResourceRef } from "@stigmer/sdk";
+import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { cn } from "@stigmer/theme";
+import { usePluginSearch } from "./usePluginSearch.js";
+import { useScrollShadows } from "../internal/useScrollShadows.js";
+import { ScrollFade } from "../internal/ScrollFade.js";
+import { OrgSlugText } from "../organization/OrgSlugText.js";
+import { useOrgIdForRef } from "../organization/useOrgRefs.js";
+import { PluginIcon } from "./PluginIcon.js";
+
+/** Props for {@link PluginPicker}. */
+export interface PluginPickerProps {
+  /** Organization whose plugins the picker searches. */
+  readonly org: string;
+  /** Currently selected plugin references. */
+  readonly value: ResourceRef[];
+  /** Called when the selection changes. */
+  readonly onChange: (refs: ResourceRef[]) => void;
+  /** Called with the display name when an item is added (for chip rendering). */
+  readonly onDisplayNameResolved?: (key: string, name: string) => void;
+  /** Disables all interaction. */
+  readonly disabled?: boolean;
+  /** Additional CSS class names for the root container. */
+  readonly className?: string;
+}
+
+function refKey(ref: ResourceRef): string {
+  return `${ref.org}/${ref.slug}`;
+}
+
+const LIST_ID = "stgm-plugin-list";
+
+/**
+ * Searchable picker for selecting installed plugins.
+ *
+ * Renders a search input and scrollable list of the organization's
+ * plugins. Designed to be placed inside a popover container: this
+ * component renders the picker content, not the popover shell.
+ *
+ * Selected plugins produce `ResourceRef[]` with `kind: plugin`.
+ *
+ * @example
+ * ```tsx
+ * const [plugins, setPlugins] = useState<ResourceRef[]>([]);
+ * <PluginPicker org="acme" value={plugins} onChange={setPlugins} />
+ * ```
+ */
+export function PluginPicker({
+  org,
+  value,
+  onChange,
+  onDisplayNameResolved,
+  disabled,
+  className,
+}: PluginPickerProps) {
+  const { results, isLoading, error, query, setQuery } = usePluginSearch(org);
+
+  const [focusIndex, setFocusIndex] = useState(-1);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const results_ = useScrollShadows();
+  const selected_ = useScrollShadows();
+
+  // A selection may name its org by slug (one a host or URL supplied) and
+  // a result names it by id, so both sides are compared by id.
+  const orgIdFor = useOrgIdForRef();
+  const selectedKeys = useMemo(
+    () => new Set(value.map((ref) => `${orgIdFor(ref.org)}/${ref.slug}`)),
+    [value, orgIdFor],
+  );
+
+  const availableResults = useMemo(
+    () => results.filter((r) => !selectedKeys.has(`${orgIdFor(r.org)}/${r.slug}`)),
+    [results, selectedKeys, orgIdFor],
+  );
+
+  useEffect(() => {
+    setFocusIndex(-1);
+  }, [query]);
+
+  useEffect(() => {
+    if (focusIndex >= 0) {
+      results_.scrollRef.current
+        ?.querySelector(`[data-idx="${focusIndex}"]`)
+        ?.scrollIntoView({ block: "nearest" });
+    }
+  }, [focusIndex, results_.scrollRef]);
+
+  const handleSelect = useCallback(
+    (result: SearchResult) => {
+      const ref: ResourceRef = {
+        org: result.org,
+        slug: result.slug,
+        kind: ApiResourceKind.plugin,
+      };
+      onChange([...value, ref]);
+      onDisplayNameResolved?.(`${result.org}/${result.slug}`, result.name);
+    },
+    [value, onChange, onDisplayNameResolved],
+  );
+
+  const handleRemove = useCallback(
+    (key: string) => {
+      onChange(value.filter((r) => refKey(r) !== key));
+    },
+    [value, onChange],
+  );
+
+  const handleSearchKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusIndex((prev) =>
+          prev < availableResults.length - 1 ? prev + 1 : prev,
+        );
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusIndex((prev) => (prev > 0 ? prev - 1 : -1));
+      } else if (
+        e.key === "Enter" &&
+        focusIndex >= 0 &&
+        focusIndex < availableResults.length
+      ) {
+        e.preventDefault();
+        handleSelect(availableResults[focusIndex]);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+      }
+    },
+    [availableResults, focusIndex, handleSelect],
+  );
+
+  return (
+    <div className={["stg:space-y-2 stg:w-72", className].filter(Boolean).join(" ")}>
+      {/* Selected items */}
+      {value.length > 0 && (
+        <div className="stg:space-y-1">
+          <div className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
+            Selected
+          </div>
+          <div className="stg:relative">
+            {selected_.canScrollUp && <ScrollFade position="top" />}
+
+            <div ref={selected_.scrollRef} className="stg:max-h-28 stg:space-y-1 stg:overflow-y-auto">
+              {value.map((ref) => {
+                const key = refKey(ref);
+                return (
+                  <div
+                    key={key}
+                    className="stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-muted-faint stg:px-2 stg:py-1 stg:text-xs"
+                  >
+                    <ItemIcon />
+                    <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">
+                      {ref.slug}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(key)}
+                      disabled={disabled}
+                      className="stg:shrink-0 stg:text-muted-foreground stg:hover:text-destructive stg:disabled:pointer-events-none"
+                      aria-label={`Remove ${ref.slug}`}
+                    >
+                      <XIcon />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {selected_.canScrollDown && <ScrollFade position="bottom" />}
+          </div>
+        </div>
+      )}
+
+      {/* Search input */}
+      <input
+        ref={searchRef}
+        type="text"
+        role="combobox"
+        aria-expanded={true}
+        aria-controls={LIST_ID}
+        aria-activedescendant={
+          focusIndex >= 0 ? `stgm-plugin-${focusIndex}` : undefined
+        }
+        placeholder="Search plugins..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={handleSearchKeyDown}
+        disabled={disabled}
+        className="stg:w-full stg:rounded-md stg:border stg:border-input stg:bg-background stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-foreground stg:placeholder:text-muted-foreground stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:disabled:pointer-events-none stg:disabled:opacity-50"
+        autoFocus
+      />
+
+      {error && <p className="stg:text-xs stg:text-destructive">{error.message}</p>}
+
+      {/* Scrollable results list */}
+      <div className="stg:relative">
+        {results_.canScrollUp && <ScrollFade position="top" />}
+
+        <div
+          ref={results_.scrollRef}
+          id={LIST_ID}
+          role="listbox"
+          aria-label="Plugins"
+          className="stg:max-h-52 stg:overflow-y-auto"
+        >
+          {isLoading ? (
+            <LoadingSkeleton />
+          ) : availableResults.length === 0 ? (
+            <div className="stg:py-4 stg:text-center stg:text-xs stg:text-muted-foreground">
+              {query
+                ? "No plugins match your search"
+                : value.length > 0
+                  ? "All installed plugins selected"
+                  : "No plugins installed"}
+            </div>
+          ) : (
+            availableResults.map((result, idx) => (
+              <button
+                key={result.id}
+                id={`stgm-plugin-${idx}`}
+                type="button"
+                data-idx={idx}
+                onClick={() => handleSelect(result)}
+                disabled={disabled}
+                className={cn(
+                  "stg:group stg:flex stg:w-full stg:flex-col stg:gap-0.5 stg:rounded-md stg:px-2 stg:py-1.5 stg:text-left stg:text-xs stg:transition-colors",
+                  "stg:disabled:pointer-events-none stg:disabled:opacity-50",
+                  idx === focusIndex
+                    ? "stg:bg-accent stg:text-foreground"
+                    : "stg:text-foreground stg:hover:bg-accent-hover",
+                )}
+                role="option"
+                aria-selected={idx === focusIndex}
+              >
+                <span className="stg:flex stg:items-center stg:gap-1.5">
+                  <ItemIcon />
+                  <span className="stg:truncate stg:font-medium">
+                    <HighlightMatch text={result.name} query={query} />
+                  </span>
+                  <span className="stg:ml-auto stg:shrink-0 stg:text-[0.6rem] stg:text-muted-foreground">
+                    <OrgSlugText orgId={result.org} />
+                  </span>
+                </span>
+                {result.description && (
+                  <span
+                    className={cn(
+                      "stg:pl-5 stg:text-[0.65rem] stg:text-muted-foreground",
+                      idx !== focusIndex &&
+                        "stg:line-clamp-2 stg:group-hover:line-clamp-none",
+                    )}
+                  >
+                    {result.description}
+                  </span>
+                )}
+              </button>
+            ))
+          )}
+        </div>
+
+        {results_.canScrollDown && <ScrollFade position="bottom" />}
+      </div>
+    </div>
+  );
+}
+
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <span className="stg:font-semibold">{text.slice(idx, idx + query.length)}</span>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="stg:space-y-1 stg:py-1">
+      {[55, 70, 45, 62].map((w, i) => (
+        <div key={i} className="stg:flex stg:flex-col stg:gap-1 stg:px-2 stg:py-1.5">
+          <div
+            className="stg:h-3 stg:rounded stg:bg-muted stg:animate-pulse"
+            style={{ width: `${w}%` }}
+          />
+          <div
+            className="stg:h-2 stg:rounded stg:bg-muted-subtle stg:animate-pulse"
+            style={{ width: `${Math.min(w + 15, 90)}%` }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ItemIcon() {
+  return <PluginIcon className="stg:size-3 stg:shrink-0 stg:text-muted-foreground" />;
+}
+
+function XIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 4L10 10M10 4L4 10" />
+    </svg>
+  );
+}

@@ -9,6 +9,7 @@ WORKDIR /app
 # Copy workspace config and dependency manifests first (layer caching)
 COPY package.json package-lock.json ./
 COPY apis/stubs/ts/package.json apis/stubs/ts/
+COPY backend/libs/ts/eval-runtime/package.json backend/libs/ts/eval-runtime/
 COPY backend/libs/ts/plugin-package/package.json backend/libs/ts/plugin-package/
 COPY sdk/typescript/package.json sdk/typescript/
 COPY sdk/theme/package.json sdk/theme/
@@ -17,8 +18,10 @@ COPY sdk/embed/package.json sdk/embed/
 
 # Copy workspace packages the web app depends on. @stigmer/react reads
 # marketplaces through @stigmer/plugin-package (its ./client entry), so the
-# library is part of the console's closure like the SDK packages are.
+# library is part of the console's closure like the SDK packages are, and so
+# is @stigmer/eval-runtime, which its eval suite reader imports.
 COPY apis/stubs/ts/ apis/stubs/ts/
+COPY backend/libs/ts/eval-runtime/ backend/libs/ts/eval-runtime/
 COPY backend/libs/ts/plugin-package/ backend/libs/ts/plugin-package/
 COPY sdk/typescript/ sdk/typescript/
 COPY sdk/theme/ sdk/theme/
@@ -38,6 +41,7 @@ COPY brand/ brand/
 # as ./dist/styles.css, compiled since the prefix-isolation change (#471).
 RUN npm ci && \
     npm run build -w @stigmer/protos && \
+    npm run build -w @stigmer/eval-runtime && \
     npm run build -w @stigmer/plugin-package && \
     npm run build -w @stigmer/embed && \
     npm run build:css -w @stigmer/react && \

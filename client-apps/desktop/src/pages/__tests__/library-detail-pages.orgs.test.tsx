@@ -1,10 +1,10 @@
 /**
- * Pins how the desktop detail pages for MCP servers, plugins, skills and
- * schedules name organizations. A resource a page links to (a plugin that
- * installed it, a member of a plugin, a schedule's agent) names its
+ * Pins how the desktop detail pages for plugins, skills and schedules name
+ * organizations. A resource a page links to (a plugin that installed it,
+ * the agent a plugin was added to, a schedule's agent) names its
  * organization by id; the page opens it at a URL carrying that
- * organization's slug. The MCP server view also learns the viewer's
- * organization by id. The views are pinned in @stigmer/react.
+ * organization's slug. A plugin's "Start a chat" opens the launcher with
+ * the plugin named. The views are pinned in @stigmer/react.
  */
 import type { ComponentType } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -17,8 +17,6 @@ interface Ref {
 }
 
 const page = vi.hoisted(() => ({
-  // The server's answer to "may this person create an agent here?".
-  canCreate: { allowed: true, isLoading: false },
   props: {} as Record<string, Record<string, unknown>[]>,
 }));
 
@@ -29,13 +27,11 @@ vi.mock("@stigmer/react", () => {
   };
   const noop = () => undefined;
   return {
-    McpServerDetailView: capture("McpServerDetailView"),
     PluginDetailView: capture("PluginDetailView"),
     SkillDetailView: capture("SkillDetailView"),
     ScheduleDetailView: capture("ScheduleDetailView"),
     EditResourceYamlDialog: () => null,
     ConfirmDialog: () => null,
-    useMcpServer: () => ({ mcpServer: undefined, refetch: noop }),
     useCopyResource: () => ({ copyId: noop, copyQualifiedSlug: noop }),
     useConfirmAction: () => ({ confirmState: null, confirm: noop, handleConfirm: noop, handleCancel: noop }),
     useDeleteResource: () => ({ deleteResource: noop, isDeleting: false }),
@@ -43,7 +39,6 @@ vi.mock("@stigmer/react", () => {
     useBreadcrumbOverride: () => ({ setLabel: noop }),
     useResolveRunSession: () => ({ sessionId: null }),
     useActiveOrgId: () => "org_acme",
-    useCanCreateAgent: () => page.canCreate,
     // The person's organizations: the active one and a second one, so a
     // link proves it resolves the linked resource's own org.
     useOrgSlugForId: () => (id: string) =>
@@ -51,14 +46,18 @@ vi.mock("@stigmer/react", () => {
   };
 });
 
-import McpServerDetailPage from "../library/McpServerDetailPage";
 import PluginDetailPage from "../library/PluginDetailPage";
 import SkillDetailPage from "../library/SkillDetailPage";
 import ScheduleDetailPage from "../library/ScheduleDetailPage";
 
 function LocationProbe() {
   const { pathname, search } = useLocation();
-  return <span data-testid="location">{pathname + search}</span>;
+  return (
+    <>
+      <span data-testid="location">{pathname}</span>
+      <span data-testid="search">{search}</span>
+    </>
+  );
 }
 
 function renderDetail(Page: ComponentType) {
@@ -87,42 +86,27 @@ function location(): string | null {
 const SHARED: Ref = { org: "org_shared", slug: "linked" };
 
 beforeEach(() => {
-  page.canCreate = { allowed: true, isLoading: false };
   page.props = {};
 });
 
-describe("desktop McpServerDetailPage — organizations", () => {
-  it("tells the view the viewer's org by id", () => {
-    renderDetail(McpServerDetailPage);
-
-    expect(last<{ activeOrg: string }>("McpServerDetailView").activeOrg).toBe("org_acme");
-  });
-
-  it("opens the installing plugin at its org's slug", () => {
-    renderDetail(McpServerDetailPage);
-
-    act(() => last<{ onPluginClick: (ref: Ref) => void }>("McpServerDetailView").onPluginClick(SHARED));
-
-    expect(location()).toBe("/library/plugins/shared-team/linked");
-  });
-});
-
 describe("desktop PluginDetailPage — organizations", () => {
-  type PluginView = Record<
-    "onSkillClick" | "onMcpServerClick" | "onAgentClick",
-    (ref: Ref) => void
-  >;
+  type PluginView = Record<"onAgentClick" | "onStartChat", (ref: Ref) => void>;
 
-  it.each([
-    ["onSkillClick", "/library/skills/shared-team/linked"],
-    ["onMcpServerClick", "/library/mcp-servers/shared-team/linked"],
-    ["onAgentClick", "/library/agents/shared-team/linked"],
-  ] as const)("%s opens the member at its org's slug", (handler, expected) => {
+  it("opens the agent the plugin was added to at its org's slug", () => {
     renderDetail(PluginDetailPage);
 
-    act(() => last<PluginView>("PluginDetailView")[handler](SHARED));
+    act(() => last<PluginView>("PluginDetailView").onAgentClick(SHARED));
 
-    expect(location()).toBe(expected);
+    expect(location()).toBe("/library/agents/shared-team/linked");
+  });
+
+  it("starts a chat on the launcher with the plugin named", () => {
+    renderDetail(PluginDetailPage);
+
+    act(() => last<PluginView>("PluginDetailView").onStartChat(SHARED));
+
+    expect(location()).toBe("/");
+    expect(new URLSearchParams(screen.getByTestId("search").textContent ?? "").get("plugin")).toBe("org_shared/linked");
   });
 });
 
@@ -148,26 +132,5 @@ describe("desktop ScheduleDetailPage — organizations", () => {
     );
 
     expect(location()).toBe("/library/agents/shared-team/linked");
-  });
-});
-
-describe("desktop PluginDetailPage — creating an agent from its tools", () => {
-  type CreateFromTools = (usages: Array<{ mcpServerRef: { slug: string } }>) => void;
-
-  it("opens the new-agent page with the plugin's servers for someone who may create agents", () => {
-    renderDetail(PluginDetailPage);
-
-    const onCreateAgent = last<{ onCreateAgent?: CreateFromTools }>("PluginDetailView").onCreateAgent;
-    expect(onCreateAgent).toBeDefined();
-    act(() => onCreateAgent!([{ mcpServerRef: { slug: "github" } }, { mcpServerRef: { slug: "a b" } }]));
-
-    expect(location()).toBe("/library/agents/new?mcp=github,a%20b");
-  });
-
-  it("offers no create for someone the server would refuse", () => {
-    page.canCreate = { allowed: false, isLoading: false };
-    renderDetail(PluginDetailPage);
-
-    expect(last<{ onCreateAgent?: CreateFromTools }>("PluginDetailView").onCreateAgent).toBeUndefined();
   });
 });

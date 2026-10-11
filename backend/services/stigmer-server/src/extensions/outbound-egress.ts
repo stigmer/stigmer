@@ -15,9 +15,8 @@
  * Who reads it: nobody in the domains directly. The composition root builds
  * ONE guarded fetch from the policy (`@stigmer/outbound/egress`
  * `guardedFetch`, which judges the first URL and every redirect hop) and
- * hands it to the McpServer connect slice as `outboundFetch`, the only
- * fetch the McpServer domain's OAuth code and its save-time endpoint probe
- * hold. Before this point existed every OAuth fetch (discovery, dynamic
+ * hands it to the vault's sign-in code and the plugin install's endpoint
+ * probe as `outboundFetch`, the only fetch they hold. Before this point existed every OAuth fetch (discovery, dynamic
  * client registration, the authorize preflight, token exchange and
  * refresh) defaulted to the raw global `fetch` in every edition, which is
  * the exposure the point closes.

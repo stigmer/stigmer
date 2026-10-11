@@ -22,7 +22,6 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
   [ApiResourceKind.agent, [IamRole.owner, IamRole.editor, IamRole.viewer]],
   [ApiResourceKind.session, [IamRole.owner, IamRole.participant, IamRole.viewer]],
   [ApiResourceKind.skill, [IamRole.owner, IamRole.viewer]],
-  [ApiResourceKind.mcp_server, [IamRole.owner, IamRole.editor, IamRole.viewer]],
   [ApiResourceKind.agent_share, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.agent_channel, [IamRole.owner, IamRole.viewer, IamRole.participant]],
   [ApiResourceKind.channel_app, [IamRole.viewer]],
@@ -44,7 +43,6 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
 export const TEAM_GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> = new Map([
   [ApiResourceKind.agent, [IamRole.editor, IamRole.viewer]],
   [ApiResourceKind.skill, [IamRole.viewer]],
-  [ApiResourceKind.mcp_server, [IamRole.editor, IamRole.viewer]],
   [ApiResourceKind.agent_channel, [IamRole.viewer, IamRole.participant]],
   [ApiResourceKind.schedule, [IamRole.viewer]],
   [ApiResourceKind.plugin, [IamRole.viewer]],
@@ -90,11 +88,6 @@ export const ROLE_DESCRIPTIONS: ReadonlyMap<ApiResourceKind, ReadonlyMap<IamRole
   [ApiResourceKind.skill, new Map<IamRole, string>([
     [IamRole.owner, "Everything, including deleting it and deciding who has access"],
     [IamRole.viewer, "Use it and see what it contains; cannot change it"],
-  ])],
-  [ApiResourceKind.mcp_server, new Map<IamRole, string>([
-    [IamRole.owner, "Everything, including deleting it and deciding who has access"],
-    [IamRole.editor, "Change and connect it; cannot delete it or decide who has access"],
-    [IamRole.viewer, "Connect it and use it in agents; cannot change it"],
   ])],
   [ApiResourceKind.agent_share, new Map<IamRole, string>([
     [IamRole.owner, "Everything, including deleting it and deciding who has access"],

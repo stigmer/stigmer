@@ -28,8 +28,9 @@ const (
 // An identity account represents a user or machine principal in Stigmer.
 // Accounts can be direct (signed up via Stigmer), federated (provisioned
 // through an external identity provider), machine (service-to-service
-// credentials), or platform_client (provisioned via a PlatformClient's
-// mintUserToken endpoint).
+// credentials), platform_client (provisioned via a PlatformClient's
+// mintUserToken endpoint), or service_account (an organization's own
+// non-person account, created by its admins for automation).
 type IdentityAccountSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// IDP ID of the identity account.
@@ -49,6 +50,8 @@ type IdentityAccountSpec struct {
 	// Scoping by org (not by PlatformClient) means the same user_id presented
 	// via any PlatformClient in the same org resolves to the same IdentityAccount.
 	// Globally unique by construction — no additional scope field is needed.
+	// For service_account accounts: composite "stgm_sa|{org}|{random}", assigned
+	// by the server at createServiceAccount and never supplied by a caller.
 	IdpId string `protobuf:"bytes,1,opt,name=idp_id,json=idpId,proto3" json:"idp_id,omitempty"`
 	// Email of the identity account.
 	// For direct accounts: based on the email used to sign up.

@@ -66,7 +66,7 @@ public interface RunSpecOrBuilder extends
    *
    * This is the one-call session bootstrap: a single create carries the
    * full session shape (the agent, workspace_entries, harness,
-   * execution_target, MCP servers, skills) together with the first
+   * execution_target, plugins, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by run.create. The created session's ID is
    * returned on the persisted run's session_id.
@@ -90,7 +90,7 @@ public interface RunSpecOrBuilder extends
    *
    * This is the one-call session bootstrap: a single create carries the
    * full session shape (the agent, workspace_entries, harness,
-   * execution_target, MCP servers, skills) together with the first
+   * execution_target, plugins, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by run.create. The created session's ID is
    * returned on the persisted run's session_id.
@@ -114,7 +114,7 @@ public interface RunSpecOrBuilder extends
    *
    * This is the one-call session bootstrap: a single create carries the
    * full session shape (the agent, workspace_entries, harness,
-   * execution_target, MCP servers, skills) together with the first
+   * execution_target, plugins, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by run.create. The created session's ID is
    * returned on the persisted run's session_id.
@@ -846,6 +846,39 @@ public interface RunSpecOrBuilder extends
    * <code>.ai.stigmer.agentic.run.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
    */
   ai.stigmer.agentic.run.v1.ConversationCatchupOrBuilder getConversationCatchupOrBuilder();
+
+  /**
+   * <pre>
+   * What a plugin-eval case gives this try beyond its message: a starting
+   * folder, reference folders, an earlier conversation, variables and MCP
+   * stand-ins. Absent on every other run.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+   * @return Whether the pluginEvalCase field is set.
+   */
+  boolean hasPluginEvalCase();
+  /**
+   * <pre>
+   * What a plugin-eval case gives this try beyond its message: a starting
+   * folder, reference folders, an earlier conversation, variables and MCP
+   * stand-ins. Absent on every other run.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+   * @return The pluginEvalCase.
+   */
+  ai.stigmer.agentic.run.v1.PluginEvalCaseContext getPluginEvalCase();
+  /**
+   * <pre>
+   * What a plugin-eval case gives this try beyond its message: a starting
+   * folder, reference folders, an earlier conversation, variables and MCP
+   * stand-ins. Absent on every other run.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+   */
+  ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder getPluginEvalCaseOrBuilder();
 
   ai.stigmer.agentic.run.v1.RunSpec.TargetCase getTargetCase();
 }

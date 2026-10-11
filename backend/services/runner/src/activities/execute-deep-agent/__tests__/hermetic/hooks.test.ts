@@ -3,8 +3,8 @@
  * native engine — the real activity, two invocations on the durable (sqlite)
  * checkpointer, a real command hook.
  *
- * The agent references the `safety` plugin through `AgentSpec.hooks`. The
- * runtime reads it by reference, fetches its archive (the unary lane; the
+ * The agent lists the `safety` plugin (`AgentSpec.plugins`). The blueprint
+ * reads it by reference, the hooks phase fetches its archive (the unary lane; the
  * download lane answers Unimplemented here), verifies it against the
  * installed digest and mounts it; the hook is the plugin's own extensionless
  * bash script, made executable by its `#!` line, run in shell form from
@@ -35,9 +35,14 @@
  * allows after (it keeps state in `${CLAUDE_PLUGIN_DATA}`) runs again on
  * resume and now allows, and the call the person rejected still never runs.
  *
- * Two refusals settle as the tool lists' does, RUN_FAILED on the
- * actionable surface with their own sentence: a referenced plugin that cannot
- * be read, and a hook that reads a variable the run does not give the agent.
+ * A chat with the built-in assistant runs its conversation's plugins'
+ * hooks too (`SessionSpec.plugins`): there is no agent, and the hook still
+ * refuses the delete.
+ *
+ * A listed plugin that cannot be read fails the turn naming it, as a
+ * conversation whose agent is gone does; a hook that reads a variable the
+ * run does not give the agent settles RUN_FAILED on the actionable surface
+ * with its own sentence.
  *
  * Regenerate ONLY after a deliberate behavior change:
  *   npx vitest run src/activities/execute-deep-agent/__tests__/hermetic -u
@@ -70,7 +75,7 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
 
-import { ScriptedClock, createHermeticEnvironment, type HermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
+import { ScriptedClock, createHermeticEnvironment, type ExecutionRecord, type HermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } from "../../__test-utils__/hermetic-deep-agent.js";
 import type { ScriptedToolCall } from "../../__test-utils__/scripted-model.js";
@@ -116,6 +121,13 @@ const DELETE: ScriptedToolCall = { id: "call-hooks-delete", name: "execute", arg
 const LIST: ScriptedToolCall = { id: "call-hooks-list", name: "execute", args: { command: "ls" } };
 const PUBLISH: ScriptedToolCall = { id: "call-hooks-publish", name: "execute", args: { command: "echo publish" } };
 
+/** List the plugin on the record's agent (`AgentSpec.plugins`) or its conversation (`SessionSpec.plugins`). */
+function usePlugin(record: ExecutionRecord, where: "agent" | "session", slug: string): void {
+  const ref = create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug });
+  if (where === "agent") record.agent!.spec!.plugins.push(ref);
+  else record.session.spec!.plugins.push(ref);
+}
+
 function statusJson(status: RunStatus): string {
   return JSON.stringify(toJson(RunStatusSchema, status), null, 2) + "\n";
 }
@@ -140,10 +152,8 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
   it("refuses the delete, runs the listing, and holds the publish for a person", async () => {
     const record = deepAgentExecutionRecord({
       message: "Clean the build, list the files, then publish.",
-      hooks: [create(HookSourceSchema, {
-        source: { case: "plugin", value: create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "safety" }) },
-      })],
     });
+    usePlugin(record, "agent", "safety");
     const getPluginArtifact = vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE }));
     const scenario = beginDeepAgentScenario({
       env,
@@ -217,10 +227,8 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     clock.reset();
     const record = deepAgentExecutionRecord({
       message: "Publish twice, then show where you are.",
-      hooks: [create(HookSourceSchema, {
-        source: { case: "plugin", value: create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "safety" }) },
-      })],
     });
+    usePlugin(record, "agent", "safety");
     const again: ScriptedToolCall = { id: "call-hooks-publish-again", name: "execute", args: { command: "echo publish again" } };
     const where: ScriptedToolCall = { id: "call-hooks-where", name: "execute", args: { command: "pwd" } };
     const scenario = beginDeepAgentScenario({
@@ -311,10 +319,8 @@ fi
     const touch: ScriptedToolCall = { id: "call-hooks-rejected", name: "execute", args: { command: `touch ${marker}` } };
     const record = deepAgentExecutionRecord({
       message: "Touch the marker.",
-      hooks: [create(HookSourceSchema, {
-        source: { case: "plugin", value: create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "once" }) },
-      })],
     });
+    usePlugin(record, "agent", "once");
     const scenario = beginDeepAgentScenario({
       env,
       clock,
@@ -348,14 +354,45 @@ fi
     expect(rejected.status).not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
   });
 
-  it("refuses the turn, naming the plugin, when an agent's plugin cannot be read", async () => {
+  it("runs a conversation's plugin hooks on a chat with the built-in assistant", async () => {
+    clock.reset();
+    const record = deepAgentExecutionRecord({ message: "Clean the build.", builtInAssistant: true });
+    usePlugin(record, "session", "safety");
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      checkpointer: "sqlite",
+      clientOverrides: {
+        getPluginByReference: vi.fn(async () => SAFETY),
+        getPluginArtifactDownloadUrl: vi.fn(async () => {
+          throw new ConnectError("no download lane", Code.Unimplemented);
+        }),
+        getPluginArtifact: vi.fn(async () => create(GetArtifactResponseSchema, { artifact: ARCHIVE })),
+      },
+      script: () => ({
+        turns: [
+          { text: "Cleaning the build.", toolCalls: [DELETE], usage: { inputTokens: 1_400, outputTokens: 40 } },
+          CLOSING_TURN,
+        ],
+      }),
+    });
+
+    await runDeepAgentTurn(scenario, { turnSeq: 0 });
+
+    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
+    const deleted = record.lastFullStatus!.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === DELETE.id)!;
+    expect(deleted.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(deleted.error).toBe("The safety plugin's hook refused this call: recursive deletes are not allowed");
+    expect([deleted.approvalPolicySource, deleted.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
+  });
+
+  it("fails the turn, naming the plugin, when an agent's plugin cannot be read", async () => {
     clock.reset();
     const record = deepAgentExecutionRecord({
       message: "Clean the build.",
-      hooks: [create(HookSourceSchema, {
-        source: { case: "plugin", value: create(ApiResourceReferenceSchema, { kind: 58, org: "hermetic-org", slug: "gone" }) },
-      })],
     });
+    usePlugin(record, "agent", "gone");
     const scenario = beginDeepAgentScenario({
       env,
       clock,
@@ -373,7 +410,9 @@ fi
 
     expect(turn.outcome.kind).toBe("returned");
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
-    expect(record.lastFullStatus!.error).toMatch(/^The plugin 'gone' that the agent's hooks reference could not be read: /);
+    // As a conversation whose agent is gone: the blueprint names the plugin
+    // and the turn fails, never running without its hooks.
+    expect(record.lastFullStatus!.error).toContain("the plugin 'gone' this conversation uses could not be read: plugin not found");
   });
 
   it("refuses the turn with its own sentence when a hook reads a variable the run does not give the agent", async () => {

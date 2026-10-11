@@ -22,6 +22,10 @@ const PINNED: Readonly<
     revision: 1,
     fingerprint: "iam_policy{principal=field:spec.principal.id}",
   },
+  api_key: {
+    revision: 1,
+    fingerprint: "api_key{owner=field:status.audit.spec_audit.created_by.id}",
+  },
   memory: {
     revision: 1,
     fingerprint: "memory{subject=field:spec.subject_identity_account_id}",

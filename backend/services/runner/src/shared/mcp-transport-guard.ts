@@ -59,8 +59,8 @@ export function resolveMcpTransportPosture(
 
 /**
  * Assert that a resolved MCP server's transport is allowed under the given
- * posture. Applies only to user-defined McpServer resources flowing through
- * the resolvers — the internal synthesized attachments are built
+ * posture. Applies only to the servers plugins bring, flowing through the
+ * resolvers — the internal synthesized attachments are built
  * separately and are already HTTP in cloud mode.
  *
  * @throws McpTransportError when the posture forbids stdio and the server uses it

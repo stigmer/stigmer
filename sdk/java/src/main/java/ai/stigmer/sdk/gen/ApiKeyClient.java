@@ -3,11 +3,13 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.iam.apikey.v1.ApiKey;
+import ai.stigmer.iam.apikey.v1.ApiKeyAccountId;
 import ai.stigmer.iam.apikey.v1.ApiKeyCommandControllerGrpc;
 import ai.stigmer.iam.apikey.v1.ApiKeyHash;
 import ai.stigmer.iam.apikey.v1.ApiKeyId;
 import ai.stigmer.iam.apikey.v1.ApiKeyQueryControllerGrpc;
 import ai.stigmer.iam.apikey.v1.ApiKeys;
+import ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput;
 import com.google.protobuf.Empty;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -25,6 +27,12 @@ public final class ApiKeyClient {
     public ApiKey create(ApiKeyInput input) {
         try {
             return command.create(input.toProto());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ApiKey createForServiceAccount(CreateServiceAccountKeyInput input) {
+        try {
+            return command.createForServiceAccount(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
@@ -55,6 +63,12 @@ public final class ApiKeyClient {
     public ApiKeys findAll() {
         try {
             return query.findAll(Empty.getDefaultInstance());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ApiKeys findByAccount(String id) {
+        try {
+            return query.findByAccount(ApiKeyAccountId.newBuilder().setValue(id).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

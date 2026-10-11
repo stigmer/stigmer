@@ -12,9 +12,9 @@ public interface ExecutionValuesOrBuilder extends
 
   /**
    * <pre>
-   * The agent's own keys, for its shell and hooks: secrets by name and plain
-   * defaults, never a connection or a repository's token, and never a key a
-   * tool of the run declares.
+   * The agent's own keys, for its shell and its own hooks: secrets by name
+   * and plain defaults, never a connection or a repository's token, and
+   * never a key a tool or a plugin of the run declares.
    * </pre>
    *
    * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -22,9 +22,9 @@ public interface ExecutionValuesOrBuilder extends
   int getAgentCount();
   /**
    * <pre>
-   * The agent's own keys, for its shell and hooks: secrets by name and plain
-   * defaults, never a connection or a repository's token, and never a key a
-   * tool of the run declares.
+   * The agent's own keys, for its shell and its own hooks: secrets by name
+   * and plain defaults, never a connection or a repository's token, and
+   * never a key a tool or a plugin of the run declares.
    * </pre>
    *
    * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -39,9 +39,9 @@ public interface ExecutionValuesOrBuilder extends
   getAgent();
   /**
    * <pre>
-   * The agent's own keys, for its shell and hooks: secrets by name and plain
-   * defaults, never a connection or a repository's token, and never a key a
-   * tool of the run declares.
+   * The agent's own keys, for its shell and its own hooks: secrets by name
+   * and plain defaults, never a connection or a repository's token, and
+   * never a key a tool or a plugin of the run declares.
    * </pre>
    *
    * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -50,9 +50,9 @@ public interface ExecutionValuesOrBuilder extends
   getAgentMap();
   /**
    * <pre>
-   * The agent's own keys, for its shell and hooks: secrets by name and plain
-   * defaults, never a connection or a repository's token, and never a key a
-   * tool of the run declares.
+   * The agent's own keys, for its shell and its own hooks: secrets by name
+   * and plain defaults, never a connection or a repository's token, and
+   * never a key a tool or a plugin of the run declares.
    * </pre>
    *
    * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -64,9 +64,9 @@ java.lang.String getAgentOrDefault(
 java.lang.String defaultValue);
   /**
    * <pre>
-   * The agent's own keys, for its shell and hooks: secrets by name and plain
-   * defaults, never a connection or a repository's token, and never a key a
-   * tool of the run declares.
+   * The agent's own keys, for its shell and its own hooks: secrets by name
+   * and plain defaults, never a connection or a repository's token, and
+   * never a key a tool or a plugin of the run declares.
    * </pre>
    *
    * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -160,5 +160,49 @@ java.lang.String defaultValue);
    * <code>repeated .ai.stigmer.agentic.vault.v1.RepositoryValues repositories = 3 [json_name = "repositories"];</code>
    */
   ai.stigmer.agentic.vault.v1.RepositoryValuesOrBuilder getRepositoriesOrBuilder(
+      int index);
+
+  /**
+   * <pre>
+   * Each plugin's keys, for that plugin's hooks only.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.vault.v1.PluginValues> 
+      getPluginsList();
+  /**
+   * <pre>
+   * Each plugin's keys, for that plugin's hooks only.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+   */
+  ai.stigmer.agentic.vault.v1.PluginValues getPlugins(int index);
+  /**
+   * <pre>
+   * Each plugin's keys, for that plugin's hooks only.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+   */
+  int getPluginsCount();
+  /**
+   * <pre>
+   * Each plugin's keys, for that plugin's hooks only.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.vault.v1.PluginValuesOrBuilder> 
+      getPluginsOrBuilderList();
+  /**
+   * <pre>
+   * Each plugin's keys, for that plugin's hooks only.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+   */
+  ai.stigmer.agentic.vault.v1.PluginValuesOrBuilder getPluginsOrBuilder(
       int index);
 }

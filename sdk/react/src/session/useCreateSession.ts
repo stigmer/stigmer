@@ -4,7 +4,6 @@ import { useCallback, useState } from "react";
 import {
   PENDING_SUBJECT,
   mergeSessionContext,
-  type McpServerUsageInput,
   type ResourceRef,
   type WorkspaceEntryInput,
 } from "@stigmer/sdk";
@@ -22,8 +21,8 @@ export interface SharedSessionFields {
   readonly workspaceEntries?: WorkspaceEntryInput[];
   /** Initial conversation subject (defaults to `PENDING_SUBJECT`). */
   readonly subject?: string;
-  /** MCP server configurations to include for tool access. */
-  readonly mcpServerUsages?: McpServerUsageInput[];
+  /** Plugins the conversation uses, each whole: their skills, agents, hooks and MCP servers. */
+  readonly plugins?: ResourceRef[];
   /** Skill references to enable for runs in this session. */
   readonly skillRefs?: ResourceRef[];
   /**
@@ -84,7 +83,7 @@ export interface SharedSessionFields {
  *   conversation until someone moves it on.
  * - **omitted** — The session runs the built-in assistant: no agent is
  *   bound, and the runner answers with the one built-in prompt and the
- *   MCP servers and skills the session itself carries.
+ *   plugins and skills the session itself carries.
  */
 export interface CreateSessionInput extends SharedSessionFields {
   /** The agent the conversation runs; omit for the built-in assistant. */
@@ -151,7 +150,7 @@ export function useCreateSession(): UseCreateSessionReturn {
           org: input.org,
           subject: input.subject ?? PENDING_SUBJECT,
           workspaceEntries: input.workspaceEntries,
-          mcpServerUsages: input.mcpServerUsages,
+          plugins: input.plugins,
           skillRefs: input.skillRefs,
           metadata: mergeSessionContext(input.metadata, input.sessionContext),
           agentRef: input.agentRef,

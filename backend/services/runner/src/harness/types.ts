@@ -68,6 +68,7 @@
  * `registry.ts`, no barrel.
  */
 
+import type { TranscriptMessage } from "@stigmer/eval-runtime";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -86,6 +87,7 @@ import type { SkillMetadata } from "../shared/skill-resolver.js";
 import type { MountedPlugin } from "../shared/plugin-mount.js";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
 import type { PluginServerName } from "../shared/hooks/tool-view.js";
+import type { McpToolListing } from "../shared/mcp-tool-listing.js";
 import type { HookGroup } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import type { ResolvedAttachment } from "../shared/attachment-resolver.js";
 import type { NotViewableEntry, VisionImage } from "../shared/attachment-vision.js";
@@ -202,8 +204,15 @@ export interface TurnMcp {
   /** Serving proactive channels and their templates (the discovery read). */
   readonly channelMessaging: readonly ChannelMessagingInfo[];
   readonly leases: ActiveLeases;
-  /** Which MCP tools ask (their server marks them destructive) and which servers a lease cleared. */
+  /**
+   * Which MCP tools ask (their server marks them destructive) and which
+   * servers a lease cleared. For an engine that reads its tools' marks
+   * itself (`capabilities.readsToolMarks`) it carries only the leases, and
+   * the engine completes it from the tools it loads.
+   */
   readonly mcpDefault: McpApprovalDefault;
+  /** What the turn start listed of each plugin server's tools; absent for an engine that reads its tools itself. */
+  readonly listing: McpToolListing | undefined;
   /**
    * The slugs of the synthesized attachments injected this turn: the
    * platform's own servers, outside every tool list.
@@ -362,6 +371,13 @@ export interface TurnInput extends NormalizedActivityInput {
   readonly standing: TurnStandingContext;
   /** Resolved once by the runtime before any phase; absent when no substrate works. */
   readonly artifactStorage: ArtifactStorage | undefined;
+  /**
+   * A plugin-eval try's recorded conversation, which the native engine
+   * resumes ahead of this turn's message on a thread that holds none
+   * (`shared/plugin-eval/prepare-case.ts`); absent on every other turn. The
+   * server never plans such a try on an engine that cannot resume one.
+   */
+  readonly resumedHistory?: readonly TranscriptMessage[];
 }
 
 // ---------------------------------------------------------------------------

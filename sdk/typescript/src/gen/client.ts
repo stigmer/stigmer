@@ -12,7 +12,6 @@ import { IdentityAccountClient } from "./identityaccount.js";
 import { IdentityProviderClient } from "./identityprovider.js";
 import { InvitationClient } from "./invitation.js";
 import { LicenseClient } from "./license.js";
-import { McpServerClient } from "./mcpserver.js";
 import { MemoryClient } from "./memory.js";
 import { OAuthAppClient } from "./oauthapp.js";
 import { OrganizationClient } from "./organization.js";
@@ -43,7 +42,6 @@ export class GeneratedClient {
   readonly identityProvider: IdentityProviderClient;
   readonly invitation: InvitationClient;
   readonly license: LicenseClient;
-  readonly mcpServer: McpServerClient;
   readonly memory: MemoryClient;
   readonly oauthapp: OAuthAppClient;
   readonly organization: OrganizationClient;
@@ -73,7 +71,6 @@ export class GeneratedClient {
     this.identityProvider = new IdentityProviderClient(transport);
     this.invitation = new InvitationClient(transport);
     this.license = new LicenseClient(transport);
-    this.mcpServer = new McpServerClient(transport);
     this.memory = new MemoryClient(transport);
     this.oauthapp = new OAuthAppClient(transport);
     this.organization = new OrganizationClient(transport);
@@ -95,7 +92,7 @@ export class GeneratedClient {
 
 // Re-export all resource client types and input types.
 export { AgentClient } from "./agent.js";
-export { type AgentInput, type McpServerUsageInput, type SubAgentInput, type EnvVarDeclarationInput, type HookSourceInput, type HookConfigInput, type HookGroupInput, type HookHandlerInput, type RunConfigInput } from "./agent.js";
+export { type AgentInput, type SubAgentInput, type EnvVarDeclarationInput, type HookSourceInput, type HookConfigInput, type HookGroupInput, type HookHandlerInput, type RunConfigInput } from "./agent.js";
 export { AgentChannelClient } from "./agentchannel.js";
 export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput } from "./agentchannel.js";
 export { AgentShareClient } from "./agentshare.js";
@@ -116,8 +113,6 @@ export { InvitationClient } from "./invitation.js";
 export { type InvitationInput } from "./invitation.js";
 export { LicenseClient } from "./license.js";
 export { type LicenseInput, type LicenseCustomerInput, type EntitlementsInput, type EntitlementLimitsInput } from "./license.js";
-export { McpServerClient } from "./mcpserver.js";
-export { type McpServerInput, type StdioServerConfigInput, type HttpServerConfigInput, type McpServerAuthInput } from "./mcpserver.js";
 export { MemoryClient } from "./memory.js";
 export { type MemoryInput, type MemoryProvenanceInput } from "./memory.js";
 export { OAuthAppClient } from "./oauthapp.js";
@@ -134,7 +129,7 @@ export { PluginEvalClient } from "./plugineval.js";
 export { type PluginEvalInput, type PluginEvalTargetInput } from "./plugineval.js";
 export { ProviderKeyClient } from "./providerkey.js";
 export { RunClient } from "./run.js";
-export { type RunInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type AttachmentInput, type ConversationCatchupInput } from "./run.js";
+export { type RunInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type AttachmentInput, type ConversationCatchupInput, type PluginEvalCaseContextInput, type PluginEvalMockServerInput, type PluginEvalMockToolInput } from "./run.js";
 export { ScheduleClient } from "./schedule.js";
 export { type ScheduleInput, type AgentInvocationInput } from "./schedule.js";
 export { ScoreClient } from "./score.js";

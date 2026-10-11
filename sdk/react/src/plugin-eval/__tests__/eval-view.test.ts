@@ -11,8 +11,11 @@
  */
 import { describe, expect, it } from "vitest";
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import { create } from "@bufbuild/protobuf";
 import {
+  PluginEvalMockedServerSchema,
   PluginEvalPhase,
+  PluginEvalTrySchema,
   PluginEvalTryState,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -170,17 +173,48 @@ describe("an eval's rows", () => {
     ]);
   });
 
+  it("names a try's abort or error beside its score, and lists the case's MCP servers as its tries saw them", () => {
+    const pluginEval = evalWith([{ name: "a", score: 1 }]);
+    const evalCase = pluginEval.status!.cases[0]!;
+    evalCase.mockedServers = [
+      create(PluginEvalMockedServerSchema, { name: "plugin_kit_tracker", tools: ["create_issue", "close_issue"] }),
+      create(PluginEvalMockedServerSchema, { name: "plugin_kit_wiki", notStartedReason: "not started: no mock" }),
+    ];
+    const tries = evalCase.targets[0]!.withPlugin!.tries;
+    tries[0] = create(PluginEvalTrySchema, {
+      index: 1,
+      state: PluginEvalTryState.graded,
+      score: 0,
+      aborted: { server: "tracker", tool: "create_issue", reason: "input.title must be a string" },
+    });
+    tries[1] = create(PluginEvalTrySchema, {
+      index: 2,
+      state: PluginEvalTryState.graded,
+      score: 0,
+      error: "scaffold failed: exit 2",
+    });
+    const row = evalCaseRowsOf(pluginEval)[0];
+    expect(row?.mocked).toEqual([
+      "plugin_kit_tracker mocked: create_issue, close_issue",
+      "plugin_kit_wiki not started: no mock",
+    ]);
+    expect(row?.cells[0]?.tries.slice(0, 2).map((attempt) => attempt.summary)).toEqual([
+      "0.00 · aborted by tracker.create_issue: input.title must be a string",
+      "0.00 · scaffold failed: exit 2",
+    ]);
+  });
+
   it("keeps a case that was not run out of the cells, with its reason", () => {
     const pluginEval = evalWith([{ name: "a", score: 1 }]);
     pluginEval.status!.cases.push({
       ...pluginEval.status!.cases[0]!,
       caseName: "fixture",
-      notRunReason: "not run: context.add_dirs",
+      notRunReason: "not run: plugins",
     });
     const rows = evalCaseRowsOf(pluginEval);
     expect(rows[1]).toMatchObject({
       name: "fixture",
-      notRun: "not run: context.add_dirs",
+      notRun: "not run: plugins",
       cells: [],
     });
   });

@@ -21,7 +21,7 @@ const lib = (path) => `${CONSOLE_ORIGIN}/library/${path}`;
 export const SHOTS = {
   /**
    * S3b (console alternative) — the agent overview, scrolled top to
-   * bottom in narration order: instructions → skills → MCP servers →
+   * bottom in narration order: instructions → skills → plugins →
    * sub-agents. The console has no YAML surface for agents, so the
    * script's "YAML in editor" drift is proposed as a styled Remotion
    * code panel over the real manifest (the S3e terminal treatment);
@@ -45,17 +45,21 @@ export const SHOTS = {
   },
 
   /**
-   * S3d — meridian-ops capabilities, settling on the approval policies
-   * tab (the narration beat: "notice the approval policy"). The tools
-   * list plays first, then the camera's story is the Policies tab.
+   * S3d — the meridian-ops plugin page, settling on its server's tools
+   * (the narration beat: "notice the approval policy"). "Check tools"
+   * asks the live server for its tools; rebook_booking carries the
+   * Destructive marker, which is what makes a turn stop and ask, so the
+   * camera's story ends on that marker.
    */
   "s3d-mcp-config": async (page, human) => {
     await ensureOrg(page, human);
-    await page.goto(lib(`mcp-servers/${ORG}/meridian-ops`), { waitUntil: "networkidle" });
+    await page.goto(lib(`plugins/${ORG}/meridian-ops`), { waitUntil: "networkidle" });
     await human.beat(2);
-    await human.scroll(420, { durationMs: 3000 });
+    await human.click(page.getByRole("button", { name: "Check tools" }).first());
+    const destructive = page.getByText("Destructive", { exact: true }).first();
+    await destructive.waitFor({ timeout: 60_000 });
     await human.beat(1.5);
-    await human.click(page.getByRole("tab", { name: /policies/i }).or(page.getByText(/^Policies/)).first());
+    await human.moveTo(destructive, { durationMs: 900 });
     await human.beat(11);
   },
 

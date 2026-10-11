@@ -62,6 +62,11 @@ func (i *IdentityAccountClient) DeprovisionFederatedAccount(ctx context.Context,
 	return resp, wrapErr(err)
 }
 
+func (i *IdentityAccountClient) CreateServiceAccount(ctx context.Context, input *identityaccountv1.CreateServiceAccountInput) (*identityaccountv1.IdentityAccount, error) {
+	resp, err := i.command.CreateServiceAccount(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (i *IdentityAccountClient) ProvisionMyAccount(ctx context.Context) (*identityaccountv1.IdentityAccount, error) {
 	resp, err := i.command.ProvisionMyAccount(ctx, &emptypb.Empty{})
 	return resp, wrapErr(err)
@@ -89,6 +94,11 @@ func (i *IdentityAccountClient) GetByIdpId(ctx context.Context, id string) (*ide
 
 func (i *IdentityAccountClient) GetByExternalSub(ctx context.Context, input *identityaccountv1.ExternalSubLookup) (*identityaccountv1.IdentityAccount, error) {
 	resp, err := i.query.GetByExternalSub(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (i *IdentityAccountClient) ListServiceAccounts(ctx context.Context, input *identityaccountv1.ListWithIdentityOrg) (*identityaccountv1.IdentityAccountsList, error) {
+	resp, err := i.query.ListServiceAccounts(ctx, input)
 	return resp, wrapErr(err)
 }
 

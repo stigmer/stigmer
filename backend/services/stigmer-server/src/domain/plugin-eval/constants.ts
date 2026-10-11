@@ -39,6 +39,10 @@ export function pluginEvalNotCurrentVersionMessage(current: string): string {
   return `an eval runs the plugin's current version (${current}); evaluating an earlier version is not supported yet`;
 }
 
+/** The refusal of an eval asking for real servers both beside its mocks and instead of them. */
+export const PLUGIN_EVAL_REAL_SERVERS_CONFLICT_MESSAGE =
+  "spec.allow_real_servers starts real servers beside the mocks, and spec.real_mcp_servers ignores the mocks: set one of them";
+
 /** The refusal of a case_glob that is not a glob (domain/plugin-eval/glob.ts). */
 export function pluginEvalCaseGlobMessage(glob: string, error: string): string {
   return `spec.case_glob '${glob}' is not a valid glob: ${error}`;
@@ -86,6 +90,6 @@ export const PLUGIN_EVAL_NO_ENGINE_MESSAGE =
   "the eval cannot be cancelled while the server has no engine connection; try again shortly";
 
 /** The refusal of an allow_tools entry that names another plugin's MCP tools. */
-export function pluginEvalOtherPluginToolMessage(entry: string, named: string, plugin: string): string {
-  return `allow_tools entry '${entry}' names plugin '${named}', but this eval runs '${plugin}'; a try attaches no other plugin`;
+export function pluginEvalOtherPluginToolMessage(entry: string, server: string, plugin: string): string {
+  return `allow_tools entry '${entry}' names MCP server '${server}', which is not one of '${plugin}''s; a try attaches no other plugin`;
 }

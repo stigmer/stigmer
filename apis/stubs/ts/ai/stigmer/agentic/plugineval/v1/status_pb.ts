@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/plugineval/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_plugineval_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luZXZhbC92MS9zdGF0dXMucHJvdG8SIGFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW5ldmFsLnYxItcFChBQbHVnaW5FdmFsU3RhdHVzEkAKBXBoYXNlGAEgASgOMjEuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbFBoYXNlElEKDnBhcnRpYWxfcmVhc29uGAIgASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbFBhcnRpYWxSZWFzb24SDQoFZXJyb3IYAyABKAkSPwoFY2FzZXMYBCADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luZXZhbC52MS5QbHVnaW5FdmFsQ2FzZRJKCgphZ2dyZWdhdGVzGAUgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbEFnZ3JlZ2F0ZXMSEAoIY29zdF91c2QYBiABKAESEwoLdHJpZXNfdG90YWwYByABKAUSFgoOdHJpZXNfZmluaXNoZWQYCCABKAUSLgoKc3RhcnRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhkKEXByb3Zpc2lvbmFsX2RlbHRhGAsgASgIEl8KD3ZhdWx0X2F0dGFjaGVycxgMIAMoCzJGLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW5ldmFsLnYxLlBsdWdpbkV2YWxTdGF0dXMuVmF1bHRBdHRhY2hlcnNFbnRyeRI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0GjUKE1ZhdWx0QXR0YWNoZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASK0AQoOUGx1Z2luRXZhbENhc2USEQoJY2FzZV9uYW1lGAEgASgJEgwKBHBhdGgYAiABKAkSEQoJY2FzZV90YWdzGAMgAygJEhYKDm5vdF9ydW5fcmVhc29uGAQgASgJEkcKB3RhcmdldHMYBSADKAsyNi5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luZXZhbC52MS5QbHVnaW5FdmFsQ2FzZVRhcmdldBINCgVub3RlcxgGIAMoCSK/AgoUUGx1Z2luRXZhbENhc2VUYXJnZXQSQgoGdGFyZ2V0GAEgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbFRhcmdldBIWCg5ub3RfcnVuX3JlYXNvbhgCIAEoCRJECgt3aXRoX3BsdWdpbhgDIAEoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW5ldmFsLnYxLlBsdWdpbkV2YWxBcm0SRwoOd2l0aG91dF9wbHVnaW4YBCABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luZXZhbC52MS5QbHVnaW5FdmFsQXJtEhIKBWRlbHRhGAUgASgBSACIAQESDgoGcGFzc2VkGAYgASgIEg4KBnBhc3NfaxgHIAEoCEIICgZfZGVsdGEimQEKDVBsdWdpbkV2YWxBcm0SEgoFc2NvcmUYASABKAFIAIgBARIUCgxwZXJmZWN0X3J1bnMYAiABKAUSFAoMZ3JhZGVkX3RyaWVzGAMgASgFEj4KBXRyaWVzGAQgAygLMi8uYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbFRyeUIICgZfc2NvcmUi7AEKDVBsdWdpbkV2YWxUcnkSDQoFaW5kZXgYASABKAUSEgoKc2Vzc2lvbl9pZBgCIAEoCRIOCgZydW5faWQYAyABKAkSQwoFc3RhdGUYBCABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luZXZhbC52MS5QbHVnaW5FdmFsVHJ5U3RhdGUSDQoFc2NvcmUYBSABKAESGQoRbm90X2dyYWRlZF9yZWFzb24YBiABKAkSDQoFZXJyb3IYByABKAkSEAoIY29zdF91c2QYCCABKAESGAoQZHVyYXRpb25fc2Vjb25kcxgJIAEoASKXAQoUUGx1Z2luRXZhbEFnZ3JlZ2F0ZXMSFQoNb3ZlcmFsbF9zY29yZRgBIAEoARIUCgxjYXNlc19wYXNzZWQYAiABKAUSEwoLY2FzZXNfdG90YWwYAyABKAUSFwoKbWVhbl9kZWx0YRgEIAEoAUgAiAEBEhUKDWNhc2VzX25vdF9ydW4YBSABKAVCDQoLX21lYW5fZGVsdGEq0AEKD1BsdWdpbkV2YWxQaGFzZRIhCh1wbHVnaW5fZXZhbF9waGFzZV91bnNwZWNpZmllZBAAEh0KGXBsdWdpbl9ldmFsX3BoYXNlX3BlbmRpbmcQARIdChlwbHVnaW5fZXZhbF9waGFzZV9ydW5uaW5nEAISHwobcGx1Z2luX2V2YWxfcGhhc2VfY29tcGxldGVkEAMSHQoZcGx1Z2luX2V2YWxfcGhhc2VfcGFydGlhbBAEEhwKGHBsdWdpbl9ldmFsX3BoYXNlX2ZhaWxlZBAFKsoBChdQbHVnaW5FdmFsUGFydGlhbFJlYXNvbhIqCiZwbHVnaW5fZXZhbF9wYXJ0aWFsX3JlYXNvbl91bnNwZWNpZmllZBAAEisKJ3BsdWdpbl9ldmFsX3BhcnRpYWxfcmVhc29uX2Nvc3RfY2VpbGluZxABEiwKKHBsdWdpbl9ldmFsX3BhcnRpYWxfcmVhc29uX291dF9vZl9jcmVkaXQQAhIoCiRwbHVnaW5fZXZhbF9wYXJ0aWFsX3JlYXNvbl9jYW5jZWxsZWQQAyrJAQoSUGx1Z2luRXZhbFRyeVN0YXRlEiUKIXBsdWdpbl9ldmFsX3RyeV9zdGF0ZV91bnNwZWNpZmllZBAAEiEKHXBsdWdpbl9ldmFsX3RyeV9zdGF0ZV9wZW5kaW5nEAESIQodcGx1Z2luX2V2YWxfdHJ5X3N0YXRlX3J1bm5pbmcQAhIgChxwbHVnaW5fZXZhbF90cnlfc3RhdGVfZ3JhZGVkEAMSJAogcGx1Z2luX2V2YWxfdHJ5X3N0YXRlX25vdF9ncmFkZWQQBGIGcHJvdG8z", [file_ai_stigmer_agentic_plugineval_v1_spec, file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvcGx1Z2luZXZhbC92MS9zdGF0dXMucHJvdG8SIGFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW5ldmFsLnYxItcFChBQbHVnaW5FdmFsU3RhdHVzEkAKBXBoYXNlGAEgASgOMjEuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbFBoYXNlElEKDnBhcnRpYWxfcmVhc29uGAIgASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbFBhcnRpYWxSZWFzb24SDQoFZXJyb3IYAyABKAkSPwoFY2FzZXMYBCADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luZXZhbC52MS5QbHVnaW5FdmFsQ2FzZRJKCgphZ2dyZWdhdGVzGAUgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbEFnZ3JlZ2F0ZXMSEAoIY29zdF91c2QYBiABKAESEwoLdHJpZXNfdG90YWwYByABKAUSFgoOdHJpZXNfZmluaXNoZWQYCCABKAUSLgoKc3RhcnRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoLZmluaXNoZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhkKEXByb3Zpc2lvbmFsX2RlbHRhGAsgASgIEl8KD3ZhdWx0X2F0dGFjaGVycxgMIAMoCzJGLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW5ldmFsLnYxLlBsdWdpbkV2YWxTdGF0dXMuVmF1bHRBdHRhY2hlcnNFbnRyeRI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0GjUKE1ZhdWx0QXR0YWNoZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKGAgoOUGx1Z2luRXZhbENhc2USEQoJY2FzZV9uYW1lGAEgASgJEgwKBHBhdGgYAiABKAkSEQoJY2FzZV90YWdzGAMgAygJEhYKDm5vdF9ydW5fcmVhc29uGAQgASgJEkcKB3RhcmdldHMYBSADKAsyNi5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luZXZhbC52MS5QbHVnaW5FdmFsQ2FzZVRhcmdldBINCgVub3RlcxgGIAMoCRJQCg5tb2NrZWRfc2VydmVycxgHIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW5ldmFsLnYxLlBsdWdpbkV2YWxNb2NrZWRTZXJ2ZXIiUQoWUGx1Z2luRXZhbE1vY2tlZFNlcnZlchIMCgRuYW1lGAEgASgJEg0KBXRvb2xzGAIgAygJEhoKEm5vdF9zdGFydGVkX3JlYXNvbhgDIAEoCSK/AgoUUGx1Z2luRXZhbENhc2VUYXJnZXQSQgoGdGFyZ2V0GAEgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbFRhcmdldBIWCg5ub3RfcnVuX3JlYXNvbhgCIAEoCRJECgt3aXRoX3BsdWdpbhgDIAEoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5wbHVnaW5ldmFsLnYxLlBsdWdpbkV2YWxBcm0SRwoOd2l0aG91dF9wbHVnaW4YBCABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luZXZhbC52MS5QbHVnaW5FdmFsQXJtEhIKBWRlbHRhGAUgASgBSACIAQESDgoGcGFzc2VkGAYgASgIEg4KBnBhc3NfaxgHIAEoCEIICgZfZGVsdGEimQEKDVBsdWdpbkV2YWxBcm0SEgoFc2NvcmUYASABKAFIAIgBARIUCgxwZXJmZWN0X3J1bnMYAiABKAUSFAoMZ3JhZGVkX3RyaWVzGAMgASgFEj4KBXRyaWVzGAQgAygLMi8uYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbFRyeUIICgZfc2NvcmUisAIKDVBsdWdpbkV2YWxUcnkSDQoFaW5kZXgYASABKAUSEgoKc2Vzc2lvbl9pZBgCIAEoCRIOCgZydW5faWQYAyABKAkSQwoFc3RhdGUYBCABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMucGx1Z2luZXZhbC52MS5QbHVnaW5FdmFsVHJ5U3RhdGUSDQoFc2NvcmUYBSABKAESGQoRbm90X2dyYWRlZF9yZWFzb24YBiABKAkSDQoFZXJyb3IYByABKAkSEAoIY29zdF91c2QYCCABKAESGAoQZHVyYXRpb25fc2Vjb25kcxgJIAEoARJCCgdhYm9ydGVkGAogASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLnBsdWdpbmV2YWwudjEuUGx1Z2luRXZhbEFib3J0Ij8KD1BsdWdpbkV2YWxBYm9ydBIOCgZzZXJ2ZXIYASABKAkSDAoEdG9vbBgCIAEoCRIOCgZyZWFzb24YAyABKAkilwEKFFBsdWdpbkV2YWxBZ2dyZWdhdGVzEhUKDW92ZXJhbGxfc2NvcmUYASABKAESFAoMY2FzZXNfcGFzc2VkGAIgASgFEhMKC2Nhc2VzX3RvdGFsGAMgASgFEhcKCm1lYW5fZGVsdGEYBCABKAFIAIgBARIVCg1jYXNlc19ub3RfcnVuGAUgASgFQg0KC19tZWFuX2RlbHRhKtABCg9QbHVnaW5FdmFsUGhhc2USIQodcGx1Z2luX2V2YWxfcGhhc2VfdW5zcGVjaWZpZWQQABIdChlwbHVnaW5fZXZhbF9waGFzZV9wZW5kaW5nEAESHQoZcGx1Z2luX2V2YWxfcGhhc2VfcnVubmluZxACEh8KG3BsdWdpbl9ldmFsX3BoYXNlX2NvbXBsZXRlZBADEh0KGXBsdWdpbl9ldmFsX3BoYXNlX3BhcnRpYWwQBBIcChhwbHVnaW5fZXZhbF9waGFzZV9mYWlsZWQQBSrKAQoXUGx1Z2luRXZhbFBhcnRpYWxSZWFzb24SKgomcGx1Z2luX2V2YWxfcGFydGlhbF9yZWFzb25fdW5zcGVjaWZpZWQQABIrCidwbHVnaW5fZXZhbF9wYXJ0aWFsX3JlYXNvbl9jb3N0X2NlaWxpbmcQARIsCihwbHVnaW5fZXZhbF9wYXJ0aWFsX3JlYXNvbl9vdXRfb2ZfY3JlZGl0EAISKAokcGx1Z2luX2V2YWxfcGFydGlhbF9yZWFzb25fY2FuY2VsbGVkEAMqyQEKElBsdWdpbkV2YWxUcnlTdGF0ZRIlCiFwbHVnaW5fZXZhbF90cnlfc3RhdGVfdW5zcGVjaWZpZWQQABIhCh1wbHVnaW5fZXZhbF90cnlfc3RhdGVfcGVuZGluZxABEiEKHXBsdWdpbl9ldmFsX3RyeV9zdGF0ZV9ydW5uaW5nEAISIAoccGx1Z2luX2V2YWxfdHJ5X3N0YXRlX2dyYWRlZBADEiQKIHBsdWdpbl9ldmFsX3RyeV9zdGF0ZV9ub3RfZ3JhZGVkEARiBnByb3RvMw", [file_ai_stigmer_agentic_plugineval_v1_spec, file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
 
 /**
  * PluginEvalStatus holds an eval's progress and results: per case, per
@@ -96,9 +96,11 @@ export type PluginEvalStatus = Message<"ai.stigmer.agentic.plugineval.v1.PluginE
   finishedAt?: Timestamp;
 
   /**
-   * True while the comparison with and without the plugin also measures
-   * the agent Stigmer composes for the plugin at install, not only the
-   * plugin's parts.
+   * True when the comparison with and without the plugin also measured an
+   * agent Stigmer composed for the plugin at install, not only the plugin:
+   * an eval made before conversations listed plugins directly. Every eval
+   * made since runs both arms on the assistant, the with-plugin arm with the
+   * plugin listed, and records false.
    *
    * @generated from field: bool provisional_delta = 11;
    */
@@ -157,8 +159,9 @@ export type PluginEvalCase = Message<"ai.stigmer.agentic.plugineval.v1.PluginEva
   caseTags: string[];
 
   /**
-   * Why the case is not run, naming the feature Stigmer does not run yet,
-   * as in "not run: context.scaffold_script"; empty when the case runs.
+   * Why the case is not run, as in "not run: plugins" for a feature
+   * Stigmer does not run yet, or "not run: scaffold skipped"; empty when
+   * the case runs.
    *
    * @generated from field: string not_run_reason = 4;
    */
@@ -178,6 +181,14 @@ export type PluginEvalCase = Message<"ai.stigmer.agentic.plugineval.v1.PluginEva
    * @generated from field: repeated string notes = 6;
    */
   notes: string[];
+
+  /**
+   * The plugin's MCP servers the case answers with mocks, and those it
+   * leaves unstarted, as Claude Code's mocked: line.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer mocked_servers = 7;
+   */
+  mockedServers: PluginEvalMockedServer[];
 };
 
 /**
@@ -186,6 +197,43 @@ export type PluginEvalCase = Message<"ai.stigmer.agentic.plugineval.v1.PluginEva
  */
 export const PluginEvalCaseSchema: GenMessage<PluginEvalCase> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_plugineval_v1_status, 1);
+
+/**
+ * PluginEvalMockedServer is one plugin MCP server as a case's tries see
+ * it.
+ *
+ * @generated from message ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer
+ */
+export type PluginEvalMockedServer = Message<"ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer"> & {
+  /**
+   * The server's name in the run, as in "plugin_tracker_issues".
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * The tools its mocks answer.
+   *
+   * @generated from field: repeated string tools = 2;
+   */
+  tools: string[];
+
+  /**
+   * Why the server is not started, as in "not started: no mock"; empty
+   * when its mocks answer.
+   *
+   * @generated from field: string not_started_reason = 3;
+   */
+  notStartedReason: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugineval.v1.PluginEvalMockedServer.
+ * Use `create(PluginEvalMockedServerSchema)` to create a new message.
+ */
+export const PluginEvalMockedServerSchema: GenMessage<PluginEvalMockedServer> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugineval_v1_status, 2);
 
 /**
  * PluginEvalCaseTarget is one case's results on one target.
@@ -202,7 +250,8 @@ export type PluginEvalCaseTarget = Message<"ai.stigmer.agentic.plugineval.v1.Plu
 
   /**
    * Why this case did not run on this target, as in "not run: model
-   * 'sonnet' is not in Stigmer's catalog"; empty when it ran.
+   * 'sonnet' is not in Stigmer's catalog" or "not run on Cursor:
+   * resumed conversations"; empty when it ran.
    *
    * @generated from field: string not_run_reason = 2;
    */
@@ -251,7 +300,7 @@ export type PluginEvalCaseTarget = Message<"ai.stigmer.agentic.plugineval.v1.Plu
  * Use `create(PluginEvalCaseTargetSchema)` to create a new message.
  */
 export const PluginEvalCaseTargetSchema: GenMessage<PluginEvalCaseTarget> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugineval_v1_status, 2);
+  messageDesc(file_ai_stigmer_agentic_plugineval_v1_status, 3);
 
 /**
  * PluginEvalArm is one arm's tries and their summary.
@@ -293,7 +342,7 @@ export type PluginEvalArm = Message<"ai.stigmer.agentic.plugineval.v1.PluginEval
  * Use `create(PluginEvalArmSchema)` to create a new message.
  */
 export const PluginEvalArmSchema: GenMessage<PluginEvalArm> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugineval_v1_status, 3);
+  messageDesc(file_ai_stigmer_agentic_plugineval_v1_status, 4);
 
 /**
  * PluginEvalTry is one try: one run in a fresh conversation.
@@ -364,6 +413,15 @@ export type PluginEvalTry = Message<"ai.stigmer.agentic.plugineval.v1.PluginEval
    * @generated from field: double duration_seconds = 9;
    */
   durationSeconds: number;
+
+  /**
+   * Set when a mock stopped the try: its input guard was violated, its
+   * agent ended the run, or the agent mocks' call budget ran out. The try
+   * scores 0 and error stays empty, as Claude Code reports it.
+   *
+   * @generated from field: ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10;
+   */
+  aborted?: PluginEvalAbort;
 };
 
 /**
@@ -371,7 +429,42 @@ export type PluginEvalTry = Message<"ai.stigmer.agentic.plugineval.v1.PluginEval
  * Use `create(PluginEvalTrySchema)` to create a new message.
  */
 export const PluginEvalTrySchema: GenMessage<PluginEvalTry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugineval_v1_status, 4);
+  messageDesc(file_ai_stigmer_agentic_plugineval_v1_status, 5);
+
+/**
+ * PluginEvalAbort says which mock stopped a try, and why.
+ *
+ * @generated from message ai.stigmer.agentic.plugineval.v1.PluginEvalAbort
+ */
+export type PluginEvalAbort = Message<"ai.stigmer.agentic.plugineval.v1.PluginEvalAbort"> & {
+  /**
+   * The mocked server's key in the plugin's MCP configuration.
+   *
+   * @generated from field: string server = 1;
+   */
+  server: string;
+
+  /**
+   * The tool whose call was stopped.
+   *
+   * @generated from field: string tool = 2;
+   */
+  tool: string;
+
+  /**
+   * Why, as in "input.priority must be one of low, medium, high".
+   *
+   * @generated from field: string reason = 3;
+   */
+  reason: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.plugineval.v1.PluginEvalAbort.
+ * Use `create(PluginEvalAbortSchema)` to create a new message.
+ */
+export const PluginEvalAbortSchema: GenMessage<PluginEvalAbort> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_plugineval_v1_status, 6);
 
 /**
  * PluginEvalAggregates are the suite's totals, in Claude Code's names.
@@ -421,7 +514,7 @@ export type PluginEvalAggregates = Message<"ai.stigmer.agentic.plugineval.v1.Plu
  * Use `create(PluginEvalAggregatesSchema)` to create a new message.
  */
 export const PluginEvalAggregatesSchema: GenMessage<PluginEvalAggregates> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_plugineval_v1_status, 5);
+  messageDesc(file_ai_stigmer_agentic_plugineval_v1_status, 7);
 
 /**
  * PluginEvalPhase is where an eval is.

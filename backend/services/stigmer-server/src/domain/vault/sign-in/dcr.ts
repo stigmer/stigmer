@@ -4,7 +4,7 @@
  * (token_endpoint_auth_method "none"): MCP OAuth uses PKCE instead of a
  * client secret, and an empty secret is what keeps the pending state's
  * "never ciphertext-of-empty" rule meaningful (oss#394).
- * Proven by mcpserver-oauth.conformance.test.ts (CONFORMANCE_TARGET=local).
+ * Proven by plugin-oauth.conformance.test.ts (CONFORMANCE_TARGET=local).
  */
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { truncateBody } from "./truncate-body.js";

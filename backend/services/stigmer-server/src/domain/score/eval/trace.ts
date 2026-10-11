@@ -18,33 +18,46 @@
  *     input. An engine name reads as the Claude tool it covers
  *     (`@stigmer/tool-vocabulary` `claudeNameOf`): a tool that writes and
  *     edits reads as Write when its file was created in the run, as Edit
- *     otherwise. An MCP call reads as `mcp__plugin_<plugin>_<server>__<tool>`,
- *     `<server>` the server's name as the plugin declares it (its
- *     `mcpServers` key), found from the call's `mcp_server_slug` through
- *     `mcpServerKeys`; a slug the plugin does not name reads as itself. A read of a mounted skill's `SKILL.md`
- *     reads as `Skill {"skill": "<plugin>:<name>"}`, since Stigmer activates
- *     a skill by reading that file on both engines. The input is the
+ *     otherwise. An MCP call reads as `mcp__<server>__<tool>`, its
+ *     `mcp_server_slug` already the name a turn gives a plugin's server,
+ *     `plugin_<plugin>_<server>`, as Claude Code does. A read of a mounted
+ *     skill's `SKILL.md` reads as `Skill {"skill": "<plugin>:<name>"}`,
+ *     since Stigmer activates a skill by reading that file on both
+ *     engines. The input is the
  *     engine's own arguments, which `input_match` patterns read by value;
+ *   - the mock calls: each call to a server the try's case mocked (the
+ *     run's own `spec.plugin_eval_case.mocks`, by the name the run gave
+ *     the server), one JSON line each, `{"server", "tool", "input",
+ *     "answer"}`, the server by its key in the plugin and the answer the
+ *     mock gave, an error's text included;
  *   - the files: the paths created in the run (`kind` ADD in the
  *     file-review ledger's captured change sets) and the contents, after
  *     the run, of the paths the graders name, inline or read back through
- *     the run's artifact store when the runner offloaded them. A try's
- *     workspace is an empty non-git directory, so the ledger holds a change
- *     set only where the install has artifact storage; with none, the
- *     files are `not-recorded` and a file grader leaves the try not graded.
+ *     the run's artifact store when the runner offloaded them. A path no
+ *     change set touched (a file a case's scaffold wrote and the try left
+ *     alone) is read from the files the runner returned for the graders
+ *     (`status.plugin_eval_files`); without them it is absent. A try with
+ *     no scaffold starts in an empty non-git directory, so the ledger holds
+ *     a change set only where the install has artifact storage; with none,
+ *     the files are `not-recorded` and a file grader leaves the try not
+ *     graded.
  *
  * Sub-agent runs are not traversed, as the other two readers do not
  * traverse them. A system or thinking message, and a message type this
  * server does not know, add no line.
  *
- * The skill mount: the runner writes each skill's file at
- * `.stigmer/skills/<name>/SKILL.md` in the workspace, a link into the
- * session's platform directory (`.../platform/skills/<name>/SKILL.md`), on
- * both engines (the runner's shared/skill-resolver.ts, rendered by
+ * The skill mounts, on both engines, rendered by
  * execute-deep-agent/prompt-builder.ts `renderSkillsSection` and
- * execute-cursor/prompt-builder.ts `formatSkillsSection`). SKILL_READ_PATH
- * must follow that mount: when the mount moves, a skill read stops reading
- * as `Skill` and every `tool_used: Skill` grader fails.
+ * execute-cursor/prompt-builder.ts `formatSkillsSection`: an organization's
+ * own skill at `.stigmer/skills/<name>/SKILL.md` in the workspace, a link
+ * into the session's platform directory (`.../platform/skills/<name>/`,
+ * the runner's shared/skill-resolver.ts); a plugin's skill inside the
+ * plugin's mounted tree, `.stigmer/plugins/<digest>/<path>/SKILL.md`
+ * (shared/plugin-mount.ts, harness/turn-context.ts `mountPluginSkills`),
+ * named by the plugin's own list (`skillNames`, path to name).
+ * SKILL_READ_PATH and PLUGIN_SKILL_READ_PATH must follow those mounts: when
+ * a mount moves, a skill read stops reading as `Skill` and every
+ * `tool_used: Skill` grader fails.
  *
  * Proven by __tests__/trace.test.ts, over a native and a Cursor transcript.
  */
@@ -59,6 +72,7 @@ import {
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { PluginEvalFile } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
@@ -94,6 +108,8 @@ export interface EvalTrace {
   /** The session as JSON lines, one message per line. */
   readonly traceLines: ReadonlyArray<string>;
   readonly toolCalls: ReadonlyArray<EvalToolCall>;
+  /** The calls to mocked servers, one JSON line each (the module header). */
+  readonly mockCalls: ReadonlyArray<string>;
   readonly files: EvalFiles;
 }
 
@@ -103,6 +119,13 @@ export interface EvalTrace {
  */
 export const SKILL_READ_PATH =
   /(?:^|\/)(?:\.stigmer|platform)\/skills\/([^/]+)\/SKILL\.md$/;
+
+/**
+ * A read of a plugin skill's file inside the plugin's mounted tree (the
+ * module header): the skill's path in the plugin captured.
+ */
+export const PLUGIN_SKILL_READ_PATH =
+  /(?:^|\/)(?:\.stigmer|platform)\/plugins\/[^/]+\/(.+)\/SKILL\.md$/;
 
 /** The argument names a file tool carries its path in, on either engine. */
 const PATH_ARGUMENTS = [
@@ -119,19 +142,12 @@ export interface EvalTraceDeps {
   readonly pluginName: string;
   /** The engine the try ran on. */
   readonly harness: Harness;
-  /** The plugin's MCP servers' declared names by slug (the module header); none when absent. */
-  readonly mcpServerKeys?: ReadonlyMap<string, string>;
+  /** The plugin's skills' names by their path in the plugin (`PluginSkill.path`); none when absent. */
+  readonly skillNames?: ReadonlyMap<string, string>;
   /** The workspace-relative paths whose content the graders read. */
   readonly wantedFiles: ReadonlyArray<string>;
   /** The run's artifact store, for content the runner offloaded. */
   readArtifact(storageKey: string): Promise<Uint8Array>;
-}
-
-/** Whether `run` called any MCP tool, so a reader knows whether it needs the servers' names. */
-export function callsMcpServers(run: Run): boolean {
-  return (run.status?.messages ?? []).some((message) =>
-    message.toolCalls.some((call) => call.mcpServerSlug !== ""),
-  );
 }
 
 /** The graders' view of `run` (the module header). */
@@ -147,6 +163,10 @@ export async function evalTraceOf(
 
   const toolCalls: EvalToolCall[] = [];
   const traceLines: string[] = [];
+  const mockCalls: string[] = [];
+  const mockedServers = new Map(
+    (run.spec?.pluginEvalCase?.mocks ?? []).map((mock) => [mock.segment, mock.server] as const),
+  );
   if (!messages.some((message) => message.type === MessageType.MESSAGE_HUMAN)) {
     traceLines.push(
       line({
@@ -174,6 +194,17 @@ export async function evalTraceOf(
         for (const call of message.toolCalls) {
           const named = namedCall(call, engine, deps, created);
           toolCalls.push(named);
+          const mockedServer = mockedServers.get(call.mcpServerSlug);
+          if (call.mcpServerSlug !== "" && mockedServer !== undefined) {
+            mockCalls.push(
+              line({
+                server: mockedServer,
+                tool: call.name,
+                input: call.args ?? {},
+                answer: call.error !== "" ? call.error : call.result,
+              }),
+            );
+          }
           content.push({
             type: "tool_use",
             id: call.id,
@@ -223,7 +254,7 @@ export async function evalTraceOf(
     }
   }
 
-  return { lastMessage: lastMessageOf(run), traceLines, toolCalls, files };
+  return { lastMessage: lastMessageOf(run), traceLines, toolCalls, mockCalls, files };
 }
 
 function line(value: JsonObject): string {
@@ -253,12 +284,7 @@ function namedCall(
   const args: JsonObject = call.args ?? {};
   const input = JSON.stringify(args);
   if (call.mcpServerSlug !== "") {
-    const server =
-      deps.mcpServerKeys?.get(call.mcpServerSlug) ?? call.mcpServerSlug;
-    return {
-      name: `mcp__plugin_${pluginName}_${server}__${call.name}`,
-      input,
-    };
+    return { name: `mcp__${call.mcpServerSlug}__${call.name}`, input };
   }
   const path = pathArgumentOf(args);
   const fileChange =
@@ -269,7 +295,11 @@ function namedCall(
         : "modify";
   const name = claudeNameOf(engine, call.name, fileChange);
   if (name === "Read" && path !== undefined) {
-    const skill = SKILL_READ_PATH.exec(path)?.[1];
+    const pluginSkill = PLUGIN_SKILL_READ_PATH.exec(path)?.[1];
+    const skill =
+      pluginSkill === undefined
+        ? SKILL_READ_PATH.exec(path)?.[1]
+        : (deps.skillNames?.get(pluginSkill) ?? pluginSkill.split("/").pop());
     if (skill !== undefined) {
       return {
         name: "Skill",
@@ -327,10 +357,13 @@ async function filesOf(run: Run, deps: EvalTraceDeps): Promise<EvalFiles> {
       created.add(path);
     }
   }
+  const reported = new Map(
+    (run.status?.pluginEvalFiles?.files ?? []).map((file) => [normalise(file.path), file] as const),
+  );
   const contents = new Map<string, EvalFileContent>();
   for (const wanted of deps.wantedFiles) {
     const path = normalise(wanted);
-    contents.set(path, await contentOf(changes, path, deps));
+    contents.set(path, await contentOf(changes, path, deps, reported.get(path)));
   }
   return { kind: "recorded", created: [...created], contents };
 }
@@ -340,6 +373,7 @@ async function contentOf(
   changes: ReadonlyArray<CapturedFileChange>,
   path: string,
   deps: EvalTraceDeps,
+  reported: PluginEvalFile | undefined,
 ): Promise<EvalFileContent> {
   let last: CapturedFileChange | undefined;
   for (const change of changes) {
@@ -350,8 +384,10 @@ async function contentOf(
       last = change;
     }
   }
+  if (last === undefined) {
+    return reportedContent(reported);
+  }
   if (
-    last === undefined ||
     last.kind === FileChangeKind.DELETE ||
     normalise(last.pathAfter) !== path
   ) {
@@ -385,5 +421,19 @@ async function contentOf(
       const exhausted: never = after.body;
       return exhausted;
     }
+  }
+}
+
+/** A file no change set touched, as the runner returned it for the graders; absent when it returned none. */
+function reportedContent(file: PluginEvalFile | undefined): EvalFileContent {
+  switch (file?.content.case) {
+    case "text":
+      return { kind: "text", text: file.content.value };
+    case "binary":
+      return { kind: "binary" };
+    case "unreadable":
+      return { kind: "unreadable", reason: file.content.value };
+    default:
+      return { kind: "absent" };
   }
 }

@@ -6,8 +6,7 @@
 //
 // Install is: open the marketplace's tree, find the entry, read its directory
 // through the same walker `push plugin` uses, push the archive. The server
-// does the rest (materialising skills, servers, the agent), exactly as for a
-// push, so an install from a marketplace and a push of the same checked-out
+// reads the archive and stores the plugin, exactly as for a push, so an install from a marketplace and a push of the same checked-out
 // folder are one digest and one plugin. There is no `uninstall`:
 // `stigmer delete plugin <name>` is the one delete verb across kinds.
 //
@@ -32,7 +31,7 @@ export function registerInstall(program: Command): void {
     )
     .option(
       "--visibility <level>",
-      "visibility for the plugin and everything it installs (private, org, child-orgs)",
+      "visibility for the plugin (private, org, child-orgs)",
     )
     .option(
       "-m, --message <message>",
@@ -99,7 +98,7 @@ async function runInstall(
     renderResult(
       plugin.renderPushOutcome(outcome, {
         installedFrom: `${located.marketplace.name} (${m.describeSource(located.marketplace.source)})`,
-        next: await plugin.readNextSteps(client.stigmer, org, outcome.members),
+        next: plugin.nextSteps(outcome.plugin),
       }),
       format,
     );

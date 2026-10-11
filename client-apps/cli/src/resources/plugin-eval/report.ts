@@ -2,13 +2,17 @@
 // Pure: every line is a function of the eval, so the views are unit-tested.
 //
 // The shapes are Claude Code's `claude plugin eval` output, so its readers
-// read Stigmer's: a progress line as each try finishes (case, target, arm,
-// try, and its score or why it was not graded), then the summary table
+// read Stigmer's: a case's `mocked:` line before its first finished try
+// (each mocked server with its tools, each other server "not started: no
+// mock"), a progress line as each try finishes (case, target, arm, try, and
+// its score or why it was not graded, and which mock stopped it when one
+// did), then the summary table
 // (`CASE WITH W/OUT Δ PASS^k RUNS COST NOTES`, or `SCORE PASS%` when the
 // eval made no comparison), one block per engine and model, then the line
 // `N case(s) · mean Δ +0.67 · 74s · $0.41`. Stigmer adds the `PASS^k`
-// column (every try passed), says "Δ provisional" while the comparison also
-// measures the agent Stigmer composes for the plugin, and lists the cases it
+// column (every try passed), says "Δ provisional" when the comparison also
+// measured an agent Stigmer composed for the plugin (an eval made before
+// conversations listed plugins directly), and lists the cases it
 // did not run with the feature named.
 //
 // The exit code is the format's: 0 when every case that ran reached the
@@ -65,11 +69,16 @@ export interface FinishedTry {
 export function finishedTries(pluginEval: PluginEval): FinishedTry[] {
   const finished: FinishedTry[] = [];
   for (const evalCase of pluginEval.status?.cases ?? []) {
+    let mockedShown = evalCase.mockedServers.length === 0;
     for (const result of evalCase.targets) {
       const target = targetLabel(result.target);
       for (const [arm, tries] of armsOf(result)) {
         for (const attempt of tries) {
           if (!isFinished(attempt)) continue;
+          if (!mockedShown) {
+            mockedShown = true;
+            finished.push({ key: `${evalCase.path}|mocked`, line: mockedLine(evalCase) });
+          }
           finished.push({
             key: `${evalCase.path}|${target}|${arm}|${attempt.index}`,
             line: progressLine(oneLine(evalCase.caseName), target, arm, attempt, tries.length),
@@ -117,12 +126,13 @@ export function renderSummaryLine(pluginEval: PluginEval, durationSeconds: numbe
 }
 
 /**
- * Why the comparison is provisional, for the line under the summary: the
- * with-arm runs on the agent Stigmer composes for the plugin, whose
+ * Why the comparison is provisional, for the line under the summary: an
+ * eval made before conversations listed plugins directly ran its with-arm
+ * on an agent Stigmer composed for the plugin, whose
  * instructions name it, so Δ measures that agent as well as the plugin.
  */
 export const PROVISIONAL_NOTE =
-  "Δ provisional: the runs with the plugin use the agent Stigmer composes for it, whose instructions name the plugin, so Δ measures that agent too.";
+  "Δ provisional: this eval ran before conversations listed plugins directly; its runs with the plugin used an agent Stigmer composed for it, so Δ measures that agent too.";
 
 /** The cases, or cases on one target, the eval listed and did not run, one line each. */
 export function renderNotRun(pluginEval: PluginEval): string {
@@ -290,12 +300,34 @@ function oneArmRow(evalCase: PluginEvalCase, result: PluginEvalCaseTarget): stri
   ];
 }
 
-/** The with-arm's first error or not-graded reason, else the case's own notes. */
+/** `<case> · mocked: plugin_kit_tracker(create_issue, close_issue), plugin_kit_wiki[not started: no mock]`. */
+function mockedLine(evalCase: PluginEvalCase): string {
+  const servers = evalCase.mockedServers.map((server) =>
+    server.notStartedReason !== ""
+      ? `${oneLine(server.name)}[${oneLine(server.notStartedReason)}]`
+      : `${oneLine(server.name)}(${server.tools.map(oneLine).join(", ")})`,
+  );
+  return `${oneLine(evalCase.caseName)} · mocked: ${servers.join(", ")}`;
+}
+
+/** How a mock stopped a try, as the format reports it. */
+function abortedText(aborted: NonNullable<PluginEvalTry["aborted"]>): string {
+  return `aborted by ${aborted.server}.${aborted.tool}: ${aborted.reason}`;
+}
+
+/** The with-arm's first error, abort or not-graded reason, else the case's own notes. */
 function notesOf(evalCase: PluginEvalCase, result: PluginEvalCaseTarget): string {
   const tries = result.withPlugin?.tries ?? [];
   const error = tries.find((attempt) => attempt.error !== "")?.error;
+  const aborted = tries.find((attempt) => attempt.aborted !== undefined)?.aborted;
   const notGraded = tries.find((attempt) => attempt.notGradedReason !== "")?.notGradedReason;
-  const note = error ?? (notGraded === undefined ? evalCase.notes.join("; ") : `not graded: ${notGraded}`);
+  const note =
+    error ??
+    (aborted !== undefined
+      ? abortedText(aborted)
+      : notGraded === undefined
+        ? evalCase.notes.join("; ")
+        : `not graded: ${notGraded}`);
   const line = oneLine(note);
   return line.length > MAX_NOTE ? `${line.slice(0, MAX_NOTE - 1)}…` : line;
 }
@@ -325,7 +357,12 @@ function progressLine(caseName: string, target: string, arm: string, attempt: Pl
     attempt.state === PluginEvalTryState.graded
       ? attempt.score.toFixed(2)
       : `not graded: ${oneLine(attempt.notGradedReason) || "no reason given"}`;
-  const error = attempt.error === "" ? "" : ` (${oneLine(attempt.error)})`;
+  const error =
+    attempt.error !== ""
+      ? ` (${oneLine(attempt.error)})`
+      : attempt.aborted !== undefined
+        ? ` (${oneLine(abortedText(attempt.aborted))})`
+        : "";
   return `${caseName} · ${target} · ${arm} · try ${attempt.index}/${of} · ${outcome}${error}`;
 }
 

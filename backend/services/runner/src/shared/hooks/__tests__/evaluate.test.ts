@@ -25,8 +25,8 @@ const ROOT = "/ws";
 const views = new NativeToolViews({
   workspaceRoot: ROOT,
   toVirtualPath: (path) => (path.startsWith(`${ROOT}/`) ? path.slice(ROOT.length) : undefined),
-  toolServerMap: new Map([["create_issue", "github"]]),
-  pluginServers: new Map(),
+  toolServerMap: new Map([["create_issue", "plugin_tracker_github"]]),
+  pluginServers: new Map([["plugin_tracker_github", { plugin: "tracker", server: "github" }]]),
   platformServerSlugs: new Set(),
 });
 
@@ -108,8 +108,8 @@ describe("which handlers run", () => {
 
   it("sees an MCP tool by Claude's name", async () => {
     const { run, runs } = scripted({});
-    const hooks = evaluator([{ source: plugin("safety"), groups: [group("PreToolUse", "mcp__github__.*", { command: "gh" })] }], run);
-    await hooks.preToolUse({ id: "c", name: "create_issue", args: {}, serverSlug: "github" }, {});
+    const hooks = evaluator([{ source: plugin("safety"), groups: [group("PreToolUse", "mcp__plugin_tracker_github__.*", { command: "gh" })] }], run);
+    await hooks.preToolUse({ id: "c", name: "create_issue", args: {}, serverSlug: "plugin_tracker_github" }, {});
     expect(runs.map((r) => r.command)).toEqual(["gh"]);
   });
 });
@@ -260,8 +260,8 @@ describe("what a command runs with", () => {
   it("carries mcp_server for an MCP tool", async () => {
     const { run, runs } = scripted({});
     const hooks = evaluator([{ source: plugin("safety"), groups: [group("PreToolUse", "", { command: "c" })] }], run);
-    await hooks.preToolUse({ id: "c", name: "create_issue", args: {}, serverSlug: "github" }, {});
-    expect(JSON.parse(runs[0]!.stdin).mcp_server).toEqual({ name: "github", source: "managed" });
+    await hooks.preToolUse({ id: "c", name: "create_issue", args: {}, serverSlug: "plugin_tracker_github" }, {});
+    expect(JSON.parse(runs[0]!.stdin).mcp_server).toEqual({ name: "plugin:tracker:github", source: "plugin" });
   });
 
   it("substitutes the path placeholders in both forms and user_config in exec form, and exports them", async () => {
@@ -452,7 +452,7 @@ describe("both formats on one call", () => {
       [{ source: plugin("audit"), format: "cursor", groups: [cursorGroup("postToolUse", "", "cursor-post"), cursorGroup("afterMCPExecution", "", "cursor-post")] }],
       run,
     );
-    expect((await hooks.postToolUse({ id: "c", name: "create_issue", args: {}, serverSlug: "github" }, {}, "made")).additionalContext).toEqual([
+    expect((await hooks.postToolUse({ id: "c", name: "create_issue", args: {}, serverSlug: "plugin_tracker_github" }, {}, "made")).additionalContext).toEqual([
       "reviewed",
       "reviewed",
     ]);

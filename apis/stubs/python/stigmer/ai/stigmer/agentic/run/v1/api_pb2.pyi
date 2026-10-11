@@ -5,6 +5,7 @@ from ai.stigmer.agentic.run.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.run.v1 import filereview_pb2 as _filereview_pb2
 from ai.stigmer.agentic.run.v1 import invocation_pb2 as _invocation_pb2
 from ai.stigmer.agentic.run.v1 import message_pb2 as _message_pb2
+from ai.stigmer.agentic.run.v1 import plugin_eval_case_pb2 as _plugin_eval_case_pb2
 from ai.stigmer.agentic.run.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.agentic.run.v1 import subagent_pb2 as _subagent_pb2
 from ai.stigmer.agentic.run.v1 import todo_pb2 as _todo_pb2
@@ -37,7 +38,7 @@ class Run(_message.Message):
     def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.RunSpec, _Mapping]] = ..., status: _Optional[_Union[RunStatus, _Mapping]] = ...) -> None: ...
 
 class RunStatus(_message.Message):
-    __slots__ = ("audit", "messages", "phase", "sub_agent_runs", "error", "started_at", "completed_at", "todos", "pending_approvals", "approval_event_stream", "context_info", "artifacts", "workspace_write_backs", "setup_progress", "streaming_usage", "structured_output", "file_change_sets", "file_review_event_stream", "file_change_progress", "recalled_memories_report", "agent_id", "agent_version_hash", "declared_preferences", "recalled_memories", "run_config", "approval_mode", "credentials")
+    __slots__ = ("audit", "messages", "phase", "sub_agent_runs", "error", "started_at", "completed_at", "todos", "pending_approvals", "approval_event_stream", "context_info", "artifacts", "workspace_write_backs", "setup_progress", "streaming_usage", "structured_output", "file_change_sets", "file_review_event_stream", "file_change_progress", "recalled_memories_report", "agent_id", "agent_version_hash", "declared_preferences", "recalled_memories", "run_config", "approval_mode", "credentials", "plugin_eval_files")
     class TodosEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -72,6 +73,7 @@ class RunStatus(_message.Message):
     RUN_CONFIG_FIELD_NUMBER: _ClassVar[int]
     APPROVAL_MODE_FIELD_NUMBER: _ClassVar[int]
     CREDENTIALS_FIELD_NUMBER: _ClassVar[int]
+    PLUGIN_EVAL_FILES_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     messages: _containers.RepeatedCompositeFieldContainer[_message_pb2.AgentMessage]
     phase: _enum_pb2.RunPhase
@@ -99,7 +101,8 @@ class RunStatus(_message.Message):
     run_config: _invocation_pb2.RunConfig
     approval_mode: _enum_pb2.ApprovalMode
     credentials: RunCredentials
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., messages: _Optional[_Iterable[_Union[_message_pb2.AgentMessage, _Mapping]]] = ..., phase: _Optional[_Union[_enum_pb2.RunPhase, str]] = ..., sub_agent_runs: _Optional[_Iterable[_Union[_subagent_pb2.SubAgentRun, _Mapping]]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., todos: _Optional[_Mapping[str, _todo_pb2.TodoItem]] = ..., pending_approvals: _Optional[_Iterable[_Union[_approval_pb2.PendingApproval, _Mapping]]] = ..., approval_event_stream: _Optional[_Union[_approval_pb2.ApprovalEventStream, _Mapping]] = ..., context_info: _Optional[_Union[_context_pb2.ContextInfo, _Mapping]] = ..., artifacts: _Optional[_Iterable[_Union[_artifact_pb2.RunArtifact, _Mapping]]] = ..., workspace_write_backs: _Optional[_Iterable[_Union[_writeback_pb2.WorkspaceWriteBack, _Mapping]]] = ..., setup_progress: _Optional[_Union[SetupProgress, _Mapping]] = ..., streaming_usage: _Optional[_Union[_usage_pb2.StreamingUsageSummary, _Mapping]] = ..., structured_output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., file_change_sets: _Optional[_Iterable[_Union[_filereview_pb2.FileChangeSet, _Mapping]]] = ..., file_review_event_stream: _Optional[_Union[_filereview_pb2.FileReviewEventStream, _Mapping]] = ..., file_change_progress: _Optional[_Union[_filereview_pb2.FileChangeProgress, _Mapping]] = ..., recalled_memories_report: _Optional[_Union[RecalledMemoriesReport, _Mapping]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., declared_preferences: _Optional[_Union[_spec_pb2.DeclaredPreferences, _Mapping]] = ..., recalled_memories: _Optional[_Union[_spec_pb2.RecalledMemories, _Mapping]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., approval_mode: _Optional[_Union[_enum_pb2.ApprovalMode, str]] = ..., credentials: _Optional[_Union[RunCredentials, _Mapping]] = ...) -> None: ...
+    plugin_eval_files: _plugin_eval_case_pb2.PluginEvalFiles
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., messages: _Optional[_Iterable[_Union[_message_pb2.AgentMessage, _Mapping]]] = ..., phase: _Optional[_Union[_enum_pb2.RunPhase, str]] = ..., sub_agent_runs: _Optional[_Iterable[_Union[_subagent_pb2.SubAgentRun, _Mapping]]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., todos: _Optional[_Mapping[str, _todo_pb2.TodoItem]] = ..., pending_approvals: _Optional[_Iterable[_Union[_approval_pb2.PendingApproval, _Mapping]]] = ..., approval_event_stream: _Optional[_Union[_approval_pb2.ApprovalEventStream, _Mapping]] = ..., context_info: _Optional[_Union[_context_pb2.ContextInfo, _Mapping]] = ..., artifacts: _Optional[_Iterable[_Union[_artifact_pb2.RunArtifact, _Mapping]]] = ..., workspace_write_backs: _Optional[_Iterable[_Union[_writeback_pb2.WorkspaceWriteBack, _Mapping]]] = ..., setup_progress: _Optional[_Union[SetupProgress, _Mapping]] = ..., streaming_usage: _Optional[_Union[_usage_pb2.StreamingUsageSummary, _Mapping]] = ..., structured_output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., file_change_sets: _Optional[_Iterable[_Union[_filereview_pb2.FileChangeSet, _Mapping]]] = ..., file_review_event_stream: _Optional[_Union[_filereview_pb2.FileReviewEventStream, _Mapping]] = ..., file_change_progress: _Optional[_Union[_filereview_pb2.FileChangeProgress, _Mapping]] = ..., recalled_memories_report: _Optional[_Union[RecalledMemoriesReport, _Mapping]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., declared_preferences: _Optional[_Union[_spec_pb2.DeclaredPreferences, _Mapping]] = ..., recalled_memories: _Optional[_Union[_spec_pb2.RecalledMemories, _Mapping]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., approval_mode: _Optional[_Union[_enum_pb2.ApprovalMode, str]] = ..., credentials: _Optional[_Union[RunCredentials, _Mapping]] = ..., plugin_eval_files: _Optional[_Union[_plugin_eval_case_pb2.PluginEvalFiles, _Mapping]] = ...) -> None: ...
 
 class RunCredentials(_message.Message):
     __slots__ = ("person", "sources")
@@ -128,16 +131,20 @@ class RunValueSource(_message.Message):
     def __init__(self, key: _Optional[str] = ..., declarer: _Optional[_Union[RunValueDeclarer, _Mapping]] = ..., origin: _Optional[_Union[_enum_pb2.RunValueOrigin, str]] = ..., vault_id: _Optional[str] = ..., entry: _Optional[str] = ..., login: bool = ..., plain_value: _Optional[str] = ...) -> None: ...
 
 class RunValueDeclarer(_message.Message):
-    __slots__ = ("kind", "name", "mcp_server_id", "repository_url")
+    __slots__ = ("kind", "name", "repository_url", "plugin_id", "server", "plugin_digest")
     KIND_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
-    MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
     REPOSITORY_URL_FIELD_NUMBER: _ClassVar[int]
+    PLUGIN_ID_FIELD_NUMBER: _ClassVar[int]
+    SERVER_FIELD_NUMBER: _ClassVar[int]
+    PLUGIN_DIGEST_FIELD_NUMBER: _ClassVar[int]
     kind: _enum_pb2.RunValueDeclarerKind
     name: str
-    mcp_server_id: str
     repository_url: str
-    def __init__(self, kind: _Optional[_Union[_enum_pb2.RunValueDeclarerKind, str]] = ..., name: _Optional[str] = ..., mcp_server_id: _Optional[str] = ..., repository_url: _Optional[str] = ...) -> None: ...
+    plugin_id: str
+    server: str
+    plugin_digest: str
+    def __init__(self, kind: _Optional[_Union[_enum_pb2.RunValueDeclarerKind, str]] = ..., name: _Optional[str] = ..., repository_url: _Optional[str] = ..., plugin_id: _Optional[str] = ..., server: _Optional[str] = ..., plugin_digest: _Optional[str] = ...) -> None: ...
 
 class SetupProgress(_message.Message):
     __slots__ = ("current_phase",)

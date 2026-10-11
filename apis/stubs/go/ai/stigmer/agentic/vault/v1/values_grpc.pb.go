@@ -30,7 +30,7 @@ const (
 // from their vaults when its work starts. Nothing else reads a vault's
 // values.
 type VaultValueControllerClient interface {
-	// Fetch the values of a run or of a tool connect, grouped by who declared
+	// Fetch the values of a run or of a tools listing, grouped by who declared
 	// them, opened from the vaults the run's source manifest names
 	// (RunStatus.credentials.sources) as they are now.
 	FetchValues(ctx context.Context, in *FetchExecutionValuesInput, opts ...grpc.CallOption) (*ExecutionValues, error)
@@ -62,7 +62,7 @@ func (c *vaultValueControllerClient) FetchValues(ctx context.Context, in *FetchE
 // from their vaults when its work starts. Nothing else reads a vault's
 // values.
 type VaultValueControllerServer interface {
-	// Fetch the values of a run or of a tool connect, grouped by who declared
+	// Fetch the values of a run or of a tools listing, grouped by who declared
 	// them, opened from the vaults the run's source manifest names
 	// (RunStatus.credentials.sources) as they are now.
 	FetchValues(context.Context, *FetchExecutionValuesInput) (*ExecutionValues, error)

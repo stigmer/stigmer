@@ -91,6 +91,10 @@ export class UserInfoFetchError extends Error {
  *     subject (constants.ts `federatedAccountIdFor`), and it belongs to the
  *     provider's organization. `provider` is the stored reference's
  *     absolute form: the organization id and the provider's slug.
+ *   - `service_account`: an organization's own non-person account,
+ *     created by its admins (domain/identityaccount/service-accounts.ts).
+ *     Its subject is the reserved `stgm_sa|` composite, and it belongs to
+ *     its organization for its whole life.
  */
 export type AccountProvisioning =
   | { readonly mode: "direct" }
@@ -98,7 +102,8 @@ export type AccountProvisioning =
   | {
       readonly mode: "federated";
       readonly provider: FederatedProvider;
-    };
+    }
+  | { readonly mode: "service_account"; readonly org: string };
 
 /** The identity provider a federated account belongs to, as its stored reference names it. */
 export interface FederatedProvider {
@@ -120,6 +125,7 @@ const OWNING_ORGANIZATION: {
   direct: () => "",
   platform_client: (provisioning) => provisioning.org,
   federated: (provisioning) => provisioning.provider.org,
+  service_account: (provisioning) => provisioning.org,
 };
 
 /** The organization an account being created belongs to; "" for a direct account, which belongs to none. */
@@ -139,6 +145,8 @@ export function owningOrganizationOf(
 export interface CreateAccountInput {
   /** `metadata.name`; the chain defaults an empty one. */
   readonly name: string;
+  /** `metadata.slug`; the chain derives an absent one from the name. */
+  readonly slug?: string;
   readonly spec: IdentityAccountSpec;
   readonly provisioning: AccountProvisioning;
 }

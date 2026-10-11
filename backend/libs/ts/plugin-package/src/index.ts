@@ -35,7 +35,7 @@ export {
 } from "./messages.js";
 export { HOOK_CONDITION_PATTERN, RUN_EVENTS, hookVariableReferences, isValidMatcher } from "./normalise/hooks.js";
 export { SUB_AGENT_INSTRUCTIONS_MIN, classifyModel } from "./normalise/sub-agents.js";
-export { PLACEHOLDER_PATTERN, VARIABLE_NAME_PATTERN } from "./placeholders.js";
+export { PLACEHOLDER_PATTERN, PLATFORM_VARIABLES, VARIABLE_NAME_PATTERN } from "./placeholders.js";
 export { HOOK_WARNING_KINDS } from "./outcome.js";
 export type {
   Finding,
@@ -60,14 +60,19 @@ export type {
 } from "./marketplace/outcome.js";
 export { hasMarketplaceFile, readMarketplace, readMarketplaceFile } from "./marketplace/read-marketplace.js";
 export { readPluginPackage } from "./read-plugin-package.js";
+export { toolServerSegment } from "./tool-names.js";
 export {
   DEFAULT_EVAL_DIR,
+  EVAL_CURSOR_UNSUPPORTED_FEATURES,
   EVAL_MAX_APPEND_SYSTEM_PROMPT,
   EVAL_MAX_GRADERS,
   EVAL_UNSUPPORTED_FEATURES,
+  type EvalCursorUnsupportedFeature,
   type EvalUnsupportedFeature,
+  evalCaseUnsupportedOnCursor,
   readEvalSuite,
 } from "./evals/read-eval-suite.js";
+export { MOCKS_DIR } from "./evals/mocks.js";
 export { EVAL_ENV_KEY_PATTERN, EVAL_SCHEMA_VERSION } from "./evals/fields.js";
 export {
   EVAL_SUMMARY_MAX_CASE_TAGS,
@@ -90,6 +95,8 @@ export type {
   EvalGraderArm,
   EvalGraderCheck,
   EvalGraderType,
+  EvalMockServer,
+  EvalMockTool,
   EvalSuite,
   EvalSuiteFinding,
   EvalToolRef,
@@ -101,8 +108,6 @@ export type {
   IgnoredComponentKind,
   ModelAlias,
   ModelHint,
-  OverlayDocument,
-  OverlayServerDocument,
   PluginAuthor,
   PluginDialect,
   PluginHookGroup,
@@ -113,5 +118,4 @@ export type {
   PluginSkill,
   PluginSubAgent,
   PluginVariable,
-  StigmerOverlay,
 } from "./types.js";

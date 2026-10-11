@@ -74,6 +74,8 @@ const ARCHIVE_LABEL = "plugin archive";
 
 /** One mounted plugin, as a hook run reads it. */
 export interface MountedPlugin {
+  /** The plugin's id: its hooks' values are grouped by it (`RunValues.plugins`). */
+  readonly id: string;
   /** The plugin's slug, the name a run records as the deciding hook. */
   readonly slug: string;
   /** The plugin's own name (its manifest's), as Claude Code names its servers. */
@@ -118,7 +120,7 @@ interface ExpectedFile {
  */
 const OWNER_EXEC = 0o100;
 
-function sha256Hex(bytes: Uint8Array): string {
+export function sha256Hex(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
@@ -161,6 +163,7 @@ export async function mountPlugin(
   await agentFs().mkdir(data, { recursive: true });
 
   return {
+    id: plugin.metadata?.id ?? "",
     slug,
     name: plugin.metadata?.name || slug,
     root: tree.root,
@@ -195,7 +198,7 @@ export function withoutEvalSuite(entries: readonly ZipFileEntry[], ...dirs: read
  * `sanitizePath`): backslashes as slashes, `.` and `..` resolved against
  * the root, no leading slash.
  */
-function cleanEntryPath(name: string): string {
+export function cleanEntryPath(name: string): string {
   return posix.normalize(`/${name.replaceAll("\\", "/")}`).slice(1);
 }
 

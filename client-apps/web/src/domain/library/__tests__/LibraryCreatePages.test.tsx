@@ -24,14 +24,12 @@ vi.mock("@stigmer/react", () => {
   };
   return {
     AgentCreationWizard: capture("AgentCreationWizard"),
-    McpServerCreationWizard: capture("McpServerCreationWizard"),
     CreationPicker: capture("CreationPicker"),
     ApplyManifestDialog: capture("ApplyManifestDialog"),
     PluginUploader: capture("PluginUploader"),
     ScheduleForm: capture("ScheduleForm"),
     SkillUploader: capture("SkillUploader"),
     AGENT_TEMPLATES: [],
-    MCP_SERVER_TEMPLATES: [],
     useActiveOrgId: () => "org_acme",
     useCanCreateAgent: () => page.canCreate,
     AgentCreationDenied: () => <p>only admins create agents</p>,
@@ -48,7 +46,6 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { AgentNewPage } from "../agents/AgentNewPage";
-import { McpServerNewPage } from "../mcp-servers/McpServerNewPage";
 import { PluginUploadPage } from "../plugins/PluginUploadPage";
 import { ScheduleNewPage } from "../schedules/ScheduleNewPage";
 import { SkillNewPage } from "../skills/SkillNewPage";
@@ -83,18 +80,6 @@ describe("web library create pages", () => {
       slug: "made",
     });
     expect(page.pushed).toEqual(["/library/agents/acme/made"]);
-  });
-
-  it("McpServerNewPage creates in the active org id and opens the server under the org slug", () => {
-    render(<McpServerNewPage />);
-    call("CreationPicker", "onSelect", { kind: "scratch" });
-
-    expect(propsOf("McpServerCreationWizard").org).toBe("org_acme");
-    call("McpServerCreationWizard", "onComplete", {
-      org: "org_acme",
-      slug: "made",
-    });
-    expect(page.pushed).toEqual(["/library/mcp-servers/acme/made"]);
   });
 
   it("PluginUploadPage uploads into the active org id, names the org by slug, and opens the plugin under it", () => {

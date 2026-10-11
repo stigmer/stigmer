@@ -33,7 +33,7 @@ public interface PushPluginRequestOrBuilder extends
   /**
    * <pre>
    * The plugin package as a ZIP archive: the plugin folder with its manifest,
-   * skills/, mcp.json, agents/ and ai.stigmer/ at the archive root.
+   * skills/, mcp.json, agents/ and hooks/ at the archive root.
    *
    * Mutually exclusive with artifact_upload_ref (see the message comment).
    * </pre>
@@ -69,8 +69,8 @@ public interface PushPluginRequestOrBuilder extends
 
   /**
    * <pre>
-   * Visibility for the plugin and every resource it materialises.
-   * Unspecified means the kind's default (organization).
+   * Visibility for the plugin. Unspecified means the kind's default
+   * (organization).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -79,8 +79,8 @@ public interface PushPluginRequestOrBuilder extends
   int getVisibilityValue();
   /**
    * <pre>
-   * Visibility for the plugin and every resource it materialises.
-   * Unspecified means the kind's default (organization).
+   * Visibility for the plugin. Unspecified means the kind's default
+   * (organization).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 4 [json_name = "visibility", (.buf.validate.field) = { ... }</code>

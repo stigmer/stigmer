@@ -20,7 +20,7 @@
  *
  * Proven by __tests__/token-exchange.test.ts,
  * __tests__/token-refresh.test.ts, the sign-in conformance suite and the
- * Class B mcpserver-connect suite.
+ * Class B plugin-tools suite.
  */
 import type { OutboundFetch } from "@stigmer/outbound/egress";
 import { truncateBody } from "./truncate-body.js";

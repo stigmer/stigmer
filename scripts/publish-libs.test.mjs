@@ -228,6 +228,7 @@ test("the checked-in @stigmer/cli closure is exactly what the compose-runner ima
   assert.deepEqual(packageClosure("@stigmer/cli"), [
     "apis/stubs/ts",
     "backend/libs/ts/zip-structure",
+    "backend/libs/ts/eval-runtime",
     "backend/libs/ts/plugin-package",
     "sdk/typescript",
     "sdk/theme",

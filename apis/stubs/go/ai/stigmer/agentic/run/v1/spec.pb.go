@@ -207,8 +207,12 @@ type RunSpec struct {
 	// agent was not watching, the digest carries what happened so the agent
 	// re-enters informed. Absent on every other run surface.
 	ConversationCatchup *ConversationCatchup `protobuf:"bytes,14,opt,name=conversation_catchup,json=conversationCatchup,proto3" json:"conversation_catchup,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// What a plugin-eval case gives this try beyond its message: a starting
+	// folder, reference folders, an earlier conversation, variables and MCP
+	// stand-ins. Absent on every other run.
+	PluginEvalCase *PluginEvalCaseContext `protobuf:"bytes,25,opt,name=plugin_eval_case,json=pluginEvalCase,proto3" json:"plugin_eval_case,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *RunSpec) Reset() {
@@ -357,6 +361,13 @@ func (x *RunSpec) GetConversationCatchup() *ConversationCatchup {
 	return nil
 }
 
+func (x *RunSpec) GetPluginEvalCase() *PluginEvalCaseContext {
+	if x != nil {
+		return x.PluginEvalCase
+	}
+	return nil
+}
+
 type isRunSpec_Target interface {
 	isRunSpec_Target()
 }
@@ -378,7 +389,7 @@ type RunSpec_SessionSpec struct {
 	//
 	// This is the one-call session bootstrap: a single create carries the
 	// full session shape (the agent, workspace_entries, harness,
-	// execution_target, MCP servers, skills) together with the first
+	// execution_target, plugins, skills) together with the first
 	// message, so embedders do not need to orchestrate session.create
 	// followed by run.create. The created session's ID is
 	// returned on the persisted run's session_id.
@@ -763,7 +774,7 @@ var File_ai_stigmer_agentic_run_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x91\f\n" +
+	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a0ai/stigmer/agentic/run/v1/plugin_eval_case.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xab\r\n" +
 	"\aRunSpec\x12\x1f\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tH\x00R\tsessionId\x12O\n" +
@@ -773,16 +784,17 @@ const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"run_config\x18\x12 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12_\n" +
 	"\x10interaction_mode\x18\x13 \x01(\x0e2*.ai.stigmer.agentic.run.v1.InteractionModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x0finteractionMode\x12&\n" +
 	"\x0fbuild_from_plan\x18\x14 \x01(\bR\rbuildFromPlan\x12Q\n" +
-	"\x18structured_output_schema\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\x12\x8d\x01\n" +
-	"\x05tools\x18\x16 \x03(\tBw\xbaHt\x92\x01q\x10\x80\x01\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x05tools\x12\xa2\x01\n" +
-	"\x10disallowed_tools\x18\x17 \x03(\tBw\xbaHt\x92\x01q\x10\x80\x01\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x0fdisallowedTools\x12;\n" +
+	"\x18structured_output_schema\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\x12\xac\x01\n" +
+	"\x05tools\x18\x16 \x03(\tB\x95\x01\xbaH\x91\x01\x92\x01\x8d\x01\x10\x80\x01\"\x87\x01r\x84\x01\x18\x80\x022\x7f^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x05tools\x12\xc1\x01\n" +
+	"\x10disallowed_tools\x18\x17 \x03(\tB\x95\x01\xbaH\x91\x01\x92\x01\x8d\x01\x10\x80\x01\"\x87\x01r\x84\x01\x18\x80\x022\x7f^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x0fdisallowedTools\x12;\n" +
 	"\x14append_system_prompt\x18\x18 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x02R\x12appendSystemPrompt\x12(\n" +
 	"\x10auto_approve_all\x18\a \x01(\bR\x0eautoApproveAll\x12G\n" +
 	"\vattachments\x18\t \x03(\v2%.ai.stigmer.agentic.run.v1.AttachmentR\vattachments\x12.\n" +
 	"\x13workspace_file_refs\x18\n" +
 	" \x03(\tR\x11workspaceFileRefs\x12*\n" +
 	"\x11supersedes_run_id\x18\f \x01(\tR\x0fsupersedesRunId\x12a\n" +
-	"\x14conversation_catchup\x18\x0e \x01(\v2..ai.stigmer.agentic.run.v1.ConversationCatchupR\x13conversationCatchup:\xd8\x01\xbaH\xd4\x01\x1a\xd1\x01\n" +
+	"\x14conversation_catchup\x18\x0e \x01(\v2..ai.stigmer.agentic.run.v1.ConversationCatchupR\x13conversationCatchup\x12Z\n" +
+	"\x10plugin_eval_case\x18\x19 \x01(\v20.ai.stigmer.agentic.run.v1.PluginEvalCaseContextR\x0epluginEvalCase:\xd8\x01\xbaH\xd4\x01\x1a\xd1\x01\n" +
 	"\x1erun.session_spec_harness_state\x12jsession_spec.harness_state_id must be empty — harness state is created by the runner after the first run\x1aC!has(this.session_spec) || this.session_spec.harness_state_id == ''B\b\n" +
 	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x11\x10\x12J\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x06parentR\x14declared_preferencesR\x11recalled_memoriesR\x10execution_configR\vruntime_env\"\x96\x03\n" +
 	"\n" +
@@ -837,7 +849,8 @@ var file_ai_stigmer_agentic_run_v1_spec_proto_goTypes = []any{
 	(*RunConfig)(nil),             // 7: ai.stigmer.agentic.run.v1.RunConfig
 	(InteractionMode)(0),          // 8: ai.stigmer.agentic.run.v1.InteractionMode
 	(*structpb.Struct)(nil),       // 9: google.protobuf.Struct
-	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
+	(*PluginEvalCaseContext)(nil), // 10: ai.stigmer.agentic.run.v1.PluginEvalCaseContext
+	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_run_v1_spec_proto_depIdxs = []int32{
 	6,  // 0: ai.stigmer.agentic.run.v1.RunSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
@@ -846,13 +859,14 @@ var file_ai_stigmer_agentic_run_v1_spec_proto_depIdxs = []int32{
 	9,  // 3: ai.stigmer.agentic.run.v1.RunSpec.structured_output_schema:type_name -> google.protobuf.Struct
 	1,  // 4: ai.stigmer.agentic.run.v1.RunSpec.attachments:type_name -> ai.stigmer.agentic.run.v1.Attachment
 	2,  // 5: ai.stigmer.agentic.run.v1.RunSpec.conversation_catchup:type_name -> ai.stigmer.agentic.run.v1.ConversationCatchup
-	10, // 6: ai.stigmer.agentic.run.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
-	5,  // 7: ai.stigmer.agentic.run.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.run.v1.RecalledMemoryFact
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	10, // 6: ai.stigmer.agentic.run.v1.RunSpec.plugin_eval_case:type_name -> ai.stigmer.agentic.run.v1.PluginEvalCaseContext
+	11, // 7: ai.stigmer.agentic.run.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
+	5,  // 8: ai.stigmer.agentic.run.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.run.v1.RecalledMemoryFact
+	9,  // [9:9] is the sub-list for method output_type
+	9,  // [9:9] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_spec_proto_init() }
@@ -862,6 +876,7 @@ func file_ai_stigmer_agentic_run_v1_spec_proto_init() {
 	}
 	file_ai_stigmer_agentic_run_v1_enum_proto_init()
 	file_ai_stigmer_agentic_run_v1_invocation_proto_init()
+	file_ai_stigmer_agentic_run_v1_plugin_eval_case_proto_init()
 	file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[0].OneofWrappers = []any{
 		(*RunSpec_SessionId)(nil),
 		(*RunSpec_SessionSpec)(nil),

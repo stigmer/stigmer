@@ -47,6 +47,11 @@ class IdentityAccountCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.DeprovisionFederatedAccountInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
                 _registered_method=True)
+        self.createServiceAccount = channel.unary_unary(
+                '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/createServiceAccount',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.CreateServiceAccountInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+                _registered_method=True)
         self.provisionMyAccount = channel.unary_unary(
                 '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/provisionMyAccount',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
@@ -140,6 +145,27 @@ class IdentityAccountCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def createServiceAccount(self, request, context):
+        """Create a service account: an organization's own non-person account for
+        automation, holding one organization role.
+
+        The account belongs to `org` for its whole life. It holds `role` on the
+        organization (admin, member or viewer; never owner) and acts only through
+        API keys created for it with ApiKeyCommandController.createForServiceAccount.
+        Its name is unique among the organization's service accounts; a name in
+        use answers ALREADY_EXISTS. A server running without sign-in answers
+        FAILED_PRECONDITION, since no key could authenticate there.
+
+        Rename it with update, change its role through IAM policies, and delete
+        it with delete, which ends every key it has.
+
+        Authorization: Requires can_create_identity_account on the organization.
+        A service account's own key is refused.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def provisionMyAccount(self, request, context):
         """Provision the caller's own identity account.
 
@@ -187,6 +213,11 @@ def add_IdentityAccountCommandControllerServicer_to_server(servicer, server):
             'deprovisionFederatedAccount': grpc.unary_unary_rpc_method_handler(
                     servicer.deprovisionFederatedAccount,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.DeprovisionFederatedAccountInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
+            ),
+            'createServiceAccount': grpc.unary_unary_rpc_method_handler(
+                    servicer.createServiceAccount,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.CreateServiceAccountInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
             ),
             'provisionMyAccount': grpc.unary_unary_rpc_method_handler(
@@ -357,6 +388,33 @@ class IdentityAccountCommandController(object):
             target,
             '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/deprovisionFederatedAccount',
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.DeprovisionFederatedAccountInput.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def createServiceAccount(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/createServiceAccount',
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.CreateServiceAccountInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
             options,
             channel_credentials,

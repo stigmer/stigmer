@@ -90,7 +90,7 @@ describe("vendor dialects", () => {
     );
     expect(kindsOf(outcome)).toEqual({ errors: [], warnings: ["mcp-server-auth-ignored"] });
     expect(accepted(outcome).mcpServers[0]?.env).toEqual(["CLIENT_ID"]);
-    expect(findingOf(outcome.warnings, "mcp-server-auth-ignored").message).toContain("ai.stigmer/mcp-servers/crm.yaml");
+    expect(findingOf(outcome.warnings, "mcp-server-auth-ignored").message).toContain("a person signs in to a server at its address");
   });
 
   it("warns on a field Stigmer does not read instead of refusing", () => {

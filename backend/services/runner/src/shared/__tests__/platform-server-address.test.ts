@@ -6,7 +6,13 @@
  */
 
 import { describe, it, expect } from "vitest";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { create } from "@bufbuild/protobuf";
+import {
+  HttpMcpServerSchema,
+  McpServerEntrySchema,
+  StdioMcpServerSchema,
+  type McpServerEntry,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
   SERVER_ADDRESS_ENV_KEY,
   fillPlatformServerAddress,
@@ -28,13 +34,18 @@ const WITH_PUBLIC: PlatformEndpoints = {
 function server(
   transport: "stdio" | "http",
   declared: readonly string[] = [SERVER_ADDRESS_ENV_KEY],
-): McpServer {
-  const env = Object.fromEntries(declared.map((key) => [key, {}]));
-  const serverType = transport === "stdio"
-    ? { case: "stdio", value: { command: "stigmer", args: ["mcp-server"] } }
-    : { case: "http", value: { url: "https://mcp.example.com/mcp", headers: {} } };
-  return { metadata: { slug: "stigmer" }, spec: { serverType, env } } as unknown as McpServer;
+): McpServerEntry {
+  return create(McpServerEntrySchema, {
+    name: "stigmer",
+    transport: transport === "stdio"
+      ? { case: "stdio", value: create(StdioMcpServerSchema, { command: "stigmer", args: ["mcp-server"] }) }
+      : { case: "http", value: create(HttpMcpServerSchema, { url: "https://mcp.example.com/mcp" }) },
+    env: [...declared],
+  });
 }
+
+/** The name the fill's log line gives the server. */
+const SLUG = "plugin_stigmer_stigmer";
 
 describe("grpcTarget", () => {
   it.each([
@@ -79,44 +90,36 @@ describe("platformServerAddress", () => {
 describe("fillPlatformServerAddress", () => {
   it("fills a declared, missing address for a stdio server", () => {
     const env = { OTHER: "x" };
-    const result = fillPlatformServerAddress(server("stdio"), env, LOCAL);
+    const result = fillPlatformServerAddress(server("stdio"), SLUG, env, LOCAL);
     expect(result).toEqual({ OTHER: "x", [SERVER_ADDRESS_ENV_KEY]: "localhost:7234" });
     expect(env).toEqual({ OTHER: "x" });
   });
 
   it("fills a declared, empty address", () => {
-    const result = fillPlatformServerAddress(
-      server("stdio"),
-      { [SERVER_ADDRESS_ENV_KEY]: "" },
-      LOCAL,
-    );
+    const result = fillPlatformServerAddress(server("stdio"), SLUG, { [SERVER_ADDRESS_ENV_KEY]: "" }, LOCAL);
     expect(result[SERVER_ADDRESS_ENV_KEY]).toBe("localhost:7234");
   });
 
   it("never overrides a value already present", () => {
     const env = { [SERVER_ADDRESS_ENV_KEY]: "other.example:7234" };
-    expect(fillPlatformServerAddress(server("stdio"), env, WITH_PUBLIC)).toBe(env);
+    expect(fillPlatformServerAddress(server("stdio"), SLUG, env, WITH_PUBLIC)).toBe(env);
   });
 
   it("gives nothing to a server that does not declare the key", () => {
     const env = {};
-    expect(fillPlatformServerAddress(server("stdio", ["OTHER"]), env, LOCAL)).toBe(env);
+    expect(fillPlatformServerAddress(server("stdio", ["OTHER"]), SLUG, env, LOCAL)).toBe(env);
   });
 
   it("fills a remote server only from the public endpoint", () => {
     expect(
-      fillPlatformServerAddress(server("http"), {}, WITH_PUBLIC)[SERVER_ADDRESS_ENV_KEY],
+      fillPlatformServerAddress(server("http"), SLUG, {}, WITH_PUBLIC)[SERVER_ADDRESS_ENV_KEY],
     ).toBe("api.example.com:443");
     const env = {};
-    expect(fillPlatformServerAddress(server("http"), env, LOCAL)).toBe(env);
+    expect(fillPlatformServerAddress(server("http"), SLUG, env, LOCAL)).toBe(env);
   });
 
   it("fills the address alone, never a declared STIGMER_API_KEY", () => {
-    const result = fillPlatformServerAddress(
-      server("http", [SERVER_ADDRESS_ENV_KEY, "STIGMER_API_KEY"]),
-      {},
-      WITH_PUBLIC,
-    );
+    const result = fillPlatformServerAddress(server("http", [SERVER_ADDRESS_ENV_KEY, "STIGMER_API_KEY"]), SLUG, {}, WITH_PUBLIC);
     expect(result).toEqual({ [SERVER_ADDRESS_ENV_KEY]: "api.example.com:443" });
   });
 });

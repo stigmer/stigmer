@@ -3,6 +3,7 @@
 import { useCallback, useState, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
+import { PluginIcon } from "../plugin/PluginIcon.js";
 import type { DependencyNode, NodeKind } from "./types.js";
 
 interface DependencyTreeNodeProps {
@@ -14,7 +15,7 @@ interface DependencyTreeNodeProps {
 
 const KIND_LABELS: Record<NodeKind, string> = {
   agent: "Agent",
-  "mcp-server": "MCP",
+  plugin: "Plugin",
   skill: "Skill",
   "sub-agent": "Sub-Agent",
 };
@@ -24,7 +25,7 @@ const KIND_LABELS: Record<NodeKind, string> = {
  * label, metadata, and (for expandable nodes) an expand/collapse
  * chevron with nested children.
  *
- * Leaf nodes (MCP servers, skills) with a `ref` are clickable —
+ * Leaf nodes (plugins, skills) with a `ref` are clickable —
  * firing `onNodeClick` for consumer-wired navigation.
  *
  * Sub-agent nodes are collapsible containers, and the root agent
@@ -176,12 +177,12 @@ export function DependencyTreeNode({
 
 function kindBadgeClasses(kind: NodeKind): string {
   switch (kind) {
-    case "mcp-server":
+    case "plugin":
       return "stg:bg-[var(--stgm-status-running-subtle)] stg:text-[var(--stgm-status-running)]";
     case "skill":
       return "stg:bg-[var(--stgm-status-pending-subtle)] stg:text-[var(--stgm-status-pending)]";
-    // Badges borrow status hues as category colors (skill=pending,
-    // sub-agent=ready).
+    // Badges borrow status hues as category colors (plugin=running,
+    // skill=pending, sub-agent=ready).
     case "sub-agent":
       return "stg:bg-[var(--stgm-status-ready-subtle)] stg:text-[var(--stgm-status-ready)]";
     case "agent":
@@ -204,8 +205,8 @@ function NodeIcon({
     case "agent":
     case "sub-agent":
       return <AgentIcon className={className} />;
-    case "mcp-server":
-      return <McpServerIcon className={className} />;
+    case "plugin":
+      return <PluginIcon className={className} />;
     case "skill":
       return <SkillIcon className={className} />;
   }
@@ -226,26 +227,6 @@ function AgentIcon({ className }: { readonly className?: string }) {
       <rect x="3" y="5" width="10" height="8" rx="1.5" />
       <path d="M6 9h.01M10 9h.01" strokeWidth="2" />
       <path d="M8 2v3" />
-    </svg>
-  );
-}
-
-function McpServerIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="2" y="2" width="12" height="5" rx="1" />
-      <rect x="2" y="9" width="12" height="5" rx="1" />
-      <circle cx="5" cy="4.5" r="0.75" fill="currentColor" stroke="none" />
-      <circle cx="5" cy="11.5" r="0.75" fill="currentColor" stroke="none" />
     </svg>
   );
 }

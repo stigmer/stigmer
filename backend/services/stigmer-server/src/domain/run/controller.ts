@@ -104,6 +104,8 @@ import {
 import type { SessionCreatorProvider } from "./create-steps.js";
 import {
   newComposeDeclaredPreferencesStep,
+  newGuardPluginEvalCaseStep,
+  newKeepPluginEvalCaseStep,
   newRefuseVisitorAppendedPromptStep,
   newComposeRecalledMemoriesStep,
   newCreateSessionIfNeededStep,
@@ -416,6 +418,7 @@ async function createExecution(
     )
     .addStep(newValidateServiceTierStep(deps.modelRegistry))
     .addStep(newValidateThinkingModeStep(deps.modelRegistry))
+    .addStep(newGuardPluginEvalCaseStep())
     .addStep(
       newRefuseVisitorAppendedPromptStep(deps.logger, deps.visitorClassifier),
     )
@@ -513,8 +516,9 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * chain; BuildUpdateState clears status per the shared pattern,
  * GuardReservedLabels refuses a `stigmer.ai/*` label the caller
  * introduces or changes (a run's schedule label names whose vaults a
- * person-less run uses), and ValidateSessionImmutability keeps the
- * execution in its session (session-binding.ts).
+ * person-less run uses), ValidateSessionImmutability keeps the
+ * execution in its session (session-binding.ts), and KeepPluginEvalCase
+ * keeps the plugin-eval case context the server composed at create.
  */
 async function update(
   deps: AgentExecutionControllerDeps,
@@ -541,6 +545,7 @@ async function update(
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newKeepPluginEvalCaseStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateSessionImmutabilityStep())
     .addStep(newNormalizeReferencesStep())

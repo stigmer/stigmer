@@ -3,7 +3,7 @@
 // through the library's own suite reader (`readEvalSuite`, the reader the
 // server's create and the eval's workflow call) with the prompt, the
 // frontmatter fields and every grader as written, a `context.scaffold_script`
-// case named unsupported; a fresh eval runs the current version once per
+// case's script read back from its case.yaml; a fresh eval runs the current version once per
 // arm within ten dollars; the follower reads past the phases it was not
 // asked for and fails loudly, naming what it last read, once its budget is
 // spent; `triesOf` walks the status in case, target and arm order; the
@@ -41,6 +41,8 @@ import {
   timedOutError,
   triesOf,
   unsupportedFeatureReason,
+  engineUnsupportedReason,
+  NOT_STARTED_NO_MOCK,
 } from "../plugin-evals";
 
 describe("the suite layout", () => {
@@ -112,10 +114,10 @@ describe("the suite layout", () => {
     expect(writes?.unsupported).toBeUndefined();
   });
 
-  it("names a case that needs a scaffold script unsupported", () => {
-    expect(
-      suite.cases.find((c) => c.name === "needs-scaffold")?.unsupported,
-    ).toBe("context.scaffold_script");
+  it("reads a case's scaffold script from its case.yaml, and runs the case", () => {
+    const scaffolded = suite.cases.find((c) => c.name === "needs-scaffold");
+    expect(scaffolded?.context.scaffoldScript).toBe("fixture.sh");
+    expect(scaffolded?.unsupported).toBeUndefined();
   });
 
   it("writes each case under the directory it is given", () => {
@@ -230,7 +232,7 @@ describe("triesOf", () => {
               },
             ],
           },
-          { caseName: "b", notRunReason: "not run: context.scaffold_script" },
+          { caseName: "b", notRunReason: "not run: plugins" },
         ],
       },
     });
@@ -257,16 +259,16 @@ describe("the copy the suites assert", () => {
       "plugin eval pev_1 is still running: cancel it first, then delete it",
     );
     expect(
-      pluginEvalOtherPluginToolMessage("mcp__plugin_x_a__*", "x", "notes"),
+      pluginEvalOtherPluginToolMessage("mcp__plugin_x_a__*", "plugin_x_a", "notes"),
     ).toBe(
-      "allow_tools entry 'mcp__plugin_x_a__*' names plugin 'x', but this eval runs 'notes'; a try attaches no other plugin",
+      "allow_tools entry 'mcp__plugin_x_a__*' names MCP server 'plugin_x_a', which is not one of 'notes''s; a try attaches no other plugin",
     );
     expect(PLUGIN_EVAL_NOT_STARTED_ERROR).toBe(
       "the eval's workflow could not be started",
     );
-    expect(unsupportedFeatureReason("context.scaffold_script")).toBe(
-      "not run: context.scaffold_script",
-    );
+    expect(unsupportedFeatureReason("plugins")).toBe("not run: plugins");
+    expect(engineUnsupportedReason("Cursor", "env")).toBe("not run on Cursor: env");
+    expect(NOT_STARTED_NO_MOCK).toBe("not started: no mock");
     expect(timedOutError(30)).toBe("timed out after 30s");
   });
 });

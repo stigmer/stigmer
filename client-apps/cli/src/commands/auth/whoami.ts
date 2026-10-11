@@ -14,6 +14,7 @@
 // the CommandResult a person reads); runWhoami is the I/O half.
 
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 import { ensureMyIdentityAccount, type Stigmer } from "@stigmer/sdk";
 import {
   type Config,
@@ -68,10 +69,7 @@ export function whoamiResult(
         `${account.spec.firstName} ${account.spec.lastName}`.trim(),
       );
     }
-    section.field(
-      "Account Type",
-      account.spec.isMachineAccount ? "Machine Account" : "User Account",
-    );
+    section.field("Account Type", accountTypeOf(account));
   }
 
   // A server that holds one organization fills it: nothing to show or set.
@@ -144,4 +142,16 @@ function rememberContext(org: string, context: { readonly org: string; readonly 
   config.context.org = context.org;
   config.context.org_slug = context.org_slug;
   save(config);
+}
+
+/**
+ * What kind of account a credential speaks for: an organization's service
+ * account (a CI job's API key), the platform's own machine account, or a
+ * person.
+ */
+function accountTypeOf(account: IdentityAccount): string {
+  if (account.spec?.provisioningMode === IdentityAccountProvisioningMode.service_account) {
+    return "Service Account";
+  }
+  return account.spec?.isMachineAccount === true ? "Machine Account" : "User Account";
 }

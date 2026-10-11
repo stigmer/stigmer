@@ -26,13 +26,13 @@
  * PlaceholderResolutionError instead of dialing a guess.
  *
  * Injection is opt-in exactly as for the caller-identity keys
- * (caller-identity.ts): only a server whose spec.env declares the key
- * receives it. Applied before filterEnvToDeclaredKeys at execution
- * (mcp-resolver.ts) and before placeholder resolution at discovery
- * (activities/discover-mcp-server.ts), so both phases share one rule.
+ * (caller-identity.ts): only a server that reads the key (its plugin entry
+ * names it in `env`) receives it. Applied before filterEnvToDeclaredKeys at
+ * execution (mcp-resolver.ts) and before placeholder resolution in a tools
+ * listing (shared/mcp-tool-listing.ts), so both share one rule.
  */
 
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import type { Config } from "../config.js";
 
 /**
@@ -94,19 +94,19 @@ export function platformServerAddress(
 
 /**
  * Return the env map with STIGMER_SERVER_ADDRESS filled for `server` when it
- * declares the key and the map holds no non-empty value for it; otherwise the
+ * reads the key and the map holds no non-empty value for it; otherwise the
  * map itself, unchanged. Never mutates its input.
  */
 export function fillPlatformServerAddress(
-  server: McpServer,
+  server: McpServerEntry,
+  slug: string,
   envVars: Record<string, string>,
   endpoints: PlatformEndpoints,
 ): Record<string, string> {
-  const declared = server.spec?.env ?? {};
-  if (!(SERVER_ADDRESS_ENV_KEY in declared) || envVars[SERVER_ADDRESS_ENV_KEY]) {
+  if (!server.env.includes(SERVER_ADDRESS_ENV_KEY) || envVars[SERVER_ADDRESS_ENV_KEY]) {
     return envVars;
   }
-  const value = platformServerAddress(server.spec?.serverType.case, endpoints);
+  const value = platformServerAddress(server.transport.case, endpoints);
   if (value === null) {
     return envVars;
   }
@@ -114,11 +114,11 @@ export function fillPlatformServerAddress(
     ? "STIGMER_MCP_PUBLIC_ENDPOINT"
     : "STIGMER_BACKEND_ENDPOINT";
   console.info(
-    `MCP server '${server.metadata?.slug ?? ""}': ${SERVER_ADDRESS_ENV_KEY} ` +
+    `MCP server '${slug}': ${SERVER_ADDRESS_ENV_KEY} ` +
     `filled from ${source} (no value in the server's own values)`,
   );
   return { ...envVars, [SERVER_ADDRESS_ENV_KEY]: value };
 }
 
-/** The transports a McpServer spec declares (its `serverType` oneof). */
-type McpServerTransport = NonNullable<NonNullable<McpServer["spec"]>["serverType"]["case"]>;
+/** The transports a plugin's server entry declares (its `transport` oneof). */
+type McpServerTransport = NonNullable<McpServerEntry["transport"]["case"]>;

@@ -1,7 +1,7 @@
 /**
  * Pins the eval's arithmetic (scoring.ts) against a hand-computed suite:
- * which graders score in two arms (`tool_used: Skill` and `arm: with-only`
- * are indicators; every grader excluded scores them all; `arm: both`
+ * which graders score in two arms (`tool_used: Skill`, a grader over
+ * `mock_calls` and `arm: with-only` are indicators; every grader excluded scores them all; `arm: both`
  * forces one; ablation none excludes nothing), a try's weighted score,
  * an arm's mean over its graded tries only, the delta, the threshold,
  * pass^k and perfect runs, and the suite's aggregates, which count only
@@ -73,6 +73,17 @@ describe("which graders score", () => {
       false,
       false,
     ]);
+  });
+
+  it("makes a regex or llm grader over the mock calls an indicator in two arms", () => {
+    const graders = [
+      grader(regex),
+      grader({ ...regex, target: { kind: "mock_calls" } }),
+      grader({ ...llm, focus: { kind: "mock_calls" } }),
+      grader({ ...regex, target: { kind: "mock_calls" } }, 1, "both"),
+    ];
+    expect(scoringOf(graders, true).map((g) => g.scored)).toEqual([true, false, false, true]);
+    expect(scoringOf(graders, false).every((g) => g.scored)).toBe(true);
   });
 
   it("scores every grader when all would be excluded", () => {

@@ -27,8 +27,8 @@ The Agent resource is the only one users author directly in YAML. Sessions and R
 | Document | Description |
 |---|---|
 | [agent-resource-guide.md](agent-resource-guide.md) | Core YAML schema reference — metadata, spec fields, env spec, run defaults (`run_config`, `harness`), status, CLI commands |
-| [resource-references.md](resource-references.md) | `ApiResourceReference` format — how to reference MCP servers, skills, and other resources |
-| [mcp-server-integration.md](mcp-server-integration.md) | MCP server usage, the `tools` and `disallowed_tools` lists, which tools ask for approval, and runtime resolution |
+| [resource-references.md](resource-references.md) | `ApiResourceReference` format — how to reference plugins, skills, and other resources |
+| [plugin-integration.md](plugin-integration.md) | Plugins and their MCP servers, tool names, the `tools` and `disallowed_tools` lists, which tools ask for approval, and runtime resolution |
 | [skill-integration.md](skill-integration.md) | Skill references, versioning, and how skills are injected at runtime |
 | [sub-agents.md](sub-agents.md) | Sub-agent delegation, narrowing the parent's tools, and the permission model |
 | [examples.md](examples.md) | Complete YAML examples from minimal to full-featured |
@@ -36,15 +36,16 @@ The Agent resource is the only one users author directly in YAML. Sessions and R
 
 ## Querying Available Resources
 
-MCP servers and skills are first-class platform resources that can be discovered and inspected at runtime.
+Skills, plugins and agents are platform resources that can be discovered and inspected at runtime.
 
-The **Stigmer MCP server** (`slug: stigmer-mcp-server`) exposes tools for querying the platform:
+Stigmer's own MCP server (`stigmer mcp-server`, for IDEs and MCP clients) exposes tools for querying the platform:
 
 | Tool | Purpose |
 |---|---|
-| `search` | Full-text search across agents, skills and MCP servers |
+| `search` | Full-text search across agents and skills |
 | `get_agent` | Get a specific agent by org and slug |
-| `get_mcp_server` | Get a specific MCP server by org and slug |
 | `get_skill` | Get a specific skill by org and slug |
 
-When creating an agent, **always query available resources first** — use `search` or the `get_*` tools to find real MCP servers with their actual tool names and skills that match the agent's domain. Never guess resource references; if a needed MCP server or skill doesn't exist, surface this to the user rather than inventing a reference.
+The CLI covers plugins: `stigmer list plugins` and `stigmer get plugin <slug>` show what each installed plugin holds (its skills, agents and MCP servers), and `stigmer connect plugin <plugin>` lists a server's actual tool names.
+
+When creating an agent, **always query available resources first** — find real plugins with their actual tool names and skills that match the agent's domain. Never guess resource references; if a needed plugin or skill doesn't exist, surface this to the user rather than inventing a reference.

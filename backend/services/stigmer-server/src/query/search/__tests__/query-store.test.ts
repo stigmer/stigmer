@@ -134,7 +134,9 @@ describe("parseKind (Go's table)", () => {
   it("parses known kind names and rejects unknown ones", () => {
     expect(parseKind("agent")).toBe(ApiResourceKind.agent);
     expect(parseKind("skill")).toBe(ApiResourceKind.skill);
-    expect(parseKind("mcp_server")).toBe(ApiResourceKind.mcp_server);
+    expect(parseKind("channel_app")).toBe(ApiResourceKind.channel_app);
+    // A retired kind's leftover index rows are skipped, never resolved.
+    expect(parseKind("mcp_server")).toBeUndefined();
     expect(parseKind("invalid_kind")).toBeUndefined();
     expect(parseKind("")).toBeUndefined();
   });

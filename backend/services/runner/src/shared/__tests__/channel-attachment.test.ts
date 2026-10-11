@@ -17,7 +17,7 @@ import type {
 
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { buildMcpApprovalDefault, type ActiveLeases } from "../approval-policy.js";
-import { needsBackfill } from "../connect-backfill.js";
+import { listTurnTools } from "../mcp-tool-listing.js";
 import {
   CHANNEL_ATTACHMENT_SLUG,
   CHANNELS_ROUTE,
@@ -27,7 +27,6 @@ import {
   synthesizeChannelAttachment,
   type ChannelMessagingInfo,
 } from "../channel-attachment.js";
-import type { ResolvedMcpServer } from "../mcp-resolver.js";
 import { STDIO_CREDENTIAL_ENV } from "../synthesized-attachment.js";
 
 function channel(slug: string): MessagingChannel {
@@ -176,20 +175,19 @@ describe("synthesizeChannelAttachment", () => {
     expect(STDIO_CREDENTIAL_ENV).toBe("STIGMER_API_KEY");
   });
 
-  it("is approval-free by construction: the approval default marks none of its tools destructive", () => {
+  it("is approval-free by construction: never listed, so the approval default asks for none of its tools", async () => {
     const attachment = synthesizeChannelAttachment([info("isc-whatsapp", [])], options)!;
     // Forced, not convenient: both calling surfaces run
     // UNATTENDED mode, where a gated tool resolves as skip-and-adapt —
     // a gated send tool means reminders never send.
-    const mcpDefault = buildMcpApprovalDefault([attachment as ResolvedMcpServer], noLeases);
+    expect(attachment.pluginOrigin, "the platform's own server, no plugin's").toBeNull();
+    const listing = await listTurnTools([attachment], () => Promise.reject(new Error("a platform server is never listed")));
+    expect(listing).toEqual({ listed: [], destructive: [], unlisted: [] });
+    const mcpDefault = buildMcpApprovalDefault(listing, noLeases);
     expect(mcpDefault.destructive.size).toBe(0);
+    expect(mcpDefault.unlisted.size).toBe(0);
   });
 
-  it("is structurally immune to the connect backfill", () => {
-    const attachment = synthesizeChannelAttachment([info("isc-whatsapp", [])], options)!;
-    expect(attachment.discoveredCapabilitiesEmpty).toBe(false);
-    expect(needsBackfill(attachment)).toBe(false);
-  });
 });
 
 describe("formatChannelTemplatesSection", () => {

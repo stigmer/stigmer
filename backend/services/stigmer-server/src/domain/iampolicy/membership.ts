@@ -82,8 +82,9 @@
  *   one of them would be an outsider on every organization with nobody
  *   able to grant a way back. At the first boot where the bootstrap-state
  *   marker (ROLES_RECONCILED_KEY) is absent, the arms above run for every
- *   PERSON account (`isPersonAccount`: not a machine, platform-client or
- *   federated account, the row-level twin of the `user`-class gate),
+ *   PERSON account (`isPersonAccount`: a direct or legacy account, never a
+ *   machine, platform-client, federated or service account; the row-level
+ *   twin of the `user`-class gate),
  *   acting as that account, in
  *   creation order — the order the sign-ins would have run the hook in,
  *   so arm 4 hands an unclaimed organization to its first sign-in and
@@ -167,7 +168,6 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import { fromBinary } from "@bufbuild/protobuf";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -231,7 +231,6 @@ export const CREATOR_SCAN_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> =
     [ApiResourceKind.organization, OrganizationSchema],
     [ApiResourceKind.agent, AgentSchema],
     [ApiResourceKind.skill, SkillSchema],
-    [ApiResourceKind.mcp_server, McpServerSchema],
     [ApiResourceKind.schedule, ScheduleSchema],
   ]);
 
@@ -273,17 +272,26 @@ export function isPersonStamp(stamp: string): boolean {
  * (`owner`), the operator-email arm an email it chose (`admin`), and arm 5
  * would make it a member of every organization. A federated person's roles
  * come from their provider's configuration and the organization's
- * administrators, never from these rules.
+ * administrators, never from these rules. Nor does an organization's
+ * service account: it holds the one role its admins gave it, in its own
+ * organization, and arm 5 would otherwise make it a member of every other.
+ *
+ * An ALLOW-list: a person here is a `direct` account, or a legacy row
+ * from before provisioning modes were recorded, and never a machine
+ * account. A mode added later is not a person until someone says so here.
  */
 export function isPersonAccount(account: IdentityAccount): boolean {
   const spec = account.spec;
-  return (
-    spec !== undefined &&
-    !spec.isMachineAccount &&
-    spec.provisioningMode !== IdentityAccountProvisioningMode.machine &&
-    spec.provisioningMode !== IdentityAccountProvisioningMode.platform_client &&
-    spec.provisioningMode !== IdentityAccountProvisioningMode.federated
-  );
+  if (spec === undefined || spec.isMachineAccount) {
+    return false;
+  }
+  switch (spec.provisioningMode) {
+    case IdentityAccountProvisioningMode.direct:
+    case IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified:
+      return true;
+    default:
+      return false;
+  }
 }
 
 /** One organization's question for one account: everything the five arms read, resolved by the caller. */

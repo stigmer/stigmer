@@ -3,7 +3,7 @@
  *
  * StigmerClient is a class (not an interface), so mocks use
  * `as unknown as StigmerClient` — matching the established pattern
- * in grpc-retry.test.ts and connect-backfill.test.ts.
+ * in grpc-retry.test.ts.
  */
 
 import { vi } from "vitest";
@@ -20,7 +20,7 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
       signal: RunControlSignal.UNSPECIFIED,
     }),
     getExecution: vi.fn().mockResolvedValue({}),
-    fetchExecutionValues: vi.fn().mockResolvedValue({ agent: {}, tools: [], repositories: [] }),
+    fetchExecutionValues: vi.fn().mockResolvedValue({ agent: {}, tools: [], plugins: [], repositories: [] }),
     // No scoped token by default — the OSS/local shape (no runner credential).
     acquireScopedRunnerToken: vi.fn().mockResolvedValue(undefined),
     getRunnerScopedToken: vi.fn().mockResolvedValue(undefined),
@@ -32,9 +32,6 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
     listChannelTemplates: vi.fn().mockResolvedValue([]),
     getAgent: vi.fn().mockResolvedValue({}),
     getAgentVersion: vi.fn().mockResolvedValue({}),
-    getMcpServer: vi.fn().mockResolvedValue({}),
-    getMcpServerByReference: vi.fn().mockResolvedValue({}),
-    connectMcpServer: vi.fn().mockResolvedValue({}),
     getSkill: vi.fn().mockResolvedValue({}),
     getSkillByReference: vi.fn().mockResolvedValue({}),
     getSkillArtifact: vi.fn().mockResolvedValue({}),

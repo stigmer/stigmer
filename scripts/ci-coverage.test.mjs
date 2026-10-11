@@ -45,6 +45,7 @@ const LIBS = ["ci.ts-workspace.yaml", "libs"];
 
 /** Each package with a floor: the script its job runs, and the jobs that run it with coverage. */
 const SUBJECTS = {
+  "backend/libs/ts/eval-runtime": { script: "test", jobs: [LIBS] },
   "backend/libs/ts/outbound": { script: "test", jobs: [LIBS] },
   "backend/libs/ts/plugin-package": { script: "test", jobs: [LIBS] },
   "backend/libs/ts/temporal-codecs": { script: "test", jobs: [LIBS] },

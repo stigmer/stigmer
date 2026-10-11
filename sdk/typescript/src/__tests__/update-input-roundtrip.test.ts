@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { PluginEvalMockKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import {
   create,
   toJson,
@@ -42,8 +43,6 @@ import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/
 import { IdentityProviderSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { IdentityProviderSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/spec_pb";
 import { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import {
   OAuthAppSpecSchema,
@@ -73,7 +72,6 @@ import { buildApiKeyProto, toApiKeyUpdateInput } from "../gen/apikey";
 import { buildChannelAppProto, toChannelAppUpdateInput } from "../gen/channelapp";
 import { buildIdentityAccountProto, toIdentityAccountUpdateInput } from "../gen/identityaccount";
 import { buildIdentityProviderProto, toIdentityProviderUpdateInput } from "../gen/identityprovider";
-import { buildMcpServerProto, toMcpServerUpdateInput } from "../gen/mcpserver";
 import { buildOAuthAppProto, toOAuthAppUpdateInput } from "../gen/oauthapp";
 import { buildOrganizationProto, toOrganizationUpdateInput } from "../gen/organization";
 import { buildPlatformClientProto, toPlatformClientUpdateInput } from "../gen/platformclient";
@@ -161,14 +159,9 @@ function assertSpecRoundTrip(
 // Shared nested fixtures
 // ---------------------------------------------------------------------------
 
-const MCP_USAGE = {
-  mcpServerRef: {
-    org: "acme",
-    slug: "github-mcp",
-    version: "v3",
-    kind: ApiResourceKind.mcp_server,
-  },
-};
+const PLUGIN_REFS = [
+  { org: "acme", slug: "github", version: "v3", kind: ApiResourceKind.plugin },
+];
 
 const WORKSPACE_ENTRIES = [
   {
@@ -214,7 +207,7 @@ describe("toAgentUpdateInput", () => {
         description: "Handles support tickets.",
         iconUrl: "https://acme.example/agent.png",
         instructions: "Be terse.",
-        mcpServerUsages: [MCP_USAGE],
+        plugins: PLUGIN_REFS,
         skillRefs: [
           { org: "acme", slug: "triage", version: "v2", kind: ApiResourceKind.skill },
         ],
@@ -223,7 +216,7 @@ describe("toAgentUpdateInput", () => {
             name: "researcher",
             description: "Digs into logs.",
             instructions: "Cite sources.",
-            tools: ["Read", "mcp__github-mcp__search_code"],
+            tools: ["Read", "mcp__plugin_github_github__search_code"],
             disallowedTools: ["Bash(git push *)"],
             skillRefs: [
               { org: "acme", slug: "log-analysis", version: "v1", kind: ApiResourceKind.skill },
@@ -235,12 +228,11 @@ describe("toAgentUpdateInput", () => {
           API_KEY: { isSecret: true, description: "Vendor key", optional: true },
           WORKSPACE: { description: "Linear workspace", value: "acme" },
         },
-        tools: ["Read", "Grep", "Agent(researcher)", "mcp__github-mcp"],
-        disallowedTools: ["mcp__github-mcp__delete_repo"],
+        tools: ["Read", "Grep", "Agent(researcher)", "mcp__plugin_github_github"],
+        disallowedTools: ["mcp__plugin_github_github__delete_repo"],
         runConfig: RUN_CONFIG,
         harness: Harness.NATIVE,
         hooks: [
-          { source: { case: "plugin", value: { org: "acme", slug: "safety", kind: ApiResourceKind.plugin } } },
           {
             source: {
               case: "inline",
@@ -321,7 +313,7 @@ describe("toAgentExecutionUpdateInput", () => {
             harnessStateIdHistory: ["hs-0"],
             metadata: { "stigmer.ai/context": "embedded" },
             workspaceEntries: WORKSPACE_ENTRIES,
-            mcpServerUsages: [MCP_USAGE],
+            plugins: PLUGIN_REFS,
             skillRefs: [
               { org: "acme", slug: "triage", version: "v2", kind: ApiResourceKind.skill },
             ],
@@ -354,6 +346,35 @@ describe("toAgentExecutionUpdateInput", () => {
         conversationCatchup: {
           digest: "Prior turns summarized.",
           windowEnd: timestampFromDate(new Date("2026-08-15T10:00:00Z")),
+        },
+        pluginEvalCase: {
+          pluginId: "plg_1",
+          pluginDigest: "a".repeat(64),
+          suiteDir: "evals",
+          caseDir: "evals/fix",
+          scaffoldScript: "setup.sh",
+          addDirs: ["resources"],
+          historyFile: "history.jsonl",
+          env: { EVAL_X: "1" },
+          mocks: [
+            {
+              server: "tracker",
+              segment: "tracker-acme",
+              toolsFile: "evals/mocks/tracker/_tools.json",
+              tools: [
+                {
+                  tool: "create_issue",
+                  file: "evals/mocks/tracker/create_issue.md",
+                  kind: PluginEvalMockKind.fixed,
+                  error: true,
+                  expectJson: '{"title":"string"}',
+                  abortWhen: "",
+                },
+              ],
+            },
+          ],
+          agentMockModel: "claude-haiku-4.5",
+          agentMockCallBudget: 40,
         },
       },
     });
@@ -614,66 +635,6 @@ describe("toIdentityProviderUpdateInput", () => {
   });
 });
 
-describe("toMcpServerUpdateInput", () => {
-  const fixture = () =>
-    create(McpServerSchema, {
-      metadata: META,
-      spec: {
-        description: "GitHub tools.",
-        iconUrl: "https://acme.example/mcp.png",
-        tags: ["devtools"],
-        serverType: {
-          case: "stdio",
-          value: { command: "npx", args: ["-y", "github-mcp"], workingDir: "/srv" },
-        },
-        env: { GH_TOKEN: { isSecret: true, description: "PAT", optional: true } },
-        repositoryUrl: "https://github.com/acme/github-mcp",
-        githubStars: 4200,
-        auth: {
-          targetEnvVar: "GH_TOKEN",
-          tokenLifetimeHint: "8h",
-          scopeHints: ["repo"],
-          oauthOnly: true,
-        },
-      },
-    });
-
-  it("fixture covers every McpServerSpec field (schema tripwire)", () => {
-    assertFixtureCoversSpec(McpServerSpecSchema, fixture().spec!);
-  });
-
-  it("round-trips the stdio arm through the builder", () => {
-    const original = fixture();
-    assertSpecRoundTrip(
-      McpServerSpecSchema,
-      original,
-      buildMcpServerProto(toMcpServerUpdateInput(original)),
-    );
-  });
-
-  it("round-trips the http arm through the builder", () => {
-    const original = create(McpServerSchema, {
-      metadata: META,
-      spec: {
-        serverType: {
-          case: "http",
-          value: {
-            url: "https://mcp.acme.example",
-            headers: { Authorization: "Bearer x" },
-            queryParams: { v: "1" },
-            timeoutSeconds: 30,
-          },
-        },
-      },
-    });
-    assertSpecRoundTrip(
-      McpServerSpecSchema,
-      original,
-      buildMcpServerProto(toMcpServerUpdateInput(original)),
-    );
-  });
-});
-
 describe("toOAuthAppUpdateInput", () => {
   const fixture = () =>
     create(OAuthAppSchema, {
@@ -831,7 +792,7 @@ describe("toSessionUpdateInput", () => {
         harnessStateIdHistory: ["hs-0"],
         metadata: { "stigmer.ai/context": "embedded" },
         workspaceEntries: WORKSPACE_ENTRIES,
-        mcpServerUsages: [MCP_USAGE],
+        plugins: PLUGIN_REFS,
         skillRefs: [
           { org: "acme", slug: "triage", version: "v2", kind: ApiResourceKind.skill },
         ],

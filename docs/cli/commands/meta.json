@@ -29,6 +29,7 @@
     "---Artifact Commands---",
     "download",
     "install",
+    "mcp",
     "plugin",
     "push",
     "---Server Commands---",
@@ -39,6 +40,7 @@
     "completion",
     "config",
     "marketplace",
+    "service-account",
     "version"
   ]
 }

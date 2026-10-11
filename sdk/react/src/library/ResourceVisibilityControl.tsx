@@ -16,16 +16,15 @@ import {
 } from "./useUpdateVisibility.js";
 
 /**
- * Maps a {@link VisibilityResourceKind} (which mirrors the SDK method namespace,
- * e.g. `mcpServer`) to the FGA object type used in authorization checks
- * (e.g. `mcp_server`). For the three blueprints these coincide, but the mapping
- * keeps the control correct for every kind it may serve.
+ * Maps a {@link VisibilityResourceKind} (which mirrors the SDK method
+ * namespace) to the FGA object type used in authorization checks. For the
+ * kinds served today these coincide, but the mapping keeps the control
+ * correct for a kind whose namespace and type differ.
  */
 const FGA_KIND: Record<VisibilityResourceKind, string> = {
   agent: "agent",
   plugin: "plugin",
   skill: "skill",
-  mcpServer: "mcp_server",
   vault: "vault",
 };
 
@@ -68,7 +67,7 @@ export interface ResourceVisibilityControlProps {
  *   {@link ResourceVisibilityControlProps.onChanged} on success.
  *
  * Offered levels are kind- and context-aware (`visibilityLevels.ts`):
- * - Blueprints (agent/skill/mcp_server/plugin): Private /
+ * - Blueprints (agent/skill/plugin): Private /
  *   Organization, plus Child organizations when the server holds more than
  *   one organization ({@link useSingleOrg}) and the owning organization is
  *   not itself a child (its `spec.parent_org`, read with

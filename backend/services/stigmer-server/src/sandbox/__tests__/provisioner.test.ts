@@ -20,7 +20,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createLogger } from "../../boot/logger.js";
-import { connectTaskQueueFor } from "../../temporal/mcpserver/names.js";
+import { connectTaskQueueFor } from "../../temporal/plugintools/names.js";
 import { formatSessionTaskQueue } from "../../temporal/agentexecution/dispatch.js";
 import {
   isSandboxBaseName,

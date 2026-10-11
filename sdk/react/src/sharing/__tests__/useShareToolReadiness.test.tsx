@@ -10,14 +10,14 @@ import { DeploymentModeContext } from "../../deployment-mode";
 import { useShareToolReadiness } from "../useShareToolReadiness";
 import type { AgentShareDraft, SharingAudience } from "../useSaveAgentShare";
 
-function toolAgent(overrides?: { mcpUsages?: boolean }): Agent {
+function toolAgent(overrides?: { plugins?: boolean }): Agent {
   return create(AgentSchema, {
     metadata: { id: "agt_1", org: "acme", slug: "helper" },
     spec: {
       instructions: "help",
-      mcpServerUsages:
-        (overrides?.mcpUsages ?? true)
-          ? [{ mcpServerRef: { org: "acme", slug: "github" } }]
+      plugins:
+        (overrides?.plugins ?? true)
+          ? [{ org: "acme", slug: "github" }]
           : [],
     },
   });
@@ -170,12 +170,12 @@ describe("useShareToolReadiness", () => {
     );
   });
 
-  it("is n/a for agents without MCP tools — no lookups fire", async () => {
+  it("is n/a for agents that list no plugins — no lookups fire", async () => {
     const client = mockStigmer({});
     const { result } = renderHook(
       () =>
         useShareToolReadiness(
-          toolAgent({ mcpUsages: false }),
+          toolAgent({ plugins: false }),
           makeDraft({
             vaults: [{ org: "acme", slug: "shared-creds" }],
           }),

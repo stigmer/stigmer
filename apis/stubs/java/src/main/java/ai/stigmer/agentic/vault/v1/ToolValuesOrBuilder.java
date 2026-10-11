@@ -12,23 +12,43 @@ public interface ToolValuesOrBuilder extends
 
   /**
    * <pre>
-   * The tool's MCP server id.
+   * The tool's plugin.
    * </pre>
    *
-   * <code>string mcp_server_id = 1 [json_name = "mcpServerId"];</code>
-   * @return The mcpServerId.
+   * <code>string plugin_id = 4 [json_name = "pluginId"];</code>
+   * @return The pluginId.
    */
-  java.lang.String getMcpServerId();
+  java.lang.String getPluginId();
   /**
    * <pre>
-   * The tool's MCP server id.
+   * The tool's plugin.
    * </pre>
    *
-   * <code>string mcp_server_id = 1 [json_name = "mcpServerId"];</code>
-   * @return The bytes for mcpServerId.
+   * <code>string plugin_id = 4 [json_name = "pluginId"];</code>
+   * @return The bytes for pluginId.
    */
   com.google.protobuf.ByteString
-      getMcpServerIdBytes();
+      getPluginIdBytes();
+
+  /**
+   * <pre>
+   * The tool's server name in its plugin.
+   * </pre>
+   *
+   * <code>string server = 5 [json_name = "server"];</code>
+   * @return The server.
+   */
+  java.lang.String getServer();
+  /**
+   * <pre>
+   * The tool's server name in its plugin.
+   * </pre>
+   *
+   * <code>string server = 5 [json_name = "server"];</code>
+   * @return The bytes for server.
+   */
+  com.google.protobuf.ByteString
+      getServerBytes();
 
   /**
    * <pre>

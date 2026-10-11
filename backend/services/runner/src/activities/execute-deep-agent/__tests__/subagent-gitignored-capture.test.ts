@@ -65,7 +65,7 @@ describe("sub-agent gitignored capture", () => {
    */
   function captureGate(observer: CasCaptureObserver): ApprovalGateConfig {
     return {
-      mcpDefault: { destructive: new Set(), leasedServers: new Set() },
+      mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
       toolServerMap: new Map(),
       fileCaptureMode: true,
       isCapturablePath: async (raw: string) =>

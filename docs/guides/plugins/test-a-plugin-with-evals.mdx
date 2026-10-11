@@ -34,9 +34,11 @@ because the score measures the plugin on Stigmer.
 
 Each case runs in two **arms**:
 
-- the **with-arm**: the case's tries with the plugin;
-- the **without-arm**: the same number of tries with nothing attached, the
-  baseline.
+- the **with-arm**: the case's tries with the plugin, a chat with the Assistant
+  that lists the plugin, so its Skills, agents, hooks and MCP servers come along
+  whole;
+- the **without-arm**: the same number of tries with the Assistant and nothing
+  attached, the baseline.
 
 A try's score is the weighted share of its graders that passed. A case's score
 is the mean over its tries, three by default. `Δ` is the with-arm score minus
@@ -53,8 +55,8 @@ with-arm as indicators, as Claude Code does, so they do not inflate `Δ`.
 
 On the plugin's page in the console, open the **Evals** tab. It lists the cases
 the plugin's `evals/` folder holds, their tags, any case that failed to load,
-and each case Stigmer cannot run yet with the feature named. Below that are the
-plugin's past evals.
+and each case Stigmer does not run, with the reason. Below that are the plugin's
+past evals.
 
 **Run evals** is the form below the cases. It is shown only to people who can
 edit the plugin, and it holds:
@@ -118,7 +120,11 @@ graded), then the table and a summary line.
 | `-j, --concurrency <n>`         | Tries running at once, 1 to 8                                                                                                          |
 | `--allow-tools <tools>`         | Tools every try may use beyond the case's own read-only list, in Claude Code's names                                                   |
 | `--judge-model <model>`         | The model for `llm` and `baseline` graders; the platform's default judge model otherwise                                               |
-| `--real-mcp-servers`            | Runs the plugin's MCP servers for real, with the Organization's connections                                                            |
+| `--mocks record\|off`           | `record`, the default, answers the plugin's MCP calls from the suite's mocks; `off` ignores the mocks and runs every server for real   |
+| `--real-mcp-servers`            | The same as `--mocks off`                                                                                                              |
+| `--allow-real-servers`          | Also runs the plugin's real MCP servers that no mock answers, with the Organization's connections                                      |
+| `--no-scaffold`                 | Skips each case's scaffold script; a case that has one is listed as `not run: scaffold skipped`                                        |
+| `--scaffold`                    | Accepted so a command line written for Claude Code runs unchanged; a scaffold always runs, in the try's own sandbox                    |
 | `--json [path]`                 | Writes the result file to stdout, or to a path ending in `.json`; the run is quiet: no progress lines and no table                     |
 | `--no-wait`                     | Prints the eval's ID and returns at once                                                                                               |
 
@@ -148,7 +154,7 @@ CASE           WITH   W/OUT   Δ       PASS^k   RUNS   COST    NOTES
 ------------   ----   -----   -----   ------   ----   -----   -----
 review-fires   1.00   0.33    +0.67   yes      6      $0.41
 
-1 case(s) · mean Δ +0.67 · 74s · $0.41 · Δ provisional
+1 case(s) · mean Δ +0.67 · 74s · $0.41
 ```
 
 `WITH` and `W/OUT` are the case's scores in each arm, `RUNS` counts the tries of
@@ -198,6 +204,7 @@ the fields it carries:
 | `cases[].name`                                         | Case name                                                                                                                |
 | `cases[].aggregates.score`, `cases[].aggregates.delta` | The case's with-arm score (`null` when no with-arm try was graded), and `Δ`; `delta` is absent when the case ran one arm |
 | `cases[].arms.with[]`, `cases[].arms.without[]`        | Each try, with `error` (`null`, or why the run ended badly) and `score` (`null` when the try was not graded)             |
+| `cases[].arms.with[].aborted`                          | Present when a mock stopped the try, with `server`, `tool` and `reason`; the try scores 0 and `error` stays `null`       |
 | `costUsd`, `durationSeconds`                           | Estimated model cost of every try and judge vote, and wall-clock seconds                                                 |
 
 Stigmer adds fields beside them, which a script written for Claude Code ignores:
@@ -205,7 +212,9 @@ Stigmer adds fields beside them, which a script written for Claude Code ignores:
 - `targets[]`: each model's `label`, `harness`, `model` and full `cases[]`. With
   several models, the top-level `cases[]` are the first model's.
 - `passK` on each case.
-- `provisionalDelta`: `true` while `Δ` is provisional (see below).
+- `provisionalDelta`: `true` only for an eval made before chats listed plugins
+  directly, whose with-arm also carried an Agent Stigmer composed for the
+  plugin.
 - `notRun[]`: each case, or case on one model, that was not run, with the
   reason.
 - `runId` and `notGradedReason` on each try, and the eval's `evalId`.
@@ -217,24 +226,94 @@ Stigmer adds fields beside them, which a script written for Claude Code ignores:
 
 ## What runs, and what is named instead
 
-Stigmer runs every `prompt.md` and `case.yaml` field, except those listed below;
-the six graders `regex`, `tool_used`, `tool_order`, `file_exists`, `llm` and
-`baseline`, with `weight`, `arm`, and every `target` and `focus` value other
-than `mock_calls`; both arms; k tries; and several models.
+Stigmer runs every `prompt.md` and `case.yaml` field; the six graders `regex`,
+`tool_used`, `tool_order`, `file_exists`, `llm` and `baseline`, with `weight`,
+`arm`, and every `target` and `focus` value; MCP mocks; both arms; k tries; and
+several models.
 
-A case that needs a feature Stigmer does not run yet is never run without it,
+A case that needs something Stigmer does not run is never run without it,
 because a degraded run would be a wrong score. It is listed instead, as
-`not run: <feature>`, on the plugin's Evals tab, in the table and in `notRun[]`:
+`not run: <reason>`, on the plugin's Evals tab, in the table and in `notRun[]`:
 
-| Not run yet                                    | Claude Code's feature                               |
-| ---------------------------------------------- | --------------------------------------------------- |
-| `context.scaffold_script`                      | A script that prepares the Workspace before the try |
-| `context.add_dirs`                             | Case folders the try may read                       |
-| `context.history_file`                         | A recorded conversation the try resumes             |
-| `env`                                          | Extra environment variables for the try             |
-| A `plugins` entry other than the plugin's root | Other plugins the try loads beside the one tested   |
-| A `mock_calls` target or focus, and mocks      | Fake MCP servers that answer the try's tool calls   |
-| More than 32 graders on one case               | A grade records at most 32 checks                   |
+| Not run                                        | Why                                                            |
+| ---------------------------------------------- | -------------------------------------------------------------- |
+| A `plugins` entry other than the plugin's root | Other plugins the try would load beside the one tested         |
+| More than 32 graders on one case               | A grade records at most 32 checks                              |
+| A scaffold under `--no-scaffold`               | `not run: scaffold skipped`, as `claude plugin eval` skips it  |
+| `context.history_file` or `env` on Cursor      | `not run on Cursor: <feature>`; the case runs on native models |
+
+The Cursor engine keeps a conversation's history in its own store and runs its
+shell in the runner's process, so it cannot resume a recorded conversation or
+pass a case's `EVAL_*` variables. Such a case runs on every native model and is
+listed as not run on each Cursor model.
+
+### Fixtures, recorded conversations and variables
+
+- **`context.scaffold_script`** builds the starting folder: a Bash script in the
+  case's folder, run in the try's empty Workspace before the Agent starts, with
+  `PATH`, a temporary `HOME` and `TMPDIR` and `TERM=dumb` and nothing else. It
+  can reach files beside its case, as in `$(dirname "$0")/../_fixture`. A
+  non-zero exit, or more than 120 seconds, scores the try 0 with
+  `scaffold failed`. Files it creates are part of the starting folder, so
+  `files` and `file_exists` never count them as created.
+- **`context.add_dirs`** folders are copied into the try's Workspace under
+  `.stigmer/inputs/<folder>/` and listed to the Agent as input files.
+- **`context.history_file`** is a Claude Code `.jsonl` transcript the try
+  resumes: the case's prompt is the next user turn. Every tool call in it must
+  have its result in the next message, which Stigmer checks when it reads the
+  suite. Thinking blocks, summaries and the records of a delegated task are
+  dropped. `trace` holds the try's own messages, not the recorded ones.
+- **`env`** variables reach the Agent's shell and the plugin's hooks.
+
+### Mock MCP servers
+
+A try never starts the plugin's real MCP servers unless you ask. Put one file
+per tool under `evals/mocks/<server>/<tool>.md`, or under a case's own `mocks/`
+folder for one case, which overrides the suite's file by file. `<server>` is the
+server's key in the plugin's MCP configuration. Stigmer serves each mocked
+server under the plugin server's own name, so the trace and `tool_used` read it
+as `mcp__plugin_<plugin>_<server>__<tool>`:
+
+```markdown
+---
+expect:
+  title: string
+  priority: [low, medium, high]
+---
+
+Created issue #4821: {{input.title}}
+```
+
+- **The body** is what the tool returns, with `{{input.<field>}}` and
+  `{{file:fixtures/<name>}}`, a file from the `fixtures/` folder beside the mock
+  (the case's before the suite's). `error: true` returns it as a tool error.
+- **`type: agent`** has the judge model answer as the server, from the body's
+  instructions, seeing that server's earlier calls. `abort_when` names the only
+  conditions under which it may end the try. These mocks share four times the
+  case's `max_turns` calls per try, and their cost counts toward the try's share
+  of the eval's limit.
+- **`expect:`** guards the call's input: a dotted path mapped to a type name, a
+  `/regex/` in Claude Code's small dialect, a literal, or a list of literals. A
+  call that breaks it, a `type: agent` mock that ends the try, or a call past
+  the budget stops the try: it scores 0 and is reported as `aborted` with the
+  server, tool and reason.
+- **`_server.md`** is one `type: agent` mock for the tools its `tools:` key
+  lists; **`_tools.json`** is the real server's saved `tools/list`, so mocked
+  tools carry their real descriptions and input schemas.
+
+A mocked tool needs no `--allow-tools` grant. A tool with no mock file is not
+available, and a server with no mock is not started; the case's
+`mocked: plugin_<plugin>_<server>[not started: no mock]` line says so. Point a
+`regex` grader's `target`, or an `llm` grader's `focus`, at `mock_calls` to
+grade what the plugin asked the server to do: each call is one JSON line with
+`server`, `tool`, `input` and `answer`. In a two-arm eval such a grader is an
+indicator, since the without-plugin arm makes no such call.
+
+`--allow-real-servers` also starts the real servers no mock answers, and
+`--mocks off` ignores the mocks and starts every server; both run them with the
+Organization's connections, and their tools need `--allow-tools`. Stigmer does
+not read adopted replays (`mocks/.replay/`): `type: agent` mocks answer live,
+and a case that has replays carries a note saying so.
 
 A case with `plugins` runs only when every entry, resolved against the case's
 folder, is the root of the plugin under test; the list then changes nothing,
@@ -273,16 +352,16 @@ reading the suite and not loaded, and the rest of the suite still runs.
   10 runs with the run's minimum of 10 tool rounds, and the case carries a note
   saying so. A case that counts on a lower cap can pass here and fail under
   `claude plugin eval`.
-- **`Δ` is provisional.** The with-arm runs on the Agent Stigmer composes for
-  the plugin at install, whose instructions name the plugin; the without-arm
-  runs on the assistant with nothing attached. So `Δ` measures that Agent's
-  instructions as well as the plugin's parts. The table, the eval's page and the
-  result file (`provisionalDelta`) say so.
-- **MCP servers are off unless you ask.** A try cannot call the plugin's MCP
-  tools, as in Claude Code without mocks. `--real-mcp-servers` runs them for
-  real with the Organization's connections; Stigmer has no mocks yet. Their
-  tools are granted by either name: Claude Code's
-  `mcp__plugin_<plugin>_<server>__<tool>`, or Stigmer's `mcp__<server>__<tool>`.
+- **A scaffold runs without `--scaffold`.** Claude Code runs a scaffold as you,
+  outside its sandbox, so it asks for the flag. Stigmer runs it inside the try's
+  own sandbox, as the Agent, with none of the eval's Vaults, so it asks for
+  nothing; `--no-scaffold` skips it.
+- **Reference folders are read-only to file tools only.** The Agent's file tools
+  cannot write under `.stigmer/inputs/`, but its shell can.
+- **Resumed conversations and `env` run on native models only**, as the support
+  table says.
+- **`expect:` patterns check the whole value.** Claude Code checks a value only
+  up to a length its patterns set; Stigmer's matcher has no such bound.
 - **A `tool_used` with only `max` lowers `min` to it.** Without `min`, the
   grader's `min` is the smaller of 1 and `max`, so `max: 0` alone passes when
   the tool is never called. Claude Code keeps `min` at 1, where `max: 0` alone
@@ -372,10 +451,9 @@ the assign call failed.
 ```
 
 The CLI refuses to overwrite a case folder that already exists. A run that
-continued a conversation takes only its last request, and says so, because
-resumed conversations are not run yet. Stigmer never writes into your
-repository: review the case, then commit it with the plugin and push the plugin
-again.
+continued a conversation takes only its last request, and says so. Stigmer never
+writes into your repository: review the case, then commit it with the plugin and
+push the plugin again.
 
 ## Next steps
 

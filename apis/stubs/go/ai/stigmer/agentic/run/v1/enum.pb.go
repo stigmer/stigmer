@@ -1129,8 +1129,8 @@ const (
 	// (write / delete / shell).
 	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY ApprovalPolicySource = 6
 	// The default asked for an MCP tool because its server marks it destructive
-	// (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint
-	// annotation).
+	// (the tool's MCP destructiveHint annotation, read live from the server's
+	// tools each turn), or because its server's tools could not be listed.
 	ApprovalPolicySource_APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN ApprovalPolicySource = 7
 	// The unattended approval mode (RunStatus.approval_mode =
 	// APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
@@ -2254,6 +2254,10 @@ const (
 	// against server-authored approval records before authoring. The
 	// decision's actor is "policy", never the user.
 	FileDecisionOrigin_FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND FileDecisionOrigin = 2
+	// Platform policy kept the set because its run is a plugin eval's try: a
+	// try's edits apply as they do in Claude Code's evals, and nobody reviews
+	// a try. The decision's actor is "policy".
+	FileDecisionOrigin_FILE_DECISION_ORIGIN_POLICY_EVAL_TRY FileDecisionOrigin = 3
 )
 
 // Enum value maps for FileDecisionOrigin.
@@ -2262,11 +2266,13 @@ var (
 		0: "FILE_DECISION_ORIGIN_UNSPECIFIED",
 		1: "FILE_DECISION_ORIGIN_USER",
 		2: "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND",
+		3: "FILE_DECISION_ORIGIN_POLICY_EVAL_TRY",
 	}
 	FileDecisionOrigin_value = map[string]int32{
 		"FILE_DECISION_ORIGIN_UNSPECIFIED":             0,
 		"FILE_DECISION_ORIGIN_USER":                    1,
 		"FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND": 2,
+		"FILE_DECISION_ORIGIN_POLICY_EVAL_TRY":         3,
 	}
 )
 
@@ -2507,6 +2513,8 @@ const (
 	RunValueDeclarerKind_RUN_VALUE_DECLARER_KIND_TOOL RunValueDeclarerKind = 2
 	// A repository the turn clones, for its token.
 	RunValueDeclarerKind_RUN_VALUE_DECLARER_KIND_REPOSITORY RunValueDeclarerKind = 3
+	// A plugin the turn uses, for its hooks.
+	RunValueDeclarerKind_RUN_VALUE_DECLARER_KIND_PLUGIN RunValueDeclarerKind = 4
 )
 
 // Enum value maps for RunValueDeclarerKind.
@@ -2516,12 +2524,14 @@ var (
 		1: "RUN_VALUE_DECLARER_KIND_AGENT",
 		2: "RUN_VALUE_DECLARER_KIND_TOOL",
 		3: "RUN_VALUE_DECLARER_KIND_REPOSITORY",
+		4: "RUN_VALUE_DECLARER_KIND_PLUGIN",
 	}
 	RunValueDeclarerKind_value = map[string]int32{
 		"RUN_VALUE_DECLARER_KIND_UNSPECIFIED": 0,
 		"RUN_VALUE_DECLARER_KIND_AGENT":       1,
 		"RUN_VALUE_DECLARER_KIND_TOOL":        2,
 		"RUN_VALUE_DECLARER_KIND_REPOSITORY":  3,
+		"RUN_VALUE_DECLARER_KIND_PLUGIN":      4,
 	}
 )
 
@@ -2787,11 +2797,12 @@ const file_ai_stigmer_agentic_run_v1_enum_proto_rawDesc = "" +
 	"\x12FileDecisionAction\x12$\n" +
 	" FILE_DECISION_ACTION_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cFILE_DECISION_ACTION_APPROVE\x10\x01\x12\x1f\n" +
-	"\x1bFILE_DECISION_ACTION_REJECT\x10\x02*\x8b\x01\n" +
+	"\x1bFILE_DECISION_ACTION_REJECT\x10\x02*\xb5\x01\n" +
 	"\x12FileDecisionOrigin\x12$\n" +
 	" FILE_DECISION_ORIGIN_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19FILE_DECISION_ORIGIN_USER\x10\x01\x120\n" +
-	",FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND\x10\x02*\x8d\x02\n" +
+	",FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND\x10\x02\x12(\n" +
+	"$FILE_DECISION_ORIGIN_POLICY_EVAL_TRY\x10\x03*\x8d\x02\n" +
 	"\x13FileReviewEventType\x12&\n" +
 	"\"FILE_REVIEW_EVENT_TYPE_UNSPECIFIED\x10\x00\x12,\n" +
 	"(FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED\x10\x01\x12-\n" +
@@ -2809,12 +2820,13 @@ const file_ai_stigmer_agentic_run_v1_enum_proto_rawDesc = "" +
 	"$FILE_REVIEW_BLOCK_REASON_UNSPECIFIED\x10\x00\x12,\n" +
 	"(FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD\x10\x01\x12(\n" +
 	"$FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED\x10\x02\x12)\n" +
-	"%FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE\x10\x03*\xac\x01\n" +
+	"%FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE\x10\x03*\xd0\x01\n" +
 	"\x14RunValueDeclarerKind\x12'\n" +
 	"#RUN_VALUE_DECLARER_KIND_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dRUN_VALUE_DECLARER_KIND_AGENT\x10\x01\x12 \n" +
 	"\x1cRUN_VALUE_DECLARER_KIND_TOOL\x10\x02\x12&\n" +
-	"\"RUN_VALUE_DECLARER_KIND_REPOSITORY\x10\x03*\xda\x01\n" +
+	"\"RUN_VALUE_DECLARER_KIND_REPOSITORY\x10\x03\x12\"\n" +
+	"\x1eRUN_VALUE_DECLARER_KIND_PLUGIN\x10\x04*\xda\x01\n" +
 	"\x0eRunValueOrigin\x12 \n" +
 	"\x1cRUN_VALUE_ORIGIN_UNSPECIFIED\x10\x00\x12%\n" +
 	"!RUN_VALUE_ORIGIN_REPOSITORY_TOKEN\x10\x01\x12\x1d\n" +

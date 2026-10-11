@@ -35,6 +35,8 @@ describe("readPluginEvalOptions", () => {
       allowTools: [],
       judgeModel: "",
       realMcpServers: false,
+      allowRealServers: false,
+      skipScaffold: false,
       json: { kind: "none" },
       wait: true,
     });
@@ -76,6 +78,16 @@ describe("readPluginEvalOptions", () => {
     });
   });
 
+  it("reads the format's mock and scaffold flags, --scaffold changing nothing", () => {
+    expect(readPluginEvalOptions({ mocks: "off" })).toMatchObject({ realMcpServers: true, allowRealServers: false });
+    expect(readPluginEvalOptions({ mocks: "record", allowRealServers: true })).toMatchObject({
+      realMcpServers: false,
+      allowRealServers: true,
+    });
+    expect(readPluginEvalOptions({ scaffold: false }).skipScaffold).toBe(true);
+    expect(readPluginEvalOptions({ scaffold: true }).skipScaffold).toBe(false);
+  });
+
   it("prints the document to stdout for a bare --json", () => {
     expect(readPluginEvalOptions({ json: true }).json).toEqual({ kind: "stdout" });
   });
@@ -90,6 +102,9 @@ describe("readPluginEvalOptions", () => {
     [{ maxCostUsd: "0" }, "--max-cost-usd must be more than 0 and at most 1000"],
     [{ maxCostUsd: "5000" }, "--max-cost-usd must be more than 0 and at most 1000"],
     [{ ablation: "auto" }, "--ablation must be with-without or none"],
+    [{ mocks: "replay" }, "--mocks must be record or off, not 'replay'"],
+    [{ mocks: "off", allowRealServers: true }, "--allow-real-servers goes with --mocks record"],
+    [{ realMcpServers: true, allowRealServers: true }, "--allow-real-servers goes with --mocks record"],
     [{ allowTools: ["bash"] }, "--allow-tools 'bash' is not a tool name"],
     [{ allowTools: ["mcp__plugin__github__*"] }, "is not a tool name"],
     [{ model: ["claude/sonnet"] }, "names no engine Stigmer runs"],

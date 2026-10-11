@@ -55,6 +55,8 @@ import { kindEnumName } from "../../pipeline/apiresource-meta.js";
  *     organization nobody owns.
  *   - `platform_client_grant`: a PlatformClient's auto-granted role on the
  *     account it mints.
+ *   - `service_account_created`: a service account's organization role,
+ *     granted by the admin who created it.
  */
 export type PolicyChangeCause =
   | "grant"
@@ -67,7 +69,8 @@ export type PolicyChangeCause =
   | "first_sign_in"
   | "role_reconciliation"
   | "operator_ownership"
-  | "platform_client_grant";
+  | "platform_client_grant"
+  | "service_account_created";
 
 /** Who made a change: the caller's id and class, nothing that identifies a person beyond the id. */
 export interface PolicyActor {

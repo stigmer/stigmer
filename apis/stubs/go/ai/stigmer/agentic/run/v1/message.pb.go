@@ -207,11 +207,12 @@ type ToolCall struct {
 	// Consumers use this to choose the correct rendering mode — typewriter
 	// for input streaming, live terminal output for output streaming.
 	StreamingSource ToolCallStreamingSource `protobuf:"varint,19,opt,name=streaming_source,json=streamingSource,proto3,enum=ai.stigmer.agentic.run.v1.ToolCallStreamingSource" json:"streaming_source,omitempty"`
-	// Slug of the MCP server that provides this tool.
+	// Name of the MCP server that provides this tool, as its tools are named
+	// (plugin_<plugin>_<server> for a plugin's server).
 	// Empty for built-in sandbox tools.
 	// Populated by the worker using the mcp_tools_config reverse lookup.
 	//
-	// Examples: "planton", "github", "slack"
+	// Examples: "plugin_linear_linear", "plugin_github_github"
 	//
 	// Used by CLI/UI to render a qualified tool name (e.g., "planton/search")
 	// so users can distinguish tools with the same name from different servers.

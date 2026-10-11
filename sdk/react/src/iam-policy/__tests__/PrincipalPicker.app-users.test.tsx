@@ -9,7 +9,11 @@
  *   - `includeAppUsers={false}` (a team's picker) leaves a product's users
  *     out, and a list of people alone stays flat, with no group headings;
  *   - a search matches people and a product's users by name or email, each
- *     in its own group.
+ *     in its own group;
+ *   - the organization's service accounts are listed in a "Service
+ *     accounts" group after a product's users, a chosen one still says it is
+ *     a service account, and `includeServiceAccounts={false}` (a team's
+ *     picker) leaves them out.
  *
  * The organization's access list and team list are stubbed.
  */
@@ -40,7 +44,7 @@ vi.mock("../../team/useTeamList.js", () => ({
   useTeamList: () => ({ teams: [], isLoading: false, error: null }),
 }));
 
-import { PrincipalPicker } from "../PrincipalPicker";
+import { PrincipalPicker, type SelectedGrantee } from "../PrincipalPicker";
 
 function person(id: string, name: string, mode: IdentityAccountProvisioningMode): PrincipalAccess {
   return create(PrincipalAccessSchema, {
@@ -59,14 +63,20 @@ const ORG_PEOPLE = [
   person("ida_fay", "Fay Federated", IdentityAccountProvisioningMode.federated),
 ];
 const PRODUCT_USER = person("ida_pat", "Pat Product", IdentityAccountProvisioningMode.platform_client);
+const SERVICE_ACCOUNT = person("ida_sa_ci", "ci-deploy", IdentityAccountProvisioningMode.service_account);
 
-function openPicker(includeAppUsers?: boolean) {
+function openPicker(
+  includeAppUsers?: boolean,
+  includeServiceAccounts?: boolean,
+  onChange: (value: SelectedGrantee | null) => void = () => {},
+) {
   render(
     <PrincipalPicker
       org="acme"
       value={null}
-      onChange={() => {}}
+      onChange={onChange}
       {...(includeAppUsers === undefined ? {} : { includeAppUsers })}
+      {...(includeServiceAccounts === undefined ? {} : { includeServiceAccounts })}
     />,
   );
   fireEvent.focus(screen.getByRole("combobox"));
@@ -117,5 +127,49 @@ describe("PrincipalPicker — a product's users", () => {
     fireEvent.change(search, { target: { value: "fay" } });
     const options = within(listbox).getAllByRole("option").map((o) => o.textContent ?? "");
     expect(options).toEqual([expect.stringContaining("Fay Federated")]);
+  });
+});
+
+describe("PrincipalPicker — service accounts", () => {
+  it("lists service accounts in their own group, last, never among People", () => {
+    members.current = [...ORG_PEOPLE, PRODUCT_USER, SERVICE_ACCOUNT];
+    const listbox = openPicker();
+
+    const people = within(listbox).getByRole("group", { name: "People" });
+    expect(within(people).queryByText("ci-deploy")).toBeNull();
+    const group = within(listbox).getByRole("group", { name: "Service accounts" });
+    expect(within(group).getByText("ci-deploy")).toBeTruthy();
+
+    const options = within(listbox).getAllByRole("option").map((o) => o.textContent ?? "");
+    expect(options.findIndex((t) => t.includes("Pat Product"))).toBe(options.length - 2);
+    expect(options.findIndex((t) => t.includes("ci-deploy"))).toBe(options.length - 1);
+  });
+
+  it("groups even when service accounts are the only candidates beside people", () => {
+    members.current = [...ORG_PEOPLE, SERVICE_ACCOUNT];
+    const listbox = openPicker();
+    expect(within(listbox).getByRole("group", { name: "People" })).toBeTruthy();
+    expect(within(listbox).getByRole("group", { name: "Service accounts" })).toBeTruthy();
+  });
+
+  it("leaves service accounts out when asked, as a team's picker does", () => {
+    members.current = [...ORG_PEOPLE, SERVICE_ACCOUNT];
+    const listbox = openPicker(false, false);
+    expect(within(listbox).queryByText("ci-deploy")).toBeNull();
+    expect(within(listbox).queryByRole("group")).toBeNull();
+  });
+
+  it("grants a chosen service account as its identity account, and still labels it once chosen", () => {
+    members.current = [...ORG_PEOPLE, SERVICE_ACCOUNT];
+    const chosen: (SelectedGrantee | null)[] = [];
+    const listbox = openPicker(undefined, undefined, (value) => chosen.push(value));
+    const option = within(within(listbox).getByRole("group", { name: "Service accounts" })).getByRole("option");
+    fireEvent.mouseDown(option);
+    expect(chosen.map((value) => value?.grantee)).toEqual([{ kind: "identity_account", id: "ida_sa_ci" }]);
+
+    cleanup();
+    const value = chosen[0] ?? null;
+    render(<PrincipalPicker org="acme" value={value} onChange={() => {}} />);
+    expect(screen.getByText("Service account")).toBeTruthy();
   });
 });

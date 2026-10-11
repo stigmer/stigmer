@@ -2,7 +2,10 @@
  * Pins the approved-command auto-keep policy (autokeep.ts): a captured
  * change set whose every mutation came from commands the human approved is
  * kept by a policy decision, and every claim the server cannot verify
- * against its own records falls back to manual review. The seed is the
+ * against its own records falls back to manual review. A plugin eval's
+ * try keeps its change set by its own policy, whatever produced it, except
+ * a set that cannot be approved whole, and a run that is no try keeps
+ * nothing that way. The seed is the
  * shared one-change file-review ledger (../../__tests__/file-review-seed.ts)
  * with the runner's command provenance added to its candidate.
  */
@@ -13,6 +16,7 @@ import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_p
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
+  DiffCompleteness,
   FileDecisionOrigin,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { TurnCommandProvenanceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
@@ -20,7 +24,7 @@ import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/me
 
 import type { LogFields, Logger } from "../../../../boot/logger.js";
 import { fileReviewSeed } from "../../__tests__/file-review-seed.js";
-import { autoKeepApprovedCommandSets } from "../autokeep.js";
+import { autoKeepApprovedCommandSets, autoKeepPluginEvalTrySets } from "../autokeep.js";
 import { projectFileChangeSets } from "../project.js";
 
 const EXECUTION_ID = "aex_autokeep";
@@ -143,5 +147,45 @@ describe("autoKeepApprovedCommandSets", () => {
     const granted = statusWithProvenance({ authorizedByAutoApproveAll: true });
     expect(autoKeepApprovedCommandSets(granted, EXECUTION_ID, true, capturingLogger().logger)).toBe(1);
     expect(decisionsOf(granted)[0]?.origin).toBe(FileDecisionOrigin.POLICY_APPROVED_COMMAND);
+  });
+});
+
+describe("autoKeepPluginEvalTrySets", () => {
+  it("keeps a try's undecided change set by policy, once", () => {
+    const status = create(RunStatusSchema, fileReviewSeed(EXECUTION_ID, CHANGE_SET_ID).status);
+    const { logger } = capturingLogger();
+    expect(autoKeepPluginEvalTrySets(status, EXECUTION_ID, true, logger)).toBe(1);
+    expect(decisionsOf(status).map((d) => [d.origin, d.reason])).toEqual([
+      [
+        FileDecisionOrigin.POLICY_EVAL_TRY,
+        "Kept automatically: a plugin eval's try keeps its edits, as Claude Code's evals do; nobody reviews a try",
+      ],
+    ]);
+    expect(autoKeepPluginEvalTrySets(status, EXECUTION_ID, true, logger), "a decided set is left alone").toBe(0);
+  });
+
+  it("leaves a set that cannot be approved whole to the try's timeout, and says so", () => {
+    const status = create(RunStatusSchema, fileReviewSeed(EXECUTION_ID, CHANGE_SET_ID).status);
+    const candidate = status.fileReviewEventStream?.events[1];
+    if (candidate?.payload.case !== "candidateCaptured") {
+      throw new Error("the seed's second event is the candidate");
+    }
+    const [change] = candidate.payload.value.changes;
+    if (change === undefined) throw new Error("the seed's candidate carries one change");
+    change.diffComplete = false;
+    candidate.payload.value.diffCompleteness = DiffCompleteness.PARTIAL_BLOCKED;
+    const { logger, lines } = capturingLogger();
+
+    expect(autoKeepPluginEvalTrySets(status, EXECUTION_ID, true, logger)).toBe(0);
+    expect(decisionsOf(status)).toEqual([]);
+    expect(lines.map((l) => [l.level, l.message, l.fields?.["changeSetId"]])).toEqual([
+      ["warn", "Eval try keep skipped: set cannot be approved whole", CHANGE_SET_ID],
+    ]);
+  });
+
+  it("keeps nothing for a run that is not a try", () => {
+    const status = create(RunStatusSchema, fileReviewSeed(EXECUTION_ID, CHANGE_SET_ID).status);
+    expect(autoKeepPluginEvalTrySets(status, EXECUTION_ID, false, capturingLogger().logger)).toBe(0);
+    expect(decisionsOf(status)).toEqual([]);
   });
 });

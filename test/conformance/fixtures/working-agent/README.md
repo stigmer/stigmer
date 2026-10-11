@@ -1,8 +1,10 @@
 # The working agent's fixture
 
-The files the harness benchmark's working agent is provisioned from
-(`src/support/working-agent.ts`): the repository it works in and the skills it
-carries. They are data, not code of this package. That is why they live
+The harness benchmark's working agent, as a plugin in Claude Code's layout:
+its skills, its `reviewer` sub-agent, the `orders-api` MCP server it calls,
+and its `evals/` suite, which is the benchmark's quality arm
+(`src/benchmark/quality-eval.ts`). The timing cells provision the agent from
+the same skills and workspace (`src/support/working-agent.ts`). They are data, not code of this package. That is why they live
 outside `src/` and `scripts/`, the two trees `tsconfig.json` includes.
 
 Every byte here is part of the instrument. A change to a file moves every
@@ -10,7 +12,7 @@ benchmark cell that reads it, the same way a change to
 `BARE_AGENT_INSTRUCTIONS` moves the bare cells and the request-shape goldens.
 So a change here is reviewed as a change to what is measured.
 
-## `workspace/`
+## `evals/_fixture/workspace/`
 
 A small Go module, `orders-sync`. It is copied fresh before every session, so
 no session sees another session's edits. The copy goes to a fixed directory
@@ -26,8 +28,12 @@ It uses the standard library only, and its `go.mod` asks for Go 1.23. So
 neither the agent's `go test` nor the benchmark's check ever downloads a
 toolchain or a module.
 
-The defects are planted on purpose, and the quality tasks
-(`scripts/benchmark-harnesses/quality-tasks.yaml`) are graded against them:
+It lives once in the suite, in a directory that is no case. Every case's
+`scaffold.sh` copies it into the try's empty workspace, as a Claude Code
+scaffold reaches a fixture beside its case.
+
+The defects are planted on purpose, and the quality cases (`evals/<case>/`)
+are graded against them:
 
 - `duration/duration.go`: `ParseMinutes` knows only `h` and `m`, so `"90s"`
   is an error.
@@ -61,7 +67,21 @@ baselines stay comparable.
 
 A skill binds the grade as well as the agent. `repo-conventions` asks for a
 row in the package's table-driven test for every fix, and `orders` has no
-test, so an agent that follows it adds one. A rubric over a Go edit
-therefore allows that test, and `multi-part-change` does, checking it with
-`go_test`. `src/benchmark/__tests__/quality-tasks.test.ts` pins the skill's
-rule, the absent test and the rubric together.
+test, so an agent that follows it adds one. A grader over a Go edit
+therefore allows that test, and `multi-part-change` does, the test's run
+written to `test-output.txt` by the agent's own `go test`.
+`src/benchmark/__tests__/quality-suite.test.ts` pins the skill's rule, the
+absent test and the grader together.
+
+## `evals/`
+
+Nine cases in the plugin-eval format, one directory each, every one a
+`case.yaml` with its graders, deterministic first (a regex over the reply or
+a file, `tool_used`, `mock_calls`) and an `llm` rubric only for judgement.
+They are the quality tasks the benchmark judged before schema v6, moved
+here: `memory-recall` left (a try loads no memory), and `refine-over-turns`
+is a resumed conversation (`history.jsonl`, one recorded turn; its scaffold
+puts the changelog in that turn's state), so it runs on native only.
+`evals/mocks/orders-api/` answers `lookup_order` from the same table the MCP
+tool fixture serves (`src/harness/mcp-server.ts`), with the real tool's
+`_tools.json`.

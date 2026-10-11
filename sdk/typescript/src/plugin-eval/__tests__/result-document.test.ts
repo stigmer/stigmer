@@ -1,7 +1,7 @@
 // Pins the result document a plugin eval becomes: the fields Claude Code's
 // format documents, under its names (schemaVersion 1, partial and
 // partialReason, aggregates, cases[].name, cases[].aggregates.score and
-// delta, cases[].arms.with[].error, costUsd, durationSeconds), and Stigmer's
+// delta, cases[].arms.with[].error and aborted, costUsd, durationSeconds), and Stigmer's
 // additions beside them (targets, passK, provisionalDelta, notRun). Also
 // pins the departures: a try that was not graded scores null, never 0; a
 // cancel reads as interrupted; out of credit is its own reason; with
@@ -13,6 +13,7 @@ import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/
 import {
   PluginEvalPartialReason,
   PluginEvalPhase,
+  PluginEvalTrySchema,
   PluginEvalTryState,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -72,7 +73,7 @@ function evalOf(overrides: {
             passK: i === 0,
           })),
         },
-        { caseName: "needs-fixture", path: "evals/needs-fixture", notRunReason: "not run: context.scaffold_script" },
+        { caseName: "needs-fixture", path: "evals/needs-fixture", notRunReason: "not run: plugins" },
       ],
     },
   });
@@ -102,13 +103,32 @@ describe("toResultDocument", () => {
     expect(run).toEqual({ error: null, score: null, notGradedReason: "platform busy", runId: "run_w2" });
   });
 
+  it("writes a mock's abort on its run as the format does: a 0, no error, and the mock named", () => {
+    const pluginEval = evalOf();
+    const withArm = pluginEval.status!.cases[0]!.targets[0]!.withPlugin!;
+    withArm.tries[0] = create(PluginEvalTrySchema, {
+      index: 1,
+      state: PluginEvalTryState.graded,
+      score: 0,
+      runId: "run_w1",
+      aborted: { server: "tracker", tool: "create_issue", reason: "input.title must be a string" },
+    });
+    expect(toResultDocument(pluginEval).cases[0]!.arms.with[0]).toEqual({
+      error: null,
+      score: 0,
+      notGradedReason: null,
+      runId: "run_w1",
+      aborted: { server: "tracker", tool: "create_issue", reason: "input.title must be a string" },
+    });
+  });
+
   it("adds Stigmer's fields beside the format's: targets, passK, provisionalDelta, notRun", () => {
     const doc = toResultDocument(evalOf());
     expect(doc.provisionalDelta).toBe(true);
     expect(doc.evalId).toBe("pev_1");
     expect(doc.cases[0]!.passK).toBe(true);
     expect(doc.targets.map((target) => target.label)).toEqual(["native/claude-sonnet-4-6"]);
-    expect(doc.notRun).toEqual([{ name: "needs-fixture", reason: "not run: context.scaffold_script" }]);
+    expect(doc.notRun).toEqual([{ name: "needs-fixture", reason: "not run: plugins" }]);
   });
 
   it("puts the first target's cases at the top level and every target's in targets", () => {

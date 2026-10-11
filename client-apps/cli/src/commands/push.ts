@@ -55,7 +55,7 @@ export function registerPush(program: Command): void {
     )
     .option(
       "--visibility <level>",
-      "plugins: visibility for the plugin and everything it installs (private, org, child-orgs)",
+      "plugins: visibility for the plugin (private, org, child-orgs)",
     )
     .option("--dry-run", "validate without pushing")
     .option("--git-url <url>", "push from a remote git repository URL")
@@ -264,7 +264,7 @@ async function runPushPlugin(
   });
   renderCommandResult(
     plugin.renderPushOutcome(outcome, {
-      next: await plugin.readNextSteps(client.stigmer, org, outcome.members),
+      next: plugin.nextSteps(outcome.plugin),
     }),
     format,
   );

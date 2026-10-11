@@ -23,9 +23,8 @@
  * - Whether THIS call created the account is part of the answer. A first
  *   sign-in should be visible ("your account was created"), not silent.
  *
- * The client parameter is structural, the `McpServerConnectLane` precedent:
- * the full `Stigmer` client satisfies it, and a test can hand in two
- * functions.
+ * The client parameter is structural: the full `Stigmer` client satisfies
+ * it, and a test can hand in two functions.
  */
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { isNotFound } from "./errors.js";

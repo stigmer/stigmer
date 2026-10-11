@@ -413,7 +413,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object mcpServerSlug_ = "";
   /**
    * <pre>
-   * Slug of the MCP server that provides this tool.
+   * Name of the MCP server that provides this tool, as its tools are named
+   * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
    * Copied from ToolCall.mcp_server_slug for UI convenience.
    * Empty for built-in sandbox tools (read, write, shell, etc.).
    *
@@ -421,7 +422,7 @@ private static final long serialVersionUID = 0L;
    * structured argument previews (scalar grids, humanized names)
    * instead of falling back to raw JSON.
    *
-   * Examples: "planton", "github", "slack"
+   * Examples: "plugin_linear_linear", "plugin_github_github"
    * </pre>
    *
    * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -442,7 +443,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Slug of the MCP server that provides this tool.
+   * Name of the MCP server that provides this tool, as its tools are named
+   * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
    * Copied from ToolCall.mcp_server_slug for UI convenience.
    * Empty for built-in sandbox tools (read, write, shell, etc.).
    *
@@ -450,7 +452,7 @@ private static final long serialVersionUID = 0L;
    * structured argument previews (scalar grids, humanized names)
    * instead of falling back to raw JSON.
    *
-   * Examples: "planton", "github", "slack"
+   * Examples: "plugin_linear_linear", "plugin_github_github"
    * </pre>
    *
    * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -2165,7 +2167,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object mcpServerSlug_ = "";
     /**
      * <pre>
-     * Slug of the MCP server that provides this tool.
+     * Name of the MCP server that provides this tool, as its tools are named
+     * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
      * Copied from ToolCall.mcp_server_slug for UI convenience.
      * Empty for built-in sandbox tools (read, write, shell, etc.).
      *
@@ -2173,7 +2176,7 @@ private static final long serialVersionUID = 0L;
      * structured argument previews (scalar grids, humanized names)
      * instead of falling back to raw JSON.
      *
-     * Examples: "planton", "github", "slack"
+     * Examples: "plugin_linear_linear", "plugin_github_github"
      * </pre>
      *
      * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -2193,7 +2196,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the MCP server that provides this tool.
+     * Name of the MCP server that provides this tool, as its tools are named
+     * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
      * Copied from ToolCall.mcp_server_slug for UI convenience.
      * Empty for built-in sandbox tools (read, write, shell, etc.).
      *
@@ -2201,7 +2205,7 @@ private static final long serialVersionUID = 0L;
      * structured argument previews (scalar grids, humanized names)
      * instead of falling back to raw JSON.
      *
-     * Examples: "planton", "github", "slack"
+     * Examples: "plugin_linear_linear", "plugin_github_github"
      * </pre>
      *
      * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -2222,7 +2226,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the MCP server that provides this tool.
+     * Name of the MCP server that provides this tool, as its tools are named
+     * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
      * Copied from ToolCall.mcp_server_slug for UI convenience.
      * Empty for built-in sandbox tools (read, write, shell, etc.).
      *
@@ -2230,7 +2235,7 @@ private static final long serialVersionUID = 0L;
      * structured argument previews (scalar grids, humanized names)
      * instead of falling back to raw JSON.
      *
-     * Examples: "planton", "github", "slack"
+     * Examples: "plugin_linear_linear", "plugin_github_github"
      * </pre>
      *
      * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -2247,7 +2252,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the MCP server that provides this tool.
+     * Name of the MCP server that provides this tool, as its tools are named
+     * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
      * Copied from ToolCall.mcp_server_slug for UI convenience.
      * Empty for built-in sandbox tools (read, write, shell, etc.).
      *
@@ -2255,7 +2261,7 @@ private static final long serialVersionUID = 0L;
      * structured argument previews (scalar grids, humanized names)
      * instead of falling back to raw JSON.
      *
-     * Examples: "planton", "github", "slack"
+     * Examples: "plugin_linear_linear", "plugin_github_github"
      * </pre>
      *
      * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
@@ -2269,7 +2275,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the MCP server that provides this tool.
+     * Name of the MCP server that provides this tool, as its tools are named
+     * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
      * Copied from ToolCall.mcp_server_slug for UI convenience.
      * Empty for built-in sandbox tools (read, write, shell, etc.).
      *
@@ -2277,7 +2284,7 @@ private static final long serialVersionUID = 0L;
      * structured argument previews (scalar grids, humanized names)
      * instead of falling back to raw JSON.
      *
-     * Examples: "planton", "github", "slack"
+     * Examples: "plugin_linear_linear", "plugin_github_github"
      * </pre>
      *
      * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>

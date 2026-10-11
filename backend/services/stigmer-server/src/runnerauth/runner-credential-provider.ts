@@ -127,18 +127,17 @@ export interface RunnerBootstrapCredentials {
 
 /**
  * What the sandbox ensure steps (steps.ts) and the MCP connect lane
- * (domain/mcpserver/connect-sandbox.ts) know when they mint the credential
+ * (domain/plugin/tools/sandbox.ts) know when they mint the credential
  * baked into a provisioned sandbox. `sessionId` is empty on the connect
  * scope; `callerIdentityId` is empty when the invocation site
  * has no caller (the Java ensure step's null-identity arm, which mints
  * nothing rather than minting unattributed).
  *
- * The connect scope binds `executionId` to one connect's synthetic id
- * (domain/mcpserver/connect-execution-id.ts), whose attempt the connect
- * lane has already recorded for `callerIdentityId`: the runner
- * in a connect sandbox reads the McpServer, and classifies its tools
- * through the proxy, with this credential, so it must act as the person
- * who asked for the connect (stigmer/stigmer#1474). An implementation
+ * The connect scope binds `executionId` to one tools listing's synthetic
+ * id (domain/plugin/tools/execution-id.ts), whose attempt the listing lane
+ * has already recorded for `callerIdentityId`: the runner in a connect
+ * sandbox reads the plugin through the proxy with this credential, so it
+ * must act as the person who asked for the listing (stigmer/stigmer#1474). An implementation
  * that switches on `scope` handles every arm; a scope it does not know is
  * a refusal, never another scope's token.
  */
@@ -184,7 +183,7 @@ export interface RunnerCredentialProvider {
   /**
    * Whether the implementation can currently mint for the lane — false
    * for lanes it does not provide AND for provided lanes with no signing
-   * key. Callers that degrade on "cannot mint" (mcpserver connect) probe
+   * key. Callers that degrade on "cannot mint" (the plugin tools listing) probe
    * this instead of catching MintingDisabledError.
    */
   isEnabled(lane: string): boolean;

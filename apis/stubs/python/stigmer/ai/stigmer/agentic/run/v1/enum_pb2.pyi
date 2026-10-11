@@ -223,6 +223,7 @@ class FileDecisionOrigin(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     FILE_DECISION_ORIGIN_UNSPECIFIED: _ClassVar[FileDecisionOrigin]
     FILE_DECISION_ORIGIN_USER: _ClassVar[FileDecisionOrigin]
     FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND: _ClassVar[FileDecisionOrigin]
+    FILE_DECISION_ORIGIN_POLICY_EVAL_TRY: _ClassVar[FileDecisionOrigin]
 
 class FileReviewEventType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -254,6 +255,7 @@ class RunValueDeclarerKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     RUN_VALUE_DECLARER_KIND_AGENT: _ClassVar[RunValueDeclarerKind]
     RUN_VALUE_DECLARER_KIND_TOOL: _ClassVar[RunValueDeclarerKind]
     RUN_VALUE_DECLARER_KIND_REPOSITORY: _ClassVar[RunValueDeclarerKind]
+    RUN_VALUE_DECLARER_KIND_PLUGIN: _ClassVar[RunValueDeclarerKind]
 
 class RunValueOrigin(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -399,6 +401,7 @@ FILE_DECISION_ACTION_REJECT: FileDecisionAction
 FILE_DECISION_ORIGIN_UNSPECIFIED: FileDecisionOrigin
 FILE_DECISION_ORIGIN_USER: FileDecisionOrigin
 FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND: FileDecisionOrigin
+FILE_DECISION_ORIGIN_POLICY_EVAL_TRY: FileDecisionOrigin
 FILE_REVIEW_EVENT_TYPE_UNSPECIFIED: FileReviewEventType
 FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED: FileReviewEventType
 FILE_REVIEW_EVENT_TYPE_CANDIDATE_CAPTURED: FileReviewEventType
@@ -418,6 +421,7 @@ RUN_VALUE_DECLARER_KIND_UNSPECIFIED: RunValueDeclarerKind
 RUN_VALUE_DECLARER_KIND_AGENT: RunValueDeclarerKind
 RUN_VALUE_DECLARER_KIND_TOOL: RunValueDeclarerKind
 RUN_VALUE_DECLARER_KIND_REPOSITORY: RunValueDeclarerKind
+RUN_VALUE_DECLARER_KIND_PLUGIN: RunValueDeclarerKind
 RUN_VALUE_ORIGIN_UNSPECIFIED: RunValueOrigin
 RUN_VALUE_ORIGIN_REPOSITORY_TOKEN: RunValueOrigin
 RUN_VALUE_ORIGIN_MY_VAULT: RunValueOrigin

@@ -3,28 +3,28 @@
   "voice": "",
   "steps": [
     {
-      "hash": "57acbf3028bd7f0d62d083e02f55029895bc6ae4cc103a1f6f99133306bcade9",
-      "durationMs": 7250
+      "hash": "bcb829a1536e917d0b3a734ceea7c732d227edeb763faf63b31f9453b10524cb",
+      "durationMs": 6163
     },
     {
-      "hash": "de54dd160afbf4c5cf8abc886dd2fa948b12b327dbfa4060c35e8326fab12d02",
-      "durationMs": 6400
+      "hash": "b5b26a54e0457f0c1275911f2686eb592f81a8af06434695d09223f63e28a557",
+      "durationMs": 2863
     },
     {
-      "hash": "526ea78fe83a9466baff75851ace8c5e7634f0798e4ff1ea38915334f8d82e8e",
-      "durationMs": 9525
+      "hash": "74dd80ad415f5b2c6ba1c35da7b7cba1ab5d573f21ae889c637c55c1f95c2b7e",
+      "durationMs": 7613
     },
     {
-      "hash": "e8259d0c6ba3bde68aebb57f63d41f4febf9184a54f3f60cfd325e31fd054643",
-      "durationMs": 10625
+      "hash": "449e93c80ed15c069409fc14007ba867e51e48294dac979363d3e23a4286ab01",
+      "durationMs": 8988
     },
     {
-      "hash": "bd31a9deb67673d99b18c3423d5450b7b674774b2ee53f3d6e0b9ba20ed690da",
-      "durationMs": 9450
+      "hash": "e715b73f28cbe7b9726cd34655d4483aa4a889ba3c996c8c6b71e2144bca3888",
+      "durationMs": 4875
     },
     {
-      "hash": "803080f924a12997ea1434ec5f2a71df1f09c06e57a133703cbda8cc52afd1ec",
-      "durationMs": 13713
+      "hash": "d107171406dddb1c33021a309e7a661605892292e704f5a76c4fd27366467970",
+      "durationMs": 14788
     }
   ]
 }

@@ -7,7 +7,6 @@ import { useBreadcrumbLabel } from "@stigmer/react";
 const SEGMENT_LABELS: Record<string, string> = {
   agents: "Agents",
   skills: "Skills",
-  "mcp-servers": "MCP Servers",
   schedules: "Schedules",
 };
 

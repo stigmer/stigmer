@@ -1,0 +1,35 @@
+schema_version: "1.1"
+name: support-policy
+tags: [quality]
+context:
+  scaffold_script: "scaffold.sh"
+execution:
+  prompt: "A customer says the kettle they ordered arrived defective, and it was delivered 40 days ago. Can they still return it? Write the reply I should send them."
+  max_turns: 10
+  allowed_tools: ["Read", "Glob", "Grep", "Skill"]
+  append_system_prompt: "Be direct and concise. Act on requests rather than explaining steps. When you do not know something, say so.\n\nYour workspace is the orders-sync repository."
+graders:
+  - name: cites-the-rule
+    type: "regex"
+    pattern: "90[- ]day|90 days"
+    flags: "i"
+    weight: 1
+  - name: next-step
+    type: "regex"
+    pattern: "portal"
+    flags: "i"
+    weight: 1
+  - name: correct-per-policy
+    type: "llm"
+    weight: 3
+    criteria: "Reference facts (policies/returns.md): standard returns close 30 days after delivery, but a defective item can be returned within 90 days of delivery, with free return shipping and a refund or replacement; the customer starts the return from the support portal with the order number and a photo or description of the defect. PASS if the reply says yes under the 90-day defective-item rule and does not apply the 30-day window. FAIL otherwise."
+  - name: changes-nothing
+    type: "tool_used"
+    tool: "Edit"
+    max: 0
+    weight: 1
+  - name: writes-nothing
+    type: "tool_used"
+    tool: "Write"
+    max: 0
+    weight: 1

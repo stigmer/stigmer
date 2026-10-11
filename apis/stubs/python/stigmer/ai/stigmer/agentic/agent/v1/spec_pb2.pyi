@@ -1,4 +1,3 @@
-from ai.stigmer.agentic.mcpserver.v1 import usage_pb2 as _usage_pb2
 from ai.stigmer.agentic.plugin.v1 import hooks_pb2 as _hooks_pb2
 from ai.stigmer.agentic.run.v1 import invocation_pb2 as _invocation_pb2
 from ai.stigmer.agentic.session.v1 import enum_pb2 as _enum_pb2
@@ -15,7 +14,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentSpec(_message.Message):
-    __slots__ = ("description", "icon_url", "instructions", "mcp_server_usages", "skill_refs", "sub_agents", "env", "tools", "disallowed_tools", "hooks", "run_config", "harness")
+    __slots__ = ("description", "icon_url", "instructions", "skill_refs", "sub_agents", "env", "tools", "disallowed_tools", "hooks", "run_config", "harness", "plugins")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -26,7 +25,6 @@ class AgentSpec(_message.Message):
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     ICON_URL_FIELD_NUMBER: _ClassVar[int]
     INSTRUCTIONS_FIELD_NUMBER: _ClassVar[int]
-    MCP_SERVER_USAGES_FIELD_NUMBER: _ClassVar[int]
     SKILL_REFS_FIELD_NUMBER: _ClassVar[int]
     SUB_AGENTS_FIELD_NUMBER: _ClassVar[int]
     ENV_FIELD_NUMBER: _ClassVar[int]
@@ -35,10 +33,10 @@ class AgentSpec(_message.Message):
     HOOKS_FIELD_NUMBER: _ClassVar[int]
     RUN_CONFIG_FIELD_NUMBER: _ClassVar[int]
     HARNESS_FIELD_NUMBER: _ClassVar[int]
+    PLUGINS_FIELD_NUMBER: _ClassVar[int]
     description: str
     icon_url: str
     instructions: str
-    mcp_server_usages: _containers.RepeatedCompositeFieldContainer[_usage_pb2.McpServerUsage]
     skill_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     sub_agents: _containers.RepeatedCompositeFieldContainer[SubAgent]
     env: _containers.MessageMap[str, _declaration_pb2.EnvVarDeclaration]
@@ -47,15 +45,14 @@ class AgentSpec(_message.Message):
     hooks: _containers.RepeatedCompositeFieldContainer[HookSource]
     run_config: _invocation_pb2.RunConfig
     harness: _enum_pb2.Harness
-    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[_usage_pb2.McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _declaration_pb2.EnvVarDeclaration]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., hooks: _Optional[_Iterable[_Union[HookSource, _Mapping]]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ...) -> None: ...
+    plugins: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
+    def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _declaration_pb2.EnvVarDeclaration]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., hooks: _Optional[_Iterable[_Union[HookSource, _Mapping]]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., plugins: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...
 
 class HookSource(_message.Message):
-    __slots__ = ("plugin", "inline")
-    PLUGIN_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("inline",)
     INLINE_FIELD_NUMBER: _ClassVar[int]
-    plugin: _io_pb2.ApiResourceReference
     inline: _hooks_pb2.HookConfig
-    def __init__(self, plugin: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., inline: _Optional[_Union[_hooks_pb2.HookConfig, _Mapping]] = ...) -> None: ...
+    def __init__(self, inline: _Optional[_Union[_hooks_pb2.HookConfig, _Mapping]] = ...) -> None: ...
 
 class SubAgent(_message.Message):
     __slots__ = ("name", "description", "instructions", "skill_refs", "model_override", "tools", "disallowed_tools")

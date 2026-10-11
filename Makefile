@@ -702,6 +702,7 @@ test-conformance-all: ## Run both conformance slices (CRUD + execution)
 # ai.stigmer/ overlays against the contract is check-docs-yaml's job
 # (authoring dir `plugins`).
 test-plugins-static: ## Run the plugin catalogue's static suite (fast, no network)
+	@npm run build -w @stigmer/eval-runtime --silent
 	@npm run build -w @stigmer/plugin-package -w @stigmer/outbound --silent
 	npm run typecheck -w @stigmer/plugins
 	npm run test -w @stigmer/plugins
@@ -716,6 +717,7 @@ test-plugins-static: ## Run the plugin catalogue's static suite (fast, no networ
 # never in a test. Arguments after `--` reach the script (`--out <dir>`
 # required; `--ref owner/repo=<sha>` reproduces a past report).
 audit-plugins: ## Audit the vendor catalogues against the inclusion rubric (network; ARGS="--out <dir>")
+	@npm run build -w @stigmer/eval-runtime --silent
 	@npm run build -w @stigmer/plugin-package -w @stigmer/outbound --silent
 	npm run audit -w @stigmer/plugins -- $(ARGS)
 
@@ -726,6 +728,7 @@ audit-plugins: ## Audit the vendor catalogues against the inclusion rubric (netw
 # audit's verdicts (minus the strikes, plus any `--strike source/name=reason`).
 # Network through `git` alone; a second run is a no-op.
 sync-plugins: ## Sync the catalogue's vendored folders with plugins/vendor.json (git; ARGS="--from-audit <audit.json>")
+	@npm run build -w @stigmer/eval-runtime --silent
 	@npm run build -w @stigmer/plugin-package --silent
 	npm run sync -w @stigmer/plugins -- $(ARGS)
 

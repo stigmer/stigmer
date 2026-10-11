@@ -28,9 +28,6 @@ import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { type ChannelApp, ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { type McpServer, McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { type Schedule, ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
@@ -58,7 +55,7 @@ export interface ManifestKindHandler {
   readonly kind: ApiResourceKind;
   /** The YAML discriminator, e.g. `"Agent"`. */
   readonly yamlKind: string;
-  /** Human-facing name for messages, e.g. `"MCP Server"`. */
+  /** Human-facing name for messages, e.g. `"Channel App"`. */
   readonly displayName: string;
   /** Canonical `apiVersion` for this kind, e.g. `"agentic.stigmer.ai/v1"`. */
   readonly apiVersion: string;
@@ -66,8 +63,8 @@ export interface ManifestKindHandler {
   readonly schema: DescMessage;
   /**
    * Position in the dependency apply order (ascending). Referenced kinds
-   * apply before their dependents, e.g. an McpServer before the Agent that
-   * uses it, and everything an AgentChannel references before the channel.
+   * apply before their dependents, e.g. everything an AgentChannel
+   * references before the channel.
    */
   readonly applyOrder: number;
   /** Drive the command controller's `apply` RPC with the full resource. */
@@ -91,17 +88,6 @@ const AGENTIC_V1 = "agentic.stigmer.ai/v1";
 const IAM_V1 = "iam.stigmer.ai/v1";
 
 const HANDLERS: readonly ManifestKindHandler[] = [
-  {
-    kind: ApiResourceKind.mcp_server,
-    yamlKind: "McpServer",
-    displayName: "MCP Server",
-    apiVersion: AGENTIC_V1,
-    schema: McpServerSchema,
-    applyOrder: 1,
-    apply: (c, m) => c(McpServerCommandController).apply(m as McpServer),
-    getByReference: (c, ref) => c(McpServerQueryController).getByReference(ref),
-    updateVisibility: (c, i) => c(McpServerCommandController).updateVisibility(i),
-  },
   {
     kind: ApiResourceKind.agent,
     yamlKind: "Agent",

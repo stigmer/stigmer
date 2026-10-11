@@ -19,7 +19,7 @@ from ai.stigmer.agentic.session.v1 import workspace_pb2 as session_workspace_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
-from ._agent import McpServerUsageInput, RunConfigInput
+from ._agent import RunConfigInput
 
 
 class RunClient:
@@ -194,6 +194,7 @@ class RunInput:
     workspace_file_refs: list[str] = field(default_factory=list)
     supersedes_run_id: str = ""
     conversation_catchup: ConversationCatchupInput | None = None
+    plugin_eval_case: PluginEvalCaseContextInput | None = None
 
     def _to_proto(self) -> api_pb2.Run:
         spec = spec_pb2.RunSpec(
@@ -218,6 +219,8 @@ class RunInput:
             spec.workspace_file_refs.extend(self.workspace_file_refs)
         if self.conversation_catchup is not None:
             spec.conversation_catchup.CopyFrom(self.conversation_catchup._to_proto())
+        if self.plugin_eval_case is not None:
+            spec.plugin_eval_case.CopyFrom(self.plugin_eval_case._to_proto())
         if self.session_spec is not None:
             spec.session_spec.CopyFrom(self.session_spec._to_proto())
         if self.session_id:
@@ -252,13 +255,13 @@ class SessionSpecInput:
     harness_state_id_history: list[str] = field(default_factory=list)
     metadata: dict[str, str] = field(default_factory=dict)
     workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
-    mcp_server_usages: list[McpServerUsageInput] = field(default_factory=list)
     skill_refs: list[ResourceRef] = field(default_factory=list)
     harness: int = 0
     cursor_mode: int = 0
     execution_target: int = 0
     vaults: list[ResourceRef] = field(default_factory=list)
     include_my_vault: bool = False
+    plugins: list[ResourceRef] = field(default_factory=list)
 
     def _to_proto(self) -> session_spec_pb2.SessionSpec:
         msg = session_spec_pb2.SessionSpec(
@@ -279,8 +282,6 @@ class SessionSpecInput:
             msg.metadata.update(self.metadata)
         for item in self.workspace_entries:
             msg.workspace_entries.append(item._to_proto())
-        for item in self.mcp_server_usages:
-            msg.mcp_server_usages.append(item._to_proto())
         for ref in self.skill_refs:
             _ref = ref._to_proto()
             _ref.kind = 43
@@ -289,6 +290,10 @@ class SessionSpecInput:
             _ref = ref._to_proto()
             _ref.kind = 59
             msg.vaults.append(_ref)
+        for ref in self.plugins:
+            _ref = ref._to_proto()
+            _ref.kind = 58
+            msg.plugins.append(_ref)
         return msg
 
 
@@ -397,5 +402,89 @@ class ConversationCatchupInput:
         )
         if self.window_end:
             msg.window_end.FromJsonString(self.window_end)
+        return msg
+
+
+@dataclass
+class PluginEvalCaseContextInput:
+    """SDK input type for PluginEvalCaseContext."""
+
+    plugin_id: str = ""
+    plugin_digest: str = ""
+    suite_dir: str = ""
+    case_dir: str = ""
+    scaffold_script: str = ""
+    add_dirs: list[str] = field(default_factory=list)
+    history_file: str = ""
+    env: dict[str, str] = field(default_factory=dict)
+    mocks: list[PluginEvalMockServerInput] = field(default_factory=list)
+    agent_mock_model: str = ""
+    agent_mock_call_budget: int = 0
+    read_files: list[str] = field(default_factory=list)
+    plugin_name: str = ""
+
+    def _to_proto(self) -> spec_pb2.PluginEvalCaseContext:
+        msg = spec_pb2.PluginEvalCaseContext(
+            plugin_id=self.plugin_id,
+            plugin_digest=self.plugin_digest,
+            suite_dir=self.suite_dir,
+            case_dir=self.case_dir,
+            scaffold_script=self.scaffold_script,
+            history_file=self.history_file,
+            agent_mock_model=self.agent_mock_model,
+            agent_mock_call_budget=self.agent_mock_call_budget,
+            plugin_name=self.plugin_name,
+        )
+        if self.add_dirs:
+            msg.add_dirs.extend(self.add_dirs)
+        if self.env:
+            msg.env.update(self.env)
+        for item in self.mocks:
+            msg.mocks.append(item._to_proto())
+        if self.read_files:
+            msg.read_files.extend(self.read_files)
+        return msg
+
+
+@dataclass
+class PluginEvalMockServerInput:
+    """SDK input type for PluginEvalMockServer."""
+
+    server: str = ""
+    segment: str = ""
+    tools: list[PluginEvalMockToolInput] = field(default_factory=list)
+    tools_file: str = ""
+
+    def _to_proto(self) -> spec_pb2.PluginEvalMockServer:
+        msg = spec_pb2.PluginEvalMockServer(
+            server=self.server,
+            segment=self.segment,
+            tools_file=self.tools_file,
+        )
+        for item in self.tools:
+            msg.tools.append(item._to_proto())
+        return msg
+
+
+@dataclass
+class PluginEvalMockToolInput:
+    """SDK input type for PluginEvalMockTool."""
+
+    tool: str = ""
+    file: str = ""
+    kind: int = 0
+    error: bool = False
+    expect_json: str = ""
+    abort_when: str = ""
+
+    def _to_proto(self) -> spec_pb2.PluginEvalMockTool:
+        msg = spec_pb2.PluginEvalMockTool(
+            tool=self.tool,
+            file=self.file,
+            kind=self.kind,
+            error=self.error,
+            expect_json=self.expect_json,
+            abort_when=self.abort_when,
+        )
         return msg
 

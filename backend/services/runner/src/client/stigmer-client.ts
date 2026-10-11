@@ -18,8 +18,6 @@ import type { ExecutionValues } from "@stigmer/protos/ai/stigmer/agentic/vault/v
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -30,12 +28,10 @@ import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/a
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { GetArtifactResponse, SkillArtifactDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { create } from "@bufbuild/protobuf";
-import { ConnectInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { PlatformQueryController, GetRunnerScopedTokenInputSchema, TokenRenewalSchema } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
@@ -167,8 +163,6 @@ export class StigmerClient {
   private readonly sessionQuery: Client<typeof SessionQueryController>;
   private readonly sessionCommand: Client<typeof SessionCommandController>;
   private readonly agentQuery: Client<typeof AgentQueryController>;
-  private readonly mcpServerQuery: Client<typeof McpServerQueryController>;
-  private readonly mcpServerCommand: Client<typeof McpServerCommandController>;
   private readonly skillQuery: Client<typeof SkillQueryController>;
   private readonly pluginQuery: Client<typeof PluginQueryController>;
   private readonly billingCommand: Client<typeof BillingCommandController>;
@@ -263,8 +257,6 @@ export class StigmerClient {
     this.sessionQuery = createClient(SessionQueryController, this.transport);
     this.sessionCommand = createClient(SessionCommandController, this.transport);
     this.agentQuery = createClient(AgentQueryController, this.transport);
-    this.mcpServerQuery = createClient(McpServerQueryController, this.transport);
-    this.mcpServerCommand = createClient(McpServerCommandController, this.transport);
     this.skillQuery = createClient(SkillQueryController, this.transport);
     this.pluginQuery = createClient(PluginQueryController, this.transport);
     this.billingCommand = createClient(BillingCommandController, this.transport);
@@ -523,36 +515,6 @@ export class StigmerClient {
   /** One version of an agent, with its full spec: what a turn recorded on it runs. */
   async getAgentVersion(agentId: string, versionHash: string): Promise<AgentVersionEntry> {
     return this.agentQuery.getVersion({ agentId, versionHash });
-  }
-
-  async getMcpServer(serverId: string): Promise<McpServer> {
-    return this.mcpServerQuery.get({ value: serverId });
-  }
-
-  async getMcpServerByReference(ref: ApiResourceReference): Promise<McpServer> {
-    return this.mcpServerQuery.getByReference(ref);
-  }
-
-  /**
-   * Connect an MCP server (discovery). `run` names the run whose planned
-   * values for this server the connect uses — the backfill's path; the
-   * server accepts it only from a runner credential bound to that live run,
-   * presented per call when the runner holds a scoped one.
-   */
-  async connectMcpServer(
-    mcpServerId: string,
-    org: string,
-    run?: { readonly runId: string; readonly scopedToken: string | undefined },
-  ): Promise<McpServer> {
-    return this.mcpServerCommand.connect(
-      create(ConnectInputSchema, { mcpServerId, org, runId: run?.runId ?? "" }),
-      // A connect naming its run presents the run's own credential, per
-      // call as the values fetch does (fetchExecutionValues): the server
-      // accepts run_id only from a credential bound to that run.
-      run?.scopedToken
-        ? { headers: { authorization: `Bearer ${run.scopedToken}` } }
-        : undefined,
-    );
   }
 
   async getSkill(skillId: string): Promise<Skill> {

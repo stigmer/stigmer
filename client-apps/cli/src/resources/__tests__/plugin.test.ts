@@ -1,15 +1,14 @@
 // Pins the plugin directory walker: detection by any of the four manifests,
 // sorted sized entries, the ignore matcher applied (defaults, .gitignore,
-// .stigmerignore), symlinks never followed, and the JSON projection that
-// reduces overlay documents to their paths; then the prepared push (the
-// deterministic archive and its SHA-256, the server's own digest), the
-// install summary renderer (only the kinds installed are counted; the hooks
-// that run are summarised per event, offline and after an install; the Next
-// section says what each server still needs), and `readNextSteps` against an
-// in-memory backend: a sign-in for an OAuth server without a grant, "signed
-// in" with one, the variables an API-key server wants and where they are
-// asked, the agent an MCP-only plugin still needs, and no line for a server
-// the CLI cannot read.
+// .stigmerignore), symlinks never followed, and the JSON projection; then
+// the prepared push (the deterministic archive and its SHA-256, the
+// server's own digest), the
+// install summary renderer (read from the plugin's status lists; only the
+// kinds it holds are counted; the hooks that run are summarised per event,
+// offline and after an install), and `nextSteps`: a sign-in per server that
+// takes one (naming the server when there are several), the keys with no
+// value except a sign-in's login key, then `stigmer run --plugin` and an
+// agent's `plugins`.
 
 import {
   mkdirSync,
@@ -130,10 +129,8 @@ describe("readPluginDirectory", () => {
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     const description = describePlugin(outcome.plugin, outcome.warnings, stats);
-    expect(description.plugin.overlay).toEqual({
-      agent: "ai.stigmer/agent.yaml",
-      mcpServers: [],
-    });
+    expect(description.plugin.name).toBe("walker");
+    expect(description.plugin.mcpServers.map((server) => server.name)).toEqual(["api"]);
     expect(description.excludedFiles).toBe(3);
     expect(JSON.stringify(description)).not.toContain("bytes");
   });
@@ -182,19 +179,13 @@ describe("preparePluginPush", () => {
 });
 
 describe("renderPushOutcome", () => {
-  it("summarises the install by kind, lists members and carries warnings", async () => {
+  it("summarises the install from the plugin's status lists and carries warnings", async () => {
     const { renderPushOutcome } = await import("../plugin.js");
     const { create } = await import("@bufbuild/protobuf");
     const { PluginSchema } =
       await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb");
-    const { PluginMemberSchema } =
-      await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb");
     const { PluginDialect } =
       await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb");
-    const { PluginState } =
-      await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb");
-    const { ApiResourceKind } =
-      await import("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb");
     const { renderResult } = await import("../../output/command-result.js");
 
     const plugin = create(PluginSchema, {
@@ -206,8 +197,11 @@ describe("renderPushOutcome", () => {
       },
       status: {
         digest: "a".repeat(64),
-        state: PluginState.READY,
-        materialized: { skills: 2, mcpServers: 1, agents: 1 },
+        skills: [{ name: "review" }, { name: "triage" }],
+        mcpServers: [
+          { name: "github", transport: { case: "http", value: { url: "https://api.githubcopilot.com/mcp/" } } },
+        ],
+        agents: [{ name: "thermos" }],
         warnings: [
           {
             kind: "model-hint-unresolved",
@@ -217,33 +211,7 @@ describe("renderPushOutcome", () => {
         ],
       },
     });
-    const members = [
-      create(PluginMemberSchema, {
-        kind: ApiResourceKind.skill,
-        id: "skl_1",
-        slug: "review",
-        name: "review",
-      }),
-      create(PluginMemberSchema, {
-        kind: ApiResourceKind.skill,
-        id: "skl_2",
-        slug: "triage",
-        name: "triage",
-      }),
-      create(PluginMemberSchema, {
-        kind: ApiResourceKind.mcp_server,
-        id: "mcp_1",
-        slug: "github",
-        name: "github",
-      }),
-      create(PluginMemberSchema, {
-        kind: ApiResourceKind.agent,
-        id: "agt_1",
-        slug: "thermos",
-        name: "thermos",
-      }),
-    ];
-    const result = renderPushOutcome({ plugin, members, archiveBytes: 2048 });
+    const result = renderPushOutcome({ plugin, archiveBytes: 2048 });
     const lines: string[] = [];
     const original = process.stderr.write.bind(process.stderr);
     process.stderr.write = ((chunk: string | Uint8Array) => {
@@ -259,106 +227,70 @@ describe("renderPushOutcome", () => {
     expect(text).toContain(
       "Installed plugin 'thermos' (2 skills, 1 MCP server, 1 agent) with 1 warning",
     );
-    expect(text).toContain("Skills");
     expect(text).toContain("review, triage");
+    expect(text).toContain("github (http)");
     expect(text).toContain("Cursor plugin");
     expect(text).toContain("runs on the session's model");
   });
 });
 
-describe("readNextSteps", () => {
-  it("reads what each server still needs, best-effort, and names the agent an MCP-only plugin lacks", async () => {
-    const { readNextSteps, renderPushOutcome } = await import("../plugin.js");
+describe("nextSteps", () => {
+  async function pluginWith(
+    servers: readonly { name: string; signIn?: { oauthOnly: boolean }; headers?: Record<string, string> }[],
+    env: Record<string, { isSecret?: boolean; optional?: boolean; value?: string }>,
+  ) {
     const { create } = await import("@bufbuild/protobuf");
-    const { Code, ConnectError, createRouterTransport } =
-      await import("@connectrpc/connect");
-    const { Stigmer } = await import("@stigmer/sdk");
-    const { McpServerQueryController } =
-      await import("@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb");
-    const { McpServerSchema } =
-      await import("@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb");
-    const { GetOAuthGrantStatusOutputSchema, OAuthConnectionHealth } =
-      await import("@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb");
-    const { McpServerAuthSchema, McpServerSpecSchema } =
-      await import("@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb");
-    const { EnvVarDeclarationSchema } =
-      await import("@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb");
-    const { PluginSchema } =
-      await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb");
-    const { PluginMemberSchema } =
-      await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb");
-    const { ApiResourceKind } =
-      await import("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb");
-    const { renderResult } = await import("../../output/command-result.js");
-
-    const shapes: Record<string, "oauth" | "oauth-granted" | "api-key" | "open" | "missing"> = {
-      linear: "oauth",
-      notion: "oauth-granted",
-      warmth: "api-key",
-      weather: "open",
-      ghost: "missing",
-    };
-    const transport = createRouterTransport(({ service }) => {
-      service(McpServerQueryController, {
-        getByReference: (ref) => {
-          const shape = shapes[ref.slug];
-          if (shape === undefined || shape === "missing")
-            throw new ConnectError("no server", Code.NotFound);
-          const spec = create(McpServerSpecSchema);
-          if (shape === "oauth" || shape === "oauth-granted") {
-            spec.auth = create(McpServerAuthSchema, { targetEnvVar: "TOKEN", oauthOnly: true });
-            spec.env = { TOKEN: create(EnvVarDeclarationSchema, { isSecret: true }) };
-          }
-          if (shape === "api-key") spec.env = { API_TOKEN: create(EnvVarDeclarationSchema, { isSecret: true }) };
-          return create(McpServerSchema, { metadata: { id: `mcp_${ref.slug}`, org: "acme", slug: ref.slug }, spec });
-        },
-        getOAuthGrantStatus: (input) => {
-          const granted = input.resourceId === "mcp_notion";
-          return create(GetOAuthGrantStatusOutputSchema, {
-            connected: granted,
-            connectionHealth: granted
-              ? OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY
-              : OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT,
-          });
-        },
-      });
-    });
-    const client = new Stigmer({ baseUrl: "/", getAccessToken: () => "t", customTransport: transport });
-    const member = (slug: string) =>
-      create(PluginMemberSchema, { kind: ApiResourceKind.mcp_server, id: `mcp_${slug}`, slug, name: slug });
-
-    const next = await readNextSteps(client, "acme", Object.keys(shapes).map(member));
-    expect(next).toEqual([
-      { kind: "sign-in", server: "linear", command: "stigmer connect mcp-server linear" },
-      { kind: "signed-in", server: "notion" },
-      {
-        kind: "api-key",
-        server: "warmth",
-        variables: ["API_TOKEN"],
-        askedAt: "connect",
-        command: "stigmer vault set-secret API_TOKEN --mine && stigmer connect mcp-server warmth",
-      },
-      { kind: "add-to-agent", servers: ["linear", "notion", "warmth", "weather", "ghost"] },
-    ]);
-
-    // With an agent, the variables are the agent's to ask and no agent is missing.
-    const withAgent = await readNextSteps(client, "acme", [
-      member("warmth"),
-      create(PluginMemberSchema, { kind: ApiResourceKind.agent, id: "agt_1", slug: "thermos", name: "thermos" }),
-    ]);
-    expect(withAgent).toEqual([
-      { kind: "api-key", server: "warmth", variables: ["API_TOKEN"], askedAt: "agent" },
-    ]);
-
-    // The renderer names only the kinds installed and prints the Next section.
-    const plugin = create(PluginSchema, {
+    const { PluginSchema } = await import("@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb");
+    return create(PluginSchema, {
       metadata: { id: "plg_1", slug: "linear" },
-      status: { materialized: { skills: 0, mcpServers: 1, agents: 0 } },
+      status: {
+        mcpServers: servers.map((server) => ({
+          name: server.name,
+          transport: {
+            case: "http" as const,
+            value: { url: `https://mcp.${server.name}.app/mcp`, headers: server.headers ?? {} },
+          },
+          ...(server.signIn !== undefined && { signIn: server.signIn }),
+        })),
+        env,
+      },
     });
-    const result = renderPushOutcome(
-      { plugin, members: [member("linear")], archiveBytes: 10 },
-      { next },
+  }
+
+  it("asks for a sign-in, the keys with no value but not a sign-in's login key, then run and agent", async () => {
+    const { nextSteps } = await import("../plugin.js");
+    const plugin = await pluginWith(
+      [{ name: "linear", signIn: { oauthOnly: true }, headers: { Authorization: "Bearer ${LINEAR_TOKEN}" } }],
+      {
+        LINEAR_TOKEN: { isSecret: true },
+        API_KEY: { isSecret: true },
+        REGION: { optional: true },
+        MODE: { value: "fast" },
+      },
     );
+    expect(nextSteps(plugin)).toEqual([
+      { kind: "sign-in", server: "linear", command: "stigmer connect plugin linear" },
+      { kind: "save-keys", variables: ["API_KEY"], command: "stigmer vault set-secret API_KEY --mine" },
+      { kind: "run", command: "stigmer run --plugin linear" },
+      { kind: "add-to-agent", plugin: "linear" },
+    ]);
+  });
+
+  it("names the server to sign in to when the plugin carries several", async () => {
+    const { nextSteps } = await import("../plugin.js");
+    const plugin = await pluginWith([{ name: "issues", signIn: { oauthOnly: false } }, { name: "docs" }], {});
+    expect(nextSteps(plugin)[0]).toEqual({
+      kind: "sign-in",
+      server: "issues",
+      command: "stigmer connect plugin linear --server issues",
+    });
+  });
+
+  it("prints the steps in the install's Next section", async () => {
+    const { nextSteps, renderPushOutcome } = await import("../plugin.js");
+    const { renderResult } = await import("../../output/command-result.js");
+    const plugin = await pluginWith([{ name: "linear", signIn: { oauthOnly: true } }], {});
+    const result = renderPushOutcome({ plugin, archiveBytes: 10 }, { next: nextSteps(plugin) });
     const lines: string[] = [];
     const original = process.stderr.write.bind(process.stderr);
     process.stderr.write = ((chunk: string | Uint8Array) => {
@@ -373,11 +305,9 @@ describe("readNextSteps", () => {
     const text = lines.join("");
     expect(text).toContain("Installed plugin 'linear' (1 MCP server)");
     expect(text).not.toContain("0 skills");
-    expect(text).toContain("Next");
-    expect(text).toContain("Sign in to linear:  stigmer connect mcp-server linear");
-    expect(text).toContain(
-      "warmth needs API_TOKEN; save them in your vault, then connect:  stigmer vault set-secret API_TOKEN --mine && stigmer connect mcp-server warmth",
-    );
+    expect(text).toContain("Sign in to linear:  stigmer connect plugin linear");
+    expect(text).toContain("Use it in a conversation:  stigmer run --plugin linear");
+    expect(text).toContain("'- slug: linear' under spec.plugins");
   });
 });
 
@@ -440,7 +370,7 @@ describe("the hooks summary", () => {
         },
       },
     });
-    const text = await human(renderPushOutcome({ plugin, members: [], archiveBytes: 10 }));
+    const text = await human(renderPushOutcome({ plugin, archiveBytes: 10 }));
     expect(text).toContain("Installed plugin 'guard' (nothing installed)");
     expect(text).toContain("Cursor format: preToolUse 1, beforeShellExecution 1");
   });

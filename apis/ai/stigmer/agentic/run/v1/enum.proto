@@ -641,8 +641,8 @@ enum ApprovalPolicySource {
   APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY = 6;
 
   // The default asked for an MCP tool because its server marks it destructive
-  // (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint
-  // annotation).
+  // (the tool's MCP destructiveHint annotation, read live from the server's
+  // tools each turn), or because its server's tools could not be listed.
   APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;
 
   // The unattended approval mode (RunStatus.approval_mode =
@@ -1127,6 +1127,11 @@ enum FileDecisionOrigin {
   // against server-authored approval records before authoring. The
   // decision's actor is "policy", never the user.
   FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND = 2;
+
+  // Platform policy kept the set because its run is a plugin eval's try: a
+  // try's edits apply as they do in Claude Code's evals, and nobody reviews
+  // a try. The decision's actor is "policy".
+  FILE_DECISION_ORIGIN_POLICY_EVAL_TRY = 3;
 }
 
 // FileReviewEventType is the kind of event in the append-only file-review
@@ -1211,6 +1216,9 @@ enum RunValueDeclarerKind {
 
   // A repository the turn clones, for its token.
   RUN_VALUE_DECLARER_KIND_REPOSITORY = 3;
+
+  // A plugin the turn uses, for its hooks.
+  RUN_VALUE_DECLARER_KIND_PLUGIN = 4;
 }
 
 // Where a value a turn uses lives.

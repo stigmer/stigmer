@@ -5,14 +5,16 @@
  *
  *   - load: the status skeleton (cases in order, the unsupported case
  *     listed not run, notes, pending tries per arm, the tries in all, phase
- *     running, the delta provisional) and the cells with their time limits;
+ *     running, the delta not provisional) and the cells with their time limits;
  *     a retried load plans again without rewriting; an eval gone or ended
  *     plans nothing; an unreadable suite is retried, then fails the eval;
  *   - record and finish: a try folded into its place with the scores
  *     recomputed; completed and partial ends; an ended eval left alone;
- *   - start-try: the session (label, subject, the arm's agent) and the run
- *     (model, tools, auto-approve) as the minted caller; the without-arm
- *     on the bare assistant; a retried start adopts its earlier run;
+ *   - start-try: the session (label, subject, the with-arm's plugin at the
+ *     eval's digest, no agent) and the run (model, tools, the plugin's
+ *     server disallowed by its turn segment, auto-approve) as the minted
+ *     caller; the without-arm listing no plugin; a retried start adopts
+ *     its earlier run;
  *     capacity thrown as busy; credit, the run's own refusal and a refusing
  *     caller answered, and a refused run's session deleted;
  *   - grade-try: the code graders over the trace, the AI-graded check left
@@ -78,8 +80,10 @@ import {
   createSuiteActivities,
 } from "../suite-activities.js";
 import {
+  DIGEST,
   EVAL_ID,
   ORG,
+  PLUGIN_SERVER_SEGMENT,
   catalog,
   lane,
   readEval,
@@ -210,11 +214,11 @@ describe("load-suite", () => {
     const status = (await readEval(temp.store)).status!;
     expect(status.phase).toBe(PluginEvalPhase.running);
     expect(status.triesTotal).toBe(4);
-    expect(status.provisionalDelta).toBe(true);
+    expect(status.provisionalDelta).toBe(false);
     expect(status.startedAt).toBeDefined();
     expect(status.cases.map((c) => [c.caseName, c.notRunReason])).toEqual([
       ["first-case", ""],
-      ["scaffolded", "not run: context.scaffold_script"],
+      ["other-plugin", "not run: plugins"],
     ]);
     const first = status.cases[0]!;
     expect(first.notes).toEqual([
@@ -390,23 +394,33 @@ describe("start-try", () => {
     });
     expect(session.session.spec?.subject).toBe("first-case");
     expect(session.session.spec?.harness).toBe(Harness.NATIVE);
-    expect(session.session.spec?.agentRef?.slug).toBe("thermos");
+    expect(session.session.spec?.agentRef).toBeUndefined();
+    expect(session.session.spec?.plugins).toHaveLength(1);
+    expect(session.session.spec?.plugins[0]).toMatchObject({
+      org: ORG,
+      kind: ApiResourceKind.plugin,
+      slug: "thermos",
+      version: DIGEST,
+    });
     const run = record.runs[0]!;
     expect(run.caller).toBe(CALLER);
     expect(run.run.spec?.target).toEqual({ case: "sessionId", value: "ses_1" });
     expect(run.run.spec?.autoApproveAll).toBe(true);
     expect(run.run.spec?.tools).toEqual(["Read", "Skill"]);
-    expect(run.run.spec?.disallowedTools).toEqual(["mcp__github"]);
+    expect(run.run.spec?.disallowedTools).toEqual([`mcp__${PLUGIN_SERVER_SEGMENT}`]);
     expect(run.run.spec?.runConfig?.maxToolRounds).toBe(10);
     expect(run.run.spec?.runConfig?.maxCostUsd, "capped at the budget the suite passed").toBe(4);
   });
 
-  it("runs the without-arm on the bare assistant", async () => {
+  it("runs the without-arm on the assistant with no plugin listed, the plugin's server still disallowed", async () => {
     await seeded();
     const { cases, record } = build();
     await cases[START_TRY_ACTIVITY_NAME]({ ...CELL, arm: "without" });
     expect(record.sessions[0]?.session.spec?.agentRef).toBeUndefined();
-    expect(record.sessions[0]?.session.spec?.mcpServerUsages).toEqual([]);
+    expect(record.sessions[0]?.session.spec?.plugins).toEqual([]);
+    expect(record.runs[0]?.run.spec?.disallowedTools).toEqual([
+      `mcp__${PLUGIN_SERVER_SEGMENT}`,
+    ]);
   });
 
   it("adopts the run an earlier attempt created", async () => {

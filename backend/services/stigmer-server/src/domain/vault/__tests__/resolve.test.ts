@@ -4,10 +4,13 @@
  * plans a run (planRun, as create does), stamps the manifest on it, and
  * opens it (openRun, as the runner's fetch does):
  *
- *   - requirements: the agent's keys (never one a tool of the run declares,
- *     in its env or as its login), each tool's keys and its login key
- *     (auth.target_env_var, or the variable an `Authorization: Bearer
- *     ${VAR}` header names), and an optional GITHUB_TOKEN per repository;
+ *   - requirements: the agent's keys (never one a tool or a plugin's hooks
+ *     of the run declares), each plugin server's keys under the tool name
+ *     `plugin:<plugin>:<server>` (a key the plugin does not declare is a
+ *     required secret) and its login key (the variable an `Authorization:
+ *     Bearer ${VAR}` header names, nothing else), each plugin's hook keys
+ *     under a plugin declarer, grouped by plugin when opened, and an
+ *     optional GITHUB_TOKEN per repository;
  *   - the order of sources: a repository's own token (its clone only),
  *     then the sender's My vault when the stored conversation includes it,
  *     then its listed vaults in order, then the surface's vaults for a run
@@ -38,8 +41,9 @@
  *     INTERNAL without its text;
  *   - the fetch reads each entry as it is now: a rotated secret is picked
  *     up, an entry removed since refuses naming the key, its declarer and
- *     the vault, and a tool moved to another address since refuses its
- *     login; each tool's URL is answered as read, none for a local program;
+ *     the vault, and a tool its plugin moved to another address (or made a
+ *     local program) since refuses its login; each tool's URL is answered
+ *     as read with its plugin and server, none for a local program;
  *   - the surfaces found from server-stamped facts: the minting platform
  *     client, the schedule, the share and the channel (each of another
  *     organization contributes nothing);
@@ -50,8 +54,8 @@
  *   - a stored value the server cannot open refuses the fetch with the
  *     decryption error, never its ciphertext passed on; a value the run
  *     does not carry is never decrypted;
- *   - the connect lane: the connecting person's My vault only, none for a
- *     caller who is no person, never a shared vault;
+ *   - the tools listing lane: the listing person's My vault only, none for
+ *     a caller who is no person, never a shared vault;
  *   - a participant's turn (no person; a sender who is not the
  *     conversation's creator): only the conversation's own vaults, checked
  *     for their attacher; nobody's My vault and never a surface's; told to
@@ -60,6 +64,7 @@
 import { randomBytes } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
+import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -67,8 +72,12 @@ import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spe
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { McpServerEntrySchema, PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
+import type { McpServerEntry } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { HookFormat } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
+import { RunValueDeclarerKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { RunCredentialsSchema, RunSchema, RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run, RunValueSource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -106,10 +115,13 @@ import {
   SignInRenewalError,
   loginKeyOf,
   newVaultResolver,
+  pluginHookRequirements,
   participantSenderOf,
   runRequirements,
+  serversOf,
+  toolRequirements,
 } from "../resolve.js";
-import type { SignInFreshener, VaultResolver } from "../resolve.js";
+import type { PluginServer, RunPlugin, SignInFreshener, VaultResolver } from "../resolve.js";
 import { newVaultService } from "../service.js";
 import type { VaultRig } from "./support.js";
 import { openVaultRig, seedSharedVault, silentLogger } from "./support.js";
@@ -181,17 +193,47 @@ function vaultRef(slug: string) {
   return { kind: ApiResourceKind.vault, org: ORG, slug };
 }
 
-/** A local program declaring `target` as a key: it has no address and takes no login. */
-function localTool(slug: string, init: { target: string }): McpServer {
-  return create(McpServerSchema, {
-    metadata: { id: `mcp_${slug}`, name: slug, slug, org: ORG },
-    spec: {
-      serverType: { case: "stdio", value: { command: "npx" } },
-      env: { [init.target]: { isSecret: true } },
-    },
-  });
+/**
+ * A plugin of one MCP server, both named `slug`: the run lists it as its
+ * agent's or its conversation's, and the server's tool is named
+ * `plugin:<slug>:<slug>`.
+ */
+function pluginOf(
+  slug: string,
+  entry: Omit<MessageInitShape<typeof McpServerEntrySchema>, "name" | "env">,
+  env: Record<string, { isSecret?: boolean; optional?: boolean; value?: string }>,
+): RunPlugin {
+  return {
+    id: `plg_${slug}`,
+    name: slug,
+    status: create(PluginStatusSchema, {
+      mcpServers: [
+        create(McpServerEntrySchema, {
+          name: slug,
+          env: Object.keys(env),
+          transport: entry.transport,
+          signIn: entry.signIn,
+        }),
+      ],
+      env,
+    }),
+  };
 }
 
+/** A local program declaring `target` as a key: it has no address and takes no login. */
+function localTool(slug: string, init: { target: string }): RunPlugin {
+  return pluginOf(
+    slug,
+    { transport: { case: "stdio", value: { command: "npx", args: [] } } },
+    { [init.target]: { isSecret: true } },
+  );
+}
+
+/**
+ * An HTTP tool. `target` is the login key a sign-in fills: the server sends
+ * it as `Authorization: Bearer ${target}` and offers a sign-in, as install
+ * records a server that answers an OAuth challenge.
+ */
 function tool(
   slug: string,
   init: {
@@ -200,21 +242,48 @@ function tool(
     target?: string;
     headers?: Record<string, string>;
   } = {},
-): McpServer {
-  return create(McpServerSchema, {
-    metadata: { id: `mcp_${slug}`, name: slug, slug, org: ORG },
-    spec: {
-      serverType: {
+): RunPlugin {
+  return pluginOf(
+    slug,
+    {
+      transport: {
         case: "http",
         value: {
           url: init.url ?? `https://mcp.${slug}.example/mcp`,
-          headers: init.headers ?? {},
+          headers: {
+            ...(init.target === undefined ? {} : { Authorization: "Bearer ${" + init.target + "}" }),
+            ...init.headers,
+          },
+          timeoutSeconds: 0,
         },
       },
-      env: init.env ?? {},
-      ...(init.target === undefined ? {} : { auth: { targetEnvVar: init.target } }),
+      ...(init.target === undefined ? {} : { signIn: { oauthOnly: false } }),
     },
-  });
+    init.env ?? {},
+  );
+}
+
+/** A plugin's one server entry. */
+function entryOf(plugin: RunPlugin): McpServerEntry {
+  return plugin.status.mcpServers[0]!;
+}
+
+/** A plugin's one server, as a tools listing plans it. */
+function serverOf(plugin: RunPlugin): PluginServer {
+  return serversOf(plugin)[0]!;
+}
+
+/** Stores a plugin as installed, so the fetch can load its servers as they are now. */
+async function install(plugin: RunPlugin): Promise<void> {
+  await rig.store.saveResource(
+    ApiResourceKind.plugin,
+    plugin.id,
+    PluginSchema,
+    create(PluginSchema, {
+      metadata: { id: plugin.id, name: plugin.name, slug: plugin.name, org: ORG },
+      status: plugin.status,
+    }),
+  );
 }
 
 function agent(
@@ -296,7 +365,7 @@ interface ResolveInit {
   agentSpec?: AgentSpec;
   /** The agent's organization; null when its row cannot be read. Defaults to the run's. */
   agentOrg?: string | null;
-  tools?: McpServer[];
+  plugins?: RunPlugin[];
   /** Hands the resolver a copy without storing it first. */
   unsaved?: boolean;
 }
@@ -313,13 +382,13 @@ async function plan(init: ResolveInit, over: VaultResolver = resolver): Promise<
     agentSpec: init.agentSpec,
     agentName: "Helper",
     agentOrg: init.agentOrg === null ? undefined : (init.agentOrg ?? ORG),
-    tools: init.tools ?? [],
+    plugins: init.plugins ?? [],
   });
 }
 
 /**
  * Plans the run, stamps the manifest on it, then opens it as the runner's
- * fetch does: the tools stored so the fetch can load them, the run naming
+ * fetch does: the plugins stored so the fetch can load them, the run naming
  * its conversation. `between` runs after the plan and before the open.
  */
 async function open(
@@ -327,8 +396,8 @@ async function open(
   between?: () => Promise<void>,
   over: VaultResolver = resolver,
 ): Promise<ExecutionValues> {
-  for (const tool of init.tools ?? []) {
-    await rig.store.saveResource(ApiResourceKind.mcp_server, tool.metadata!.id, McpServerSchema, tool);
+  for (const plugin of init.plugins ?? []) {
+    await install(plugin);
   }
   const sources = await plan(init, over);
   const session = init.session ?? sessionOf();
@@ -346,7 +415,8 @@ async function open(
 
 /**
  * Every value the run receives, keyed by variable: the agent's, each
- * tool's and each repository's token (as GITHUB_TOKEN). A key two
+ * tool's, each plugin's hooks' and each repository's token (as
+ * GITHUB_TOKEN). A key two
  * declarers receive with different values fails the helper: such an arm
  * asserts per declarer instead.
  */
@@ -366,6 +436,11 @@ function flatten(values: ExecutionValues): Record<string, string> {
       put(key, value);
     }
   }
+  for (const plugin of values.plugins) {
+    for (const [key, value] of Object.entries(plugin.values)) {
+      put(key, value);
+    }
+  }
   for (const repository of values.repositories) {
     put(CLONE_TOKEN_KEY, repository.token);
   }
@@ -376,9 +451,11 @@ async function resolve(init: ResolveInit): Promise<Record<string, string>> {
   return flatten(await open(init));
 }
 
-/** One tool's values, by its server id. */
-function toolValues(values: ExecutionValues, tool: McpServer): Record<string, string> {
-  const group = values.tools.find((entry) => entry.mcpServerId === tool.metadata!.id);
+/** One tool's values, by its plugin and server. */
+function toolValues(values: ExecutionValues, tool: RunPlugin): Record<string, string> {
+  const group = values.tools.find(
+    (entry) => entry.pluginId === tool.id && entry.server === entryOf(tool).name,
+  );
   return { ...group?.values };
 }
 
@@ -426,7 +503,7 @@ describe("requirements", () => {
       agentSpec: agent({ OPENAI_API_KEY: KEY }),
       agentName: "Helper",
       agentOrg: ORG,
-      tools: [
+      plugins: [
         tool("linear", { target: "LINEAR_TOKEN" }),
         tool("notion", { headers: { Authorization: "Bearer ${NOTION_KEY}" } }),
       ],
@@ -443,10 +520,79 @@ describe("requirements", () => {
     expect(byKey["GITHUB_TOKEN"]?.optional).toBe(true);
   });
 
-  it("reads a login key from target_env_var first, else from a bearer header, else none", () => {
-    expect(loginKeyOf(tool("a", { target: "A_TOKEN", headers: { Authorization: "Bearer ${B}" } }))).toBe("A_TOKEN");
-    expect(loginKeyOf(tool("b", { headers: { authorization: "bearer ${B_KEY}" } }))).toBe("B_KEY");
-    expect(loginKeyOf(tool("c", { headers: { Authorization: "Token ${C}" } }))).toBeUndefined();
+  it("reads a login key from the Authorization: Bearer header alone, and none from a local program", () => {
+    expect(loginKeyOf(entryOf(tool("a", { headers: { Authorization: "Bearer ${A_TOKEN}" } })))).toBe("A_TOKEN");
+    expect(loginKeyOf(entryOf(tool("b", { headers: { authorization: "bearer ${B_KEY}" } })))).toBe("B_KEY");
+    expect(loginKeyOf(entryOf(tool("c", { headers: { Authorization: "Token ${C}" } })))).toBeUndefined();
+    expect(loginKeyOf(entryOf(tool("d", { headers: { Authorization: "Bearer literal-token" } })))).toBeUndefined();
+    expect(loginKeyOf(entryOf(localTool("e", { target: "E_TOKEN" })))).toBeUndefined();
+  });
+
+  it("names a plugin's server as Claude Code does, and declares each key it reads", () => {
+    const linear = tool("linear", {
+      target: "LINEAR_TOKEN",
+      env: { TEAM: { value: "core" }, NOTES: { optional: true, isSecret: true } },
+    });
+    const requirements = toolRequirements(serverOf(linear));
+    expect(requirements.map((requirement) => requirement.key).sort()).toEqual(["LINEAR_TOKEN", "NOTES", "TEAM"]);
+    for (const requirement of requirements) {
+      expect(requirement.declarer).toEqual({
+        kind: "tool",
+        name: "plugin:linear:linear",
+        pluginId: "plg_linear",
+        server: "linear",
+        pluginDigest: linear.status.digest,
+      });
+    }
+    const byKey = Object.fromEntries(requirements.map((requirement) => [requirement.key, requirement]));
+    expect(byKey["LINEAR_TOKEN"]?.loginAddress).toBe("https://mcp.linear.example/mcp");
+    expect(byKey["LINEAR_TOKEN"]?.optional).toBe(false);
+    expect(byKey["TEAM"]?.plainValue).toBe("core");
+    expect(byKey["NOTES"]?.optional).toBe(true);
+  });
+
+  it("treats a key a server reads that its plugin does not declare as a required secret", () => {
+    const undeclared: RunPlugin = {
+      id: "plg_bare",
+      name: "bare",
+      status: create(PluginStatusSchema, {
+        mcpServers: [
+          {
+            name: "api",
+            transport: { case: "http", value: { url: "https://api.bare.example/mcp" } },
+            env: ["BARE_KEY"],
+          },
+        ],
+      }),
+    };
+    const [requirement, ...rest] = toolRequirements(serverOf(undeclared));
+    expect(rest).toEqual([]);
+    expect(requirement?.key).toBe("BARE_KEY");
+    expect(requirement?.optional).toBe(false);
+    expect(requirement?.plainValue).toBeUndefined();
+  });
+
+  it("plans no key the runner always fills, and the server address as the optional key a person may save", () => {
+    const echo: RunPlugin = {
+      id: "plg_echo",
+      name: "echo",
+      status: create(PluginStatusSchema, {
+        mcpServers: [
+          {
+            name: "api",
+            transport: { case: "http", value: { url: "https://echo.example/mcp" } },
+            env: ["STIGMER_CALLER_IDENTITY_KIND", "STIGMER_CALLER_IDENTITY_VALUE", "STIGMER_SESSION_ID", "STIGMER_SERVER_ADDRESS", "ECHO_KEY"],
+          },
+        ],
+        env: {
+          STIGMER_SERVER_ADDRESS: create(EnvVarDeclarationSchema, { isSecret: false, optional: true }),
+          ECHO_KEY: create(EnvVarDeclarationSchema, { isSecret: true, optional: false }),
+        },
+      }),
+    };
+    const requirements = toolRequirements(serverOf(echo));
+    expect(requirements.map((requirement) => requirement.key)).toEqual(["STIGMER_SERVER_ADDRESS", "ECHO_KEY"]);
+    expect(requirements[0]?.optional).toBe(true);
   });
 });
 
@@ -505,19 +651,19 @@ describe("which vaults a run uses", () => {
       {
         session: sessionOf({ vaults: ["customer"], includeMyVault: true }),
         agent: "the agent Helper needs A: add A to My vault",
-        tool: "linear needs LINEAR_TOKEN: sign in to linear, or add LINEAR_TOKEN to My vault",
+        tool: "plugin:linear:linear needs LINEAR_TOKEN: sign in to plugin:linear:linear, or add LINEAR_TOKEN to My vault",
       },
       {
         session: sessionOf({ vaults: ["customer"], includeMyVault: false }),
         agent:
           "the agent Helper needs A: add A to one of this conversation's vaults, or include My vault in this conversation",
-        tool: "linear needs LINEAR_TOKEN: sign in to linear, or add LINEAR_TOKEN to one of this conversation's vaults, or include My vault in this conversation",
+        tool: "plugin:linear:linear needs LINEAR_TOKEN: sign in to plugin:linear:linear, or add LINEAR_TOKEN to one of this conversation's vaults, or include My vault in this conversation",
       },
       {
         session: sessionOf({ includeMyVault: false }),
         agent:
           "the agent Helper needs A: this conversation uses no vaults: include My vault in it, or list a vault that holds A",
-        tool: "linear needs LINEAR_TOKEN: this conversation uses no vaults: include My vault in it, or list a vault that holds LINEAR_TOKEN",
+        tool: "plugin:linear:linear needs LINEAR_TOKEN: this conversation uses no vaults: include My vault in it, or list a vault that holds LINEAR_TOKEN",
       },
     ];
     for (const { session, agent: agentSentence, tool: toolSentence } of cases) {
@@ -526,7 +672,7 @@ describe("which vaults a run uses", () => {
       );
       expect(forAgent.code).toBe(Code.FailedPrecondition);
       expect(forAgent.rawMessage).toBe(agentSentence);
-      const forTool = await refusal(resolve({ run: runOf({ person: ANA }), session, tools: [linear] }));
+      const forTool = await refusal(resolve({ run: runOf({ person: ANA }), session, plugins: [linear] }));
       expect(forTool.code).toBe(Code.FailedPrecondition);
       expect(forTool.rawMessage).toBe(toolSentence);
     }
@@ -827,7 +973,7 @@ describe("what reaches an agent or a surface of another organization", () => {
       session: sessionOf({ includeMyVault: true }),
       agentSpec: agent({ A: MAYBE, SHARED: MAYBE }),
       agentOrg: "globex",
-      tools: [tool("notes", { env: { SHARED: MAYBE, NOTES_KEY: MAYBE } })],
+      plugins: [tool("notes", { env: { SHARED: MAYBE, NOTES_KEY: MAYBE } })],
     });
     expect(values).toEqual({});
   });
@@ -846,11 +992,11 @@ describe("what reaches an agent or a surface of another organization", () => {
           run: runOf({ person: ANA }),
           agentSpec: agent({}),
           agentOrg,
-          tools: [tool("linear", { target: "LINEAR_TOKEN" })],
+          plugins: [tool("linear", { target: "LINEAR_TOKEN" })],
         }),
       );
       expect(failure.code).toBe(Code.FailedPrecondition);
-      expect(failure.rawMessage).toBe(`linear needs LINEAR_TOKEN: ${elsewhere("LINEAR_TOKEN")}`);
+      expect(failure.rawMessage).toBe(`plugin:linear:linear needs LINEAR_TOKEN: ${elsewhere("LINEAR_TOKEN")}`);
     }
   });
 
@@ -888,7 +1034,7 @@ describe("what reaches an agent or a surface of another organization", () => {
       run: runOf({ person: ANA }),
       agentSpec: agent({ A: MAYBE }),
       agentOrg: null,
-      tools: [tool("notes", { env: { NOTES_KEY: MAYBE } })],
+      plugins: [tool("notes", { env: { NOTES_KEY: MAYBE } })],
     });
     expect(values).toEqual({});
   });
@@ -905,7 +1051,7 @@ describe("what reaches an agent or a surface of another organization", () => {
         session: sessionOf({ vaults: ["team"], repo: { url: "https://github.com/acme/app" } }),
         agentSpec: agent({ B: KEY }),
         agentOrg: "globex",
-        tools: [tool("linear", { target: "LINEAR_TOKEN" })],
+        plugins: [tool("linear", { target: "LINEAR_TOKEN" })],
       }),
     ).toEqual({ B: "team", LINEAR_TOKEN: "team-linear", GITHUB_TOKEN: "team-pat" });
   });
@@ -1059,17 +1205,17 @@ describe("which value fills a plain declaration", () => {
     );
     const values = await open({
       run: runOf({ person: ANA }),
-      tools: [tool("linear", { target: "LINEAR_TOKEN", env: { LINEAR_TOKEN: { value: "plain-but-a-login" } } })],
+      plugins: [tool("linear", { target: "LINEAR_TOKEN", env: { LINEAR_TOKEN: { value: "plain-but-a-login" } } })],
     });
     expect(deliveredAt(values, "LINEAR_TOKEN")).toBe("by-address");
   });
 
-  it("the connect lane delivers a plain default, and a My vault value over it", async () => {
+  it("the tools listing lane delivers a plain default, and a My vault value over it", async () => {
     await anasVault({ TEAM: "ana-team" });
     const linear = tool("linear", { env: { TEAM: PLAIN } });
-    const bens = await resolver.openConnect({ orgId: ORG, person: BEN, server: linear });
+    const bens = await resolver.openConnect({ orgId: ORG, person: BEN, server: serverOf(linear) });
     expect(deliveredAt(bens, "TEAM")).toBe("acme-default");
-    const anas = await resolver.openConnect({ orgId: ORG, person: ANA, server: linear });
+    const anas = await resolver.openConnect({ orgId: ORG, person: ANA, server: serverOf(linear) });
     expect(deliveredAt(anas, "TEAM")).toBe("ana-team");
   });
 });
@@ -1090,7 +1236,7 @@ describe("matching", () => {
     expect(
       await resolve({
         run: runOf({ person: ANA }),
-        tools: [tool("linear", { target: "LINEAR_TOKEN" })],
+        plugins: [tool("linear", { target: "LINEAR_TOKEN" })],
       }),
     ).toEqual({ LINEAR_TOKEN: "by-address" });
   });
@@ -1114,11 +1260,11 @@ describe("matching", () => {
       }),
     ).toEqual({});
     const missing = await refusal(
-      resolve({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }),
+      resolve({ run: runOf({ person: ANA }), plugins: [tool("linear", { target: "LINEAR_TOKEN" })] }),
     );
     expect(missing.code).toBe(Code.FailedPrecondition);
     expect(missing.rawMessage).toBe(
-      "linear needs LINEAR_TOKEN: sign in to linear, or add LINEAR_TOKEN to My vault",
+      "plugin:linear:linear needs LINEAR_TOKEN: sign in to plugin:linear:linear, or add LINEAR_TOKEN to My vault",
     );
   });
 
@@ -1197,7 +1343,7 @@ describe("matching", () => {
       await resolve({
         run: runOf({ person: ANA }),
         session: sessionOf({ repo: { url: "https://git.example.com/acme/app", token: "other-host-pat" } }),
-        tools: [github],
+        plugins: [github],
       }),
       "nor does it reach the GitHub tool, which found nothing of its own",
     ).toEqual({});
@@ -1235,14 +1381,14 @@ describe("matching", () => {
     );
     const cloning = sessionOf({ repo: { url: "https://github.com/acme/app" } });
     expect(
-      await resolve({ run: runOf({ person: ANA }), session: cloning, tools: [github] }),
+      await resolve({ run: runOf({ person: ANA }), session: cloning, plugins: [github] }),
     ).toEqual({ GITHUB_TOKEN: "gh-login" });
 
     // Two values for one key once refused the run: each declarer now
     // receives its own, the clone its repository's token and the tool the
     // github.com login.
     const ownToken = sessionOf({ repo: { url: "https://github.com/acme/app", token: "a-different-pat" } });
-    const values = await open({ run: runOf({ person: ANA }), session: ownToken, tools: [github] });
+    const values = await open({ run: runOf({ person: ANA }), session: ownToken, plugins: [github] });
     expect(toolValues(values, github)).toEqual({ GITHUB_TOKEN: "gh-login" });
     expect(values.repositories.map((repository) => repository.token)).toEqual(["a-different-pat"]);
   });
@@ -1262,6 +1408,30 @@ describe("the fetch opens exactly the planned entries, as they are now", () => {
       ["API_KEY", mine, "API_KEY", false],
     ]);
     expect(JSON.stringify(sources)).not.toContain("ana-key");
+  });
+
+  it("reads a tool's server at the plugin version the run planned, after a later push moved it", async () => {
+    // The run planned linear at an older archive (a pinned version); a later
+    // push moved its server. The fetch checks against what the run dials.
+    const OLDER = "a".repeat(64);
+    const pinned = tool("linear", { url: "https://old.linear.example/mcp", env: { TEAM: { value: "core" } } });
+    pinned.status.digest = OLDER;
+    const values = await open({ run: runOf({ person: ANA }), plugins: [pinned] }, async () => {
+      await rig.store.saveAudit(
+        ApiResourceKind.plugin,
+        pinned.id,
+        PluginSchema,
+        create(PluginSchema, { metadata: { id: pinned.id, name: pinned.name, slug: pinned.name, org: ORG }, status: pinned.status }),
+        OLDER,
+        "1.0.0",
+      );
+      const moved = tool("linear", { url: "https://new.linear.example/mcp", env: { TEAM: { value: "core" } } });
+      moved.status.digest = "b".repeat(64);
+      await install(moved);
+    });
+    const group = values.tools.find((entry) => entry.pluginId === pinned.id);
+    expect(group?.url).toBe("https://old.linear.example/mcp");
+    expect(toolValues(values, pinned)).toEqual({ TEAM: "core" });
   });
 
   it("picks up a secret rotated after the plan", async () => {
@@ -1337,14 +1507,39 @@ describe("the fetch opens exactly the planned entries, as they are now", () => {
     );
     const linear = tool("linear", { target: "LINEAR_TOKEN" });
     const failure = await refusal(
-      open({ run: runOf({ person: ANA }), tools: [linear] }, async () => {
-        const moved = tool("linear", { url: "https://evil.example/mcp", target: "LINEAR_TOKEN" });
-        await rig.store.saveResource(ApiResourceKind.mcp_server, moved.metadata!.id, McpServerSchema, moved);
+      open({ run: runOf({ person: ANA }), plugins: [linear] }, async () => {
+        await install(tool("linear", { url: "https://evil.example/mcp", target: "LINEAR_TOKEN" }));
       }),
     );
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toContain(
-      "linear needs LINEAR_TOKEN, but the tool is no longer at https://mcp.linear.example/mcp",
+      "plugin:linear:linear needs LINEAR_TOKEN, but the tool is no longer at https://mcp.linear.example/mcp",
+    );
+    expect(failure.rawMessage).not.toContain("linear-login");
+  });
+
+  it("refuses a tool's login once the plugin version the run planned is gone", async () => {
+    const mine = await anasVault({});
+    await rig.vaults.setConnection(
+      mine,
+      "https://mcp.linear.example/mcp",
+      { token: "linear-login", source: VaultConnectionSource.pasted },
+      ana,
+    );
+    const OLDER = "a".repeat(64);
+    const pinned = tool("linear", { target: "LINEAR_TOKEN" });
+    pinned.status.digest = OLDER;
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), plugins: [pinned] }, async () => {
+        // A later push moves the head; the planned version was never archived.
+        const moved = tool("linear", { target: "LINEAR_TOKEN" });
+        moved.status.digest = "b".repeat(64);
+        await install(moved);
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain(
+      "plugin:linear:linear needs LINEAR_TOKEN, but the tool is no longer at https://mcp.linear.example/mcp",
     );
     expect(failure.rawMessage).not.toContain("linear-login");
   });
@@ -1376,13 +1571,13 @@ describe("the fetch opens exactly the planned entries, as they are now", () => {
       ana,
     );
     const failure = await refusal(
-      open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }, async () => {
+      open({ run: runOf({ person: ANA }), plugins: [tool("linear", { target: "LINEAR_TOKEN" })] }, async () => {
         await rig.vaults.removeConnections(mine, ["https://mcp.linear.example/mcp"], ana);
       }),
     );
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toContain(
-      "linear needs LINEAR_TOKEN, but My vault no longer holds a login for https://mcp.linear.example/mcp",
+      "plugin:linear:linear needs LINEAR_TOKEN, but My vault no longer holds a login for https://mcp.linear.example/mcp",
     );
   });
 
@@ -1406,9 +1601,8 @@ describe("the fetch opens exactly the planned entries, as they are now", () => {
       ana,
     );
     const failure = await refusal(
-      open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }, async () => {
-        const program = localTool("linear", { target: "LINEAR_TOKEN" });
-        await rig.store.saveResource(ApiResourceKind.mcp_server, program.metadata!.id, McpServerSchema, program);
+      open({ run: runOf({ person: ANA }), plugins: [tool("linear", { target: "LINEAR_TOKEN" })] }, async () => {
+        await install(localTool("linear", { target: "LINEAR_TOKEN" }));
       }),
     );
     expect(failure.rawMessage).toContain("the tool is no longer at https://mcp.linear.example/mcp");
@@ -1423,12 +1617,12 @@ describe("the fetch opens exactly the planned entries, as they are now", () => {
       ana,
     );
     const linear = tool("linear", { target: "LINEAR_TOKEN" });
-    const sources = await plan({ run: runOf({ person: ANA }), tools: [linear] });
+    const sources = await plan({ run: runOf({ person: ANA }), plugins: [linear] });
     const faulty = resolverWith({
       getResource: async () => {
         throw new Error("disk gone");
       },
-      onlyKind: ApiResourceKind.mcp_server,
+      onlyKind: ApiResourceKind.plugin,
     });
     const run = create(RunSchema, {
       metadata: { id: "run_resolve", org: ORG },
@@ -1453,10 +1647,10 @@ describe("the fetch opens exactly the planned entries, as they are now", () => {
     await anasVault({ LINEAR_TOKEN: "lin", PROGRAM_KEY: "prog" });
     const linear = tool("linear", { target: "LINEAR_TOKEN" });
     const program = localTool("program", { target: "PROGRAM_KEY" });
-    const values = await open({ run: runOf({ person: ANA }), tools: [linear, program] });
-    expect(values.tools.map((group) => [group.mcpServerId, group.url])).toEqual([
-      ["mcp_linear", "https://mcp.linear.example/mcp"],
-      ["mcp_program", ""],
+    const values = await open({ run: runOf({ person: ANA }), plugins: [linear, program] });
+    expect(values.tools.map((group) => [group.pluginId, group.server, group.url])).toEqual([
+      ["plg_linear", "linear", "https://mcp.linear.example/mcp"],
+      ["plg_program", "program", ""],
     ]);
   });
 });
@@ -1492,7 +1686,7 @@ describe("sign-ins", () => {
     const mine = await signedIn();
     const values = await resolve({
       run: runOf({ person: ANA }),
-      tools: [tool("linear", { target: "LINEAR_TOKEN" }), tool("linear", { target: "LINEAR_TOKEN" })],
+      plugins: [tool("linear", { target: "LINEAR_TOKEN" }), tool("linear", { target: "LINEAR_TOKEN" })],
     });
     expect(values).toEqual({ LINEAR_TOKEN: "fresh-old" });
     expect(freshened).toEqual([`${mine}|https://mcp.linear.example/mcp`]);
@@ -1502,13 +1696,13 @@ describe("sign-ins", () => {
     const mine = await signedIn();
     const second = tool("second", { url: "https://mcp.linear.example/mcp", target: "LINEAR_API_KEY" });
     expect(
-      await resolve({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" }), second] }),
+      await resolve({ run: runOf({ person: ANA }), plugins: [tool("linear", { target: "LINEAR_TOKEN" }), second] }),
     ).toEqual({ LINEAR_TOKEN: "fresh-old", LINEAR_API_KEY: "fresh-old" });
     expect(freshened).toEqual([`${mine}|https://mcp.linear.example/mcp`]);
 
     freshened = [];
     const elsewhere = tool("elsewhere", { url: "https://mcp.linear.example/other", target: "LINEAR_TOKEN" });
-    const failure = await refusal(resolve({ run: runOf({ person: ANA }), tools: [elsewhere] }));
+    const failure = await refusal(resolve({ run: runOf({ person: ANA }), plugins: [elsewhere] }));
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toContain("elsewhere needs LINEAR_TOKEN");
     expect(freshened).toEqual([]);
@@ -1526,7 +1720,7 @@ describe("sign-ins", () => {
       localTool("program", { target: "LINEAR_TOKEN" }),
       localTool("program", { target: "NOTION_KEY" }),
     ]) {
-      const failure = await refusal(resolve({ run: runOf({ person: ANA }), tools: [program] }));
+      const failure = await refusal(resolve({ run: runOf({ person: ANA }), plugins: [program] }));
       expect(failure.code).toBe(Code.FailedPrecondition);
       expect(failure.rawMessage).toContain("program needs");
     }
@@ -1538,7 +1732,7 @@ describe("sign-ins", () => {
       testCallerIdentity({ identityId: ANA }),
     );
     expect(
-      await resolve({ run: runOf({ person: ANA }), tools: [localTool("program", { target: "LINEAR_TOKEN" })] }),
+      await resolve({ run: runOf({ person: ANA }), plugins: [localTool("program", { target: "LINEAR_TOKEN" })] }),
     ).toEqual({ LINEAR_TOKEN: "lin-secret" });
   });
 
@@ -1548,18 +1742,18 @@ describe("sign-ins", () => {
       plan({
         run: runOf({ person: ANA }),
         agentSpec: agent({ MISSING: KEY }),
-        tools: [tool("linear", { target: "LINEAR_TOKEN" })],
+        plugins: [tool("linear", { target: "LINEAR_TOKEN" })],
       }),
     );
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toContain("needs MISSING");
-    await plan({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] });
+    await plan({ run: runOf({ person: ANA }), plugins: [tool("linear", { target: "LINEAR_TOKEN" })] });
     expect(freshened).toEqual([]);
   });
 
   it("a renewal at the fetch is written back in the run's person's name, as the server acting for them, never the runner's", async () => {
     await signedIn();
-    await open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] });
+    await open({ run: runOf({ person: ANA }), plugins: [tool("linear", { target: "LINEAR_TOKEN" })] });
     expect(renewedAs.map((caller) => [caller.identityId, caller.callerClass])).toEqual([
       [ANA, "internal"],
     ]);
@@ -1576,7 +1770,7 @@ describe("sign-ins", () => {
     const values = await open({
       run: runOf({ person: ANA }),
       agentSpec: agent({ LINEAR_TOKEN: KEY }),
-      tools: [linear],
+      plugins: [linear],
     });
     expect(toolValues(values, linear)).toEqual({ LINEAR_TOKEN: "fresh-old" });
     expect(agentValues(values)).toEqual({});
@@ -1592,7 +1786,7 @@ describe("sign-ins", () => {
       },
     });
     const failure = await refusal(
-      open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }, undefined, faulty),
+      open({ run: runOf({ person: ANA }), plugins: [tool("linear", { target: "LINEAR_TOKEN" })] }, undefined, faulty),
     );
     expect(failure.code).toBe(Code.Internal);
     expect(failure.rawMessage).not.toContain("disk gone");
@@ -1602,7 +1796,7 @@ describe("sign-ins", () => {
     await signedIn();
     freshenFails = true;
     const failure = await refusal(
-      resolve({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }),
+      resolve({ run: runOf({ person: ANA }), plugins: [tool("linear", { target: "LINEAR_TOKEN" })] }),
     );
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toContain(
@@ -1667,7 +1861,7 @@ describe("a value reaches only its own declarer", () => {
     const failure = await refusal(
       plan({
         run: runOf({ person: ANA }),
-        tools: [tool("linear", { url: LINEAR_URL, target: "LINEAR_TOKEN" }), evil],
+        plugins: [tool("linear", { url: LINEAR_URL, target: "LINEAR_TOKEN" }), evil],
       }),
     );
     expect(failure.code).toBe(Code.FailedPrecondition);
@@ -1689,7 +1883,7 @@ describe("a value reaches only its own declarer", () => {
       tool("notes", { url: "https://mcp.linear.example/mcp/v2", env: { LINEAR_TOKEN: OPTIONAL } }),
       tool("notes", { url: "https://mcp.notes.example/mcp", env: { LINEAR_TOKEN: OPTIONAL } }),
     ]) {
-      const values = await open({ run: runOf({ person: ANA }), tools: [linear, other] });
+      const values = await open({ run: runOf({ person: ANA }), plugins: [linear, other] });
       expect(toolValues(values, linear)).toEqual({ LINEAR_TOKEN: "pasted-linear" });
       expect(toolValues(values, other)).toEqual({});
     }
@@ -1742,7 +1936,7 @@ describe("a value reaches only its own declarer", () => {
         run: runOf({ person: ANA }),
         session: cloning(),
         agentSpec: agent({ GITHUB_TOKEN: KEY }),
-        tools: [github],
+        plugins: [github],
       });
       expect(toolValues(values, github)).toEqual({ GITHUB_TOKEN: "gh-login" });
       expect(values.repositories[0]?.token).toBe("gh-login");
@@ -1758,7 +1952,7 @@ describe("a value reaches only its own declarer", () => {
       "http://api.github.com/mcp",
     ]) {
       const other = tool("other", { url, env: { GITHUB_TOKEN: OPTIONAL } });
-      const values = await open({ run: runOf({ person: ANA }), session: cloning(), tools: [other] });
+      const values = await open({ run: runOf({ person: ANA }), session: cloning(), plugins: [other] });
       expect(toolValues(values, other), url).toEqual({});
       expect(values.repositories[0]?.token).toBe("gh-login");
     }
@@ -1772,7 +1966,7 @@ describe("a value reaches only its own declarer", () => {
       headers: { Authorization: "Bearer ${GITHUB_TOKEN}" },
     });
     const failure = await refusal(
-      plan({ run: runOf({ person: ANA }), session: owned(), tools: [github] }),
+      plan({ run: runOf({ person: ANA }), session: owned(), plugins: [github] }),
     );
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toContain("github needs GITHUB_TOKEN");
@@ -1789,7 +1983,7 @@ describe("a value reaches only its own declarer", () => {
 
   it("fills a GitHub tool on GitHub's own API from the github.com login with no repository in the run, after the tool's own login and before a secret by name", async () => {
     const mine = await githubLogin();
-    const githubAt = (url: string): McpServer =>
+    const githubAt = (url: string): RunPlugin =>
       tool("github", {
         url,
         env: { GITHUB_TOKEN: KEY },
@@ -1797,7 +1991,7 @@ describe("a value reaches only its own declarer", () => {
       });
     for (const url of ["https://api.githubcopilot.com/mcp/", "https://api.github.com/mcp"]) {
       expect(
-        await resolve({ run: runOf({ person: ANA }), tools: [githubAt(url)] }),
+        await resolve({ run: runOf({ person: ANA }), plugins: [githubAt(url)] }),
       ).toEqual({ GITHUB_TOKEN: "gh-login" });
     }
 
@@ -1807,7 +2001,7 @@ describe("a value reaches only its own declarer", () => {
       testCallerIdentity({ identityId: ANA }),
     );
     expect(
-      await resolve({ run: runOf({ person: ANA }), tools: [githubAt("https://api.github.com/mcp")] }),
+      await resolve({ run: runOf({ person: ANA }), plugins: [githubAt("https://api.github.com/mcp")] }),
       "the github.com login comes before a secret by name",
     ).toEqual({ GITHUB_TOKEN: "gh-login" });
 
@@ -1818,7 +2012,7 @@ describe("a value reaches only its own declarer", () => {
       testCallerIdentity({ identityId: ANA }),
     );
     expect(
-      await resolve({ run: runOf({ person: ANA }), tools: [githubAt("https://api.github.com/mcp")] }),
+      await resolve({ run: runOf({ person: ANA }), plugins: [githubAt("https://api.github.com/mcp")] }),
       "the tool's own login comes first",
     ).toEqual({ GITHUB_TOKEN: "tool-own-login" });
   });
@@ -1843,13 +2037,13 @@ describe("a value reaches only its own declarer", () => {
       }),
       localTool("other", { target: "GITHUB_TOKEN" }),
     ]) {
-      const failure = await refusal(plan({ run: runOf({ person: ANA }), tools: [other] }));
+      const failure = await refusal(plan({ run: runOf({ person: ANA }), plugins: [other] }));
       expect(failure.code).toBe(Code.FailedPrecondition);
       expect(failure.rawMessage).toContain("other needs GITHUB_TOKEN");
     }
   });
 
-  it("never plans a key a tool of the run declares for the agent, though agent save copied it there: its env or its login alike", async () => {
+  it("never plans a key a tool of the run declares for the agent, though an agent saved before plugins were whole holds a copy: its env or its login alike", async () => {
     await linearSignIn();
     for (const linear of [
       tool("linear", { url: LINEAR_URL, env: { LINEAR_TOKEN: KEY }, target: "LINEAR_TOKEN" }),
@@ -1859,13 +2053,18 @@ describe("a value reaches only its own declarer", () => {
       const sources = await plan({
         run: runOf({ person: ANA }),
         agentSpec: agent({ LINEAR_TOKEN: KEY }),
-        tools: [linear],
+        plugins: [linear],
       });
-      expect(sources.map((entry) => entry.declarer?.name)).toEqual(["linear"]);
+      expect(sources.map((entry) => entry.declarer?.name)).toEqual(["plugin:linear:linear"]);
+      expect(sources[0]?.declarer).toMatchObject({
+        kind: RunValueDeclarerKind.TOOL,
+        pluginId: "plg_linear",
+        server: "linear",
+      });
       const values = await open({
         run: runOf({ person: ANA }),
         agentSpec: agent({ LINEAR_TOKEN: KEY }),
-        tools: [linear],
+        plugins: [linear],
       });
       expect(toolValues(values, linear)).toEqual({ LINEAR_TOKEN: "fresh-linear-login" });
       expect(agentValues(values)).toEqual({});
@@ -1875,12 +2074,12 @@ describe("a value reaches only its own declarer", () => {
   it("keeps the agent's key from a tool's whose server the runner later skips: the plan alone decides", async () => {
     await anasVault({ NOTION_KEY: "notion-secret" });
     const notion = tool("notion", { env: { NOTION_KEY: KEY } });
-    // The tool's row is gone by the time the runner loads it; its key
+    // The tool's plugin is gone by the time the runner loads it; its key
     // still never reaches the agent.
     const values = await open(
-      { run: runOf({ person: ANA }), agentSpec: agent({ NOTION_KEY: KEY }), tools: [notion] },
+      { run: runOf({ person: ANA }), agentSpec: agent({ NOTION_KEY: KEY }), plugins: [notion] },
       async () => {
-        await rig.store.deleteResource(ApiResourceKind.mcp_server, notion.metadata!.id);
+        await rig.store.deleteResource(ApiResourceKind.plugin, notion.id);
       },
     );
     expect(agentValues(values)).toEqual({});
@@ -1906,7 +2105,7 @@ describe("a value reaches only its own declarer", () => {
       testCallerIdentity({ identityId: ANA }),
     );
     const proxy = tool("proxy", { url: "https://mcp.gh-proxy.example/mcp", target: "GITHUB_TOKEN" });
-    const values = await open({ run: runOf({ person: ANA }), session: cloning(), tools: [proxy] });
+    const values = await open({ run: runOf({ person: ANA }), session: cloning(), plugins: [proxy] });
     expect(toolValues(values, proxy)).toEqual({ GITHUB_TOKEN: "fresh-proxy-login" });
     expect(values.repositories).toEqual([]);
   });
@@ -1918,43 +2117,159 @@ describe("a value reaches only its own declarer", () => {
       url: "https://other.example/mcp",
       headers: { Authorization: "Bearer ${LINEAR_TOKEN}" },
     });
-    const values = await open({ run: runOf({ person: ANA }), tools: [linear, other] });
+    const values = await open({ run: runOf({ person: ANA }), plugins: [linear, other] });
     expect(toolValues(values, linear)).toEqual({ LINEAR_TOKEN: "linear-pat" });
     expect(toolValues(values, other)).toEqual({ LINEAR_TOKEN: "linear-pat" });
   });
 });
 
 // ---------------------------------------------------------------------------
-// The connect lane
+// A plugin's hooks
 // ---------------------------------------------------------------------------
 
-describe("the connect lane", () => {
+describe("a key the runner always fills is never a vault's", () => {
+  it("plans nothing for a hook that reads the caller's identity, whatever a vault saved under that name", () => {
+    const spoof: RunPlugin = {
+      id: "plg_spoof",
+      name: "spoof",
+      status: create(PluginStatusSchema, {
+        hooks: {
+          format: HookFormat.CLAUDE_CODE,
+          groups: [
+            {
+              event: "Stop",
+              handlers: [
+                { command: "who", args: ["${user_config.STIGMER_CALLER_IDENTITY_VALUE}", "${user_config.STIGMER_SESSION_ID}", "${user_config.TEAM}"] },
+              ],
+            },
+          ],
+        },
+      }),
+    };
+    expect(pluginHookRequirements(spoof).map((requirement) => requirement.key)).toEqual(["TEAM"]);
+  });
+
+  it("plans no login for a server whose Bearer header names the caller's identity", () => {
+    const echo = tool("echo", { headers: { Authorization: "Bearer ${STIGMER_CALLER_IDENTITY_VALUE}" } });
+    expect(toolRequirements(serverOf(echo)).map((requirement) => requirement.key)).toEqual([]);
+  });
+});
+
+describe("a plugin's hooks", () => {
+  /**
+   * A plugin whose one hook runs in exec form reading two variables (one
+   * declared plain, one undeclared), beside a shell-form hook whose text is
+   * the shell's and reads nothing the run must supply.
+   */
+  function notifier(): RunPlugin {
+    return {
+      id: "plg_notify",
+      name: "notify",
+      status: create(PluginStatusSchema, {
+        hooks: {
+          format: HookFormat.CLAUDE_CODE,
+          groups: [
+            {
+              event: "Stop",
+              handlers: [
+                {
+                  command: "notify",
+                  args: ["--token", "${user_config.SLACK_HOOK_TOKEN}", "--channel", "${user_config.CHANNEL}"],
+                },
+                { command: "echo ${user_config.SHELL_ONLY}", args: [] },
+              ],
+            },
+          ],
+        },
+        env: { CHANNEL: { value: "#ops" } },
+      }),
+    };
+  }
+
+  it("declare each key their exec-form handlers read, for the plugin; an undeclared one is a required secret", () => {
+    const requirements = pluginHookRequirements(notifier());
+    expect(requirements.map((requirement) => requirement.key)).toEqual(["SLACK_HOOK_TOKEN", "CHANNEL"]);
+    for (const requirement of requirements) {
+      expect(requirement.declarer).toEqual({ kind: "plugin", name: "notify", pluginId: "plg_notify" });
+    }
+    expect(requirements[0]?.optional).toBe(false);
+    expect(requirements[0]?.plainValue).toBeUndefined();
+    expect(requirements[1]?.plainValue).toBe("#ops");
+    expect(pluginHookRequirements({ id: "plg_none", name: "none", status: create(PluginStatusSchema) })).toEqual([]);
+  });
+
+  it("receive their values grouped by plugin, under a plugin declarer, and the agent's copy of a key gets none", async () => {
+    await anasVault({ SLACK_HOOK_TOKEN: "slack-secret" });
+    const init = {
+      run: runOf({ person: ANA }),
+      agentSpec: agent({ SLACK_HOOK_TOKEN: KEY }),
+      plugins: [notifier()],
+    };
+    const sources = await plan(init);
+    expect(sources.map((entry) => [entry.key, entry.declarer?.kind, entry.declarer?.pluginId, entry.declarer?.server])).toEqual([
+      ["SLACK_HOOK_TOKEN", RunValueDeclarerKind.PLUGIN, "plg_notify", ""],
+      ["CHANNEL", RunValueDeclarerKind.PLUGIN, "plg_notify", ""],
+    ]);
+    const values = await open(init);
+    expect(values.plugins.map((group) => [group.pluginId, { ...group.values }])).toEqual([
+      ["plg_notify", { SLACK_HOOK_TOKEN: "slack-secret", CHANNEL: "#ops" }],
+    ]);
+    expect(values.tools).toEqual([]);
+    expect(agentValues(values)).toEqual({});
+  });
+
+  it("refuse a key removed after the plan at the fetch, naming the plugin's hooks", async () => {
+    const mine = await anasVault({ SLACK_HOOK_TOKEN: "slack-secret" });
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), plugins: [notifier()] }, async () => {
+        await rig.vaults.removeSecrets(mine, ["SLACK_HOOK_TOKEN"], testCallerIdentity({ identityId: ANA }));
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toBe(
+      "the hooks of plugin notify needs SLACK_HOOK_TOKEN, but My vault no longer holds a secret named SLACK_HOOK_TOKEN. Fix it, then recover the turn",
+    );
+  });
+
+  it("refuse a run missing a key they need, naming the plugin's hooks", async () => {
+    await anasVault({});
+    const failure = await refusal(resolve({ run: runOf({ person: ANA }), plugins: [notifier()] }));
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toContain("the hooks of plugin notify needs SLACK_HOOK_TOKEN");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The tools listing lane
+// ---------------------------------------------------------------------------
+
+describe("the tools listing lane", () => {
   const linear = tool("linear", { target: "LINEAR_TOKEN", env: { TEAM: { value: "core" } } });
 
-  it("a person's connect reads their My vault, and its plain defaults", async () => {
+  it("a person's listing reads their My vault, and its plain defaults", async () => {
     await anasVault({ LINEAR_TOKEN: "ana-token" });
-    const values = await resolver.openConnect({ orgId: ORG, person: ANA, server: linear });
+    const values = await resolver.openConnect({ orgId: ORG, person: ANA, server: serverOf(linear) });
     expect(toolValues(values, linear)).toEqual({ LINEAR_TOKEN: "ana-token", TEAM: "core" });
     expect(values.agent).toEqual({});
   });
 
-  it("a teammate's connect reads the teammate's My vault, never Ana's", async () => {
+  it("a teammate's listing reads the teammate's My vault, never Ana's", async () => {
     await anasVault({ LINEAR_TOKEN: "ana-token" });
-    const failure = await refusal(resolver.openConnect({ orgId: ORG, person: BEN, server: linear }));
+    const failure = await refusal(resolver.openConnect({ orgId: ORG, person: BEN, server: serverOf(linear) }));
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toContain("linear needs LINEAR_TOKEN");
   });
 
   it("a caller who is no person reads no My vault", async () => {
     await anasVault({ LINEAR_TOKEN: "ana-token" });
-    const failure = await refusal(resolver.planConnect({ orgId: ORG, person: undefined, server: linear }));
+    const failure = await refusal(resolver.planConnect({ orgId: ORG, person: undefined, server: serverOf(linear) }));
     expect(failure.code).toBe(Code.FailedPrecondition);
   });
 
-  it("a sign-in saved into a shared vault never serves a connect", async () => {
+  it("a sign-in saved into a shared vault never serves a listing", async () => {
     const team = await seedSharedVault(rig.store, ORG, "team", { secrets: { LINEAR_TOKEN: "team-token" } });
     mayUse.add(`${ANA}:${team.metadata!.id}`);
-    const failure = await refusal(resolver.planConnect({ orgId: ORG, person: ANA, server: linear }));
+    const failure = await refusal(resolver.planConnect({ orgId: ORG, person: ANA, server: serverOf(linear) }));
     expect(failure.code).toBe(Code.FailedPrecondition);
   });
 });
@@ -2000,9 +2315,9 @@ function resolverWith(overrides: {
 describe("edges", () => {
   it("reads the login key from the Authorization header among others, and none without one", () => {
     expect(
-      loginKeyOf(tool("x", { headers: { "X-Trace": "1", authorization: "Bearer ${X_KEY}" } })),
+      loginKeyOf(entryOf(tool("x", { headers: { "X-Trace": "1", authorization: "Bearer ${X_KEY}" } }))),
     ).toBe("X_KEY");
-    expect(loginKeyOf(tool("y", { headers: { "X-Trace": "1" } }))).toBeUndefined();
+    expect(loginKeyOf(entryOf(tool("y", { headers: { "X-Trace": "1" } })))).toBeUndefined();
   });
 
   it("a local folder needs no clone token", () => {
@@ -2018,7 +2333,7 @@ describe("edges", () => {
       agentSpec: undefined,
       agentName: "",
       agentOrg: undefined,
-      tools: [],
+      plugins: [],
     });
     expect(requirements).toEqual([]);
   });
@@ -2146,12 +2461,20 @@ describe("edges", () => {
       }),
     });
     const failure = await refusal(
-      open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }, undefined, real),
+      open({ run: runOf({ person: ANA }), plugins: [tool("linear", { target: "LINEAR_TOKEN" })] }, undefined, real),
     );
     expect(failure.code).toBe(Code.FailedPrecondition);
     expect(failure.rawMessage).toBe(
       "the sign-in for https://mcp.linear.example/mcp in My vault could not be renewed: " +
         "it has expired and no refresh token is available. Sign in again, then recover the turn",
+    );
+    // A tools listing has no turn to recover: its way out is to list again.
+    const listing = await refusal(
+      real.openConnect({ orgId: ORG, person: ANA, server: serverOf(tool("linear", { target: "LINEAR_TOKEN" })) }),
+    );
+    expect(listing.rawMessage).toBe(
+      "the sign-in for https://mcp.linear.example/mcp in My vault could not be renewed: " +
+        "it has expired and no refresh token is available. Sign in again, then list the tools again",
     );
   });
 
@@ -2182,7 +2505,7 @@ describe("edges", () => {
       },
     });
     const failure = await refusal(
-      open({ run: runOf({ person: ANA }), tools: [tool("linear", { target: "LINEAR_TOKEN" })] }, undefined, refusing),
+      open({ run: runOf({ person: ANA }), plugins: [tool("linear", { target: "LINEAR_TOKEN" })] }, undefined, refusing),
     );
     expect(failure.code).toBe(Code.Unauthenticated);
   });
@@ -2400,7 +2723,7 @@ describe("a stored value the server cannot open", () => {
         logger: silentLogger,
       }),
     });
-    const values = await open({ run: runOf({ person: ANA }), tools: [linear] }, undefined, over);
+    const values = await open({ run: runOf({ person: ANA }), plugins: [linear] }, undefined, over);
     expect(toolValues(values, linear)).toEqual({ LINEAR_TOKEN: "linear-token" });
     expect(decrypt.mock.calls.map(([value]) => value)).toEqual([login.token]);
   });

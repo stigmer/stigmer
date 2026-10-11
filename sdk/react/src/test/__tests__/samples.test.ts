@@ -74,11 +74,13 @@ describe("samples", () => {
     });
   });
 
-  describe("mcpServer", () => {
-    it("creates an MCP server with defaults", () => {
-      const m = samples.mcpServer();
-      expect(m.kind).toBe("McpServer");
-      expect(m.metadata?.name).toBe("Demo MCP Server");
+  describe("plugin", () => {
+    it("creates a plugin holding one server that signs in", () => {
+      const p = samples.plugin();
+      expect(p.kind).toBe("Plugin");
+      expect(p.metadata?.name).toBe("demo-plugin");
+      expect(p.status?.mcpServers[0]?.transport.case).toBe("http");
+      expect(p.status?.mcpServers[0]?.signIn).toBeDefined();
     });
   });
 
@@ -187,7 +189,7 @@ describe("samples determinism", () => {
     agent: () => samples.agent(),
     run: () => samples.run(),
     skill: () => samples.skill(),
-    mcpServer: () => samples.mcpServer(),
+    plugin: () => samples.plugin(),
     vault: () => samples.vault(),
     apiKey: () => samples.apiKey(),
     organization: () => samples.organization(),

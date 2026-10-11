@@ -1,59 +1,33 @@
 /**
- * Switching a plugin's hooks on for an agent, as one spec edit.
+ * Putting a plugin on an agent, as one spec edit: the plugin appended to
+ * the agent's `plugins` unless it lists it already.
  *
- * Both ways in write the same spec: the plugin page's "Add to an agent"
- * (`useAddPluginToAgent`) and the agent page's Hooks section. The agent's
- * `hooks` gains the plugin as a source unless it already lists it, and every
- * `${user_config.KEY}` the plugin's hooks read is declared in the agent's
- * `env`, as a required secret, unless the agent declares it already.
- * Install declares the same names on the agent it composes, from the
- * plugin's own declaration where it has one; the client holds only the hooks
- * the plugin recorded, not its declarations, so it declares each as install
- * declares a variable the plugin did not (a required secret). Without the
- * declaration the runner refuses the agent's next turn for an undeclared
- * variable; a declared one is asked for when a session starts. The names
- * come from the plugin library's `hookVariableReferences`, the rule install
- * reads. Switching the hooks off leaves the declarations in place: another
- * source may read the same names.
+ * A plugin is used whole: listing it gives the agent the plugin's skills,
+ * its agents, its hooks and its MCP servers, and the plugin carries the
+ * declarations of the keys they read, so nothing else on the agent changes.
+ * Both ways in write this edit: the plugin page's "Add to an agent"
+ * (`useAddPluginToAgent`) and the agent page's Plugins section. References
+ * are compared by organization and slug; one without an organization names
+ * the agent's own, as the server reads it.
  */
 
-import type { HookConfig } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import { hookVariableReferences } from "@stigmer/plugin-package";
-import type { AgentInput, HookSourceInput, ResourceRef } from "@stigmer/sdk";
+import type { AgentInput, ResourceRef } from "@stigmer/sdk";
 
-/**
- * The variables a plugin's hooks read that the agent does not declare yet,
- * in first-seen order: what switching the hooks on adds to its `env`.
- */
-export function hookVariablesToDeclare(input: AgentInput, config: HookConfig | undefined): readonly string[] {
-  if (config === undefined) return [];
-  const declared = input.env ?? {};
-  return hookVariableReferences(config).filter((name) => !Object.hasOwn(declared, name));
-}
-
-/** Whether the agent's hooks already name this plugin, compared by org and slug. */
-export function listsPluginHooks(input: AgentInput, ref: ResourceRef): boolean {
-  return (input.hooks ?? []).some((source) => sameRef(source, ref));
+/** Whether the agent's `plugins` already name this plugin. */
+export function listsPlugin(input: AgentInput, ref: ResourceRef): boolean {
+  return (input.plugins ?? []).some((listed) => sameRef(listed, ref, input.org));
 }
 
 /**
- * The agent's input with the plugin's hooks switched on: the plugin
- * appended to `hooks` unless listed, and the variables its hooks read
- * declared as required secrets unless declared. Everything else, the
- * inline block and other plugins included, is kept as it is.
+ * The agent's input with the plugin appended to `plugins` unless listed.
+ * Everything else, the agent's other plugins and their order included, is
+ * kept as it is.
  */
-export function withPluginHooks(input: AgentInput, ref: ResourceRef, config: HookConfig | undefined): AgentInput {
-  const hooks: HookSourceInput[] = listsPluginHooks(input, ref)
-    ? [...(input.hooks ?? [])]
-    : [...(input.hooks ?? []), { plugin: { org: ref.org, slug: ref.slug } }];
-  const missing = hookVariablesToDeclare(input, config);
-  if (missing.length === 0) return { ...input, hooks };
-  const env = { ...(input.env ?? {}) };
-  // Defined, not assigned: a name read from a plugin may be `__proto__`.
-  for (const name of missing) Object.defineProperty(env, name, { value: { isSecret: true }, enumerable: true, writable: true, configurable: true });
-  return { ...input, hooks, env };
+export function withPlugin(input: AgentInput, ref: ResourceRef): AgentInput {
+  if (listsPlugin(input, ref)) return input;
+  return { ...input, plugins: [...(input.plugins ?? []), { org: ref.org, slug: ref.slug }] };
 }
 
-function sameRef(source: HookSourceInput, ref: ResourceRef): boolean {
-  return source.plugin !== undefined && source.plugin.org === ref.org && source.plugin.slug === ref.slug;
+function sameRef(listed: ResourceRef, ref: ResourceRef, agentOrg: string): boolean {
+  return (listed.org || agentOrg) === (ref.org || agentOrg) && listed.slug === ref.slug;
 }

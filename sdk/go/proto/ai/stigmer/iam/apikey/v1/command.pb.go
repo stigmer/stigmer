@@ -26,26 +26,30 @@ var File_ai_stigmer_iam_apikey_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_apikey_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/iam/apikey/v1/command.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a!ai/stigmer/iam/apikey/v1/io.proto2\xfa\x02\n" +
+	"&ai/stigmer/iam/apikey/v1/command.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a!ai/stigmer/iam/apikey/v1/io.proto2\xc2\x04\n" +
 	"\x17ApiKeyCommandController\x12R\n" +
-	"\x06create\x12 .ai.stigmer.iam.apikey.v1.ApiKey\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x04и\x18\x01\x12\x83\x01\n" +
+	"\x06create\x12 .ai.stigmer.iam.apikey.v1.ApiKey\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x04и\x18\x01\x12\xc5\x01\n" +
+	"\x17createForServiceAccount\x126.ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"P¸\x18L\b7\x10\v\"\x12service_account_id*2unauthorized to manage this service account's keys\x12\x83\x01\n" +
 	"\x06update\x12 .ai.stigmer.iam.apikey.v1.ApiKey\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"5¸\x181\b\x02\x10\f\"\vmetadata.id*\x1eunauthorized to update api key\x12\x7f\n" +
 	"\x06delete\x12\".ai.stigmer.iam.apikey.v1.ApiKeyId\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"/¸\x18+\b\x03\x10\f\"\x05value*\x1eunauthorized to delete api key\x1a\x04\xa0\xff+\fB\xff\x01\n" +
 	"\x1ccom.ai.stigmer.iam.apikey.v1B\fCommandProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
 
 var file_ai_stigmer_iam_apikey_v1_command_proto_goTypes = []any{
-	(*ApiKey)(nil),   // 0: ai.stigmer.iam.apikey.v1.ApiKey
-	(*ApiKeyId)(nil), // 1: ai.stigmer.iam.apikey.v1.ApiKeyId
+	(*ApiKey)(nil),                       // 0: ai.stigmer.iam.apikey.v1.ApiKey
+	(*CreateServiceAccountKeyInput)(nil), // 1: ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput
+	(*ApiKeyId)(nil),                     // 2: ai.stigmer.iam.apikey.v1.ApiKeyId
 }
 var file_ai_stigmer_iam_apikey_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.create:input_type -> ai.stigmer.iam.apikey.v1.ApiKey
-	0, // 1: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.update:input_type -> ai.stigmer.iam.apikey.v1.ApiKey
-	1, // 2: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.delete:input_type -> ai.stigmer.iam.apikey.v1.ApiKeyId
-	0, // 3: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.create:output_type -> ai.stigmer.iam.apikey.v1.ApiKey
-	0, // 4: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.update:output_type -> ai.stigmer.iam.apikey.v1.ApiKey
-	0, // 5: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.delete:output_type -> ai.stigmer.iam.apikey.v1.ApiKey
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	1, // 1: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.createForServiceAccount:input_type -> ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput
+	0, // 2: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.update:input_type -> ai.stigmer.iam.apikey.v1.ApiKey
+	2, // 3: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.delete:input_type -> ai.stigmer.iam.apikey.v1.ApiKeyId
+	0, // 4: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.create:output_type -> ai.stigmer.iam.apikey.v1.ApiKey
+	0, // 5: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.createForServiceAccount:output_type -> ai.stigmer.iam.apikey.v1.ApiKey
+	0, // 6: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.update:output_type -> ai.stigmer.iam.apikey.v1.ApiKey
+	0, // 7: ai.stigmer.iam.apikey.v1.ApiKeyCommandController.delete:output_type -> ai.stigmer.iam.apikey.v1.ApiKey
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

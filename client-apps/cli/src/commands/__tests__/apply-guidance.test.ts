@@ -36,6 +36,6 @@ describe("stigmer apply with no plugin manifest", () => {
 
     const out = stderr.join("");
     expect(out).toContain(`No plugin manifest in ${dir}`);
-    expect(out).toContain("stigmer apply -f <file>        apply a resource file (agent, MCP server, ...)");
+    expect(out).toContain("stigmer apply -f <file>        apply a resource file (agent, schedule, ...)");
   });
 });

@@ -130,10 +130,6 @@ const ERROR_MESSAGES: Record<PluginErrorKind, Sentence> = {
   "variable-name-invalid": (c) =>
     `variable name ${q(c.subject)}${at(c.path)} is invalid: an environment variable name is letters, digits and underscores, not starting with a digit`,
 
-  "overlay-server-unknown": (c) =>
-    `${q(c.path)} overlays MCP server ${q(c.subject)}, which the plugin does not declare`,
-  "overlay-document-unknown": (c) =>
-    `${q(c.path)} is not a document Stigmer reads; the 'ai.stigmer/' folder holds 'agent.yaml' and 'mcp-servers/<server>.yaml'`,
 };
 
 const WARNING_MESSAGES: Record<PluginWarningKind, Sentence> = {
@@ -151,7 +147,7 @@ const WARNING_MESSAGES: Record<PluginWarningKind, Sentence> = {
     `MCP server ${q(c.subject)}${at(c.path)} declares the legacy 'sse' transport; Stigmer connects over Streamable HTTP and falls back to SSE only when the server rejects it`,
   "mcp-server-field-ignored": (c) => `MCP server ${q(c.subject)}${at(c.path)} has a field ${q(c.detail)} Stigmer does not read, ignored`,
   "mcp-server-auth-ignored": (c) =>
-    `MCP server ${q(c.subject)}${at(c.path)} has an 'auth' block Stigmer does not read; OAuth for a server is declared in 'ai.stigmer/mcp-servers/${c.subject ?? "<server>"}.yaml'`,
+    `MCP server ${q(c.subject)}${at(c.path)} has an 'auth' block Stigmer does not read; a person signs in to a server at its address`,
   "variable-inferred": (c) =>
     `variable ${q(c.subject)} is referenced by MCP server ${q(c.detail)} but not declared; it is declared as a required secret`,
   "variable-unreferenced": (c) => `variable ${q(c.subject)}${at(c.path)} is declared but no MCP server or hook references it`,
@@ -184,6 +180,8 @@ const WARNING_MESSAGES: Record<PluginWarningKind, Sentence> = {
   "settings-agent-unknown": (c) =>
     `plugin settings${at(c.path)} name ${q(c.detail)} as the main agent, which is not one of the plugin's agents, ignored`,
   "settings-key-ignored": (c) => `plugin settings${at(c.path)} have a key ${q(c.subject)} Stigmer does not apply, ignored`,
+  "stigmer-folder-ignored": (c) =>
+    `${q(c.path)} is not read: Stigmer installs a plugin from its skills, agents, hooks and MCP configuration, as every other client does`,
 };
 
 /** Sub-agent fields Claude Code itself ignores when the agent comes from a plugin (its sub-agents reference). */

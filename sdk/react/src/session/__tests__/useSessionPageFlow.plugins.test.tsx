@@ -1,0 +1,54 @@
+/**
+ * A conversation's plugins survive the page: the page loads the plugins a
+ * stored conversation lists into its picks, and a console follow-up sends
+ * them back unchanged, so a follow-up never drops a plugin the
+ * conversation was started with.
+ */
+import { describe, it, expect, vi } from "vitest";
+import { renderHook, act, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { create } from "@bufbuild/protobuf";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { Stigmer } from "@stigmer/sdk";
+import { StigmerContext } from "../../context";
+import { useSessionPageFlow } from "../useSessionPageFlow";
+
+const STORED = create(SessionSchema, {
+  metadata: { id: "session-1", org: "org_acme", name: "s" },
+  spec: { plugins: [{ org: "org_acme", slug: "linear" }] },
+});
+
+describe("useSessionPageFlow — a stored conversation's plugins", () => {
+  it("are loaded into the picks and sent back by a follow-up", async () => {
+    const sessionUpdate = vi.fn().mockResolvedValue(STORED);
+    const client = {
+      session: { get: vi.fn().mockResolvedValue(STORED), update: sessionUpdate },
+      run: {
+        listBySession: vi.fn().mockResolvedValue({ entries: [] }),
+        create: vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} }),
+        subscribe: vi.fn(),
+      },
+      agent: { getByReference: vi.fn().mockResolvedValue(null) },
+      identityAccount: { whoAmI: vi.fn().mockRejectedValue(new Error("none")) },
+    } as unknown as Stigmer;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>
+    );
+
+    const { result } = renderHook(
+      () => useSessionPageFlow({ sessionId: "session-1", org: "org_acme" }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.pluginRefs).toHaveLength(1));
+    expect(result.current.pluginRefs[0]).toMatchObject({ org: "org_acme", slug: "linear" });
+
+    await act(async () => {
+      await result.current.handleSubmit("go");
+    });
+
+    await waitFor(() => expect(sessionUpdate).toHaveBeenCalledTimes(1));
+    expect(sessionUpdate.mock.calls[0][0].plugins).toEqual([
+      expect.objectContaining({ org: "org_acme", slug: "linear" }),
+    ]);
+  });
+});

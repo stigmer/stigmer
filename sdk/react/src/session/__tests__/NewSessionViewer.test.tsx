@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef } from "@stigmer/sdk";
 import { ACME_ID, GLOBEX_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
 // ---------------------------------------------------------------------------
@@ -24,7 +24,7 @@ vi.mock("../../composer", async (importOriginal) => {
 });
 
 // A launcher flow with ZERO attached context — no agent, no workspace, no
-// MCP/skills/vars. This is the case the old `hasContext` gate hid the chip for.
+// plugins/skills/vars. This is the case the old `hasContext` gate hid the chip for.
 const emptyWorkspace = {
   entries: [],
   hasEntries: false,
@@ -45,8 +45,8 @@ const stubEmptyFlow = {
   setAgentRef: vi.fn(),
   resolution: null,
   setResolution: vi.fn(),
-  mcpServerUsages: [] as McpServerUsageInput[],
-  setMcpServerUsages: vi.fn(),
+  pluginRefs: [] as ResourceRef[],
+  setPluginRefs: vi.fn(),
   skillRefs: [] as ResourceRef[],
   setSkillRefs: vi.fn(),
   workspace: emptyWorkspace,
@@ -184,10 +184,10 @@ describe("NewSessionViewer — composer stays centered", () => {
 describe("NewSessionViewer — removing an attached reference compares orgs by id", () => {
   // The same server attached twice, once naming its org by slug (a host's
   // seed) and once by id (a picked one), and a namesake in another org.
-  const mcpServerUsages: McpServerUsageInput[] = [
-    { mcpServerRef: { org: "acme", slug: "github" } },
-    { mcpServerRef: { org: ACME_ID, slug: "github" } },
-    { mcpServerRef: { org: GLOBEX_ID, slug: "github" } },
+  const pluginRefs: ResourceRef[] = [
+    { org: "acme", slug: "github" },
+    { org: ACME_ID, slug: "github" },
+    { org: GLOBEX_ID, slug: "github" },
   ];
   const skillRefs: ResourceRef[] = [
     { org: ACME_ID, slug: "triage" },
@@ -196,20 +196,20 @@ describe("NewSessionViewer — removing an attached reference compares orgs by i
   ];
 
   async function renderWithRefs() {
-    mockFlow = { ...stubEmptyFlow, mcpServerUsages, skillRefs };
+    mockFlow = { ...stubEmptyFlow, pluginRefs, skillRefs };
     render(<NewSessionViewer org={ACME_ID} onSessionCreated={vi.fn()} />, {
       wrapper: orgWrapper({}, undefined, true),
     });
     fireEvent.click(await screen.findByRole("button", { name: "Show panel" }));
   }
 
-  it("drops every attachment of the removed MCP server, and only in its org", async () => {
+  it("drops every attachment of the removed plugin, and only in its org", async () => {
     await renderWithRefs();
 
-    fireEvent.click((await screen.findAllByRole("button", { name: "Remove MCP server github" }))[0]);
+    fireEvent.click((await screen.findAllByRole("button", { name: "Remove plugin github" }))[0]);
 
-    expect(stubEmptyFlow.setMcpServerUsages).toHaveBeenCalledExactlyOnceWith([
-      { mcpServerRef: { org: GLOBEX_ID, slug: "github" } },
+    expect(stubEmptyFlow.setPluginRefs).toHaveBeenCalledExactlyOnceWith([
+      { org: GLOBEX_ID, slug: "github" },
     ]);
   });
 

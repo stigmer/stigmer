@@ -9,6 +9,7 @@ import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/run/v1/filereview.proto";
 import "ai/stigmer/agentic/run/v1/invocation.proto";
 import "ai/stigmer/agentic/run/v1/message.proto";
+import "ai/stigmer/agentic/run/v1/plugin_eval_case.proto";
 import "ai/stigmer/agentic/run/v1/spec.proto";
 import "ai/stigmer/agentic/run/v1/subagent.proto";
 import "ai/stigmer/agentic/run/v1/todo.proto";
@@ -475,6 +476,13 @@ message RunStatus {
   // Whose logins and secrets this turn uses: decided once when the turn is
   // created, and kept when it is recovered.
   RunCredentials credentials = 33;
+
+  // The files a plugin eval's graders read, as the try's turn left them.
+  //
+  // @internal
+  // Set only on a run whose spec carries plugin_eval_case, by the runner,
+  // once, with the turn's terminal status.
+  PluginEvalFiles plugin_eval_files = 34;
 }
 
 // RunCredentials records whose logins and secrets a turn uses.
@@ -544,17 +552,33 @@ message RunValueSource {
 
 // RunValueDeclarer names who declared a value a turn uses.
 message RunValueDeclarer {
-  // Agent, tool or repository.
+  // Agent, tool, plugin or repository.
   RunValueDeclarerKind kind = 1;
 
-  // The agent's or tool's name, or the repository entry's name.
+  // The agent's name; a tool's name as plugin:<plugin>:<server>; the
+  // plugin's name; or the repository entry's name.
   string name = 2;
 
-  // The tool's MCP server id; empty for an agent or a repository.
-  string mcp_server_id = 3;
+  // Field 3 held a tool's MCP server id until an MCP server became an entry
+  // inside a plugin; a tool is named by plugin_id and server.
+  reserved 3;
+  reserved "mcp_server_id";
 
-  // The repository's URL; empty for an agent or a tool.
+  // The repository's URL; empty for an agent, a tool or a plugin.
   string repository_url = 4;
+
+  // The plugin that declared it: a tool's plugin, or the plugin whose hooks
+  // read it; empty for an agent or a repository.
+  string plugin_id = 5;
+
+  // The tool's server name in its plugin; empty for everything else.
+  string server = 6;
+
+  // The archive of the tool's plugin this run planned (the plugin's
+  // digest); empty for everything else. The values fetch reads the server
+  // at that version, so a run of a pinned version keeps its tools when the
+  // plugin is pushed again.
+  string plugin_digest = 7;
 }
 
 // Setup progress reported during the RUN_PENDING phase.

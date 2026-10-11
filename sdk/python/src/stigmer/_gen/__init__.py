@@ -2,7 +2,7 @@
 
 from ._bidi import BidiStream
 from ._client import GeneratedClient
-from ._agent import AgentClient, AgentInput, McpServerUsageInput, SubAgentInput, EnvVarDeclarationInput, HookSourceInput, HookConfigInput, HookGroupInput, HookHandlerInput, RunConfigInput
+from ._agent import AgentClient, AgentInput, SubAgentInput, EnvVarDeclarationInput, HookSourceInput, HookConfigInput, HookGroupInput, HookHandlerInput, RunConfigInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
@@ -13,7 +13,6 @@ from ._identityaccount import IdentityAccountClient, IdentityAccountInput, Ident
 from ._identityprovider import IdentityProviderClient, IdentityProviderInput
 from ._invitation import InvitationClient, InvitationInput
 from ._license import LicenseClient, LicenseInput, LicenseCustomerInput, EntitlementsInput, EntitlementLimitsInput
-from ._mcpserver import McpServerClient, McpServerInput, StdioServerConfigInput, HttpServerConfigInput, McpServerAuthInput
 from ._memory import MemoryClient, MemoryInput, MemoryProvenanceInput
 from ._oauthapp import OAuthAppClient, OAuthAppInput
 from ._organization import OrganizationClient, OrganizationInput, OrganizationPreferencesInput, OrganizationPoliciesInput
@@ -22,7 +21,7 @@ from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._plugin import PluginClient, PluginInput, PluginAuthorInput
 from ._plugineval import PluginEvalClient, PluginEvalInput, PluginEvalTargetInput
 from ._providerkey import ProviderKeyClient
-from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput
+from ._run import RunClient, RunInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, AttachmentInput, ConversationCatchupInput, PluginEvalCaseContextInput, PluginEvalMockServerInput, PluginEvalMockToolInput
 from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput
 from ._score import ScoreClient, ScoreInput, ScoreCriterionInput
 from ._session import SessionClient, SessionInput
@@ -52,7 +51,6 @@ __all__ = [
     "GeneratedClient",
     "AgentClient",
     "AgentInput",
-    "McpServerUsageInput",
     "SubAgentInput",
     "EnvVarDeclarationInput",
     "HookSourceInput",
@@ -90,11 +88,6 @@ __all__ = [
     "LicenseCustomerInput",
     "EntitlementsInput",
     "EntitlementLimitsInput",
-    "McpServerClient",
-    "McpServerInput",
-    "StdioServerConfigInput",
-    "HttpServerConfigInput",
-    "McpServerAuthInput",
     "MemoryClient",
     "MemoryInput",
     "MemoryProvenanceInput",
@@ -125,6 +118,9 @@ __all__ = [
     "LocalPathSourceInput",
     "AttachmentInput",
     "ConversationCatchupInput",
+    "PluginEvalCaseContextInput",
+    "PluginEvalMockServerInput",
+    "PluginEvalMockToolInput",
     "ScheduleClient",
     "ScheduleInput",
     "AgentInvocationInput",

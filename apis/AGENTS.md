@@ -29,7 +29,7 @@ the truth.
   directory under `ai/stigmer/` it belongs to, its aggregate and owner are
   named, and it is registered in `ApiResourceKind`. The server and every SDK
   mirror this structure.
-- Blueprint kinds (Agent, McpServer, Skill) carry no secrets and no
+- Blueprint kinds (Agent, Skill, Plugin) carry no secrets and no
   environment-specific values; runtime kinds do. A declared variable's plain
   default is a fixed setting, the same wherever the blueprint runs; a value that
   differs per deployment lives in a vault.

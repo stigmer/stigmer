@@ -2,8 +2,8 @@
 // create step needs. Ports the Go CLI's prepareAgentExec (run_agent_exec.go).
 //
 // Order matters and mirrors Go: validate cheap flags first (mode, approve
-// default), then parse workspaces, then resolve the vaults the conversation
-// uses, then process attachments. A failure short-circuits before any
+// default), then parse workspaces, then resolve the vaults and plugins the
+// conversation uses, then process attachments. A failure short-circuits before any
 // upload. A run carries no values of its own: its keys come from the vaults
 // its conversation uses (vaults.ts), which is why a vault named by id is
 // looked up here, before anything is uploaded.
@@ -17,6 +17,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import type { Stigmer } from "@stigmer/sdk";
 import { UsageError } from "../../errors/index.js";
 import { type ProgressSink, processAttachments } from "./attachments.js";
+import { resolveRunPlugins } from "./plugins.js";
 import { resolveRunVaults } from "./vaults.js";
 import { localWorkspaceRoots, parseWorkspaceEntries } from "./workspace.js";
 
@@ -59,6 +60,8 @@ export interface AgentExecFlags {
   readonly vault: readonly string[];
   /** False when `--no-my-vault` leaves the person's own My vault out. */
   readonly myVault: boolean;
+  /** The `--plugin` references, in the order given. */
+  readonly plugin: readonly string[];
   readonly model: string;
   readonly autoApprove: boolean;
   readonly mode: RunMode;
@@ -78,6 +81,8 @@ export interface PreparedRun {
   readonly vaults: readonly ApiResourceReference[];
   /** Whether each turn uses its sender's own My vault first. */
   readonly includeMyVault: boolean;
+  /** The plugins the new conversation uses, in order. */
+  readonly plugins: readonly ApiResourceReference[];
   readonly attachments: Attachment[];
   readonly workspaceFileRefs: string[];
   readonly message: string;
@@ -123,8 +128,8 @@ export interface PrepareAgentExecOptions {
    */
   readonly agentSpec?: AgentSpec;
   /**
-   * The organization the run is created in: a `--vault` named by slug alone
-   * is that organization's. Empty leaves the reference relative, which the
+   * The organization the run is created in: a `--vault` or `--plugin` named
+   * by slug alone is that organization's. Empty leaves the reference relative, which the
    * server resolves to the conversation's organization.
    */
   readonly org?: string;
@@ -195,6 +200,7 @@ export async function prepareAgentExec(
   );
 
   const vaults = await resolveRunVaults(client, flags.vault, options?.org ?? "");
+  const plugins = await resolveRunPlugins(client, flags.plugin, options?.org ?? "");
 
   const { attachments, workspaceFileRefs } = await processAttachments(
     client.run,
@@ -208,6 +214,7 @@ export async function prepareAgentExec(
     workspaceEntries,
     vaults,
     includeMyVault: flags.myVault,
+    plugins,
     attachments,
     workspaceFileRefs,
     message: flags.message,

@@ -24,7 +24,7 @@ demos/
   tours/
     _shared/             # cross-tour chrome (AppShell, ResourceListPage, …),
                          # stigmer-preview, and depicted resources
-                         # (order-management-mcp, quickstart-workspace)
+                         # (order-management-plugin, quickstart-workspace)
     <tour-slug>/
       steps.ts           # the timeline: step data, narration, interactions
       index.tsx          # exports renderStep(data, stepIndex) — pure (data) -> ReactNode
@@ -36,8 +36,8 @@ A tour is the directory shape Scenar's `pack` / `narrate` / `serve` consume:
 `steps.ts` + an `index.tsx` that exports `renderStep`. Nothing else is required.
 
 `_shared/` holds three kinds of module. **Chrome** (`AppShell`,
-`ManagementShell`, `SessionView`, `ResourceListPage`, `ApiKeysPage`,
-`api-exchange/`) frames real components inside the console's own surfaces —
+`ManagementShell`, `SessionView`, `ResourceListPage`, `PluginPage`,
+`ApiKeysPage`, `api-exchange/`) frames real components inside the console's own surfaces —
 and "own" is literal, not aspirational: the two shells render the SDK's
 `WorkspaceSidebar` and `SettingsSidebar` — the same components the web
 console and desktop app ship (stigmer/stigmer#317) —
@@ -52,12 +52,15 @@ surface renders the SDK's own `SessionViewerLayout` — the same frame
 `WorkspaceSurface`, and the `useSessionRailViews` facet rail, and the library page renders the real `ResourceWorkbench` over a
 fixture `listFn`, hand-drawing only the page framing the console's library
 zone hands out (breadcrumb, header ramp) and an inert create-button twin
-that carries the cursor target. **Product glue**
-(`stigmer-preview.tsx`) wires styles, theme, and the mock transport once.
-**Depicted resources** (`order-management-mcp.ts`,
+that carries the cursor target. `PluginPage` renders the real
+`PluginDetailView` in the library zone, and `CursorTargets` names the
+controls a real component ships without a `data-cursor-target` (by the
+name a person reads), so a cursor can point at them without a replica.
+**Product glue** (`stigmer-preview.tsx`) wires styles, theme, and the mock
+transport once. **Depicted resources** (`order-management-plugin.ts`,
 `quickstart-workspace.ts`) are the domain objects several embeds tell one
-story about — the fixture server the Getting Started tours create, connect,
-and use; the reader's project they keep editing. A depicted resource owns its
+story about — the plugin of one MCP server the Getting Started tours add,
+sign in to, and chat with; the reader's project they keep editing. A depicted resource owns its
 identity *and* its built states in one module so embeds on the same docs page
 cannot drift apart. Everything else stays tour-local — views defined inline
 in the tour's own `index.tsx` — and hoists only when a second tour genuinely

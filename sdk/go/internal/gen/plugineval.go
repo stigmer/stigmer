@@ -74,15 +74,17 @@ type PluginEvalInput struct {
 	// Threshold is not sent when zero: this input cannot tell a zero you set
 	// from none, so zero means unset. The score a case needs to pass, from 0
 	// to 1, or 1 when unset: every scored check passes on every try.
-	Threshold      float64
-	CaseGlob       string
-	CaseTags       []string
-	JudgeModel     string
-	MaxCostUsd     float64
-	Concurrency    int32
-	AllowTools     []string
-	RealMcpServers bool
-	Vaults         []ResourceRef
+	Threshold        float64
+	CaseGlob         string
+	CaseTags         []string
+	JudgeModel       string
+	MaxCostUsd       float64
+	Concurrency      int32
+	AllowTools       []string
+	RealMcpServers   bool
+	Vaults           []ResourceRef
+	SkipScaffold     bool
+	AllowRealServers bool
 }
 
 // PluginEvalTargetInput is the SDK input type for PluginEvalTarget.
@@ -132,6 +134,8 @@ func (i *PluginEvalInput) toProto() (*pluginevalv1.PluginEval, error) {
 		ref.Kind = apiresourcekind.ApiResourceKind_vault
 		resource.Spec.Vaults = append(resource.Spec.Vaults, ref)
 	}
+	resource.Spec.SkipScaffold = i.SkipScaffold
+	resource.Spec.AllowRealServers = i.AllowRealServers
 	return resource, nil
 }
 
@@ -174,6 +178,8 @@ func PluginEvalInputFromProto(p *pluginevalv1.PluginEval) *PluginEvalInput {
 		for _, r := range s.GetVaults() {
 			input.Vaults = append(input.Vaults, resourceRefFromProto(r))
 		}
+		input.SkipScaffold = s.GetSkipScaffold()
+		input.AllowRealServers = s.GetAllowRealServers()
 		input.Threshold = s.GetThreshold()
 	}
 	return input

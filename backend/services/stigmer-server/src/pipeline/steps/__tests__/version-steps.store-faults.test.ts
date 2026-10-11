@@ -10,8 +10,9 @@
  *     tag written on;
  *   - resolveVersionHash: a version the resource does not hold is undefined,
  *     a failing audit read Internal;
- *   - the getByReference ladder: a failing audit query and an undecodable
- *     audit row are Internal, never a NotFound;
+ *   - the getByReference ladder: a reference with no slug is
+ *     InvalidArgument before the store is read; a failing audit query and
+ *     an undecodable audit row are Internal, never a NotFound;
  *   - the tag move: a missing resource is NotFound; a failing tag write or
  *     head reconcile is Internal; the head's tag reconciles to "" when the
  *     head has no hash or no audit row, and a failing head-tag read is
@@ -43,6 +44,7 @@ import { VERSION_HASH_KEY, newPopulateVersionStep } from "../version-archive.js"
 import {
   getVersionEntry,
   newLoadByReferenceWithVersionStep,
+  loadByReferenceWithVersion,
   newLoadForTagVersionStep,
   newTagVersionStep,
   resolveVersionHash,
@@ -176,6 +178,18 @@ describe("the getByReference ladder", () => {
     );
   }
   const listed = async () => [toBinary(AgentSchema, agent(HEAD))];
+
+  it("is InvalidArgument for a reference with no slug, before the store is read", async () => {
+    const error = await failureOf(
+      loadByReferenceWithVersion(
+        storeWith({}),
+        agentVersionBinding,
+        create(ApiResourceReferenceSchema, { org: "acme", slug: "", version: OLD }),
+      ),
+    );
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe("slug is required in reference");
+  });
 
   it("is Internal for a failing audit query", async () => {
     const step = newLoadByReferenceWithVersionStep(

@@ -250,6 +250,10 @@ export interface ExecRequest {
   readonly args: readonly string[];
   readonly cwd: string | null;
   readonly env: Readonly<Record<string, string>>;
+  /** `env` is the process's whole environment (`AgentExecOptions.replaceEnv`). */
+  readonly replaceEnv: boolean;
+  /** Kill the process after this many milliseconds, or `null` for no limit. */
+  readonly timeoutMs: number | null;
   readonly maxBuffer: number;
   /** base64 standard input, or `null` for none. */
   readonly input: string | null;

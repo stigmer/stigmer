@@ -18,6 +18,7 @@ import {
   OrgPoliciesSection,
   OrgProfileSection,
   PlatformClientsSection,
+  ServiceAccountsSection,
   TeamsSection,
   UsageSection,
   ProviderKeysSection,
@@ -32,13 +33,10 @@ const AgentListPage = lazy(() => import("./pages/library/AgentListPage"));
 const AgentDetailPage = lazy(() => import("./pages/library/AgentDetailPage"));
 const SkillListPage = lazy(() => import("./pages/library/SkillListPage"));
 const SkillDetailPage = lazy(() => import("./pages/library/SkillDetailPage"));
-const McpServerListPage = lazy(() => import("./pages/library/McpServerListPage"));
-const McpServerDetailPage = lazy(() => import("./pages/library/McpServerDetailPage"));
 const ScheduleListPage = lazy(() => import("./pages/library/ScheduleListPage"));
 const ScheduleDetailPage = lazy(() => import("./pages/library/ScheduleDetailPage"));
 const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
 const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
-const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
 const ScheduleNewPage = lazy(() => import("./pages/library/ScheduleNewPage"));
 const PluginListPage = lazy(() => import("./pages/library/PluginListPage"));
 const PluginDetailPage = lazy(() => import("./pages/library/PluginDetailPage"));
@@ -207,30 +205,6 @@ const routes: RouteObject[] = [
             ),
           },
           {
-            path: "mcp-servers",
-            element: (
-              <LazyPage>
-                <McpServerListPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "mcp-servers/new",
-            element: (
-              <LazyPage>
-                <McpServerNewPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "mcp-servers/:org/:slug",
-            element: (
-              <LazyPage>
-                <McpServerDetailPage />
-              </LazyPage>
-            ),
-          },
-          {
             path: "schedules",
             element: (
               <LazyPage>
@@ -284,7 +258,10 @@ const routes: RouteObject[] = [
               },
               { path: "api-keys", element: <ApiKeysSection /> },
               { path: "vaults", element: <VaultsSection /> },
-              { path: "members", element: <MembersSection /> },
+              {
+                path: "members",
+                element: <MembersSection serviceAccountsHref="#/settings/service-accounts" />,
+              },
               { path: "teams", element: <TeamsSection /> },
               { path: "org-profile", element: <OrgProfileSection /> },
               { path: "org-preferences", element: <OrgPreferencesSection /> },
@@ -297,6 +274,7 @@ const routes: RouteObject[] = [
               { path: "invitations", element: <InvitationsSection /> },
               { path: "identity-providers", element: <IdentityProvidersSection /> },
               { path: "platform-clients", element: <PlatformClientsSection /> },
+              { path: "service-accounts", element: <ServiceAccountsSection /> },
               { path: "oauth-apps", element: <OAuthAppsSection /> },
               { path: "channel-apps", element: <ChannelAppsSection /> },
               { path: "usage", element: <UsageSection /> },

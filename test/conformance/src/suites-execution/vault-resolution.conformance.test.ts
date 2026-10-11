@@ -3,9 +3,12 @@
 // Domain: agentic — where each value a run uses lives (the run's source
 // manifest, planned at create) and what the runner fetches from those vaults
 // when the work starts, exercised through Run and Schedule. The contract:
-//   - what a run needs is what its agent and its tools declare (and a token
-//     for each repository it clones); a vault's key nobody declares never
-//     reaches the run;
+//   - what a run needs is what its agent declares, what each MCP server of
+//     each plugin it lists reads (declared `plugin:<plugin>:<server>`, by
+//     the plugin's id and the server's name), and a token for each
+//     repository it clones; a vault's key nobody declares never reaches the
+//     run, and a key a plugin's server reads reaches that server alone,
+//     never the agent's shell;
 //   - values come from, in order: the sender's My vault when the
 //     conversation includes it (include_my_vault), then the conversation's
 //     vaults; a conversation that leaves My vault out never reads it; for a
@@ -53,16 +56,18 @@ import { ScheduleFireOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule
 import { WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { invokeWorkflowIdFor, showWorkflow } from "../benchmark/temporal-history";
 import { TEMPORAL_DEV_NAMESPACE } from "@stigmer/test-support/temporal";
+import { ECHO_TOOL_NAME } from "../harness/mcp-server";
 import { agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitPhase,
   awaitTerminal,
   makeAgentExecution,
+  pushFixturePlugin,
   requireLlmProxy,
   requireMcpFixture,
   sessionIdOf,
 } from "../support/runs";
-import { makeHttpMcpServer } from "../support/mcpservers";
+import { FIXTURE_SERVER, pluginToolDeclarer } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import {
   RunValueDeclarerKind,
@@ -538,6 +543,89 @@ describe("vault resolution — a person's run", () => {
   });
 });
 
+// A plugin's server is a declarer of its own: what it reads is planned for
+// it by the plugin's id and the server's name, refused at create when no
+// source holds it, and fetched by the runner for that server alone.
+describe("vault resolution — a plugin's server", () => {
+  const SERVER_KEY = "PLUGIN_SERVER_KEY";
+
+  async function serverPlugin(org: string) {
+    return pushFixturePlugin(clients, requireMcpFixture(target), fixtures, {
+      org,
+      name: uniqueName("values-plugin"),
+      tools: [ECHO_TOOL_NAME],
+      headers: { "X-Api-Key": `\${${SERVER_KEY}}` },
+    });
+  }
+
+  it("[rpc:RunCommandController.create] a run whose plugin's server needs a secret no vault holds is refused at create, naming the server and the key", async () => {
+    const { org } = await target.provisionTenancy();
+    const plugin = await serverPlugin(org);
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("agent-plugin-missing"), plugins: [plugin.metadata!.slug] }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+
+    let refused: ConnectError | undefined;
+    try {
+      const created = await clients.agentExecutionCommand.create(
+        makeAgentExecution({
+          org,
+          name: uniqueName("aex-plugin-missing"),
+          agentRef: agentRefOf(agent),
+          includeMyVault: true,
+        }),
+      );
+      fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
+    } catch (error) {
+      refused = ConnectError.from(error);
+    }
+    expect(refused?.code, "a key the plugin's server needs refuses the create before the run starts").toBe(
+      Code.FailedPrecondition,
+    );
+    expect(refused?.rawMessage).toContain(`${pluginToolDeclarer(plugin.metadata!.name)} needs ${SERVER_KEY}`);
+    expect(refused?.rawMessage).toContain(`add ${SERVER_KEY} to My vault`);
+  });
+
+  it("[rpc:VaultValueController.fetchValues] the runner receives a plugin server's key for that server, by plugin and server, and never for the agent", async () => {
+    const { org } = await target.provisionTenancy();
+    await saveToMyVault(org, { [SERVER_KEY]: "server-only-value" });
+    const plugin = await serverPlugin(org);
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("agent-plugin-values"), plugins: [plugin.metadata!.slug] }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+
+    mock.enqueue(anthropicText("Working..."), { delayMs: HOLD_MS });
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({
+        org,
+        name: uniqueName("aex-plugin-values"),
+        agentRef: agentRefOf(agent),
+        includeMyVault: true,
+      }),
+    );
+    const runId = execution.metadata!.id;
+    fixtures.defer(async () => {
+      await clients.agentExecutionCommand.cancel({ id: runId }).catch(() => {});
+      await clients.agentExecutionCommand.delete({ value: runId });
+    });
+
+    const sources = sourcesFor(await runSourcesOf(clients, runId), SERVER_KEY);
+    expect(
+      sources.map((source) => [source.declarer?.kind, source.declarer?.pluginId, source.declarer?.server, source.origin]),
+      "the key is planned for the plugin's server, from My vault",
+    ).toEqual([[RunValueDeclarerKind.TOOL, plugin.metadata!.id, FIXTURE_SERVER, RunValueOrigin.MY_VAULT]]);
+
+    const fetched = await fetchedValuesOf(runId);
+    expect(
+      fetched.tools.map((tool) => [tool.pluginId, tool.server, tool.values[SERVER_KEY]]),
+      "the server's values arrive named by its plugin and server",
+    ).toEqual([[plugin.metadata!.id, FIXTURE_SERVER, "server-only-value"]]);
+    expect(fetched.agent[SERVER_KEY], "the agent never receives its tool's key").toBeUndefined();
+  });
+});
+
 describe("vault resolution — recover", () => {
   it("[rpc:RunCommandController.recover] recover plans the run's values again: the recorded agent version's keys, from the run's person's My vault as it is now, and the runner fetches the fixed value", async () => {
     const { org } = await target.provisionTenancy();
@@ -669,34 +757,41 @@ describe.skipIf(collectionTarget.engineCoordinates === undefined)("vault resolut
   });
 });
 
-// The agent's shell holds only what the AGENT declares: a key an MCP server of
-// the run declares is planned for that server alone, never for the agent, so
-// it never reaches the shell, even when agent save copied it into the agent's
-// env.
+// The agent's shell holds only what the AGENT declares: a key an MCP server
+// of a plugin the run lists reads is planned for that server alone, never for
+// the agent, so it never reaches the shell, even when the agent declares the
+// same key itself (an agent saved before plugins were whole may hold copies
+// of its tools' keys).
 // Observed where the model sees it: the shell tool's output in the next model
 // request.
 describe("vault resolution — the agent's shell", () => {
-  async function shellOfRun(serverOn: "session" | "agent"): Promise<string> {
+  async function shellOfRun(pluginOn: "session" | "agent"): Promise<string> {
     const { org } = await target.provisionTenancy();
     const mcp = requireMcpFixture(target);
     await saveToMyVault(org, { SHELL_AGENT_KEY: "agent-visible-value", SHELL_MCP_ONLY_KEY: "mcp-only-value" });
 
-    const server = await clients.mcpServerCommand.create(
-      makeHttpMcpServer({
-        org,
-        name: uniqueName("shell-mcp"),
-        url: mcp.url(),
-        env: { SHELL_MCP_ONLY_KEY: { description: "the server's own key", isSecret: false } },
-      }),
-    );
-    fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+    // The plugin's server reads the key in a header, so the key is the
+    // server's; nothing else in the plugin declares it.
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
+      org,
+      name: uniqueName("shell-mcp"),
+      tools: [ECHO_TOOL_NAME],
+      headers: { "X-Shell-Key": "${SHELL_MCP_ONLY_KEY}" },
+    });
 
     const agent = await clients.agentCommand.create(
       makeAgent({
         org,
         name: uniqueName("shell-agent"),
-        env: { SHELL_AGENT_KEY: { description: "the agent's own key", isSecret: false } },
-        ...(serverOn === "agent" ? { mcpServerRefs: [server.metadata!.slug] } : {}),
+        env: {
+          SHELL_AGENT_KEY: { description: "the agent's own key", isSecret: false },
+          // The agent-listing arm also declares the server's key on the
+          // agent: the plugin's claim on it still wins.
+          ...(pluginOn === "agent"
+            ? { SHELL_MCP_ONLY_KEY: { description: "a copy of its tool's key", isSecret: false } }
+            : {}),
+        },
+        ...(pluginOn === "agent" ? { plugins: [plugin.metadata!.slug] } : {}),
       }),
     );
     fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
@@ -707,7 +802,7 @@ describe("vault resolution — the agent's shell", () => {
         name: uniqueName("shell-session"),
         agentRef: agentRefOf(agent),
         includeMyVault: true,
-        ...(serverOn === "session" ? { mcpServerRefs: [server.metadata!.slug] } : {}),
+        ...(pluginOn === "session" ? { plugins: [plugin.metadata!.slug] } : {}),
       }),
     );
     fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
@@ -732,9 +827,16 @@ describe("vault resolution — the agent's shell", () => {
     );
     const mcpOnly = sourcesFor(sources, "SHELL_MCP_ONLY_KEY");
     expect(
-      mcpOnly.map((source) => [source.declarer?.kind, source.declarer?.mcpServerId]),
-      "the server's key is planned for the server alone",
-    ).toEqual([[RunValueDeclarerKind.TOOL, server.metadata!.id]]);
+      mcpOnly.map((source) => [
+        source.declarer?.kind,
+        source.declarer?.name,
+        source.declarer?.pluginId,
+        source.declarer?.server,
+      ]),
+      "the server's key is planned for the plugin's server alone",
+    ).toEqual([
+      [RunValueDeclarerKind.TOOL, pluginToolDeclarer(plugin.metadata!.name), plugin.metadata!.id, FIXTURE_SERVER],
+    ]);
 
     const final = await awaitTerminal(clients, executionId);
     expect(
@@ -747,18 +849,18 @@ describe("vault resolution — the agent's shell", () => {
     return JSON.stringify(scripted[1]?.body);
   }
 
-  it("the shell holds the keys the agent declares and never a key only a session's MCP server declares", async () => {
+  it("the shell holds the keys the agent declares and never a key only a conversation's plugin server reads", async () => {
     const afterShell = await shellOfRun("session");
     expect(afterShell, "the agent's declared key reaches its shell").toContain("agent-visible-value");
-    expect(afterShell, "a key only the session's MCP server declares never reaches the shell").not.toContain(
+    expect(afterShell, "a key only the conversation's plugin server reads never reaches the shell").not.toContain(
       "mcp-only-value",
     );
   });
 
-  it("the shell never holds a key the agent's own MCP server declares, though agent save copied it into the agent's env", async () => {
+  it("the shell never holds a key the agent's own plugin server reads, though the agent declares it too", async () => {
     const afterShell = await shellOfRun("agent");
     expect(afterShell, "the agent's declared key reaches its shell").toContain("agent-visible-value");
-    expect(afterShell, "a key the agent's MCP server declares never reaches the shell").not.toContain(
+    expect(afterShell, "a key the agent's plugin server reads never reaches the shell").not.toContain(
       "mcp-only-value",
     );
   });

@@ -46,6 +46,37 @@ public final class ApiKeyCommandControllerGrpc {
     return getCreateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput,
+      ai.stigmer.iam.apikey.v1.ApiKey> getCreateForServiceAccountMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "createForServiceAccount",
+      requestType = ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput.class,
+      responseType = ai.stigmer.iam.apikey.v1.ApiKey.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput,
+      ai.stigmer.iam.apikey.v1.ApiKey> getCreateForServiceAccountMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput, ai.stigmer.iam.apikey.v1.ApiKey> getCreateForServiceAccountMethod;
+    if ((getCreateForServiceAccountMethod = ApiKeyCommandControllerGrpc.getCreateForServiceAccountMethod) == null) {
+      synchronized (ApiKeyCommandControllerGrpc.class) {
+        if ((getCreateForServiceAccountMethod = ApiKeyCommandControllerGrpc.getCreateForServiceAccountMethod) == null) {
+          ApiKeyCommandControllerGrpc.getCreateForServiceAccountMethod = getCreateForServiceAccountMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput, ai.stigmer.iam.apikey.v1.ApiKey>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "createForServiceAccount"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.apikey.v1.ApiKey.getDefaultInstance()))
+              .setSchemaDescriptor(new ApiKeyCommandControllerMethodDescriptorSupplier("createForServiceAccount"))
+              .build();
+        }
+      }
+    }
+    return getCreateForServiceAccountMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.apikey.v1.ApiKey,
       ai.stigmer.iam.apikey.v1.ApiKey> getUpdateMethod;
 
@@ -188,6 +219,23 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create an API key for a service account.
+     * The key speaks for the service account, not for the caller who creates
+     * it: it keeps working when that caller leaves, it works only in the
+     * service account's organization, and resources it creates name the
+     * service account as their creator. The raw key value is included in the
+     * response and is never returned again.
+     * Authorization: Requires can_manage_keys on the service account, which
+     * its organization's admins hold. A service account's own key is refused.
+     * </pre>
+     */
+    default void createForServiceAccount(ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKey> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateForServiceAccountMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Update an existing API key.
      * </pre>
      */
@@ -255,6 +303,24 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create an API key for a service account.
+     * The key speaks for the service account, not for the caller who creates
+     * it: it keeps working when that caller leaves, it works only in the
+     * service account's organization, and resources it creates name the
+     * service account as their creator. The raw key value is included in the
+     * response and is never returned again.
+     * Authorization: Requires can_manage_keys on the service account, which
+     * its organization's admins hold. A service account's own key is refused.
+     * </pre>
+     */
+    public void createForServiceAccount(ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKey> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreateForServiceAccountMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Update an existing API key.
      * </pre>
      */
@@ -309,6 +375,23 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create an API key for a service account.
+     * The key speaks for the service account, not for the caller who creates
+     * it: it keeps working when that caller leaves, it works only in the
+     * service account's organization, and resources it creates name the
+     * service account as their creator. The raw key value is included in the
+     * response and is never returned again.
+     * Authorization: Requires can_manage_keys on the service account, which
+     * its organization's admins hold. A service account's own key is refused.
+     * </pre>
+     */
+    public ai.stigmer.iam.apikey.v1.ApiKey createForServiceAccount(ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCreateForServiceAccountMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Update an existing API key.
      * </pre>
      */
@@ -357,6 +440,23 @@ public final class ApiKeyCommandControllerGrpc {
     public ai.stigmer.iam.apikey.v1.ApiKey create(ai.stigmer.iam.apikey.v1.ApiKey request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getCreateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Create an API key for a service account.
+     * The key speaks for the service account, not for the caller who creates
+     * it: it keeps working when that caller leaves, it works only in the
+     * service account's organization, and resources it creates name the
+     * service account as their creator. The raw key value is included in the
+     * response and is never returned again.
+     * Authorization: Requires can_manage_keys on the service account, which
+     * its organization's admins hold. A service account's own key is refused.
+     * </pre>
+     */
+    public ai.stigmer.iam.apikey.v1.ApiKey createForServiceAccount(ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreateForServiceAccountMethod(), getCallOptions(), request);
     }
 
     /**
@@ -414,6 +514,24 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
+     * Create an API key for a service account.
+     * The key speaks for the service account, not for the caller who creates
+     * it: it keeps working when that caller leaves, it works only in the
+     * service account's organization, and resources it creates name the
+     * service account as their creator. The raw key value is included in the
+     * response and is never returned again.
+     * Authorization: Requires can_manage_keys on the service account, which
+     * its organization's admins hold. A service account's own key is refused.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKey> createForServiceAccount(
+        ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreateForServiceAccountMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Update an existing API key.
      * </pre>
      */
@@ -436,8 +554,9 @@ public final class ApiKeyCommandControllerGrpc {
   }
 
   private static final int METHODID_CREATE = 0;
-  private static final int METHODID_UPDATE = 1;
-  private static final int METHODID_DELETE = 2;
+  private static final int METHODID_CREATE_FOR_SERVICE_ACCOUNT = 1;
+  private static final int METHODID_UPDATE = 2;
+  private static final int METHODID_DELETE = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -458,6 +577,10 @@ public final class ApiKeyCommandControllerGrpc {
       switch (methodId) {
         case METHODID_CREATE:
           serviceImpl.create((ai.stigmer.iam.apikey.v1.ApiKey) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKey>) responseObserver);
+          break;
+        case METHODID_CREATE_FOR_SERVICE_ACCOUNT:
+          serviceImpl.createForServiceAccount((ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.apikey.v1.ApiKey>) responseObserver);
           break;
         case METHODID_UPDATE:
@@ -493,6 +616,13 @@ public final class ApiKeyCommandControllerGrpc {
               ai.stigmer.iam.apikey.v1.ApiKey,
               ai.stigmer.iam.apikey.v1.ApiKey>(
                 service, METHODID_CREATE)))
+        .addMethod(
+          getCreateForServiceAccountMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput,
+              ai.stigmer.iam.apikey.v1.ApiKey>(
+                service, METHODID_CREATE_FOR_SERVICE_ACCOUNT)))
         .addMethod(
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -556,6 +686,7 @@ public final class ApiKeyCommandControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new ApiKeyCommandControllerFileDescriptorSupplier())
               .addMethod(getCreateMethod())
+              .addMethod(getCreateForServiceAccountMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
               .build();

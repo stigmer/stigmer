@@ -10,11 +10,11 @@
  * is admitted only when the writer's own parent shares it with its child
  * organizations, with ONE sentence whether it is missing, merely not
  * shared, or another parent's (the writer's parent read from its
- * organization's row, only when a reference crosses organizations); the MCP-server
- * copy that predates the rule is byte-identical and its siblings take its
- * shape; the walk reads a reference's kind from its field, not from the
- * message, and reaches a hook source's plugin reference inside its oneof,
- * which the rule then judges like any other; the step over a real store
+ * organization's row, only when a reference crosses organizations); the
+ * missing-reference copy keeps the one shape every kind shares; the walk
+ * reads a reference's kind from its field, not from the message, and
+ * reaches an agent's plugins, which the rule then judges like any other;
+ * the step over a real store
  * loads each referenced kind once,
  * records the targets it resolved (RESOLVED_REFERENCE_TARGETS_KEY) for
  * every reference, and under `judge: "introduced"` judges only the
@@ -34,7 +34,6 @@ import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchan
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -98,7 +97,6 @@ async function failureOf(run: () => void | Promise<void>): Promise<unknown> {
 /** The schemas of every kind whose create or update chain runs the rule. */
 const SCHEMAS_UNDER_THE_RULE: ReadonlyArray<DescMessage> = [
   AgentSchema,
-  McpServerSchema,
   VaultSchema,
   ScheduleSchema,
   AgentChannelSchema,
@@ -164,7 +162,7 @@ describe("REFERENCE_TARGET_KINDS against the contract", () => {
   it("names the kinds the run reads as the person, and no other", () => {
     expect(
       REFERENCE_TARGET_KINDS.filter((e) => e.readByRun).map((e) => e.kind),
-    ).toEqual([K.skill, K.mcp_server, K.agent, K.plugin]);
+    ).toEqual([K.skill, K.agent, K.plugin]);
     expect(
       REFERENCE_TARGET_KINDS.filter((e) => !e.readByRun).map((e) => e.kind),
     ).toEqual([K.vault, K.channel_app]);
@@ -237,7 +235,7 @@ describe("checkReference", () => {
       visibility: V.visibility_private,
     },
     {
-      kind: K.mcp_server,
+      kind: K.plugin,
       org: "acme",
       slug: "github",
       visibility: V.visibility_org,
@@ -352,7 +350,7 @@ describe("checkReference", () => {
       checkReference(
         targets,
         { org: "acme", visibility: V.visibility_child_orgs },
-        ref(K.mcp_server, "acme", "github"),
+        ref(K.plugin, "acme", "github"),
       ),
     ).toEqual({ kind: "below-floor", targetVisibility: V.visibility_org });
   });
@@ -422,16 +420,16 @@ describe("checkReference", () => {
 // ---------------------------------------------------------------------------
 
 describe("the refusal copy", () => {
-  const mcp = referenceTargetKind(K.mcp_server)!;
+  const plugin = referenceTargetKind(K.plugin)!;
   const skill = referenceTargetKind(K.skill)!;
 
-  it("the MCP-server sentence is byte-identical to the contract that predates the rule", () => {
+  it("a missing plugin names the slug, the organization and the CLI's list verb", () => {
     expect(
-      missingReferencesMessage(mcp, [{ slug: "ghost", org: "acme" }]),
+      missingReferencesMessage(plugin, [{ slug: "ghost", org: "acme" }]),
     ).toBe(
-      "referenced MCP server(s) not found: 'ghost' (org: acme). " +
+      "referenced plugin(s) not found: 'ghost' (org: acme). " +
         "Verify the slug and org are correct. " +
-        "Use 'stigmer get mcp-servers' to list available MCP servers.",
+        "Use 'stigmer list plugins' to list available plugins.",
     );
   });
 
@@ -536,30 +534,28 @@ describe("the step over a store", () => {
       metadata: { name: "Helper", org: "acme" },
       spec: {
         instructions: "help",
-        // The message says mcp_server; the field is skill_refs.
-        skillRefs: [{ kind: K.mcp_server, org: "acme", slug: "s", version: "v1" }],
-        mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "m" } }],
+        // The message says plugin; the field is skill_refs.
+        skillRefs: [{ kind: K.plugin, org: "acme", slug: "s", version: "v1" }],
+        plugins: [{ kind: K.plugin, org: "acme", slug: "p" }],
       },
     });
-    // Field declaration order: mcp_server_usages precedes skill_refs. The
+    // Field declaration order: skill_refs (5) precedes plugins (16). The
     // version a reference names is carried as written.
     expect(collectSpecReferences(AgentSchema, agent)).toEqual([
-      { kind: K.mcp_server, org: "acme", slug: "m", version: "" },
       { kind: K.skill, org: "acme", slug: "s", version: "v1" },
+      { kind: K.plugin, org: "acme", slug: "p", version: "" },
     ]);
   });
 
-  it("the walk reaches a plugin reference inside a hook source's oneof, beside an inline block it ignores", () => {
+  it("the walk reaches an agent's plugins, and ignores an inline hook block", () => {
     const agent = create(AgentSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Agent",
       metadata: { name: "Helper", org: "acme" },
       spec: {
         instructions: "help",
-        hooks: [
-          { source: { case: "plugin", value: { org: "acme", slug: "safety" } } },
-          { source: { case: "inline", value: { groups: [] } } },
-        ],
+        plugins: [{ kind: K.plugin, org: "acme", slug: "safety" }],
+        hooks: [{ source: { case: "inline", value: { groups: [] } } }],
       },
     });
     expect(collectSpecReferences(AgentSchema, agent)).toEqual([
@@ -567,7 +563,7 @@ describe("the step over a store", () => {
     ]);
   });
 
-  it("holds a hook's plugin reference to the rule: the target must exist, reach the floor, and be platform-visible across organizations", async () => {
+  it("holds an agent's plugin reference to the rule: the target must exist, reach the floor, and be shared across organizations", async () => {
     async function seedPlugin(
       id: string,
       org: string,
@@ -585,7 +581,7 @@ describe("the step over a store", () => {
         }),
       );
     }
-    const hooked = (refs: ReadonlyArray<{ org: string; slug: string }>) =>
+    const listing = (refs: ReadonlyArray<{ org: string; slug: string }>) =>
       new RequestContext(
         AgentSchema,
         create(AgentSchema, {
@@ -594,9 +590,7 @@ describe("the step over a store", () => {
           metadata: { name: "Helper", org: "acme", visibility: V.visibility_org },
           spec: {
             instructions: "help the user with their tasks",
-            hooks: refs.map((r) => ({
-              source: { case: "plugin" as const, value: { ...r } },
-            })),
+            plugins: refs.map((r) => ({ kind: K.plugin, ...r })),
           },
         }),
         testCallerIdentity(),
@@ -611,7 +605,7 @@ describe("the step over a store", () => {
       );
     const entry = referenceTargetKind(K.plugin)!;
 
-    const missing = await run(hooked([{ org: "acme", slug: "safety" }]));
+    const missing = await run(listing([{ org: "acme", slug: "safety" }]));
     expect((missing as ConnectError).rawMessage).toBe(
       missingReferencesMessage(entry, [{ org: "acme", slug: "safety" }]),
     );
@@ -619,7 +613,7 @@ describe("the step over a store", () => {
     await seedPlugin("plg_1", "acme", "safety", V.visibility_private);
     await seedPlugin("plg_2", "globex", "theirs", V.visibility_org);
     const refused = await run(
-      hooked([
+      listing([
         { org: "acme", slug: "safety" },
         { org: "globex", slug: "theirs" },
       ]),
@@ -650,7 +644,7 @@ describe("the step over a store", () => {
     await seedPlugin("plg_2", "globex", "theirs", V.visibility_child_orgs);
     await expect(
       run(
-        hooked([
+        listing([
           { org: "acme", slug: "safety" },
           { org: "globex", slug: "theirs" },
         ]),

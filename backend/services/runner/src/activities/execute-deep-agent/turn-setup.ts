@@ -66,7 +66,8 @@ import { getModelPricing, ensureLoaded as ensurePricingLoaded, type ModelPricing
 import { getDefaultModel, getNativeRequestProfile } from "../../shared/model-registry.js";
 import { buildChatModel } from "../../shared/model-client.js";
 import { graphThinks, toAnthropicThinking } from "../../shared/thinking-mode.js";
-import { isUnattendedApprovalMode, type McpApprovalDefault } from "../../shared/approval-policy.js";
+import { buildMcpApprovalDefault, isUnattendedApprovalMode, type McpApprovalDefault } from "../../shared/approval-policy.js";
+import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
 import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import {
   checkMainToolListResolution,
@@ -87,12 +88,14 @@ import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
+import { resumedMessages, threadIsEmpty } from "./resumed-history.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
 import { buildShellEnv, shellRunValues } from "../../shared/shell-env.js";
 import { subAgentScope, transformAndCompileSubagents, type SubagentScopeBase } from "./subagent-transformer.js";
 import { ENGINE_TOOL } from "./engine-tools.js";
 import { createTodoListMiddleware } from "./todo-list.js";
 import { buildHookEvaluator } from "./hooks-setup.js";
+import { declaredServerCount } from "../../shared/mcp-resolver.js";
 
 /**
  * The runner config this harness reads per turn, as a named slice
@@ -259,16 +262,46 @@ export async function connectTools(input: TurnInput, sink: TurnSink): Promise<De
 }
 
 /**
+ * What the tools this engine loaded say of themselves: each plugin server's
+ * tools whose own MCP annotation says `destructiveHint: true`
+ * (`@langchain/mcp-adapters` keeps a loaded tool's annotations on its
+ * `metadata`). The platform's own servers are never read: none of their
+ * tools asks. Read live every turn, so a tool its maker marks destructive
+ * asks first from the turn after the mark appears; a server that did not
+ * connect has no tools to call, so none is left unread.
+ */
+export function listingOfLoadedTools(
+  serverToolMap: ReadonlyMap<string, readonly DynamicStructuredTool[]>,
+  platformServerSlugs: ReadonlySet<string>,
+): McpToolListing {
+  const listed: { server: string; tools: string[] }[] = [];
+  const destructive: { server: string; tool: string }[] = [];
+  for (const [server, tools] of serverToolMap) {
+    if (platformServerSlugs.has(server)) continue;
+    listed.push({ server, tools: tools.map((tool) => tool.name) });
+    for (const tool of tools) {
+      const annotations = (tool.metadata as { annotations?: { destructiveHint?: unknown } } | undefined)?.annotations;
+      if (annotations?.destructiveHint === true) destructive.push({ server, tool: tool.name });
+    }
+  }
+  return { listed, destructive, unlisted: [] };
+}
+
+/**
  * The gate's posture. Two distinct bypasses (`shared/approval-policy.ts`
  * `ActiveLeases`): the pre-armed spec.auto_approve_all is the one whole-run
  * global bypass; an interactive APPROVE_ALL grants a run-lifetime lease
  * scoped to that action's class. Server leases ride the runtime's approval
- * default; built-in category leases are applied inside the gate. Both flow
- * into sub-agents via the shared gate config.
+ * default, completed here with the marks of the tools this engine loaded;
+ * built-in category leases are applied inside the gate. Both flow into
+ * sub-agents via the shared gate config.
  */
 export function readGateState(input: TurnInput, tools: DeepAgentTools): DeepAgentGateState {
   return {
-    mcpDefault: input.mcp.mcpDefault,
+    mcpDefault: buildMcpApprovalDefault(
+      listingOfLoadedTools(tools.serverToolMap, input.mcp.platformServerSlugs),
+      input.mcp.leases,
+    ),
     toolServerMap: tools.toolServerMap,
     leasedCategories: input.mcp.leases.categories,
     globalBypass: input.mcp.leases.global,
@@ -609,7 +642,7 @@ export async function buildEngine(
     execution_id: executionId,
     session_id: sessionId,
     harness: "native",
-    mcp_server_count: blueprint.mergedMcpServerUsages.length,
+    mcp_server_count: declaredServerCount(input.mcp.servers),
     skill_count: blueprint.mergedSkillRefs.length,
     workspace_entry_count: input.session.spec?.workspaceEntries?.length ?? 0,
   }, sink.setupTiming);
@@ -719,7 +752,9 @@ export function checkTurnToolLists(
  * MESSAGE so it enters the checkpointer with the turn and the system prompt
  * stays the session's), the structured-output contract appended, and
  * the inline images FIRST as content blocks when the turn carries any (per
- * Anthropic's images-before-text guidance; a plain string otherwise).
+ * Anthropic's images-before-text guidance; a plain string otherwise). A
+ * plugin-eval try's recorded conversation goes ahead of that message when
+ * the thread holds none yet (`resumed-history.ts`).
  */
 export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngine): Promise<DeepAgentGraphInput> {
   const graphState: GraphStateSnapshot = await engine.graph.getState(engine.langgraphConfig);
@@ -733,10 +768,12 @@ export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngin
     userMessage += `\n\n---\nIMPORTANT: When your analysis is complete, provide your findings as structured output matching the required schema. The system will capture your structured response automatically.`;
   }
   const { visionImages } = input.attachments;
+  const history = input.resumedHistory !== undefined && threadIsEmpty(graphState.values) ? resumedMessages(input.resumedHistory) : [];
   return {
     kind: "message",
     input: {
       messages: [
+        ...history,
         {
           role: "user",
           content: visionImages.length > 0

@@ -33,7 +33,6 @@ from ._search import ApiResourceKind, SearchClient, SearchParams, SearchResponse
 from ._gen._agent import (
     AgentClient,
     AgentInput,
-    McpServerUsageInput,
     RunConfigInput,
     SubAgentInput,
 )
@@ -41,14 +40,9 @@ from ._gen._apikey import ApiKeyClient, ApiKeyInput
 from ._gen._iampolicy import ApiResourceRefInput, IamPolicyClient, IamPolicyInput
 from ._gen._identityaccount import IdentityAccountClient, IdentityAccountInput
 from ._gen._identityprovider import IdentityProviderClient, IdentityProviderInput
-from ._gen._mcpserver import (
-    HttpServerConfigInput,
-    McpServerClient,
-    McpServerInput,
-    StdioServerConfigInput,
-)
 from ._gen._oauthapp import OAuthAppClient, OAuthAppInput
 from ._gen._organization import OrganizationClient, OrganizationInput
+from ._gen._plugin import PluginClient
 from ._gen._run import (
     AttachmentInput,
     RunClient,
@@ -134,9 +128,9 @@ __all__ = [
     "IamPolicyClient",
     "IdentityAccountClient",
     "IdentityProviderClient",
-    "McpServerClient",
     "OAuthAppClient",
     "OrganizationClient",
+    "PluginClient",
     "RunClient",
     "SessionClient",
     "SkillClient",
@@ -150,20 +144,16 @@ __all__ = [
     "AttachmentInput",
     "DeleteResourceInput",
     "GitRepoSourceInput",
-    "HttpServerConfigInput",
     "IamPolicyInput",
     "IdentityAccountInput",
     "IdentityProviderInput",
     "LocalPathSourceInput",
-    "McpServerInput",
-    "McpServerUsageInput",
     "OAuthAppInput",
     "OrganizationInput",
     "RunInput",
     "RunConfigInput",
     "SessionInput",
     "SkillInput",
-    "StdioServerConfigInput",
     "SubAgentInput",
     "VaultConnectionInput",
     "VaultConnectionSignInInput",

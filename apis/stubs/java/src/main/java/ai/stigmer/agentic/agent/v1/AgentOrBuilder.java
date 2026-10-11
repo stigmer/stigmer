@@ -79,7 +79,7 @@ public interface AgentOrBuilder extends
 
   /**
    * <pre>
-   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+   * Configurable properties: instructions, plugins, skills, and sub-agents.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -88,7 +88,7 @@ public interface AgentOrBuilder extends
   boolean hasSpec();
   /**
    * <pre>
-   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+   * Configurable properties: instructions, plugins, skills, and sub-agents.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -97,7 +97,7 @@ public interface AgentOrBuilder extends
   ai.stigmer.agentic.agent.v1.AgentSpec getSpec();
   /**
    * <pre>
-   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+   * Configurable properties: instructions, plugins, skills, and sub-agents.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>

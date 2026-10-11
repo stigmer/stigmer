@@ -50,8 +50,9 @@ export interface ProposedAction {
   /** MCP tool name — required for `kind: "mcp"`, ignored otherwise. */
   readonly mcpToolName?: string;
   /**
-   * For `kind: "mcp"`: the tool's server marks it destructive
-   * (`DiscoveredTool.destructive_hint`), so the approval default asks.
+   * For `kind: "mcp"`: the tool's server marks it destructive (its MCP
+   * annotation `destructiveHint: true`, read live each turn), so the
+   * approval default asks.
    */
   readonly mcpDestructive?: boolean;
   /**

@@ -9,17 +9,17 @@
  * running person's My vault when the conversation includes it and the
  * agent belongs to the run's own organization (an agent another
  * organization published reads none). The agent's `spec.env` lists its
- * own keys and, copied at save, its servers' keys; each is read for the
- * declarer that needs it, the agent or the server. A server's login key
- * (its OAuth target) is filled by a login at the server's address first,
- * so the person signs in for it rather than saving a key. So the keys
- * named here are the declared keys minus every OAuth target of the
- * agent's servers, and none at all for an agent of another organization.
+ * own keys; each plugin it lists declares the keys its servers and hooks
+ * read; each is read for the declarer that needs it. The login key of a
+ * server that signs in is filled by a login at the server's address
+ * first, so the person signs in for it rather than saving a key. So the
+ * keys named here are the agent's and its plugins' keys minus every such
+ * login key, and none at all for an agent of another organization.
  *
- * The OAuth targets are read from the agent's servers; while they load
- * the answer is not ready, so a caller never names a key a moment later
- * withdrawn. A server that cannot be read leaves its variables named: the
- * line errs toward saying more, never less.
+ * The plugins are read by reference; while they load the answer is not
+ * ready, so a caller never names a key a moment later withdrawn. A plugin
+ * that cannot be read names only the agent's own keys: its own are not
+ * known, and the run refuses the plugin anyway.
  *
  * Pinned by `__tests__/usePersonalKeys.test.tsx`.
  */
@@ -27,8 +27,10 @@
 import { useMemo } from "react";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentSpec } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
+import { pluginDeclarations, signInKeys } from "../plugin/pluginRequirements.js";
 import { findOrgByRef, useOptionalOrg } from "../organization/OrgProvider.js";
 
 /**
@@ -47,7 +49,7 @@ export function useOrganizationId(ref: string): string {
 export interface UsePersonalKeysReturn {
   /** The keys, sorted; empty when there are none or the answer is not ready. */
   readonly keys: readonly string[];
-  /** `true` once the agent's servers have been read and `keys` is the answer. */
+  /** `true` once the agent's plugins have been read and `keys` is the answer. */
   readonly isReady: boolean;
 }
 
@@ -67,26 +69,23 @@ export function usePersonalKeys(
   const sameOrganization =
     agent !== null && runOrgId !== "" && agent.metadata?.org === runOrgId;
 
-  const { data: oauthTargets, isLoading } = useFetch(
+  const agentOrg = agent?.metadata?.org ?? "";
+  const { data: pluginKeys, isLoading } = useFetch(
     sameOrganization && spec
       ? async () => {
-          const targets = new Set<string>();
-          for (const usage of spec.mcpServerUsages ?? []) {
-            const ref = usage.mcpServerRef;
-            if (!ref) continue;
+          const plugins: Plugin[] = [];
+          for (const ref of spec.plugins ?? []) {
             try {
-              const server = await stigmer.mcpServer.getByReference(ref);
-              const target = server.spec?.auth?.targetEnvVar ?? "";
-              if (target !== "") targets.add(target);
+              plugins.push(await stigmer.plugin.getByReference({ org: ref.org || agentOrg, slug: ref.slug }));
             } catch {
-              // Unreadable: its variables stay named (the module header).
+              // Unreadable: its keys are not known (the module header).
             }
           }
-          return targets;
+          return { declared: Object.keys(pluginDeclarations(plugins)), signIn: signInKeys(plugins) };
         }
       : null,
-    [sameOrganization, spec, stigmer],
-    null as Set<string> | null,
+    [sameOrganization, spec, agentOrg, stigmer],
+    null as { readonly declared: readonly string[]; readonly signIn: ReadonlySet<string> } | null,
   );
 
   return useMemo(() => {
@@ -96,12 +95,12 @@ export function usePersonalKeys(
     if (!sameOrganization) {
       return { keys: [], isReady: true };
     }
-    if (isLoading || oauthTargets === null) {
+    if (isLoading || pluginKeys === null) {
       return { keys: [], isReady: false };
     }
-    const keys = Object.keys(spec.env ?? {})
-      .filter((key) => !oauthTargets.has(key))
+    const keys = [...new Set([...Object.keys(spec.env ?? {}), ...pluginKeys.declared])]
+      .filter((key) => !pluginKeys.signIn.has(key))
       .sort();
     return { keys, isReady: true };
-  }, [agent, spec, sameOrganization, isLoading, oauthTargets]);
+  }, [agent, spec, sameOrganization, isLoading, pluginKeys]);
 }

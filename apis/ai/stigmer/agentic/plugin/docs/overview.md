@@ -1,21 +1,23 @@
-A Plugin is an installed Agent Plugins package: the unit of install, upgrade and
-removal for a set of skills, MCP servers and an agent. A plugin is what you
-install; an agent is what runs. Pushing a plugin folder in the Agent
-Plugins, Cursor, Claude Code or Codex layout materialises ordinary Stigmer
-resources in the organization, each labelled with the plugin's id, and the
-plugin's status reports what the push produced.
+A Plugin is an installed Agent Plugins package, the unit of install, upgrade and
+removal for a set of skills, agents, hooks and MCP servers, and the only home of
+an MCP server. Pushing a plugin folder in the Agent Plugins, Cursor, Claude Code
+or Codex layout stores the plugin alone, and its status lists what the archive
+holds. An agent or a conversation uses a plugin by listing it in `plugins`, and
+gets it whole: its skills as `<plugin>:<skill>`, its agents as sub-agents named
+`<plugin>:<agent>`, its hooks, and its MCP servers, whose tools are
+`mcp__plugin_<plugin>_<server>__<tool>`.
 
 A plugin is not authored as YAML. Its spec is read from the package manifest;
-the folder below is what `stigmer push plugin ./thermos` sends.
+the folder below is what `stigmer push plugin ./thermos` sends, and
+`stigmer mcp add <name> <url>` builds and pushes a plugin of one server.
 
 ```text
 thermos/
   .cursor-plugin/plugin.json      # name, version, description, author
-  skills/thermos/SKILL.md         # one Skill per skills/<name>/SKILL.md
-  agents/reviewer.md              # one sub-agent of the plugin's Agent
-  mcp.json                        # one McpServer per mcpServers entry
+  skills/thermos/SKILL.md         # one entry in status.skills per SKILL.md
+  agents/reviewer.md              # one entry in status.agents
+  mcp.json                        # one entry in status.mcp_servers per server
   hooks/hooks.json                # tool-call hooks, recorded on status.hooks
-  ai.stigmer/agent.yaml           # optional: the Agent that replaces the composed default
 ```
 
 The resulting resource, as `stigmer get plugin thermos -o yaml` renders it:
@@ -33,11 +35,35 @@ spec:
   dialect: PLUGIN_DIALECT_CURSOR
 status:
   digest: "3f8c1d2e9b7a4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5"
-  state: PLUGIN_STATE_READY
-  materialized:
-    skills: 3
-    mcp_servers: 0
-    agents: 1
+  skills:
+    - name: thermos
+      description: "Review a change against the team's standard"
+      path: skills/thermos
+  agents:
+    - name: reviewer
+      description: "Reviews one pull request"
+      instructions: "You review pull requests..."
+      tools: [Read, Grep, mcp__plugin_thermos_linear]
+  mcp_servers:
+    - name: linear
+      http:
+        url: https://mcp.linear.app/mcp
+        headers:
+          Authorization: "Bearer ${LINEAR_ACCESS_TOKEN}"
+      env: [LINEAR_ACCESS_TOKEN]
+      sign_in:
+        oauth_only: true
+  env:
+    LINEAR_ACCESS_TOKEN:
+      description: "Your Linear login"
+      is_secret: true
 ```
 
-A plugin's hooks, in Claude Code's or Cursor's format, are recorded on `status.hooks`; the hooks Stigmer does not run are named in `status.warnings`. An agent runs them when its `spec.hooks` names the plugin, as the agent the plugin installs does (the Agent resource's `agent-resource-guide.md`, Hooks). Deleting a plugin is refused while an agent outside it still names it in `spec.hooks` or references one of its members.
+A server at an address with no key in its headers is probed at install; one that
+answers with an OAuth challenge records `sign_in.oauth_only` and a login key, as
+above, and a person signs in once from the plugin's page or with
+`stigmer connect plugin`. `PluginCommandController.listTools` lists a server's
+tools as the caller and stores nothing. Hooks the plugin carries but Stigmer
+does not run, and an `ai.stigmer/` folder (no longer read;
+`stigmer-folder-ignored`), are named in `status.warnings`. Deleting a plugin is
+refused while an agent of the organization lists it.

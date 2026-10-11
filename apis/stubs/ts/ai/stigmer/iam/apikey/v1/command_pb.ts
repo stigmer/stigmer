@@ -8,14 +8,14 @@ import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../.
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 import type { ApiKeySchema } from "./api_pb.js";
 import { file_ai_stigmer_iam_apikey_v1_api } from "./api_pb.js";
-import type { ApiKeyIdSchema } from "./io_pb.js";
+import type { ApiKeyIdSchema, CreateServiceAccountKeyInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_iam_apikey_v1_io } from "./io_pb.js";
 
 /**
  * Describes the file ai/stigmer/iam/apikey/v1/command.proto.
  */
 export const file_ai_stigmer_iam_apikey_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvY29tbWFuZC5wcm90bxIYYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxMvoCChdBcGlLZXlDb21tYW5kQ29udHJvbGxlchJSCgZjcmVhdGUSIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5GiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleSIE0LgYARKDAQoGdXBkYXRlEiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleRogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiNcK4GDEIAhAMIgttZXRhZGF0YS5pZCoedW5hdXRob3JpemVkIHRvIHVwZGF0ZSBhcGkga2V5En8KBmRlbGV0ZRIiLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlJZBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiL8K4GCsIAxAMIgV2YWx1ZSoedW5hdXRob3JpemVkIHRvIGRlbGV0ZSBhcGkga2V5GgSg/ysMYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_apikey_v1_api, file_ai_stigmer_iam_apikey_v1_io]);
+  fileDesc("CiZhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvY29tbWFuZC5wcm90bxIYYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxMsIEChdBcGlLZXlDb21tYW5kQ29udHJvbGxlchJSCgZjcmVhdGUSIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5GiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleSIE0LgYARLFAQoXY3JlYXRlRm9yU2VydmljZUFjY291bnQSNi5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQ3JlYXRlU2VydmljZUFjY291bnRLZXlJbnB1dBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiUMK4GEwINxALIhJzZXJ2aWNlX2FjY291bnRfaWQqMnVuYXV0aG9yaXplZCB0byBtYW5hZ2UgdGhpcyBzZXJ2aWNlIGFjY291bnQncyBrZXlzEoMBCgZ1cGRhdGUSIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5GiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleSI1wrgYMQgCEAwiC21ldGFkYXRhLmlkKh51bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGFwaSBrZXkSfwoGZGVsZXRlEiIuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleUlkGiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleSIvwrgYKwgDEAwiBXZhbHVlKh51bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGFwaSBrZXkaBKD/KwxiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_apikey_v1_api, file_ai_stigmer_iam_apikey_v1_io]);
 
 /**
  * ApiKeyCommandController handles write operations for API keys.
@@ -34,6 +34,25 @@ export const ApiKeyCommandController: GenService<{
   create: {
     methodKind: "unary";
     input: typeof ApiKeySchema;
+    output: typeof ApiKeySchema;
+  },
+  /**
+   * Create an API key for a service account.
+   *
+   * The key speaks for the service account, not for the caller who creates
+   * it: it keeps working when that caller leaves, it works only in the
+   * service account's organization, and resources it creates name the
+   * service account as their creator. The raw key value is included in the
+   * response and is never returned again.
+   *
+   * Authorization: Requires can_manage_keys on the service account, which
+   * its organization's admins hold. A service account's own key is refused.
+   *
+   * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.createForServiceAccount
+   */
+  createForServiceAccount: {
+    methodKind: "unary";
+    input: typeof CreateServiceAccountKeyInputSchema;
     output: typeof ApiKeySchema;
   },
   /**

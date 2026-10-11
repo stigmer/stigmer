@@ -341,8 +341,7 @@ export function newValidateProviderImmutableStep(): PipelineStep<ChannelAppDesc>
  * CheckNoReferencingChannels — Go checkNoReferencingChannelsStep: prevents
  * deletion of a ChannelApp still referenced by any AgentChannel via
  * spec.app_ref — a deleted app would break the referencing channels'
- * webhook verification and any future re-install (the oauthapp
- * checkNoReferencingMcpServers precedent). Full scan through the store
+ * webhook verification and any future re-install. Full scan through the store
  * (the OSS lookup posture); malformed rows are skipped with a warning.
  *
  * Requires LoadExistingForDelete to have run first.

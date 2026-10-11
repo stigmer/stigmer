@@ -87,6 +87,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   // Artifact
   push: "artifact",
   install: "artifact",
+  mcp: "artifact",
   download: "artifact",
   plugin: "artifact",
   // Server
@@ -94,6 +95,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   // Configuration
   auth: "config",
   apikey: "config",
+  "service-account": "config",
   config: "config",
   marketplace: "config",
   completion: "config",

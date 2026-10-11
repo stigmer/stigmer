@@ -35,6 +35,11 @@ func (a *ApiKeyClient) Create(ctx context.Context, input *ApiKeyInput) (*apikeyv
 	return resp, wrapErr(err)
 }
 
+func (a *ApiKeyClient) CreateForServiceAccount(ctx context.Context, input *apikeyv1.CreateServiceAccountKeyInput) (*apikeyv1.ApiKey, error) {
+	resp, err := a.command.CreateForServiceAccount(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (a *ApiKeyClient) Update(ctx context.Context, input *ApiKeyInput) (*apikeyv1.ApiKey, error) {
 	req, err := input.toProto()
 	if err != nil {
@@ -61,6 +66,11 @@ func (a *ApiKeyClient) GetByKeyHash(ctx context.Context, input *apikeyv1.ApiKeyH
 
 func (a *ApiKeyClient) FindAll(ctx context.Context) (*apikeyv1.ApiKeys, error) {
 	resp, err := a.query.FindAll(ctx, &emptypb.Empty{})
+	return resp, wrapErr(err)
+}
+
+func (a *ApiKeyClient) FindByAccount(ctx context.Context, id string) (*apikeyv1.ApiKeys, error) {
+	resp, err := a.query.FindByAccount(ctx, &apikeyv1.ApiKeyAccountId{Value: id})
 	return resp, wrapErr(err)
 }
 

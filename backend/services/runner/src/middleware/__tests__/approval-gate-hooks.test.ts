@@ -60,7 +60,7 @@ const decide = (permissionDecision: string, extra: Record<string, unknown> = {})
 
 function gate(hooks: HookEvaluator, extra: Partial<ApprovalGateConfig> = {}) {
   return createApprovalGateMiddleware({
-    mcpDefault: { destructive: new Set(), leasedServers: new Set() },
+    mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
     toolServerMap: new Map(),
     hooks,
     ...extra,

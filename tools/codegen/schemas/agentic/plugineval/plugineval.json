@@ -200,6 +200,26 @@
       "validation": {
         "maxItems": 20
       }
+    },
+    {
+      "name": "SkipScaffold",
+      "jsonName": "skipScaffold",
+      "protoField": "skip_scaffold",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Skips each case's scaffold script, as Claude Code's --no-scaffold; a\n case that has one is then listed as not run.\n\n A scaffold runs in the try's own sandbox, as the agent, with none of\n the eval's vaults, so no opt-in is asked for it.",
+      "required": false
+    },
+    {
+      "name": "AllowRealServers",
+      "jsonName": "allowRealServers",
+      "protoField": "allow_real_servers",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Starts the plugin's real MCP servers for the servers no mock answers,\n as Claude Code's --allow-real-servers; mocked tools still answer from\n their files. Their tools still need allow_tools.",
+      "required": false
     }
   ]
 }

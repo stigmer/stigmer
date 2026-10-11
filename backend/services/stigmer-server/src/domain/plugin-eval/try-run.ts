@@ -10,7 +10,8 @@
  * and its slug must be free in the organization, so a retried start, which
  * may meet the session an earlier attempt left, names its own); its
  * subject is the case's name, so no titling call is made; its harness is
- * the target's; it runs the agent its arm names (arm.ts). The run:
+ * the target's; it runs the built-in assistant with the plugins its arm
+ * lists (arm.ts). The run:
  *
  *   - the target's model, and as its own cap the budget the suite workflow
  *     hands the try when it starts (tryBudgetUsd): an equal share of what
@@ -24,8 +25,14 @@
  *     `tools`; `Skill` in `disallowed_tools` when the case does not list
  *     it, since an allow-list without `Skill` keeps skills in Stigmer; and,
  *     unless the eval runs real servers, each of the plugin's MCP servers
- *     disallowed (`mcp__<server>`), the format's default of not starting
- *     them. With nothing granted the try still gets an allow-list, so an
+ *     disallowed (`mcp__plugin_<plugin>_<server>`, as a turn names it), the
+ *     format's default of not starting them. A server the case mocks is
+ *     not disallowed: in the with-plugin arm each mocked tool is granted
+ *     (`mcp__plugin_<plugin>_<server>__<tool>`), as the format allows a
+ *     mocked tool without an `--allow-tools` grant, and the runner answers
+ *     it from its mock. With `allow_real_servers` a server the case does
+ *     not mock is not disallowed either, so the runner starts it, its tools
+ *     granted only by `allow_tools`. With nothing granted the try still gets an allow-list, so an
  *     engine's own extras (Cursor's `generateImage`, ...) and every MCP
  *     server are out of scope exactly as for a read-only case: the runner
  *     reads an empty `tools` as every tool and refuses one in which nothing
@@ -36,7 +43,13 @@
  *     `NotebookRead`, the task tools) are left out, and a case tool the
  *     eval does not grant is named in a note, as the format prints "not
  *     granted";
- *   - `append_system_prompt` from the case.
+ *   - `append_system_prompt` from the case;
+ *   - `plugin_eval_case` (tryCaseContextOf), when the case has a scaffold,
+ *     reference folders, a recorded conversation, variables or, in the
+ *     with-plugin arm, mocks: the paths in the plugin's archive the runner
+ *     reads at the eval's digest, and each mocked server under the name the
+ *     run gives it. Only the with-plugin arm carries mocks: without the
+ *     plugin its servers do not exist, nor do their stand-ins.
  *
  * A vote is a judge run in a session of its own, labelled
  * `stigmer.ai/grades-run = <try run id>` so the runner swaps in its
@@ -48,7 +61,21 @@
 import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
 
-import type { EvalCase } from "@stigmer/plugin-package";
+import type { EvalCase, EvalMockServer } from "@stigmer/plugin-package";
+import { toolServerSegment } from "@stigmer/plugin-package";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import {
+  PluginEvalMockedServerSchema,
+  type PluginEvalMockedServer,
+} from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import {
+  PluginEvalCaseContextSchema,
+  PluginEvalMockKind,
+  PluginEvalMockServerSchema,
+  PluginEvalMockToolSchema,
+  type PluginEvalCaseContext,
+  type PluginEvalMockServer,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import { READ_ONLY_EVAL_TOOLS, isClaudeTool } from "@stigmer/tool-vocabulary";
 import type { PluginEvalSpec } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -68,6 +95,7 @@ import {
 } from "../score/judge/judge-run.js";
 import type { ArmAttachment, EvalArm } from "./arm.js";
 import { PLUGIN_EVAL_LABEL } from "./constants.js";
+import { wantedFilesOf } from "./graders/verdict.js";
 
 /** The run's own bounds on `max_tool_rounds` (run/v1/invocation.proto). */
 export const MIN_TOOL_ROUNDS = 10;
@@ -119,10 +147,29 @@ export interface TryTools {
   readonly notes: ReadonlyArray<string>;
 }
 
+/** One of the plugin's MCP servers as a try names it: its segment in the run (`plugin_<plugin>_<server>`), and its key in the plugin. */
+export interface PluginServer {
+  readonly slug: string;
+  readonly key: string;
+}
+
+/** The plugin's MCP servers as its tries name them, from the row the eval loaded at its digest. */
+export function pluginServersOf(plugin: Plugin): PluginServer[] {
+  const name = plugin.metadata?.name ?? "";
+  return (plugin.status?.mcpServers ?? []).map((server) => ({ slug: toolServerSegment(name, server.name), key: server.name }));
+}
+
+/** The case's mocks of `key` that answer at least one tool, or `undefined`. */
+function mocksOf(evalCase: Pick<EvalCase, "mocks">, key: string): EvalMockServer | undefined {
+  const server = evalCase.mocks.find((mock) => mock.server === key);
+  return server !== undefined && server.tools.length > 0 ? server : undefined;
+}
+
 export function tryToolsOf(
-  evalCase: Pick<EvalCase, "allowedTools">,
-  spec: Pick<PluginEvalSpec, "allowTools" | "realMcpServers">,
-  pluginServerSlugs: ReadonlyArray<string>,
+  evalCase: Pick<EvalCase, "allowedTools" | "mocks">,
+  spec: Pick<PluginEvalSpec, "allowTools" | "realMcpServers" | "allowRealServers">,
+  pluginServers: ReadonlyArray<PluginServer>,
+  arm: EvalArm = "with",
 ): TryTools {
   const readOnly = new Set(READ_ONLY_EVAL_TOOLS);
   const granted: string[] = [];
@@ -146,13 +193,20 @@ export function tryToolsOf(
   for (const entry of spec.allowTools) {
     add(entry);
   }
-  const grantedNames = new Set(granted.map(baseName));
-  const disallowed: string[] = grantedNames.has("Skill") ? [] : ["Skill"];
+  const offServers: string[] = [];
   if (!spec.realMcpServers) {
-    for (const slug of pluginServerSlugs) {
-      disallowed.push(`mcp__${slug}`);
+    for (const server of pluginServers) {
+      const mocks = mocksOf(evalCase, server.key);
+      if (mocks === undefined) {
+        if (!spec.allowRealServers) offServers.push(`mcp__${server.slug}`);
+      } else if (arm === "with") {
+        for (const tool of mocks.tools) add(`mcp__${server.slug}__${tool.tool}`);
+      }
     }
   }
+  const grantedNames = new Set(granted.map(baseName));
+  const disallowed: string[] = grantedNames.has("Skill") ? [] : ["Skill"];
+  disallowed.push(...offServers);
   return {
     tools: granted.length === 0 ? [...NOTHING_GRANTED_TOOLS] : granted,
     disallowedTools: disallowed,
@@ -162,14 +216,122 @@ export function tryToolsOf(
 
 /** Every note a case carries before it runs: the turn clamp and the tool grants. */
 export function caseNotesOf(
-  evalCase: Pick<EvalCase, "allowedTools" | "maxTurns">,
-  spec: Pick<PluginEvalSpec, "allowTools" | "realMcpServers">,
+  evalCase: Pick<EvalCase, "allowedTools" | "maxTurns" | "mocks" | "replays" | "context">,
+  spec: Pick<PluginEvalSpec, "allowTools" | "realMcpServers" | "allowRealServers">,
 ): string[] {
   const rounds = toolRoundsOf(evalCase.maxTurns);
+  const history = evalCase.context.historyFile;
   return [
     ...(rounds.note === undefined ? [] : [rounds.note]),
     ...tryToolsOf(evalCase, spec, []).notes,
+    ...(history === undefined ? [] : [`resumed from ${history}`]),
+    ...(evalCase.replays && !spec.realMcpServers ? [REPLAYS_NOT_READ_NOTE] : []),
   ];
+}
+
+/** The note on a case whose mocks hold adopted replays. */
+export const REPLAYS_NOT_READ_NOTE = "adopted replays are not read; agent mocks answer live";
+
+/** Why a plugin server a case leaves unmocked is not started, as the format's mocked: line prints it. */
+export const NOT_STARTED_NO_MOCK = "not started: no mock";
+
+/**
+ * The plugin's MCP servers as the case's with-plugin tries see them, named
+ * as Claude Code's mocked: line names them (`plugin_<plugin>_<server>`):
+ * each mocked server with its tools, and each other server "not started:
+ * no mock". Nothing when the eval runs the real servers; a server the eval
+ * starts for real (`allow_real_servers`) is not listed.
+ */
+export function mockedServersOf(
+  evalCase: Pick<EvalCase, "mocks">,
+  spec: Pick<PluginEvalSpec, "realMcpServers" | "allowRealServers">,
+  pluginName: string,
+  serverKeys: ReadonlyArray<string>,
+): PluginEvalMockedServer[] {
+  if (spec.realMcpServers) return [];
+  return serverKeys.flatMap((key) => {
+    const name = toolServerSegment(pluginName, key);
+    const mocks = mocksOf(evalCase, key);
+    if (mocks !== undefined) {
+      return [create(PluginEvalMockedServerSchema, { name, tools: mocks.tools.map((tool) => tool.tool) })];
+    }
+    return spec.allowRealServers ? [] : [create(PluginEvalMockedServerSchema, { name, notStartedReason: NOT_STARTED_NO_MOCK })];
+  });
+}
+
+/** The most agent-mock calls a try may make, the format's four per turn, bounded as the run's context is. */
+export const MAX_AGENT_MOCK_CALLS = 800;
+
+/** What locates the case in the plugin's archive. */
+export interface CaseSource {
+  readonly pluginId: string;
+  /** The plugin's name, as its servers' segments carry it. */
+  readonly pluginName: string;
+  /** The archive digest the eval runs. */
+  readonly digest: string;
+  /** The suite's directory, as in "evals". */
+  readonly suiteDir: string;
+}
+
+/**
+ * A try's `plugin_eval_case` (the module header), or `undefined` when the
+ * case gives its try nothing beyond its message.
+ */
+export function tryCaseContextOf(input: {
+  readonly evalCase: EvalCase;
+  readonly spec: Pick<PluginEvalSpec, "realMcpServers" | "judgeModel">;
+  readonly arm: EvalArm;
+  readonly source: CaseSource;
+  readonly pluginServers: ReadonlyArray<PluginServer>;
+}): PluginEvalCaseContext | undefined {
+  const { evalCase, spec, arm, source } = input;
+  const mocks =
+    arm === "with" && !spec.realMcpServers
+      ? input.pluginServers.flatMap((server) => {
+          const mocked = mocksOf(evalCase, server.key);
+          return mocked === undefined ? [] : [mockServerOf(mocked, server.slug)];
+        })
+      : [];
+  const { context } = evalCase;
+  const env = Object.keys(evalCase.env).length > 0;
+  if (context.scaffoldScript === undefined && context.historyFile === undefined && context.addDirs.length === 0 && !env && mocks.length === 0) {
+    return undefined;
+  }
+  return create(PluginEvalCaseContextSchema, {
+    pluginId: source.pluginId,
+    pluginName: source.pluginName,
+    pluginDigest: source.digest,
+    suiteDir: source.suiteDir,
+    caseDir: evalCase.dir,
+    scaffoldScript: context.scaffoldScript ?? "",
+    addDirs: [...context.addDirs],
+    historyFile: context.historyFile ?? "",
+    env: { ...evalCase.env },
+    mocks,
+    agentMockModel: mocks.some((server) => server.tools.some((tool) => tool.kind === PluginEvalMockKind.agent)) ? spec.judgeModel : "",
+    agentMockCallBudget: Math.min(4 * evalCase.maxTurns, MAX_AGENT_MOCK_CALLS),
+    // A scaffold's files are no change of the try's, so the ledger cannot
+    // show them: the runner returns what the graders read.
+    readFiles: wantedFilesOf(evalCase.graders),
+  });
+}
+
+function mockServerOf(mocked: EvalMockServer, slug: string): PluginEvalMockServer {
+  return create(PluginEvalMockServerSchema, {
+    server: mocked.server,
+    segment: slug,
+    toolsFile: mocked.toolsFile ?? "",
+    tools: mocked.tools.map((tool) =>
+      create(PluginEvalMockToolSchema, {
+        tool: tool.tool,
+        file: tool.file,
+        kind: tool.kind === "agent" ? PluginEvalMockKind.agent : PluginEvalMockKind.fixed,
+        error: tool.error,
+        expectJson: tool.expect === undefined ? "" : JSON.stringify(tool.expect),
+        abortWhen: tool.abortWhen ?? "",
+      }),
+    ),
+  });
 }
 
 /** A slug-shaped fragment of an id: lowercased, underscores made hyphens. */
@@ -221,10 +383,7 @@ export function trySessionRequest(input: {
       subject: input.caseName,
       harness:
         input.harness === Harness.UNSPECIFIED ? Harness.NATIVE : input.harness,
-      ...(input.attachment.agentRef === undefined
-        ? {}
-        : { agentRef: input.attachment.agentRef }),
-      mcpServerUsages: [...input.attachment.mcpServerUsages],
+      plugins: [...input.attachment.plugins],
     }),
   });
 }
@@ -240,9 +399,18 @@ export function tryRunRequest(input: {
   readonly modelName: string;
   /** The run's spending cap: the try's share of what the eval has left (temporal/evals/names.ts CaseInput). */
   readonly budgetUsd: number;
-  readonly pluginServerSlugs: ReadonlyArray<string>;
+  readonly pluginServers: ReadonlyArray<PluginServer>;
+  readonly arm: EvalArm;
+  readonly source: CaseSource;
 }): Run {
-  const tools = tryToolsOf(input.evalCase, input.spec, input.pluginServerSlugs);
+  const tools = tryToolsOf(input.evalCase, input.spec, input.pluginServers, input.arm);
+  const caseContext = tryCaseContextOf({
+    evalCase: input.evalCase,
+    spec: input.spec,
+    arm: input.arm,
+    source: input.source,
+    pluginServers: input.pluginServers,
+  });
   return create(RunSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Run",
@@ -263,6 +431,7 @@ export function tryRunRequest(input: {
       tools: [...tools.tools],
       disallowedTools: [...tools.disallowedTools],
       appendSystemPrompt: input.evalCase.appendSystemPrompt ?? "",
+      ...(caseContext === undefined ? {} : { pluginEvalCase: caseContext }),
     }),
   });
 }

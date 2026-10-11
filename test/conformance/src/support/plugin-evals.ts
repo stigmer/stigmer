@@ -92,10 +92,10 @@ export function pluginEvalActiveDeleteMessage(evalId: string): string {
 
 export function pluginEvalOtherPluginToolMessage(
   entry: string,
-  named: string,
+  server: string,
   plugin: string,
 ): string {
-  return `allow_tools entry '${entry}' names plugin '${named}', but this eval runs '${plugin}'; a try attaches no other plugin`;
+  return `allow_tools entry '${entry}' names MCP server '${server}', which is not one of '${plugin}''s; a try attaches no other plugin`;
 }
 
 /** A failed eval's error when its workflow could not start: a fixed sentence, the cause only logged. */
@@ -105,6 +105,14 @@ export const PLUGIN_EVAL_NOT_STARTED_ERROR = "the eval's workflow could not be s
 export function unsupportedFeatureReason(feature: string): string {
   return `not run: ${feature}`;
 }
+
+/** A target whose engine cannot run one of the case's features (domain/plugin-eval/matrix.ts). */
+export function engineUnsupportedReason(engine: string, feature: string): string {
+  return `not run on ${engine}: ${feature}`;
+}
+
+/** A plugin MCP server a case leaves unmocked (domain/plugin-eval/try-run.ts). */
+export const NOT_STARTED_NO_MOCK = "not started: no mock";
 
 /** A try its own share of the eval's spending limit stopped: not graded. */
 export const SPENDING_SHARE_REASON = "stopped at its share of the eval's spending limit";
@@ -194,13 +202,15 @@ export interface SkillPluginOptions {
   readonly cases: readonly EvalCaseFixture[];
   /** `hooks/hooks.json`'s event map; a plugin with hooks is mounted into each try's session. */
   readonly hooks?: Readonly<Record<string, unknown>>;
-  /** Other files in the plugin. */
+  /** Other files in the plugin, a suite's `evals/mocks/` and shared fixtures included. */
   readonly files?: Readonly<Record<string, string>>;
+  /** `.mcp.json`'s servers, by key. */
+  readonly mcpServers?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }
 
 /**
- * A Claude Code plugin with one skill (so its install composes an agent the
- * with-arm runs on) and the given cases under `evals/`.
+ * A Claude Code plugin with one skill, which the with-arm's tries are
+ * offered, and the given cases under `evals/`.
  */
 export function skillPluginWithEvals(
   name: string,
@@ -220,6 +230,7 @@ export function skillPluginWithEvals(
       ],
       ...(options.hooks === undefined ? {} : { hooks: options.hooks }),
       ...(options.files === undefined ? {} : { files: options.files }),
+      ...(options.mcpServers === undefined ? {} : { mcpServers: options.mcpServers }),
     }),
     options.cases,
   );
@@ -284,6 +295,8 @@ export interface PluginEvalOptions {
   readonly maxCostUsd?: number;
   readonly concurrency?: number;
   readonly allowTools?: readonly string[];
+  readonly skipScaffold?: boolean;
+  readonly judgeModel?: string;
   readonly name?: string;
 }
 
@@ -312,6 +325,8 @@ export function makePluginEval(
       maxCostUsd: opts.maxCostUsd ?? 10,
       concurrency: opts.concurrency ?? 1,
       allowTools: [...(opts.allowTools ?? [])],
+      skipScaffold: opts.skipScaffold ?? false,
+      judgeModel: opts.judgeModel ?? "",
     },
   };
 }

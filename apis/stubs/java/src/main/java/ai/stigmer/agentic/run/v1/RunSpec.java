@@ -195,7 +195,7 @@ private static final long serialVersionUID = 0L;
    *
    * This is the one-call session bootstrap: a single create carries the
    * full session shape (the agent, workspace_entries, harness,
-   * execution_target, MCP servers, skills) together with the first
+   * execution_target, plugins, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by run.create. The created session's ID is
    * returned on the persisted run's session_id.
@@ -222,7 +222,7 @@ private static final long serialVersionUID = 0L;
    *
    * This is the one-call session bootstrap: a single create carries the
    * full session shape (the agent, workspace_entries, harness,
-   * execution_target, MCP servers, skills) together with the first
+   * execution_target, plugins, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by run.create. The created session's ID is
    * returned on the persisted run's session_id.
@@ -252,7 +252,7 @@ private static final long serialVersionUID = 0L;
    *
    * This is the one-call session bootstrap: a single create carries the
    * full session shape (the agent, workspace_entries, harness,
-   * execution_target, MCP servers, skills) together with the first
+   * execution_target, plugins, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by run.create. The created session's ID is
    * returned on the persisted run's session_id.
@@ -1175,6 +1175,50 @@ private static final long serialVersionUID = 0L;
     return conversationCatchup_ == null ? ai.stigmer.agentic.run.v1.ConversationCatchup.getDefaultInstance() : conversationCatchup_;
   }
 
+  public static final int PLUGIN_EVAL_CASE_FIELD_NUMBER = 25;
+  private ai.stigmer.agentic.run.v1.PluginEvalCaseContext pluginEvalCase_;
+  /**
+   * <pre>
+   * What a plugin-eval case gives this try beyond its message: a starting
+   * folder, reference folders, an earlier conversation, variables and MCP
+   * stand-ins. Absent on every other run.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+   * @return Whether the pluginEvalCase field is set.
+   */
+  @java.lang.Override
+  public boolean hasPluginEvalCase() {
+    return ((bitField0_ & 0x00000008) != 0);
+  }
+  /**
+   * <pre>
+   * What a plugin-eval case gives this try beyond its message: a starting
+   * folder, reference folders, an earlier conversation, variables and MCP
+   * stand-ins. Absent on every other run.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+   * @return The pluginEvalCase.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.PluginEvalCaseContext getPluginEvalCase() {
+    return pluginEvalCase_ == null ? ai.stigmer.agentic.run.v1.PluginEvalCaseContext.getDefaultInstance() : pluginEvalCase_;
+  }
+  /**
+   * <pre>
+   * What a plugin-eval case gives this try beyond its message: a starting
+   * folder, reference folders, an earlier conversation, variables and MCP
+   * stand-ins. Absent on every other run.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder getPluginEvalCaseOrBuilder() {
+    return pluginEvalCase_ == null ? ai.stigmer.agentic.run.v1.PluginEvalCaseContext.getDefaultInstance() : pluginEvalCase_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1233,6 +1277,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(appendSystemPrompt_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 24, appendSystemPrompt_);
+    }
+    if (((bitField0_ & 0x00000008) != 0)) {
+      output.writeMessage(25, getPluginEvalCase());
     }
     getUnknownFields().writeTo(output);
   }
@@ -1316,6 +1363,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(appendSystemPrompt_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(24, appendSystemPrompt_);
     }
+    if (((bitField0_ & 0x00000008) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(25, getPluginEvalCase());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1364,6 +1415,11 @@ private static final long serialVersionUID = 0L;
     if (hasConversationCatchup()) {
       if (!getConversationCatchup()
           .equals(other.getConversationCatchup())) return false;
+    }
+    if (hasPluginEvalCase() != other.hasPluginEvalCase()) return false;
+    if (hasPluginEvalCase()) {
+      if (!getPluginEvalCase()
+          .equals(other.getPluginEvalCase())) return false;
     }
     if (!getTargetCase().equals(other.getTargetCase())) return false;
     switch (targetCase_) {
@@ -1430,6 +1486,10 @@ private static final long serialVersionUID = 0L;
     if (hasConversationCatchup()) {
       hash = (37 * hash) + CONVERSATION_CATCHUP_FIELD_NUMBER;
       hash = (53 * hash) + getConversationCatchup().hashCode();
+    }
+    if (hasPluginEvalCase()) {
+      hash = (37 * hash) + PLUGIN_EVAL_CASE_FIELD_NUMBER;
+      hash = (53 * hash) + getPluginEvalCase().hashCode();
     }
     switch (targetCase_) {
       case 1:
@@ -1582,6 +1642,7 @@ private static final long serialVersionUID = 0L;
         internalGetStructuredOutputSchemaFieldBuilder();
         internalGetAttachmentsFieldBuilder();
         internalGetConversationCatchupFieldBuilder();
+        internalGetPluginEvalCaseFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1624,6 +1685,11 @@ private static final long serialVersionUID = 0L;
       if (conversationCatchupBuilder_ != null) {
         conversationCatchupBuilder_.dispose();
         conversationCatchupBuilder_ = null;
+      }
+      pluginEvalCase_ = null;
+      if (pluginEvalCaseBuilder_ != null) {
+        pluginEvalCaseBuilder_.dispose();
+        pluginEvalCaseBuilder_ = null;
       }
       targetCase_ = 0;
       target_ = null;
@@ -1722,6 +1788,12 @@ private static final long serialVersionUID = 0L;
             ? conversationCatchup_
             : conversationCatchupBuilder_.build();
         to_bitField0_ |= 0x00000004;
+      }
+      if (((from_bitField0_ & 0x00008000) != 0)) {
+        result.pluginEvalCase_ = pluginEvalCaseBuilder_ == null
+            ? pluginEvalCase_
+            : pluginEvalCaseBuilder_.build();
+        to_bitField0_ |= 0x00000008;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1835,6 +1907,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasConversationCatchup()) {
         mergeConversationCatchup(other.getConversationCatchup());
+      }
+      if (other.hasPluginEvalCase()) {
+        mergePluginEvalCase(other.getPluginEvalCase());
       }
       switch (other.getTargetCase()) {
         case SESSION_ID: {
@@ -1968,6 +2043,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 194
+            case 202: {
+              input.readMessage(
+                  internalGetPluginEvalCaseFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00008000;
+              break;
+            } // case 202
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2163,7 +2245,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is the one-call session bootstrap: a single create carries the
      * full session shape (the agent, workspace_entries, harness,
-     * execution_target, MCP servers, skills) together with the first
+     * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
      * returned on the persisted run's session_id.
@@ -2190,7 +2272,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is the one-call session bootstrap: a single create carries the
      * full session shape (the agent, workspace_entries, harness,
-     * execution_target, MCP servers, skills) together with the first
+     * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
      * returned on the persisted run's session_id.
@@ -2227,7 +2309,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is the one-call session bootstrap: a single create carries the
      * full session shape (the agent, workspace_entries, harness,
-     * execution_target, MCP servers, skills) together with the first
+     * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
      * returned on the persisted run's session_id.
@@ -2262,7 +2344,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is the one-call session bootstrap: a single create carries the
      * full session shape (the agent, workspace_entries, harness,
-     * execution_target, MCP servers, skills) together with the first
+     * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
      * returned on the persisted run's session_id.
@@ -2295,7 +2377,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is the one-call session bootstrap: a single create carries the
      * full session shape (the agent, workspace_entries, harness,
-     * execution_target, MCP servers, skills) together with the first
+     * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
      * returned on the persisted run's session_id.
@@ -2337,7 +2419,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is the one-call session bootstrap: a single create carries the
      * full session shape (the agent, workspace_entries, harness,
-     * execution_target, MCP servers, skills) together with the first
+     * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
      * returned on the persisted run's session_id.
@@ -2375,7 +2457,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is the one-call session bootstrap: a single create carries the
      * full session shape (the agent, workspace_entries, harness,
-     * execution_target, MCP servers, skills) together with the first
+     * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
      * returned on the persisted run's session_id.
@@ -2400,7 +2482,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is the one-call session bootstrap: a single create carries the
      * full session shape (the agent, workspace_entries, harness,
-     * execution_target, MCP servers, skills) together with the first
+     * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
      * returned on the persisted run's session_id.
@@ -2433,7 +2515,7 @@ private static final long serialVersionUID = 0L;
      *
      * This is the one-call session bootstrap: a single create carries the
      * full session shape (the agent, workspace_entries, harness,
-     * execution_target, MCP servers, skills) together with the first
+     * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
      * returned on the persisted run's session_id.
@@ -5142,6 +5224,181 @@ private static final long serialVersionUID = 0L;
         conversationCatchup_ = null;
       }
       return conversationCatchupBuilder_;
+    }
+
+    private ai.stigmer.agentic.run.v1.PluginEvalCaseContext pluginEvalCase_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.PluginEvalCaseContext, ai.stigmer.agentic.run.v1.PluginEvalCaseContext.Builder, ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder> pluginEvalCaseBuilder_;
+    /**
+     * <pre>
+     * What a plugin-eval case gives this try beyond its message: a starting
+     * folder, reference folders, an earlier conversation, variables and MCP
+     * stand-ins. Absent on every other run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     * @return Whether the pluginEvalCase field is set.
+     */
+    public boolean hasPluginEvalCase() {
+      return ((bitField0_ & 0x00008000) != 0);
+    }
+    /**
+     * <pre>
+     * What a plugin-eval case gives this try beyond its message: a starting
+     * folder, reference folders, an earlier conversation, variables and MCP
+     * stand-ins. Absent on every other run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     * @return The pluginEvalCase.
+     */
+    public ai.stigmer.agentic.run.v1.PluginEvalCaseContext getPluginEvalCase() {
+      if (pluginEvalCaseBuilder_ == null) {
+        return pluginEvalCase_ == null ? ai.stigmer.agentic.run.v1.PluginEvalCaseContext.getDefaultInstance() : pluginEvalCase_;
+      } else {
+        return pluginEvalCaseBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * What a plugin-eval case gives this try beyond its message: a starting
+     * folder, reference folders, an earlier conversation, variables and MCP
+     * stand-ins. Absent on every other run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     */
+    public Builder setPluginEvalCase(ai.stigmer.agentic.run.v1.PluginEvalCaseContext value) {
+      if (pluginEvalCaseBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        pluginEvalCase_ = value;
+      } else {
+        pluginEvalCaseBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00008000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * What a plugin-eval case gives this try beyond its message: a starting
+     * folder, reference folders, an earlier conversation, variables and MCP
+     * stand-ins. Absent on every other run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     */
+    public Builder setPluginEvalCase(
+        ai.stigmer.agentic.run.v1.PluginEvalCaseContext.Builder builderForValue) {
+      if (pluginEvalCaseBuilder_ == null) {
+        pluginEvalCase_ = builderForValue.build();
+      } else {
+        pluginEvalCaseBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00008000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * What a plugin-eval case gives this try beyond its message: a starting
+     * folder, reference folders, an earlier conversation, variables and MCP
+     * stand-ins. Absent on every other run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     */
+    public Builder mergePluginEvalCase(ai.stigmer.agentic.run.v1.PluginEvalCaseContext value) {
+      if (pluginEvalCaseBuilder_ == null) {
+        if (((bitField0_ & 0x00008000) != 0) &&
+          pluginEvalCase_ != null &&
+          pluginEvalCase_ != ai.stigmer.agentic.run.v1.PluginEvalCaseContext.getDefaultInstance()) {
+          getPluginEvalCaseBuilder().mergeFrom(value);
+        } else {
+          pluginEvalCase_ = value;
+        }
+      } else {
+        pluginEvalCaseBuilder_.mergeFrom(value);
+      }
+      if (pluginEvalCase_ != null) {
+        bitField0_ |= 0x00008000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What a plugin-eval case gives this try beyond its message: a starting
+     * folder, reference folders, an earlier conversation, variables and MCP
+     * stand-ins. Absent on every other run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     */
+    public Builder clearPluginEvalCase() {
+      bitField0_ = (bitField0_ & ~0x00008000);
+      pluginEvalCase_ = null;
+      if (pluginEvalCaseBuilder_ != null) {
+        pluginEvalCaseBuilder_.dispose();
+        pluginEvalCaseBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * What a plugin-eval case gives this try beyond its message: a starting
+     * folder, reference folders, an earlier conversation, variables and MCP
+     * stand-ins. Absent on every other run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.PluginEvalCaseContext.Builder getPluginEvalCaseBuilder() {
+      bitField0_ |= 0x00008000;
+      onChanged();
+      return internalGetPluginEvalCaseFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * What a plugin-eval case gives this try beyond its message: a starting
+     * folder, reference folders, an earlier conversation, variables and MCP
+     * stand-ins. Absent on every other run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder getPluginEvalCaseOrBuilder() {
+      if (pluginEvalCaseBuilder_ != null) {
+        return pluginEvalCaseBuilder_.getMessageOrBuilder();
+      } else {
+        return pluginEvalCase_ == null ?
+            ai.stigmer.agentic.run.v1.PluginEvalCaseContext.getDefaultInstance() : pluginEvalCase_;
+      }
+    }
+    /**
+     * <pre>
+     * What a plugin-eval case gives this try beyond its message: a starting
+     * folder, reference folders, an earlier conversation, variables and MCP
+     * stand-ins. Absent on every other run.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.PluginEvalCaseContext, ai.stigmer.agentic.run.v1.PluginEvalCaseContext.Builder, ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder> 
+        internalGetPluginEvalCaseFieldBuilder() {
+      if (pluginEvalCaseBuilder_ == null) {
+        pluginEvalCaseBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.run.v1.PluginEvalCaseContext, ai.stigmer.agentic.run.v1.PluginEvalCaseContext.Builder, ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder>(
+                getPluginEvalCase(),
+                getParentForChildren(),
+                isClean());
+        pluginEvalCase_ = null;
+      }
+      return pluginEvalCaseBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.RunSpec)

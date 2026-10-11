@@ -480,9 +480,8 @@ export function newListAllSessionsStep(
 /**
  * FilterByAgent: one page of the sessions whose pinned agent
  * (status.agent_id) matches, newest first, whichever version each runs.
- * A plugin eval's tries are left out, as `session.list` leaves them out: a
- * with-plugin try is pinned to the agent install composed for the plugin,
- * and its conversations are read from the eval.
+ * A plugin eval's tries are left out, as `session.list` leaves them out:
+ * their conversations are read from the eval.
  */
 export function newFilterByAgentStep(
   store: Store,

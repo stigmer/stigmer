@@ -1912,7 +1912,7 @@
         {
           "name": "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
           "number": 7,
-          "description": "The default asked for an MCP tool because its server marks it destructive\n (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint\n annotation)."
+          "description": "The default asked for an MCP tool because its server marks it destructive\n (the tool's MCP destructiveHint annotation, read live from the server's\n tools each turn), or because its server's tools could not be listed."
         },
         {
           "name": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
@@ -2092,6 +2092,11 @@
           "name": "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND",
           "number": 2,
           "description": "Platform policy auto-kept the set because every mutation in its turn came\n from commands the human explicitly authorized (per-command approval,\n APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified\n against server-authored approval records before authoring. The\n decision's actor is \"policy\", never the user."
+        },
+        {
+          "name": "FILE_DECISION_ORIGIN_POLICY_EVAL_TRY",
+          "number": 3,
+          "description": "Platform policy kept the set because its run is a plugin eval's try: a\n try's edits apply as they do in Claude Code's evals, and nobody reviews\n a try. The decision's actor is \"policy\"."
         }
       ]
     },
@@ -2224,6 +2229,11 @@
           "name": "RUN_VALUE_DECLARER_KIND_REPOSITORY",
           "number": 3,
           "description": "A repository the turn clones, for its token."
+        },
+        {
+          "name": "RUN_VALUE_DECLARER_KIND_PLUGIN",
+          "number": 4,
+          "description": "A plugin the turn uses, for its hooks."
         }
       ]
     },
@@ -2451,7 +2461,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
         },
         {
           "name": "visibility_public",
@@ -2619,11 +2629,6 @@
           "description": "Knowledge resource that provides domain-specific context to an agent."
         },
         {
-          "name": "mcp_server",
-          "number": 44,
-          "description": "External tool server connected via the Model Context Protocol."
-        },
-        {
           "name": "agent_share",
           "number": 46,
           "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
@@ -2651,7 +2656,7 @@
         {
           "name": "plugin",
           "number": 58,
-          "description": "An installed Agent Plugins package: the archive Stigmer materialised into\n skills, MCP servers and an agent, and the handle that upgrades\n and removes them together. A plugin is what you install; an agent is what\n runs. Members are the resources labelled with the plugin's id."
+          "description": "An installed Agent Plugins package: one thing holding skills, agents,\n hooks and MCP servers, which agents and conversations list whole."
         },
         {
           "name": "vault",
@@ -2699,6 +2704,23 @@
           "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
           "number": 1,
           "description": "Create a branch and pull request from the agent's file changes after the run completes."
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalMockKind",
+      "description": "PluginEvalMockKind is how a mocked tool answers.",
+      "protoType": "ai.stigmer.agentic.run.v1.PluginEvalMockKind",
+      "values": [
+        {
+          "name": "plugin_eval_mock_kind_fixed",
+          "number": 1,
+          "description": "The mock file's body, with its substitutions."
+        },
+        {
+          "name": "plugin_eval_mock_kind_agent",
+          "number": 2,
+          "description": "A model acting as the server from the mock file's instructions."
         }
       ]
     }
@@ -3037,6 +3059,17 @@
           "messageType": "RunCredentials"
         },
         "description": "Whose logins and secrets this turn uses: decided once when the turn is\n created, and kept when it is recovered.",
+        "required": false
+      },
+      {
+        "name": "PluginEvalFiles",
+        "jsonName": "pluginEvalFiles",
+        "protoField": "plugin_eval_files",
+        "type": {
+          "kind": "message",
+          "messageType": "PluginEvalFiles"
+        },
+        "description": "The files a plugin eval's graders read, as the try's turn left them.",
         "required": false
       }
     ]
@@ -3572,7 +3605,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Slug of the MCP server providing this tool; empty for built-in tools.\n Copied from ToolCall.mcp_server_slug.",
+          "description": "Name of the MCP server providing this tool; empty for built-in tools.\n Copied from ToolCall.mcp_server_slug.",
           "required": false
         },
         {
@@ -4443,7 +4476,8 @@
             "enumType": "ai.stigmer.agentic.run.v1.FileDecisionOrigin",
             "enumValues": [
               "FILE_DECISION_ORIGIN_USER",
-              "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND"
+              "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND",
+              "FILE_DECISION_ORIGIN_POLICY_EVAL_TRY"
             ]
           },
           "description": "Which authority authored this decision: a human reviewer (USER; also the\n reading for UNSPECIFIED pre-origin records) or the approved-command\n auto-keep policy. Audit provenance only — never enforcement, never\n correlation, never folded into any digest. See FileDecisionOrigin.",
@@ -4923,7 +4957,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Slug of the MCP server that provides this tool.\n Copied from ToolCall.mcp_server_slug for UI convenience.\n Empty for built-in sandbox tools (read, write, shell, etc.).\n\n Enables the approval card to classify MCP tools and render\n structured argument previews (scalar grids, humanized names)\n instead of falling back to raw JSON.\n\n Examples: \"planton\", \"github\", \"slack\"",
+          "description": "Name of the MCP server that provides this tool, as its tools are named\n (plugin_\u003cplugin\u003e_\u003cserver\u003e for a plugin's server).\n Copied from ToolCall.mcp_server_slug for UI convenience.\n Empty for built-in sandbox tools (read, write, shell, etc.).\n\n Enables the approval card to classify MCP tools and render\n structured argument previews (scalar grids, humanized names)\n instead of falling back to raw JSON.\n\n Examples: \"plugin_linear_linear\", \"plugin_github_github\"",
           "required": false
         },
         {
@@ -5021,6 +5055,96 @@
           },
           "description": "Slug of the plugin whose hook asked for this approval; empty when no\n plugin's hook asked. Copied from ToolCall.approval_policy_hook.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalFile",
+      "description": "PluginEvalFile is one file's content after the turn.",
+      "protoType": "ai.stigmer.agentic.run.v1.PluginEvalFile",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/plugin_eval_case.proto",
+      "fields": [
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The path as the case's graders name it.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Text",
+          "jsonName": "text",
+          "protoField": "text",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The file's text.",
+          "required": false,
+          "oneofGroup": "content"
+        },
+        {
+          "name": "Binary",
+          "jsonName": "binary",
+          "protoField": "binary",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "The file is not text.",
+          "required": false,
+          "oneofGroup": "content"
+        },
+        {
+          "name": "Absent",
+          "jsonName": "absent",
+          "protoField": "absent",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Nothing is at the path.",
+          "required": false,
+          "oneofGroup": "content"
+        },
+        {
+          "name": "Unreadable",
+          "jsonName": "unreadable",
+          "protoField": "unreadable",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The file could not be read, and why (too large, not a regular file,\n outside the workspace).",
+          "required": false,
+          "oneofGroup": "content"
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalFiles",
+      "description": "PluginEvalFiles is the content, after a plugin-eval try's turn, of each\n file its case's graders read (PluginEvalCaseContext.read_files).",
+      "protoType": "ai.stigmer.agentic.run.v1.PluginEvalFiles",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/plugin_eval_case.proto",
+      "fields": [
+        {
+          "name": "Files",
+          "jsonName": "files",
+          "protoField": "files",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginEvalFile"
+            }
+          },
+          "description": "Each file, once, in the order read_files names them.",
+          "required": false,
+          "validation": {
+            "maxItems": 64
+          }
         }
       ]
     },
@@ -5358,10 +5482,11 @@
             "enumValues": [
               "RUN_VALUE_DECLARER_KIND_AGENT",
               "RUN_VALUE_DECLARER_KIND_TOOL",
-              "RUN_VALUE_DECLARER_KIND_REPOSITORY"
+              "RUN_VALUE_DECLARER_KIND_REPOSITORY",
+              "RUN_VALUE_DECLARER_KIND_PLUGIN"
             ]
           },
-          "description": "Agent, tool or repository.",
+          "description": "Agent, tool, plugin or repository.",
           "required": false
         },
         {
@@ -5371,17 +5496,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "The agent's or tool's name, or the repository entry's name.",
-          "required": false
-        },
-        {
-          "name": "McpServerId",
-          "jsonName": "mcpServerId",
-          "protoField": "mcp_server_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The tool's MCP server id; empty for an agent or a repository.",
+          "description": "The agent's name; a tool's name as plugin:\u003cplugin\u003e:\u003cserver\u003e; the\n plugin's name; or the repository entry's name.",
           "required": false
         },
         {
@@ -5391,7 +5506,37 @@
           "type": {
             "kind": "string"
           },
-          "description": "The repository's URL; empty for an agent or a tool.",
+          "description": "The repository's URL; empty for an agent, a tool or a plugin.",
+          "required": false
+        },
+        {
+          "name": "PluginId",
+          "jsonName": "pluginId",
+          "protoField": "plugin_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The plugin that declared it: a tool's plugin, or the plugin whose hooks\n read it; empty for an agent or a repository.",
+          "required": false
+        },
+        {
+          "name": "Server",
+          "jsonName": "server",
+          "protoField": "server",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The tool's server name in its plugin; empty for everything else.",
+          "required": false
+        },
+        {
+          "name": "PluginDigest",
+          "jsonName": "pluginDigest",
+          "protoField": "plugin_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The archive of the tool's plugin this run planned (the plugin's\n digest); empty for everything else. The values fetch reads the server\n at that version, so a run of a pinned version keeps its tools when the\n plugin is pushed again.",
           "required": false
         }
       ]
@@ -6225,7 +6370,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Slug of the MCP server that provides this tool.\n Empty for built-in sandbox tools.\n Populated by the worker using the mcp_tools_config reverse lookup.\n\n Examples: \"planton\", \"github\", \"slack\"\n\n Used by CLI/UI to render a qualified tool name (e.g., \"planton/search\")\n so users can distinguish tools with the same name from different servers.",
+          "description": "Name of the MCP server that provides this tool, as its tools are named\n (plugin_\u003cplugin\u003e_\u003cserver\u003e for a plugin's server).\n Empty for built-in sandbox tools.\n Populated by the worker using the mcp_tools_config reverse lookup.\n\n Examples: \"plugin_linear_linear\", \"plugin_github_github\"\n\n Used by CLI/UI to render a qualified tool name (e.g., \"planton/search\")\n so users can distinguish tools with the same name from different servers.",
           "required": false
         },
         {

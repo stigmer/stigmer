@@ -12,7 +12,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildMcpApprovalDefault, type ActiveLeases } from "../approval-policy.js";
-import { needsBackfill } from "../connect-backfill.js";
+import { listTurnTools } from "../mcp-tool-listing.js";
 import {
   CHANNEL_ID_LABEL,
   CONVERSATION_ATTACHMENT_SLUG,
@@ -121,19 +121,18 @@ describe("synthesizeConversationAttachment", () => {
     expect(attachment?.headers).toBeUndefined();
   });
 
-  it("is approval-free by construction: the approval default marks none of its tools destructive", () => {
+  it("is approval-free by construction: never listed, so the approval default asks for none of its tools", async () => {
     const attachment = synthesizeConversationAttachment("agch_1", cloudOptions)!;
 
     // Channel surfaces run APPROVAL_MODE_UNATTENDED, where a gated tool
     // resolves as skip-and-adapt — a gated escalation would never fire
     // (synthesized attachments are approval-free by construction).
-    const mcpDefault = buildMcpApprovalDefault([attachment], noLeases);
+    expect(attachment.pluginOrigin, "the platform's own server, no plugin's").toBeNull();
+    const listing = await listTurnTools([attachment], () => Promise.reject(new Error("a platform server is never listed")));
+    expect(listing).toEqual({ listed: [], destructive: [], unlisted: [] });
+    const mcpDefault = buildMcpApprovalDefault(listing, noLeases);
     expect(mcpDefault.destructive.size).toBe(0);
+    expect(mcpDefault.unlisted.size).toBe(0);
   });
 
-  it("is structurally immune to the connect backfill", () => {
-    const attachment = synthesizeConversationAttachment("agch_1", cloudOptions)!;
-    expect(attachment.discoveredCapabilitiesEmpty).toBe(false);
-    expect(needsBackfill(attachment)).toBe(false);
-  });
 });

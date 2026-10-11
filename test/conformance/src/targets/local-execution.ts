@@ -89,6 +89,8 @@ export class LocalExecutionTarget implements TargetProfile {
     publicLane: false,
     // No guest-token capability, as on `local`.
     guestMinting: false,
+    // No sandbox lane in cloud mode, as on `local`.
+    cloudTargetRefusesLocalPrograms: false,
     // Open source serves PlatformClient; the minting lane is the OIDC
     // sibling this target lends through enforcingLane(), where the key ring,
     // the platform-token verifier and the origin guard are composed.

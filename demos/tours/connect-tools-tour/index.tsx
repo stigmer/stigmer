@@ -3,12 +3,16 @@
  * narration, and viewport are supplied by `scenar pack` — this file only
  * maps step data to views.
  *
- * The connected server is the shared `ORDER_MGMT_CONNECTED` snapshot,
- * injected through `McpServerDetailView`'s `mcpServerState` prop (no
- * `getByReference` fires). The approval story's two
+ * The plugin page is the real one (`_shared/PluginPage`), reading the
+ * shared plugin and a My vault that holds its login from the fixtures in
+ * `.scenar/providers.tsx`; the launcher is the console home with the
+ * plugin picked, as "Start a chat" opens it. The approval story's two
  * `Run` snapshots are built once at module load, entirely from
  * frozen data:
  *
+ * - The tool calls and the approval name the server as a run does
+ *   (`ORDER_MGMT_SERVER_SLUG`, `plugin_<plugin>_<server>`), so the gate
+ *   classifies the call as the plugin server's tool.
  * - The pending tool call and its approval share the literal id
  *   `tc-process-return-1`. The id match is what routes the gate INLINE onto
  *   the tool row (`ApprovalCardBody`, timestamp-free); an unmatched approval
@@ -29,9 +33,8 @@
  * mid-playback, and a depicted page should not be interactive at all.
  * The Scenar cursor is an overlay, so `inert` does not affect it.
  */
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
-import { McpServerDetailView } from "@stigmer/react";
 import { samples, sampleInstant } from "@stigmer/react/test";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
@@ -41,13 +44,12 @@ import {
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/approval_pb";
 import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { BrowserView, CodeEditorView, TerminalView } from "@scenar/react";
+import type { ResourceRef } from "@stigmer/sdk";
 import { AppShell } from "../_shared/AppShell";
 import { SessionView } from "../_shared/SessionView";
 import { DEMO_ORG, snapshot } from "../_shared/fixtures";
-import {
-  ORDER_MGMT_CONNECTED,
-  ORDER_MGMT_MCP,
-} from "../_shared/order-management-mcp";
+import { ORDER_MGMT, ORDER_MGMT_SERVER_SLUG } from "../_shared/order-management-plugin";
+import { PluginPage } from "../_shared/PluginPage";
 import {
   ORDER_LOOKUP_OUTPUT,
   QUICKSTART_FILE_TREE,
@@ -55,8 +57,9 @@ import {
 } from "../_shared/quickstart-workspace";
 import {
   type ConnectToolsTourStep,
-  MCP_REFS_CODE,
-  MCP_REFS_HIGHLIGHT_LINE,
+  ORDER_QUESTION,
+  PLUGIN_REFS_CODE,
+  PLUGIN_REFS_HIGHLIGHT_LINE,
 } from "./steps";
 
 // ---------------------------------------------------------------------------
@@ -82,6 +85,7 @@ const returnRequest = samples.humanMessage(
 const pendingToolCall = create(ToolCallSchema, {
   id: RETURN_TOOL_CALL_ID,
   name: "process_return",
+  mcpServerSlug: ORDER_MGMT_SERVER_SLUG,
   status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
   // No startedAt/completedAt: formatDuration needs both ends, so the
   // pending row shows no chip. approvalAction stays unset — a resolved
@@ -103,13 +107,14 @@ const pendingApproval = create(PendingApprovalSchema, {
     null,
     2,
   ),
-  mcpServerSlug: ORDER_MGMT_MCP.slug,
+  mcpServerSlug: ORDER_MGMT_SERVER_SLUG,
   // requestedAt deliberately omitted — see the file header.
 });
 
 const completedToolCall = create(ToolCallSchema, {
   id: RETURN_TOOL_CALL_ID,
   name: "process_return",
+  mcpServerSlug: ORDER_MGMT_SERVER_SLUG,
   status: ToolCallStatus.TOOL_CALL_COMPLETED,
   startedAt: RETURN_STARTED_AT,
   completedAt: RETURN_COMPLETED_AT,
@@ -152,19 +157,8 @@ const APPROVED = snapshot(
 // Rendering
 // ---------------------------------------------------------------------------
 
-/**
- * Scrollable library-detail frame at the zone's real geometry
- * (`mx-auto max-w-4xl px-6 py-8`). One scale factor per frame — no zoom.
- */
-const DETAIL_SCROLL: CSSProperties = {
-  height: "100%",
-  overflowY: "auto",
-  padding: "32px 24px",
-};
-const DETAIL_CONTENT: CSSProperties = {
-  margin: "0 auto",
-  maxWidth: "56rem",
-};
+/** The plugin the conversation lists, as "Start a chat" picks it. */
+const PLUGIN_PICKS: readonly ResourceRef[] = [{ org: DEMO_ORG, slug: ORDER_MGMT.name }];
 
 /**
  * Console beats render inside a browser window whose address bar tracks the
@@ -180,26 +174,24 @@ function consoleWindow(contentKey: string, path: string, children: ReactNode) {
 
 export function renderStep(data: ConnectToolsTourStep): ReactNode {
   switch (data.view) {
-    case "detail":
+    case "plugin-page":
       return consoleWindow(
-        "mcp-detail",
-        `/library/mcp-servers/${ORDER_MGMT_MCP.slug}`,
-        // Stable contentKey: both detail beats show one page, so AppShell
-        // must not replay its navigation transition between them; step 1's
-        // scroll_to moves within the same mounted view.
-        <AppShell activeNav="library" contentKey="mcp-detail">
-          <div style={DETAIL_SCROLL} inert>
-            <div style={DETAIL_CONTENT}>
-              <McpServerDetailView
-                org={DEMO_ORG}
-                slug={ORDER_MGMT_MCP.slug}
-                activeOrg={DEMO_ORG}
-                editable
-                mcpServerState={ORDER_MGMT_CONNECTED}
-                defaultCapabilityTab="tools"
-              />
-            </div>
-          </div>
+        "plugin-page",
+        `/library/plugins/${DEMO_ORG}/${ORDER_MGMT.name}`,
+        // Stable contentKey: both plugin-page beats show one page, so
+        // AppShell must not replay its navigation transition between them.
+        <AppShell activeNav="library" contentKey="plugin-page">
+          <PluginPage org={DEMO_ORG} slug={ORDER_MGMT.name} serverName={ORDER_MGMT.name} />
+        </AppShell>,
+      );
+
+    case "chat-launcher":
+      // "Start a chat" opens the console home with the plugin picked.
+      return consoleWindow(
+        "chat-launcher",
+        `/?plugin=${DEMO_ORG}/${ORDER_MGMT.name}`,
+        <AppShell activeNav="new-session" contentKey="chat-launcher" slideDirection="forward">
+          <SessionView pluginRefs={PLUGIN_PICKS} typingMessage={ORDER_QUESTION} />
         </AppShell>,
       );
 
@@ -207,11 +199,11 @@ export function renderStep(data: ConnectToolsTourStep): ReactNode {
       return (
         <CodeEditorView
           filename={QUICKSTART_WORKSPACE.entryFile}
-          lines={MCP_REFS_CODE}
-          highlightLines={[MCP_REFS_HIGHLIGHT_LINE]}
+          lines={PLUGIN_REFS_CODE}
+          highlightLines={[PLUGIN_REFS_HIGHLIGHT_LINE]}
           fileTree={QUICKSTART_FILE_TREE}
           workspaceName={QUICKSTART_WORKSPACE.name}
-          contentKey="mcp-refs"
+          contentKey="plugin-refs"
         />
       );
 
@@ -236,6 +228,7 @@ export function renderStep(data: ConnectToolsTourStep): ReactNode {
         <AppShell activeNav="new-session" contentKey={data.phase}>
           <SessionView
             execution={execution}
+            pluginRefs={PLUGIN_PICKS}
             showApprovals={data.phase === "awaiting-approval"}
           />
         </AppShell>,

@@ -7,8 +7,8 @@
  *   - load: the eval and its suite at the stamped digest, the matrix, and
  *     the status skeleton: every planned case with its tags, notes and
  *     not-run reason, every target with its arms and pending tries, the
- *     tries in all, phase running, the start time, and the delta marked
- *     provisional (domain/plugin-eval/arm.ts). An eval already running
+ *     tries in all, phase running, the start time, and whether the delta
+ *     is provisional (domain/plugin-eval/arm.ts: it is not). An eval already running
  *     with its skeleton written (a retried load) is planned again without
  *     a rewrite; an eval gone or ended plans nothing, ended also when it
  *     ends between the load's read and its write (create marking a slow
@@ -34,6 +34,7 @@ import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { PluginEvalTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import {
+  PluginEvalAbortSchema,
   PluginEvalArmSchema,
   PluginEvalCaseSchema,
   PluginEvalCaseTargetSchema,
@@ -55,7 +56,7 @@ import {
   DEFAULT_THRESHOLD,
   recomputeStatus,
 } from "../../domain/plugin-eval/scoring.js";
-import { caseNotesOf } from "../../domain/plugin-eval/try-run.js";
+import { caseNotesOf, mockedServersOf } from "../../domain/plugin-eval/try-run.js";
 import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -204,6 +205,10 @@ export function createSuiteActivities(
         slot.error = result.error;
         slot.costUsd = result.costUsd;
         slot.durationSeconds = result.durationSeconds;
+        slot.aborted =
+          result.aborted === undefined
+            ? undefined
+            : create(PluginEvalAbortSchema, result.aborted);
         if (
           result.notGradedReason === PLUGIN_UPDATED_REASON &&
           !evalCase.notes.includes(PLUGIN_UPDATED_NOTE)
@@ -274,6 +279,15 @@ export function writeSkeleton(
       notes:
         planned.notRunReason === undefined && spec !== undefined
           ? caseNotesOf(planned.evalCase, spec)
+          : [],
+      mockedServers:
+        planned.notRunReason === undefined && spec !== undefined
+          ? mockedServersOf(
+              planned.evalCase,
+              spec,
+              context.plugin.metadata?.name ?? "",
+              context.suite.servers,
+            )
           : [],
       targets: planned.targets.map((target) =>
         create(PluginEvalCaseTargetSchema, {

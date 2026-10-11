@@ -58,11 +58,17 @@
 //   turn's final to-do list by state (`todos`), because the counts alone say
 //   how many rounds a turn took and never why (schema v4; the derivation is
 //   `tool-call-facts.ts`'s). Targets are kept, results and file contents never.
-// - A quality grade names the judge's run it was read from
-//   (`judge_run_id`, schema v5). A v5 grade and an earlier one come from
-//   different judging paths and are not compared.
+// - The quality arm is a plugin eval (schema v6): the working agent as a
+//   plugin whose `evals/` suite holds the quality tasks, run by Stigmer's own
+//   plugin evals, with each harness's parity model as a target. `quality`
+//   carries the eval's id, what was asked of it, and its result document
+//   whole (`@stigmer/sdk` `toResultDocument`, the plugin-eval format's
+//   `schemaVersion: 1` file), so a reader reads the quality numbers as any
+//   plugin author reads theirs. The document is kept as JSON, not typed
+//   here, because this module stays a leaf. Grades from v5 and earlier came
+//   from another judge on another scale and are not compared.
 
-export const BENCHMARK_REPORT_SCHEMA_VERSION = 5;
+export const BENCHMARK_REPORT_SCHEMA_VERSION = 6;
 
 /** The runtime's harness vocabulary, as the runner's `turn_phases` line labels it. */
 export type BenchmarkHarness = "deep-agent" | "cursor";
@@ -89,7 +95,7 @@ export type RefusalReason =
   | "thinking needs a pinned model";
 
 /** Where an attempt failed: creating it, running it, or grading it. */
-export type FailureStage = "create" | "execution" | "judge";
+export type FailureStage = "create" | "execution";
 
 export interface SampleFailure {
   stage: FailureStage;
@@ -303,68 +309,23 @@ export interface BenchmarkComparison {
   cost_ratio?: number;
 }
 
-/** One criterion of a task's rubric, as the judge scored it. */
-export interface CriterionGrade {
-  name: string;
-  weight: number;
-  score: number;
-  reasoning: string;
-}
-
-export type QualityCheckName = "go_test";
-
-/** A check the benchmark ran on the workspace after the task's last turn. */
-export interface QualityCheck {
-  name: QualityCheckName;
-  /** `not-run` names why in `detail` (for example, no `go` on PATH); never silent. */
-  outcome: "passed" | "failed" | "not-run";
-  /** The command's exit code and output tail, or why it did not run. */
-  detail: string;
-}
-
-/** A file whose bytes differ from the fixture's after the task's last turn. */
-export interface FileChangeFact {
-  path: string;
-  change: "added" | "modified" | "deleted";
-}
-
 /**
- * One graded attempt of a quality task on one harness: the session the
- * working agent ran (`turns`), what the workspace held afterwards
- * (`files_changed`, `checks`), exactly what the judge was shown (`subject`)
- * and its verdict. A verdict whose criteria are not exactly the rubric's is
- * refused (`failure.stage: "judge"`, `score: null`), never read as a grade.
+ * The quality arm's one plugin eval. `document` is its result document as
+ * JSON; `null`, with `failure`, when the eval could not be pushed, created
+ * or followed to its end.
  */
-export interface QualityCell {
-  task_id: string;
-  placeholder: boolean;
-  harness: BenchmarkHarness;
-  /** 1-based, of `methodology.quality_reps`. */
-  rep: number;
-  model_requested: string;
-  /** The judge model the judge run's usage reports (the validated requested model). */
+export interface QualityEval {
+  /** The plugin under evaluation, as installed. */
+  plugin: string;
+  /** The eval's id; "" when it was never created. */
+  eval_id: string;
+  /** The targets asked for, as `<harness>/<model>`. */
+  targets: string[];
   judge_model: string;
-  /** The criteria's scores weighted by the task's weights, 0..1. */
-  score: number | null;
-  criteria: CriterionGrade[];
-  reasoning: string;
-  subject: string;
-  files_changed: FileChangeFact[];
-  checks: QualityCheck[];
-  turns: BenchmarkSample[];
-  /** The judge's Run, the run the grade was read from. */
-  judge_run_id: string;
-  outcome: SampleOutcome;
+  /** Tries per case and target. */
+  runs: number;
+  document: Record<string, unknown> | null;
   failure?: SampleFailure;
-}
-
-/** A task's grades on one harness, summarised: the median over the graded attempts. */
-export interface QualitySummary {
-  task_id: string;
-  harness: BenchmarkHarness;
-  graded: number;
-  failed: number;
-  median_score: number | null;
 }
 
 export interface RefusedCell {
@@ -401,8 +362,8 @@ export interface BenchmarkReport {
   };
   models: { parity_native: string; parity_cursor: string; judge_requested: string };
   comparisons: BenchmarkComparison[];
-  quality: QualityCell[];
-  quality_summary: QualitySummary[];
+  /** The quality arm's eval; `null` when no quality target was planned. */
+  quality: QualityEval | null;
   refused: RefusedCell[];
 }
 
@@ -529,25 +490,6 @@ export function summarize(
   };
 }
 
-/** Per task and harness, in first-seen order: the graded count, the failed count and the median score. */
-export function summarizeQuality(cells: readonly QualityCell[]): QualitySummary[] {
-  const byKey = new Map<string, { task_id: string; harness: BenchmarkHarness; scores: number[]; failed: number }>();
-  for (const cell of cells) {
-    const key = `${cell.task_id}|${cell.harness}`;
-    const entry = byKey.get(key) ?? { task_id: cell.task_id, harness: cell.harness, scores: [], failed: 0 };
-    if (cell.outcome === "completed" && cell.score !== null) entry.scores.push(cell.score);
-    else entry.failed += 1;
-    byKey.set(key, entry);
-  }
-  return [...byKey.values()].map((entry) => ({
-    task_id: entry.task_id,
-    harness: entry.harness,
-    graded: entry.scores.length,
-    failed: entry.failed,
-    median_score: median(entry.scores),
-  }));
-}
-
 /** Native warm median cost over cursor's; `undefined` when either side has no median or cursor's cost is 0. */
 export function costRatio(native: BenchmarkStat | undefined, cursor: BenchmarkStat | undefined): number | undefined {
   if (native?.median === null || native?.median === undefined) return undefined;
@@ -601,8 +543,11 @@ export function readBenchmarkReport(body: unknown): BenchmarkReport {
       }
     }
   });
-  if (!Array.isArray(root["quality"])) throw new Error("not a benchmark report: quality is not an array");
-  if (!Array.isArray(root["quality_summary"])) throw new Error("not a benchmark report: quality_summary is not an array");
+  if (root["quality"] !== null) {
+    const quality = asRecord(root["quality"], "report.quality");
+    requireString(quality, "eval_id", "report.quality");
+    if (quality["document"] !== null) asRecord(quality["document"], "report.quality.document");
+  }
   if (!Array.isArray(root["refused"])) throw new Error("not a benchmark report: refused is not an array");
   return root as unknown as BenchmarkReport;
 }

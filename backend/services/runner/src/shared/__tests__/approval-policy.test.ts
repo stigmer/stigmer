@@ -1,7 +1,8 @@
 /**
  * Pins the approval default (`shared/approval-policy.ts`): which calls ask —
- * the mutating built-in categories and the MCP tools their server marks
- * destructive, nothing else — what a lease clears, the provenance each
+ * the mutating built-in categories, the MCP tools their server marks
+ * destructive, and every tool of a server whose tools could not be listed
+ * this turn, nothing else — what a lease clears, the provenance each
  * verdict stamps (UNSPECIFIED for a call that needed none), the card
  * wording, the placeholder resolution with its secret redaction, the
  * derivation of leases from persisted decisions, the engine version, and
@@ -22,11 +23,13 @@ import {
   toProtoPolicySource,
   POLICY_ENGINE_VERSION,
   isUnattendedApprovalMode,
+  NOTHING_LISTED,
+  UNLISTED_MCP_APPROVAL_MESSAGE,
   type ActiveLeases,
   type McpApprovalDefault,
 } from "../approval-policy.js";
 import type { ToolApprovalCategory } from "../tool-kind.js";
-import type { ResolvedMcpServer } from "../mcp-resolver.js";
+import type { McpToolListing } from "../mcp-tool-listing.js";
 import { create } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -92,41 +95,49 @@ function makeExecution(opts: {
   } as unknown as Run;
 }
 
-function makeServer(slug: string, destructiveTools: string[] = []): ResolvedMcpServer {
+/** A turn's listing: each server's destructive tools, and the servers whose listing failed. */
+function listingOf(destructive: Record<string, string[]>, unlisted: string[] = []): McpToolListing {
   return {
-    slug,
-    connectionType: "stdio",
-    destructiveTools,
-    discoveredToolNames: null,
-    discoveredCapabilitiesEmpty: false,
-    serverId: "",
-    pluginOrigin: null,
+    listed: Object.entries(destructive).map(([server, tools]) => ({ server, tools })),
+    destructive: Object.entries(destructive).flatMap(([server, tools]) => tools.map((tool) => ({ server, tool }))),
+    unlisted,
   };
 }
 
-/** An approval default under which the given `server/tool` keys ask; `leasedServers` cleared. */
-function mcpDefaultOf(destructive: string[] = [], leasedServers: string[] = []): McpApprovalDefault {
-  return { destructive: new Set(destructive), leasedServers: new Set(leasedServers) };
+/** An approval default under which the given `server/tool` keys ask, and every tool of an `unlisted` server; `leasedServers` cleared. */
+function mcpDefaultOf(destructive: string[] = [], leasedServers: string[] = [], unlisted: string[] = []): McpApprovalDefault {
+  return { destructive: new Set(destructive), unlisted: new Set(unlisted), leasedServers: new Set(leasedServers) };
 }
 
 describe("buildMcpApprovalDefault", () => {
-  it("keys each server's destructive tools by server and tool", () => {
-    const d = buildMcpApprovalDefault(
-      [makeServer("github", ["delete_repo"]), makeServer("db", ["drop_table", "truncate"])],
-      NO_LEASES,
-    );
+  it("keys each listed destructive tool by server and tool", () => {
+    const d = buildMcpApprovalDefault(listingOf({ github: ["delete_repo"], db: ["drop_table", "truncate"] }), NO_LEASES);
     expect([...d.destructive].sort()).toEqual(["db/drop_table", "db/truncate", "github/delete_repo"]);
   });
 
   it("a same-named tool on two servers is destructive only where its own server says so", () => {
-    const d = buildMcpApprovalDefault([makeServer("a", ["delete"]), makeServer("b")], NO_LEASES);
+    const d = buildMcpApprovalDefault(listingOf({ a: ["delete"], b: [] }), NO_LEASES);
     expect(d.destructive.has(mcpToolKey("a", "delete"))).toBe(true);
     expect(d.destructive.has(mcpToolKey("b", "delete"))).toBe(false);
   });
 
-  it("carries the leased servers, and a server that marks nothing contributes nothing", () => {
-    const d = buildMcpApprovalDefault([makeServer("plain")], leases({ servers: ["github"] }));
+  it("carries the servers whose listing failed, apart from the destructive marks", () => {
+    const d = buildMcpApprovalDefault(listingOf({ github: [] }, ["plugin_linear_api"]), NO_LEASES);
+    expect([...d.unlisted]).toEqual(["plugin_linear_api"]);
     expect(d.destructive.size).toBe(0);
+  });
+
+  it("carries the leased servers, and a server that marks nothing contributes nothing", () => {
+    const d = buildMcpApprovalDefault(listingOf({ plain: [] }), leases({ servers: ["github"] }));
+    expect(d.destructive.size).toBe(0);
+    expect(d.unlisted.size).toBe(0);
+    expect([...d.leasedServers]).toEqual(["github"]);
+  });
+
+  it("before anything is listed carries the leases alone", () => {
+    const d = buildMcpApprovalDefault(NOTHING_LISTED, leases({ servers: ["github"] }));
+    expect(d.destructive.size).toBe(0);
+    expect(d.unlisted.size).toBe(0);
     expect([...d.leasedServers]).toEqual(["github"]);
   });
 });
@@ -320,6 +331,15 @@ describe("resolveApprovalProvenance", () => {
     expect(resolveApprovalProvenance("list_issues", "github", leased, NO_CATEGORIES, false)).toBe("approval_lease");
   });
 
+  it("reads annotation_destructive_tighten for any tool of a server whose listing failed, and approval_lease once it is leased", () => {
+    expect(resolveApprovalProvenance("anything", "linear", mcpDefaultOf([], [], ["linear"]), NO_CATEGORIES, false)).toBe(
+      "annotation_destructive_tighten",
+    );
+    expect(resolveApprovalProvenance("anything", "linear", mcpDefaultOf([], ["linear"], ["linear"]), NO_CATEGORIES, false)).toBe(
+      "approval_lease",
+    );
+  });
+
   it("returns builtin_category for a mutating built-in with no lease", () => {
     expect(resolveApprovalProvenance("write", "", mcpDefaultOf(), NO_CATEGORIES, false)).toBe("builtin_category");
   });
@@ -368,6 +388,24 @@ describe("resolveToolApproval — THE gate decision, shared by the gate and the 
   it("a leased server's tool runs, destructive or not, source approval_lease", () => {
     const leased = mcpDefaultOf(["github/delete_repo"], ["github"]);
     expect(resolveToolApproval("delete_repo", "github", {}, leased, NO_CATEGORIES)).toEqual({
+      requiresApproval: false,
+      message: "",
+      source: "approval_lease",
+    });
+  });
+
+  it("every tool of a server whose tools could not be listed waits, worded so, on that server only", () => {
+    const unlisted = mcpDefaultOf([], [], ["linear"]);
+    expect(resolveToolApproval("list_issues", "linear", {}, unlisted, NO_CATEGORIES)).toEqual({
+      requiresApproval: true,
+      message: UNLISTED_MCP_APPROVAL_MESSAGE.replace("{{tool_name}}", "list_issues"),
+      source: "annotation_destructive_tighten",
+    });
+    expect(resolveToolApproval("list_issues", "github", {}, unlisted, NO_CATEGORIES).requiresApproval).toBe(false);
+  });
+
+  it("a lease clears a server whose tools could not be listed", () => {
+    expect(resolveToolApproval("list_issues", "linear", {}, mcpDefaultOf([], ["linear"], ["linear"]), NO_CATEGORIES)).toEqual({
       requiresApproval: false,
       message: "",
       source: "approval_lease",
