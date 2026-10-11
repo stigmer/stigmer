@@ -28,11 +28,13 @@
  * that covers resolution, for exactly this reason). An aborted signal
  * propagates as the signal's reason, the way `fetch` itself behaves.
  *
- * Accepted limitation, inherited from the runner's guard: a DNS-rebinding
- * window remains between our lookup and the socket connect. Node's fetch
- * (undici) offers no lookup pinning without replacing the dispatcher, and
- * the strict posture's range refusals make the rebinding payoff (an
- * internal address) unreachable anyway.
+ * The check is the readable answer before any socket opens, not the
+ * guarantee: a name can resolve to a public address here and to a private
+ * one when a socket resolves it again (DNS rebinding), and a range refusal
+ * is exactly what rebinding gets around. The guarantee is the dialer's
+ * (`../dial/pinned-fetch.ts`): its connect lookup judges every address
+ * with `refusedAddress`, the same rule, and a socket opens only to an
+ * address it judged.
  *
  * Proven by __tests__/check.test.ts.
  */
@@ -158,14 +160,33 @@ export async function checkEgress(rawUrl: string | URL, policy: EgressPolicy, op
     return { ok: false, refusal: { kind: "unresolvable", url, hostname: url.hostname, policy: policy.name } };
   }
 
-  for (const address of addresses) {
-    const reason = policy.blockedReason(address);
-    if (reason !== null) {
-      return { ok: false, refusal: { kind: "blocked", url, hostname: url.hostname, address, reason, policy: policy.name } };
-    }
+  const refused = refusedAddress(addresses, policy);
+  if (refused !== null) {
+    return { ok: false, refusal: { kind: "blocked", url, hostname: url.hostname, ...refused, policy: policy.name } };
   }
 
   return { ok: true, url, addresses };
+}
+
+/** An address a policy refuses, and the range it falls in. */
+export interface RefusedAddress {
+  readonly address: string;
+  readonly reason: string;
+}
+
+/**
+ * The first of `addresses` the policy refuses, or null when it refuses none.
+ * One refused address refuses them all: a name with one public and one
+ * private record must not dial, or the private record is the bypass. It
+ * takes addresses and no URL because the dialer's connect lookup judges
+ * with it and sees only a hostname.
+ */
+export function refusedAddress(addresses: readonly string[], policy: EgressPolicy): RefusedAddress | null {
+  for (const address of addresses) {
+    const reason = policy.blockedReason(address);
+    if (reason !== null) return { address, reason };
+  }
+  return null;
 }
 
 /**
