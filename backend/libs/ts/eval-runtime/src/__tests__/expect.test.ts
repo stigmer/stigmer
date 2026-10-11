@@ -1,7 +1,9 @@
 /**
  * Pins the expect guard (expect.ts): each rule kind, the regex dialect's
- * accept and refuse sets with their sentences, and the matcher's linear
- * bound on an input that would make a backtracking engine explode.
+ * accept and refuse sets with their sentences, a quantifier past the cap
+ * refused before it is built, and the matcher's linear bound on an input
+ * that would make a backtracking engine explode and on the widest pattern
+ * the cap allows.
  */
 
 import { describe, expect, it } from "vitest";
@@ -101,6 +103,9 @@ describe("compilePattern", () => {
     ["a{3,1}", "", "has a {m,n} quantifier whose n is below its m"],
     ["a{x}", "", "has a { that is not a {m,n} quantifier"],
     ["a{0,2000}", "", "expands to more than 1024 steps"],
+    ["a{50000000}", "", "expands to more than 1024 steps"],
+    ["a{0,99999999999}", "", "expands to more than 1024 steps"],
+    ["b".repeat(10) + "a{1015}", "", "expands to more than 1024 steps"],
     ["a\\", "", "ends with a lone backslash"],
     ["[\\", "", "has a class that never closes"],
     ["a".repeat(513), "", "is longer than 512 characters"],
@@ -132,6 +137,14 @@ describe("matchPattern", () => {
     expect(matchPattern(pattern("a\\$"), "a$")).toBe(true);
     expect(matchPattern(pattern("a\\$"), "a")).toBe(false);
     expect(matchPattern(pattern("^[\\n\\t\\-]+$"), "\n\t-")).toBe(true);
+  });
+
+  it("stays linear on the widest pattern the cap allows, its optional units walked once per step", () => {
+    const wide = pattern("a{0,1000}b");
+    const started = performance.now();
+    expect(matchPattern(wide, "a".repeat(10_000))).toBe(false);
+    expect(matchPattern(wide, `${"a".repeat(10_000)}b`)).toBe(true);
+    expect(performance.now() - started).toBeLessThan(5_000);
   });
 
   it("stays linear on input that makes a backtracking engine explode", () => {

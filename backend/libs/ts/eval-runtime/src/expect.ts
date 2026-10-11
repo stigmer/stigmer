@@ -23,7 +23,8 @@
  * unbounded tail as one repeating unit) and simulated as a set of
  * positions over the value, so a value of length n costs n times the
  * units, never a backtracking blow-up. The expansion is capped at
- * EXPECT_MAX_UNITS, so a `{m,n}` cannot make a pattern large.
+ * EXPECT_MAX_UNITS, and a quantifier is sized against the cap before it is
+ * expanded, so a `{m,n}` cannot make a pattern large.
  *
  * Unlike Claude Code, a value is matched whole, whatever its length: the
  * format bounds the length a pattern checks without documenting the bound,
@@ -201,13 +202,15 @@ export function compilePattern(source: string, flags: string): CompiledPattern |
     const quantifier = quantifierAt(chars, i, end);
     if (typeof quantifier === "string") return quantifier;
     i = quantifier.next;
+    // Sized before it is expanded: a {m,n} of millions must be refused, not built.
+    const adds = quantifier.min + (quantifier.max === Infinity ? 1 : quantifier.max - quantifier.min);
+    if (units.length + adds > EXPECT_MAX_UNITS) return `expands to more than ${EXPECT_MAX_UNITS} steps`;
     for (let n = 0; n < quantifier.min; n++) units.push({ atom: read.atom, mode: "one" });
     if (quantifier.max === Infinity) {
       units.push({ atom: read.atom, mode: "star" });
     } else {
       for (let n = quantifier.min; n < quantifier.max; n++) units.push({ atom: read.atom, mode: "optional" });
     }
-    if (units.length > EXPECT_MAX_UNITS) return `expands to more than ${EXPECT_MAX_UNITS} steps`;
   }
   return { units, anchoredStart, anchoredEnd, ignoreCase: flags.includes("i"), dotAll: flags.includes("s") };
 }
@@ -336,14 +339,21 @@ export function matchPattern(pattern: CompiledPattern, value: string): boolean {
   return false;
 }
 
-/** States reachable by skipping optional and repeating units. */
+/**
+ * States reachable by skipping optional and repeating units. A walk stops
+ * at a state already reached, since everything past it was reached with
+ * it, so one closure visits each state once and a step costs at most the
+ * pattern's units.
+ */
 function closure(states: Set<number>, units: readonly Unit[]): Set<number> {
   const out = new Set<number>();
   for (const start of states) {
     let s = start;
+    if (out.has(s)) continue;
     out.add(s);
     while (s < units.length && units[s]?.mode !== "one") {
       s += 1;
+      if (out.has(s)) break;
       out.add(s);
     }
   }
