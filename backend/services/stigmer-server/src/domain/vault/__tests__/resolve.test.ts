@@ -2884,6 +2884,19 @@ describe("a subagent's keys", () => {
     ]);
   });
 
+  it("refuse a key removed after the plan at the fetch, naming the subagent", async () => {
+    const mine = await anasVault({ S: "sub-secret" });
+    const failure = await refusal(
+      open({ run: runOf({ person: ANA }), agentSpec: agent({}), subagents: [subagentOf("researcher", { S: KEY })] }, async () => {
+        await rig.vaults.removeSecrets(mine, ["S"], testCallerIdentity({ identityId: ANA }));
+      }),
+    );
+    expect(failure.code).toBe(Code.FailedPrecondition);
+    expect(failure.rawMessage).toBe(
+      "the subagent researcher needs S, but My vault no longer holds a secret named S. Fix it, then recover the turn",
+    );
+  });
+
   it("never reach the agent's values: each subagent's land in its own group, by its name", async () => {
     await anasVault({ A: "agent-secret", S: "sub-secret", T: "other-secret" });
     const values = await open({

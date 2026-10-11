@@ -836,6 +836,8 @@ function declarerOfEntry(entry: RunValueSource): Declarer {
       return { kind: "plugin", name: declarer.name, pluginId: declarer.pluginId };
     case RunValueDeclarerKind.REPOSITORY:
       return { kind: "repository", name: declarer.name, url: declarer.repositoryUrl };
+    case RunValueDeclarerKind.SUBAGENT:
+      return { kind: "subagent", name: declarer.name };
     default:
       return { kind: "agent", name: declarer?.name ?? "" };
   }
