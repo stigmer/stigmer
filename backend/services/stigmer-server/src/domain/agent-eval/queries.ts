@@ -6,6 +6,8 @@
  * reads do (domain/plugin-eval/queries.ts); a store fault is thrown as it
  * came. An eval's tries are found as a plugin eval's are, by the label's
  * index key (domain/plugin-eval/queries.ts listTrySessionIds).
+ *
+ * Proven by __tests__/agent-eval.test.ts and __tests__/faults.test.ts.
  */
 import { fromBinary } from "@bufbuild/protobuf";
 

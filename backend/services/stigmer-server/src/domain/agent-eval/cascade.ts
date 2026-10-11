@@ -12,7 +12,8 @@
  * composition that serves no evals passes no deps, and the step does
  * nothing.
  *
- * Proven by __tests__/agent-eval.test.ts (the agent's delete).
+ * Proven by __tests__/agent-eval.test.ts (the agent's delete) and
+ * __tests__/faults.test.ts (each failure arm).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 

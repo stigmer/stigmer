@@ -12,7 +12,9 @@
  * plugins has cases, an organization that is not the agent's, a version
  * the agent does not hold, a missing agent and an allow_tools entry
  * naming a server of no attached plugin; listByAgent answers an agent's
- * evals newest first without their tries; delete is refused while the eval
+ * evals newest first without their tries; cancel answers a finished eval
+ * unchanged and, with no engine to ask, is UNAVAILABLE for one still
+ * pending, which it leaves pending; delete is refused while the eval
  * runs and otherwise removes it with its tries' conversations; the agent's
  * delete is refused while one of its evals runs and otherwise removes its
  * evals and their tries.
@@ -47,7 +49,11 @@ import type { ComposedServer } from "../../../boot/compose.js";
 import { createLogger } from "../../../boot/logger.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import { seedOrganizations } from "../../organization/__tests__/support.js";
-import { PLUGIN_EVAL_LABEL, PLUGIN_EVAL_NOT_STARTED_ERROR } from "../../plugin-eval/constants.js";
+import {
+  PLUGIN_EVAL_LABEL,
+  PLUGIN_EVAL_NO_ENGINE_MESSAGE,
+  PLUGIN_EVAL_NOT_STARTED_ERROR,
+} from "../../plugin-eval/constants.js";
 import {
   AGENT_EVAL_NO_CASES_MESSAGE,
   AGENT_EVAL_NO_PLUGINS_MESSAGE,
@@ -271,6 +277,21 @@ describe("agent eval reads and deletes", () => {
     const listed = await evalQuery.listByAgent({ agentId: agent.metadata!.id });
     expect(listed.items.map((item) => item.metadata?.id)).toEqual([second.metadata?.id, first.metadata?.id]);
     expect(await evalQuery.get({ value: first.metadata!.id })).toMatchObject({ metadata: { id: first.metadata!.id } });
+  });
+
+  it("answers a finished eval's cancel unchanged, and is UNAVAILABLE for a pending one while no engine can be asked", async () => {
+    const agent = await agentWith([await install()]);
+    const created = await evals.create(evalOf(agent, { runs: 1 }));
+    const evalId = created.metadata!.id;
+    const cancelled = await evals.cancel({ value: evalId });
+    expect(cancelled.status?.phase).toBe(PluginEvalPhase.failed);
+    expect(cancelled.status?.error).toBe(PLUGIN_EVAL_NOT_STARTED_ERROR);
+
+    await setPhase(evalId, PluginEvalPhase.pending);
+    const refused = await refusal(evals.cancel({ value: evalId }));
+    expect(refused.code).toBe(Code.Unavailable);
+    expect(refused.rawMessage).toBe(PLUGIN_EVAL_NO_ENGINE_MESSAGE);
+    expect((await evalQuery.get({ value: evalId })).status?.phase).toBe(PluginEvalPhase.pending);
   });
 
   it("refuses to delete a running eval, naming cancel, and otherwise removes it with its tries", async () => {
