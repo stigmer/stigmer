@@ -235,7 +235,7 @@ Input for creating or updating a License.
     entitlements: { type: "EntitlementsInput", description: "What the license permits.", typeDescriptionLink: "#entitlementsinput", required: true },
     term: { type: "LicenseTerm", description: "Whether the term is a trial or a paid license.", typeDescriptionLink: "#licenseterm", required: true },
     expiresAt: { type: "string", description: "When the term ends.", required: true },
-    graceUntil: { type: "string", description: "The end of the grace period after expiry, during which the licensed server keeps serving and reports the license as expired.", required: true },
+    graceUntil: { type: "string", description: "The end of the grace period that follows `expires_at`, during which the licensed server keeps serving and reports the license as `grace`.", required: true },
     notes: { type: "string", description: "Operator notes about this issuance (the order, the contact, the reason for a bespoke entitlement)." },
   }}
 />

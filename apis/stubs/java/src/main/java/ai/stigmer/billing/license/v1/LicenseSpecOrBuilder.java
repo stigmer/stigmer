@@ -137,8 +137,9 @@ public interface LicenseSpecOrBuilder extends
 
   /**
    * <pre>
-   * The end of the grace period after expiry, during which the licensed
-   * server keeps serving and reports the license as expired.
+   * The end of the grace period that follows `expires_at`, during which the
+   * licensed server keeps serving and reports the license as `grace`. After
+   * this instant it reports the license as `expired`.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -147,8 +148,9 @@ public interface LicenseSpecOrBuilder extends
   boolean hasGraceUntil();
   /**
    * <pre>
-   * The end of the grace period after expiry, during which the licensed
-   * server keeps serving and reports the license as expired.
+   * The end of the grace period that follows `expires_at`, during which the
+   * licensed server keeps serving and reports the license as `grace`. After
+   * this instant it reports the license as `expired`.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -157,8 +159,9 @@ public interface LicenseSpecOrBuilder extends
   com.google.protobuf.Timestamp getGraceUntil();
   /**
    * <pre>
-   * The end of the grace period after expiry, during which the licensed
-   * server keeps serving and reports the license as expired.
+   * The end of the grace period that follows `expires_at`, during which the
+   * licensed server keeps serving and reports the license as `grace`. After
+   * this instant it reports the license as `expired`.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
