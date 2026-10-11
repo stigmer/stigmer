@@ -37,8 +37,8 @@ export interface OAuthAppOptions {
   authorizationUrl?: string;
   tokenUrl?: string;
   scopes?: string[];
-  // Vendor marketplace approval state; PENDING/REJECTED gate the McpServer
-  // OAuth initiate flow with byte-pinned refusal copy.
+  // Vendor marketplace approval state; PENDING/REJECTED gate a sign-in
+  // through the app with byte-pinned refusal copy.
   vendorApprovalStatus?: VendorApprovalStatus;
   // Non-standard scope query parameter name (e.g. Slack's user_scope).
   scopeParameterName?: string;

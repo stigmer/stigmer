@@ -44,11 +44,11 @@
  * hiding matches, and its policy holds. `delete` is never bound
  * (`deepagents-profiles.ts`), so it has no row in either format.
  *
- * An MCP tool is Claude's `mcp__<server>__<tool>`, its server an
- * organisation's resource (`mcp_server.source: "managed"`); a server a
- * plugin brought with it is named as Claude Code names a plugin's own
- * server, `mcp__plugin_<plugin>_<server>__<tool>` with `source: "plugin"`,
- * so a plugin's matchers find its tools unchanged. To Cursor's hooks it is
+ * An MCP tool is Claude's `mcp__<server>__<tool>`: every server a hook can
+ * see is a plugin's, whose name in a turn is already the segment Claude Code
+ * builds (`plugin_<plugin>_<server>`, shared/plugin-servers.ts), shown to
+ * a hook as `plugin:<plugin>:<server>` with `source: "plugin"`, so a
+ * plugin's matchers find its tools unchanged. To Cursor's hooks it is
  * `MCP:<tool>` on `preToolUse`, and the bare tool with its server's slug on
  * `beforeMCPExecution`. Stigmer's own tools (the channel, conversation and
  * memory attachments) have no view and never reach a hook: no plugin can
@@ -71,7 +71,7 @@ export interface ToolView {
   /** Further names a matcher takes the call by: the Cursor engine's `Write` is Claude's `Write` and `Edit` alike. */
   readonly aliases?: readonly string[];
   /** Present for an MCP tool: Claude Code's `mcp_server` stdin field. */
-  readonly mcpServer?: { readonly name: string; readonly source: "managed" | "plugin" };
+  readonly mcpServer?: { readonly name: string; readonly source: "plugin" };
 }
 
 /** A call as a Cursor hook sees it. */
@@ -299,20 +299,14 @@ export class NativeToolViews implements HookToolViews {
     if (slug !== undefined) {
       if (this.ctx.platformServerSlugs.has(slug)) return {};
       const owned = this.ctx.pluginServers.get(slug);
-      const cursor: CursorToolView = { toolName: `MCP:${call.name}`, toolInput: { ...call.args }, mcp: { tool: call.name, server: slug } };
-      return owned !== undefined
-        ? {
-            "claude-code": {
-              toolName: `mcp__plugin_${owned.plugin}_${owned.server}__${call.name}`,
-              toolInput: { ...call.args },
-              mcpServer: { name: `plugin:${owned.plugin}:${owned.server}`, source: "plugin" },
-            },
-            cursor,
-          }
-        : {
-            "claude-code": { toolName: `mcp__${slug}__${call.name}`, toolInput: { ...call.args }, mcpServer: { name: slug, source: "managed" } },
-            cursor,
-          };
+      return {
+        "claude-code": {
+          toolName: `mcp__${slug}__${call.name}`,
+          toolInput: { ...call.args },
+          mcpServer: { name: owned === undefined ? slug : `plugin:${owned.plugin}:${owned.server}`, source: "plugin" },
+        },
+        cursor: { toolName: `MCP:${call.name}`, toolInput: { ...call.args }, mcp: { tool: call.name, server: slug } },
+      };
     }
     const claude = CLAUDE_ROWS.get(call.name);
     return {

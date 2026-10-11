@@ -303,7 +303,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The agent spec exactly as this version stored it: the instructions,
-   * sub-agents, skill and MCP server references, declared keys and vaults a
+   * sub-agents, skill and plugin references, declared keys and vaults a
    * turn on this version runs with.
    * </pre>
    *
@@ -317,7 +317,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The agent spec exactly as this version stored it: the instructions,
-   * sub-agents, skill and MCP server references, declared keys and vaults a
+   * sub-agents, skill and plugin references, declared keys and vaults a
    * turn on this version runs with.
    * </pre>
    *
@@ -331,7 +331,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The agent spec exactly as this version stored it: the instructions,
-   * sub-agents, skill and MCP server references, declared keys and vaults a
+   * sub-agents, skill and plugin references, declared keys and vaults a
    * turn on this version runs with.
    * </pre>
    *
@@ -1498,7 +1498,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * sub-agents, skill and plugin references, declared keys and vaults a
      * turn on this version runs with.
      * </pre>
      *
@@ -1511,7 +1511,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * sub-agents, skill and plugin references, declared keys and vaults a
      * turn on this version runs with.
      * </pre>
      *
@@ -1528,7 +1528,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * sub-agents, skill and plugin references, declared keys and vaults a
      * turn on this version runs with.
      * </pre>
      *
@@ -1550,7 +1550,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * sub-agents, skill and plugin references, declared keys and vaults a
      * turn on this version runs with.
      * </pre>
      *
@@ -1570,7 +1570,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * sub-agents, skill and plugin references, declared keys and vaults a
      * turn on this version runs with.
      * </pre>
      *
@@ -1597,7 +1597,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * sub-agents, skill and plugin references, declared keys and vaults a
      * turn on this version runs with.
      * </pre>
      *
@@ -1616,7 +1616,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * sub-agents, skill and plugin references, declared keys and vaults a
      * turn on this version runs with.
      * </pre>
      *
@@ -1630,7 +1630,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * sub-agents, skill and plugin references, declared keys and vaults a
      * turn on this version runs with.
      * </pre>
      *
@@ -1647,7 +1647,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The agent spec exactly as this version stored it: the instructions,
-     * sub-agents, skill and MCP server references, declared keys and vaults a
+     * sub-agents, skill and plugin references, declared keys and vaults a
      * turn on this version runs with.
      * </pre>
      *

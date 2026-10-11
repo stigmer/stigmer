@@ -191,7 +191,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.agent.v1.AgentSpec spec_;
   /**
    * <pre>
-   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+   * Configurable properties: instructions, plugins, skills, and sub-agents.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -203,7 +203,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+   * Configurable properties: instructions, plugins, skills, and sub-agents.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -215,7 +215,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+   * Configurable properties: instructions, plugins, skills, and sub-agents.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1052,7 +1052,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.agent.v1.AgentSpec, ai.stigmer.agentic.agent.v1.AgentSpec.Builder, ai.stigmer.agentic.agent.v1.AgentSpecOrBuilder> specBuilder_;
     /**
      * <pre>
-     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+     * Configurable properties: instructions, plugins, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1063,7 +1063,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+     * Configurable properties: instructions, plugins, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1078,7 +1078,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+     * Configurable properties: instructions, plugins, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1098,7 +1098,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+     * Configurable properties: instructions, plugins, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1116,7 +1116,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+     * Configurable properties: instructions, plugins, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1141,7 +1141,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+     * Configurable properties: instructions, plugins, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1158,7 +1158,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+     * Configurable properties: instructions, plugins, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1170,7 +1170,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+     * Configurable properties: instructions, plugins, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1185,7 +1185,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
+     * Configurable properties: instructions, plugins, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>

@@ -7,19 +7,18 @@
 //   pending_approvals must equal what the decision leaves behind — a match
 //   returns the response, a mismatch is red under the caller's label, and in
 //   neither case is the decision submitted twice.
-// - createConnectedMcpServer: it registers the fixture surface it was given,
-//   connects, and returns the connected server only when the connect
-//   succeeded and the stored destructive_hint marks exactly the fixture's
-//   destructive tool; anything else is red at the helper, naming the cause,
-//   and the server's delete is deferred either way.
+// - pushFixturePlugin: it pushes a one-server plugin on the fixture surface
+//   it was given and returns the installed plugin only when its status
+//   lists that one server at the surface's URL with no sign-in; anything
+//   else is red at the helper, and the plugin's delete is deferred either
+//   way.
 // Pure: hand-built resources and stubbed clients, no target.
 // Domain: conformance support (execution engine).
 import { create } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { type McpServer, McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
+import { type Plugin, PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { FixtureTracker } from "../../harness/fixtures";
@@ -27,8 +26,8 @@ import { DESTRUCTIVE_ECHO_TOOL_NAME, ECHO_TOOL_NAME, type McpToolFixture } from 
 import {
   allToolCalls,
   awaitPhase,
-  createConnectedMcpServer,
   pollExecution,
+  pushFixturePlugin,
   submitApprovalPerContract,
 } from "../runs";
 
@@ -75,68 +74,65 @@ describe("submitApprovalPerContract", () => {
   });
 });
 
-// A server as connect answers it: the phase, a failure message, and the
-// stored hint per discovered tool.
-function connectedServer(phase: ConnectPhase, hints: Record<string, boolean>, failureMessage = ""): McpServer {
-  return create(McpServerSchema, {
-    metadata: { id: "mcp_unit", slug: "mcp-unit" },
+// A plugin as push answers it: one server entry at `url`, signed in or not.
+function installed(url: string, oauthOnly = false): Plugin {
+  return create(PluginSchema, {
+    metadata: { id: "plg_unit", org: "org-unit", slug: "plugin-unit" },
     status: {
-      connectStatus: { phase, failureMessage },
-      discoveredCapabilities: {
-        tools: Object.entries(hints).map(([name, destructiveHint]) => ({ name, destructiveHint })),
-      },
+      mcpServers: [
+        {
+          name: "tools",
+          transport: { case: "http", value: { url } },
+          ...(oauthOnly ? { signIn: { oauthOnly: true } } : {}),
+        },
+      ],
     },
   });
 }
 
-// Stubbed clients and fixture: create answers the bare resource, connect
-// answers `connected`, and every call is recorded.
-function stubs(connected: McpServer) {
-  const createServer = vi.fn(async () => create(McpServerSchema, { metadata: { id: "mcp_unit", slug: "mcp-unit" } }));
-  const connect = vi.fn(async () => connected);
-  const deleteServer = vi.fn(async () => connected);
-  const clients = {
-    mcpServerCommand: { create: createServer, connect, delete: deleteServer },
-  } as unknown as ConformanceClients;
+// Stubbed clients and fixture: push answers `answer`, and every call is recorded.
+function stubs(answer: (url: string) => Plugin) {
   const url = vi.fn((tools?: readonly string[]) => `http://127.0.0.1:1/mcp/${(tools ?? []).join(",")}`);
+  const push = vi.fn(async () => answer(url.mock.results[0]?.value as string));
+  const deletePlugin = vi.fn(async () => create(PluginSchema, {}));
+  const clients = { pluginCommand: { push, delete: deletePlugin } } as unknown as ConformanceClients;
   const mcp = { url } as unknown as McpToolFixture;
-  return { clients, mcp, createServer, connect, deleteServer, url };
+  return { clients, mcp, push, deletePlugin, url };
 }
 
-describe("createConnectedMcpServer", () => {
+describe("pushFixturePlugin", () => {
   const tools = [ECHO_TOOL_NAME, DESTRUCTIVE_ECHO_TOOL_NAME] as const;
 
-  it("registers the given surface, connects it, and returns the connected server when the hints match", async () => {
-    const connected = connectedServer(ConnectPhase.succeeded, { [ECHO_TOOL_NAME]: false, [DESTRUCTIVE_ECHO_TOOL_NAME]: true });
-    const s = stubs(connected);
+  it("pushes a plugin on the given surface and returns it when its one server is listed at that URL", async () => {
+    const s = stubs((url) => installed(url));
     const fixtures = new FixtureTracker();
 
-    const result = await createConnectedMcpServer(s.clients, s.mcp, fixtures, { org: "org-unit", name: "mcp-unit", tools: [...tools] });
+    const result = await pushFixturePlugin(s.clients, s.mcp, fixtures, { org: "org-unit", name: "plugin-unit", tools: [...tools] });
 
-    expect(result).toBe(connected);
+    expect(result.metadata?.id).toBe("plg_unit");
     expect(s.url).toHaveBeenCalledWith([...tools]);
-    expect(s.connect).toHaveBeenCalledWith({ mcpServerId: "mcp_unit", org: "org-unit" });
+    expect(s.push).toHaveBeenCalledWith(expect.objectContaining({ org: "org-unit", artifact: expect.any(Uint8Array) }));
     await fixtures.cleanup();
-    expect(s.deleteServer).toHaveBeenCalledWith({ resourceId: "mcp_unit" });
+    expect(s.deletePlugin).toHaveBeenCalledWith({ value: "plg_unit" });
   });
 
-  it("is red naming the failure when the connect did not succeed, and still defers the delete", async () => {
-    const s = stubs(connectedServer(ConnectPhase.failed, {}, "fixture unreachable"));
+  it("is red when the install completed the server with a sign-in, and still defers the delete", async () => {
+    const s = stubs((url) => installed(url, true));
     const fixtures = new FixtureTracker();
 
     await expect(
-      createConnectedMcpServer(s.clients, s.mcp, fixtures, { org: "org-unit", name: "mcp-unit", tools: [...tools] }),
-    ).rejects.toThrow("fixture unreachable");
+      pushFixturePlugin(s.clients, s.mcp, fixtures, { org: "org-unit", name: "plugin-unit", tools: [...tools] }),
+    ).rejects.toThrow("lists its one server at the fixture's surface");
     await fixtures.cleanup();
-    expect(s.deleteServer).toHaveBeenCalledTimes(1);
+    expect(s.deletePlugin).toHaveBeenCalledTimes(1);
   });
 
-  it("is red when the stored hints do not mark exactly the destructive tool", async () => {
-    const s = stubs(connectedServer(ConnectPhase.succeeded, { [ECHO_TOOL_NAME]: false, [DESTRUCTIVE_ECHO_TOOL_NAME]: false }));
+  it("is red when the server is listed at another address", async () => {
+    const s = stubs(() => installed("http://127.0.0.1:2/mcp/echo"));
 
     await expect(
-      createConnectedMcpServer(s.clients, s.mcp, new FixtureTracker(), { org: "org-unit", name: "mcp-unit", tools: [...tools] }),
-    ).rejects.toThrow("the stored discovery marks exactly the fixture's destructive tool");
+      pushFixturePlugin(s.clients, s.mcp, new FixtureTracker(), { org: "org-unit", name: "plugin-unit", tools: [...tools] }),
+    ).rejects.toThrow("lists its one server at the fixture's surface");
   });
 });
 

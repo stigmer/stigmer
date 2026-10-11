@@ -7,8 +7,8 @@
  *   - load: the eval and its suite at the stamped digest, the matrix, and
  *     the status skeleton: every planned case with its tags, notes and
  *     not-run reason, every target with its arms and pending tries, the
- *     tries in all, phase running, the start time, and the delta marked
- *     provisional (domain/plugin-eval/arm.ts). An eval already running
+ *     tries in all, phase running, the start time, and whether the delta
+ *     is provisional (domain/plugin-eval/arm.ts: it is not). An eval already running
  *     with its skeleton written (a retried load) is planned again without
  *     a rewrite; an eval gone or ended plans nothing, ended also when it
  *     ends between the load's read and its write (create marking a slow

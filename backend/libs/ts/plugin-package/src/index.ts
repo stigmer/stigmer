@@ -35,7 +35,7 @@ export {
 } from "./messages.js";
 export { HOOK_CONDITION_PATTERN, RUN_EVENTS, hookVariableReferences, isValidMatcher } from "./normalise/hooks.js";
 export { SUB_AGENT_INSTRUCTIONS_MIN, classifyModel } from "./normalise/sub-agents.js";
-export { PLACEHOLDER_PATTERN, VARIABLE_NAME_PATTERN } from "./placeholders.js";
+export { PLACEHOLDER_PATTERN, PLATFORM_VARIABLES, VARIABLE_NAME_PATTERN } from "./placeholders.js";
 export { HOOK_WARNING_KINDS } from "./outcome.js";
 export type {
   Finding,
@@ -60,6 +60,7 @@ export type {
 } from "./marketplace/outcome.js";
 export { hasMarketplaceFile, readMarketplace, readMarketplaceFile } from "./marketplace/read-marketplace.js";
 export { readPluginPackage } from "./read-plugin-package.js";
+export { toolServerSegment } from "./tool-names.js";
 export {
   DEFAULT_EVAL_DIR,
   EVAL_MAX_APPEND_SYSTEM_PROMPT,
@@ -101,8 +102,6 @@ export type {
   IgnoredComponentKind,
   ModelAlias,
   ModelHint,
-  OverlayDocument,
-  OverlayServerDocument,
   PluginAuthor,
   PluginDialect,
   PluginHookGroup,
@@ -113,5 +112,4 @@ export type {
   PluginSkill,
   PluginSubAgent,
   PluginVariable,
-  StigmerOverlay,
 } from "./types.js";

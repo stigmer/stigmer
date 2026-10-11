@@ -591,7 +591,7 @@ describe("the native translator through the builder", () => {
 
   /** An approval default under which the given `server/tool` keys are marked destructive by their servers. */
   function destructiveDefault(...keys: string[]): McpApprovalDefault {
-    return { destructive: new Set(keys), leasedServers: new Set() };
+    return { destructive: new Set(keys), unlisted: new Set<string>(), leasedServers: new Set() };
   }
 
   /** A text turn, then one tool start, through a translator over the given gate posture. */

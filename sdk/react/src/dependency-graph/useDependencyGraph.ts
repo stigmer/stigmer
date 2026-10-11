@@ -43,10 +43,10 @@ export function useDependencyGraph({
   return useMemo(() => {
     if (!spec) return { tree: null, isEmpty: true };
 
-    const { mcpServerUsages, skillRefs, subAgents } = spec;
+    const { plugins, skillRefs, subAgents } = spec;
 
     const hasDeps =
-      mcpServerUsages.length > 0 ||
+      plugins.length > 0 ||
       skillRefs.length > 0 ||
       subAgents.length > 0;
 
@@ -54,24 +54,20 @@ export function useDependencyGraph({
 
     let nodeCount = 1; // root
 
-    const mcpNodes: DependencyNode[] = mcpServerUsages
-      .filter((u) => u.mcpServerRef)
-      .map((usage) => {
-        nodeCount++;
-        const ref = usage.mcpServerRef!;
-
-        return {
-          id: `mcp-server:${ref.slug}`,
-          kind: "mcp-server" as const,
-          label: ref.slug,
-          qualifiedLabel:
-            ref.org && ref.org !== agentOrg
-              ? `${slugForOrg(ref.org)}/${ref.slug}`
-              : undefined,
-          children: [],
-          ref: { org: ref.org || agentOrg, slug: ref.slug },
-        };
-      });
+    const pluginNodes: DependencyNode[] = plugins.map((ref) => {
+      nodeCount++;
+      return {
+        id: `plugin:${ref.slug}`,
+        kind: "plugin" as const,
+        label: ref.slug,
+        qualifiedLabel:
+          ref.org && ref.org !== agentOrg
+            ? `${slugForOrg(ref.org)}/${ref.slug}`
+            : undefined,
+        children: [],
+        ref: { org: ref.org || agentOrg, slug: ref.slug },
+      };
+    });
 
     const skillNodes: DependencyNode[] = skillRefs.map((ref) => {
       nodeCount++;
@@ -91,8 +87,8 @@ export function useDependencyGraph({
     const subAgentNodes: DependencyNode[] = subAgents.map((sa) => {
       nodeCount++;
 
-      // A sub-agent reaches the parent's MCP servers through its tool
-      // lists, not edges of its own, so its children are its skills.
+      // A sub-agent reaches the parent's plugins through its tool lists,
+      // not edges of its own, so its children are its skills.
       const saSkillNodes: DependencyNode[] = sa.skillRefs.map((ref) => {
         nodeCount++;
         return {
@@ -123,13 +119,13 @@ export function useDependencyGraph({
       };
     });
 
-    // Child ordering mirrors the Overview sections: MCP servers,
-    // skills, then sub-agents.
+    // Child ordering mirrors the Overview sections: plugins, skills,
+    // then sub-agents.
     const root: DependencyNode = {
       id: `agent:${agentName}`,
       kind: "agent",
       label: agentName,
-      children: [...mcpNodes, ...skillNodes, ...subAgentNodes],
+      children: [...pluginNodes, ...skillNodes, ...subAgentNodes],
     };
 
     return {

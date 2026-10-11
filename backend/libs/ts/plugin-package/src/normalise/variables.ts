@@ -17,14 +17,17 @@
  * references but no manifest declares would never reach it. Such a variable
  * is declared here as a required secret, with a warning naming the server.
  * A declared variable no server and no hook references is warned too; it
- * is not wrong, only useless. A hook references a variable through
+ * is not wrong, only useless. A name the runner fills itself
+ * (`PLATFORM_VARIABLES`) is declared as the platform's, optional and no
+ * secret, whatever a manifest says of it: no vault holds it, so a required
+ * declaration would refuse every run. A hook references a variable through
  * Claude's `${user_config.KEY}` in an exec-form handler (`normalise/hooks.ts`).
  */
 
 import type { ManifestSet } from "../detect.js";
 import { describeValue, fields, isJsonObject, isStringArray, type JsonObject } from "../documents.js";
 import type { Findings } from "../messages.js";
-import { VARIABLE_NAME_PATTERN } from "../placeholders.js";
+import { PLATFORM_VARIABLES, VARIABLE_NAME_PATTERN } from "../placeholders.js";
 import type { PluginVariable } from "../types.js";
 import type { McpServersResult } from "./mcp-servers.js";
 
@@ -70,12 +73,23 @@ export function normaliseVariables(
 
   const inferred: PluginVariable[] = [];
   for (const [name, server] of [...referencedBy].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
-    if (declared.has(name)) continue;
+    if (declared.has(name) || PLATFORM_VARIABLES.has(name)) continue;
     findings.warn("variable-inferred", { subject: name, detail: server });
     inferred.push({ name, isSecret: true, optional: false, declaredBy: "inferred" });
   }
 
-  return [...declared.values(), ...inferred];
+  const platform: PluginVariable[] = [...PLATFORM_VARIABLES]
+    .filter((name) => referencedBy.has(name) || hookReferences.has(name) || declared.has(name))
+    .map((name) => ({
+      name,
+      description: declared.get(name)?.description ?? "Filled by Stigmer when the server is called",
+      isSecret: false,
+      optional: true,
+      declaredBy: "platform",
+    }));
+  for (const variable of platform) declared.delete(variable.name);
+
+  return [...declared.values(), ...inferred, ...platform];
 }
 
 /**

@@ -95,7 +95,7 @@ function Providers({
   );
 }
 
-function makeAgent(overrides?: { mcpUsages?: boolean }) {
+function makeAgent(overrides?: { plugins?: boolean }) {
   return {
     metadata: {
       id: "agt_1",
@@ -104,8 +104,8 @@ function makeAgent(overrides?: { mcpUsages?: boolean }) {
       name: "Support Agent",
     },
     spec: {
-      mcpServerUsages: overrides?.mcpUsages
-        ? [{ mcpServerRef: { org: "acme", slug: "github" } }]
+      plugins: overrides?.plugins
+        ? [{ org: "acme", slug: "github" }]
         : [],
     },
   } as never;
@@ -643,7 +643,7 @@ describe("ShareAgentDialog", () => {
   describe("Tool credentials", () => {
     it("names the vaults that cannot serve the share's runs", async () => {
       renderOpenDialog(createMockStigmer(), {
-        agent: makeAgent({ mcpUsages: true }),
+        agent: makeAgent({ plugins: true }),
         share: makeShare({
           enabled: true,
           vaults: [
@@ -658,7 +658,7 @@ describe("ShareAgentDialog", () => {
 
     it("warns needs-credentials for a tool-using share naming no vault", () => {
       renderOpenDialog(createMockStigmer(), {
-        agent: makeAgent({ mcpUsages: true }),
+        agent: makeAgent({ plugins: true }),
         share: makeShare({ enabled: true }),
       });
 
@@ -675,7 +675,7 @@ describe("ShareAgentDialog", () => {
           vaults: [sharedVault("github-creds", "GitHub Creds")],
         }),
         {
-          agent: makeAgent({ mcpUsages: true }),
+          agent: makeAgent({ plugins: true }),
           share: makeShare({ enabled: true }),
         },
       );
@@ -706,7 +706,7 @@ describe("ShareAgentDialog", () => {
           vaults: [sharedVault("github-creds", "GitHub Creds"), myVault],
         }),
         {
-          agent: makeAgent({ mcpUsages: true }),
+          agent: makeAgent({ plugins: true }),
           share: makeShare({ enabled: true }),
         },
       );
@@ -720,7 +720,7 @@ describe("ShareAgentDialog", () => {
 
     it("hides the section entirely for org-audience shares", () => {
       renderOpenDialog(createMockStigmer(), {
-        agent: makeAgent({ mcpUsages: true }),
+        agent: makeAgent({ plugins: true }),
         share: makeShare({ enabled: true, audience: AgentShareAudience.org }),
       });
 

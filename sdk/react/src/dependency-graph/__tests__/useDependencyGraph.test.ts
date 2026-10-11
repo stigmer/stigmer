@@ -1,6 +1,6 @@
 /**
  * useDependencyGraph derives an agent's dependency tree from its spec: one
- * node per MCP server, skill and sub-agent, each with a navigation ref, and a
+ * node per plugin, skill and sub-agent, each with a navigation ref, and a
  * qualified label (the org's slug, then the resource's) for a reference into
  * another organization.
  */
@@ -10,7 +10,7 @@ import { useDependencyGraph } from "../useDependencyGraph";
 import { ACME_ID, GLOBEX_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
 const emptySpec = {
-  mcpServerUsages: [],
+  plugins: [],
   skillRefs: [],
   subAgents: [],
 };
@@ -61,13 +61,9 @@ describe("useDependencyGraph", () => {
     expect(relative.ref).toEqual({ org: "acme", slug: "local-guide" });
   });
 
-  it("orders children to mirror the Overview sections: MCP, skills, sub-agents", () => {
+  it("orders children to mirror the Overview sections: plugins, skills, sub-agents", () => {
     const { tree } = graphFor({
-      mcpServerUsages: [
-        {
-          mcpServerRef: { org: "acme", slug: "github" },
-        },
-      ],
+      plugins: [{ org: "acme", slug: "github" }],
       skillRefs: [{ org: "acme", slug: "triage-guide" }],
       subAgents: [
         {
@@ -80,7 +76,7 @@ describe("useDependencyGraph", () => {
     });
 
     expect(tree!.root.children.map((c) => c.kind)).toEqual([
-      "mcp-server",
+      "plugin",
       "skill",
       "sub-agent",
     ]);
@@ -101,11 +97,7 @@ describe("useDependencyGraph", () => {
           agentName: "clinic-assistant",
           agentOrg: ACME_ID,
           spec: {
-            mcpServerUsages: [
-              {
-                mcpServerRef: { org: GLOBEX_ID, slug: "github" },
-              },
-            ],
+            plugins: [{ org: GLOBEX_ID, slug: "github" }],
             skillRefs: [
               { org: GLOBEX_ID, slug: "shared-guide" },
               { org: ACME_ID, slug: "own-guide" },
@@ -126,8 +118,8 @@ describe("useDependencyGraph", () => {
     await waitFor(() =>
       expect(result.current.tree!.root.children[0].qualifiedLabel).toBe("globex/github"),
     );
-    const [mcp, crossSkill, ownSkill, subAgent] = result.current.tree!.root.children;
-    expect(mcp.ref).toEqual({ org: GLOBEX_ID, slug: "github" });
+    const [plugin, crossSkill, ownSkill, subAgent] = result.current.tree!.root.children;
+    expect(plugin.ref).toEqual({ org: GLOBEX_ID, slug: "github" });
     expect(crossSkill.qualifiedLabel).toBe("globex/shared-guide");
     expect(crossSkill.ref).toEqual({ org: GLOBEX_ID, slug: "shared-guide" });
     expect(ownSkill.qualifiedLabel).toBeUndefined();
@@ -136,9 +128,9 @@ describe("useDependencyGraph", () => {
     expect(subSkill.ref).toEqual({ org: GLOBEX_ID, slug: "research-guide" });
   });
 
-  it("draws no sub-agent MCP edges: a sub-agent's children are its skills", () => {
+  it("draws no sub-agent plugin edges: a sub-agent's children are its skills", () => {
     const { tree } = graphFor({
-      mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }],
+      plugins: [{ org: "acme", slug: "github" }],
       skillRefs: [],
       subAgents: [
         {

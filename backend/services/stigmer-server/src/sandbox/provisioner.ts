@@ -16,7 +16,7 @@
  *   - CONNECT: request-scoped, NOT idempotent; the caller must
  *     deprovision when the connect settles. Every MCP connect provisions
  *     one when a provisioner is composed, and its workflow runs on the
- *     queue that sandbox serves (domain/mcpserver/connect-sandbox.ts,
+ *     queue that sandbox serves (domain/plugin/tools/sandbox.ts,
  *     stigmer/stigmer#1474): with a provisioner the shared runner queue
  *     has no poller, since boot requires a per-queue routing mode beside
  *     one. Without a provisioner, connect keeps the shared queue.
@@ -85,6 +85,14 @@ export type SandboxScope = "session" | "connect";
  */
 export interface SandboxProvisioner {
   /**
+   * Where the runner in every sandbox this provisioner starts believes it
+   * runs, the runner's MODE: `cloud` refuses a plugin's local program (the
+   * runner's transport guard), so run create refuses a conversation that
+   * needs one up front (domain/run/local-programs.ts). Absent means
+   * `local`, open source's.
+   */
+  readonly runnerMode?: "local" | "cloud";
+  /**
    * Ensure-as-state-machine for a session sandbox: absent → provision;
    * stopped → start; running → fast path. Idempotent; safe to invoke on
    * every execution create/recover for the session.
@@ -98,7 +106,7 @@ export interface SandboxProvisioner {
   /**
    * Creates a request-scoped connect sandbox and returns the provider's
    * sandbox id. NOT idempotent — the caller owns deprovision when the
-   * connect settles (domain/mcpserver/connect-sandbox.ts).
+   * connect settles (domain/plugin/tools/sandbox.ts).
    */
   createConnectSandbox(
     connectRequestId: string,

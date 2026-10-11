@@ -35,6 +35,7 @@ private static final long serialVersionUID = 0L;
   private ExecutionValues() {
     tools_ = java.util.Collections.emptyList();
     repositories_ = java.util.Collections.emptyList();
+    plugins_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -95,9 +96,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The agent's own keys, for its shell and hooks: secrets by name and plain
-   * defaults, never a connection or a repository's token, and never a key a
-   * tool of the run declares.
+   * The agent's own keys, for its shell and its own hooks: secrets by name
+   * and plain defaults, never a connection or a repository's token, and
+   * never a key a tool or a plugin of the run declares.
    * </pre>
    *
    * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -118,9 +119,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The agent's own keys, for its shell and hooks: secrets by name and plain
-   * defaults, never a connection or a repository's token, and never a key a
-   * tool of the run declares.
+   * The agent's own keys, for its shell and its own hooks: secrets by name
+   * and plain defaults, never a connection or a repository's token, and
+   * never a key a tool or a plugin of the run declares.
    * </pre>
    *
    * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -131,9 +132,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The agent's own keys, for its shell and hooks: secrets by name and plain
-   * defaults, never a connection or a repository's token, and never a key a
-   * tool of the run declares.
+   * The agent's own keys, for its shell and its own hooks: secrets by name
+   * and plain defaults, never a connection or a repository's token, and
+   * never a key a tool or a plugin of the run declares.
    * </pre>
    *
    * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -151,9 +152,9 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * The agent's own keys, for its shell and hooks: secrets by name and plain
-   * defaults, never a connection or a repository's token, and never a key a
-   * tool of the run declares.
+   * The agent's own keys, for its shell and its own hooks: secrets by name
+   * and plain defaults, never a connection or a repository's token, and
+   * never a key a tool or a plugin of the run declares.
    * </pre>
    *
    * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -292,6 +293,67 @@ java.lang.String defaultValue) {
     return repositories_.get(index);
   }
 
+  public static final int PLUGINS_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.vault.v1.PluginValues> plugins_;
+  /**
+   * <pre>
+   * Each plugin's keys, for that plugin's hooks only.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.vault.v1.PluginValues> getPluginsList() {
+    return plugins_;
+  }
+  /**
+   * <pre>
+   * Each plugin's keys, for that plugin's hooks only.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.vault.v1.PluginValuesOrBuilder> 
+      getPluginsOrBuilderList() {
+    return plugins_;
+  }
+  /**
+   * <pre>
+   * Each plugin's keys, for that plugin's hooks only.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+   */
+  @java.lang.Override
+  public int getPluginsCount() {
+    return plugins_.size();
+  }
+  /**
+   * <pre>
+   * Each plugin's keys, for that plugin's hooks only.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.vault.v1.PluginValues getPlugins(int index) {
+    return plugins_.get(index);
+  }
+  /**
+   * <pre>
+   * Each plugin's keys, for that plugin's hooks only.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.vault.v1.PluginValuesOrBuilder getPluginsOrBuilder(
+      int index) {
+    return plugins_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -317,6 +379,9 @@ java.lang.String defaultValue) {
     }
     for (int i = 0; i < repositories_.size(); i++) {
       output.writeMessage(3, repositories_.get(i));
+    }
+    for (int i = 0; i < plugins_.size(); i++) {
+      output.writeMessage(4, plugins_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -355,6 +420,15 @@ java.lang.String defaultValue) {
           }
           size += 1 * count;
         }
+
+        {
+          final int count = plugins_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(plugins_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -376,6 +450,8 @@ java.lang.String defaultValue) {
         .equals(other.getToolsList())) return false;
     if (!getRepositoriesList()
         .equals(other.getRepositoriesList())) return false;
+    if (!getPluginsList()
+        .equals(other.getPluginsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -398,6 +474,10 @@ java.lang.String defaultValue) {
     if (getRepositoriesCount() > 0) {
       hash = (37 * hash) + REPOSITORIES_FIELD_NUMBER;
       hash = (53 * hash) + getRepositoriesList().hashCode();
+    }
+    if (getPluginsCount() > 0) {
+      hash = (37 * hash) + PLUGINS_FIELD_NUMBER;
+      hash = (53 * hash) + getPluginsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -572,6 +652,13 @@ java.lang.String defaultValue) {
         repositoriesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000004);
+      if (pluginsBuilder_ == null) {
+        plugins_ = java.util.Collections.emptyList();
+      } else {
+        plugins_ = null;
+        pluginsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000008);
       return this;
     }
 
@@ -622,6 +709,15 @@ java.lang.String defaultValue) {
         result.repositories_ = repositories_;
       } else {
         result.repositories_ = repositoriesBuilder_.build();
+      }
+      if (pluginsBuilder_ == null) {
+        if (((bitField0_ & 0x00000008) != 0)) {
+          plugins_ = java.util.Collections.unmodifiableList(plugins_);
+          bitField0_ = (bitField0_ & ~0x00000008);
+        }
+        result.plugins_ = plugins_;
+      } else {
+        result.plugins_ = pluginsBuilder_.build();
       }
     }
 
@@ -700,6 +796,32 @@ java.lang.String defaultValue) {
           }
         }
       }
+      if (pluginsBuilder_ == null) {
+        if (!other.plugins_.isEmpty()) {
+          if (plugins_.isEmpty()) {
+            plugins_ = other.plugins_;
+            bitField0_ = (bitField0_ & ~0x00000008);
+          } else {
+            ensurePluginsIsMutable();
+            plugins_.addAll(other.plugins_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.plugins_.isEmpty()) {
+          if (pluginsBuilder_.isEmpty()) {
+            pluginsBuilder_.dispose();
+            pluginsBuilder_ = null;
+            plugins_ = other.plugins_;
+            bitField0_ = (bitField0_ & ~0x00000008);
+            pluginsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetPluginsFieldBuilder() : null;
+          } else {
+            pluginsBuilder_.addAllMessages(other.plugins_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -761,6 +883,19 @@ java.lang.String defaultValue) {
               }
               break;
             } // case 26
+            case 34: {
+              ai.stigmer.agentic.vault.v1.PluginValues m =
+                  input.readMessage(
+                      ai.stigmer.agentic.vault.v1.PluginValues.parser(),
+                      extensionRegistry);
+              if (pluginsBuilder_ == null) {
+                ensurePluginsIsMutable();
+                plugins_.add(m);
+              } else {
+                pluginsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -806,9 +941,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The agent's own keys, for its shell and hooks: secrets by name and plain
-     * defaults, never a connection or a repository's token, and never a key a
-     * tool of the run declares.
+     * The agent's own keys, for its shell and its own hooks: secrets by name
+     * and plain defaults, never a connection or a repository's token, and
+     * never a key a tool or a plugin of the run declares.
      * </pre>
      *
      * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -829,9 +964,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The agent's own keys, for its shell and hooks: secrets by name and plain
-     * defaults, never a connection or a repository's token, and never a key a
-     * tool of the run declares.
+     * The agent's own keys, for its shell and its own hooks: secrets by name
+     * and plain defaults, never a connection or a repository's token, and
+     * never a key a tool or a plugin of the run declares.
      * </pre>
      *
      * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -842,9 +977,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The agent's own keys, for its shell and hooks: secrets by name and plain
-     * defaults, never a connection or a repository's token, and never a key a
-     * tool of the run declares.
+     * The agent's own keys, for its shell and its own hooks: secrets by name
+     * and plain defaults, never a connection or a repository's token, and
+     * never a key a tool or a plugin of the run declares.
      * </pre>
      *
      * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -862,9 +997,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The agent's own keys, for its shell and hooks: secrets by name and plain
-     * defaults, never a connection or a repository's token, and never a key a
-     * tool of the run declares.
+     * The agent's own keys, for its shell and its own hooks: secrets by name
+     * and plain defaults, never a connection or a repository's token, and
+     * never a key a tool or a plugin of the run declares.
      * </pre>
      *
      * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -888,9 +1023,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The agent's own keys, for its shell and hooks: secrets by name and plain
-     * defaults, never a connection or a repository's token, and never a key a
-     * tool of the run declares.
+     * The agent's own keys, for its shell and its own hooks: secrets by name
+     * and plain defaults, never a connection or a repository's token, and
+     * never a key a tool or a plugin of the run declares.
      * </pre>
      *
      * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -913,9 +1048,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The agent's own keys, for its shell and hooks: secrets by name and plain
-     * defaults, never a connection or a repository's token, and never a key a
-     * tool of the run declares.
+     * The agent's own keys, for its shell and its own hooks: secrets by name
+     * and plain defaults, never a connection or a repository's token, and
+     * never a key a tool or a plugin of the run declares.
      * </pre>
      *
      * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -932,9 +1067,9 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * The agent's own keys, for its shell and hooks: secrets by name and plain
-     * defaults, never a connection or a repository's token, and never a key a
-     * tool of the run declares.
+     * The agent's own keys, for its shell and its own hooks: secrets by name
+     * and plain defaults, never a connection or a repository's token, and
+     * never a key a tool or a plugin of the run declares.
      * </pre>
      *
      * <code>map&lt;string, string&gt; agent = 1 [json_name = "agent"];</code>
@@ -1569,6 +1704,318 @@ java.lang.String defaultValue) {
         repositories_ = null;
       }
       return repositoriesBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.vault.v1.PluginValues> plugins_ =
+      java.util.Collections.emptyList();
+    private void ensurePluginsIsMutable() {
+      if (!((bitField0_ & 0x00000008) != 0)) {
+        plugins_ = new java.util.ArrayList<ai.stigmer.agentic.vault.v1.PluginValues>(plugins_);
+        bitField0_ |= 0x00000008;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.vault.v1.PluginValues, ai.stigmer.agentic.vault.v1.PluginValues.Builder, ai.stigmer.agentic.vault.v1.PluginValuesOrBuilder> pluginsBuilder_;
+
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.vault.v1.PluginValues> getPluginsList() {
+      if (pluginsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(plugins_);
+      } else {
+        return pluginsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public int getPluginsCount() {
+      if (pluginsBuilder_ == null) {
+        return plugins_.size();
+      } else {
+        return pluginsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public ai.stigmer.agentic.vault.v1.PluginValues getPlugins(int index) {
+      if (pluginsBuilder_ == null) {
+        return plugins_.get(index);
+      } else {
+        return pluginsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public Builder setPlugins(
+        int index, ai.stigmer.agentic.vault.v1.PluginValues value) {
+      if (pluginsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensurePluginsIsMutable();
+        plugins_.set(index, value);
+        onChanged();
+      } else {
+        pluginsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public Builder setPlugins(
+        int index, ai.stigmer.agentic.vault.v1.PluginValues.Builder builderForValue) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        plugins_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        pluginsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public Builder addPlugins(ai.stigmer.agentic.vault.v1.PluginValues value) {
+      if (pluginsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensurePluginsIsMutable();
+        plugins_.add(value);
+        onChanged();
+      } else {
+        pluginsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public Builder addPlugins(
+        int index, ai.stigmer.agentic.vault.v1.PluginValues value) {
+      if (pluginsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensurePluginsIsMutable();
+        plugins_.add(index, value);
+        onChanged();
+      } else {
+        pluginsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public Builder addPlugins(
+        ai.stigmer.agentic.vault.v1.PluginValues.Builder builderForValue) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        plugins_.add(builderForValue.build());
+        onChanged();
+      } else {
+        pluginsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public Builder addPlugins(
+        int index, ai.stigmer.agentic.vault.v1.PluginValues.Builder builderForValue) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        plugins_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        pluginsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public Builder addAllPlugins(
+        java.lang.Iterable<? extends ai.stigmer.agentic.vault.v1.PluginValues> values) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, plugins_);
+        onChanged();
+      } else {
+        pluginsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public Builder clearPlugins() {
+      if (pluginsBuilder_ == null) {
+        plugins_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000008);
+        onChanged();
+      } else {
+        pluginsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public Builder removePlugins(int index) {
+      if (pluginsBuilder_ == null) {
+        ensurePluginsIsMutable();
+        plugins_.remove(index);
+        onChanged();
+      } else {
+        pluginsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public ai.stigmer.agentic.vault.v1.PluginValues.Builder getPluginsBuilder(
+        int index) {
+      return internalGetPluginsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public ai.stigmer.agentic.vault.v1.PluginValuesOrBuilder getPluginsOrBuilder(
+        int index) {
+      if (pluginsBuilder_ == null) {
+        return plugins_.get(index);  } else {
+        return pluginsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.vault.v1.PluginValuesOrBuilder> 
+         getPluginsOrBuilderList() {
+      if (pluginsBuilder_ != null) {
+        return pluginsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(plugins_);
+      }
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public ai.stigmer.agentic.vault.v1.PluginValues.Builder addPluginsBuilder() {
+      return internalGetPluginsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.vault.v1.PluginValues.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public ai.stigmer.agentic.vault.v1.PluginValues.Builder addPluginsBuilder(
+        int index) {
+      return internalGetPluginsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.vault.v1.PluginValues.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Each plugin's keys, for that plugin's hooks only.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.vault.v1.PluginValues plugins = 4 [json_name = "plugins"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.vault.v1.PluginValues.Builder> 
+         getPluginsBuilderList() {
+      return internalGetPluginsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.vault.v1.PluginValues, ai.stigmer.agentic.vault.v1.PluginValues.Builder, ai.stigmer.agentic.vault.v1.PluginValuesOrBuilder> 
+        internalGetPluginsFieldBuilder() {
+      if (pluginsBuilder_ == null) {
+        pluginsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.vault.v1.PluginValues, ai.stigmer.agentic.vault.v1.PluginValues.Builder, ai.stigmer.agentic.vault.v1.PluginValuesOrBuilder>(
+                plugins_,
+                ((bitField0_ & 0x00000008) != 0),
+                getParentForChildren(),
+                isClean());
+        plugins_ = null;
+      }
+      return pluginsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.vault.v1.ExecutionValues)

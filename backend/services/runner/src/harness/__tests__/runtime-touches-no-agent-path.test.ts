@@ -79,7 +79,7 @@ function rawAccessInRuntime(): Map<string, string[]> {
 
 describe("the turn runtime and the agent's paths", () => {
   it("walks every activity the runner runs itself", () => {
-    expect(runnerSideActivities()).toEqual(expect.arrayContaining(["activities/attach-session.ts", "activities/discover-mcp-server.ts", "activities/ensure-thread.ts", "activities/generate-session-subject.ts"]));
+    expect(runnerSideActivities()).toEqual(expect.arrayContaining(["activities/attach-session.ts", "activities/list-plugin-tools.ts", "activities/ensure-thread.ts", "activities/generate-session-subject.ts"]));
   });
 
   it("opens files and starts processes only through the agent's operations, but for the runner's own state", () => {

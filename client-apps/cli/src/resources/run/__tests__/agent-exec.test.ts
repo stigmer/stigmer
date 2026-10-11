@@ -52,6 +52,7 @@ function makePrepared(overrides: Partial<PreparedRun> = {}): PreparedRun {
     workspaceEntries: [],
     vaults: [],
     includeMyVault: true,
+    plugins: [],
     attachments: [],
     workspaceFileRefs: [],
     message: "hi",

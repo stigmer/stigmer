@@ -42,32 +42,28 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "mer/commons/apiresource/io.proto\0328ai/sti" +
       "gmer/commons/apiresource/rpc_service_opt" +
       "ions.proto\032+ai/stigmer/commons/rpc/metho" +
-      "d_options.proto2\311\006\n\025PluginQueryControlle" +
+      "d_options.proto2\242\005\n\025PluginQueryControlle" +
       "r\022\200\001\n\003get\022&.ai.stigmer.agentic.plugin.v1" +
       ".PluginId\032$.ai.stigmer.agentic.plugin.v1" +
       ".Plugin\"+\302\270\030\'\010\001\020:\"\005value*\032unauthorized t" +
       "o get plugin\022r\n\016getByReference\0224.ai.stig" +
       "mer.commons.apiresource.ApiResourceRefer" +
       "ence\032$.ai.stigmer.agentic.plugin.v1.Plug" +
-      "in\"\004\320\270\030\001\022\244\001\n\013listMembers\022&.ai.stigmer.ag" +
-      "entic.plugin.v1.PluginId\0327.ai.stigmer.ag" +
-      "entic.plugin.v1.ListPluginMembersRespons" +
-      "e\"4\302\270\0300\010\001\020:\"\005value*#unauthorized to list" +
-      " plugin members\022x\n\013getArtifact\0220.ai.stig" +
-      "mer.agentic.plugin.v1.GetArtifactRequest" +
-      "\0321.ai.stigmer.agentic.plugin.v1.GetArtif" +
-      "actResponse\"\004\320\270\030\001\022\211\001\n\026getArtifactDownloa" +
-      "dUrl\0220.ai.stigmer.agentic.plugin.v1.GetA" +
-      "rtifactRequest\0327.ai.stigmer.agentic.plug" +
-      "in.v1.PluginArtifactDownloadUrl\"\004\320\270\030\001\022\205\001" +
-      "\n\014listVersions\0225.ai.stigmer.agentic.plug" +
-      "in.v1.ListPluginVersionsInput\0328.ai.stigm" +
-      "er.agentic.plugin.v1.ListPluginVersionsR" +
-      "esponse\"\004\320\270\030\001\032\004\240\377+:B\241\001B\nQueryProtoP\001\242\002\004A" +
-      "SAP\252\002\034Ai.Stigmer.Agentic.Plugin.V1\312\002\034Ai\\" +
-      "Stigmer\\Agentic\\Plugin\\V1\342\002(Ai\\Stigmer\\A" +
-      "gentic\\Plugin\\V1\\GPBMetadata\352\002 Ai::Stigm" +
-      "er::Agentic::Plugin::V1b\006proto3"
+      "in\"\004\320\270\030\001\022x\n\013getArtifact\0220.ai.stigmer.age" +
+      "ntic.plugin.v1.GetArtifactRequest\0321.ai.s" +
+      "tigmer.agentic.plugin.v1.GetArtifactResp" +
+      "onse\"\004\320\270\030\001\022\211\001\n\026getArtifactDownloadUrl\0220." +
+      "ai.stigmer.agentic.plugin.v1.GetArtifact" +
+      "Request\0327.ai.stigmer.agentic.plugin.v1.P" +
+      "luginArtifactDownloadUrl\"\004\320\270\030\001\022\205\001\n\014listV" +
+      "ersions\0225.ai.stigmer.agentic.plugin.v1.L" +
+      "istPluginVersionsInput\0328.ai.stigmer.agen" +
+      "tic.plugin.v1.ListPluginVersionsResponse" +
+      "\"\004\320\270\030\001\032\004\240\377+:B\241\001B\nQueryProtoP\001\242\002\004ASAP\252\002\034A" +
+      "i.Stigmer.Agentic.Plugin.V1\312\002\034Ai\\Stigmer" +
+      "\\Agentic\\Plugin\\V1\342\002(Ai\\Stigmer\\Agentic\\" +
+      "Plugin\\V1\\GPBMetadata\352\002 Ai::Stigmer::Age" +
+      "ntic::Plugin::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

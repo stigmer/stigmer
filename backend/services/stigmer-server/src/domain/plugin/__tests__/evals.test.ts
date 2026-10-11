@@ -1,11 +1,14 @@
 /**
- * Pins the eval suite's summary on the install plan: read from the same
- * files the install reads, it rides the plan as `evals` (never a warning,
- * never a refusal), is absent when the plugin has no eval directory, and
- * maps field for field onto `PluginEvalSuite` with its tags sorted and
- * unique, each case's unsupported feature, and each finding as a
- * `PluginWarning`, at most 200 cases and 50 findings stored while the case
- * count counts every case (the library pins the path cut). `evals/` is no longer a `component-ignored` warning.
+ * Pins the eval suite's summary on the status plan (evals.ts, read by
+ * plan-status.ts planPluginStatus): read from the same files the install
+ * reads, it rides the plan as `evals` (never a warning, never a refusal,
+ * and the skills, agents and servers planned are the same with or without
+ * it), is absent when the plugin has no eval directory, and maps field for
+ * field onto `PluginEvalSuite` with its tags sorted and unique, each
+ * case's unsupported feature, and each finding as a `PluginWarning`, at
+ * most 200 cases and 50 findings stored while the case count counts every
+ * case (the library pins the path cut). `evals/` is not a
+ * `component-ignored` warning.
  */
 import { describe, expect, it } from "vitest";
 
@@ -15,35 +18,20 @@ import {
 } from "@stigmer/plugin-package";
 import { claudePlugin } from "@stigmer/plugin-package/testing";
 import type { PluginFixture } from "@stigmer/plugin-package/testing";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
-import { evalSuiteOf, planEvals } from "../materialize/evals.js";
-import type { PluginIdentity } from "../materialize/identity.js";
-import { planMaterialization } from "../materialize/plan.js";
-
-const IDENTITY: PluginIdentity = {
-  org: "acme",
-  id: "plg_1",
-  slug: "greeter",
-  name: "greeter",
-  digest: "d".repeat(64),
-  visibility: ApiResourceVisibility.visibility_org,
-};
+import { evalSuiteOf, planEvals } from "../evals.js";
+import { planPluginStatus } from "../plan-status.js";
+import type { PluginStatusPlan } from "../plan-status.js";
 
 const JUDGE = "---\ntype: llm\n---\nPASS if it greets.\n";
 
-function plan(fixture: PluginFixture) {
-  const outcome = readPluginPackage(inMemoryPluginFiles(fixture));
+function plan(fixture: PluginFixture): PluginStatusPlan {
+  const files = inMemoryPluginFiles(fixture);
+  const outcome = readPluginPackage(files);
   if (!outcome.ok) {
     throw new Error(outcome.errors.map((e) => e.message).join("\n"));
   }
-  return planMaterialization(
-    outcome.plugin,
-    inMemoryPluginFiles(fixture),
-    { mcpServers: [] },
-    IDENTITY,
-    "",
-  );
+  return planPluginStatus(outcome.plugin, files);
 }
 
 const greeter = (
@@ -73,7 +61,10 @@ describe("the eval suite on the install plan", () => {
     expect(planned.warnings.map((w) => w.kind)).not.toContain(
       "component-ignored",
     );
-    expect(planned.members).toEqual(plan(greeter({})).members);
+    const bare = plan(greeter({}));
+    expect(planned.skills).toEqual(bare.skills);
+    expect(planned.agents).toEqual(bare.agents);
+    expect(planned.mcpServers).toEqual(bare.mcpServers);
 
     const suite = evalSuiteOf(planned.evals!);
     expect(suite.dir).toBe("evals");

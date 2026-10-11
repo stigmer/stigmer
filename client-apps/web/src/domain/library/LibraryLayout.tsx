@@ -10,7 +10,6 @@ import { LibraryBreadcrumb } from "@/domain/library/LibraryBreadcrumb";
 import { LibraryBreadcrumbProvider } from "@stigmer/react";
 import { AgentDetailPageInner } from "@/domain/library/agents/AgentDetailPage";
 import { SkillDetailPageInner } from "@/domain/library/skills/SkillDetailPage";
-import { McpServerDetailPageInner } from "@/domain/library/mcp-servers/McpServerDetailPage";
 import { ScheduleDetailPageInner } from "@/domain/library/schedules/ScheduleDetailPage";
 import { PluginDetailPageInner } from "@/domain/library/plugins/PluginDetailPage";
 
@@ -73,8 +72,6 @@ function LibraryDetailContent({ detail }: { detail: ActiveDetail }) {
       return <AgentDetailPageInner org={detail.org} slug={detail.slug} />;
     case "skills":
       return <SkillDetailPageInner org={detail.org} slug={detail.slug} />;
-    case "mcp-servers":
-      return <McpServerDetailPageInner org={detail.org} slug={detail.slug} />;
     case "schedules":
       return <ScheduleDetailPageInner org={detail.org} slug={detail.slug} />;
     case "plugins":

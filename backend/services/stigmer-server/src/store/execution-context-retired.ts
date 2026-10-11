@@ -25,7 +25,7 @@
  * flight: the binding of the runner credential the connect mints (who
  * started it, in which organization, for which tool, and, for the runner's
  * backfill, which run's planned values it uses), deleted when the connect
- * settles and swept once expired (domain/mcpserver/connect-attempt.ts).
+ * settles and swept once expired (domain/plugin/tools/attempt.ts).
  */
 
 /** The `kind` column value of the rows the step deletes. */

@@ -13,11 +13,7 @@ import { createRouterTransport } from "@connectrpc/connect";
 import { Stigmer } from "@stigmer/sdk";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { ListPluginMembersResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import {
-  PluginState,
-  PluginStatusSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
+import { PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { PluginEvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/query_pb";
 import { PluginEvalListSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
@@ -48,7 +44,6 @@ function renderView(onNavigateToRun: (runId: string) => void) {
             name: "thermos",
           }),
           status: create(PluginStatusSchema, {
-            state: PluginState.READY,
             evals: {
               dir: "evals",
               caseCount: 1,
@@ -56,8 +51,6 @@ function renderView(onNavigateToRun: (runId: string) => void) {
             },
           }),
         }),
-      listMembers: () =>
-        create(ListPluginMembersResponseSchema, { members: [] }),
     });
     service(PluginEvalQueryController, {
       listByPlugin,

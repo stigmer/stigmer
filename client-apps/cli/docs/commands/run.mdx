@@ -58,6 +58,23 @@ stigmer run my-agent --vault support-tools
 stigmer run my-agent --vault acme/ci-keys --no-my-vault
 ```
 
+### Plugins this conversation uses
+
+`--plugin REF` adds a plugin to the conversation, by id, `org/slug` or slug;
+repeat it for more. The conversation gets the plugin's skills, agents, MCP
+servers' tools and hooks, beside the agent's own; with no agent, the built-in
+assistant runs with them. Like the vaults, the conversation keeps the plugins
+it was started with.
+
+```bash
+# The assistant with one MCP server's tools
+stigmer mcp add linear https://mcp.linear.app/mcp
+stigmer run --plugin linear -m "What's on my plate this week?"
+
+# An agent with two more plugins
+stigmer run my-agent --plugin linear --plugin platform/github
+```
+
 ### Workspaces
 
 Give your agent access to code repositories or local directories. Multiple

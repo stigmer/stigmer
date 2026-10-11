@@ -89,19 +89,6 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | EvaluatorCommandController.create | metadata.org |
 | EvaluatorCommandController.update | metadata.org |
 
-## `ai.stigmer.agentic.mcpserver.v1`
-
-| Method | Fills |
-|---|---|
-| McpServerCommandController.apply | metadata.org |
-| McpServerCommandController.connect | org |
-| McpServerCommandController.create | metadata.org |
-| McpServerCommandController.disconnectOAuth | org |
-| McpServerCommandController.startConnect | org |
-| McpServerCommandController.update | metadata.org |
-| McpServerQueryController.getByReference | org |
-| McpServerQueryController.getOAuthGrantStatus | org |
-
 ## `ai.stigmer.agentic.memory.v1`
 
 | Method | Fills |
@@ -115,6 +102,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | Method | Fills |
 |---|---|
 | PluginCommandController.createArtifactUploadUrl | org |
+| PluginCommandController.listTools | org |
 | PluginCommandController.push | org |
 | PluginQueryController.getByReference | org |
 | PluginQueryController.listVersions | org |

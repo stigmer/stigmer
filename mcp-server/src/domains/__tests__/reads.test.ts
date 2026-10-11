@@ -1,4 +1,4 @@
-// In-process test for the read tools (get_mcp_server, get_skill). Stands
+// In-process test for the read tools (get_agent, get_skill). Stands
 // up a real Connect
 // backend serving the query controllers, drives the MCP server through an
 // in-memory client, and asserts each tool returns the backend's protojson
@@ -17,8 +17,6 @@ import type { AddressInfo } from "node:net";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -27,12 +25,6 @@ import { configureLogger } from "../../logger";
 import { createServer } from "../../server";
 
 configureLogger({ level: "error", format: "text" });
-
-const knownMcpServer = create(McpServerSchema, {
-  apiVersion: "v1",
-  kind: "mcp_server",
-  metadata: { name: "GitHub", slug: "github", org: "acme", id: "mcp-1" },
-});
 
 const knownSkill = create(SkillSchema, {
   apiVersion: "v1",
@@ -59,7 +51,6 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
 
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
-    router.service(McpServerQueryController, { getByReference: () => knownMcpServer });
     router.service(SkillQueryController, {
       getByReference: (req) => {
         lastSkillVersion = req.version;
@@ -95,17 +86,8 @@ describe("read tools integration", () => {
     expect(tools.map((t) => t.name)).toEqual(
       expect.arrayContaining([
         "get_agent",
-        "get_mcp_server",
         "get_skill",
       ]),
-    );
-  });
-
-  it("get_mcp_server returns the backend protojson", async () => {
-    const result = await callTool("get_mcp_server", { org: "acme", slug: "github" });
-    expect(result.isError).toBeFalsy();
-    expect(JSON.parse(result.content[0]?.text ?? "{}")).toEqual(
-      toJson(McpServerSchema, knownMcpServer, { useProtoFieldName: true }),
     );
   });
 

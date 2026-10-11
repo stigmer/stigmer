@@ -11,7 +11,7 @@
 // is refused, so a wrong argument can never empty an unrelated tree; the
 // session bootstrap mounts that one workspace; provisioning (against stubbed
 // clients) starts sessions on the agent it created by reference, that agent
-// carries the MCP server and every pushed skill, and every resource it
+// lists the plugin carrying the MCP server and every pushed skill, and every resource it
 // created is deleted at cleanup.
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -76,7 +76,7 @@ describe("seedWorkingWorkspace", () => {
 describe("workingAgentSessionSpec", () => {
   it("bootstraps the session on the harness asked for, with the one workspace mounted by host path", () => {
     const spec = workingAgentSessionSpec(
-      { org: "org", agentRef: { org: "org", slug: "orders-agent" }, workspace: { name: WORKING_AGENT_WORKSPACE_NAME, path: "/tmp/x/orders-sync" }, mcpServerSlug: "orders-api", skillSlugs: [] },
+      { org: "org", agentRef: { org: "org", slug: "orders-agent" }, workspace: { name: WORKING_AGENT_WORKSPACE_NAME, path: "/tmp/x/orders-sync" }, pluginSlug: "orders-api", skillSlugs: [] },
       Harness.CURSOR,
       "harness benchmark",
     );
@@ -111,9 +111,9 @@ function recordingClients(): {
       confirm: async () => ({}),
       delete: async ({ value }: { value: string }) => void deleted.push(value),
     },
-    mcpServerCommand: {
-      create: async () => ({ metadata: { id: "mcp_unit", slug: "orders-api" } }),
-      delete: async ({ resourceId }: { resourceId: string }) => void deleted.push(resourceId),
+    pluginCommand: {
+      push: async () => ({ metadata: { id: "plg_unit", slug: "orders-api" } }),
+      delete: async ({ value }: { value: string }) => void deleted.push(value),
     },
     skillCommand: {
       push: async () => {
@@ -144,19 +144,19 @@ describe("provisionWorkingAgent", () => {
     expect(agent.org).toBe("retrorg-unit");
     expect(agent.agentRef).toEqual({ org: "retrorg-unit", slug: "orders-agent" });
     expect(agent.workspace).toEqual({ name: WORKING_AGENT_WORKSPACE_NAME, path: workspaceDir });
-    expect(agent.mcpServerSlug).toBe("orders-api");
+    expect(agent.pluginSlug).toBe("orders-api");
     const skillSlugs = (await workingAgentSkillNames()).map((_, i) => `skill-${i + 1}`);
     expect(agent.skillSlugs).toEqual(skillSlugs);
 
     expect(agentRequests).toHaveLength(1);
     const spec = agentRequests[0]!.spec;
-    expect(spec?.mcpServerUsages?.map((usage) => usage.mcpServerRef?.slug)).toEqual(["orders-api"]);
+    expect(spec?.plugins?.map((ref) => ref.slug)).toEqual(["orders-api"]);
     expect(spec?.skillRefs?.map((ref) => ref.slug)).toEqual(skillSlugs);
 
     await fixtures.cleanup();
     const memoryIds = WORKING_AGENT_FACTS.map((_, i) => `mem_${i + 1}`);
     expect([...deleted].sort()).toEqual(
-      ["agt_unit", "mcp_unit", "org_unit", ...memoryIds, ...skillSlugs.map((_, i) => `skl_${i + 1}`)].sort(),
+      ["agt_unit", "plg_unit", "org_unit", ...memoryIds, ...skillSlugs.map((_, i) => `skl_${i + 1}`)].sort(),
     );
   });
 });

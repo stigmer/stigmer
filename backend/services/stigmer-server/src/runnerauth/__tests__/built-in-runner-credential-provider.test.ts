@@ -9,7 +9,7 @@
  *
  *   - `runnerBindingOf(caller)`: what the caller's credential is bound to
  *     — an agent execution (the kind read off the bound id's prefix), an
- *     MCP connect (its own predicate), or nothing (a person; a token that
+ *     plugin's tools listing (the `mcp-connect` binding, its own predicate), or nothing (a person; a token that
  *     is not ours; a forged one). One HMAC, no store read. A connect
  *     binding is answered BY NAME by every capability: it captures
  *     nothing, and the exchange mints nothing for it.
@@ -53,7 +53,7 @@ import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityac
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 
 import type { AccountsByCaller } from "../../domain/identityaccount/resolve.js";
-import { newConnectExecutionId } from "../../domain/mcpserver/connect-execution-id.js";
+import { newConnectExecutionId } from "../../domain/plugin/tools/execution-id.js";
 import { BOUND_ELSEWHERE_DENY_REASON } from "../../authorization/credential-binding.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -117,14 +117,14 @@ const ROWS: Record<string, unknown> = {
 };
 
 /** Carol's connect: the attempt the connect lane recorded for her, keyed by the connect's execution id. */
-const CONNECT_ID = newConnectExecutionId("mcps_carols_server");
+const CONNECT_ID = newConnectExecutionId("plg_carols");
 const CONNECT_ATTEMPT: ConnectAttemptRecord = {
   id: CONNECT_ID,
   org: "acme",
   createdBy: HUMAN,
   person: HUMAN,
-  mcpServerId: "mcps_carols_server",
-  runId: "",
+  pluginId: "plg_carols",
+  server: "tickets",
   createdAt: 0,
   // Far in the future: the arms here pin identity, not expiry.
   expiresAt: Number.MAX_SAFE_INTEGER,

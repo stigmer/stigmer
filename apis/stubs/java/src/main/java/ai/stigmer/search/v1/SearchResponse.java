@@ -201,7 +201,7 @@ private static final long serialVersionUID = 0L;
    * (not just the current page).
    *
    * Useful for rendering UI tabs or filter badges showing counts.
-   * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+   * Example: {"agent": 5, "skill": 12, "plugin": 3}
    * </pre>
    *
    * <code>map&lt;string, int32&gt; counts_by_kind = 2 [json_name = "countsByKind"];</code>
@@ -229,7 +229,7 @@ private static final long serialVersionUID = 0L;
    * (not just the current page).
    *
    * Useful for rendering UI tabs or filter badges showing counts.
-   * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+   * Example: {"agent": 5, "skill": 12, "plugin": 3}
    * </pre>
    *
    * <code>map&lt;string, int32&gt; counts_by_kind = 2 [json_name = "countsByKind"];</code>
@@ -247,7 +247,7 @@ private static final long serialVersionUID = 0L;
    * (not just the current page).
    *
    * Useful for rendering UI tabs or filter badges showing counts.
-   * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+   * Example: {"agent": 5, "skill": 12, "plugin": 3}
    * </pre>
    *
    * <code>map&lt;string, int32&gt; counts_by_kind = 2 [json_name = "countsByKind"];</code>
@@ -270,7 +270,7 @@ private static final long serialVersionUID = 0L;
    * (not just the current page).
    *
    * Useful for rendering UI tabs or filter badges showing counts.
-   * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+   * Example: {"agent": 5, "skill": 12, "plugin": 3}
    * </pre>
    *
    * <code>map&lt;string, int32&gt; counts_by_kind = 2 [json_name = "countsByKind"];</code>
@@ -1259,7 +1259,7 @@ private static final long serialVersionUID = 0L;
      * (not just the current page).
      *
      * Useful for rendering UI tabs or filter badges showing counts.
-     * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+     * Example: {"agent": 5, "skill": 12, "plugin": 3}
      * </pre>
      *
      * <code>map&lt;string, int32&gt; counts_by_kind = 2 [json_name = "countsByKind"];</code>
@@ -1287,7 +1287,7 @@ private static final long serialVersionUID = 0L;
      * (not just the current page).
      *
      * Useful for rendering UI tabs or filter badges showing counts.
-     * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+     * Example: {"agent": 5, "skill": 12, "plugin": 3}
      * </pre>
      *
      * <code>map&lt;string, int32&gt; counts_by_kind = 2 [json_name = "countsByKind"];</code>
@@ -1305,7 +1305,7 @@ private static final long serialVersionUID = 0L;
      * (not just the current page).
      *
      * Useful for rendering UI tabs or filter badges showing counts.
-     * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+     * Example: {"agent": 5, "skill": 12, "plugin": 3}
      * </pre>
      *
      * <code>map&lt;string, int32&gt; counts_by_kind = 2 [json_name = "countsByKind"];</code>
@@ -1328,7 +1328,7 @@ private static final long serialVersionUID = 0L;
      * (not just the current page).
      *
      * Useful for rendering UI tabs or filter badges showing counts.
-     * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+     * Example: {"agent": 5, "skill": 12, "plugin": 3}
      * </pre>
      *
      * <code>map&lt;string, int32&gt; counts_by_kind = 2 [json_name = "countsByKind"];</code>
@@ -1359,7 +1359,7 @@ private static final long serialVersionUID = 0L;
      * (not just the current page).
      *
      * Useful for rendering UI tabs or filter badges showing counts.
-     * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+     * Example: {"agent": 5, "skill": 12, "plugin": 3}
      * </pre>
      *
      * <code>map&lt;string, int32&gt; counts_by_kind = 2 [json_name = "countsByKind"];</code>
@@ -1389,7 +1389,7 @@ private static final long serialVersionUID = 0L;
      * (not just the current page).
      *
      * Useful for rendering UI tabs or filter badges showing counts.
-     * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+     * Example: {"agent": 5, "skill": 12, "plugin": 3}
      * </pre>
      *
      * <code>map&lt;string, int32&gt; counts_by_kind = 2 [json_name = "countsByKind"];</code>
@@ -1413,7 +1413,7 @@ private static final long serialVersionUID = 0L;
      * (not just the current page).
      *
      * Useful for rendering UI tabs or filter badges showing counts.
-     * Example: {"agent": 5, "skill": 12, "mcp_server": 3}
+     * Example: {"agent": 5, "skill": 12, "plugin": 3}
      * </pre>
      *
      * <code>map&lt;string, int32&gt; counts_by_kind = 2 [json_name = "countsByKind"];</code>

@@ -175,21 +175,22 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "_BLOCK_REASON_UNSPECIFIED\020\000\022,\n(FILE_REVI" +
       "EW_BLOCK_REASON_SECRET_WITHHELD\020\001\022(\n$FIL" +
       "E_REVIEW_BLOCK_REASON_SIZE_ELIDED\020\002\022)\n%F" +
-      "ILE_REVIEW_BLOCK_REASON_UNREVIEWABLE\020\003*\254" +
+      "ILE_REVIEW_BLOCK_REASON_UNREVIEWABLE\020\003*\320" +
       "\001\n\024RunValueDeclarerKind\022\'\n#RUN_VALUE_DEC" +
       "LARER_KIND_UNSPECIFIED\020\000\022!\n\035RUN_VALUE_DE" +
       "CLARER_KIND_AGENT\020\001\022 \n\034RUN_VALUE_DECLARE" +
       "R_KIND_TOOL\020\002\022&\n\"RUN_VALUE_DECLARER_KIND" +
-      "_REPOSITORY\020\003*\332\001\n\016RunValueOrigin\022 \n\034RUN_" +
-      "VALUE_ORIGIN_UNSPECIFIED\020\000\022%\n!RUN_VALUE_" +
-      "ORIGIN_REPOSITORY_TOKEN\020\001\022\035\n\031RUN_VALUE_O" +
-      "RIGIN_MY_VAULT\020\002\022\032\n\026RUN_VALUE_ORIGIN_VAU" +
-      "LT\020\003\022\"\n\036RUN_VALUE_ORIGIN_SURFACE_VAULT\020\004" +
-      "\022 \n\034RUN_VALUE_ORIGIN_DECLARATION\020\005B\224\001B\tE" +
-      "numProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.R" +
-      "un.V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\S" +
-      "tigmer\\Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::" +
-      "Stigmer::Agentic::Run::V1b\006proto3"
+      "_REPOSITORY\020\003\022\"\n\036RUN_VALUE_DECLARER_KIND" +
+      "_PLUGIN\020\004*\332\001\n\016RunValueOrigin\022 \n\034RUN_VALU" +
+      "E_ORIGIN_UNSPECIFIED\020\000\022%\n!RUN_VALUE_ORIG" +
+      "IN_REPOSITORY_TOKEN\020\001\022\035\n\031RUN_VALUE_ORIGI" +
+      "N_MY_VAULT\020\002\022\032\n\026RUN_VALUE_ORIGIN_VAULT\020\003" +
+      "\022\"\n\036RUN_VALUE_ORIGIN_SURFACE_VAULT\020\004\022 \n\034" +
+      "RUN_VALUE_ORIGIN_DECLARATION\020\005B\224\001B\tEnumP" +
+      "rotoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run.V" +
+      "1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Stigm" +
+      "er\\Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::Stig" +
+      "mer::Agentic::Run::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

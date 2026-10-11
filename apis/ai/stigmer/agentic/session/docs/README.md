@@ -55,7 +55,7 @@ All types in this package are defined in `ai/stigmer/agentic/session/v1/`:
 | File | Contents |
 |---|---|
 | `api.proto` | `Session` resource with metadata and `SessionStatus` (`agent_id`, `agent_version_hash`) |
-| `spec.proto` | `SessionSpec` — `agent_ref`, `subject`, `harness_state_id`, `metadata`, `workspace_entries`, `mcp_server_usages`, `skill_refs`, `harness`, `execution_target` |
+| `spec.proto` | `SessionSpec` — `agent_ref`, `subject`, `harness_state_id`, `metadata`, `workspace_entries`, `plugins`, `skill_refs`, `harness`, `execution_target` |
 | `workspace.proto` | `WorkspaceSource`, `GitRepoSource`, `LocalPathSource` |
 | `command.proto` | `SessionCommandController` — apply, create, update, delete |
 | `query.proto` | `SessionQueryController` — get, list, listByAgent |

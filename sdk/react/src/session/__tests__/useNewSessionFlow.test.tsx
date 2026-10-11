@@ -9,7 +9,13 @@
  * conversation uses the vaults chosen for it: the person's pick in the
  * composer when they made one, else the host's, else My vault for a
  * signed-in person (the Console and an embedded chat) and nothing for a
- * share-link guest, who carries no vault pick of the composer either.
+ * share-link guest, who carries no vault pick of the composer either. The
+ * plugins it uses ride the bootstrap as `sessionSpec.plugins`: a host's
+ * seed (a plugin page's "Start a chat") starts the list, taken once even
+ * when it arrives after mount and never over a pick; with
+ * `rememberPluginPicks` the person's last picks start it instead of an
+ * empty list and each pick is remembered, a seed never; a guest takes
+ * neither.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
@@ -1325,6 +1331,83 @@ describe("useNewSessionFlow", () => {
 
       expect(result.current.submitError).toBe(ownerCopy);
       expect(opts.onError).toHaveBeenCalledWith(ownerCopy);
+    });
+  });
+  describe("plugins", () => {
+    const PICKS_KEY = "stigmer:plugins:last-picks:v1:acme";
+    const LINEAR = { org: "acme", slug: "linear" };
+    const NOTION = { org: "acme", slug: "notion" };
+
+    it("sends a host's seed as the new conversation's plugins, with no agent", async () => {
+      const { result } = renderHook(() => useNewSessionFlow({ ...defaultOptions(), initialPluginRefs: [LINEAR] }), {
+        wrapper: createWrapper(),
+      });
+      expect(result.current.pluginRefs).toEqual([LINEAR]);
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.sessionSpec.plugins).toEqual([LINEAR]);
+      expect(execInput.sessionSpec.agentRef).toBeUndefined();
+    });
+
+    it("takes a seed that arrives after mount once, and never over the person's pick", () => {
+      const { result, rerender } = renderHook(
+        ({ seed }: { seed?: { org: string; slug: string }[] }) => useNewSessionFlow({ ...defaultOptions(), initialPluginRefs: seed }),
+        { wrapper: createWrapper(), initialProps: {} },
+      );
+      expect(result.current.pluginRefs).toEqual([]);
+      rerender({ seed: [LINEAR] });
+      expect(result.current.pluginRefs).toEqual([LINEAR]);
+
+      act(() => result.current.setPluginRefs([]));
+      rerender({ seed: [NOTION] });
+      expect(result.current.pluginRefs).toEqual([]);
+    });
+
+    it("starts with the remembered picks and remembers each new pick", () => {
+      localStorage.setItem(PICKS_KEY, JSON.stringify([LINEAR]));
+      const { result } = renderHook(() => useNewSessionFlow({ ...defaultOptions(), rememberPluginPicks: true }), {
+        wrapper: createWrapper(),
+      });
+      expect(result.current.pluginRefs.map((ref) => ref.slug)).toEqual(["linear"]);
+
+      act(() => result.current.setPluginRefs([LINEAR, NOTION]));
+      expect(JSON.parse(localStorage.getItem(PICKS_KEY) ?? "[]")).toEqual([LINEAR, NOTION]);
+    });
+
+    it("lets a seed win over the remembered picks without remembering it", () => {
+      localStorage.setItem(PICKS_KEY, JSON.stringify([NOTION]));
+      const { result } = renderHook(
+        () => useNewSessionFlow({ ...defaultOptions(), rememberPluginPicks: true, initialPluginRefs: [LINEAR] }),
+        { wrapper: createWrapper() },
+      );
+      expect(result.current.pluginRefs).toEqual([LINEAR]);
+      expect(JSON.parse(localStorage.getItem(PICKS_KEY) ?? "[]")).toEqual([NOTION]);
+    });
+
+    it("neither reads nor writes picks unless asked to remember them", () => {
+      localStorage.setItem(PICKS_KEY, JSON.stringify([NOTION]));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
+      expect(result.current.pluginRefs).toEqual([]);
+      act(() => result.current.setPluginRefs([LINEAR]));
+      expect(JSON.parse(localStorage.getItem(PICKS_KEY) ?? "[]")).toEqual([NOTION]);
+    });
+
+    it("gives a guest neither a seed nor remembered picks", () => {
+      localStorage.setItem(PICKS_KEY, JSON.stringify([NOTION]));
+      const { result } = renderHook(
+        () =>
+          useNewSessionFlow({
+            ...defaultOptions(),
+            audience: "guest",
+            rememberPluginPicks: true,
+            initialPluginRefs: [LINEAR],
+          }),
+        { wrapper: createWrapper() },
+      );
+      expect(result.current.pluginRefs).toEqual([]);
     });
   });
 });

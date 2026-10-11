@@ -14,7 +14,7 @@ module agentic
 # - PRIVATE: owner (incl. org admins, see below) + explicit grants only.
 # - ORG and above: org members can view/use via the explicit viewer tuple.
 # - Owners (creators) and org admins can edit/delete (admin inheritance —
-#   mirrors mcp_server).
+#   mirrors agent).
 #
 # FGA tuples on creation:
 # - skill:web-search#organization@organization:stigmer

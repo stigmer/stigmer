@@ -10,8 +10,9 @@
  * final SDK serialization differs.
  */
 
-import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
+import { toolServerSegment } from "../../shared/plugin-servers.js";
 
 /**
  * Cursor SDK MCP server config shape (matches @cursor/sdk McpServerConfig).
@@ -35,7 +36,7 @@ export type CursorMcpServerConfig =
  * Transform resolved MCP servers into the Cursor SDK's mcpServers config
  * for Agent.create().
  *
- * Call it ONCE, after the last mutation of the resolved-server list (backfill,
+ * Call it ONCE, after the last mutation of the resolved-server list (the
  * synthesized-attachment injection): the config is a projection of that list,
  * and building it early just creates a stale copy someone must remember to
  * rebuild. An agent's tool lists are not expressed here: the SDK's `mcp` tool
@@ -77,14 +78,14 @@ export function toCursorMcpConfig(
  */
 export function validateMcpServerEnv(
   servers: readonly ResolvedMcpServer[],
-  usages: McpServerUsage[],
+  plugins: readonly Plugin[],
 ): string[] {
   const warnings: string[] = [];
+  const slugs = plugins.flatMap((plugin) =>
+    (plugin.status?.mcpServers ?? []).map((entry) => toolServerSegment(plugin.metadata?.name ?? "", entry.name)),
+  );
 
-  for (const usage of usages) {
-    const slug = usage.mcpServerRef?.slug;
-    if (!slug) continue;
-
+  for (const slug of slugs) {
     const resolved = servers.find((s) => s.slug === slug);
     if (!resolved) {
       warnings.push(`MCP server '${slug}': failed to resolve (server may not exist or is inaccessible)`);

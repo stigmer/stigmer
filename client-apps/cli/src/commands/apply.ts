@@ -126,7 +126,7 @@ async function runPluginApply(
   });
   renderResult(
     plugin.renderPushOutcome(outcome, {
-      next: await plugin.readNextSteps(client.stigmer, org, outcome.members),
+      next: plugin.nextSteps(outcome.plugin),
     }),
     format,
   );
@@ -138,14 +138,9 @@ async function runFileApply(
   dryRun: boolean,
   format: OutputFormat,
 ): Promise<void> {
-  const [
-    { connectBackend },
-    { resolveApplyItems, requiresOrgContext, applyItem },
-    { discoverAppliedMcpServers },
-  ] = await Promise.all([
+  const [{ connectBackend }, { resolveApplyItems, requiresOrgContext, applyItem }] = await Promise.all([
     import("../backend.js"),
     import("../resources/apply/apply.js"),
-    import("../resources/apply/discovery.js"),
   ]);
 
   const items = resolveApplyItems(path);
@@ -166,21 +161,11 @@ async function runFileApply(
     ? resolveOrganization(client.config, orgOverride)
     : "";
 
-  const appliedMcpServers = [];
   for (const item of items) {
     const outcome = await applyItem(client.controller, item, org, false);
     emitWarning(outcome.warning);
     renderResult(outcome.result, format);
-    if (outcome.appliedMcpServer !== undefined)
-      appliedMcpServers.push(outcome.appliedMcpServer);
   }
-
-  await discoverAppliedMcpServers(
-    client.stigmer,
-    appliedMcpServers,
-    org,
-    (line) => process.stderr.write(`${line}\n`),
-  );
 }
 
 // What a bare `stigmer apply` says when the target holds no plugin manifest:
@@ -190,7 +175,7 @@ function buildGuidance(target: string): CommandResult {
   const result = CommandResult.warning(`No plugin manifest in ${target}`);
   result
     .addSection("What 'stigmer apply' does")
-    .item("stigmer apply -f <file>        apply a resource file (agent, MCP server, ...)")
+    .item("stigmer apply -f <file>        apply a resource file (agent, schedule, ...)")
     .item("stigmer apply -f <dir>         apply every YAML file in a directory")
     .item("stigmer push skill <dir>       publish a skill folder")
     .item("stigmer push plugin <dir>      install a folder of resources as one plugin");

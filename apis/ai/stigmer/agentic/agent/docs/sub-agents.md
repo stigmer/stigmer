@@ -10,17 +10,18 @@ focused sub-agents. Each sub-agent has its own instructions and skills, and
 starts from the parent's tools, which it can narrow.
 
 Sub-agents are defined inline within the parent Agent YAML — they are not
-separate resources.
+separate resources. A plugin the agent lists in `plugins` brings its own agents
+too: each joins as a sub-agent named `<plugin>:<agent>`, with the tool lists its
+agent file declares.
 
 ## Defining Sub-Agents
 
 ```yaml
 spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: github
-  tools: [Read, Grep, Glob, Agent, mcp__github]
+  plugins:
+    - kind: plugin
+      slug: github
+  tools: [Read, Grep, Glob, Agent, mcp__plugin_github_github]
 
   sub_agents:
     - name: code-reviewer
@@ -31,7 +32,7 @@ spec:
         - Performance issues
         - Code style consistency
       tools:
-        [Read, Grep, mcp__github__search_code, mcp__github__get_file_contents]
+        [Read, Grep, mcp__plugin_github_github__search_code, mcp__plugin_github_github__get_file_contents]
       skill_refs:
         - kind: skill
           slug: code-review-best-practices
@@ -51,9 +52,9 @@ Defined by `SubAgent` in `ai/stigmer/agentic/agent/v1/spec.proto`.
 | `skill_refs`       | No       | Skills for this sub-agent. Independent of parent — can reference any skill. See [skill-integration.md](skill-integration.md).           |
 
 The names are Claude Code's: built-ins such as `Read`, `Grep` or
-`Bash(git push *)`, and `mcp__<server-slug>`, `mcp__<server-slug>__<tool>` or
-`mcp__*` for MCP tools. [mcp-server-integration.md](mcp-server-integration.md)
-lists the forms.
+`Bash(git push *)`, and `mcp__plugin_<plugin>_<server>`,
+`mcp__plugin_<plugin>_<server>__<tool>` or `mcp__*` for MCP tools.
+[plugin-integration.md](plugin-integration.md) lists the forms.
 
 ## Permission Model
 
@@ -92,16 +93,16 @@ A sub-agent can never exceed its parent's tools.
 
 ```
 Parent Agent
-├── mcp_server_usages: [github, slack]
-├── tools: [Read, Grep, Agent, mcp__github, mcp__slack]
+├── plugins: [github, slack]
+├── tools: [Read, Grep, Agent, mcp__plugin_github_github, mcp__plugin_slack_slack]
 ├── skill_refs: [style-guide, testing-guide]
 │
 ├── Sub-Agent: code-reviewer
-│   ├── tools: [Read, mcp__github__get_file_contents]  ← narrowed
+│   ├── tools: [Read, mcp__plugin_github_github__get_file_contents]  ← narrowed
 │   └── skill_refs: [security-checklist]                ← independent
 │
 └── Sub-Agent: notifier
-    ├── disallowed_tools: [mcp__github]                ← narrowed
+    ├── disallowed_tools: [mcp__plugin_github_github]                ← narrowed
     └── skill_refs: []                                  ← no skills needed
 ```
 

@@ -25,9 +25,6 @@ import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/ch
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/command_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
@@ -53,10 +50,6 @@ const knownOrganization = create(OrganizationSchema, {
   metadata: { name: "Acme", slug: "acme", id: "org_01jacme00000000000000000000" },
 });
 let organizationDeleteIds: string[] = [];
-
-const knownMcp = create(McpServerSchema, {
-  metadata: { name: "Filesystem", slug: "filesystem", org: "acme", id: "mcp_1" },
-});
 
 const knownVault = create(VaultSchema, {
   metadata: { name: "Clinic tools", slug: "clinic-tools", org: "acme", id: "vlt_1" },
@@ -134,16 +127,6 @@ beforeAll(async () => {
       tagVersion: (req) => {
         agentTagCalls.push({ agentId: req.agentId, versionHash: req.versionHash, tag: req.tag });
         return knownAgent;
-      },
-    });
-
-    router.service(McpServerQueryController, {
-      getByReference: () => knownMcp,
-    });
-    router.service(McpServerCommandController, {
-      delete: (req) => {
-        if (req.resourceId !== "mcp_1") throw new ConnectError("bad id", Code.InvalidArgument);
-        return knownMcp;
       },
     });
 
@@ -282,13 +265,6 @@ describe("delete (standard kinds)", () => {
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
   });
 
-  it("deletes an MCP server via the DeleteResourceInput shape", async () => {
-    const plan = await planDelete(client, "mcpserver", "filesystem", "acme");
-    const result = await plan.perform();
-    expect(result.status).toBe("success");
-    expect(result.message).toBe("MCP Server deleted successfully");
-  });
-
   it("maps a NotFound on the pre-Get to ExitCode.NotFound", async () => {
     const err = await planDelete(client, "agent", "missing", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
@@ -342,11 +318,11 @@ describe("delete (standard kinds)", () => {
 });
 
 describe("delete (plugin)", () => {
-  it("warns that it removes the plugin and everything it installed", async () => {
+  it("warns that it removes the plugin with what it carries, and is refused while an agent lists it", async () => {
     const plan = await planDelete(client, "plugin", "clinic-tools", "acme");
     expect(plan.warning.hints).toContain(
-      "This removes the plugin and every skill, MCP server and agent it installed. " +
-        "It is refused while another agent of yours still references one of them.",
+      "This removes the plugin with its skills, agents and MCP servers. " +
+        "It is refused while an agent of the organization lists it.",
     );
   });
 });

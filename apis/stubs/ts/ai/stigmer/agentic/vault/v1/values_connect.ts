@@ -17,7 +17,7 @@ export const VaultValueController = {
   typeName: "ai.stigmer.agentic.vault.v1.VaultValueController",
   methods: {
     /**
-     * Fetch the values of a run or of a tool connect, grouped by who declared
+     * Fetch the values of a run or of a tools listing, grouped by who declared
      * them, opened from the vaults the run's source manifest names
      * (RunStatus.credentials.sources) as they are now.
      *

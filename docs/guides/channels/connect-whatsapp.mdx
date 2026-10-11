@@ -116,13 +116,12 @@ conversational-confirmation pattern:
 ```yaml validate-as="Agent"
 # In your Agent YAML
 spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: clinic-scheduler
+  plugins:
+    - kind: plugin
+      slug: clinic-scheduler
   tools:
-    - mcp__clinic-scheduler__list_open_slots
-    - mcp__clinic-scheduler__book_appointment
+    - mcp__plugin_clinic-scheduler_clinic-scheduler__list_open_slots
+    - mcp__plugin_clinic-scheduler_clinic-scheduler__book_appointment
 ```
 
 Keep truly destructive operations marked destructive on the server — on a

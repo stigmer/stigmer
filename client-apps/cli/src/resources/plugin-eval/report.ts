@@ -7,8 +7,9 @@
 // (`CASE WITH W/OUT Δ PASS^k RUNS COST NOTES`, or `SCORE PASS%` when the
 // eval made no comparison), one block per engine and model, then the line
 // `N case(s) · mean Δ +0.67 · 74s · $0.41`. Stigmer adds the `PASS^k`
-// column (every try passed), says "Δ provisional" while the comparison also
-// measures the agent Stigmer composes for the plugin, and lists the cases it
+// column (every try passed), says "Δ provisional" when the comparison also
+// measured an agent Stigmer composed for the plugin (an eval made before
+// conversations listed plugins directly), and lists the cases it
 // did not run with the feature named.
 //
 // The exit code is the format's: 0 when every case that ran reached the
@@ -117,12 +118,13 @@ export function renderSummaryLine(pluginEval: PluginEval, durationSeconds: numbe
 }
 
 /**
- * Why the comparison is provisional, for the line under the summary: the
- * with-arm runs on the agent Stigmer composes for the plugin, whose
+ * Why the comparison is provisional, for the line under the summary: an
+ * eval made before conversations listed plugins directly ran its with-arm
+ * on an agent Stigmer composed for the plugin, whose
  * instructions name it, so Δ measures that agent as well as the plugin.
  */
 export const PROVISIONAL_NOTE =
-  "Δ provisional: the runs with the plugin use the agent Stigmer composes for it, whose instructions name the plugin, so Δ measures that agent too.";
+  "Δ provisional: this eval ran before conversations listed plugins directly; its runs with the plugin used an agent Stigmer composed for it, so Δ measures that agent too.";
 
 /** The cases, or cases on one target, the eval listed and did not run, one line each. */
 export function renderNotRun(pluginEval: PluginEval): string {

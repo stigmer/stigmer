@@ -43,9 +43,9 @@ beforeAll(() => {
   writeFileSync(join(dir, "bad-schema.yaml"), ["kind: Agent", "metadata: not-an-object", ""].join("\n"));
   writeFileSync(join(dir, "unknown.yaml"), ["kind: Banana", "metadata:", "  name: x", ""].join("\n"));
 
-  // A Cursor plugin with a header token the manifest does not declare: valid,
-  // with one warning, and an ai.stigmer/ document that must not be validated
-  // as a loose resource.
+  // A Cursor plugin with a header token the manifest does not declare and an
+  // ai.stigmer/ folder Stigmer does not read: valid, with those two warnings,
+  // and the folder's document never validated as a loose resource.
   plugin = mkdtempSync(join(tmpdir(), "stigmer-validate-plugin-"));
   write(plugin, ".cursor-plugin/plugin.json", JSON.stringify({ name: "github", version: "1.0.0", mcpServers: "./mcp.json", logo: "assets/logo.svg" }));
   write(plugin, "mcp.json", JSON.stringify({ mcpServers: { github: { type: "http", url: "https://api.example.com/mcp/", headers: { Authorization: "Bearer ${GITHUB_TOKEN}" } } } }));
@@ -122,13 +122,12 @@ describe("validate on a plugin directory", () => {
     const run = await runValidate("-f", plugin);
     expect(run.exitCode).toBe(ExitCode.Success);
     expect(run.stdout).toBe("");
-    expect(run.stderr).toContain("Plugin 'github' is valid with 1 warning");
+    expect(run.stderr).toContain("Plugin 'github' is valid with 2 warnings");
     expect(run.stderr).toContain("Cursor plugin");
     // Section keys are padded to the widest key, so match key and value loosely.
     expect(run.stderr).toMatch(/MCP servers\s+1: github \(http\)/);
     expect(run.stderr).toMatch(/Variables\s+1: GITHUB_TOKEN \(inferred\)/);
     expect(run.stderr).toMatch(/Files\s+4 read, 0 excluded by ignore rules/);
-    expect(run.stderr).toMatch(/Stigmer overlay\s+agent/);
     expect(run.stderr).toContain("variable 'GITHUB_TOKEN' is referenced by MCP server 'github' but not declared");
     expect(run.stderr).toContain("- logo (.cursor-plugin/plugin.json#logo)");
   });
@@ -144,14 +143,13 @@ describe("validate on a plugin directory", () => {
       dialect: "cursor",
       mcpServers: [{ name: "github", transport: "http", env: ["GITHUB_TOKEN"] }],
       variables: [{ name: "GITHUB_TOKEN", isSecret: true, optional: false, declaredBy: "inferred" }],
-      overlay: { agent: "ai.stigmer/agent.yaml", mcpServers: [] },
     });
-    expect(parsed.data.warnings.map((w: { kind: string }) => w.kind)).toEqual(["variable-inferred"]);
+    expect(parsed.data.warnings.map((w: { kind: string }) => w.kind)).toEqual(["variable-inferred", "stigmer-folder-ignored"]);
   });
 
   it("prints only the status line with --quiet", async () => {
     const run = await runValidate("-f", plugin, "--quiet");
-    expect(run.stderr.trim()).toBe("⚠ Plugin 'github' is valid with 1 warning");
+    expect(run.stderr.trim()).toBe("⚠ Plugin 'github' is valid with 2 warnings");
   });
 
   it("refuses with exit 2 and every problem's sentence", async () => {

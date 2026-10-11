@@ -10,7 +10,6 @@
  */
 import { create } from "@bufbuild/protobuf";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -36,7 +35,7 @@ export const DEMO_SLUG = "support-agent";
 /**
  * The demo agent returned by the mocked `AgentQueryController.getByReference`
  * (see `.scenar/providers.tsx`). Every rendered field — description,
- * instructions, both skill refs, the MCP server usage, the tool list,
+ * instructions, both skill refs, the plugin, the tool list,
  * the two env declarations, and the organization visibility — matches the YAML
  * listing the embed sits under on `docs/concepts/agents.mdx`, so the reader
  * sees exactly the definition they just read.
@@ -66,15 +65,13 @@ export function buildDemoAgent() {
   agent.spec = create(AgentSpecSchema, {
     description: agent.spec!.description,
     instructions: agent.spec!.instructions,
-    mcpServerUsages: [
-      create(McpServerUsageSchema, {
-        mcpServerRef: create(ApiResourceReferenceSchema, {
-          kind: ApiResourceKind.mcp_server,
-          slug: "order-management-api",
-        }),
+    plugins: [
+      create(ApiResourceReferenceSchema, {
+        kind: ApiResourceKind.plugin,
+        slug: "order-management-api",
       }),
     ],
-    tools: ["Read", "Grep", "mcp__order-management-api"],
+    tools: ["Read", "Grep", "mcp__plugin_order-management-api_order-management-api"],
     skillRefs: [
       create(ApiResourceReferenceSchema, {
         kind: ApiResourceKind.skill,
@@ -118,7 +115,7 @@ export const agentDetailTourSteps: ScenarioStep<AgentDetailTourStep>[] = [
     shot: "agent-detail",
     narration:
       "The console shows the whole definition in one place — the instructions, " +
-      "both Skills, the MCP server and the tools it may use, and the environment " +
+      "both Skills, the plugin and the tools it may use, and the environment " +
       "variables it needs at runtime.",
   },
 ];

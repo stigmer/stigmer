@@ -125,10 +125,7 @@ import {
   JUDGE_UNREADABLE_REASON,
 } from "../../domain/score/constants.js";
 import type { EvalTrace } from "../../domain/score/eval/trace.js";
-import {
-  callsMcpServers,
-  evalTraceOf,
-} from "../../domain/score/eval/trace.js";
+import { evalTraceOf } from "../../domain/score/eval/trace.js";
 import { GRADES_RUN_LABEL } from "../../domain/score/judge/judge-run.js";
 import type {
   JudgeSessionDeleter,
@@ -239,7 +236,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
     }
   };
 
-  /** The try's trace; the plugin's servers' declared names are read only when the run called one. */
+  /** The try's trace, in Claude Code's names. */
   const traceOf = async (
     context: EvalContext,
     run: Run,
@@ -250,20 +247,10 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
       pluginName: pluginNameOf(context.plugin),
       harness,
       wantedFiles: wantedFilesOf(graders),
+      skillNames: new Map((context.plugin.status?.skills ?? []).map((skill) => [skill.path, skill.name])),
       readArtifact:
         deps.readArtifact ??
         (() => Promise.reject(new Error(NO_ARTIFACT_STORAGE))),
-      ...(callsMcpServers(run)
-        ? {
-            mcpServerKeys: (
-              await pluginAttachmentFacts(
-                deps.store,
-                context.plugin.metadata?.id ?? "",
-                context.plugin.metadata?.org ?? "",
-              )
-            ).mcpServerKeys,
-          }
-        : {}),
     });
 
   return {
@@ -319,11 +306,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           reason: PLUGIN_UPDATED_REASON,
         };
       }
-      const facts = await pluginAttachmentFacts(
-        deps.store,
-        spec.pluginId,
-        context.plugin.metadata?.org ?? input.org,
-      );
+      const facts = pluginAttachmentFacts(context.plugin, context.digest);
       let session;
       try {
         session = await deps.tries().createSession(
@@ -354,7 +337,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         spec,
         modelName: cell.target.target.modelName,
         budgetUsd: input.budgetUsd,
-        pluginServerSlugs: facts.mcpServerSlugs,
+        pluginServerSegments: facts.serverSegments,
       });
       try {
         const created = await deps.tries().createRun(request, caller);

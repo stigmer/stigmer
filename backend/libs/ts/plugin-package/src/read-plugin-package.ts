@@ -6,8 +6,8 @@
  * detection and identity; skills; MCP servers; hooks; variables (which
  * need the servers' and the hooks' references); sub-agents (which need the
  * skills' names); the main agent a Claude plugin's settings name (which
- * needs the sub-agents); the `ai.stigmer/` overlay (which needs the
- * servers' names); the ignored components. Every stage records findings and keeps going, so the outcome
+ * needs the sub-agents); the `ai.stigmer/` folder, which is read by
+ * nothing and warned; the ignored components. Every stage records findings and keeps going, so the outcome
  * names every problem in the package at once, and the plugin is returned
  * only when no stage refused.
  *
@@ -21,9 +21,9 @@ import { Findings } from "./messages.js";
 import { normaliseHooks } from "./normalise/hooks.js";
 import { dedupeIgnored, ignoredOnDisk } from "./normalise/ignored.js";
 import { normaliseMcpServers } from "./normalise/mcp-servers.js";
-import { normaliseOverlay } from "./normalise/overlay.js";
 import { normaliseMainAgent, readsSettings } from "./normalise/settings.js";
 import { normaliseSkills } from "./normalise/skills.js";
+import { warnStigmerFolder } from "./normalise/stigmer-folder.js";
 import { normaliseSubAgents } from "./normalise/sub-agents.js";
 import { normaliseVariables } from "./normalise/variables.js";
 import type { PluginReadOutcome } from "./outcome.js";
@@ -49,7 +49,7 @@ export function readPluginPackage(files: PluginFiles): PluginReadOutcome {
   const variables = normaliseVariables(set, servers, hooks.references, findings);
   const subAgents = normaliseSubAgents(index, set, skills, findings);
   const mainAgent = normaliseMainAgent(index, set, subAgents, findings);
-  const overlay = normaliseOverlay(index, servers.declaredNames, findings);
+  warnStigmerFolder(index, findings);
   const ignored = dedupeIgnored([ignoredOnDisk(index, set.readsAgents, readsSettings(set)), ...set.manifests.map((m) => m.ignored)]);
 
   if (findings.errors.length > 0 || set.name === undefined) {
@@ -72,7 +72,6 @@ export function readPluginPackage(files: PluginFiles): PluginReadOutcome {
     mcpServers,
     subAgents,
     variables,
-    overlay,
     ...(hooks.hooks !== undefined && { hooks: hooks.hooks }),
     ...(mainAgent !== undefined && { mainAgent }),
     ignored,

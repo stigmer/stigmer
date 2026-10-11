@@ -1,6 +1,7 @@
-// `stigmer connect mcp-server <slug-or-id>` — connect to an MCP server, discover
-// its tools and resource templates, and push the results to the backend (or
-// preview locally with --dry-run). Mirrors Go's connect.go.
+// `stigmer connect plugin <plugin> [--server <name>]`: list the tools one of
+// a plugin's MCP servers offers now, as the caller, after the sign-in it
+// takes when My vault holds none; or, with --dry-run, list them from this
+// machine without a runner. Nothing is stored either way.
 //
 // Thin handler: resolve the client/org, delegate to resources/connect, render.
 // Heavy modules (backend client, MCP SDK) are lazy-imported so `--help` stays
@@ -19,6 +20,7 @@ import { globalOrg } from "./shared.js";
 import { omitsOrganization, requireOrganization } from "../client/single-org.js";
 
 interface ConnectFlags {
+  server?: string;
   timeout?: string;
   dryRun?: boolean;
 }
@@ -31,17 +33,17 @@ export function registerConnect(program: Command): void {
     .description("connect to external services and discover capabilities");
 
   connect
-    .command("mcp-server <slug-or-id>")
-    .description("connect to an MCP server and discover its tools")
+    .command("plugin <plugin>")
+    .description("list the tools one of a plugin's MCP servers offers, signing in first when it needs one")
+    .option("--server <name>", "the MCP server, by its name in the plugin (needed when the plugin carries several)")
     .option(
       "--timeout <seconds>",
-      "bound the wait for connection and discovery (always bounds --dry-run; " +
-        "bounds the server-side connect only when set explicitly)",
+      "bound --dry-run's local discovery",
       String(DEFAULT_TIMEOUT_SECONDS),
     )
     .option(
       "--dry-run",
-      "discover and display results without pushing to the backend",
+      "list the tools from this machine, with your shell's environment, without a runner",
     )
     .action((reference: string, options: ConnectFlags, command: Command) =>
       runConnect(reference, options, command),
@@ -54,13 +56,7 @@ async function runConnect(
   command: Command,
 ): Promise<void> {
   const timeoutMs = parseTimeout(options.timeout);
-  // The 30s default exists for --dry-run's local discovery. A real connect
-  // legitimately takes minutes (server-side sandbox boot + discovery + tool
-  // classification), so bounding it by the DEFAULT would fail healthy
-  // connects — the wait is bounded only when the user set --timeout
-  // explicitly (issue #239: the flag used to be silently ignored here).
-  const timeoutIsExplicit = command.getOptionValueSource("timeout") === "cli";
-  const [{ connectBackend }, { connectMcpServer }, { renderConnectResult }] =
+  const [{ connectBackend }, { connectPlugin }, { renderConnectResult }] =
     await Promise.all([
       import("../backend.js"),
       import("../resources/connect/connect.js"),
@@ -71,23 +67,22 @@ async function runConnect(
   ensureAuthenticated(client.config);
   const org = resolveOrganization(client.config, globalOrg(command));
 
-  // Connecting pushes to the backend, which needs an org for credential
-  // resolution on a server that holds several: fail with actionable guidance
-  // instead of the backend's validation error. Dry-run discovers locally (no
-  // backend push) and needs no org for an id reference, so it is exempt —
-  // mirrors the org guard in run/resume.
+  // Listing through a runner reads the caller's My vault in an organization,
+  // which a server holding several needs named: fail with actionable
+  // guidance instead of the backend's validation error. Dry-run lists
+  // locally and needs no org for an id reference, so it is exempt.
   if (options.dryRun !== true) {
     await requireOrganization(client.stigmer, org, [
       "stigmer config context set --org <org>",
-      "stigmer connect mcp-server <server> --org <org>",
+      "stigmer connect plugin <plugin> --org <org>",
     ]);
   }
 
-  const result = await connectMcpServer(client.stigmer, {
+  const result = await connectPlugin(client.stigmer, {
     reference,
+    ...(options.server !== undefined && { server: options.server }),
     org,
     timeoutMs,
-    pushTimeoutMs: timeoutIsExplicit ? timeoutMs : undefined,
     dryRun: options.dryRun === true,
     consoleURL: resolveConsoleURL(client.config),
     probeLocalConsole: activeBackend(client.config).entry === undefined,
@@ -96,19 +91,18 @@ async function runConnect(
 
   const colorize = shouldColorize(process.stdout);
   const { organizationLabel } = await import("../client/organizations.js");
-  const serverOrg = result.server.metadata?.org ?? "";
+  const pluginOrg = result.plugin.metadata?.org ?? "";
   renderConnectResult(
     result,
     (line) => process.stdout.write(`${line}\n`),
     colorize,
     (await omitsOrganization(client.stigmer))
       ? undefined
-      : await organizationLabel(client.stigmer, serverOrg),
+      : await organizationLabel(client.stigmer, pluginOrg),
   );
 }
 
-// Parse --timeout seconds into milliseconds. Mirrors Go's DurationVar default
-// but accepts a plain number of seconds for a simpler CLI surface.
+// Parse --timeout seconds into milliseconds.
 function parseTimeout(raw: string | undefined): number {
   if (raw === undefined || raw === "") return DEFAULT_TIMEOUT_SECONDS * 1000;
   const seconds = Number(raw);

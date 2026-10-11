@@ -86,6 +86,6 @@ export const PLUGIN_EVAL_NO_ENGINE_MESSAGE =
   "the eval cannot be cancelled while the server has no engine connection; try again shortly";
 
 /** The refusal of an allow_tools entry that names another plugin's MCP tools. */
-export function pluginEvalOtherPluginToolMessage(entry: string, named: string, plugin: string): string {
-  return `allow_tools entry '${entry}' names plugin '${named}', but this eval runs '${plugin}'; a try attaches no other plugin`;
+export function pluginEvalOtherPluginToolMessage(entry: string, server: string, plugin: string): string {
+  return `allow_tools entry '${entry}' names MCP server '${server}', which is not one of '${plugin}''s; a try attaches no other plugin`;
 }

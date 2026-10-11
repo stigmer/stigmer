@@ -47,13 +47,13 @@ import { fromBinary, toBinary } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import {
   FrozenAgentInstanceEnvelopeSchema,
+  FrozenMcpServerEnvelopeSchema,
   FrozenWorkflowEnvelopeSchema,
   FrozenWorkflowInstanceEnvelopeSchema,
 } from "./frozen-envelopes.js";
@@ -73,7 +73,7 @@ export interface PublicRowKind {
 export const PUBLIC_ROW_KINDS_AT_RETIREMENT: ReadonlyArray<PublicRowKind> = [
   { kind: "agent", schema: AgentSchema },
   { kind: "skill", schema: SkillSchema },
-  { kind: "mcp_server", schema: McpServerSchema },
+  { kind: "mcp_server", schema: FrozenMcpServerEnvelopeSchema },
   { kind: "agent_instance", schema: FrozenAgentInstanceEnvelopeSchema },
   { kind: "workflow", schema: FrozenWorkflowEnvelopeSchema },
   { kind: "workflow_instance", schema: FrozenWorkflowInstanceEnvelopeSchema },

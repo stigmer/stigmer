@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
-import { PluginIdSchema, PushPluginRequestSchema, CreatePluginArtifactUploadUrlRequestSchema, PluginArtifactUploadUrlSchema, ListPluginMembersResponseSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, PluginArtifactDownloadUrlSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, type PushPluginRequest, type CreatePluginArtifactUploadUrlRequest, type PluginArtifactUploadUrl, type ListPluginMembersResponse, type GetArtifactRequest, type GetArtifactResponse, type PluginArtifactDownloadUrl, type ListPluginVersionsInput, type ListPluginVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PluginIdSchema, PushPluginRequestSchema, CreatePluginArtifactUploadUrlRequestSchema, PluginArtifactUploadUrlSchema, ListPluginToolsInputSchema, ListPluginToolsOutputSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, PluginArtifactDownloadUrlSchema, ListPluginVersionsInputSchema, ListPluginVersionsResponseSchema, type PushPluginRequest, type CreatePluginArtifactUploadUrlRequest, type PluginArtifactUploadUrl, type ListPluginToolsInput, type ListPluginToolsOutput, type GetArtifactRequest, type GetArtifactResponse, type PluginArtifactDownloadUrl, type ListPluginVersionsInput, type ListPluginVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { PluginSpecSchema, PluginDialect, PluginAuthorSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -54,6 +54,12 @@ export class PluginClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async listTools(input: ListPluginToolsInput): Promise<ListPluginToolsOutput> {
+    try {
+      return await this.command.listTools(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
   async get(id: string): Promise<Plugin> {
     try {
       return await this.query.get(create(PluginIdSchema, { value: id }));
@@ -63,12 +69,6 @@ export class PluginClient {
   async getByReference(ref: ResourceRef): Promise<Plugin> {
     try {
       return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.plugin }));
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async listMembers(id: string): Promise<ListPluginMembersResponse> {
-    try {
-      return await this.query.listMembers(create(PluginIdSchema, { value: id }));
     } catch (e) { throw wrapError(e); }
   }
 

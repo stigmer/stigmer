@@ -27,15 +27,14 @@ import type { JsonObject } from "@bufbuild/protobuf";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ConformanceClients } from "../harness/clients";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { ConnectPhase } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { FixtureTracker } from "../harness/fixtures";
-import { DESTRUCTIVE_ECHO_TOOL_NAME, type FixtureTool, type McpToolFixture } from "../harness/mcp-server";
+import type { FixtureTool, McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import type { TargetProfile } from "../targets/target";
 import { type AgentRefInit, makeAgentRef } from "./agents";
 import { type PollCoreOptions, pollUntil } from "./run-poll";
-import { makeHttpMcpServer } from "./mcpservers";
+import { FIXTURE_SERVER, oneServerPlugin, pushPlugin } from "./plugins";
 
 export const AGENT_EXECUTION_API_VERSION = "agentic.stigmer.ai/v1";
 export const AGENT_EXECUTION_KIND = "Run";
@@ -321,44 +320,49 @@ export function requireMcpFixture(target: TargetProfile): McpToolFixture {
   return target.mcpFixture();
 }
 
-export interface ConnectedMcpServerOptions {
+export interface FixturePluginOptions {
   org: string;
+  // The plugin's name: the turn names its server `plugin_<name>_tools`.
   name: string;
-  // The fixture's tool surface to register (McpToolFixture.url).
+  // The fixture's tool surface its one server offers (McpToolFixture.url).
   tools: readonly FixtureTool[];
+  // Headers the server is sent, `${VAR}` references included.
+  headers?: Readonly<Record<string, string>>;
 }
 
-// An McpServer on the fixture, created AND connected. The approval default
-// asks before a tool its server marks destructive, and the runner reads that
-// mark only from the stored discovery (DiscoveredTool.destructive_hint), so an
-// arm that needs the gate connects first. The connect's outcome and the stored
-// hints are asserted here, so an arm whose gate never parks is red at its
-// cause rather than as a timeout waiting for WAITING_FOR_APPROVAL. The delete
-// is deferred on the caller's tracker. `expect` is imported at the call for
-// the reason submitApprovalPerContract gives.
-export async function createConnectedMcpServer(
-  clients: ConformanceClients,
-  mcp: McpToolFixture,
+// A one-server plugin whose server is the fixture's `tools` surface, pushed
+// into the organization; its delete is deferred on the caller's tracker. A
+// run reads a tool's destructive mark live from the server, so nothing is
+// connected first. The stored entry is asserted here (the server, at the
+// surface's URL, with no sign-in: the fixture answers the install's probe
+// without a challenge), so an arm whose tools never appear is red at its
+// cause rather than as a timeout waiting on the model. `expect` is imported
+// at the call for the reason submitApprovalPerContract gives.
+export async function pushFixturePlugin(
+  clients: Pick<ConformanceClients, "pluginCommand">,
+  mcp: Pick<McpToolFixture, "url">,
   fixtures: FixtureTracker,
-  opts: ConnectedMcpServerOptions,
-): Promise<McpServer> {
+  opts: FixturePluginOptions,
+): Promise<Plugin> {
   const { expect } = await import("vitest");
-  const created = await clients.mcpServerCommand.create(
-    makeHttpMcpServer({ org: opts.org, name: opts.name, url: mcp.url(opts.tools) }),
+  const url = mcp.url(opts.tools);
+  const plugin = await pushPlugin(
+    clients,
+    fixtures,
+    opts.org,
+    oneServerPlugin({
+      name: opts.name,
+      server: { url, ...(opts.headers !== undefined ? { headers: opts.headers } : {}) },
+    }),
   );
-  fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: created.metadata!.id }));
-
-  const connected = await clients.mcpServerCommand.connect({ mcpServerId: created.metadata!.id, org: opts.org });
-  const connect = connected.status?.connectStatus;
+  const entries = plugin.status?.mcpServers ?? [];
   expect(
-    connect?.phase,
-    `connect of ${created.metadata!.id}: ${connect?.failureCode ?? ""} ${connect?.failureMessage ?? ""}`,
-  ).toBe(ConnectPhase.succeeded);
-  const hints = Object.fromEntries(
-    (connected.status?.discoveredCapabilities?.tools ?? []).map((tool) => [tool.name, tool.destructiveHint]),
-  );
-  expect(hints, "the stored discovery marks exactly the fixture's destructive tool").toEqual(
-    Object.fromEntries(opts.tools.map((tool) => [tool, tool === DESTRUCTIVE_ECHO_TOOL_NAME])),
-  );
-  return connected;
+    entries.map((entry) => [
+      entry.name,
+      entry.transport.case === "http" ? entry.transport.value.url : entry.transport.case,
+      entry.signIn?.oauthOnly ?? false,
+    ]),
+    `the installed plugin ${plugin.metadata?.id ?? ""} lists its one server at the fixture's surface`,
+  ).toEqual([[FIXTURE_SERVER, url, false]]);
+  return plugin;
 }

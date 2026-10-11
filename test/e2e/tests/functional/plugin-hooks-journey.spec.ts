@@ -9,10 +9,12 @@ import { test, expect } from "../../fixtures";
  * hookify as its authors published it (vendored under test/support). Upload
  * the folder and read its hooks in the preview; on the plugin's page, read
  * every command its PreToolUse and PostToolUse hooks run, and its Stop and
- * UserPromptSubmit hooks under "Not run on Stigmer"; switch the hooks on for
- * an agent the test made, through "Add to an agent"; read them on that
- * agent's page; try to remove the plugin and be refused, naming the agent;
- * switch the hooks off on the agent's page and remove the plugin. No model
+ * UserPromptSubmit hooks under "Not run on Stigmer"; put the plugin, whole,
+ * on an agent the test made, through "Add to an agent"; read it in that
+ * agent's Plugins section (its hooks come with it, so the agent's own Hooks
+ * section stays the hooks written in the agent); try to remove the plugin
+ * and be refused, naming the agent; take the plugin off the agent's page and
+ * remove it. No model
  * runs: what a hook decides at a tool call is the approval lane's
  * (`interactive-approval/session-approval.spec.ts`) and execution
  * conformance's. Screenshots of the three surfaces go to the test's output.
@@ -36,7 +38,7 @@ function writeHookifyDir(): string {
 }
 
 test.describe("Plugin hooks journey", () => {
-  test("a plugin's hooks: read in the preview and on its page, switched on for an agent, and its removal refused until switched off", async ({
+  test("a plugin's hooks: read in the preview and on its page, the plugin put on an agent, and its removal refused until taken off", async ({
     page,
     stigmerClient,
     testAgent,
@@ -71,41 +73,40 @@ test.describe("Plugin hooks journey", () => {
     await expect(notRun.getByText(/'UserPromptSubmit'/)).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath("plugin-page.png"), fullPage: true });
 
-    // Switch the hooks on for the agent the test made.
+    // Put the plugin, whole, on the agent the test made.
     await page.getByRole("button", { name: "Add to an agent" }).click();
-    const add = page.getByRole("dialog", { name: "Add to an agent" });
-    await expect(add.getByRole("list", { name: "What the agent gets" })).toContainText("This plugin's hooks");
+    const add = page.getByRole("dialog", { name: `Add ${PLUGIN} to an agent` });
+    await expect(add.getByText("The agent gets the whole plugin: its skills, agents, hooks and MCP servers.", { exact: false })).toBeVisible();
     await add.getByRole("combobox").fill(testAgent.slug);
     await add.getByRole("option", { name: new RegExp(testAgent.slug) }).click();
     const addButton = add.getByRole("button", { name: "Add", exact: true });
     await expect(addButton).toBeEnabled({ timeout: 15_000 });
     await page.screenshot({ path: testInfo.outputPath("add-to-agent.png") });
     await addButton.click();
-    await expect(add.getByText(`Added this plugin's hooks to ${testAgent.slug}.`)).toBeVisible({ timeout: 15_000 });
+    await expect(add.getByRole("status")).toContainText(`Added ${PLUGIN} to `, { timeout: 15_000 });
     await add.getByRole("button", { name: "Open agent" }).click();
 
-    // The agent's page names the plugin and every command it runs.
+    // The agent's page lists the plugin; its hooks are read on the plugin's page, and none is written in the agent.
     await page.waitForURL(new RegExp(`/library/agents/[^/]+/${testAgent.slug}$`), { timeout: 15_000 });
-    const sources = page.getByRole("list", { name: "Hook sources" });
-    await expect(sources.getByRole("button", { name: PLUGIN })).toBeVisible({ timeout: 15_000 });
-    await expect(sources.getByText('python3 "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse.py"')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: PLUGIN, exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("list", { name: "Hook sources" })).toHaveCount(0);
     const agentUrl = page.url();
     await page.screenshot({ path: testInfo.outputPath("agent-page.png"), fullPage: true });
 
-    // Removing the plugin is refused while the agent's hooks use it.
+    // Removing the plugin is refused while the agent lists it.
     await page.goto(pluginUrl);
     await removePlugin(page);
-    await expect(page.getByText(new RegExp(`still used by agent '${testAgent.slug}'; switch the plugin's hooks off on them first`))).toBeVisible({
+    await expect(page.getByText(new RegExp(`still used by agent '${testAgent.slug}'; remove it from their plugins first`))).toBeVisible({
       timeout: 15_000,
     });
     await expect(page).toHaveURL(pluginUrl);
 
-    // Switch them off on the agent's page; the removal then goes through.
+    // Take it off on the agent's page; the removal then goes through.
     await page.goto(agentUrl);
-    await page.getByRole("button", { name: "Edit hooks" }).click();
+    await page.getByRole("button", { name: "Edit plugins" }).click();
     await page.getByRole("button", { name: `Remove ${PLUGIN}` }).click();
     await page.getByRole("button", { name: "Save changes" }).click();
-    await expect(page.getByText("No hooks. Switch a plugin's hooks on to guard this agent's tool calls.")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("No plugins configured")).toBeVisible({ timeout: 15_000 });
 
     await page.goto(pluginUrl);
     await removePlugin(page);

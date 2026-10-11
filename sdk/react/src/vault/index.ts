@@ -39,3 +39,5 @@ export type {
   UseVaultSignInReturn,
   VaultSignInPhase,
 } from "./useVaultSignIn.js";
+export { OAuthCallbackHandler } from "./OAuthCallbackHandler.js";
+export type { OAuthCallbackHandlerProps, OAuthCallbackParams } from "./OAuthCallbackHandler.js";

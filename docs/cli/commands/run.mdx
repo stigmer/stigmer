@@ -55,6 +55,7 @@ stigmer run my-agent -m "Summarize the Q4 earnings report"
 | `--mode`            | `string` |         | interaction mode: "agent" (default) or "plan" (read-only)                                                                                                                                               |
 | `--model`           | `string` |         | LLM model to use (e.g. claude-sonnet-4-6); with no --harness it runs on native, so pass --harness cursor for a Cursor model; unset, the agent's default model for the engine applies                    |
 | `--no-my-vault`     | `bool`   |         | leave your own My vault out of the conversation: it uses only the vaults named with --vault                                                                                                             |
+| `--plugin`          | `string` |         | a plugin the conversation uses, by id, org/slug or slug: its skills, agents, MCP servers and hooks join the agent's, or the assistant's with no agent (repeatable)                                      |
 | `--service-tier`    | `string` |         | model service tier: "standard" or "fast" (the model, from --model or the agent's defaults, must have a fast tier; billed at fast rates); unset keeps the agent's default                                |
 | `--thinking`        | `string` |         | extended reasoning: "disabled" or "enabled" (the model, from --model or the agent's defaults, must be thinking-capable; billed at base rates, uses more output tokens); unset keeps the agent's default |
 | `--vault`           | `string` |         | a shared vault the conversation uses, by id, org/slug or slug, after your My vault, in the order given (repeatable)                                                                                     |
@@ -89,6 +90,23 @@ stigmer run my-agent --vault support-tools
 
 # The team's keys only
 stigmer run my-agent --vault acme/ci-keys --no-my-vault
+```
+
+### Plugins this conversation uses
+
+`--plugin REF` adds a plugin to the conversation, by id, `org/slug` or slug;
+repeat it for more. The conversation gets the plugin's skills, agents, MCP
+servers' tools and hooks, beside the agent's own; with no agent, the built-in
+assistant runs with them. Like the vaults, the conversation keeps the plugins it
+was started with.
+
+```bash
+# The assistant with one MCP server's tools
+stigmer mcp add linear https://mcp.linear.app/mcp
+stigmer run --plugin linear -m "What's on my plate this week?"
+
+# An agent with two more plugins
+stigmer run my-agent --plugin linear --plugin platform/github
 ```
 
 ### Workspaces

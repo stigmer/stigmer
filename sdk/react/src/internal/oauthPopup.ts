@@ -8,8 +8,8 @@
  * popup blockers allow it), navigate it to the provider's consent screen,
  * and wait for the callback page to post `{ code, state }` back.
  *
- * Consumed by `useMcpServerOAuthConnect` (MCP server OAuth) and
- * `useConnectSlackChannel` (agent channel installs). The callback side of
+ * Consumed by `useVaultSignIn` (a sign-in at an address, saved in a
+ * vault) and `useConnectSlackChannel` (agent channel installs). The callback side of
  * the contract is `OAuthCallbackHandler`, which posts
  * {@link OAuthCallbackMessage} via `window.opener.postMessage` and the
  * {@link OAUTH_BROADCAST_CHANNEL} BroadcastChannel.

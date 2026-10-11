@@ -14,11 +14,6 @@ const registry = defaultRegistry();
 
 describe("registry — alias resolution", () => {
   it.each([
-    ["mcp", ApiResourceKind.mcp_server],
-    ["mcp-server", ApiResourceKind.mcp_server],
-    ["mcp_server", ApiResourceKind.mcp_server],
-    ["McpServer", ApiResourceKind.mcp_server],
-    ["mcpservers", ApiResourceKind.mcp_server],
     ["agent", ApiResourceKind.agent],
     ["agents", ApiResourceKind.agent],
     ["agt", ApiResourceKind.agent],
@@ -47,13 +42,21 @@ describe("registry — alias resolution", () => {
   });
 
   it("resolution is case-insensitive", () => {
-    expect(registry.getByAlias("MCP-SERVER")?.kind).toBe(
-      ApiResourceKind.mcp_server,
+    expect(registry.getByAlias("AGENT-CHANNEL")?.kind).toBe(
+      ApiResourceKind.agent_channel,
     );
   });
 
   it("returns undefined for an unknown alias", () => {
     expect(registry.getByAlias("nope")).toBeUndefined();
+  });
+
+  // An MCP server lives in a plugin; the kind that held one alone is gone,
+  // so none of its spellings may still resolve to something else.
+  it("resolves no spelling of the retired MCP server kind", () => {
+    for (const alias of ["mcp", "mcp-server", "mcp_server", "McpServer", "mcpservers"]) {
+      expect(registry.getByAlias(alias), alias).toBeUndefined();
+    }
   });
 
   // The run kind is served by the pre-gate `list runs` route and its
@@ -67,8 +70,8 @@ describe("registry — alias resolution", () => {
 
 describe("registry — YAML kind resolution", () => {
   it("resolves the exact YAML kind", () => {
-    expect(registry.getByYamlKind("McpServer")?.kind).toBe(
-      ApiResourceKind.mcp_server,
+    expect(registry.getByYamlKind("AgentChannel")?.kind).toBe(
+      ApiResourceKind.agent_channel,
     );
     expect(registry.getByYamlKind("Agent")?.kind).toBe(
       ApiResourceKind.agent,
@@ -150,7 +153,7 @@ describe("registry — verb support matrix", () => {
     const kinds = new Set(registry.typesForVerb(Verb.Get).map((t) => t.kind));
     expect(kinds).toContain(ApiResourceKind.agent);
     expect(kinds).toContain(ApiResourceKind.skill);
-    expect(kinds).toContain(ApiResourceKind.mcp_server);
+    expect(kinds).toContain(ApiResourceKind.plugin);
   });
 });
 

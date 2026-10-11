@@ -1,22 +1,28 @@
 /**
- * Plugin: what you install; it installs an agent, tools for your agents,
- * or both.
+ * Plugin: what you install, used whole. A chat or an agent lists a plugin
+ * and gets its skills, its agents, its hooks and its MCP servers; a plugin
+ * is the only home of an MCP server.
  *
  * Data hooks over the installed kind (`usePlugin`, `usePluginList`,
- * `usePluginCount`, `usePluginMembers`, `usePluginVersions`), the
+ * `usePluginCount`, `usePluginSearch`, `usePluginVersions`), the
  * marketplace layer a browser reads without a zipball (`useMarketplaces`,
  * `useMarketplace`, `usePreparePluginInstall`, `useInstallPlugin`), the
- * upload path (`usePluginUpload` over `sources/local.ts`), the styled
- * surfaces (`PluginDetailView`, `MarketplaceCatalog`, `PluginUploader`,
- * `PluginInstallDialog`, `InstallPreview`, `ManagedByPluginNotice`), what
- * ends an install (`McpServerReadiness` over `useMcpServerReadiness`, the
- * sign-in a server needs before its first tool call; `AddPluginToAgentDialog`
- * over `useAddPluginToAgent`, a plugin's tools and hooks onto an agent, the
- * spec edit in `plugin-on-agent.ts`), a hook set as both the plugin and the
- * agent page show it (`HookConfigList`) and the label rule the member
- * detail views apply (`useManagingPlugin`). Remove goes through
- * `useDeleteResource("plugin", id)`; visibility through
- * `useUpdateVisibility("plugin", id)`, the one home each already has.
+ * upload path (`usePluginUpload` over `sources/local.ts`), "Add MCP
+ * server" (`AddMcpServerDialog` over `useAddMcpServer`, a plugin of one
+ * server built in the browser), the styled surfaces (`PluginDetailView`,
+ * `MarketplaceCatalog`, `PluginUploader`, `PluginInstallDialog`,
+ * `InstallPreview`, `ManagedByPluginNotice`, `PluginPicker`), a server's
+ * sign-in over the person's My vault (`PluginServerSignIn` over
+ * `usePluginServerSignIn`, `PluginServerSignIns` for a conversation's
+ * plugins) and its tools on demand (`usePluginTools`), the way onto an
+ * agent (`AddPluginToAgentDialog` over `useAddPluginToAgent`, the spec
+ * edit in `plugin-on-agent.ts`), a hook set as both the plugin and the
+ * agent page show it (`HookConfigList`), the label rule an agent a plugin
+ * once installed still carries (`useManagingPlugin`), and the picks a
+ * browser remembers for the next conversation (`rememberedPluginPicks.ts`).
+ * Remove goes through `useDeleteResource("plugin", id)`; visibility
+ * through `useUpdateVisibility("plugin", id)`, the one home each already
+ * has.
  */
 
 // Data hooks
@@ -29,8 +35,8 @@ export type {
   UsePluginCountOptions,
   UsePluginCountReturn,
 } from "./usePluginList.js";
-export { usePluginMembers } from "./usePluginMembers.js";
-export type { PluginMembersByKind, UsePluginMembersReturn } from "./usePluginMembers.js";
+export { usePluginSearch } from "./usePluginSearch.js";
+export type { UsePluginSearchOptions, UsePluginSearchReturn } from "./usePluginSearch.js";
 export { usePluginVersions } from "./usePluginVersions.js";
 export type { UsePluginVersionsReturn } from "./usePluginVersions.js";
 export { PLUGIN_LABEL, useManagingPlugin } from "./useManagingPlugin.js";
@@ -89,8 +95,12 @@ export { githubAvatarUrl, githubOwner, openGitHubTree, rawUrl, treesUrl } from "
 export { OFFICIAL_PUBLISHER, isPublishedVersion, officialFileUrl, officialListingUrl, openOfficialTree } from "./sources/official.js";
 
 // Components
-export { PluginDetailView, kindLabel as pluginMemberKindLabel } from "./PluginDetailView.js";
-export type { PluginDetailViewProps, PluginMemberRef } from "./PluginDetailView.js";
+export { PluginDetailView } from "./PluginDetailView.js";
+export type { PluginDetailViewProps } from "./PluginDetailView.js";
+export { PluginServerRow, reachedBy } from "./PluginServerRow.js";
+export type { PluginServerRowProps } from "./PluginServerRow.js";
+export { PluginPicker } from "./PluginPicker.js";
+export type { PluginPickerProps } from "./PluginPicker.js";
 export { CATALOG_PAGE_SIZE, MarketplaceCatalog, filterEntries, matchesQuery } from "./MarketplaceCatalog.js";
 export type { MarketplaceCatalogProps } from "./MarketplaceCatalog.js";
 export { PluginCard, UploadTile } from "./PluginCard.js";
@@ -111,22 +121,24 @@ export { PluginInstallDialog, summariseInstall } from "./PluginInstallDialog.js"
 export type { PluginInstallDialogProps } from "./PluginInstallDialog.js";
 export { InstallPreview, PrepareRefusal, describeOrigin } from "./InstallPreview.js";
 export type { InstallPreviewProps } from "./InstallPreview.js";
-export { McpServerReadiness } from "./McpServerReadiness.js";
-export type { McpServerReadinessProps } from "./McpServerReadiness.js";
-export { useMcpServerReadiness } from "./useMcpServerReadiness.js";
-export type { McpServerReadinessKind, UseMcpServerReadinessReturn } from "./useMcpServerReadiness.js";
+export { PluginServerSignIn } from "./PluginServerSignIn.js";
+export type { PluginServerSignInProps } from "./PluginServerSignIn.js";
+export { PluginServerSignIns } from "./PluginServerSignIns.js";
+export type { PluginServerSignInsProps } from "./PluginServerSignIns.js";
+export { usePluginServerSignIn } from "./usePluginServerSignIn.js";
+export type { PluginServerSignInKind, UsePluginServerSignInReturn } from "./usePluginServerSignIn.js";
+export { usePluginTools } from "./usePluginTools.js";
+export type { UsePluginToolsReturn } from "./usePluginTools.js";
+export { AddMcpServerDialog } from "./AddMcpServerDialog.js";
+export type { AddMcpServerDialogProps } from "./AddMcpServerDialog.js";
+export { mcpServerPluginFiles, prepareMcpServerPlugin, useAddMcpServer } from "./useAddMcpServer.js";
+export type { AddMcpServerOptions, McpServerFormInput, UseAddMcpServerReturn } from "./useAddMcpServer.js";
 export { AddPluginToAgentDialog } from "./AddPluginToAgentDialog.js";
 export type { AddPluginToAgentDialogProps } from "./AddPluginToAgentDialog.js";
-export { useAddPluginToAgent } from "./useAddPluginToAgent.js";
-export type {
-  AddableHooks,
-  AddableServer,
-  AddPluginOutcome,
-  AddPluginPhase,
-  PluginOffer,
-  UseAddPluginToAgentReturn,
-} from "./useAddPluginToAgent.js";
-export { hookVariablesToDeclare, listsPluginHooks, withPluginHooks } from "./plugin-on-agent.js";
+export { toolsLeaveOut, useAddPluginToAgent } from "./useAddPluginToAgent.js";
+export type { AddPluginOutcome, AddPluginPhase, PluginOffer, UseAddPluginToAgentReturn } from "./useAddPluginToAgent.js";
+export { listsPlugin, withPlugin } from "./plugin-on-agent.js";
+export { PLUGIN_PICKS_STORAGE_KEY, readRememberedPluginPicks, rememberPluginPicks } from "./rememberedPluginPicks.js";
 export { HookConfigList } from "./HookConfigList.js";
 export type { HookConfigListProps } from "./HookConfigList.js";
 export { ManagedByPluginNotice } from "./ManagedByPluginNotice.js";

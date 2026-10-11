@@ -87,6 +87,5 @@ tests:
           can_create_agent_share: false
           can_create_skill: false
           can_create_plugin: false
-          can_create_mcp_server: false
           can_manage_child_orgs: false
           can_edit: false

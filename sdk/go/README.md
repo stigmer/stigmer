@@ -67,7 +67,7 @@ The client provides sub-clients for each resource type:
 |-------------------------|-----------------|------------|
 | `client.Agent`          | Agent           | Get, GetByReference, Create, Update, Apply, Delete, List |
 | `client.Skill`          | Skill           | Get, GetByReference, Push, GetArtifact, Delete, List |
-| `client.McpServer`      | MCP Server      | Get, GetByReference, Create, Update, Apply, Delete, List |
+| `client.Plugin`         | Plugin          | Get, GetByReference, Push, ListTools, GetArtifact, ListVersions, UpdateVisibility, Delete, List |
 | `client.Session`        | Session         | Get, Create, Update, Apply, Delete, List, ListByAgent |
 | `client.Vault`          | Vault           | Get, GetByReference, GetMine, GetByExternalId, Create, Update, UpdateVisibility, Delete, List, SetSecrets, RemoveSecrets, SetConnection, RemoveConnections, StartSignIn, CompleteSignIn, CreateConnectLink, GetConnectLink, StartConnectLink, CompleteConnectLink |
 | `client.Run`            | Run             | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |

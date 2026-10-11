@@ -281,7 +281,7 @@ Compact form for creating a shared vault.
 ### EnvVarForm
 
 Compact form that collects environment variable values for any
-resource that declares `env` variables (Agents, MCP servers, etc.).
+resource that declares `env` variables (agents, plugins, etc.).
 
 Renders one labeled input per variable. Secret variables use a
 password field with a visibility toggle. The form validates that
@@ -295,7 +295,7 @@ This is a **pure presentational component** with no knowledge of
 vaults, sessions, or orchestration. It
 can be used standalone by platform builders for their own env
 setup UIs, or composed by higher-level hooks like
-[`useAgentSetup`](/docs/sdk/react/agent#useagentsetup) or `useMcpServerSetup` within the
+[`useAgentSetup`](/docs/sdk/react/agent#useagentsetup) within the
 [`SessionComposer`](/docs/sdk/react/composer#sessioncomposer).
 
 All visual properties flow through `--stgm-*` design tokens.
@@ -321,7 +321,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ```tsx
 <EnvVarForm
-  title="GitHub MCP Server"
+  title="GitHub"
   description="Enter required credentials."
   variables={[
     { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },
@@ -330,6 +330,47 @@ All visual properties flow through `--stgm-*` design tokens.
   onSubmit={(values) => saveToMyVault(values)}
   onCancel={() => console.log("cancelled")}
 />
+```
+
+
+### OAuthCallbackHandler
+
+Lightweight component for OAuth callback pages.
+
+Render this component at the URL configured as your OAuth redirect
+URI (`STIGMER_OAUTH_REDIRECT_URI`). It extracts the `code` and
+`state` query parameters from the current URL, posts them back to
+the opener window via `window.postMessage`, and closes the popup.
+
+The component handles three scenarios:
+1. **Popup with opener** (primary): posts the message and closes.
+2. **No opener, `onFallback` provided**: calls the fallback with
+   the extracted parameters so the host app can handle them.
+3. **No opener, no fallback**: shows a message asking the user to
+   return to the main window.
+
+When the login page refused (`error`), the refusal is passed to the
+page that started the sign-in, so its wait ends at once, and shown here.
+
+Platform builders create a route in their application that renders
+this component:
+
+**Props** — `OAuthCallbackHandlerProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    onFallback: { type: "(params: OAuthCallbackParams) => void", description: "Fallback callback invoked when the page was opened as a regular navigation (no `window.opener`), meaning the popup `postMessage` path cannot be used.  Receives the extracted `code` and `state` so the host application can complete the OAuth flow via its own routing logic.  When omitted and `window.opener` is unavailable, the component renders an instructional message asking the user to close the tab." },
+  }}
+/>
+
+```tsx
+// app/auth/oauth/callback/page.tsx (Next.js)
+import { OAuthCallbackHandler } from "@stigmer/react";
+
+export default function OAuthCallbackPage() {
+  return <OAuthCallbackHandler />;
+}
 ```
 
 
@@ -468,9 +509,9 @@ function diffEnv(envDeclarations: Record<string, { description?: string; isSecre
 
 Describes a single environment variable the form should collect.
 
-Typically derived from a resource's `env` entries (Agent,
-McpServer, or any resource that declares required environment
-variables). The caller is responsible for filtering out variables
+Typically derived from a resource's `env` entries (an Agent, a
+plugin's declarations, or any resource that declares required
+environment variables). The caller is responsible for filtering out variables
 the user has already provided (i.e. only pass the *missing* ones).
 
 <TypeTable
@@ -539,6 +580,18 @@ function normalizeAddress(input: string): string | null
 ```
 
 
+### OAuthCallbackParams
+
+Parameters extracted from the OAuth callback URL.
+
+<TypeTable
+  type={{
+    code: { type: "string", description: "The authorization code returned by the OAuth provider.", required: true },
+    state: { type: "string", description: "The opaque state token used to correlate the callback with the originating request.", required: true },
+  }}
+/>
+
+
 ### SignInDestination
 
 Where a sign-in saves its login: a shared vault by id, or the caller's My vault.
@@ -570,12 +623,12 @@ extend their own `poolKeys`.
 
 ### toolAddressOf
 
-The address a tool's login is saved at: its URL for an HTTP server, and
-none for a local program, which takes its keys as secrets by name (as it
-does for a URL holding a placeholder).
+The address a tool's login is saved at: the URL of a plugin's HTTP
+server, and none for a local program, which takes its keys as secrets by
+name (as it does for a URL holding a placeholder).
 
 ```tsx
-function toolAddressOf(server: McpServer | null | undefined): string | null
+function toolAddressOf(server: McpServerEntry | null | undefined): string | null
 ```
 
 
@@ -593,14 +646,14 @@ Readiness of a surface's tool credentials for its users' runs:
 
 ### toolLoginKeyOf
 
-The variable a tool's login fills: its sign-in's `auth.target_env_var`,
-else the variable its `Authorization: Bearer ${VAR}` header names (the
-slot the platform writes for a URL-only tool, and authors write by hand
-for API-key tools). A login saved at the tool's address fills it; `null`
-when the tool has no login slot and takes only secrets by name.
+The variable a tool's login fills: the one its `Authorization: Bearer
+${VAR}` header names (the slot install writes for a server that signs
+in, and authors write by hand for API-key servers), the server's own
+rule. A login saved at the tool's address fills it; `null` when the tool
+has no login slot and takes only secrets by name.
 
 ```tsx
-function toolLoginKeyOf(server: McpServer | null | undefined): string | null
+function toolLoginKeyOf(server: McpServerEntry | null | undefined): string | null
 ```
 
 

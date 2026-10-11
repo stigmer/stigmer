@@ -12,33 +12,6 @@ public interface HookSourceOrBuilder extends
 
   /**
    * <pre>
-   * A plugin whose recorded hooks apply to this agent.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-   * @return Whether the plugin field is set.
-   */
-  boolean hasPlugin();
-  /**
-   * <pre>
-   * A plugin whose recorded hooks apply to this agent.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-   * @return The plugin.
-   */
-  ai.stigmer.commons.apiresource.ApiResourceReference getPlugin();
-  /**
-   * <pre>
-   * A plugin whose recorded hooks apply to this agent.
-   * </pre>
-   *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference plugin = 1 [json_name = "plugin", (.buf.validate.field) = { ... }</code>
-   */
-  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginOrBuilder();
-
-  /**
-   * <pre>
    * A hooks block in Claude Code's hooks.json shape, written in the agent.
    * </pre>
    *

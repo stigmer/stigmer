@@ -225,7 +225,7 @@ export class SqliteStore implements Store {
     db.exec("PRAGMA temp_store=MEMORY"); // Keep temp tables in memory
 
     try {
-      runMigrations(db);
+      runMigrations(db, undefined, logger);
     } catch (error) {
       db.close();
       throw error;
@@ -1940,15 +1940,15 @@ function connectLinkOf(row: ConnectLinkRow): ConnectLinkRecord {
 }
 
 const CONNECT_ATTEMPT_COLUMNS =
-  "id, org, created_by, person, mcp_server_id, run_id, created_at, expires_at";
+  "id, org, created_by, person, plugin_id, server, created_at, expires_at";
 
 interface ConnectAttemptRow {
   id: string;
   org: string;
   created_by: string;
   person: string;
-  mcp_server_id: string;
-  run_id: string;
+  plugin_id: string;
+  server: string;
   created_at: number;
   expires_at: number;
 }
@@ -1966,8 +1966,8 @@ class SqliteConnectAttemptStore implements ConnectAttemptStore {
         attempt.org,
         attempt.createdBy,
         attempt.person,
-        attempt.mcpServerId,
-        attempt.runId,
+        attempt.pluginId,
+        attempt.server,
         attempt.createdAt,
         attempt.expiresAt,
       );
@@ -2007,8 +2007,8 @@ function connectAttemptOf(row: ConnectAttemptRow): ConnectAttemptRecord {
     org: row.org,
     createdBy: row.created_by,
     person: row.person,
-    mcpServerId: row.mcp_server_id,
-    runId: row.run_id,
+    pluginId: row.plugin_id,
+    server: row.server,
     createdAt: Number(row.created_at),
     expiresAt: Number(row.expires_at),
   };

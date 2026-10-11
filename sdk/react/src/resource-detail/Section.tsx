@@ -26,7 +26,7 @@ export interface SectionProps {
  * Renders a labeled section with an optional count badge and edit affordance
  * in the header row. The content is wrapped in a bordered card.
  *
- * Used uniformly by AgentDetailView, McpServerDetailView, and SkillDetailView.
+ * Used uniformly by AgentDetailView, PluginDetailView, and SkillDetailView.
  */
 export function Section({
   title,

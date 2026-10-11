@@ -1,0 +1,9 @@
+{
+  "name": "meridian-ops",
+  "version": "1.0.0",
+  "description": "Meridian Travel operations: search flights and manage bookings",
+  "author": {
+    "name": "Meridian Travel"
+  },
+  "keywords": ["travel", "bookings"]
+}

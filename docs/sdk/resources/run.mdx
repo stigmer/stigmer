@@ -1335,19 +1335,19 @@ SessionSpec defines the configurable properties of a session.
 
 <TypeTable
   type={{
-    agentRef: { type: "ResourceRef", description: "The agent this conversation runs, as 'org/slug' with an optional version; empty means no agent, and the built-in assistant answers with the MCP servers and skills this session itself declares.", typeDescriptionLink: "#resourceref" },
+    agentRef: { type: "ResourceRef", description: "The agent this conversation runs, as 'org/slug' with an optional version; empty means no agent, and the built-in assistant answers with the plugins and skills this session itself declares.", typeDescriptionLink: "#resourceref" },
     subject: { type: "string", description: "Conversation title for UI display." },
     harnessStateId: { type: "string", description: "Harness-specific state identifier for conversation continuity." },
     harnessStateIdHistory: { type: "string[]", description: "Prior harness state identifiers this session has owned, oldest first." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session.", typeDescriptionLink: "#workspaceentryinput" },
-    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers to make available in this session.", typeDescriptionLink: "#mcpserverusageinput" },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
     harness: { type: "Harness", description: "Execution harness for this session.", typeDescriptionLink: "#harness" },
     cursorMode: { type: "CursorMode", description: "Cursor SDK agent mode for this session.", typeDescriptionLink: "#cursormode" },
     executionTarget: { type: "ExecutionTarget", description: "Where session activities are executed — local client or cloud sandbox.", typeDescriptionLink: "#executiontarget" },
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets this conversation's runs use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of the listed vaults." },
+    plugins: { type: "ResourceRef[]", description: "Plugins this conversation uses, each whole, besides its agent's: their skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
   }}
 />
 
@@ -1358,7 +1358,7 @@ Generic reference to any API resource by org and slug.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource, by slug or id." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
@@ -1408,16 +1408,6 @@ LocalPathSource uses an existing directory on the host filesystem as the workspa
 <TypeTable
   type={{
     path: { type: "string", description: "Absolute path to an existing directory on the host filesystem." },
-  }}
-/>
-
-### McpServerUsageInput
-
-McpServerUsage declares that an agent (AgentSpec.mcp_server_usages) or a session (SessionSpec.mcp_server_usages) uses a McpServer resource.
-
-<TypeTable
-  type={{
-    mcpServerRef: { type: "ResourceRef", description: "Reference to the McpServer resource.", typeDescriptionLink: "#resourceref", required: true },
   }}
 />
 
@@ -1933,7 +1923,7 @@ A tool call requesting approval — the "ask" recorded when a gated tool call en
     fromSubAgent: { type: "boolean", description: "True if this approval originates from a sub-agent." },
     subAgentName: { type: "string", description: "Name of the sub-agent when from_sub_agent is true; empty otherwise." },
     subAgentSubject: { type: "string", description: "Concise subject of the sub-agent's task when from_sub_agent is true; empty otherwise." },
-    mcpServerSlug: { type: "string", description: "Slug of the MCP server providing this tool; empty for built-in tools." },
+    mcpServerSlug: { type: "string", description: "Name of the MCP server providing this tool; empty for built-in tools." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic tool category.", typeDescriptionLink: "#toolkind" },
     approvalPolicySource: { type: "ApprovalPolicySource", description: "Policy layer that gated this call.", typeDescriptionLink: "#approvalpolicysource" },
     approvalPolicyHook: { type: "string", description: "Slug of the plugin whose hook asked." },
@@ -2200,7 +2190,7 @@ A pending approval request for a tool call that requires user consent before exe
     requestedAt: { type: "string", description: "ISO 8601 timestamp when the approval was requested." },
     fromSubAgent: { type: "boolean", description: "True if this approval originates from a sub-agent." },
     subAgentName: { type: "string", description: "Name of the sub-agent if from_sub_agent is true." },
-    mcpServerSlug: { type: "string", description: "Slug of the MCP server that provides this tool." },
+    mcpServerSlug: { type: "string", description: "Name of the MCP server that provides this tool, as its tools are named (plugin_<plugin>_<server> for a plugin's server)." },
     subAgentSubject: { type: "string", description: "Concise subject/description of the sub-agent's task (3-10 words)." },
     agentRationale: { type: "string", description: "Why the agent wanted to execute this tool." },
     branchAtDeny: { type: "string", description: "Git branch name at the time the tool was denied." },
@@ -2295,10 +2285,12 @@ RunValueDeclarer names who declared a value a turn uses.
 
 <TypeTable
   type={{
-    kind: { type: "RunValueDeclarerKind", description: "Agent, tool or repository.", typeDescriptionLink: "#runvaluedeclarerkind" },
-    name: { type: "string", description: "The agent's or tool's name, or the repository entry's name." },
-    mcpServerId: { type: "string", description: "The tool's MCP server id; empty for an agent or a repository." },
-    repositoryUrl: { type: "string", description: "The repository's URL; empty for an agent or a tool." },
+    kind: { type: "RunValueDeclarerKind", description: "Agent, tool, plugin or repository.", typeDescriptionLink: "#runvaluedeclarerkind" },
+    name: { type: "string", description: "The agent's name; a tool's name as plugin:<plugin>:<server>; the plugin's name; or the repository entry's name." },
+    repositoryUrl: { type: "string", description: "The repository's URL; empty for an agent, a tool or a plugin." },
+    pluginId: { type: "string", description: "The plugin that declared it: a tool's plugin, or the plugin whose hooks read it; empty for an agent or a repository." },
+    server: { type: "string", description: "The tool's server name in its plugin; empty for everything else." },
+    pluginDigest: { type: "string", description: "The archive of the tool's plugin this run planned (the plugin's digest); empty for everything else." },
   }}
 />
 
@@ -2439,7 +2431,7 @@ Represents a tool call made by the agent during a run.
     approvalAction: { type: "ApprovalAction", description: "The action taken by the user.", typeDescriptionLink: "#approvalaction" },
     isStreaming: { type: "boolean", description: "True while the tool is actively producing content, false when complete." },
     streamingSource: { type: "ToolCallStreamingSource", description: "Identifies what is currently being streamed.", typeDescriptionLink: "#toolcallstreamingsource" },
-    mcpServerSlug: { type: "string", description: "Slug of the MCP server that provides this tool." },
+    mcpServerSlug: { type: "string", description: "Name of the MCP server that provides this tool, as its tools are named (plugin_<plugin>_<server> for a plugin's server)." },
     argsPreview: { type: "string", description: "Sanitized preview of tool arguments for UI display." },
     toolKind: { type: "ToolKind", description: "Harness-agnostic category of this tool, set by the runner so clients render the tool identically regardless of which engine produced it.", typeDescriptionLink: "#toolkind" },
     outputRef: { type: "ToolCallOutputRef", description: "───────────────────────────────────────────────────────────────────────────── Offloaded Output (large tool results).", typeDescriptionLink: "#toolcalloutputref" },
@@ -2622,7 +2614,7 @@ ApprovalPolicySource is the policy layer that decided a tool call's approval req
 | `APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL` | Layer 4: the pre-armed RunSpec.auto_approve_all whole-run global bypass cleared this call. |
 | `APPROVAL_POLICY_SOURCE_APPROVAL_LEASE` | Layer 4: a run-lifetime scoped lease (the successor to a global "approve all"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched the leased class. |
 | `APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY` | The default asked for a built-in tool of an approval class (write / delete / shell). |
-| `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint annotation). |
+| `APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN` | The default asked for an MCP tool because its server marks it destructive (the tool's MCP destructiveHint annotation, read live from the server's tools each turn), or because its server's tools could not be listed. |
 | `APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP` | The unattended approval mode (RunStatus.approval_mode = APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip: the lane the run came through (a schedule's fire, a messaging channel, a guest share) has no approver, so the platform skipped the tool and told the model to adapt. |
 | `APPROVAL_POLICY_SOURCE_HOOK` | A hook decided this call: it refused it, asked a person first, or let it run without the approval it would otherwise need. |
 
@@ -2758,6 +2750,7 @@ Who declared a value a turn uses.
 | `RUN_VALUE_DECLARER_KIND_AGENT` | The turn's agent, in its env. |
 | `RUN_VALUE_DECLARER_KIND_TOOL` | A tool (an MCP server) the turn uses, in its env or its login. |
 | `RUN_VALUE_DECLARER_KIND_REPOSITORY` | A repository the turn clones, for its token. |
+| `RUN_VALUE_DECLARER_KIND_PLUGIN` | A plugin the turn uses, for its hooks. |
 
 ### RunValueOrigin
 

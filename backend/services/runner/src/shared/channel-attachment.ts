@@ -27,10 +27,9 @@
  * Approval-free by construction, and FORCED, not convenient: both
  * calling surfaces run APPROVAL_MODE_UNATTENDED, where a
  * gated tool resolves as skip-and-adapt — a gated send tool would mean
- * reminders never send. An empty destructive set + no McpServerUsage keep
- * the approval default and the connect backfill structurally unable to
- * gate it, and its tools sit outside every tool list (see
- * synthesized-attachment.ts). Callers inject AFTER resolve + backfill.
+ * reminders never send. It is no plugin's server, so the approval default
+ * reads no mark from it and cannot gate it, and its tools sit outside every
+ * tool list (see synthesized-attachment.ts). Callers inject AFTER resolve.
  *
  * Failure posture: every discovery failure — OSS's empty
  * answer, a registry outage, a control plane predating the RPC
@@ -52,8 +51,9 @@ import {
 } from "./synthesized-attachment.js";
 
 /**
- * The synthesized attachment's slug. Reserved: a user McpServer with
- * this slug is shadowed by the synthesized attachment, with a warning.
+ * The synthesized attachment's slug. Reserved: no plugin server is named
+ * like it (theirs start `plugin_`), and one that were would be shadowed by
+ * the synthesized attachment, with a warning.
  * Runner-internal (the resolved-server name and shadow key — the
  * mcp-server never sees it); pinned by this module's test. The ROUTE
  * below is the cross-repo string, pinned on both sides (the
@@ -130,14 +130,10 @@ export function synthesizeChannelAttachment(
     return undefined;
   }
 
-  // Approval-free by construction + backfill-proof: see file header.
+  // Approval-free by construction: see file header.
   const base = {
     slug: CHANNEL_ATTACHMENT_SLUG,
-    destructiveTools: [],
-    discoveredToolNames: null,
-    serverId: "",
     pluginOrigin: null,
-    discoveredCapabilitiesEmpty: false,
   };
 
   if (options.bridgeEndpoint !== null && options.bridgeEndpoint !== "") {

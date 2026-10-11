@@ -257,9 +257,9 @@ describe("the copy the suites assert", () => {
       "plugin eval pev_1 is still running: cancel it first, then delete it",
     );
     expect(
-      pluginEvalOtherPluginToolMessage("mcp__plugin_x_a__*", "x", "notes"),
+      pluginEvalOtherPluginToolMessage("mcp__plugin_x_a__*", "plugin_x_a", "notes"),
     ).toBe(
-      "allow_tools entry 'mcp__plugin_x_a__*' names plugin 'x', but this eval runs 'notes'; a try attaches no other plugin",
+      "allow_tools entry 'mcp__plugin_x_a__*' names MCP server 'plugin_x_a', which is not one of 'notes''s; a try attaches no other plugin",
     );
     expect(PLUGIN_EVAL_NOT_STARTED_ERROR).toBe(
       "the eval's workflow could not be started",

@@ -99,13 +99,13 @@ type SessionInput struct {
 	HarnessStateIdHistory []string
 	Metadata              map[string]string
 	WorkspaceEntries      []*WorkspaceEntryInput
-	McpServerUsages       []*McpServerUsageInput
 	SkillRefs             []ResourceRef
 	Harness               sessionv1.Harness
 	CursorMode            sessionv1.CursorMode
 	ExecutionTarget       sessionv1.ExecutionTarget
 	Vaults                []ResourceRef
 	IncludeMyVault        bool
+	Plugins               []ResourceRef
 }
 
 func (i *SessionInput) toProto() (*sessionv1.Session, error) {
@@ -138,13 +138,6 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 		}
 		resource.Spec.WorkspaceEntries = append(resource.Spec.WorkspaceEntries, v)
 	}
-	for idx, item := range i.McpServerUsages {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, indexErr("McpServerUsages", idx, err)
-		}
-		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, v)
-	}
 	for _, r := range i.SkillRefs {
 		ref := r.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_skill
@@ -159,6 +152,11 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 		resource.Spec.Vaults = append(resource.Spec.Vaults, ref)
 	}
 	resource.Spec.IncludeMyVault = i.IncludeMyVault
+	for _, r := range i.Plugins {
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_plugin
+		resource.Spec.Plugins = append(resource.Spec.Plugins, ref)
+	}
 	return resource, nil
 }
 
@@ -185,9 +183,6 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		for _, item := range s.GetWorkspaceEntries() {
 			input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))
 		}
-		for _, item := range s.GetMcpServerUsages() {
-			input.McpServerUsages = append(input.McpServerUsages, mcpServerUsageInputFromProto(item))
-		}
 		for _, r := range s.GetSkillRefs() {
 			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 		}
@@ -198,6 +193,9 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 			input.Vaults = append(input.Vaults, resourceRefFromProto(r))
 		}
 		input.IncludeMyVault = s.GetIncludeMyVault()
+		for _, r := range s.GetPlugins() {
+			input.Plugins = append(input.Plugins, resourceRefFromProto(r))
+		}
 	}
 	return input
 }

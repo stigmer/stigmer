@@ -60,7 +60,6 @@ const DOCUMENTS = [
   "identity-provider-administration.fga.yaml",
   "invitation-administration.fga.yaml",
   "license-issuer.fga.yaml",
-  "mcp-server-authoring.fga.yaml",
   "memory-subject-only.fga.yaml",
   "oauth-app-administration.fga.yaml",
   "org-admin-owner-inheritance.fga.yaml",

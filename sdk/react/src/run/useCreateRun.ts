@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
-import { mergeSessionContext, type AttachmentInput, type McpServerUsageInput, type ResourceRef, type RunConfigInput, type WorkspaceEntryInput } from "@stigmer/sdk";
+import { mergeSessionContext, type AttachmentInput, type ResourceRef, type RunConfigInput, type WorkspaceEntryInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { toProtoInteractionMode } from "../composer/interaction-mode.js";
@@ -18,8 +18,8 @@ import {
  * Spec for the session the server auto-creates on the one-call bootstrap
  * path (maps to `RunSpec.session_spec` in the proto).
  *
- * Carries the session shape — workspace, harness, execution target, MCP
- * servers, skills — alongside the first message, so starting a session
+ * Carries the session shape — workspace, harness, execution target,
+ * plugins, skills — alongside the first message, so starting a session
  * with a configured workspace is a single API call (stigmer/stigmer#249).
  *
  * `agentRef` names the agent the new conversation runs; the server pins
@@ -33,8 +33,8 @@ export interface BootstrapSessionSpec {
   readonly subject?: string;
   /** Workspace source entries to attach to the session. */
   readonly workspaceEntries?: WorkspaceEntryInput[];
-  /** MCP server configurations to include for tool access. */
-  readonly mcpServerUsages?: McpServerUsageInput[];
+  /** Plugins the conversation uses, each whole: their skills, agents, hooks and MCP servers. */
+  readonly plugins?: ResourceRef[];
   /** Skill references to enable for runs in this session. */
   readonly skillRefs?: ResourceRef[];
   /**
@@ -349,7 +349,7 @@ export function useCreateRun(): UseCreateRunReturn {
               agentRef: input.sessionSpec.agentRef,
               subject: input.sessionSpec.subject,
               workspaceEntries: input.sessionSpec.workspaceEntries,
-              mcpServerUsages: input.sessionSpec.mcpServerUsages,
+              plugins: input.sessionSpec.plugins,
               skillRefs: input.sessionSpec.skillRefs,
               vaults: input.sessionSpec.vaults,
               includeMyVault: input.sessionSpec.includeMyVault,

@@ -14,7 +14,7 @@ public interface SessionSpecOrBuilder extends
    * <pre>
    * The agent this conversation runs, as 'org/slug' with an optional
    * version; empty means no agent, and the built-in assistant answers with
-   * the MCP servers and skills this session itself declares.
+   * the plugins and skills this session itself declares.
    *
    * The conversation runs the agent version this reference resolved to
    * when it was written, recorded in status.agent_id and
@@ -43,7 +43,7 @@ public interface SessionSpecOrBuilder extends
    * <pre>
    * The agent this conversation runs, as 'org/slug' with an optional
    * version; empty means no agent, and the built-in assistant answers with
-   * the MCP servers and skills this session itself declares.
+   * the plugins and skills this session itself declares.
    *
    * The conversation runs the agent version this reference resolved to
    * when it was written, recorded in status.agent_id and
@@ -72,7 +72,7 @@ public interface SessionSpecOrBuilder extends
    * <pre>
    * The agent this conversation runs, as 'org/slug' with an optional
    * version; empty means no agent, and the built-in assistant answers with
-   * the MCP servers and skills this session itself declares.
+   * the plugins and skills this session itself declares.
    *
    * The conversation runs the agent version this reference resolved to
    * when it was written, recorded in status.agent_id and
@@ -342,75 +342,6 @@ java.lang.String defaultValue);
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
    */
   ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder getWorkspaceEntriesOrBuilder(
-      int index);
-
-  /**
-   * <pre>
-   * MCP servers to make available in this session.
-   *
-   * Augments the agent's tool set for this specific conversation without
-   * modifying the agent blueprint. Each usage references an McpServer
-   * resource. The agent's tool lists govern these servers like its own: an
-   * agent whose tools list does not name a session server cannot use it.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  java.util.List<ai.stigmer.agentic.mcpserver.v1.McpServerUsage> 
-      getMcpServerUsagesList();
-  /**
-   * <pre>
-   * MCP servers to make available in this session.
-   *
-   * Augments the agent's tool set for this specific conversation without
-   * modifying the agent blueprint. Each usage references an McpServer
-   * resource. The agent's tool lists govern these servers like its own: an
-   * agent whose tools list does not name a session server cannot use it.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  ai.stigmer.agentic.mcpserver.v1.McpServerUsage getMcpServerUsages(int index);
-  /**
-   * <pre>
-   * MCP servers to make available in this session.
-   *
-   * Augments the agent's tool set for this specific conversation without
-   * modifying the agent blueprint. Each usage references an McpServer
-   * resource. The agent's tool lists govern these servers like its own: an
-   * agent whose tools list does not name a session server cannot use it.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  int getMcpServerUsagesCount();
-  /**
-   * <pre>
-   * MCP servers to make available in this session.
-   *
-   * Augments the agent's tool set for this specific conversation without
-   * modifying the agent blueprint. Each usage references an McpServer
-   * resource. The agent's tool lists govern these servers like its own: an
-   * agent whose tools list does not name a session server cannot use it.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder> 
-      getMcpServerUsagesOrBuilderList();
-  /**
-   * <pre>
-   * MCP servers to make available in this session.
-   *
-   * Augments the agent's tool set for this specific conversation without
-   * modifying the agent blueprint. Each usage references an McpServer
-   * resource. The agent's tool lists govern these servers like its own: an
-   * agent whose tools list does not name a session server cannot use it.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
-   */
-  ai.stigmer.agentic.mcpserver.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
       int index);
 
   /**
@@ -706,4 +637,73 @@ java.lang.String defaultValue);
    * @return The includeMyVault.
    */
   boolean getIncludeMyVault();
+
+  /**
+   * <pre>
+   * Plugins this conversation uses, each whole, besides its agent's: their
+   * skills, agents, hooks and MCP servers. A chat with the built-in
+   * assistant gets its tools from these.
+   *
+   * The agent's tool lists govern a conversation's plugins like its own: an
+   * agent whose tools list does not name a plugin's server cannot use it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
+      getPluginsList();
+  /**
+   * <pre>
+   * Plugins this conversation uses, each whole, besides its agent's: their
+   * skills, agents, hooks and MCP servers. A chat with the built-in
+   * assistant gets its tools from these.
+   *
+   * The agent's tool lists govern a conversation's plugins like its own: an
+   * agent whose tools list does not name a plugin's server cannot use it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getPlugins(int index);
+  /**
+   * <pre>
+   * Plugins this conversation uses, each whole, besides its agent's: their
+   * skills, agents, hooks and MCP servers. A chat with the built-in
+   * assistant gets its tools from these.
+   *
+   * The agent's tool lists govern a conversation's plugins like its own: an
+   * agent whose tools list does not name a plugin's server cannot use it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  int getPluginsCount();
+  /**
+   * <pre>
+   * Plugins this conversation uses, each whole, besides its agent's: their
+   * skills, agents, hooks and MCP servers. A chat with the built-in
+   * assistant gets its tools from these.
+   *
+   * The agent's tool lists govern a conversation's plugins like its own: an
+   * agent whose tools list does not name a plugin's server cannot use it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getPluginsOrBuilderList();
+  /**
+   * <pre>
+   * Plugins this conversation uses, each whole, besides its agent's: their
+   * skills, agents, hooks and MCP servers. A chat with the built-in
+   * assistant gets its tools from these.
+   *
+   * The agent's tool lists govern a conversation's plugins like its own: an
+   * agent whose tools list does not name a plugin's server cannot use it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginsOrBuilder(
+      int index);
 }

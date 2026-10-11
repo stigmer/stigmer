@@ -67,35 +67,35 @@ hooks on tool calls only. So is any hook that is not a command (an HTTP or
 prompt hook), and a `hooks/` folder in a plugin that has only the open Agent
 Plugins manifest, which defines no hooks.
 
-## Switch the hooks on for an Agent
+## Switch the hooks on
 
-A plugin's hooks guard no Agent until an Agent names the plugin. The Agent a
-plugin installs names it already; any other Agent of yours can too.
+A plugin's hooks guard nothing until an Agent or a conversation lists the
+plugin. Listing it switches on the whole plugin: its hooks, with its Skills,
+agents and MCP servers.
 
 In the console, choose **Add to an agent** on the plugin's page, pick the Agent
-and choose **Add**. The dialog lists what the Agent gets (the plugin's hooks,
-and its MCP Servers when the plugin installed tools and no Agent) and the
-variables the hooks read. Each such variable is declared on the Agent as a
-secret, and the Agent asks for it when a Session starts. Switching the hooks off
-later leaves those variables declared; remove them from the Agent's environment
-variables when nothing else uses them. An Agent a plugin installed cannot be
-changed here; the dialog says so.
+and choose **Add**. The plugin is added to the Agent's `plugins`, and the
+variables its hooks read come with it, declared by the plugin; a conversation on
+the Agent finds them in its vaults, and asks for a missing one before the first
+message. To try the hooks in one conversation first, choose **Start a chat** on
+the plugin's page, or run `stigmer run --plugin hookify`: a chat with the
+built-in assistant runs a listed plugin's hooks too.
 
-The Agent's page then shows a **Hooks** section that names the plugin and lists
-every command it runs. To switch a plugin's hooks on from there, edit the
-section and type the plugin's name; to switch them off, remove it.
+The Agent's page then lists the plugin in its **Plugins** section, which links
+to the plugin's page and every command its hooks run. To switch them off, edit
+that section and take the plugin out.
 
-In YAML, list the plugin under the Agent's `hooks`:
+In YAML, list the plugin under the Agent's `plugins`:
 
 ```yaml validate-as="Agent"
 spec:
-  hooks:
-    - plugin:
-        kind: plugin
-        slug: hookify
+  plugins:
+    - kind: plugin
+      slug: hookify
 ```
 
-A plugin reference with no version follows the plugin's installed version.
+A plugin reference with no version follows the plugin's installed version. The
+plugins' hooks run before the hooks written in the Agent.
 
 ## See a hook decide
 
@@ -160,10 +160,10 @@ YAML. The [Agent resource reference](/docs/sdk/resources/agent) has every field.
 
 ## Remove a plugin an Agent uses
 
-Removing a plugin is refused while one of your Agents names it in its hooks, and
-the refusal names each Agent: switch the hooks off on those Agents first, from
-their pages or their YAML. Without that, the Agent's next run would be refused
-for a plugin that is gone.
+Removing a plugin is refused while one of your Agents lists it, and the refusal
+names each Agent: take the plugin out of those Agents' `plugins` first, from
+their pages or their YAML. A conversation that listed the plugin fails its next
+turn, naming the plugin that is gone.
 
 ## What differs from Claude Code
 
@@ -176,9 +176,9 @@ differences:
   plugin's page lists the rest as not run.
 - A hook sees Stigmer's tools under Claude Code's names: the shell is `Bash`,
   the file tools are `Read`, `Write` and `Edit`, a directory listing is `Glob`,
-  delegation is `Agent`, and an MCP tool is `mcp__<server>__<tool>`
-  (`mcp__plugin_<plugin>_<server>__<tool>` for a server the plugin brought).
-  Stigmer's own channel, conversation and memory tools reach no hook.
+  delegation is `Agent`, and an MCP tool is
+  `mcp__plugin_<plugin>_<server>__<tool>`. Stigmer's own channel, conversation
+  and memory tools reach no hook.
 - After a shell command, a hook's `tool_response` carries the whole output as
   `stdout` and an empty `stderr`: the shell merges the two streams.
 - A hook cannot replace a tool's result (`updatedToolOutput`) or stop the turn

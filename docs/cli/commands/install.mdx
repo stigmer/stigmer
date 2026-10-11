@@ -10,9 +10,9 @@ Install a plugin from a source by name.
 
 `stigmer install` takes the name of a plugin in a source, reads the plugin's
 folder from that source's tree, and pushes it to your organization exactly as
-`stigmer push plugin <dir>` would push the same folder from disk. Stigmer
-materializes the plugin's skills, MCP servers and agent as one unit; a plugin
-installs as an agent, as tools for your agents, or both. Installing again with a
+`stigmer push plugin <dir>` would push the same folder from disk. The plugin is
+stored as one unit with its skills, agents, MCP servers and hooks; a
+conversation or an agent that lists it gets all of them. Installing again with a
 changed plugin upgrades it, and installing an unchanged one changes nothing.
 
 ## Usage
@@ -42,28 +42,25 @@ stigmer --org my-org install acme-plugins/thermos --visibility org
 
 ### What the install leaves to do
 
-The output ends with a `Next` section, one line per MCP server the plugin
-installed: a server that signs in with OAuth and has no sign-in in your
-organization yet names the command that runs it
-(`stigmer connect mcp-server <server>`, which opens the console's sign-in and
-waits for it); a server already signed in says so; a server that wants an API
-key names the variables and where they are asked (the agent's first session when
-the plugin installed an agent; otherwise saved with
-`stigmer vault set-secret <NAME> --mine` before
-`stigmer connect mcp-server <server>`). A plugin that installed tools and no
-agent ends with the one thing still missing: an agent that lists the servers
-under `mcp_server_usages`, or the plugin's page in the console, whose **Add to
-an agent** does it. Under `--json` the same facts are `data.next`.
+The output lists what the plugin holds (its skills, MCP servers, agents and
+hooks) and ends with a `Next` section: one line per MCP server that signs in,
+naming the command that runs the sign-in and lists its tools
+(`stigmer connect plugin <plugin>`, with `--server <name>` when the plugin
+carries several); the keys the plugin needs and declares no value for, saved
+with `stigmer vault set-secret <NAME> --mine`; then the two ways to use it,
+`stigmer run --plugin <plugin>` for a conversation and an agent's `spec.plugins`
+(or the plugin's page in the console, whose **Add to an agent** does it). Under
+`--json` the same facts are `data.next`.
 
 ## Options
 
-| Flag              | Type     | Default | Description                                                                     |
-| ----------------- | -------- | ------- | ------------------------------------------------------------------------------- |
-| `--dry-run`       | `bool`   |         | read the marketplace and show what would install, without pushing               |
-| `--json`          | `bool`   |         | emit the result as JSON                                                         |
-| `--message`, `-m` | `string` |         | version message describing what changed                                         |
-| `--quiet`         | `bool`   |         | print only the status line                                                      |
-| `--visibility`    | `string` |         | visibility for the plugin and everything it installs (private, org, child-orgs) |
+| Flag              | Type     | Default | Description                                                       |
+| ----------------- | -------- | ------- | ----------------------------------------------------------------- |
+| `--dry-run`       | `bool`   |         | read the marketplace and show what would install, without pushing |
+| `--json`          | `bool`   |         | emit the result as JSON                                           |
+| `--message`, `-m` | `string` |         | version message describing what changed                           |
+| `--quiet`         | `bool`   |         | print only the status line                                        |
+| `--visibility`    | `string` |         | visibility for the plugin (private, org, child-orgs)              |
 
 ### The ref
 
@@ -99,8 +96,9 @@ second source upgrades the `thermos` you installed from the first.
 
 ### Removing
 
-There is no `uninstall`. `stigmer delete plugin <name>` removes the plugin and
-everything it installed, the one delete verb across kinds.
+There is no `uninstall`. `stigmer delete plugin <name>` removes the plugin with
+everything it carries, the one delete verb across kinds. It is refused while an
+agent of the organization lists the plugin.
 
 ## Global Flags
 
@@ -113,12 +111,14 @@ everything it installed, the one delete verb across kinds.
 
 ## Related commands
 
-| Command                                | Description                                 |
-| -------------------------------------- | ------------------------------------------- |
-| [`stigmer marketplace`](./marketplace) | Manage the sources you install from         |
-| [`stigmer push`](./push)               | Install a plugin from a folder on disk      |
-| [`stigmer validate`](./validate)       | Check a plugin folder offline               |
-| [`stigmer delete`](./delete)           | Remove a plugin and everything it installed |
+| Command                                | Description                                      |
+| -------------------------------------- | ------------------------------------------------ |
+| [`stigmer marketplace`](./marketplace) | Manage the sources you install from              |
+| [`stigmer push`](./push)               | Install a plugin from a folder on disk           |
+| [`stigmer validate`](./validate)       | Check a plugin folder offline                    |
+| [`stigmer mcp add`](./mcp)             | Install one MCP server at an address as a plugin |
+| [`stigmer connect`](./connect)         | List the tools of a plugin's MCP server          |
+| [`stigmer delete`](./delete)           | Remove a plugin                                  |
 
 ## See also
 

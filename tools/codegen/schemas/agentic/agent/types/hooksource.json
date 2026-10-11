@@ -1,22 +1,9 @@
 {
   "name": "HookSource",
-  "description": "HookSource is one source of an agent's hooks: a plugin, or a hooks block\n written in the agent.",
+  "description": "HookSource is a hooks block written in the agent.",
   "protoType": "ai.stigmer.agentic.agent.v1.HookSource",
   "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
   "fields": [
-    {
-      "name": "Plugin",
-      "jsonName": "plugin",
-      "protoField": "plugin",
-      "type": {
-        "kind": "message",
-        "messageType": "ApiResourceReference"
-      },
-      "description": "A plugin whose recorded hooks apply to this agent.",
-      "required": false,
-      "referenceKind": 58,
-      "oneofGroup": "source"
-    },
     {
       "name": "Inline",
       "jsonName": "inline",

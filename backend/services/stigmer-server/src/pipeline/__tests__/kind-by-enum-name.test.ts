@@ -1,9 +1,9 @@
 /**
  * Pins `kindByEnumName` (pipeline/apiresource-meta.ts), the lookup for the
  * SECOND kind vocabulary the contract carries. A resource's own `kind`
- * field is the `kind_meta.name` ("McpServer"; `getKindEnum`, the #545
+ * field is the `kind_meta.name` ("ChannelApp"; `getKindEnum`, the #545
  * lesson). An `ApiResourceRef.kind` — the IamPolicy spec's principal and
- * resource, the FGA object type — is the enum MEMBER name ("mcp_server"),
+ * resource, the FGA object type — is the enum MEMBER name ("channel_app"),
  * which is what every SDK call site sends and what the cloud's
  * `kindFromSpecString` resolved before this entry.
  *
@@ -34,7 +34,7 @@ describe("kindByEnumName — an ApiResourceRef.kind is the enum member name", ()
   it.each([
     ["organization", ApiResourceKind.organization],
     ["identity_account", ApiResourceKind.identity_account],
-    ["mcp_server", ApiResourceKind.mcp_server],
+    ["channel_app", ApiResourceKind.channel_app],
     ["agent", ApiResourceKind.agent],
     ["iam_policy", ApiResourceKind.iam_policy],
   ])("%s resolves to its kind", (name, kind) => {
@@ -43,7 +43,7 @@ describe("kindByEnumName — an ApiResourceRef.kind is the enum member name", ()
 
   it.each([
     ["Organization", "the kind_meta spelling, not a member name"],
-    ["McpServer", "the kind_meta spelling, not a member name"],
+    ["ChannelApp", "the kind_meta spelling, not a member name"],
     ["ORGANIZATION", "case differs"],
     ["organization ", "trailing whitespace"],
     ["", "empty"],
@@ -65,14 +65,14 @@ describe("kindByEnumName — an ApiResourceRef.kind is the enum member name", ()
   it("is exact where getKindEnum is lenient — the two vocabularies stay two lookups", () => {
     // A resource's `kind` field: canonical kind_meta.name matching,
     // case-insensitive, underscores ignored, and a throw on unknown.
-    expect(getKindEnum("McpServer")).toBe(ApiResourceKind.mcp_server);
-    expect(getKindEnum("mcp_server")).toBe(ApiResourceKind.mcp_server);
+    expect(getKindEnum("ChannelApp")).toBe(ApiResourceKind.channel_app);
+    expect(getKindEnum("channel_app")).toBe(ApiResourceKind.channel_app);
     expect(() => getKindEnum("spaceship")).toThrow();
     // An ApiResourceRef.kind: the member name and nothing else.
-    expect(kindByEnumName("McpServer")).toBe(
+    expect(kindByEnumName("ChannelApp")).toBe(
       ApiResourceKind.api_resource_kind_unknown,
     );
-    expect(kindByEnumName("mcp_server")).toBe(ApiResourceKind.mcp_server);
+    expect(kindByEnumName("channel_app")).toBe(ApiResourceKind.channel_app);
   });
 
   it("every member of the enum round-trips through its own name", () => {
@@ -87,7 +87,7 @@ describe("kindEnumName — the inverse: a kind spelled as an ApiResourceRef.kind
   it.each([
     [ApiResourceKind.organization, "organization"],
     [ApiResourceKind.identity_account, "identity_account"],
-    [ApiResourceKind.mcp_server, "mcp_server"],
+    [ApiResourceKind.channel_app, "channel_app"],
   ])("%s spells as %s", (kind, name) => {
     expect(kindEnumName(kind)).toBe(name);
   });

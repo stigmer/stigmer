@@ -22,7 +22,7 @@
 //   a missing capability, so it is neither a CapabilityFlag nor a second set
 //   of goldens here; a cloud record that wants the cloud photograph takes it
 //   with its composition in front of it.
-// - mcpserver-connect runs here like every other Class B suite: the
+// - plugin-tools runs here like every other Class B suite: the
 //   provisioner boots the composition with STIGMER_OAUTH_REDIRECT_URI set to
 //   the suite's pinned constant.
 import { defineConfig } from "vitest/config";

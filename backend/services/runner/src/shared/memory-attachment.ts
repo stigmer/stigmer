@@ -39,8 +39,7 @@
  * the tool only ever creates a PROPOSAL the user must confirm through
  * the control plane, so gating the propose call would stack a second
  * consent gate in front of the real one (consent is the
- * confirm RPC, not tool approval). Callers inject AFTER resolve +
- * backfill.
+ * confirm RPC, not tool approval). Callers inject AFTER resolve.
  *
  * Failure posture: the attachment is synthesized from values already in
  * hand, so the only failure mode is the create RPC refusing at call
@@ -57,8 +56,9 @@ import {
 } from "./synthesized-attachment.js";
 
 /**
- * The synthesized attachment's slug. Reserved: a user McpServer with
- * this slug is shadowed by the synthesized attachment, with a warning.
+ * The synthesized attachment's slug. Reserved: no plugin server is named
+ * like it (theirs start `plugin_`), and one that were would be shadowed by
+ * the synthesized attachment, with a warning.
  * Runner-internal (the resolved-server name and shadow key — the
  * mcp-server never sees it); pinned by this module's test. The ROUTE
  * and the context keys below are cross-repo strings, pinned on both
@@ -123,14 +123,10 @@ export function synthesizeMemoryAttachment(
     return undefined;
   }
 
-  // Approval-free by construction + backfill-proof: see file header.
+  // Approval-free by construction: see file header.
   const base = {
     slug: MEMORY_ATTACHMENT_SLUG,
-    destructiveTools: [],
-    discoveredToolNames: null,
-    serverId: "",
     pluginOrigin: null,
-    discoveredCapabilitiesEmpty: false,
   };
 
   if (options.bridgeEndpoint !== null && options.bridgeEndpoint !== "") {

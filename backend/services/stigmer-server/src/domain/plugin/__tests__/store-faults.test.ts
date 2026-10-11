@@ -8,16 +8,26 @@
  * The surface is updateVisibility, reached through the registered handler on
  * an in-process router. The composed suites reach only a real store, which
  * cannot fail selectively, so it runs here against a store whose read throws.
- * The archive store and the member materializer are untouchable: a load that
- * fails must stop the call before the plugin's level fans out to its members.
+ * The archive store, the outbound fetch and the tools lane are untouchable:
+ * a load that fails must stop the call before anything else is reached.
+ *
+ * The delete's reference guard is pinned the same way: a store whose agent
+ * listing fails answers a sanitized Internal before anything is deleted.
+ *
+ * The listTools route is pinned to reach the tools lane: an input the lane
+ * refuses is refused through the registered handler, with the tools deps
+ * untouched.
  *
  * Out of scope: the NotFound copy itself (wire contract).
  */
 import type { Client, ConnectError } from "@connectrpc/connect";
 import { Code, createClient, createRouterTransport } from "@connectrpc/connect";
+import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
+import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 
 import { createLogger } from "../../../boot/logger.js";
@@ -63,7 +73,11 @@ function pluginCommand(store: Store): Client<typeof PluginCommandController> {
         authorizer: newPermissiveSingleTeamAuthorizer(),
         authorizationLifecycle: undefined,
         artifactStorage: untouchable("artifactStorage"),
-        materializerProvider: untouchable("materializerProvider"),
+        outboundFetch: () =>
+          Promise.reject(
+            new Error("outboundFetch reached after a failed load"),
+          ),
+        tools: untouchable("tools"),
       });
     },
     {
@@ -100,5 +114,39 @@ describe("updateVisibility — LoadPluginForVisibilityUpdate", () => {
 
     expect(error.code).toBe(Code.Internal);
     expect(error.rawMessage).toBe(LOAD_FAULT_COPY);
+  });
+});
+
+describe("delete — GuardPluginUnlisted", () => {
+  it("a failure to list the agents answers a sanitized Internal, and deletes nothing", async () => {
+    const plugin = create(PluginSchema, {
+      metadata: create(ApiResourceMetadataSchema, { id: PLUGIN_ID, org: "org_acme", slug: "acme" }),
+    });
+    const deleted: string[] = [];
+    const store = {
+      getResource: () => Promise.resolve(plugin),
+      listResources: () => Promise.reject(LOCKED()),
+      deleteResource: (_kind: unknown, id: string) => {
+        deleted.push(id);
+        return Promise.resolve();
+      },
+    } as unknown as Store;
+
+    const error = await errorOf(() => pluginCommand(store).delete({ value: PLUGIN_ID }));
+
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to list agents for the plugin reference check");
+    expect(deleted).toEqual([]);
+  });
+});
+
+describe("listTools — the registered route", () => {
+  it("reaches the tools lane, which refuses an input without a server before it reads anything", async () => {
+    const error = await errorOf(() =>
+      pluginCommand(failingStore(LOCKED())).listTools({ pluginId: PLUGIN_ID, server: "", org: "org_acme" }),
+    );
+
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe("plugin_id and server are required");
   });
 });
