@@ -75,9 +75,6 @@ export interface NodeGuardedFetchOptions {
   readonly maxResponseBytes?: number;
 }
 
-/** Statuses whose responses carry no body, which `new Response` refuses to give one. */
-const NULL_BODY_STATUSES: ReadonlySet<number> = new Set([101, 204, 205, 304]);
-
 /**
  * Why the connector refused a socket. Module-private: `pinnedFetch` finds it
  * in the failed fetch's `cause` and answers with an `EgressError`, because
@@ -136,7 +133,9 @@ export function pinnedFetch(policy: EgressPolicy, options: PinnedFetchOptions): 
           : { kind: "blocked", url, hostname: refusal.hostname, ...refusal.refused, policy: policy.name },
       );
     }
-    return new Response(NULL_BODY_STATUSES.has(response.status) ? null : response.body, {
+    // undici answers a null body for the null-body statuses (204, 205, 304)
+    // itself, as the fetch standard says, so the platform Response accepts it.
+    return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
       headers: [...response.headers],
