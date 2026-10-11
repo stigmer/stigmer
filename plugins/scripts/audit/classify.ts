@@ -177,7 +177,7 @@ export function judgeEntry(entry: EntryFacts, probes: ReadonlyMap<string, ProbeR
     ];
     failures.push({
       rule: "2-becomes-something",
-      detail: `it carries no skill, sub-agent or MCP server${carried.length === 0 ? "" : `, only ${carried.join("; and ")}`}`,
+      detail: `it carries no skill, subagent or MCP server${carried.length === 0 ? "" : `, only ${carried.join("; and ")}`}`,
     });
   }
 

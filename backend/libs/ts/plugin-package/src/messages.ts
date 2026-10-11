@@ -112,10 +112,10 @@ const ERROR_MESSAGES: Record<PluginErrorKind, Sentence> = {
 
   "sub-agent-frontmatter-unreadable": (c) => `${q(c.path)} frontmatter is not valid YAML: ${c.detail ?? "parse error"}`,
   "sub-agent-instructions-short": (c) =>
-    `sub-agent ${q(c.subject)}${at(c.path)} has instructions under ${c.detail ?? ""} characters; the body of the file is the sub-agent's prompt`,
-  "sub-agent-name-duplicate": (c) => `sub-agent name ${q(c.subject)} appears more than once (again${at(c.path)})`,
+    `subagent ${q(c.subject)}${at(c.path)} has instructions under ${c.detail ?? ""} characters; the body of the file is the subagent's prompt`,
+  "sub-agent-name-duplicate": (c) => `subagent name ${q(c.subject)} appears more than once (again${at(c.path)})`,
   "sub-agent-tool-list-invalid": (c) =>
-    `sub-agent ${q(c.subject)}${at(c.path)} has a ${q(c.detail)} field that is neither a comma-separated string nor a list of strings`,
+    `subagent ${q(c.subject)}${at(c.path)} has a ${q(c.detail)} field that is neither a comma-separated string nor a list of strings`,
 
   "hooks-unreadable": (c) => `hooks file ${q(c.path)} is not valid JSON: ${c.detail ?? "parse error"}`,
   "hooks-shape": (c) => `hooks ${q(c.path)} are not in a shape Stigmer reads: ${c.detail ?? "unexpected shape"}`,
@@ -158,13 +158,13 @@ const WARNING_MESSAGES: Record<PluginWarningKind, Sentence> = {
   "variable-option-dropped": (c) =>
     `variable ${q(c.subject)}${at(c.path)} has a ${q(c.detail)} constraint, which Stigmer does not carry`,
   "sub-agent-name-defaulted": (c) =>
-    `${q(c.path)} has no 'name' in its frontmatter; the sub-agent is named after the file, ${q(c.subject)}`,
+    `${q(c.path)} has no 'name' in its frontmatter; the subagent is named after the file, ${q(c.subject)}`,
   "sub-agent-skill-unknown": (c) =>
-    `sub-agent ${q(c.subject)}${at(c.path)} asks for skill ${q(c.detail)}, which the plugin does not ship`,
+    `subagent ${q(c.subject)}${at(c.path)} asks for skill ${q(c.detail)}, which the plugin does not ship`,
   "sub-agent-model-unknown": (c) =>
-    `sub-agent ${q(c.subject)}${at(c.path)} names model ${q(c.detail)}, which is not a model alias Stigmer knows; the sub-agent runs on it only where the conversation's engine lists it as a model, else on the conversation's model`,
+    `subagent ${q(c.subject)}${at(c.path)} names model ${q(c.detail)}, which is not a model alias Stigmer knows; the subagent runs on it only where the conversation's engine lists it as a model, else on the conversation's model`,
   "sub-agent-field-ignored": (c) =>
-    `sub-agent ${q(c.subject)}${at(c.path)} has a field ${q(c.detail)} Stigmer does not read, ignored${
+    `subagent ${q(c.subject)}${at(c.path)} has a field ${q(c.detail)} Stigmer does not read, ignored${
       PLUGIN_AGENT_FIELDS_CLAUDE_IGNORES.has(c.detail ?? "") ? "; Claude Code ignores it on a plugin's agents too" : ""
     }`,
   "hook-event-not-run": (c) => `hooks${at(c.path)} on ${q(c.subject)} are not run on Stigmer, which reads hooks on tool calls only`,

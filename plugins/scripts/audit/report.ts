@@ -168,7 +168,7 @@ function becomes(entry: EntryFacts): string {
   if (!read.ok) return read.kind === "refused" ? "refused by the reader" : "over the size cap";
   const parts: string[] = [];
   if (read.skills.length > 0) parts.push(`${read.skills.length} skill${read.skills.length === 1 ? "" : "s"}`);
-  if (read.subAgents.length > 0) parts.push(`${read.subAgents.length} sub-agent${read.subAgents.length === 1 ? "" : "s"}`);
+  if (read.subAgents.length > 0) parts.push(`${read.subAgents.length} subagent${read.subAgents.length === 1 ? "" : "s"}`);
   if (read.servers.length > 0) parts.push(`${read.servers.length} server${read.servers.length === 1 ? "" : "s"}`);
   if (parts.length === 0) {
     const ignored = [...new Set([...read.ignored.map((component) => component.kind), ...(carriesHooks(read) ? ["hooks"] : [])])].sort();

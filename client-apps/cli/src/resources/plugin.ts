@@ -224,7 +224,7 @@ export function describePackageOn(
   );
   // The main agent runs the main thread and is not installed as a sub-agent too.
   contents.field(
-    "Sub-agents",
+    "Subagents",
     named(
       plugin.subAgents
         .map((a) => a.name)
