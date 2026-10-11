@@ -486,6 +486,8 @@ describe("the AI-graded checks", () => {
       `keys ["result"]; result "${"x".repeat(40)}…"; reason absent`,
     );
     expect(describeVoteAnswer({ criteria: ["passed"] }, "criteria")).toBe("an array");
+    expect(describeVoteAnswer({ criteria: "passed" }, "criteria")).toBe("a string");
+    expect(describeVoteAnswer({ criteria: null }, "criteria")).toBe("null");
     expect(describeVoteAnswer({ other: {} }, "criteria")).toBe('no "criteria"; output keys ["other"]');
     expect(describeVoteAnswer(undefined, "criteria")).toBe("no structured output");
   });
