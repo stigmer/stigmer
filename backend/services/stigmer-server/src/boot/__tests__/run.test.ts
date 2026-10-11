@@ -9,6 +9,9 @@
  *     does nothing more; a shutdown that fails is logged and exits 1;
  *   - a failed start is logged and exits 1, with no ready line;
  *   - a composition failure rejects, for the entry to report on stderr;
+ *   - units given as a function are built from the boot's own config and
+ *     logger, once, before composition; the function's rejection rejects
+ *     the same way, before any signal handler or ready line;
  *   - a newer database schema rejects before listening or announcing readiness.
  *
  * The shipped entry itself (main.ts) is proven on the built artifact by
@@ -212,6 +215,40 @@ describe("runServer", () => {
     await expect(
       runServer({ extensions: [{ name: "odd", orgLimit: 0 }], host }),
     ).rejects.toThrow(/declares orgLimit 0/);
+    expect(host.exits).toEqual([]);
+  });
+
+  it("builds units given as a function from the boot's own config and logger, once, before composing", async () => {
+    const boots: Array<{ dbPath: string; logs: boolean }> = [];
+    const host = recordingHost();
+    await runServer({
+      extensions: (boot) => {
+        boots.push({
+          dbPath: boot.config.dbPath,
+          logs: typeof boot.logger.info === "function",
+        });
+        return Promise.resolve([openSourceEdition]);
+      },
+      host,
+    });
+
+    expect(boots).toEqual([{ dbPath: path.join(dir, "stigmer.db"), logs: true }]);
+    expect(host.stdout).toHaveLength(1);
+    host.signals.get("SIGTERM")?.();
+    expect(await host.exited).toBe(0);
+  });
+
+  it("a units function that rejects rejects for the entry to report, before any signal handler or ready line", async () => {
+    const host = recordingHost();
+    await expect(
+      runServer({
+        extensions: () =>
+          Promise.reject(new Error("the license key does not verify")),
+        host,
+      }),
+    ).rejects.toThrow("the license key does not verify");
+    expect(host.signals.size).toBe(0);
+    expect(host.stdout).toEqual([]);
     expect(host.exits).toEqual([]);
   });
 

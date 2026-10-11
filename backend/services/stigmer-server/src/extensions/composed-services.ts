@@ -30,7 +30,8 @@
  *     identity accounts are the store binding every lane reads and the
  *     domain's one create path, so an account a unit creates runs the same
  *     chain, gets the same derived id and fires the same tuple lifecycle
- *     as one a person's sign-in creates. The
+ *     as one a person's sign-in creates. The policy store is the same
+ *     binding the grant path writes through, handed over for reads. The
  *     Authorizer and the list read scope are handed over bound by the
  *     credential binding (authorization/credential-binding.ts), so a unit
  *     that registered its own Authorizer receives the bound one here and
@@ -40,6 +41,7 @@ import type { Transport } from "@connectrpc/connect";
 
 import type { CreateAccount } from "../domain/identityaccount/provisioning.js";
 import type { IdentityAccountStore } from "../domain/identityaccount/store.js";
+import type { IamPolicyStore } from "../domain/iampolicy/store.js";
 
 import type { AuthorizationQueryEngine } from "./authorization-queries.js";
 import type { Authorizer } from "./authorizer.js";
@@ -61,6 +63,19 @@ export interface ComposedIdentityAccounts {
   readonly store: IdentityAccountStore;
   readonly create: CreateAccount;
 }
+
+/**
+ * The policy store as a unit's own lanes read it: the composition's one
+ * binding (a unit's registered driver, or open source's adapter), reads
+ * only. A unit's repair finds a resource's rows or every row granting a
+ * relation on a kind; its grant gate finds a resource's structural link.
+ * A write goes through the domain's grant path (an RPC over the in-process
+ * transport), never through this store, so no second write path exists.
+ */
+export type ComposedIamPolicies = Pick<
+  IamPolicyStore,
+  "findByResource" | "findScopeTuple" | "findByResourceKindAndRelation"
+>;
 
 export interface ComposedServices {
   /** The one Authorizer the Authorize step of every chain calls. */
@@ -103,4 +118,6 @@ export interface ComposedServices {
   readonly inProcessTransport: Transport;
   /** The identity-account store binding and the domain's one create path. */
   readonly identityAccounts: ComposedIdentityAccounts;
+  /** The policy store binding's reads. */
+  readonly iamPolicies: ComposedIamPolicies;
 }

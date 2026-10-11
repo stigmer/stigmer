@@ -210,6 +210,8 @@ public final class IdentityProviderCommandControllerGrpc {
      * Create or update an identity provider.
      * If the resource does not exist, creates a new identity provider.
      * If the resource exists, updates the existing identity provider.
+     * Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED
+     * included.
      * </pre>
      */
     default void apply(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -221,6 +223,13 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Create an identity provider.
      * The creator's organization owns the identity provider.
+     * On Stigmer Enterprise, a new identity provider is growth the server's
+     * license pays for. Once the license and its grace period have ended, a
+     * create is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+     *     identity provider that exists keeps signing people in. No metadata.
      * </pre>
      */
     default void create(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -231,6 +240,14 @@ public final class IdentityProviderCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity provider.
+     * On Stigmer Enterprise, changing how people sign in is growth the
+     * server's license pays for. Once the license and its grace period have
+     * ended, an update is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
+     *     identity provider keeps signing people in as it is, and can still
+     *     be deleted. No metadata.
      * </pre>
      */
     default void update(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -290,6 +307,8 @@ public final class IdentityProviderCommandControllerGrpc {
      * Create or update an identity provider.
      * If the resource does not exist, creates a new identity provider.
      * If the resource exists, updates the existing identity provider.
+     * Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED
+     * included.
      * </pre>
      */
     public void apply(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -302,6 +321,13 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Create an identity provider.
      * The creator's organization owns the identity provider.
+     * On Stigmer Enterprise, a new identity provider is growth the server's
+     * license pays for. Once the license and its grace period have ended, a
+     * create is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+     *     identity provider that exists keeps signing people in. No metadata.
      * </pre>
      */
     public void create(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -313,6 +339,14 @@ public final class IdentityProviderCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity provider.
+     * On Stigmer Enterprise, changing how people sign in is growth the
+     * server's license pays for. Once the license and its grace period have
+     * ended, an update is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
+     *     identity provider keeps signing people in as it is, and can still
+     *     be deleted. No metadata.
      * </pre>
      */
     public void update(ai.stigmer.iam.identityprovider.v1.IdentityProvider request,
@@ -360,6 +394,8 @@ public final class IdentityProviderCommandControllerGrpc {
      * Create or update an identity provider.
      * If the resource does not exist, creates a new identity provider.
      * If the resource exists, updates the existing identity provider.
+     * Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED
+     * included.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider apply(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) throws io.grpc.StatusException {
@@ -371,6 +407,13 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Create an identity provider.
      * The creator's organization owns the identity provider.
+     * On Stigmer Enterprise, a new identity provider is growth the server's
+     * license pays for. Once the license and its grace period have ended, a
+     * create is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+     *     identity provider that exists keeps signing people in. No metadata.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider create(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) throws io.grpc.StatusException {
@@ -381,6 +424,14 @@ public final class IdentityProviderCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity provider.
+     * On Stigmer Enterprise, changing how people sign in is growth the
+     * server's license pays for. Once the license and its grace period have
+     * ended, an update is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
+     *     identity provider keeps signing people in as it is, and can still
+     *     be deleted. No metadata.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider update(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) throws io.grpc.StatusException {
@@ -426,6 +477,8 @@ public final class IdentityProviderCommandControllerGrpc {
      * Create or update an identity provider.
      * If the resource does not exist, creates a new identity provider.
      * If the resource exists, updates the existing identity provider.
+     * Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED
+     * included.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider apply(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) {
@@ -437,6 +490,13 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Create an identity provider.
      * The creator's organization owns the identity provider.
+     * On Stigmer Enterprise, a new identity provider is growth the server's
+     * license pays for. Once the license and its grace period have ended, a
+     * create is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+     *     identity provider that exists keeps signing people in. No metadata.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider create(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) {
@@ -447,6 +507,14 @@ public final class IdentityProviderCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity provider.
+     * On Stigmer Enterprise, changing how people sign in is growth the
+     * server's license pays for. Once the license and its grace period have
+     * ended, an update is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
+     *     identity provider keeps signing people in as it is, and can still
+     *     be deleted. No metadata.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider update(ai.stigmer.iam.identityprovider.v1.IdentityProvider request) {
@@ -492,6 +560,8 @@ public final class IdentityProviderCommandControllerGrpc {
      * Create or update an identity provider.
      * If the resource does not exist, creates a new identity provider.
      * If the resource exists, updates the existing identity provider.
+     * Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED
+     * included.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> apply(
@@ -504,6 +574,13 @@ public final class IdentityProviderCommandControllerGrpc {
      * <pre>
      * Create an identity provider.
      * The creator's organization owns the identity provider.
+     * On Stigmer Enterprise, a new identity provider is growth the server's
+     * license pays for. Once the license and its grace period have ended, a
+     * create is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+     *     identity provider that exists keeps signing people in. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> create(
@@ -515,6 +592,14 @@ public final class IdentityProviderCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing identity provider.
+     * On Stigmer Enterprise, changing how people sign in is growth the
+     * server's license pays for. Once the license and its grace period have
+     * ended, an update is refused with FAILED_PRECONDITION carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+     * written:
+     *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
+     *     identity provider keeps signing people in as it is, and can still
+     *     be deleted. No metadata.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> update(

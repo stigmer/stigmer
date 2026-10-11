@@ -13,8 +13,9 @@
  * A property of the open-source composition, not of the library: the
  * library with no unit holds any number of organizations, which is what the
  * Cloud composes onto and what the test suites that prove isolation between
- * organizations run on. Not on the package barrel; nothing outside the
- * entry composes it.
+ * organizations run on. On the package barrel for an edition published as
+ * its own package, whose entry composes exactly this unit when its license
+ * is absent, so a keyless server of that edition is the shipped one.
  */
 import type { ServerExtension } from "../extensions/registry.js";
 

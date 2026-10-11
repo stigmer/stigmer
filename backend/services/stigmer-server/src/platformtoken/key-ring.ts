@@ -9,6 +9,10 @@
  *     runner-token key's convention, under the ladder's own rules). It
  *     signs and verifies with the same key; no audience; a kid derived
  *     from the key, so two installations never claim the same kid.
+ *   - A self-hosted edition above open source may register exactly that
+ *     ring as its driver (`openSourcePlatformTokenKeyRing` is on the
+ *     barrel): the choice is the edition's, never a fallback, so a hosted
+ *     composition that forgot its own ring still refuses to boot.
  *   - A composition supplies its own ring through the `platformTokenKeys`
  *     driver point, built from its configured PEMs with
  *     `platformTokenKeyRingFromPem`: the active public key first, then any

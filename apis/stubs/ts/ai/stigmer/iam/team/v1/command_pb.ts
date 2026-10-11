@@ -36,6 +36,14 @@ export const TeamCommandController: GenService<{
    *   - PLAN_UPGRADE_REQUIRED — the organization's plan does not include
    *     the feature. Metadata: feature ("teams"), org.
    *
+   * On Stigmer Enterprise, a new team is growth the server's license pays
+   * for. Once the license and its grace period have ended, a create is
+   * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"), before anything is written:
+   *
+   *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+   *     team that exists keeps working. No metadata.
+   *
    * @generated from rpc ai.stigmer.iam.team.v1.TeamCommandController.create
    */
   create: {
