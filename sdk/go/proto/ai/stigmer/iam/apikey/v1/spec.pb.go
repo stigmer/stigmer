@@ -27,8 +27,9 @@ const (
 // ApiKeySpec defines the configuration for an API key.
 //
 // API keys provide programmatic access to the Stigmer API. Each key speaks for
-// the identity account that created it and can have an optional expiration
-// time. A key may be limited to one organization (bound_org).
+// the account it is for: the person who created it, or the organization's
+// service account an admin created it for. A key can have an optional
+// expiration time and may be limited to one organization (bound_org).
 type ApiKeySpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Hash of the raw API key.

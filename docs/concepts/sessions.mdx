@@ -113,10 +113,18 @@ a tag or a version hash in the reference (`version: stable`). Every
 ## Who may send a message
 
 Starting a conversation on an Agent, or switching a Session to another Agent,
-needs permission to run that Agent. Every message asks again: if the Agent's
-author makes it private, or your access to it is removed, your next message in
-an existing conversation is refused. If the Agent is deleted, the next message
-fails and the error names the Agent.
+needs permission to run that Agent and the Organization's Member role or higher:
+an Organization Viewer reads what is shared and starts no conversation. Every
+message asks again: if the Agent's author makes it private, or your access to it
+is removed, your next message in an existing conversation is refused. If the
+Agent is deleted, the next message fails and the error names the Agent.
+
+A conversation is private to the person who started it. In the Enterprise and
+Cloud editions its owner may share it with people: a **Participant** reads it
+and sends messages, which run in the conversation's Workspace as the person who
+started it, and a **Viewer** reads it and sends nothing.
+[Sharing and access](/docs/concepts/sharing-and-access#conversations) explains
+both.
 
 The keys an Agent declares in its `env` are filled when each message runs, from
 the vaults the conversation uses: the My vault of the person sending the

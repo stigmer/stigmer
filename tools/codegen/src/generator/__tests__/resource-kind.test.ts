@@ -6,7 +6,7 @@
 // descriptor read stops seeing the option.
 import { describe, expect, it } from "vitest";
 
-import { isOrglessKind } from "../resource-kind.js";
+import { isOrglessKind, kindMetaEntries } from "../resource-kind.js";
 
 describe("organization-less kinds", () => {
   it("names License, Plan and Organization, whose contract says metadata.org is empty", () => {
@@ -22,5 +22,30 @@ describe("organization-less kinds", () => {
 
   it("answers false for a name that is not a kind", () => {
     expect(isOrglessKind("not_a_kind")).toBe(false);
+  });
+});
+
+describe("general access levels", () => {
+  const visibilityOf = (name: string) =>
+    kindMetaEntries().find((entry) => entry.enumName === name)?.visibility;
+
+  it("reads an agent's levels: Organization the default, Child organizations offered", () => {
+    expect(visibilityOf("agent")).toEqual({
+      supportsOrg: true,
+      supportsChildOrgs: true,
+      defaultsToOrg: true,
+    });
+  });
+
+  it("reads a vault's levels: Organization offered, Private the default", () => {
+    expect(visibilityOf("vault")).toEqual({
+      supportsOrg: true,
+      supportsChildOrgs: false,
+      defaultsToOrg: false,
+    });
+  });
+
+  it("answers null for a kind with no visibility block", () => {
+    expect(visibilityOf("session")).toBeNull();
   });
 });

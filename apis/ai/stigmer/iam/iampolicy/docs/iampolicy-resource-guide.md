@@ -67,13 +67,15 @@ A string matching the `role_code` defined in the authorization model for the tar
 
 | Common value | Meaning |
 |---|---|
-| `owner` | Full control including deletion and access delegation |
-| `admin` | Full control excluding deletion |
-| `editor` | Read and write, no access management |
-| `viewer` | Read-only access |
-| `member` | Basic membership (e.g., org member) |
+| `owner` | Everything, including deleting the resource and deciding who has access |
+| `admin` | On an organization: manages its people, settings and resources; cannot read private conversations, delete the organization or change its owners |
+| `editor` | Changes and uses the resource; cannot delete it or decide who has access |
+| `viewer` | Sees the resource and changes nothing; what seeing allows is the kind's own |
+| `member` | Belongs to an organization or a team |
+| `participant` | Reads a conversation, or a channel's conversations, and sends messages |
+| `user` | Shown as "Can use": uses a vault's logins and secrets in their runs |
 
-The available relations depend on the resource kind. Consult the authorization model for the target resource type to see which relations are defined.
+The available relations depend on the resource kind. [Roles and general access](../../../../../../docs/sdk/resources/roles.mdx) lists, for every kind, the roles it offers and the kind's own sentence for each, generated from the API contract.
 
 ## Status Fields
 

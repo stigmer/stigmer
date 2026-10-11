@@ -356,11 +356,11 @@ refresh the profile or grant the role again. To change a user's profile, call
 
 Set `signInRole` to the role a user should start with:
 
-| Role     | Access level                                            |
-| -------- | ------------------------------------------------------- |
-| `viewer` | Read-only access to the Organization and its resources  |
-| `member` | Can create and modify resources within the Organization |
-| `admin`  | Full access to the Organization and all its resources   |
+| Role     | Access level                                                                                                                                               |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `viewer` | See what is shared with the Organization; cannot start conversations                                                                                       |
+| `member` | Start conversations with the Agents shared with them, and create Agents when the Organization allows it                                                    |
+| `admin`  | Manage people, settings, billing, and the Organization's Agents and tools; cannot read private conversations, delete the Organization or change its owners |
 
 Stigmer grants the sign-in role once per account and Organization. If an
 administrator later removes it, it stays removed, and changing `signInRole` does

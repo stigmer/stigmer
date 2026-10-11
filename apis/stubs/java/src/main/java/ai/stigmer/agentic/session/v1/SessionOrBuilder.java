@@ -53,7 +53,9 @@ public interface SessionOrBuilder extends
   /**
    * <pre>
    * Standard resource metadata including name, id, labels, and tags.
-   * Sessions belong to an organization and are typically PRIVATE visibility.
+   * Sessions belong to an organization and are private to their author,
+   * who may share one with people as a participant (reads and sends) or a
+   * viewer (reads) where the edition grants per-resource roles.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -63,7 +65,9 @@ public interface SessionOrBuilder extends
   /**
    * <pre>
    * Standard resource metadata including name, id, labels, and tags.
-   * Sessions belong to an organization and are typically PRIVATE visibility.
+   * Sessions belong to an organization and are private to their author,
+   * who may share one with people as a participant (reads and sends) or a
+   * viewer (reads) where the edition grants per-resource roles.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -73,7 +77,9 @@ public interface SessionOrBuilder extends
   /**
    * <pre>
    * Standard resource metadata including name, id, labels, and tags.
-   * Sessions belong to an organization and are typically PRIVATE visibility.
+   * Sessions belong to an organization and are private to their author,
+   * who may share one with people as a participant (reads and sends) or a
+   * viewer (reads) where the edition grants per-resource roles.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>

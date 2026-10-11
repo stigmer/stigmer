@@ -31,7 +31,9 @@ type Session struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, id, labels, and tags.
-	// Sessions belong to an organization and are typically PRIVATE visibility.
+	// Sessions belong to an organization and are private to their author,
+	// who may share one with people as a participant (reads and sends) or a
+	// viewer (reads) where the edition grants per-resource roles.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// Session-specific configuration.
 	Spec *SessionSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`

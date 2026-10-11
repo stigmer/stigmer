@@ -34,8 +34,8 @@ export interface AccessVisibility {
   /** Current visibility of the resource. */
   readonly current: ApiResourceVisibility;
   /**
-   * Slug of the owning org (`metadata.org`); gates the Platform option for
-   * blueprints. Omit where Platform should not be offered.
+   * The owning organization (`metadata.org`); gates the Child organizations
+   * option for blueprints. Omit where that option should not be offered.
    */
   readonly org?: string;
   /** Called after a successful visibility change so the host can refetch. */

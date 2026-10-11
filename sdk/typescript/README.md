@@ -208,6 +208,8 @@ interface StigmerConfig {
 
 Exactly one of `apiKey` or `getAccessToken` must be provided.
 
+For a CI job or a script, use a [service account's](https://stigmer.ai/docs/guides/authentication/service-accounts) API key, not a person's: it keeps working when that person leaves and works only in its own organization.
+
 ## Local Execution
 
 Agent runs execute in the cloud by default — the Stigmer server provisions a sandbox with a runner. To execute runs on the client (a desktop app, CLI, or self-hosted deployment), set the execution target.

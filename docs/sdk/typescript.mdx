@@ -28,6 +28,9 @@ const stigmer = new Stigmer({
 });
 ```
 
+In a CI job or a script, use a service account's key, not a person's: see
+[SDK Overview > Automation](/docs/sdk/overview#automation).
+
 In the browser, never use an API key. Pass `getAccessToken` instead — a
 callback that returns each user's JWT:
 

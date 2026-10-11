@@ -53,6 +53,8 @@ Agent agent = client.agent.get("agent-id");
 client.close();
 ```
 
+For a CI job or a script, use a [service account's](https://stigmer.ai/docs/guides/authentication/service-accounts) API key, not a person's: it keeps working when that person leaves and works only in its own organization.
+
 ## Resource Clients
 
 Every resource type has a typed client exposed as a public final field on

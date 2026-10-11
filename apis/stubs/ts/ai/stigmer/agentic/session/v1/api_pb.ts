@@ -41,7 +41,9 @@ export type Session = Message<"ai.stigmer.agentic.session.v1.Session"> & {
 
   /**
    * Standard resource metadata including name, id, labels, and tags.
-   * Sessions belong to an organization and are typically PRIVATE visibility.
+   * Sessions belong to an organization and are private to their author,
+   * who may share one with people as a participant (reads and sends) or a
+   * viewer (reads) where the edition grants per-resource roles.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */

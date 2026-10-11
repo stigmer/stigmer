@@ -215,7 +215,8 @@ create accounts on first encounter:
 
 For example, with `create_accounts_on_sign_in: true` and `sign_in_role: viewer`,
 the first token you mint for `user_123` creates their account and makes them a
-viewer of your Organization.
+viewer of your Organization: they see what is shared with it and cannot start
+conversations. Set `member` for users who chat with your Agents.
 
 These settings apply when an account is first created. An account that already
 exists keeps the roles and profile it has: changing the settings later, or

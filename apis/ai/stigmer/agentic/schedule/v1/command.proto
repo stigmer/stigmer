@@ -31,10 +31,10 @@ service ScheduleCommandController {
   //
   // @internal
   // Authorization: requires can_edit on the REFERENCED AGENT
-  // (spec.agent.agent_ref), checked in-handler — the AgentChannel /
-  // same-org AgentShare bar: whoever may edit the
-  // agent may schedule it; there is deliberately no org-level
-  // can_create_schedule permission. Standard org-scoped create tuples
+  // (spec.agent.agent_ref), checked in-handler: whoever may edit the
+  // agent may schedule it, and there is deliberately no org-level
+  // can_create_schedule permission. (A chat link or a channel also asks
+  // can_edit on its agent, and in addition needs an organization admin.) Standard org-scoped create tuples
   // (owner = creator); no visibility tuples (the kind has no visibility
   // block). Invariant enforced here: metadata.org must equal
   // spec.agent.agent_ref.org.

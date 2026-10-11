@@ -67,14 +67,31 @@ Both `getAccessToken` paths produce the same result: a JWT that the SDK sends as
 `Authorization: Bearer`. The difference is where the token comes from. See the
 [Authentication guide](/docs/guides/authentication/overview) for help choosing.
 
+### Automation
+
+A key speaks for the account it is for. A CI job, a script or a backend that
+uses a person's key stops working when that person leaves, and everything it
+does is recorded as them. Give it a
+[service account](/docs/guides/authentication/service-accounts) instead, your
+Organization's own account for automation, and use that account's key:
+
+```bash
+stigmer service-account create ci-deploy --role member
+stigmer apikey create --service-account ci-deploy --name github-actions --expires-in 90d
+```
+
+Store the key as the job's `STIGMER_API_KEY` secret. A service account's key
+works only in its own Organization and keeps working after the admin who created
+it leaves.
+
 <Callout type="warn">
   API keys start with `sk_`. Store them in environment variables. Never commit
   them to source control.
 </Callout>
 
 <Callout type="error">
-  **Never expose API keys in client-side code.** API keys are secret
-  credentials that grant full access to your Organization. In browser apps,
+  **Never expose API keys in client-side code.** An API key is a secret
+  credential that acts with every permission its account holds. In browser apps,
   use `getAccessToken` with
   [identity federation](/docs/guides/authentication/federation/overview) or
   [PlatformClient](/docs/guides/authentication/platform-client/overview) instead.
