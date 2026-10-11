@@ -5,7 +5,7 @@
  * and pins how a lookup by slug reaches it (steps.ts findClientByName): a
  * name read in the name table, then this adapter by id, so a slug the
  * create chain never claimed resolves to nothing and an empty organization
- * is refused rather than matching every organization.
+ * is the platform's scope rather than every organization.
  *
  * The kit's case list is pinned by name here so a case cannot drop out of
  * the kit unnoticed: the cloud driver's test iterates the same export and
@@ -113,7 +113,7 @@ describe.each([sqliteFixture, postgresFixture])(
     });
 
     describe.skipIf(fixture.skip)("the OSS adapter's own invariants", () => {
-      it("a slug resolves through the name table only: an unclaimed slug misses, an empty organization is refused", async () => {
+      it("a slug resolves through the name table only: an unclaimed slug misses, an empty organization matches no organization's client", async () => {
         const opened = await fixture.open();
         try {
           const clients = newResourcePlatformClientStore(opened.store);
@@ -144,9 +144,10 @@ describe.each([sqliteFixture, postgresFixture])(
           expect(
             await findClientByName(opened.store, clients, "globex", "dashboard"),
           ).toBeUndefined();
-          await expect(
-            findClientByName(opened.store, clients, "", "dashboard"),
-          ).rejects.toThrow("org is required for PlatformClient lookup");
+          expect(
+            await findClientByName(opened.store, clients, "", "dashboard"),
+            "an empty organization is the platform's scope, never every organization",
+          ).toBeUndefined();
         } finally {
           await opened.close();
         }

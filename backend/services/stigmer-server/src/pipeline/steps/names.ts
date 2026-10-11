@@ -54,7 +54,6 @@ import { getKindName, kindEnumName } from "../apiresource-meta.js";
 import { alreadyExistsError, internalError } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
-import { requireOrgForReference } from "./helpers.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { metadataOf } from "./shapes.js";
 
@@ -164,6 +163,13 @@ export function resourceNameKey(
 }
 
 /**
+ * The name table a step claims in and releases from: the store's own, or
+ * the one the composition hands a unit (ComposedServices.resourceNames),
+ * which keeps its rows elsewhere and so passes its own NameHolder.
+ */
+export type NameTable = Pick<Store, "resourceNames">;
+
+/**
  * Whether the resource a name points at still holds it. Asked only of a
  * claim old enough to be abandoned, and never of a name equal to its
  * holder's id.
@@ -204,7 +210,7 @@ export function portHolder(
  * entry that holds it.
  */
 export async function claimName(
-  store: Store,
+  store: NameTable,
   key: ResourceNameKey,
   id: string,
   now: Date,
@@ -270,6 +276,16 @@ export function newClaimNameStep<Desc extends DescMessage>(
   store: Store,
   kind: ApiResourceKind,
   holder?: NameHolder,
+): PipelineStep<Desc>;
+export function newClaimNameStep<Desc extends DescMessage>(
+  names: NameTable,
+  kind: ApiResourceKind,
+  holder: NameHolder,
+): PipelineStep<Desc>;
+export function newClaimNameStep<Desc extends DescMessage>(
+  store: NameTable,
+  kind: ApiResourceKind,
+  holder?: NameHolder,
 ): PipelineStep<Desc> {
   return {
     name: "ClaimName",
@@ -286,7 +302,7 @@ export function newClaimNameStep<Desc extends DescMessage>(
  */
 export async function claimNameOf<Desc extends DescMessage>(
   ctx: Pick<RequestContext<DescMessage>, "set">,
-  store: Store,
+  store: NameTable,
   kind: ApiResourceKind,
   resource: MessageShape<Desc>,
   schema: Desc,
@@ -304,7 +320,7 @@ export async function claimNameOf<Desc extends DescMessage>(
       "failed to claim the resource's name",
     );
   }
-  const rowHolder = holder ?? storedRowHolder(store, kind, schema);
+  const rowHolder = holder ?? defaultHolder(store, kind, schema);
   let claim: ResourceNameClaim;
   try {
     claim = await claimName(
@@ -340,7 +356,7 @@ interface ClaimedName {
  * ABANDONED_NAME_AFTER_MS old.
  */
 export async function releaseNameAfterFailure<Desc extends DescMessage>(
-  store: Store,
+  store: NameTable,
   logger: Logger,
   ctx: RequestContext<Desc>,
 ): Promise<void> {
@@ -373,7 +389,7 @@ export async function releaseNameAfterFailure<Desc extends DescMessage>(
  * rethrows the chain's own error.
  */
 export function releaseNameOnFailure<Desc extends DescMessage>(
-  store: Store,
+  store: NameTable,
   logger: Logger,
   ctx: RequestContext<Desc>,
 ): (error: unknown) => Promise<never> {
@@ -391,7 +407,7 @@ export function releaseNameOnFailure<Desc extends DescMessage>(
  * name. Reads the deleted row from EXISTING_RESOURCE_KEY.
  */
 export function newReleaseNamesStep<Desc extends DescMessage>(
-  store: Store,
+  store: NameTable,
   logger: Logger,
   kind: ApiResourceKind,
 ): PipelineStep<Desc> {
@@ -434,13 +450,13 @@ export function newReleaseNamesStep<Desc extends DescMessage>(
 
 /** The id `slug` names in the kind and organization at `now`, or undefined when nothing holds it. */
 export async function resolveName(
-  store: Store,
+  store: NameTable,
   kind: ApiResourceKind,
   org: string,
   slug: string,
   now: Date = new Date(),
 ): Promise<string | undefined> {
-  requireNamedLookup(kind, org);
+  requireNamedKind(kind);
   const entry = await store.resourceNames.resolve(
     resourceNameKey(kind, org, slug),
     now.toISOString(),
@@ -450,10 +466,12 @@ export async function resolveName(
 
 /**
  * The resource `slug` names in the kind and organization: a name read,
- * then a point read by id. Not-found is a normal outcome (undefined). A
- * slug is unique only within an organization, so an empty org is refused
- * as a getByReference without one is (requireOrgForReference), and a kind
- * whose slugs are not names is a server-side bug.
+ * then a point read by id. Not-found is a normal outcome (undefined). An
+ * empty org is the platform's own scope (a platform-scoped row's names
+ * live there), never every organization, so no lookup by name crosses
+ * organizations; a getByReference still refuses a reference without one
+ * (requireOrgForReference), because a reference names an organization's
+ * resource. A kind whose slugs are not names is a server-side bug.
  */
 export async function findResourceByName<Desc extends DescMessage>(
   store: Store,
@@ -470,14 +488,32 @@ export async function findResourceByName<Desc extends DescMessage>(
   return readById(store, kind, schema, id);
 }
 
-function requireNamedLookup(kind: ApiResourceKind, org: string): void {
+function requireNamedKind(kind: ApiResourceKind): void {
   if (!kindClaimsNames(kind)) {
     throw internalError(
       new Error(`${kindEnumName(kind)} slugs are not names; read it by id`),
       "failed to look the resource up by name",
     );
   }
-  requireOrgForReference(kind, org);
+}
+
+/**
+ * The holder a claim falls back to when its caller passes none: a row of
+ * the kind in the store. A name table without the store's rows (a unit's)
+ * must pass its own holder; one that does not is a server-side bug.
+ */
+function defaultHolder<Desc extends DescMessage>(
+  names: NameTable,
+  kind: ApiResourceKind,
+  schema: Desc,
+): NameHolder {
+  if (!("getResource" in names)) {
+    throw internalError(
+      new Error(`a ${kindEnumName(kind)} claim over a name table alone names no holder`),
+      "failed to claim the resource's name",
+    );
+  }
+  return storedRowHolder(names as Store, kind, schema);
 }
 
 async function readById<Desc extends DescMessage>(

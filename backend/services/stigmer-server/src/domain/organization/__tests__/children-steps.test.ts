@@ -177,6 +177,12 @@ function fakeStore(
         }
         released.push(`${kind}:${parentId}:${id}`);
       },
+      async releaseName(key: ResourceNameKey, id: string) {
+        if (options.releaseFault !== undefined) {
+          throw options.releaseFault;
+        }
+        released.push(`${key.kind}:${key.org}:${id}`);
+      },
     },
   } as unknown as Store;
   return { store, released, claims };

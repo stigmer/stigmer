@@ -436,7 +436,7 @@ describe("faults and deleted vaults", () => {
   it("answers INTERNAL when the vaults cannot be read", async () => {
     const failing = new Proxy(rig.store, {
       get(target, prop, receiver) {
-        if (prop === "listResources") {
+        if (prop === "getResource") {
           return async () => {
             throw new Error("disk gone");
           };

@@ -652,7 +652,7 @@ export {
   resolveName,
   resourceNameKey,
 } from "./pipeline/steps/names.js";
-export type { NameHolder, NamedKind } from "./pipeline/steps/names.js";
+export type { NameHolder, NameTable, NamedKind } from "./pipeline/steps/names.js";
 // The API-key verifier's refusal of a key created before sign-in was
 // turned on (stigmer/stigmer#1169): a client branches on the reason, not
 // the copy.

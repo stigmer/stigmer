@@ -13,7 +13,9 @@
  *     create path, through which a unit provisions a federated account at
  *     its provider-and-subject address; and the policy store binding's
  *     reads, the registered driver where a unit registered one and open
- *     source's adapter over the composition's store otherwise.
+ *     source's adapter over the composition's store otherwise; and the
+ *     store's one name table, where a unit's claim is the one every chain
+ *     meets.
  *   - `start` runs in unit order, first in `start()`, before the server
  *     reports SERVING; a failing start fails `start()`, naming its unit.
  *   - An edition above open source with no sign-in is refused at boot,
@@ -58,6 +60,14 @@ import type { ServerExtension } from "../registry.js";
 import type { ResourceAuthorizationLifecycle } from "../resource-authorization.js";
 import type { ResourceRowReader } from "../resource-row-reader.js";
 import { widerEditionPurge } from "./composed-support.js";
+import { TeamSchema } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
+import { RequestContext } from "../../pipeline/request-context.js";
+import { testCallerIdentity } from "../../pipeline/__tests__/support.js";
+import {
+  newClaimNameStep,
+  portHolder,
+  resolveName,
+} from "../../pipeline/steps/names.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -336,6 +346,51 @@ describe("onComposed: the policy store binding under open source's own authoriza
         (policy) => policy.metadata?.id,
       ),
     ).toEqual([id]);
+  });
+});
+
+describe("onComposed: the store's one name table", () => {
+  it("hands the name table every chain claims in, so a unit's claim, over its own rows, is the one a lookup by name reads and a create meets", async () => {
+    let received: ComposedServices | undefined;
+    const server = await compose([
+      enterpriseUnit({
+        onComposed: (composed) => {
+          received = composed;
+        },
+      }),
+    ]);
+    const names = received?.resourceNames;
+    if (names === undefined) {
+      throw new Error("the unit received no name table");
+    }
+    const team = create(TeamSchema, {
+      metadata: { id: "tem_acme", org: "org_acme", slug: "platform", name: "Platform" },
+    });
+    const ctx = new RequestContext(TeamSchema, team, testCallerIdentity(), ApiResourceKind.team);
+    await newClaimNameStep<typeof TeamSchema>(
+      { resourceNames: names },
+      ApiResourceKind.team,
+      portHolder(async (id) => (id === "tem_acme" ? team : undefined)),
+    ).execute(ctx);
+
+    expect(
+      await resolveName(server.store, ApiResourceKind.team, "org_acme", "platform"),
+    ).toBe("tem_acme");
+    const rival = new RequestContext(
+      TeamSchema,
+      create(TeamSchema, {
+        metadata: { id: "tem_rival", org: "org_acme", slug: "platform", name: "Platform" },
+      }),
+      testCallerIdentity(),
+      ApiResourceKind.team,
+    );
+    await expect(
+      newClaimNameStep<typeof TeamSchema>(
+        server.store,
+        ApiResourceKind.team,
+        portHolder(async () => team),
+      ).execute(rival),
+    ).rejects.toThrow("Team already exists: slug 'platform' in org 'org_acme' (id: tem_acme)");
   });
 });
 

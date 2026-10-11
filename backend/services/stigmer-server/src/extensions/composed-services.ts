@@ -49,6 +49,7 @@ import type { ChildOrganizations } from "./child-organizations.js";
 import type { CredentialBinding } from "./credential-binding.js";
 import type { ListReadScope } from "./list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js";
+import type { ResourceNameStore } from "../store/interface.js";
 
 /**
  * The identity-account domain as a unit's own lane meets it: the store
@@ -120,4 +121,14 @@ export interface ComposedServices {
   readonly identityAccounts: ComposedIdentityAccounts;
   /** The policy store binding's reads. */
   readonly iamPolicies: ComposedIamPolicies;
+  /**
+   * The store's one name table (pipeline/steps/names.ts): a unit whose
+   * named kind keeps its rows in its own table (a team, an identity
+   * provider) claims each slug here before its row, through the exported
+   * ClaimName with its own NameHolder, releases it after its delete, and
+   * reads a slug through it, so one table answers "taken" and resolves
+   * names for every kind in every edition. Only the name table: a unit's
+   * rows never reach into the store's own.
+   */
+  readonly resourceNames: ResourceNameStore;
 }

@@ -38,6 +38,7 @@ import { composeServer } from "../../boot/compose.js";
 import type { ComposedServer } from "../../boot/compose.js";
 import { createLogger } from "../../boot/logger.js";
 import type { ServerExtension } from "../registry.js";
+import { namingSaves } from "../../store/__tests__/named-saves.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -77,7 +78,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
 
     // Seed the load-first targets directly through the store — the write
     // path is not under test and the denying authorizer would refuse it.
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.session,
       "ses_01authztarget",
       SessionSchema,
@@ -88,7 +89,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
         spec: { subject: "original" },
       }),
     );
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.agent_channel,
       "ach_01authztarget",
       AgentChannelSchema,
@@ -100,7 +101,7 @@ describe("direct-handler authorization (composed server, denying authorizer)", (
     );
     // The mid-chain-check target: listVersions resolves by org+slug
     // before its can_view check.
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.skill,
       "skl_01authztarget",
       SkillSchema,

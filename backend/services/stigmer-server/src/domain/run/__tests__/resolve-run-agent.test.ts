@@ -77,6 +77,7 @@ import {
   newStampRecoveredRunAgentStep,
 } from "../resolve-run-agent.js";
 import { STORED_SESSION_KEY } from "../session-binding.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 /** Every caller may run every agent: the run gate is not this step's question. */
 const ALLOW: Authorizer = {
@@ -100,9 +101,11 @@ let store: Store;
 
 beforeEach(() => {
   dir = mkdtempSync(path.join(tmpdir(), "resolve-run-agent-test-"));
-  store = SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
-    listIndexes: LIST_INDEXES,
-  });
+  store = namingSaves(
+    SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
+      listIndexes: LIST_INDEXES,
+    }),
+  );
 });
 
 afterEach(() => {
