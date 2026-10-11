@@ -103,6 +103,7 @@ import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
+import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -297,6 +298,7 @@ async function createSession(
   }
   await builder
     .addStep(newSealSessionValuesStep(deps.secretService, deps.logger))
+    .addStep(newClaimNameStep(deps.store, ApiResourceKind.session))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -308,7 +310,8 @@ async function createSession(
       newIndexSearchStep(deps.store, sessionSearchExtractor, deps.logger),
     )
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
   return redacted(reqCtx.newState);
 }
 
@@ -452,6 +455,7 @@ async function deleteSession(
     )
     .addStep(newDeleteSessionEventsStep(deps.store))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.session))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

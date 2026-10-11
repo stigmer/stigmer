@@ -82,7 +82,7 @@ import {
   internalError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
+import { findResourceByName } from "../../pipeline/steps/names.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
   checkReferences,
@@ -279,13 +279,7 @@ export async function resolveAgentPin(
     const now =
       named ??
       (
-        await findResourceBySlug(
-          store,
-          ApiResourceKind.agent,
-          AgentSchema,
-          ref.slug,
-          ref.org,
-        )
+        await findResourceByName(store, ApiResourceKind.agent, AgentSchema, ref.org, ref.slug)
       )?.metadata?.id;
     if (now !== undefined && now !== "" && now !== held) {
       await asker.judgeResolvedAgain?.();

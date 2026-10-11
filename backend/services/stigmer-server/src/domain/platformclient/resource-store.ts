@@ -4,22 +4,20 @@
  * root installs it when no extension registers `drivers.platformClientStore`.
  *
  * `findById` is a primary-key read, the one lookup on a per-request path
- * (the verifier's liveness read, the origin guard). The other three scan
+ * (the verifier's liveness read, the origin guard). The other two scan
  * the kind: `findByClientId` through Store.findByField (ApiKey's lookup,
  * domain/apikey/lookup.ts: a decode-and-scan per mint, watched by
- * stigmer#987), `findByOrg` by listing the kind, and `findByOrgAndSlug`
- * over that listing — an exact pair, unlike the shared slug helper, whose
- * empty org matches every organization. A
- * PlatformClient census is a handful of rows per organization, and none of
- * the three sits on a per-request path.
+ * stigmer#987) and `findByOrg` by listing the kind. A PlatformClient
+ * census is a handful of rows per organization, and neither sits on a
+ * per-request path. A lookup by slug reads the name table, then this
+ * store by id (steps.ts findClientByName).
  *
  * `save` and `update` are read-then-write because the generic Store's
  * saveResource is an upsert with neither a create-only nor an update-only
  * form — the identity-account adapter's posture, with its reasoning
- * (domain/identityaccount/resource-store.ts): `save` refuses a held id,
- * (org, slug) or client_id; `update` writes nothing for an unknown id; the
- * residual window between the read and the write is the platform-wide
- * CheckDuplicate-then-upsert window, not this adapter's to close.
+ * (domain/identityaccount/resource-store.ts): `save` refuses a held id or
+ * client_id; `update` writes nothing for an unknown id. A held slug is the
+ * name table's refusal, taken by the create chain before this write.
  * `modifyById` has no such window: it IS Store.updateResource, the generic
  * store's own atomic read-modify-write, its not-found read as `undefined`.
  *
@@ -93,32 +91,12 @@ export function newResourcePlatformClientStore(
     return clients;
   }
 
-  /** The exact (org, slug) pair — an empty org is no wildcard here. */
-  async function readByOrgAndSlug(
-    org: string,
-    slug: string,
-  ): Promise<PlatformClient | undefined> {
-    if (org === "" || slug === "") {
-      return undefined;
-    }
-    return (await listOrg(org)).find(
-      (client) => (client.metadata?.slug ?? "") === slug,
-    );
-  }
-
   return {
     async save(client): Promise<void> {
       const id = client.metadata?.id ?? "";
-      const org = client.metadata?.org ?? "";
-      const slug = client.metadata?.slug ?? "";
       if ((await readById(id)) !== undefined) {
         throw new DuplicatePlatformClientError(
           `platform client '${id}' already exists`,
-        );
-      }
-      if ((await readByOrgAndSlug(org, slug)) !== undefined) {
-        throw new DuplicatePlatformClientError(
-          `platform client '${org}/${slug}' already exists`,
         );
       }
       if ((await readByClientId(client.spec?.clientId ?? "")) !== undefined) {
@@ -160,8 +138,6 @@ export function newResourcePlatformClientStore(
     findById: readById,
 
     findByClientId: readByClientId,
-
-    findByOrgAndSlug: readByOrgAndSlug,
 
     findByOrg: listOrg,
   };

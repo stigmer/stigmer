@@ -1,51 +1,13 @@
 /**
- * Shared lookup helpers — port steps/helpers.go. Full-scan slug and label
- * lookups, exactly Go's semantics (indexability is guaranteed at the store
- * interface, not here).
+ * Shared lookup helpers — port steps/helpers.go. A lookup by slug is not
+ * here: it reads the name table (names.ts findResourceByName).
  */
-import { fromBinary } from "@bufbuild/protobuf";
-import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import type { Store } from "../../store/interface.js";
 import { getKindMeta } from "../apiresource-meta.js";
 import { internalError, invalidArgumentError } from "../errors.js";
-import { metadataOf } from "./shapes.js";
-
-/**
- * Finds one resource by slug, optionally narrowed to an org — Go
- * FindResourceBySlug. Slugs are org-scoped identifiers: the same slug can
- * exist in different orgs; an EMPTY org applies no filter (matches any
- * org). Not-found is a normal outcome (undefined), never an error.
- */
-export async function findResourceBySlug<Desc extends DescMessage>(
-  store: Store,
-  kind: ApiResourceKind,
-  schema: Desc,
-  slug: string,
-  org: string,
-): Promise<MessageShape<Desc> | undefined> {
-  const rows = await store.listResources(kind);
-  for (const data of rows) {
-    let resource: MessageShape<Desc>;
-    try {
-      resource = fromBinary(schema, data);
-    } catch {
-      continue; // skip malformed rows, as Go does
-    }
-    const metadata = metadataOf(resource);
-    if (metadata === undefined || metadata.slug !== slug) {
-      continue;
-    }
-    if (org !== "" && metadata.org !== org) {
-      continue;
-    }
-    return resource;
-  }
-  return undefined;
-}
 
 /**
  * Rejects a getByReference lookup that omits org — Go RequireOrgForReference,
@@ -57,9 +19,8 @@ export async function findResourceBySlug<Desc extends DescMessage>(
  * same for all of them. The message matches the cloud edition verbatim
  * (cross-edition error contract); the kind name comes from kind_meta.
  *
- * Belongs at the getByReference boundary only — the low-level slug finders
- * are legitimately called with a relative (possibly empty) org by internal
- * resolvers.
+ * Every lookup by slug holds the same rule (names.ts findResourceByName),
+ * so no resolver reads a slug across organizations.
  */
 export function requireOrgForReference(
   kind: ApiResourceKind,

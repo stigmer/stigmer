@@ -104,7 +104,12 @@ import {
   newBuildNewStateStep,
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
+import {
+  claimName,
+  findResourceByName,
+  newClaimNameStep,
+  releaseNameAfterFailure,
+} from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { destroySecretBackingState } from "../../pipeline/steps/secret-cleanup.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -128,9 +133,6 @@ export const MY_VAULT_NAME_KIND = "vault_person";
 
 /** The name-table kind that keeps a shared vault's external id unique per organization. */
 export const EXTERNAL_ID_NAME_KIND = "vault_external_id";
-
-/** How old a claim must be before a holder with no row counts as gone. */
-const ABANDONED_CLAIM_AFTER_MS = 60 * 1000;
 
 /** How long a first write waits for a concurrent first write's row to appear. */
 const CONCURRENT_CREATE_WAIT_MS = [10, 20, 40, 80, 160, 320, 640];
@@ -342,28 +344,15 @@ export function externalIdNameKey(
   return { kind: EXTERNAL_ID_NAME_KIND, org: orgId, name: externalId };
 }
 
-/**
- * Claims a name, freeing a holder that never stored its row once the claim
- * is old enough (the child organization's `claimFreeingGoneChild`).
- */
+/** Claims a name for a vault, freeing a holder whose vault row is gone (pipeline/steps/names.ts claimName). */
 export async function claimVaultName(
   store: Store,
   key: ResourceNameKey,
   id: string,
 ): Promise<ResourceNameClaim> {
-  const now = new Date();
-  const claim = await store.resourceNames.claim(key, id, now.toISOString());
-  if (claim.claimed) {
-    return claim;
-  }
-  const holder = claim.entry;
-  const young =
-    now.getTime() - Date.parse(holder.claimedAt) < ABANDONED_CLAIM_AFTER_MS;
-  if (young || (await loadVault(store, holder.id)) !== undefined) {
-    return claim;
-  }
-  await store.resourceNames.release(key.kind, key.org, holder.id);
-  return store.resourceNames.claim(key, id, now.toISOString());
+  return claimName(store, key, id, new Date(), {
+    holds: async (entry) => (await loadVault(store, entry.id)) !== undefined,
+  });
 }
 
 /** A vault by id, or undefined when no row holds it. */
@@ -465,6 +454,7 @@ export function newVaultService(deps: VaultServiceDeps): VaultService {
     try {
       await newPipeline<typeof VaultSchema>("vault-create-mine", logger)
         .addStep(newBuildNewStateStep())
+        .addStep(newClaimNameStep(store, ApiResourceKind.vault))
         .addStep(newPersistStep(store))
         .addStep(
           newCreateAuthorizationTuplesStep(deps.authorizationLifecycle, logger),
@@ -477,6 +467,7 @@ export function newVaultService(deps: VaultServiceDeps): VaultService {
       // already be using the row, and the next write finds the row and
       // writes the tuples (`withTuples`).
       await releaseUnstoredClaim(store, logger, myVaultNameKey(orgId, person), id);
+      await releaseNameAfterFailure(store, logger, ctx);
       throw error;
     }
     return ctx.newState;
@@ -526,13 +517,7 @@ export function newVaultService(deps: VaultServiceDeps): VaultService {
     if (org === "" || ref.slug === "") {
       return undefined;
     }
-    return findResourceBySlug(
-      store,
-      ApiResourceKind.vault,
-      VaultSchema,
-      ref.slug,
-      org,
-    );
+    return findResourceByName(store, ApiResourceKind.vault, VaultSchema, org, ref.slug);
   }
 
   async function findByExternalId(

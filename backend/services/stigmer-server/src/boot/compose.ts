@@ -809,6 +809,7 @@ export async function composeServer(
   });
   const identityAccountPath = {
     accounts: identityAccounts,
+    store,
     logger,
     authorizer,
     authorizationLifecycle: roleLifecycle,

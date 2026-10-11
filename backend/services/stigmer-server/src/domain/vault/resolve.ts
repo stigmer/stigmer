@@ -183,6 +183,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import type { RunSubagent } from "../run/run-subagents.js";
 import { PLUGIN_EVAL_LABEL } from "../plugin-eval/constants.js";
+import { SCHEDULE_ID_LABEL_KEY } from "../schedule/labels.js";
 import type { PlatformClientStore } from "../platformclient/store.js";
 import { sessionIdOf } from "../run/target.js";
 
@@ -199,7 +200,7 @@ import { openSessionValues, repositoryTokenKey } from "./session-values.js";
 import type { SessionOwnValues } from "./session-values.js";
 
 /** The audit link a schedule stamps on every run it starts (temporal/schedule/run-starter.ts). */
-export const SCHEDULE_ID_LABEL_KEY = "stigmer.ai/schedule-id";
+export { SCHEDULE_ID_LABEL_KEY };
 
 /** The lineage a share link's guest session carries, stamped by the edition's guest lane. */
 export const SHARE_ID_LABEL_KEY = "stigmer.ai/share-id";

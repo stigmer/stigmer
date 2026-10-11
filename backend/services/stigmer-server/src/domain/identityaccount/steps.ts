@@ -70,11 +70,19 @@ import {
   internalError,
   invalidArgumentError,
 } from "../../pipeline/errors.js";
+import type { Logger } from "../../boot/logger.js";
+import { kindEnumName } from "../../pipeline/apiresource-meta.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { assignServerId } from "../../pipeline/steps/defaults.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import {
+  claimNameOf,
+  holderIsGone,
+  portHolder,
+} from "../../pipeline/steps/names.js";
+import type { NameHolder } from "../../pipeline/steps/names.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { idValueOf, metadataOf } from "../../pipeline/steps/shapes.js";
 import { fittedName, fittedSlug } from "../../pipeline/steps/slug.js";
@@ -93,9 +101,17 @@ import {
 } from "./constants.js";
 import { isServiceAccount } from "./actor.js";
 import type { AccountProvisioning, FederatedProvider } from "./provisioning.js";
-import { refuseTakenName, serviceAccountSlugOf } from "./service-accounts.js";
+import {
+  serviceAccountNameTakenError,
+  serviceAccountSlugOf,
+} from "./service-accounts.js";
 import { DuplicateAccountError } from "./store.js";
 import type { IdentityAccountStore } from "./store.js";
+import type {
+  ResourceNameEntry,
+  ResourceNameRename,
+  Store,
+} from "../../store/interface.js";
 
 type AccountStep = PipelineStep<typeof IdentityAccountSchema>;
 type AccountContext = RequestContext<typeof IdentityAccountSchema>;
@@ -413,16 +429,64 @@ export function newPreserveBackendFieldsStep(): AccountStep {
   };
 }
 
+/** A service account holds its name while its row exists, read through the port. */
+function accountNameHolder(
+  accounts: Pick<IdentityAccountStore, "findById">,
+): NameHolder {
+  return portHolder((id) => accounts.findById(id));
+}
+
+/**
+ * ClaimName — a new service account claims its slug in the organization
+ * (pipeline/steps/names.ts) immediately before Persist, so two creates of
+ * one name cannot both land; the loser is refused as a taken name. A
+ * person's account claims nothing: it has no unique slug.
+ */
+export function newClaimServiceAccountNameStep(
+  store: Store,
+  accounts: Pick<IdentityAccountStore, "findById">,
+): AccountStep {
+  return {
+    name: "ClaimName",
+    async execute(ctx: AccountContext): Promise<void> {
+      if (!isServiceAccount(ctx.newState)) {
+        return;
+      }
+      const name = ctx.newState.metadata?.name ?? "";
+      await claimNameOf(
+        ctx,
+        store,
+        ApiResourceKind.identity_account,
+        ctx.newState,
+        IdentityAccountSchema,
+        accountNameHolder(accounts),
+        () => serviceAccountNameTakenError(name),
+      );
+    },
+  };
+}
+
+/** Where RenameServiceAccount leaves the name move it made, for the revert after a failed write. */
+const SERVICE_ACCOUNT_RENAME_KEY = "serviceAccountRename";
+
+interface ServiceAccountRename {
+  readonly move: ResourceNameRename;
+  readonly takenBack: ResourceNameEntry | undefined;
+}
+
 /**
  * A service account's rename: its slug follows its name (the update
  * chain otherwise keeps a stored slug), so the name stays unique among
- * the organization's service accounts by the same key its create checked
- * (service-accounts.ts), and a name it gave up is free again. Its person
- * fields stay empty, whatever the request sent: its one name is
+ * the organization's service accounts. The name moves in the name table
+ * with no hold: a name a service account gave up is free again at once,
+ * unlike a renamed resource's 30 days. A name held by an account that is
+ * gone is freed and taken (pipeline/steps/names.ts holderIsGone). Its
+ * person fields stay empty, whatever the request sent: its one name is
  * `metadata.name`. Any other account passes untouched.
  */
 export function newRenameServiceAccountStep(
-  accounts: Pick<IdentityAccountStore, "findByOrg">,
+  store: Store,
+  accounts: Pick<IdentityAccountStore, "findById">,
 ): AccountStep {
   return {
     name: "RenameServiceAccount",
@@ -436,17 +500,77 @@ export function newRenameServiceAccountStep(
       spec.lastName = "";
       spec.pictureUrl = "";
       const slug = serviceAccountSlugOf(metadata.name);
-      if (slug !== metadata.slug) {
-        await refuseTakenName(
-          accounts,
-          metadata.org,
-          slug,
-          metadata.name,
-          metadata.id,
-        );
-        metadata.slug = slug;
+      if (slug === metadata.slug) {
+        return;
       }
+      const now = new Date();
+      const move: ResourceNameRename = {
+        kind: kindEnumName(ApiResourceKind.identity_account),
+        org: metadata.org,
+        id: metadata.id,
+        from: metadata.slug,
+        to: slug,
+        fromExpiresAt: now.toISOString(),
+        now: now.toISOString(),
+      };
+      let renamed;
+      try {
+        renamed = await store.resourceNames.rename(move);
+        if (
+          !renamed.claimed &&
+          (await holderIsGone(renamed.entry, now, accountNameHolder(accounts)))
+        ) {
+          await store.resourceNames.releaseName(
+            { kind: move.kind, org: move.org, name: move.to },
+            renamed.entry.id,
+          );
+          renamed = await store.resourceNames.rename(move);
+        }
+      } catch (error) {
+        throw internalError(error, "failed to rename the service account");
+      }
+      if (!renamed.claimed) {
+        throw serviceAccountNameTakenError(metadata.name);
+      }
+      const moved: ServiceAccountRename = { move, takenBack: renamed.takenBack };
+      ctx.set(SERVICE_ACCOUNT_RENAME_KEY, moved);
+      metadata.slug = slug;
     },
+  };
+}
+
+/**
+ * The update chain's failure handler: a rename whose row write failed
+ * moves its name back (ResourceNameStore.revertRename), then the chain's
+ * own error is rethrown. A fault is logged: the row keeps its old slug, and
+ * the next rename of the account moves the table again.
+ */
+export function revertServiceAccountRenameOnFailure(
+  store: Store,
+  logger: Logger,
+  ctx: AccountContext,
+): (error: unknown) => Promise<never> {
+  return async (error: unknown): Promise<never> => {
+    const moved = ctx.get(SERVICE_ACCOUNT_RENAME_KEY) as
+      | ServiceAccountRename
+      | undefined;
+    if (moved !== undefined) {
+      try {
+        await store.resourceNames.revertRename(moved.move, moved.takenBack);
+      } catch (revertError) {
+        logger.error(
+          "service account rename failed and its name could not be moved back",
+          {
+            accountId: moved.move.id,
+            error:
+              revertError instanceof Error
+                ? revertError.message
+                : String(revertError),
+          },
+        );
+      }
+    }
+    throw error;
   };
 }
 

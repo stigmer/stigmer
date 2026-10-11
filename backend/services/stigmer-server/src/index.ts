@@ -633,6 +633,26 @@ export type {
   ResourceNameStore,
 } from "./store/interface.js";
 export { ORGANIZATION_SLUG_RESERVED } from "./domain/organization/names.js";
+// Every named kind's slug is a name in that table (pipeline/steps/names.ts):
+// a composition that keeps a named kind's rows in its own table (a team, an
+// identity provider) claims the slug through these steps before its row,
+// releases it after its delete, and looks a slug up by name, so one table
+// answers "taken" and resolves names for every kind in every edition.
+export {
+  NAMED_KINDS,
+  claimName,
+  findResourceByName,
+  kindClaimsNames,
+  nameTakenError,
+  newClaimNameStep,
+  newReleaseNamesStep,
+  portHolder,
+  releaseNameAfterFailure,
+  releaseNameOnFailure,
+  resolveName,
+  resourceNameKey,
+} from "./pipeline/steps/names.js";
+export type { NameHolder, NamedKind } from "./pipeline/steps/names.js";
 // The API-key verifier's refusal of a key created before sign-in was
 // turned on (stigmer/stigmer#1169): a client branches on the reason, not
 // the copy.

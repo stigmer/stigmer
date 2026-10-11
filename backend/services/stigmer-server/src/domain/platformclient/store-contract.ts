@@ -101,7 +101,7 @@ const ACME_DASHBOARD = platformClient({
 
 const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
   [
-    "save then findById, findByClientId and findByOrgAndSlug answer the saved client",
+    "save then findById and findByClientId answer the saved client",
     async ({ store }) => {
       await store.save(ACME_DASHBOARD);
       assertSameClient(
@@ -114,11 +114,6 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
         ACME_DASHBOARD,
         "findByClientId must answer the saved row",
       );
-      assertSameClient(
-        await store.findByOrgAndSlug("acme", "dashboard"),
-        ACME_DASHBOARD,
-        "findByOrgAndSlug must answer the saved row",
-      );
     },
   ],
   [
@@ -129,12 +124,6 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
       assert.equal(
         await store.findByClientId("stgm_cid_contract_nobody"),
         undefined,
-      );
-      assert.equal(await store.findByOrgAndSlug("acme", "nobody"), undefined);
-      assert.equal(
-        await store.findByOrgAndSlug("globex", "dashboard"),
-        undefined,
-        "a slug is scoped to its organization: another org's lookup must miss",
       );
     },
   ],
@@ -152,23 +141,6 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
           }),
         ),
         "a held id must be refused, never overwritten",
-      );
-    },
-  ],
-  [
-    "save under a held (org, slug) raises DuplicatePlatformClientError",
-    async ({ store }) => {
-      await store.save(ACME_DASHBOARD);
-      await assertDuplicate(
-        store.save(
-          platformClient({
-            id: "pcl_contract_acme_second",
-            org: "acme",
-            slug: "dashboard",
-            clientId: "stgm_cid_contract_acme_second",
-          }),
-        ),
-        "a held (org, slug) must be refused",
       );
     },
   ],
@@ -201,9 +173,9 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
       });
       await store.save(globex);
       assertSameClient(
-        await store.findByOrgAndSlug("globex", "dashboard"),
+        await store.findById("pcl_contract_globex_dashboard"),
         globex,
-        "each organization answers its own client for the shared slug",
+        "each organization keeps its own client for the shared slug",
       );
     },
   ],
@@ -270,11 +242,6 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
         await store.findByClientId("stgm_cid_contract_acme_dashboard"),
         expected,
         "findByClientId must answer the modified row",
-      );
-      assertSameClient(
-        await store.findByOrgAndSlug("acme", "dashboard"),
-        expected,
-        "findByOrgAndSlug must answer the modified row",
       );
     },
   ],
@@ -355,10 +322,6 @@ const CASES: ReadonlyArray<PortContractDeclaration<PlatformClientStore>> = [
         await store.findByClientId("stgm_cid_contract_acme_dashboard"),
         undefined,
         "a deleted client's client_id must stop resolving: the mint and the verifier read it",
-      );
-      assert.equal(
-        await store.findByOrgAndSlug("acme", "dashboard"),
-        undefined,
       );
       await store.save(ACME_DASHBOARD);
       await store.deleteById("pcl_contract_nobody");

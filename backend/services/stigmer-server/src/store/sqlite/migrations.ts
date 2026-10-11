@@ -132,6 +132,11 @@ import {
   repairedAccountSlugRow,
 } from "../account-slugs-repaired.js";
 import {
+  KindNameBackfill,
+  NAMED_KINDS_AT_BACKFILL,
+  RESOURCE_NAMES_BACKFILL_PAGE_SIZE,
+} from "../resource-names-backfill.js";
+import {
   ENVIRONMENT_RETIRED_PAGE_SIZE,
   ENVIRONMENT_RETIRED_POLICY_KIND,
   RETIRED_ENVIRONMENT_KIND,
@@ -191,9 +196,11 @@ export const SCHEMA_VERSION_26 = 26;
 export const SCHEMA_VERSION_27 = 27;
 /** v28: the sub-agents written inside agents removed, each logged as an agent manifest. */
 export const SCHEMA_VERSION_28 = 28;
+/** v29: every named kind's slug recorded as its current name in the name table. */
+export const SCHEMA_VERSION_29 = 29;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_28;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_29;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -247,6 +254,7 @@ export function runMigrations(
     [SCHEMA_VERSION_26, (migrating) => migrateToV26(migrating, logger)],
     [SCHEMA_VERSION_27, migrateToV27],
     [SCHEMA_VERSION_28, (migrating) => migrateToV28(migrating, logger)],
+    [SCHEMA_VERSION_29, (migrating) => migrateToV29(migrating, logger)],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1567,6 +1575,44 @@ function migrateToV28(db: DatabaseSync, logger: StoreLogger): void {
       update.run(migrated, SUB_AGENT_RETIREMENT_SESSION_KIND, row.id);
     }
   });
+}
+
+/**
+ * v29: every named kind's slug is its current name in the name table
+ * (../resource-names-backfill.ts says which kinds, which row keeps a slug
+ * two rows share, and why an unreadable row fails the step). Each kind is
+ * read in keyset pages and its names inserted; a name the table already
+ * holds is left as it is. The Postgres driver's v24 in this engine's
+ * terms. Runs inside applyInTransaction's BEGIN.
+ */
+function migrateToV29(db: DatabaseSync, logger: StoreLogger): void {
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO resource_names (kind, org, name, id, state, claimed_at)
+     VALUES (?, ?, ?, ?, 'current', ?)`,
+  );
+  const now = new Date().toISOString();
+  for (const named of NAMED_KINDS_AT_BACKFILL) {
+    const backfill = new KindNameBackfill(named, now);
+    for (let after = ""; ; ) {
+      const rows = page.all(named.kind, after, RESOURCE_NAMES_BACKFILL_PAGE_SIZE) as Array<{
+        id: string;
+        data: Uint8Array;
+      }>;
+      for (const row of rows) {
+        backfill.add(row.id, row.data);
+      }
+      if (rows.length < RESOURCE_NAMES_BACKFILL_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+    for (const name of backfill.names(logger)) {
+      insert.run(name.kind, name.org, name.name, name.id, name.claimedAt);
+    }
+  }
 }
 
 /**

@@ -24,7 +24,7 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
+import { findResourceByName } from "../../pipeline/steps/names.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import { scheduleModelPinningRefusal } from "../../temporal/schedule/model-pinning.js";
@@ -113,13 +113,7 @@ export function newResolveScheduleDefaultsStep(
 
       let found;
       try {
-        found = await findResourceBySlug(
-          deps.store,
-          ApiResourceKind.agent,
-          AgentSchema,
-          agentRef?.slug ?? "",
-          refOrg,
-        );
+        found = await findResourceByName(deps.store, ApiResourceKind.agent, AgentSchema, refOrg, agentRef?.slug ?? "");
       } catch (error) {
         throw internalError(error, "failed to list agent resources");
       }

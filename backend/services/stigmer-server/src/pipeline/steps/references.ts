@@ -118,7 +118,7 @@
  * readers that ask the reverse question ("who references this?").
  */
 import type { DescField, DescMessage, Message } from "@bufbuild/protobuf";
-import { fromBinary, getOption, hasOption } from "@bufbuild/protobuf";
+import { getOption, hasOption } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
 import type { ConnectError } from "@connectrpc/connect";
 import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
@@ -150,6 +150,7 @@ import type { RequestContext } from "../request-context.js";
 import { evaluateAuthorizer } from "./authorize.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { messageFieldByName, metadataOf } from "./shapes.js";
+import { findResourceByName } from "./names.js";
 
 const API_RESOURCE_REFERENCE_TYPE =
   "ai.stigmer.commons.apiresource.ApiResourceReference";
@@ -279,45 +280,46 @@ interface IndexedTarget {
 }
 
 /**
- * Loads the rows the given references could name: one `listResources` per
- * distinct kind, decoded once, indexed by (org, slug). A row that does not
- * decode is skipped as the slug helpers skip it — it is not a row a
- * reference can reach. A reference whose kind is not in the table is a
- * contract the pin test has not admitted yet and is an internal fault.
+ * Loads the rows the given references name: each distinct (kind, org,
+ * slug) read once through the name table, then by id
+ * (pipeline/steps/names.ts), so the rule reads only the targets it judges.
+ * A reference whose kind is not in the table is a contract the pin test
+ * has not admitted yet and is an internal fault.
  */
 export async function loadReferenceTargets(
   store: Store,
   refs: ReadonlyArray<SpecReference>,
   writerOrg: string,
 ): Promise<ReferenceTargets> {
-  const byKind = new Map<ApiResourceKind, Map<string, IndexedTarget>>();
-  for (const kind of new Set(refs.map((ref) => ref.kind))) {
-    const entry = referenceTargetKind(kind);
+  const found = new Map<string, IndexedTarget | undefined>();
+  for (const ref of refs) {
+    const entry = referenceTargetKind(ref.kind);
     if (entry === undefined) {
       throw internalError(
         new Error(
-          `kind ${ApiResourceKind[kind] ?? kind} is not a reference target`,
+          `kind ${ApiResourceKind[ref.kind] ?? ref.kind} is not a reference target`,
         ),
         "reference rule table has no entry for the referenced kind",
       );
     }
-    const index = new Map<string, IndexedTarget>();
-    for (const data of await store.listResources(kind)) {
-      let metadata;
-      try {
-        metadata = metadataOf(fromBinary(entry.schema, data));
-      } catch {
-        continue;
-      }
-      if (metadata === undefined || metadata.slug === "") {
-        continue;
-      }
-      index.set(targetKey(metadata.org, metadata.slug), {
-        visibility: metadata.visibility,
-        id: metadata.id,
-      });
+    const key = targetKey(ref.kind, ref.org, ref.slug);
+    if (found.has(key) || ref.org === "" || ref.slug === "") {
+      continue;
     }
-    byKind.set(kind, index);
+    const target = await findResourceByName(
+      store,
+      ref.kind,
+      entry.schema,
+      ref.org,
+      ref.slug,
+    );
+    const metadata = target === undefined ? undefined : metadataOf(target);
+    found.set(
+      key,
+      metadata === undefined
+        ? undefined
+        : { visibility: metadata.visibility, id: metadata.id },
+    );
   }
   const crosses = refs.some((ref) => ref.org !== "" && ref.org !== writerOrg);
   const writerParentOrg =
@@ -327,17 +329,16 @@ export async function loadReferenceTargets(
   return {
     writerParentOrg,
     visibilityOf(ref) {
-      return byKind.get(ref.kind)?.get(targetKey(ref.org, ref.slug))
-        ?.visibility;
+      return found.get(targetKey(ref.kind, ref.org, ref.slug))?.visibility;
     },
     idOf(ref) {
-      return byKind.get(ref.kind)?.get(targetKey(ref.org, ref.slug))?.id;
+      return found.get(targetKey(ref.kind, ref.org, ref.slug))?.id;
     },
   };
 }
 
-function targetKey(org: string, slug: string): string {
-  return `${org}/${slug}`;
+function targetKey(kind: ApiResourceKind, org: string, slug: string): string {
+  return `${kind}/${org}/${slug}`;
 }
 
 /** An organization's `spec.parent_org`; "" when it has none or its row is gone. */

@@ -12,6 +12,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
 import { newDeleteResourceStep } from "../../pipeline/steps/delete.js";
+import { newReleaseNamesStep } from "../../pipeline/steps/names.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { secretValuesOfChannelApp } from "./steps.js";
@@ -36,6 +37,7 @@ export function newChannelAppPurge(deps: ChannelAppPurgeDeps): KindPurge {
     input: ChannelAppCommandController.method.delete.input,
     steps: [
       newDeleteResourceStep(deps.store),
+      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.channel_app),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
       newDestroySecretBackingStateStep<DeleteInput, typeof ChannelAppSchema>(
         deps.secretService,

@@ -39,9 +39,11 @@
  * Proven by __tests__/service-accounts.test.ts and the service-account
  * conformance suite.
  */
+import { ConnectError } from "@connectrpc/connect";
 import type { HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { IdentityAccountCommandController } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { IdentityAccountSpecSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/spec_pb";
@@ -66,6 +68,7 @@ import {
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { authorizeDirect } from "../../pipeline/steps/authorize.js";
 import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
+import { resolveName } from "../../pipeline/steps/names.js";
 import { refuseServiceAccountCaller } from "../../pipeline/steps/refuse-service-account.js";
 import { fittedSlug } from "../../pipeline/steps/slug.js";
 import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
@@ -78,6 +81,7 @@ import {
 } from "./constants.js";
 import type { CreateAccount } from "./provisioning.js";
 import type { IdentityAccountStore } from "./store.js";
+import type { Store } from "../../store/interface.js";
 
 /** The reason a held name is refused with, so a client tells it apart without parsing text. */
 export const SERVICE_ACCOUNT_NAME_TAKEN = "SERVICE_ACCOUNT_NAME_TAKEN";
@@ -91,6 +95,7 @@ const LIST_PAGE_SIZE = 100;
 
 export interface ServiceAccountDeps {
   readonly accounts: IdentityAccountStore;
+  readonly store: Store;
   readonly logger: Logger;
   readonly authorizer: Authorizer;
   /** The lifecycle the account's controller fires; its optional `onServiceAccountLinked` is the link. */
@@ -129,7 +134,7 @@ export async function createServiceAccount(
   }
   const org = input.org;
   const slug = serviceAccountSlugOf(input.name);
-  await refuseTakenName(deps.accounts, org, slug, input.name, undefined);
+  await refuseTakenName(deps.store, deps.accounts, org, slug, input.name, undefined);
 
   const account = await deps.createAccount(
     {
@@ -208,26 +213,43 @@ export function serviceAccountSlugOf(name: string): string {
   }
 }
 
+/** The refusal of a service-account name another service account of the organization holds. */
+export function serviceAccountNameTakenError(name: string): ConnectError {
+  return alreadyExistsWithReasonError(serviceAccountNameTakenMessage(name), {
+    reason: SERVICE_ACCOUNT_NAME_TAKEN,
+  });
+}
+
 /**
- * Refuses a service-account name another service account of `org` holds;
- * `self` is the account being renamed, which may keep its own name.
+ * Refuses a service-account name another service account of `org` holds,
+ * read through the name table (pipeline/steps/names.ts): the early,
+ * readable refusal before any side effect; the create chain's ClaimName
+ * is the guarantee. `self` is the account being renamed, which may keep
+ * its own name.
  */
 export async function refuseTakenName(
-  accounts: Pick<IdentityAccountStore, "findByOrg">,
+  store: Store,
+  accounts: Pick<IdentityAccountStore, "findById">,
   org: string,
   slug: string,
   name: string,
   self: string | undefined,
 ): Promise<void> {
-  const held = (await serviceAccountsOf(accounts, org)).some(
-    (account) =>
-      (account.metadata?.slug ?? "") === slug &&
-      (account.metadata?.id ?? "") !== self,
-  );
-  if (held) {
-    throw alreadyExistsWithReasonError(serviceAccountNameTakenMessage(name), {
-      reason: SERVICE_ACCOUNT_NAME_TAKEN,
-    });
+  let holder: IdentityAccount | undefined;
+  try {
+    const id = await resolveName(store, ApiResourceKind.identity_account, org, slug);
+    if (id === undefined || id === self) {
+      return;
+    }
+    holder = await accounts.findById(id);
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      throw error;
+    }
+    throw internalError(error, "failed to check the service account's name");
+  }
+  if (holder !== undefined && isServiceAccount(holder)) {
+    throw serviceAccountNameTakenError(name);
   }
 }
 

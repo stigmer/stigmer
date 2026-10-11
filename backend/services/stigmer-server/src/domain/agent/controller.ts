@@ -114,6 +114,7 @@ import {
   newRecordVisibilityBeforeUpdateStep,
   newUpdateVisibilityTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
+import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -233,6 +234,7 @@ async function createAgent(
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())
+    .addStep(newClaimNameStep(deps.store, ApiResourceKind.agent))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -243,7 +245,8 @@ async function createAgent(
     .addStep(newSaveAgentVersionStep(deps.store, deps.logger, true))
     .addStep(newIndexSearchStep(deps.store, agentSearchExtractor, deps.logger))
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
   return reqCtx.newState;
 }
 
@@ -380,6 +383,7 @@ async function deleteAgent(
     )
     .addStep(newDeleteAgentVersionsStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

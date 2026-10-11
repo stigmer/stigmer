@@ -16,6 +16,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
 import { newDeleteResourceStep } from "../../pipeline/steps/delete.js";
+import { newReleaseNamesStep } from "../../pipeline/steps/names.js";
 import { newDeleteSearchIndexStep } from "../../pipeline/steps/index-search.js";
 import { newKindPurge } from "../organization/purge/kind-purge.js";
 import type {
@@ -55,6 +56,7 @@ export function newSessionPurge(deps: SessionPurgeDeps): KindPurge {
       ),
       newDeleteSessionEventsStep(deps.store),
       newDeleteResourceStep(deps.store),
+      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.session),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
       newDestroySecretBackingStateStep<DeleteInput, typeof SessionSchema>(
         deps.secretService,

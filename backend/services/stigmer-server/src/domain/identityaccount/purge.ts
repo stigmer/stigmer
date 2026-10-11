@@ -28,6 +28,7 @@ import type {
   KindPurge,
   KindPurgeDeps,
 } from "../organization/purge/kind-purge.js";
+import { newReleaseNamesStep } from "../../pipeline/steps/names.js";
 import { newDeleteAccountStep } from "./steps.js";
 import type { IdentityAccountStore } from "./store.js";
 
@@ -49,6 +50,11 @@ export function newIdentityAccountPurge(
       (await deps.accounts.findByOrg(org.id)).slice(0, limit),
     steps: [
       newDeleteAccountStep(deps.accounts),
+      newReleaseNamesStep(
+        deps.store,
+        deps.logger,
+        ApiResourceKind.identity_account,
+      ),
       newCleanupIamPoliciesStep(deps.accountLifecycle, deps.logger),
     ],
   });

@@ -82,6 +82,7 @@ import type { RequestContext } from "../../pipeline/request-context.js";
 import { authorizeResolvedResource } from "../../pipeline/steps/authorize.js";
 import type { OwnerAttributionOf } from "../../pipeline/steps/authorization-tuples.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import { claimName } from "../../pipeline/steps/names.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type {
@@ -445,27 +446,15 @@ export function newClaimExternalIdStep(
   };
 }
 
-/** How old a claim must be before a holder with no row counts as gone (a create holds its claim a step before its row). */
-const ABANDONED_CLAIM_AFTER_MS = 60 * 1000;
-
+/** A child holds its external id while its organization row exists. */
 async function claimFreeingGoneChild(
   store: Store,
   key: ResourceNameKey,
   id: string,
 ) {
-  const now = new Date();
-  const claim = await store.resourceNames.claim(key, id, now.toISOString());
-  if (claim.claimed) {
-    return claim;
-  }
-  const holder = claim.entry;
-  const young =
-    now.getTime() - Date.parse(holder.claimedAt) < ABANDONED_CLAIM_AFTER_MS;
-  if (young || (await loadOrganization(store, holder.id)) !== undefined) {
-    return claim;
-  }
-  await store.resourceNames.release(key.kind, key.org, holder.id);
-  return store.resourceNames.claim(key, id, now.toISOString());
+  return claimName(store, key, id, new Date(), {
+    holds: async (entry) => (await loadOrganization(store, entry.id)) !== undefined,
+  });
 }
 
 /**

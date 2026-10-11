@@ -303,8 +303,12 @@ export interface ResourceNameRename {
 
 /**
  * The names resources answer to, and which resource each resolves to.
- * Only organizations write it today: their slugs are names here, unique
- * across the server, while the organization is filed under its minted id.
+ * Every kind a person names writes it (pipeline/steps/names.ts
+ * NAMED_KINDS): a resource is filed under its minted id and its slug is a
+ * name here, unique per kind and organization, an organization's across
+ * the server. A few name spaces that are no kind write it too (a My
+ * vault's person, a shared vault's or a child organization's external id,
+ * a login app's address).
  *
  * The table, not the resource row, decides "taken". A claim is a create's
  * uniqueness guarantee, which the row cannot give: `saveResource` upserts,

@@ -88,6 +88,11 @@ import { compareCreatedAtDesc } from "../../pipeline/steps/helpers.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import {
+  newClaimNameStep,
+  newReleaseNamesStep,
+  releaseNameOnFailure,
+} from "../../pipeline/steps/names.js";
+import {
   newNormalizeReferencesStep,
   newValidateReferencesStep,
 } from "../../pipeline/steps/references.js";
@@ -104,6 +109,7 @@ import {
   newLoadExistingClientStep,
   newLoadTargetClientStep,
   newPersistNewClientStep,
+  platformClientNameHolder,
   newPersistTargetClientStep,
   newPersistUpdatedClientStep,
   newPreserveClientCredentialsStep,
@@ -210,13 +216,20 @@ async function createClient(
     .addStep(newValidateSignInRoleStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newRefuseReservedSlugStep())
-    .addStep(newCheckDuplicateStep(deps.clients))
+    .addStep(newCheckDuplicateStep(deps.store, deps.clients))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, PLATFORM_CLIENT_VAULT_ATTACHMENTS))
     .addStep(newGenerateClientCredentialsStep())
+    .addStep(
+      newClaimNameStep(
+        deps.store,
+        ApiResourceKind.platform_client,
+        platformClientNameHolder(deps.clients),
+      ),
+    )
     .addStep(newPersistNewClientStep(deps.clients))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -225,7 +238,8 @@ async function createClient(
       ),
     )
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
   return create(PlatformClientCreateResponseSchema, {
     platformClient: redactPlatformClient(reqCtx.newState),
     clientSecret: parkedClientSecret(reqCtx),
@@ -263,7 +277,7 @@ async function updateClient(
     .addStep(newValidateProtoStep())
     .addStep(newValidateSignInRoleStep())
     .addStep(newResolveSlugStep({ update: true }))
-    .addStep(newLoadExistingClientStep(deps.clients))
+    .addStep(newLoadExistingClientStep(deps.store, deps.clients))
     .addStep(
       newRefuseSystemManagedStep<typeof PlatformClientSchema>(
         "updated",
@@ -317,6 +331,13 @@ async function deleteClient(
       newRefuseSystemManagedStep<DeleteInput>("deleted", EXISTING_RESOURCE_KEY),
     )
     .addStep(newDeleteClientStep<DeleteInput>(deps.clients))
+    .addStep(
+      newReleaseNamesStep<DeleteInput>(
+        deps.store,
+        deps.logger,
+        ApiResourceKind.platform_client,
+      ),
+    )
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )
@@ -416,7 +437,7 @@ async function getByReference(
       ),
     )
     .addStep(newValidateProtoStep())
-    .addStep(newLoadClientByReferenceStep(deps.clients))
+    .addStep(newLoadClientByReferenceStep(deps.store, deps.clients))
     .addStep(
       newAuthorizeResolvedTargetStep(
         deps.authorizer,
