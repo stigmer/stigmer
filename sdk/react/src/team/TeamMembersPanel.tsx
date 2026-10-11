@@ -9,9 +9,10 @@
  * directly instead of the resource grant form.
  *
  * Only the organization's people are offered: a team cannot be a member
- * of a team, and the accounts an integrator's product created for its own
- * users are not the organization's people, so they are left out
- * (`includeAppUsers={false}`). People who sign in through their
+ * of a team, and neither the accounts an integrator's product created for
+ * its own users nor the organization's service accounts are its people, so
+ * both are left out (`includeAppUsers={false}`,
+ * `includeServiceAccounts={false}`). People who sign in through their
  * organization's own identity provider stay. Anyone on the organization's
  * member list is an organization viewer, which the model requires of every
  * member, so the server has nothing to refuse about the people offered
@@ -140,6 +141,7 @@ export function TeamMembersPanel({ teamId, org, className }: TeamMembersPanelPro
             onChange={setAdding}
             excludeGrantees={members}
             includeAppUsers={false}
+            includeServiceAccounts={false}
             disabled={isGranting}
             label="Add a person"
             autoFocus={false}

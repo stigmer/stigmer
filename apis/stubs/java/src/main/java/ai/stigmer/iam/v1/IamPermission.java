@@ -335,6 +335,15 @@ public enum IamPermission
    * <code>can_use = 53;</code>
    */
   can_use(53),
+  /**
+   * <pre>
+   * Whether the caller may create, list and revoke a service account's API
+   * keys: its organization's admins.
+   * </pre>
+   *
+   * <code>can_manage_keys = 55;</code>
+   */
+  can_manage_keys(55),
   UNRECOGNIZED(-1),
   ;
 
@@ -658,6 +667,15 @@ public enum IamPermission
    * <code>can_use = 53;</code>
    */
   public static final int can_use_VALUE = 53;
+  /**
+   * <pre>
+   * Whether the caller may create, list and revoke a service account's API
+   * keys: its organization's admins.
+   * </pre>
+   *
+   * <code>can_manage_keys = 55;</code>
+   */
+  public static final int can_manage_keys_VALUE = 55;
 
 
   public final int getNumber() {
@@ -723,6 +741,7 @@ public enum IamPermission
       case 51: return can_create_vault;
       case 52: return can_create_shared_vault;
       case 53: return can_use;
+      case 55: return can_manage_keys;
       default: return null;
     }
   }

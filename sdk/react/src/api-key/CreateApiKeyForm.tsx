@@ -2,11 +2,16 @@
 
 import { useCallback, useId, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
-import { UNSTYLED_FIELDSET } from "../internal/element-resets.js";
 import { getUserMessage } from "@stigmer/sdk";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { useCreateApiKey } from "./useCreateApiKey.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
+import {
+  DEFAULT_KEY_EXPIRY,
+  KeyExpiryFieldset,
+  keyExpiryFields,
+  type KeyExpiryOption,
+} from "./KeyExpiryFieldset.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -37,8 +42,6 @@ export interface CreateApiKeyFormProps {
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
-
-type ExpiryOption = "30" | "60" | "90" | "never";
 
 /**
  * Compact form for creating a new API key.
@@ -73,7 +76,7 @@ export function CreateApiKeyForm({
   const baseId = useId();
 
   const [name, setName] = useState(initialName);
-  const [expiry, setExpiry] = useState<ExpiryOption>("never");
+  const [expiry, setExpiry] = useState<KeyExpiryOption>(DEFAULT_KEY_EXPIRY);
   const [thisOrgOnly, setThisOrgOnly] = useState(true);
 
   const trimmedName = name.trim();
@@ -94,9 +97,7 @@ export function CreateApiKeyForm({
           name: trimmedName,
           org,
           ...(thisOrgOnly ? { boundOrg: org } : {}),
-          ...(expiry === "never"
-            ? { neverExpires: true }
-            : { expiresAt: daysFromNow(Number(expiry)) }),
+          ...keyExpiryFields(expiry),
         });
         onCreated?.(apiKey);
       } catch {
@@ -144,27 +145,11 @@ export function CreateApiKeyForm({
           />
         </div>
 
-        {/* Expiry */}
-        <fieldset className={cn(UNSTYLED_FIELDSET, "stg:space-y-1.5")}>
-          <legend className="stg:text-xs stg:font-medium stg:text-foreground">
-            Expiration
-          </legend>
-          <div className="stg:flex stg:flex-wrap stg:gap-2">
-            {/* The radio-group name is minted per mount: a hardcoded name
-                would merge two mounted forms into one keyboard group. */}
-            {EXPIRY_OPTIONS.map(({ value, label }) => (
-              <ExpiryRadio
-                key={value}
-                name={`${baseId}-expiry`}
-                value={value}
-                label={label}
-                checked={expiry === value}
-                disabled={isCreating}
-                onChange={setExpiry}
-              />
-            ))}
-          </div>
-        </fieldset>
+        <KeyExpiryFieldset
+          value={expiry}
+          onChange={setExpiry}
+          disabled={isCreating}
+        />
 
         {/* Organization limit */}
         <div className="stg:space-y-0.5">
@@ -229,64 +214,3 @@ export function CreateApiKeyForm({
     </form>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Expiry helpers
-// ---------------------------------------------------------------------------
-
-const EXPIRY_OPTIONS: { value: ExpiryOption; label: string }[] = [
-  { value: "30", label: "30 days" },
-  { value: "60", label: "60 days" },
-  { value: "90", label: "90 days" },
-  { value: "never", label: "Never" },
-];
-
-function daysFromNow(days: number): Date {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date;
-}
-
-// ---------------------------------------------------------------------------
-// ExpiryRadio (internal)
-// ---------------------------------------------------------------------------
-
-function ExpiryRadio({
-  name,
-  value,
-  label,
-  checked,
-  disabled,
-  onChange,
-}: {
-  name: string;
-  value: ExpiryOption;
-  label: string;
-  checked: boolean;
-  disabled: boolean;
-  onChange: (v: ExpiryOption) => void;
-}) {
-  return (
-    <label
-      className={cn(
-        "stg:inline-flex stg:cursor-pointer stg:items-center stg:rounded-md stg:border stg:px-2.5 stg:py-1 stg:text-xs stg:transition-colors",
-        checked
-          ? "stg:border-primary stg:bg-primary-subtle stg:text-primary stg:font-medium"
-          : "stg:border-input stg:bg-background stg:text-muted-foreground stg:hover:border-border stg:hover:text-foreground",
-        disabled && "stg:pointer-events-none stg:opacity-50",
-      )}
-    >
-      <input
-        type="radio"
-        name={name}
-        value={value}
-        checked={checked}
-        disabled={disabled}
-        onChange={() => onChange(value)}
-        className="stg:sr-only"
-      />
-      {label}
-    </label>
-  );
-}
-

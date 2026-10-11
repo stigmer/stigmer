@@ -5,7 +5,7 @@
 
 import { IdentityAccount } from "./api_pbjs";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
-import { CreateFederatedAccountInput, DeprovisionFederatedAccountInput, IdentityAccountId, UpdateFederatedAccountInput } from "./io_pbjs";
+import { CreateFederatedAccountInput, CreateServiceAccountInput, DeprovisionFederatedAccountInput, IdentityAccountId, UpdateFederatedAccountInput } from "./io_pbjs";
 
 /**
  * IdentityAccountCommandController handles write operations for identity accounts.
@@ -118,6 +118,31 @@ export const IdentityAccountCommandController = {
     deprovisionFederatedAccount: {
       name: "deprovisionFederatedAccount",
       I: DeprovisionFederatedAccountInput,
+      O: IdentityAccount,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Create a service account: an organization's own non-person account for
+     * automation, holding one organization role.
+     *
+     * The account belongs to `org` for its whole life. It holds `role` on the
+     * organization (admin, member or viewer; never owner) and acts only through
+     * API keys created for it with ApiKeyCommandController.createForServiceAccount.
+     * Its name is unique among the organization's service accounts; a name in
+     * use answers ALREADY_EXISTS. A server running without sign-in answers
+     * FAILED_PRECONDITION, since no key could authenticate there.
+     *
+     * Rename it with update, change its role through IAM policies, and delete
+     * it with delete, which ends every key it has.
+     *
+     * Authorization: Requires can_create_identity_account on the organization.
+     * A service account's own key is refused.
+     *
+     * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.createServiceAccount
+     */
+    createServiceAccount: {
+      name: "createServiceAccount",
+      I: CreateServiceAccountInput,
       O: IdentityAccount,
       kind: MethodKind.Unary,
     },

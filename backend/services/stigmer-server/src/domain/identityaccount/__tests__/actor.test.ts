@@ -14,19 +14,29 @@
  *     result left out, and a row with no id a loud fault rather than a
  *     `""` principal;
  *   - both constructions built on it (`accountAsCaller`,
- *     `accountAsRunnerCaller`) carry the same principal.
+ *     `accountAsRunnerCaller`) carry the same principal;
+ *   - an organization's service account is never a `user`:
+ *     `accountAsCaller` of its row is class `service_account`, bound to
+ *     its organization (`metadata.org`) and named by its one name
+ *     (`metadata.name`), so a lane acting as a row's creator keeps it in
+ *     its organization; `serviceAccountCallerOf` answers nothing for any
+ *     other row and refuses a service-account row with no organization or
+ *     no id, which no organization could bind.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+import { IdentityAccountProvisioningMode } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/enum_pb";
 
 import {
   accountAsCaller,
   accountAsRunnerCaller,
   accountDisplayName,
+  isServiceAccount,
   principalOf,
+  serviceAccountCallerOf,
 } from "../actor.js";
 
 function account(fields: {
@@ -189,5 +199,81 @@ describe("the constructions built on principalOf", () => {
       issuer: "",
       rawToken: "run-token",
     });
+  });
+});
+
+describe("an organization's service account as a caller", () => {
+  function serviceAccountRow(fields: {
+    id?: string;
+    name?: string;
+    org?: string;
+  }) {
+    return create(IdentityAccountSchema, {
+      metadata: {
+        id: fields.id ?? "ida_ci",
+        name: fields.name ?? "ci-deploy",
+        org: fields.org ?? "org_acme",
+      },
+      spec: {
+        idpId: "stgm_sa|org_acme|0123",
+        provisioningMode: IdentityAccountProvisioningMode.service_account,
+      },
+    });
+  }
+
+  it("accountAsCaller of a service-account row is class service_account, bound to its organization, named by its one name", () => {
+    expect(accountAsCaller(serviceAccountRow({}))).toEqual({
+      identityId: "ida_ci",
+      displayName: "ci-deploy",
+      callerClass: "service_account",
+      boundOrg: "org_acme",
+      issuer: "",
+      rawToken: "",
+    });
+  });
+
+  it("accountAsCaller of a person is unchanged: a user with no bound organization", () => {
+    const person = account({ email: "ada@example.com", firstName: "Ada" });
+    const caller = accountAsCaller(person);
+    expect(caller.callerClass).toBe("user");
+    expect(caller.boundOrg).toBeUndefined();
+  });
+
+  it("serviceAccountCallerOf answers nothing for a row in any other mode", () => {
+    for (const mode of [
+      IdentityAccountProvisioningMode.direct,
+      IdentityAccountProvisioningMode.platform_client,
+      IdentityAccountProvisioningMode.federated,
+      IdentityAccountProvisioningMode.machine,
+      IdentityAccountProvisioningMode.identity_account_provisioning_mode_unspecified,
+    ]) {
+      const row = serviceAccountRow({});
+      row.spec!.provisioningMode = mode;
+      expect(isServiceAccount(row)).toBe(false);
+      expect(serviceAccountCallerOf(row)).toBeUndefined();
+    }
+  });
+
+  it("serviceAccountCallerOf leaves the display name out when the row carries no name", () => {
+    expect(serviceAccountCallerOf(serviceAccountRow({ name: "" }))).toEqual({
+      identityId: "ida_ci",
+      callerClass: "service_account",
+      boundOrg: "org_acme",
+    });
+  });
+
+  it("a service-account row with no organization is a loud fault, never an unbound caller", () => {
+    expect(() =>
+      serviceAccountCallerOf(serviceAccountRow({ org: "" })),
+    ).toThrow(/carries no organization/);
+    expect(() => accountAsCaller(serviceAccountRow({ org: "" }))).toThrow(
+      /carries no organization/,
+    );
+  });
+
+  it("a service-account row with no id is a loud fault too", () => {
+    expect(() => serviceAccountCallerOf(serviceAccountRow({ id: "" }))).toThrow(
+      /carries no organization/,
+    );
   });
 });

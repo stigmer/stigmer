@@ -12,7 +12,7 @@ public interface ListWithIdentityOrgOrBuilder extends
 
   /**
    * <pre>
-   * Organization slug to list identity accounts for.
+   * Organization to list identity accounts for, by id or slug.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org"];</code>
@@ -21,7 +21,7 @@ public interface ListWithIdentityOrgOrBuilder extends
   java.lang.String getOrg();
   /**
    * <pre>
-   * Organization slug to list identity accounts for.
+   * Organization to list identity accounts for, by id or slug.
    * </pre>
    *
    * <code>string org = 1 [json_name = "org"];</code>

@@ -21,6 +21,11 @@ class ApiKeyCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.FromString,
                 _registered_method=True)
+        self.createForServiceAccount = channel.unary_unary(
+                '/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/createForServiceAccount',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.CreateServiceAccountKeyInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.FromString,
+                _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/update',
                 request_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.SerializeToString,
@@ -47,6 +52,22 @@ class ApiKeyCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def createForServiceAccount(self, request, context):
+        """Create an API key for a service account.
+
+        The key speaks for the service account, not for the caller who creates
+        it: it keeps working when that caller leaves, it works only in the
+        service account's organization, and resources it creates name the
+        service account as their creator. The raw key value is included in the
+        response and is never returned again.
+
+        Authorization: Requires can_manage_keys on the service account, which
+        its organization's admins hold. A service account's own key is refused.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def update(self, request, context):
         """Update an existing API key.
         """
@@ -67,6 +88,11 @@ def add_ApiKeyCommandControllerServicer_to_server(servicer, server):
             'create': grpc.unary_unary_rpc_method_handler(
                     servicer.create,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.SerializeToString,
+            ),
+            'createForServiceAccount': grpc.unary_unary_rpc_method_handler(
+                    servicer.createForServiceAccount,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.CreateServiceAccountKeyInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.SerializeToString,
             ),
             'update': grpc.unary_unary_rpc_method_handler(
@@ -107,6 +133,33 @@ class ApiKeyCommandController(object):
             target,
             '/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/create',
             ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def createForServiceAccount(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.apikey.v1.ApiKeyCommandController/createForServiceAccount',
+            ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_io__pb2.CreateServiceAccountKeyInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_apikey_dot_v1_dot_api__pb2.ApiKey.FromString,
             options,
             channel_credentials,

@@ -3,6 +3,7 @@ import {
   Activity,
   AppWindow,
   BarChart3,
+  Bot,
   Box,
   Brain,
   Building2,
@@ -36,10 +37,10 @@ export interface SettingsNavItem {
     className?: string;
   }>;
   /**
-   * Platform-level permission (on `platform:stigmer`) required for this
-   * entry to appear. Only meaningful inside
-   * {@link PLATFORM_SETTINGS_NAV_GROUP} — items in the base groups are
-   * visible to every signed-in user and leave this unset.
+   * Permission required for this entry to appear: on `platform:stigmer` for
+   * the items of {@link PLATFORM_SETTINGS_NAV_GROUP}, on the active
+   * organization for {@link ORG_ADMIN_SETTINGS_NAV_ITEMS}. Items in the base
+   * groups are visible to every signed-in user and leave this unset.
    * {@link useSettingsNavGroups} checks it fail-closed.
    */
   readonly requiredPermission?: string;
@@ -147,6 +148,27 @@ export const SINGLE_ORG_SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] =
         }
       : group,
   );
+
+/**
+ * Organization entries shown only to a caller who holds their permission on
+ * the active organization, each placed in the first group (Organization, or
+ * General on a server that holds one) after Teams.
+ *
+ * Kept out of {@link SETTINGS_NAV_GROUPS} for the reason the platform group
+ * is: that constant is what every signed-in user sees. Service accounts are
+ * managed by the organization's admins (`can_create_identity_account`), and a
+ * page a member could only be told about is discoverability, not capability,
+ * so it stays hidden until the server says yes. Use
+ * {@link useSettingsNavGroups} for the permission-aware list.
+ */
+export const ORG_ADMIN_SETTINGS_NAV_ITEMS: readonly SettingsNavItem[] = [
+  {
+    href: "/settings/service-accounts",
+    label: "Service accounts",
+    icon: Bot,
+    requiredPermission: "can_create_identity_account",
+  },
+];
 
 /**
  * Stigmer-internal platform-operator navigation group.

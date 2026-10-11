@@ -36,8 +36,9 @@
 // copy), provisionMyAccount creates the account from the issuer's
 // /userinfo, the next request resolves to it, an API key minted over that
 // session answers as the owner, two concurrent first logins end in one
-// account, delete frees the subject, and a userinfo outage is UNAVAILABLE
-// and creates nothing. The cloud's own lane is the direct-login suite
+// account, delete frees the subject and removes the account's keys (the
+// same person signing up again gets none back, stigmer#1771), and a
+// userinfo outage is UNAVAILABLE and creates nothing. The cloud's own lane is the direct-login suite
 // (directLogin); where no sibling can be spawned the arms skip VISIBLY with
 // the target's reason.
 //
@@ -497,6 +498,42 @@ describe("IdentityAccount conformance — the OIDC lane on a sibling server", ()
       again.metadata?.id,
       "one subject, one account id — before and after the delete",
     ).toBe(created.metadata?.id);
+  });
+
+  it("[rpc:IdentityAccountCommandController.delete] delete removes the account's API keys, so the same person signing up again does not get them back (stigmer#1771)", async (ctx) => {
+    const { issuer, sibling } = siblingOrSkip(ctx);
+    const subject = freshSubject();
+    const asUser = sibling.clientsPresenting(
+      await issuer.mint({ sub: subject, email: "rejoins@example.com" }),
+    );
+    const created = await asUser.identityAccountCommand.provisionMyAccount({});
+    const key = await asUser.apiKeyCommand.create({
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "ApiKey",
+      metadata: { name: uniqueName("key"), org: "local" },
+      spec: {},
+    });
+    const overKey = sibling.clientsPresenting(key.spec?.keyHash ?? "");
+    expect((await whoAmI(overKey)).metadata?.id).toBe(created.metadata?.id);
+
+    await asUser.identityAccountCommand.delete({
+      value: created.metadata?.id ?? "",
+    });
+    const again = await asUser.identityAccountCommand.provisionMyAccount({});
+    expect(
+      again.metadata?.id,
+      "the same subject is the same account id again",
+    ).toBe(created.metadata?.id);
+
+    await expectGrpcCode(
+      () => whoAmI(overKey),
+      Code.Unauthenticated,
+      "a key whose owner's account was deleted, after the owner signed up again",
+    );
+    expect(
+      (await asUser.apiKeyQuery.findAll({})).entries.map((k) => k.metadata?.id),
+      "the returning person holds none of the old keys",
+    ).not.toContain(key.metadata?.id);
   });
 
   it("[rpc:IdentityAccountCommandController.provisionMyAccount] a userinfo failure is UNAVAILABLE with the cloud's copy and creates nothing", async (ctx) => {

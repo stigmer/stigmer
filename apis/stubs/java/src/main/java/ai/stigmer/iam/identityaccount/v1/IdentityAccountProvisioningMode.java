@@ -66,6 +66,28 @@ public enum IdentityAccountProvisioningMode
    * <code>platform_client = 4;</code>
    */
   platform_client(4),
+  /**
+   * <pre>
+   * An organization's own non-person account: the principal its automation
+   * (a CI job, a script, an integration) acts as, so the automation keeps
+   * working when the person who set it up leaves.
+   *
+   * Created by an organization admin with createServiceAccount, it belongs to
+   * that one organization for its whole life, holds one organization role
+   * (admin, member or viewer, never owner) and acts only through API keys
+   * the organization's admins create for it. Its keys work only in its
+   * organization, and deleting it ends every key at once.
+   *
+   * The idp_id uses the composite encoding "stgm_sa|{org}|{random}", where
+   * org is the owning organization's id and random is drawn at creation, so
+   * a service account deleted and created again under the same name is a
+   * new principal that inherits nothing. The "stgm_sa|" prefix is reserved:
+   * no other provisioning mode may use it, and no sign-in resolves to it.
+   * </pre>
+   *
+   * <code>service_account = 5;</code>
+   */
+  service_account(5),
   UNRECOGNIZED(-1),
   ;
 
@@ -129,6 +151,28 @@ public enum IdentityAccountProvisioningMode
    * <code>platform_client = 4;</code>
    */
   public static final int platform_client_VALUE = 4;
+  /**
+   * <pre>
+   * An organization's own non-person account: the principal its automation
+   * (a CI job, a script, an integration) acts as, so the automation keeps
+   * working when the person who set it up leaves.
+   *
+   * Created by an organization admin with createServiceAccount, it belongs to
+   * that one organization for its whole life, holds one organization role
+   * (admin, member or viewer, never owner) and acts only through API keys
+   * the organization's admins create for it. Its keys work only in its
+   * organization, and deleting it ends every key at once.
+   *
+   * The idp_id uses the composite encoding "stgm_sa|{org}|{random}", where
+   * org is the owning organization's id and random is drawn at creation, so
+   * a service account deleted and created again under the same name is a
+   * new principal that inherits nothing. The "stgm_sa|" prefix is reserved:
+   * no other provisioning mode may use it, and no sign-in resolves to it.
+   * </pre>
+   *
+   * <code>service_account = 5;</code>
+   */
+  public static final int service_account_VALUE = 5;
 
 
   public final int getNumber() {
@@ -160,6 +204,7 @@ public enum IdentityAccountProvisioningMode
       case 2: return federated;
       case 3: return machine;
       case 4: return platform_client;
+      case 5: return service_account;
       default: return null;
     }
   }

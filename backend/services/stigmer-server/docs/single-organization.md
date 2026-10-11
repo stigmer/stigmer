@@ -218,9 +218,11 @@ These kinds are owned by a person, not an organization, yet these methods take a
 | Method | Fills |
 |---|---|
 | IdentityAccountCommandController.createFederatedAccount | org |
+| IdentityAccountCommandController.createServiceAccount | org |
 | IdentityAccountCommandController.deprovisionFederatedAccount | org |
 | IdentityAccountCommandController.updateFederatedAccount | org |
 | IdentityAccountQueryController.getByExternalSub | org |
+| IdentityAccountQueryController.listServiceAccounts | org |
 
 ## Not filled
 

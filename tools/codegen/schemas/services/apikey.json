@@ -17,6 +17,14 @@
           "description": "Create an API key for the authenticated user.\n\n The raw key value is included in the response and is never returned again.\n Store it securely before discarding the response."
         },
         {
+          "name": "CreateForServiceAccount",
+          "inputType": "CreateServiceAccountKeyInput",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput",
+          "outputType": "ApiKey",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "description": "Create an API key for a service account.\n\n The key speaks for the service account, not for the caller who creates\n it: it keeps working when that caller leaves, it works only in the\n service account's organization, and resources it creates name the\n service account as their creator. The raw key value is included in the\n response and is never returned again.\n\n Authorization: Requires can_manage_keys on the service account, which\n its organization's admins hold. A service account's own key is refused."
+        },
+        {
           "name": "Update",
           "inputType": "ApiKey",
           "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
@@ -61,12 +69,75 @@
           "inputFullType": "google.protobuf.Empty",
           "outputType": "ApiKeys",
           "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKeys",
-          "description": "List all API keys belonging to the authenticated user.\n\n Returns only the keys owned by the identity account in the auth header."
+          "description": "List all API keys belonging to the authenticated user.\n\n Returns only the keys that speak for the identity account in the auth\n header; a service account's keys are listed with findByAccount."
+        },
+        {
+          "name": "FindByAccount",
+          "inputType": "ApiKeyAccountId",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKeyAccountId",
+          "outputType": "ApiKeys",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKeys",
+          "description": "List the API keys that speak for an identity account.\n\n An organization's admins list a service account's keys with it; a person\n lists their own.\n\n Authorization: Requires can_view on the identity account."
         }
       ]
     }
   ],
   "methodTypes": [
+    {
+      "name": "CreateServiceAccountKeyInput",
+      "description": "CreateServiceAccountKeyInput is the command for creating an API key that\n speaks for a service account.",
+      "protoType": "ai.stigmer.iam.apikey.v1.CreateServiceAccountKeyInput",
+      "protoFile": "apis/ai/stigmer/iam/apikey/v1/io.proto",
+      "fields": [
+        {
+          "name": "ServiceAccountId",
+          "jsonName": "serviceAccountId",
+          "protoField": "service_account_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identity account id of the service account the key speaks for.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The key's name, shown beside its fingerprint (e.g., \"github-actions\").",
+          "required": true,
+          "validation": {
+            "required": true,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "ExpiresAt",
+          "jsonName": "expiresAt",
+          "protoField": "expires_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Expiration time for the key. Ignored when never_expires is true.",
+          "required": false
+        },
+        {
+          "name": "NeverExpires",
+          "jsonName": "neverExpires",
+          "protoField": "never_expires",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "When true, the key never expires regardless of expires_at.",
+          "required": false
+        }
+      ]
+    },
     {
       "name": "ApiKeyHash",
       "description": "ApiKeyHash identifies an API key by its hashed key value.",

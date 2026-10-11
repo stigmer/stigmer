@@ -37,15 +37,16 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n,ai/stigmer/iam/identityaccount/v1/enum" +
       ".proto\022!ai.stigmer.iam.identityaccount.v" +
-      "1*\222\001\n\037IdentityAccountProvisioningMode\0222\n" +
+      "1*\247\001\n\037IdentityAccountProvisioningMode\0222\n" +
       ".identity_account_provisioning_mode_unsp" +
       "ecified\020\000\022\n\n\006direct\020\001\022\r\n\tfederated\020\002\022\013\n\007" +
-      "machine\020\003\022\023\n\017platform_client\020\004B\264\001B\tEnumP" +
-      "rotoP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.Identitya" +
-      "ccount.V1\312\002!Ai\\Stigmer\\Iam\\Identityaccou" +
-      "nt\\V1\342\002-Ai\\Stigmer\\Iam\\Identityaccount\\V" +
-      "1\\GPBMetadata\352\002%Ai::Stigmer::Iam::Identi" +
-      "tyaccount::V1b\006proto3"
+      "machine\020\003\022\023\n\017platform_client\020\004\022\023\n\017servic" +
+      "e_account\020\005B\264\001B\tEnumProtoP\001\242\002\004ASII\252\002!Ai." +
+      "Stigmer.Iam.Identityaccount.V1\312\002!Ai\\Stig" +
+      "mer\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer\\" +
+      "Iam\\Identityaccount\\V1\\GPBMetadata\352\002%Ai:" +
+      ":Stigmer::Iam::Identityaccount::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

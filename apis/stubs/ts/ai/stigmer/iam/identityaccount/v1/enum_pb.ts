@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/iam/identityaccount/v1/enum.proto.
  */
 export const file_ai_stigmer_iam_identityaccount_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvZW51bS5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxKpIBCh9JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlEjIKLmlkZW50aXR5X2FjY291bnRfcHJvdmlzaW9uaW5nX21vZGVfdW5zcGVjaWZpZWQQABIKCgZkaXJlY3QQARINCglmZWRlcmF0ZWQQAhILCgdtYWNoaW5lEAMSEwoPcGxhdGZvcm1fY2xpZW50EARiBnByb3RvMw");
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvZW51bS5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxKqcBCh9JZGVudGl0eUFjY291bnRQcm92aXNpb25pbmdNb2RlEjIKLmlkZW50aXR5X2FjY291bnRfcHJvdmlzaW9uaW5nX21vZGVfdW5zcGVjaWZpZWQQABIKCgZkaXJlY3QQARINCglmZWRlcmF0ZWQQAhILCgdtYWNoaW5lEAMSEwoPcGxhdGZvcm1fY2xpZW50EAQSEwoPc2VydmljZV9hY2NvdW50EAViBnByb3RvMw");
 
 /**
  * IdentityAccountProvisioningMode defines how an identity account was created.
@@ -62,6 +62,27 @@ export enum IdentityAccountProvisioningMode {
    * @generated from enum value: platform_client = 4;
    */
   platform_client = 4,
+
+  /**
+   * An organization's own non-person account: the principal its automation
+   * (a CI job, a script, an integration) acts as, so the automation keeps
+   * working when the person who set it up leaves.
+   *
+   * Created by an organization admin with createServiceAccount, it belongs to
+   * that one organization for its whole life, holds one organization role
+   * (admin, member or viewer, never owner) and acts only through API keys
+   * the organization's admins create for it. Its keys work only in its
+   * organization, and deleting it ends every key at once.
+   *
+   * The idp_id uses the composite encoding "stgm_sa|{org}|{random}", where
+   * org is the owning organization's id and random is drawn at creation, so
+   * a service account deleted and created again under the same name is a
+   * new principal that inherits nothing. The "stgm_sa|" prefix is reserved:
+   * no other provisioning mode may use it, and no sign-in resolves to it.
+   *
+   * @generated from enum value: service_account = 5;
+   */
+  service_account = 5,
 }
 
 /**

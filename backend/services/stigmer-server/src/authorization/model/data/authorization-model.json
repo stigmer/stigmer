@@ -118,8 +118,16 @@
           "can_delete": {},
           "can_edit": {},
           "can_grant_access": {},
+          "can_manage_keys": {},
           "can_view": {},
           "can_view_access": {},
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
           "owner": {
             "directly_related_user_types": [
               {
@@ -134,13 +142,45 @@
       },
       "relations": {
         "can_delete": {
-          "computedUserset": {
-            "relation": "owner"
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
           }
         },
         "can_edit": {
-          "computedUserset": {
-            "relation": "owner"
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
           }
         },
         "can_grant_access": {
@@ -148,15 +188,44 @@
             "relation": "owner"
           }
         },
+        "can_manage_keys": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "admin"
+            },
+            "tupleset": {
+              "relation": "organization"
+            }
+          }
+        },
         "can_view": {
-          "computedUserset": {
-            "relation": "owner"
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
           }
         },
         "can_view_access": {
           "computedUserset": {
             "relation": "owner"
           }
+        },
+        "organization": {
+          "this": {}
         },
         "owner": {
           "this": {}
@@ -378,13 +447,45 @@
       },
       "relations": {
         "can_delete": {
-          "computedUserset": {
-            "relation": "owner"
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "can_manage_keys"
+                  },
+                  "tupleset": {
+                    "relation": "owner"
+                  }
+                }
+              }
+            ]
           }
         },
         "can_edit": {
-          "computedUserset": {
-            "relation": "owner"
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "can_manage_keys"
+                  },
+                  "tupleset": {
+                    "relation": "owner"
+                  }
+                }
+              }
+            ]
           }
         },
         "can_grant_access": {
@@ -393,8 +494,24 @@
           }
         },
         "can_view": {
-          "computedUserset": {
-            "relation": "owner"
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "can_manage_keys"
+                  },
+                  "tupleset": {
+                    "relation": "owner"
+                  }
+                }
+              }
+            ]
           }
         },
         "can_view_access": {

@@ -33,6 +33,8 @@
  * The copy moved from the cloud's iam/account/handlers.ts as-is: the CLI,
  * console and SDK show these sentences verbatim, so they are contract.
  */
+import { randomBytes } from "node:crypto";
+
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { derivedId } from "../../pipeline/steps/defaults.js";
 
@@ -203,20 +205,66 @@ export function federatedAccountIdFor(
 }
 
 /**
- * The refusal of a direct subject under a reserved prefix
- * (INVALID_ARGUMENT). The `stgm_pc|` sentence is existing wire copy, kept
- * byte for byte.
+ * The subject namespace of an organization's service accounts:
+ * `stgm_sa|<org id>|<random>` (serviceAccountSubjectFor). Reserved in both
+ * directions, as `stgm_pc|` is: no sign-in arm may provision or resolve a
+ * `stgm_sa|` subject (an issuer emitting one would otherwise reach a
+ * service account's id, which is derived from the subject), and a service
+ * account always carries it. The random part is drawn at creation, so a
+ * service account deleted and created again under the same name is a new
+ * principal: no grant, key or derived owner tuple of the old one reaches
+ * it (stigmer/stigmer#1771's class of defect, closed by construction).
  */
-export function reservedSubjectMessage(idpId: string): string {
+export const SERVICE_ACCOUNT_SUBJECT_PREFIX = "stgm_sa|";
+
+export function isServiceAccountSubject(idpId: string): boolean {
+  return idpId.startsWith(SERVICE_ACCOUNT_SUBJECT_PREFIX);
+}
+
+/** A fresh service-account subject for organization id `org`: 128 random bits, hex. */
+export function serviceAccountSubjectFor(org: string): string {
+  if (org === "") {
+    throw new Error("a service account's organization must not be empty");
+  }
+  const random = randomBytes(16).toString("hex");
+  return `${SERVICE_ACCOUNT_SUBJECT_PREFIX}${org}|${random}`;
+}
+
+/**
+ * The refusal of a subject inside a namespace a provisioning arm reserves
+ * (INVALID_ARGUMENT), or undefined when `idpId` is in none. Every arm that
+ * takes a caller-chosen subject asks it, so the namespaces stay disjoint.
+ * The `stgm_pc|` sentence is existing wire copy, kept byte for byte.
+ */
+export function reservedSubjectMessage(idpId: string): string | undefined {
   if (isFederatedSubject(idpId)) {
     return `subject '${idpId}' uses the '${FEDERATED_SUBJECT_PREFIX}' prefix reserved for the addresses of accounts an identity provider vouches for`;
   }
-  return `subject '${idpId}' uses the '${PLATFORM_CLIENT_SUBJECT_PREFIX}' prefix reserved for accounts a platform client provisions`;
+  if (isPlatformClientSubject(idpId)) {
+    return `subject '${idpId}' uses the '${PLATFORM_CLIENT_SUBJECT_PREFIX}' prefix reserved for accounts a platform client provisions`;
+  }
+  if (isServiceAccountSubject(idpId)) {
+    return `subject '${idpId}' uses the '${SERVICE_ACCOUNT_SUBJECT_PREFIX}' prefix reserved for an organization's service accounts`;
+  }
+  return undefined;
 }
 
 // ---------------------------------------------------------------------------
 // Byte-pinned copy (the cloud handlers' sentences, moved as-is).
 // ---------------------------------------------------------------------------
+
+/**
+ * createServiceAccount on a server running without sign-in
+ * (FAILED_PRECONDITION): no API-key verifier is composed there, so no key
+ * could ever authenticate as the account.
+ */
+export const SERVICE_ACCOUNTS_NEED_SIGN_IN_MESSAGE =
+  "service accounts need sign-in: this server trusts every caller, so no API key can authenticate as a service account; turn sign-in on first";
+
+/** createServiceAccount or a rename onto a name another service account of the organization holds (ALREADY_EXISTS). */
+export function serviceAccountNameTakenMessage(name: string): string {
+  return `a service account named '${name}' already exists in this organization`;
+}
 
 /** whoAmI for a caller with no account (NOT_FOUND). */
 export const ACCOUNT_NOT_FOUND_FOR_CALLER_MESSAGE =
