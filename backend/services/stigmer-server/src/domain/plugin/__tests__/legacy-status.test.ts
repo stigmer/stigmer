@@ -417,4 +417,39 @@ describe("refreshLegacyPluginStatuses", () => {
       true,
     );
   });
+
+  it("never throws: a listing the store refuses is warned and nothing is refreshed", async () => {
+    const { logger, lines } = capturingLogger();
+    const store = new Proxy({} as Store, {
+      get(_target, prop) {
+        if (prop === "listResources") return () => Promise.reject(new Error("store down"));
+        throw new Error(`store.${String(prop)} reached by the refresh`);
+      },
+    });
+    const refreshed = await refreshLegacyPluginStatuses({
+      store,
+      artifactStorage: archives(() => Promise.reject(new Error("unreached"))),
+      outboundFetch: oauthFetch,
+      logger,
+    });
+    expect(refreshed).toBe(0);
+    expect(lines.some((line) => line.includes("Failed to list plugins") && line.includes("store down"))).toBe(true);
+  });
+
+  it("skips a row that does not decode, warned, and refreshes the rows after it", async () => {
+    const rows = new PluginRows({
+      plg_junk: new Uint8Array([0xff, 0xff, 0xff]),
+      plg_ok: legacyRow({ id: "plg_ok" }),
+    });
+    const { logger, lines } = capturingLogger();
+    const refreshed = await refreshLegacyPluginStatuses({
+      store: rows.store(),
+      artifactStorage: archives((key) => (key === KEY ? Promise.resolve(ARCHIVE) : Promise.reject(new Error("missing")))),
+      outboundFetch: oauthFetch,
+      logger,
+    });
+    expect(refreshed).toBe(1);
+    expect(rows.saved).toEqual(["plg_ok"]);
+    expect(lines.some((line) => line.includes("A stored plugin row could not be read"))).toBe(true);
+  });
 });

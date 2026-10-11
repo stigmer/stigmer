@@ -2331,21 +2331,14 @@ export async function composeServer(
       }
       // A plugin installed before plugins were whole has its status
       // filled from its archive before search indexes it and before any
-      // turn reads it (domain/plugin/legacy-status.ts). Warn-only per
-      // plugin; boot never fails on it.
-      try {
-        await refreshLegacyPluginStatuses({
-          store,
-          artifactStorage: pluginArtifactStorage,
-          outboundFetch,
-          logger,
-        });
-      } catch (error) {
-        /* v8 ignore next -- @preserve: boot wiring; reached only when the store fails to list plugins during a composed boot, and refreshLegacyPluginStatuses' own failures are pinned in legacy-status.test.ts */
-        logger.warn("Failed to fill the status of plugins installed before plugins were whole", {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
+      // turn reads it (domain/plugin/legacy-status.ts), which warns and
+      // never throws, so boot never fails on it.
+      await refreshLegacyPluginStatuses({
+        store,
+        artifactStorage: pluginArtifactStorage,
+        outboundFetch,
+        logger,
+      });
       // Rebuild the search index before the port binds (Go
       // server.go:617): the index is separate from the resources table,
       // and rebuilding here makes every resource — including rows an

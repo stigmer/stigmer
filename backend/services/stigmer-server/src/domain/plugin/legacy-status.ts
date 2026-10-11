@@ -49,12 +49,33 @@ export function isLegacyStatus(plugin: Plugin): boolean {
   return (plugin.status?.$unknown ?? []).some((field) => RETIRED_STATUS_FIELDS.has(field.no));
 }
 
-/** Refreshes every plugin with a legacy status; returns how many were refreshed. */
+/**
+ * Refreshes every plugin with a legacy status; returns how many were
+ * refreshed. It never throws: boot goes on whatever it meets, a listing the
+ * store refuses and a row that does not decode each warned, and one bad row
+ * never stops the rows after it.
+ */
 export async function refreshLegacyPluginStatuses(deps: LegacyStatusDeps): Promise<number> {
-  const rows = await deps.store.listResources(ApiResourceKind.plugin);
+  let rows: Uint8Array[];
+  try {
+    rows = await deps.store.listResources(ApiResourceKind.plugin);
+  } catch (error) {
+    deps.logger.warn("Failed to list plugins to fill the status of those installed before plugins were whole", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return 0;
+  }
   let refreshed = 0;
   for (const raw of rows) {
-    const plugin = fromBinary(PluginSchema, raw);
+    let plugin: Plugin;
+    try {
+      plugin = fromBinary(PluginSchema, raw);
+    } catch (error) {
+      deps.logger.warn("A stored plugin row could not be read; its status is left as it is", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
     if (!isLegacyStatus(plugin)) {
       continue;
     }
