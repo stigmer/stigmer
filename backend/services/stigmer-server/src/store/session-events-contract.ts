@@ -382,6 +382,30 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
     },
   ],
   [
+    "a session's numbers only grow: removing a row's newest events never gives their numbers to a later event",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const r = `run_${unique()}`;
+      const sibling = `run_${unique()}`;
+      await put(store, run(sibling, s, RunPhase.RUN_COMPLETED), [draft("sib", sibling, "user.message")]);
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [
+        draft("m", r, "user.message"),
+        draft("say", r, "agent.message"),
+      ]);
+      const removed = await store.writeResourceAppendingEvents(
+        ApiResourceKind.run,
+        r,
+        RunSchema,
+        () => ({ remove: { keepEventTypes: KEPT }, events: [draft("idle", r, "session.status_idle")] }),
+        RUN_SCOPE,
+      );
+      assert.deepEqual(removed.events.map((x) => x.seq), [4], "not 2, the number the deleted events freed");
+      const next = await store.sessionEvents.append(s, "org-kit", [draft("later", sibling)], runGuard(sibling));
+      assert.deepEqual(next.records.map((x) => x.seq), [5]);
+      assert.deepEqual(await seqs(store, s), [1, 4, 5]);
+    },
+  ],
+  [
     "a write that names no session finds it through the row, and a row that is not stored is not found",
     async ({ store }) => {
       const s = `ses_${unique()}`;

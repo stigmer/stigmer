@@ -25,6 +25,7 @@ import { RequestContext } from "../../../../pipeline/request-context.js";
 import { RESOURCE_ID_KEY } from "../../../../pipeline/steps/delete.js";
 import { encodeListPageToken, listPageFingerprint } from "../../../../pipeline/steps/list-page.js";
 import type { Store } from "../../../../store/interface.js";
+import type { SessionEventQuery } from "../../../../store/session-events.js";
 import { SessionEventBroker } from "../broker.js";
 import { draftOf } from "../codec.js";
 import { newDeleteSessionEventsStep } from "../delete-step.js";
@@ -70,6 +71,44 @@ describe("a list page", () => {
       readSessionEventPage(store, create(ListSessionEventsRequestSchema, { sessionId: "s1", pageToken })),
     );
     expect(code).toBe(Code.InvalidArgument);
+  });
+});
+
+describe("created_at bounds", () => {
+  async function queryFor(fields: Record<string, string>) {
+    let seen: SessionEventQuery | undefined;
+    const store = emptyStore((_session, query) => {
+      seen = query;
+      return Promise.resolve([]);
+    });
+    await readSessionEventPage(store, create(ListSessionEventsRequestSchema, { sessionId: "s1", ...fields }));
+    return seen!;
+  }
+
+  it("refuses an instant without its offset, or that is no date at all", async () => {
+    for (const createdAtLt of ["2026-10-11T00:00:00", "yesterday", "2026-10-11"]) {
+      expect(await codeOf(queryFor({ createdAtLt }))).toBe(Code.InvalidArgument);
+    }
+  });
+
+  it("normalizes an offset to UTC milliseconds", async () => {
+    const query = await queryFor({ createdAtGte: "2026-10-11T11:30:00+02:00" });
+    expect(query.processedAtGte).toBe("2026-10-11T09:30:00.000Z");
+  });
+
+  it("rounds a finer bound so each comparison stays exact", async () => {
+    const query = await queryFor({
+      createdAtGt: "2026-10-11T09:30:00.0005Z",
+      createdAtGte: "2026-10-11T09:30:00.0005Z",
+      createdAtLt: "2026-10-11T09:30:00.0005Z",
+      createdAtLte: "2026-10-11T09:30:00.0005Z",
+    });
+    expect([query.processedAtGt, query.processedAtGte, query.processedAtLt, query.processedAtLte]).toEqual([
+      "2026-10-11T09:30:00.000Z",
+      "2026-10-11T09:30:00.001Z",
+      "2026-10-11T09:30:00.001Z",
+      "2026-10-11T09:30:00.000Z",
+    ]);
   });
 });
 

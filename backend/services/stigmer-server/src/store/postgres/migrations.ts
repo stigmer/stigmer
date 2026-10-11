@@ -1558,5 +1558,16 @@ async function migrateToV22(client: PoolClient): Promise<void> {
     CREATE INDEX idx_session_events_type ON session_events (session_id, type, seq);
     CREATE INDEX idx_session_events_run ON session_events (session_id, run_id, seq);
     CREATE INDEX idx_session_events_org ON session_events (org);
+    -- A session's high-water mark: the last seq and accepted time it handed
+    -- out. Numbers come from here, never from the newest row, so a run's
+    -- removal (which deletes its own events) never lowers it and no number
+    -- is handed out twice.
+    CREATE TABLE session_event_heads (
+      session_id TEXT PRIMARY KEY,
+      org TEXT NOT NULL DEFAULT '',
+      last_seq BIGINT NOT NULL,
+      last_processed_at TEXT NOT NULL
+    );
+    CREATE INDEX idx_session_event_heads_org ON session_event_heads (org);
   `);
 }

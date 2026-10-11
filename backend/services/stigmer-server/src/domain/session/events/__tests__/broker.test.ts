@@ -11,7 +11,10 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import type { HandlerContext } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
 
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import {
   SessionEventPreviewSchema,
@@ -19,6 +22,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
 import { createLogger } from "../../../../boot/logger.js";
+import type { Store } from "../../../../store/interface.js";
+import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../../pipeline/steps/authorize.js";
 import {
@@ -31,12 +36,16 @@ import {
   STREAM_FELL_BEHIND_MESSAGE,
   streamSessionEvents,
 } from "../stream.js";
+import { draftOf, eventOf } from "../codec.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
 function thinking(id: string, seq: number): SessionEvent {
   return create(SessionEventSchema, { seq: BigInt(seq), event: { case: "agentThinking", value: { id } } });
 }
+
+/** A store a stream that does not resume never reads. */
+const untouchedStore = {} as Store;
 
 function context(signal: AbortSignal): HandlerContext {
   const identity = testCallerIdentity();
@@ -105,7 +114,7 @@ describe("the stream", () => {
     const broker = new SessionEventBroker(silentLogger);
     const abort = new AbortController();
     const stream = streamSessionEvents(
-      { logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
+      { store: untouchedStore, logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
       create(StreamSessionEventsRequestSchema, { sessionId: "s1" }),
       context(abort.signal),
     );
@@ -122,7 +131,7 @@ describe("the stream", () => {
   it("ends with RESOURCE_EXHAUSTED when it fell behind, telling the client to list from its last event", async () => {
     const broker = new SessionEventBroker(silentLogger);
     const stream = streamSessionEvents(
-      { logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
+      { store: untouchedStore, logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
       create(StreamSessionEventsRequestSchema, { sessionId: "s1" }),
       context(new AbortController().signal),
     );
@@ -148,7 +157,7 @@ describe("the stream", () => {
       },
     } as unknown as Parameters<typeof streamSessionEvents>[0]["authorizer"];
     const stream = streamSessionEvents(
-      { logger: silentLogger, authorizer, sessionEventBroker: broker, now: () => clock },
+      { store: untouchedStore, logger: silentLogger, authorizer, sessionEventBroker: broker, now: () => clock },
       create(StreamSessionEventsRequestSchema, { sessionId: "s1" }),
       context(new AbortController().signal),
     );
@@ -170,10 +179,65 @@ describe("the stream", () => {
     expect(broker.subscriberCount("s1")).toBe(0);
   });
 
+  it("resumes after a seq: the stored events after it, then live ones, none missing and none repeated", async () => {
+    const temp = tempStore();
+    try {
+      const broker = new SessionEventBroker(silentLogger);
+      await temp.store.saveResource(
+        ApiResourceKind.run,
+        "run_r",
+        RunSchema,
+        create(RunSchema, {
+          metadata: { id: "run_r", org: "acme" },
+          spec: { target: { case: "sessionId", value: "s1" } },
+          status: { phase: RunPhase.RUN_IN_PROGRESS },
+        }),
+      );
+      const guard = { kind: ApiResourceKind.run, id: "run_r", schema: RunSchema, admit: () => undefined };
+      const stored = await temp.store.sessionEvents.append(
+        "s1",
+        "acme",
+        ["a", "b", "c"].map((id) => draftOf(thinking(id, 0))),
+        guard,
+      );
+      const stream = streamSessionEvents(
+        { store: temp.store, logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
+        create(StreamSessionEventsRequestSchema, { sessionId: "s1", afterSeq: 1n }),
+        context(new AbortController().signal),
+      );
+      const seqs: bigint[] = [];
+      const first = await stream.next();
+      seqs.push(first.value?.frame.case === "event" ? first.value.frame.value.seq : -1n);
+      // Live: one event the stream already read from the store (seq 3), then a new one.
+      const later = await temp.store.sessionEvents.append("s1", "acme", [draftOf(thinking("d", 0))], guard);
+      broker.publish("s1", [eventOf(stored.records[2]!), eventOf(later.records[0]!)]);
+      for (let i = 0; i < 2; i++) {
+        const next = await stream.next();
+        seqs.push(next.value?.frame.case === "event" ? next.value.frame.value.seq : -1n);
+      }
+      expect(seqs).toEqual([2n, 3n, 4n]);
+      await stream.return(undefined);
+    } finally {
+      await temp.cleanup();
+    }
+  });
+
+  it("a resumed stream answers a store fault as INTERNAL", async () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const failing = { sessionEvents: { list: () => Promise.reject(new Error("database is locked")) } } as unknown as Store;
+    const stream = streamSessionEvents(
+      { store: failing, logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
+      create(StreamSessionEventsRequestSchema, { sessionId: "s1", afterSeq: 0n }),
+      context(new AbortController().signal),
+    );
+    await expect(stream.next()).rejects.toMatchObject({ code: Code.Internal });
+    expect(broker.subscriberCount("s1")).toBe(0);
+  });
+
   it("refuses a request that names no session", async () => {
     const broker = new SessionEventBroker(silentLogger);
     const stream = streamSessionEvents(
-      { logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
+      { store: untouchedStore, logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
       create(StreamSessionEventsRequestSchema, {}),
       context(new AbortController().signal),
     );

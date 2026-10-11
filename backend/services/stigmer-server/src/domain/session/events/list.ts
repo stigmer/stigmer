@@ -114,10 +114,10 @@ export async function readSessionEventPage(
     limit: size + 1,
     ...(req.pageToken === "" ? {} : { afterSeq: seqOfToken(req.pageToken, fingerprint) }),
     ...(req.types.length === 0 ? {} : { types: req.types }),
-    ...bound("processedAtGt", "created_at_gt", req.createdAtGt),
-    ...bound("processedAtGte", "created_at_gte", req.createdAtGte),
-    ...bound("processedAtLt", "created_at_lt", req.createdAtLt),
-    ...bound("processedAtLte", "created_at_lte", req.createdAtLte),
+    ...bound("processedAtGt", "created_at_gt", req.createdAtGt, "down"),
+    ...bound("processedAtGte", "created_at_gte", req.createdAtGte, "up"),
+    ...bound("processedAtLt", "created_at_lt", req.createdAtLt, "up"),
+    ...bound("processedAtLte", "created_at_lte", req.createdAtLte, "down"),
   };
 
   let records: SessionEventRecord[];
@@ -156,17 +156,32 @@ function seqOfToken(token: string, fingerprint: string): number {
 }
 
 /** A created_at bound as the store's fixed-width instant; absent when the request sets none. */
+/** RFC 3339 with its offset: the date-time, an optional fraction, then Z or ±hh:mm. */
+const RFC3339 = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/i;
+
+/**
+ * A created_at bound as the store's fixed-width millisecond instant; absent
+ * when the request sets none. Stored times are whole milliseconds, so a
+ * finer bound rounds the way that keeps its comparison exact: down for
+ * `gt` and `lte`, up for `gte` and `lt` (an event at .000 is not after
+ * .0005, and is before it).
+ */
 function bound<K extends keyof SessionEventQuery>(
   key: K,
   field: string,
   value: string,
+  round: "down" | "up",
 ): Partial<Record<K, string>> {
   if (value === "") {
     return {};
   }
-  const millis = Date.parse(value);
-  if (Number.isNaN(millis) || !/^\d{4}-\d{2}-\d{2}T/.test(value)) {
-    throw invalidArgumentError(`${field} must be an RFC 3339 instant, got '${value}'`);
+  const parts = RFC3339.exec(value);
+  const whole = parts === null ? Number.NaN : Date.parse(`${parts[1]}${parts[3]}`);
+  if (parts === null || Number.isNaN(whole)) {
+    throw invalidArgumentError(`${field} must be an RFC 3339 instant with its offset, got '${value}'`);
   }
-  return { [key]: new Date(millis).toISOString() } as Partial<Record<K, string>>;
+  const fraction = parts[2] ?? "";
+  const millis = Number(fraction.padEnd(3, "0").slice(0, 3));
+  const finer = /[1-9]/.test(fraction.slice(3)) && round === "up" ? 1 : 0;
+  return { [key]: new Date(whole + millis + finer).toISOString() } as Partial<Record<K, string>>;
 }

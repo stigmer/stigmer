@@ -142,36 +142,38 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "sionEventList\022C\n\006events\030\001 \003(\0132+.ai.stigm" +
       "er.agentic.session.v1.SessionEventR\006even" +
       "ts\022&\n\017next_page_token\030\002 \001(\tR\rnextPageTok" +
-      "en\"\225\001\n\032StreamSessionEventsRequest\022%\n\nses" +
+      "en\"\316\001\n\032StreamSessionEventsRequest\022%\n\nses" +
       "sion_id\030\001 \001(\tB\006\272H\003\310\001\001R\tsessionId\022P\n\014even" +
       "t_deltas\030\002 \003(\tB-\272H*\222\001\'\020\002\030\001\"!r\037R\ragent.me" +
-      "ssageR\016agent.thinkingR\013eventDeltas\"\251\002\n\033S" +
-      "treamSessionEventsResponse\022C\n\005event\030\001 \001(" +
-      "\0132+.ai.stigmer.agentic.session.v1.Sessio" +
-      "nEventH\000R\005event\022]\n\013event_start\030\002 \001(\0132).a" +
+      "ssageR\016agent.thinkingR\013eventDeltas\022)\n\taf" +
+      "ter_seq\030\003 \001(\003B\007\272H\004\"\002(\000H\000R\010afterSeq\210\001\001B\014\n" +
+      "\n_after_seq\"\251\002\n\033StreamSessionEventsRespo" +
+      "nse\022C\n\005event\030\001 \001(\0132+.ai.stigmer.agentic." +
+      "session.v1.SessionEventH\000R\005event\022]\n\013even" +
+      "t_start\030\002 \001(\0132).ai.stigmer.agentic.sessi" +
+      "on.v1.EventStartB\017\362\205,\013event_startH\000R\neve" +
+      "ntStart\022]\n\013event_delta\030\003 \001(\0132).ai.stigme" +
+      "r.agentic.session.v1.EventDeltaB\017\362\205,\013eve" +
+      "nt_deltaH\000R\neventDeltaB\007\n\005frame\"\345\001\n\023Sess" +
+      "ionEventPreview\022]\n\013event_start\030\001 \001(\0132).a" +
       "i.stigmer.agentic.session.v1.EventStartB" +
       "\017\362\205,\013event_startH\000R\neventStart\022]\n\013event_" +
-      "delta\030\003 \001(\0132).ai.stigmer.agentic.session" +
+      "delta\030\002 \001(\0132).ai.stigmer.agentic.session" +
       ".v1.EventDeltaB\017\362\205,\013event_deltaH\000R\nevent" +
-      "DeltaB\007\n\005frame\"\345\001\n\023SessionEventPreview\022]" +
-      "\n\013event_start\030\001 \001(\0132).ai.stigmer.agentic" +
-      ".session.v1.EventStartB\017\362\205,\013event_startH" +
-      "\000R\neventStart\022]\n\013event_delta\030\002 \001(\0132).ai." +
-      "stigmer.agentic.session.v1.EventDeltaB\017\362" +
-      "\205,\013event_deltaH\000R\neventDeltaB\020\n\007preview\022" +
-      "\005\272H\002\010\001\"\344\001\n\030AppendSessionEventsInput\022\035\n\006r" +
-      "un_id\030\001 \001(\tB\006\272H\003\310\001\001R\005runId\022N\n\006events\030\002 \003" +
-      "(\0132+.ai.stigmer.agentic.session.v1.Sessi" +
-      "onEventB\t\272H\006\222\001\003\020\350\007R\006events\022Y\n\010previews\030\003" +
-      " \003(\01322.ai.stigmer.agentic.session.v1.Ses" +
-      "sionEventPreviewB\t\272H\006\222\001\003\020\350\007R\010previews\"b\n" +
-      "\033AppendSessionEventsResponse\022C\n\006events\030\001" +
-      " \003(\0132+.ai.stigmer.agentic.session.v1.Ses" +
-      "sionEventR\006eventsB\242\001B\007IoProtoP\001\242\002\004ASAS\252\002" +
-      "\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\Stig" +
-      "mer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agen" +
-      "tic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer" +
-      "::Agentic::Session::V1b\006proto3"
+      "DeltaB\020\n\007preview\022\005\272H\002\010\001\"\344\001\n\030AppendSessio" +
+      "nEventsInput\022\035\n\006run_id\030\001 \001(\tB\006\272H\003\310\001\001R\005ru" +
+      "nId\022N\n\006events\030\002 \003(\0132+.ai.stigmer.agentic" +
+      ".session.v1.SessionEventB\t\272H\006\222\001\003\020\350\007R\006eve" +
+      "nts\022Y\n\010previews\030\003 \003(\01322.ai.stigmer.agent" +
+      "ic.session.v1.SessionEventPreviewB\t\272H\006\222\001" +
+      "\003\020\350\007R\010previews\"b\n\033AppendSessionEventsRes" +
+      "ponse\022C\n\006events\030\001 \003(\0132+.ai.stigmer.agent" +
+      "ic.session.v1.SessionEventR\006eventsB\242\001B\007I" +
+      "oProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Ses" +
+      "sion.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342" +
+      "\002)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetad" +
+      "ata\352\002!Ai::Stigmer::Agentic::Session::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -240,7 +242,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_session_v1_StreamSessionEventsRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_StreamSessionEventsRequest_descriptor,
-        new java.lang.String[] { "SessionId", "EventDeltas", });
+        new java.lang.String[] { "SessionId", "EventDeltas", "AfterSeq", });
     internal_static_ai_stigmer_agentic_session_v1_StreamSessionEventsResponse_descriptor =
       getDescriptor().getMessageType(10);
     internal_static_ai_stigmer_agentic_session_v1_StreamSessionEventsResponse_fieldAccessorTable = new

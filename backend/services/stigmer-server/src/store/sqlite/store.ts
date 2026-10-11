@@ -2396,18 +2396,18 @@ function insertSessionEvents(
   if (drafts.length === 0) {
     return [];
   }
+  // The session's high-water mark, never lowered by a deletion
+  // (postgres/store.ts's twin).
   const last = db
-    .prepare(
-      `SELECT seq, processed_at FROM session_events WHERE session_id = ? ORDER BY seq DESC LIMIT 1`,
-    )
-    .get(sessionId) as { seq: number; processed_at: string } | undefined;
-  const processedAt = sessionEventInstant(Date.now(), last?.processed_at);
-  let seq = last === undefined ? 0 : Number(last.seq);
+    .prepare(`SELECT last_seq, last_processed_at FROM session_event_heads WHERE session_id = ?`)
+    .get(sessionId) as { last_seq: number; last_processed_at: string } | undefined;
+  const processedAt = sessionEventInstant(Date.now(), last?.last_processed_at);
+  let seq = last === undefined ? 0 : Number(last.last_seq);
   const insert = db.prepare(
     `INSERT INTO session_events (session_id, seq, event_id, run_id, thread_id, type, org, processed_at, data)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
-  return drafts.map((draft) => {
+  const records = drafts.map((draft) => {
     seq += 1;
     insert.run(
       sessionId,
@@ -2422,6 +2422,11 @@ function insertSessionEvents(
     );
     return { ...draft, sessionId, seq, processedAt };
   });
+  db.prepare(
+    `INSERT INTO session_event_heads (session_id, org, last_seq, last_processed_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT (session_id) DO UPDATE SET last_seq = excluded.last_seq, last_processed_at = excluded.last_processed_at`,
+  ).run(sessionId, org, seq, processedAt);
+  return records;
 }
 
 class SqliteSessionEventStore implements SessionEventStore {
@@ -2514,14 +2519,30 @@ class SqliteSessionEventStore implements SessionEventStore {
   }
 
   async deleteBySession(sessionId: string): Promise<number> {
-    const result = this.open()
-      .prepare(`DELETE FROM session_events WHERE session_id = ?`)
-      .run(sessionId);
-    return Number(result.changes);
+    const db = this.open();
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const result = db.prepare(`DELETE FROM session_events WHERE session_id = ?`).run(sessionId);
+      db.prepare(`DELETE FROM session_event_heads WHERE session_id = ?`).run(sessionId);
+      db.exec("COMMIT");
+      return Number(result.changes);
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
   }
 
   async deleteByOrg(org: string): Promise<number> {
-    const result = this.open().prepare(`DELETE FROM session_events WHERE org = ?`).run(org);
-    return Number(result.changes);
+    const db = this.open();
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const result = db.prepare(`DELETE FROM session_events WHERE org = ?`).run(org);
+      db.prepare(`DELETE FROM session_event_heads WHERE org = ?`).run(org);
+      db.exec("COMMIT");
+      return Number(result.changes);
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
   }
 }

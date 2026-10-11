@@ -74,4 +74,29 @@ public interface StreamSessionEventsRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getEventDeltasBytes(int index);
+
+  /**
+   * <pre>
+   * Where to resume: the seq of the last event the client already has. Set,
+   * the stream first sends every stored event after it, in order, then the
+   * events appended from then on, with none missing and none repeated.
+   * Unset, the stream sends only the events appended after it opens.
+   * </pre>
+   *
+   * <code>optional int64 after_seq = 3 [json_name = "afterSeq", (.buf.validate.field) = { ... }</code>
+   * @return Whether the afterSeq field is set.
+   */
+  boolean hasAfterSeq();
+  /**
+   * <pre>
+   * Where to resume: the seq of the last event the client already has. Set,
+   * the stream first sends every stored event after it, in order, then the
+   * events appended from then on, with none missing and none repeated.
+   * Unset, the stream sends only the events appended after it opens.
+   * </pre>
+   *
+   * <code>optional int64 after_seq = 3 [json_name = "afterSeq", (.buf.validate.field) = { ... }</code>
+   * @return The afterSeq.
+   */
+  long getAfterSeq();
 }

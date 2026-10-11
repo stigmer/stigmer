@@ -59,6 +59,7 @@ export const CENSUS_TABLES: Readonly<Record<string, CensusClass>> = {
   connect_link: "org-column",
   connect_attempt: "org-column",
   session_events: "org-column",
+  session_event_heads: "org-column",
   // A registered OAuth client is the login server's, shared by every
   // organization: it names none.
   oauth_client_registration: "none",

@@ -110,7 +110,7 @@
           "outputType": "StreamSessionEventsResponse",
           "outputFullType": "ai.stigmer.agentic.session.v1.StreamSessionEventsResponse",
           "serverStreaming": true,
-          "description": "Stream a session's events as they are appended.\n\n The stream starts at the moment it opens: list the events first to\n catch up, and skip any event id already seen. A watcher that falls too\n far behind is ended with RESOURCE_EXHAUSTED; list from the last event\n it saw, then stream again."
+          "description": "Stream a session's events as they are appended.\n\n Without after_seq the stream starts at the moment it opens, as Managed\n Agents' does. With after_seq it first sends the stored events after\n that seq, then the new ones, with none missing: a client that listed\n up to some seq, or whose stream ended, resumes from the last seq it\n has. A watcher that falls too far behind is ended with\n RESOURCE_EXHAUSTED; it resumes the same way."
         }
       ]
     }
@@ -581,6 +581,17 @@
           "validation": {
             "maxItems": 2
           }
+        },
+        {
+          "name": "AfterSeq",
+          "jsonName": "afterSeq",
+          "protoField": "after_seq",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Where to resume: the seq of the last event the client already has. Set,\n the stream first sends every stored event after it, in order, then the\n events appended from then on, with none missing and none repeated.\n Unset, the stream sends only the events appended after it opens.",
+          "required": false,
+          "oneofGroup": "_after_seq"
         }
       ]
     },

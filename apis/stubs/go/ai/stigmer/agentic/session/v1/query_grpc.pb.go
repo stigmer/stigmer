@@ -59,10 +59,12 @@ type SessionQueryControllerClient interface {
 	ListEvents(ctx context.Context, in *ListSessionEventsRequest, opts ...grpc.CallOption) (*SessionEventList, error)
 	// Stream a session's events as they are appended.
 	//
-	// The stream starts at the moment it opens: list the events first to
-	// catch up, and skip any event id already seen. A watcher that falls too
-	// far behind is ended with RESOURCE_EXHAUSTED; list from the last event
-	// it saw, then stream again.
+	// Without after_seq the stream starts at the moment it opens, as Managed
+	// Agents' does. With after_seq it first sends the stored events after
+	// that seq, then the new ones, with none missing: a client that listed
+	// up to some seq, or whose stream ended, resumes from the last seq it
+	// has. A watcher that falls too far behind is ended with
+	// RESOURCE_EXHAUSTED; it resumes the same way.
 	StreamEvents(ctx context.Context, in *StreamSessionEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamSessionEventsResponse], error)
 }
 
@@ -175,10 +177,12 @@ type SessionQueryControllerServer interface {
 	ListEvents(context.Context, *ListSessionEventsRequest) (*SessionEventList, error)
 	// Stream a session's events as they are appended.
 	//
-	// The stream starts at the moment it opens: list the events first to
-	// catch up, and skip any event id already seen. A watcher that falls too
-	// far behind is ended with RESOURCE_EXHAUSTED; list from the last event
-	// it saw, then stream again.
+	// Without after_seq the stream starts at the moment it opens, as Managed
+	// Agents' does. With after_seq it first sends the stored events after
+	// that seq, then the new ones, with none missing: a client that listed
+	// up to some seq, or whose stream ended, resumes from the last seq it
+	// has. A watcher that falls too far behind is ended with
+	// RESOURCE_EXHAUSTED; it resumes the same way.
 	StreamEvents(*StreamSessionEventsRequest, grpc.ServerStreamingServer[StreamSessionEventsResponse]) error
 }
 

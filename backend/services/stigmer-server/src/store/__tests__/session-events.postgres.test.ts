@@ -49,6 +49,7 @@ const CONTRACT_CASE_NAMES = [
   "the writer is handed the type of the session's newest state event, read under the lock",
   "writers of one session run one after the other, each counting what the other committed",
   "removing a row removes its own events except the kept types, and its list keys",
+  "a session's numbers only grow: removing a row's newest events never gives their numbers to a later event",
   "a write that names no session finds it through the row, and a row that is not stored is not found",
   "a row in no session writes no events",
   "deleteBySession removes one session's events; deleteByOrg removes an organization's",

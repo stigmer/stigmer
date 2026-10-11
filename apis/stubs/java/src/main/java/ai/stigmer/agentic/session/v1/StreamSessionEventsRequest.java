@@ -55,6 +55,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.session.v1.StreamSessionEventsRequest.class, ai.stigmer.agentic.session.v1.StreamSessionEventsRequest.Builder.class);
   }
 
+  private int bitField0_;
   public static final int SESSION_ID_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private volatile java.lang.Object sessionId_ = "";
@@ -159,6 +160,39 @@ private static final long serialVersionUID = 0L;
     return eventDeltas_.getByteString(index);
   }
 
+  public static final int AFTER_SEQ_FIELD_NUMBER = 3;
+  private long afterSeq_ = 0L;
+  /**
+   * <pre>
+   * Where to resume: the seq of the last event the client already has. Set,
+   * the stream first sends every stored event after it, in order, then the
+   * events appended from then on, with none missing and none repeated.
+   * Unset, the stream sends only the events appended after it opens.
+   * </pre>
+   *
+   * <code>optional int64 after_seq = 3 [json_name = "afterSeq", (.buf.validate.field) = { ... }</code>
+   * @return Whether the afterSeq field is set.
+   */
+  @java.lang.Override
+  public boolean hasAfterSeq() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Where to resume: the seq of the last event the client already has. Set,
+   * the stream first sends every stored event after it, in order, then the
+   * events appended from then on, with none missing and none repeated.
+   * Unset, the stream sends only the events appended after it opens.
+   * </pre>
+   *
+   * <code>optional int64 after_seq = 3 [json_name = "afterSeq", (.buf.validate.field) = { ... }</code>
+   * @return The afterSeq.
+   */
+  @java.lang.Override
+  public long getAfterSeq() {
+    return afterSeq_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -178,6 +212,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < eventDeltas_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, eventDeltas_.getRaw(i));
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeInt64(3, afterSeq_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -199,6 +236,10 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 1 * getEventDeltasList().size();
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(3, afterSeq_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -218,6 +259,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getSessionId())) return false;
     if (!getEventDeltasList()
         .equals(other.getEventDeltasList())) return false;
+    if (hasAfterSeq() != other.hasAfterSeq()) return false;
+    if (hasAfterSeq()) {
+      if (getAfterSeq()
+          != other.getAfterSeq()) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -234,6 +280,11 @@ private static final long serialVersionUID = 0L;
     if (getEventDeltasCount() > 0) {
       hash = (37 * hash) + EVENT_DELTAS_FIELD_NUMBER;
       hash = (53 * hash) + getEventDeltasList().hashCode();
+    }
+    if (hasAfterSeq()) {
+      hash = (37 * hash) + AFTER_SEQ_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+          getAfterSeq());
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -373,6 +424,7 @@ private static final long serialVersionUID = 0L;
       sessionId_ = "";
       eventDeltas_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      afterSeq_ = 0L;
       return this;
     }
 
@@ -413,6 +465,12 @@ private static final long serialVersionUID = 0L;
         eventDeltas_.makeImmutable();
         result.eventDeltas_ = eventDeltas_;
       }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.afterSeq_ = afterSeq_;
+        to_bitField0_ |= 0x00000001;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -441,6 +499,9 @@ private static final long serialVersionUID = 0L;
           eventDeltas_.addAll(other.eventDeltas_);
         }
         onChanged();
+      }
+      if (other.hasAfterSeq()) {
+        setAfterSeq(other.getAfterSeq());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -478,6 +539,11 @@ private static final long serialVersionUID = 0L;
               eventDeltas_.add(input.readStringRequireUtf8());
               break;
             } // case 18
+            case 24: {
+              afterSeq_ = input.readInt64();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 24
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -739,6 +805,74 @@ private static final long serialVersionUID = 0L;
       ensureEventDeltasIsMutable();
       eventDeltas_.add(value);
       bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private long afterSeq_ ;
+    /**
+     * <pre>
+     * Where to resume: the seq of the last event the client already has. Set,
+     * the stream first sends every stored event after it, in order, then the
+     * events appended from then on, with none missing and none repeated.
+     * Unset, the stream sends only the events appended after it opens.
+     * </pre>
+     *
+     * <code>optional int64 after_seq = 3 [json_name = "afterSeq", (.buf.validate.field) = { ... }</code>
+     * @return Whether the afterSeq field is set.
+     */
+    @java.lang.Override
+    public boolean hasAfterSeq() {
+      return ((bitField0_ & 0x00000004) != 0);
+    }
+    /**
+     * <pre>
+     * Where to resume: the seq of the last event the client already has. Set,
+     * the stream first sends every stored event after it, in order, then the
+     * events appended from then on, with none missing and none repeated.
+     * Unset, the stream sends only the events appended after it opens.
+     * </pre>
+     *
+     * <code>optional int64 after_seq = 3 [json_name = "afterSeq", (.buf.validate.field) = { ... }</code>
+     * @return The afterSeq.
+     */
+    @java.lang.Override
+    public long getAfterSeq() {
+      return afterSeq_;
+    }
+    /**
+     * <pre>
+     * Where to resume: the seq of the last event the client already has. Set,
+     * the stream first sends every stored event after it, in order, then the
+     * events appended from then on, with none missing and none repeated.
+     * Unset, the stream sends only the events appended after it opens.
+     * </pre>
+     *
+     * <code>optional int64 after_seq = 3 [json_name = "afterSeq", (.buf.validate.field) = { ... }</code>
+     * @param value The afterSeq to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAfterSeq(long value) {
+
+      afterSeq_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where to resume: the seq of the last event the client already has. Set,
+     * the stream first sends every stored event after it, in order, then the
+     * events appended from then on, with none missing and none repeated.
+     * Unset, the stream sends only the events appended after it opens.
+     * </pre>
+     *
+     * <code>optional int64 after_seq = 3 [json_name = "afterSeq", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAfterSeq() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      afterSeq_ = 0L;
       onChanged();
       return this;
     }

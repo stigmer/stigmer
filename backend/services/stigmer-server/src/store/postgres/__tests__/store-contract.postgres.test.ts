@@ -49,6 +49,7 @@ const ALL_TABLES = [
   "connect_link",
   "connect_attempt",
   "session_events",
+  "session_event_heads",
 ] as const;
 
 describe.skipIf(testDatabaseAdminUrl() === undefined)(

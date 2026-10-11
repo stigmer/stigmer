@@ -367,6 +367,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           "schedule_runs",
           "schema_version",
           "search_index",
+          "session_event_heads",
           "session_events",
         ]);
 

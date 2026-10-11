@@ -103,12 +103,14 @@ class SessionEventList(_message.Message):
     def __init__(self, events: _Optional[_Iterable[_Union[_event_pb2.SessionEvent, _Mapping]]] = ..., next_page_token: _Optional[str] = ...) -> None: ...
 
 class StreamSessionEventsRequest(_message.Message):
-    __slots__ = ("session_id", "event_deltas")
+    __slots__ = ("session_id", "event_deltas", "after_seq")
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     EVENT_DELTAS_FIELD_NUMBER: _ClassVar[int]
+    AFTER_SEQ_FIELD_NUMBER: _ClassVar[int]
     session_id: str
     event_deltas: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, session_id: _Optional[str] = ..., event_deltas: _Optional[_Iterable[str]] = ...) -> None: ...
+    after_seq: int
+    def __init__(self, session_id: _Optional[str] = ..., event_deltas: _Optional[_Iterable[str]] = ..., after_seq: _Optional[int] = ...) -> None: ...
 
 class StreamSessionEventsResponse(_message.Message):
     __slots__ = ("event", "event_start", "event_delta")

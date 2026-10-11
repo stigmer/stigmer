@@ -90,10 +90,12 @@ export const SessionQueryController: GenService<{
   /**
    * Stream a session's events as they are appended.
    *
-   * The stream starts at the moment it opens: list the events first to
-   * catch up, and skip any event id already seen. A watcher that falls too
-   * far behind is ended with RESOURCE_EXHAUSTED; list from the last event
-   * it saw, then stream again.
+   * Without after_seq the stream starts at the moment it opens, as Managed
+   * Agents' does. With after_seq it first sends the stored events after
+   * that seq, then the new ones, with none missing: a client that listed
+   * up to some seq, or whose stream ended, resumes from the last seq it
+   * has. A watcher that falls too far behind is ended with
+   * RESOURCE_EXHAUSTED; it resumes the same way.
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.streamEvents
    */

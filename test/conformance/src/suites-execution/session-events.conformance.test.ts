@@ -112,17 +112,21 @@ async function log(sessionId: string): Promise<SessionEvent[]> {
   return (await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000 })).events;
 }
 
-/** Collects a session's stream in the background until `done` says so. */
+/** Collects a session's stream in the background until `done` says so; `afterSeq` resumes after that seq. */
 function watch(
   sessionId: string,
   eventDeltas: string[],
   done: (frames: StreamSessionEventsResponse[]) => boolean,
+  afterSeq?: bigint,
 ): { frames: StreamSessionEventsResponse[]; finished: Promise<void>; stop: () => void } {
   const controller = new AbortController();
   const frames: StreamSessionEventsResponse[] = [];
   const finished = (async () => {
     try {
-      for await (const frame of clients.sessionQuery.streamEvents({ sessionId, eventDeltas }, { signal: controller.signal })) {
+      for await (const frame of clients.sessionQuery.streamEvents(
+        { sessionId, eventDeltas, ...(afterSeq === undefined ? {} : { afterSeq }) },
+        { signal: controller.signal },
+      )) {
         frames.push(frame);
         if (done(frames)) {
           controller.abort();
@@ -147,6 +151,31 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
 }
 
 describe("a session's event log on real turns", () => {
+  it("[rpc:SessionQueryController.streamEvents] a client that listed resumes with after_seq and misses nothing appended in between", async () => {
+    const { org } = await target.provisionTenancy();
+    const sessionId = await newSession(org);
+    mock.enqueue(anthropicText("First."));
+    const first = await startTurn(org, sessionId, "first");
+    await awaitTerminal(clients, first);
+    const listed = await log(sessionId);
+    const lastSeen = listed[listed.length - 1]!.seq;
+    // A turn appended after the list, before the stream opens: the gap a
+    // resume must close.
+    mock.enqueue(anthropicText("Second."));
+    const second = await startTurn(org, sessionId, "second");
+    await awaitTerminal(clients, second);
+    const stream = watch(
+      sessionId,
+      [],
+      (frames) => frames.filter((f) => f.frame.case === "event").length === 3,
+      lastSeen,
+    );
+    await stream.finished;
+    const resumed = stream.frames.flatMap((f) => (f.frame.case === "event" ? [f.frame.value] : []));
+    expect(resumed.map((e) => e.seq)).toEqual((await log(sessionId)).filter((e) => e.seq > lastSeen).map((e) => e.seq));
+    expect(resumed.map(typeOf)).toEqual(["user.message", "session.status_running", "session.status_idle"]);
+  });
+
   it("[rpc:SessionQueryController.listEvents] one turn's log reads the user's message, running, then idle as end_turn, in order", async () => {
     const { org } = await target.provisionTenancy();
     const sessionId = await newSession(org);

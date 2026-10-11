@@ -2459,13 +2459,15 @@ async function insertSessionEvents(
   if (drafts.length === 0) {
     return [];
   }
-  const newest = await client.query(
-    `SELECT seq, processed_at FROM session_events WHERE session_id = $1 ORDER BY seq DESC LIMIT 1`,
+  // The session's high-water mark, never lowered by a deletion, so no
+  // number is handed out twice (migrations.ts, session_event_heads).
+  const head = await client.query(
+    `SELECT last_seq, last_processed_at FROM session_event_heads WHERE session_id = $1`,
     [sessionId],
   );
-  const last = newest.rows[0] as { seq: string; processed_at: string } | undefined;
-  const processedAt = sessionEventInstant(Date.now(), last?.processed_at);
-  let seq = last === undefined ? 0 : Number(last.seq);
+  const last = head.rows[0] as { last_seq: string; last_processed_at: string } | undefined;
+  const processedAt = sessionEventInstant(Date.now(), last?.last_processed_at);
+  let seq = last === undefined ? 0 : Number(last.last_seq);
   const records: SessionEventRecord[] = [];
   const params: unknown[] = [];
   const tuples: string[] = [];
@@ -2492,6 +2494,11 @@ async function insertSessionEvents(
     `INSERT INTO session_events (session_id, seq, event_id, run_id, thread_id, type, org, processed_at, data)
      VALUES ${tuples.join(", ")}`,
     params,
+  );
+  await client.query(
+    `INSERT INTO session_event_heads (session_id, org, last_seq, last_processed_at) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (session_id) DO UPDATE SET last_seq = excluded.last_seq, last_processed_at = excluded.last_processed_at`,
+    [sessionId, org, seq, processedAt],
   );
   return records;
 }
@@ -2596,14 +2603,19 @@ class PostgresSessionEventStore implements SessionEventStore {
       const result = await client.query(`DELETE FROM session_events WHERE session_id = $1`, [
         sessionId,
       ]);
+      await client.query(`DELETE FROM session_event_heads WHERE session_id = $1`, [sessionId]);
       return result.rowCount ?? 0;
     });
   }
 
   async deleteByOrg(org: string): Promise<number> {
-    const result = await this.open().query(`DELETE FROM session_events WHERE org = $1`, [org]);
-    return result.rowCount ?? 0;
+    return this.transaction(async (client) => {
+      const result = await client.query(`DELETE FROM session_events WHERE org = $1`, [org]);
+      await client.query(`DELETE FROM session_event_heads WHERE org = $1`, [org]);
+      return result.rowCount ?? 0;
+    });
   }
+
 }
 
 /** A list key's value in a row's facts; "" when the row holds none. */

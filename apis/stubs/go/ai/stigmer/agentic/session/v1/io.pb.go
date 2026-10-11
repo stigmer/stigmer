@@ -628,7 +628,12 @@ type StreamSessionEventsRequest struct {
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// The event types to preview while they are produced: agent.message,
 	// agent.thinking. Empty streams no previews.
-	EventDeltas   []string `protobuf:"bytes,2,rep,name=event_deltas,json=eventDeltas,proto3" json:"event_deltas,omitempty"`
+	EventDeltas []string `protobuf:"bytes,2,rep,name=event_deltas,json=eventDeltas,proto3" json:"event_deltas,omitempty"`
+	// Where to resume: the seq of the last event the client already has. Set,
+	// the stream first sends every stored event after it, in order, then the
+	// events appended from then on, with none missing and none repeated.
+	// Unset, the stream sends only the events appended after it opens.
+	AfterSeq      *int64 `protobuf:"varint,3,opt,name=after_seq,json=afterSeq,proto3,oneof" json:"after_seq,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -675,6 +680,13 @@ func (x *StreamSessionEventsRequest) GetEventDeltas() []string {
 		return x.EventDeltas
 	}
 	return nil
+}
+
+func (x *StreamSessionEventsRequest) GetAfterSeq() int64 {
+	if x != nil && x.AfterSeq != nil {
+		return *x.AfterSeq
+	}
+	return 0
 }
 
 // StreamSessionEventsResponse is one frame of a session's event stream: a
@@ -1035,11 +1047,14 @@ const file_ai_stigmer_agentic_session_v1_io_proto_rawDesc = "" +
 	"\x0ecreated_at_lte\x18\t \x01(\tR\fcreatedAtLte\"\x7f\n" +
 	"\x10SessionEventList\x12C\n" +
 	"\x06events\x18\x01 \x03(\v2+.ai.stigmer.agentic.session.v1.SessionEventR\x06events\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x95\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xce\x01\n" +
 	"\x1aStreamSessionEventsRequest\x12%\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12P\n" +
-	"\fevent_deltas\x18\x02 \x03(\tB-\xbaH*\x92\x01'\x10\x02\x18\x01\"!r\x1fR\ragent.messageR\x0eagent.thinkingR\veventDeltas\"\xa9\x02\n" +
+	"\fevent_deltas\x18\x02 \x03(\tB-\xbaH*\x92\x01'\x10\x02\x18\x01\"!r\x1fR\ragent.messageR\x0eagent.thinkingR\veventDeltas\x12)\n" +
+	"\tafter_seq\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x00R\bafterSeq\x88\x01\x01B\f\n" +
+	"\n" +
+	"_after_seq\"\xa9\x02\n" +
 	"\x1bStreamSessionEventsResponse\x12C\n" +
 	"\x05event\x18\x01 \x01(\v2+.ai.stigmer.agentic.session.v1.SessionEventH\x00R\x05event\x12]\n" +
 	"\vevent_start\x18\x02 \x01(\v2).ai.stigmer.agentic.session.v1.EventStartB\x0f\xf2\x85,\vevent_startH\x00R\n" +
@@ -1119,6 +1134,7 @@ func file_ai_stigmer_agentic_session_v1_io_proto_init() {
 	}
 	file_ai_stigmer_agentic_session_v1_api_proto_init()
 	file_ai_stigmer_agentic_session_v1_event_proto_init()
+	file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[9].OneofWrappers = []any{}
 	file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[10].OneofWrappers = []any{
 		(*StreamSessionEventsResponse_Event)(nil),
 		(*StreamSessionEventsResponse_EventStart)(nil),
