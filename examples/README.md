@@ -30,6 +30,21 @@ stigmer apply -f examples/agents/support-bot.yaml
 stigmer run support-bot -m "How do I reset my password?"
 ```
 
+### PR Bot and its release-notes subagent (`agents/pr-bot.yaml`, `agents/release-notes.yaml`)
+
+`pr-bot` reviews pull requests and hands release notes to `release-notes`, a
+saved agent it lists under `subagents`. The subagent works as itself, with its
+own instructions, plugins and tools, and reports back to `pr-bot`. Both list
+the `github` plugin (installed above). Apply `release-notes` first: saving
+`pr-bot` pins each subagent it lists to that agent's latest version.
+
+**Usage**:
+```bash
+stigmer apply -f examples/agents/release-notes.yaml
+stigmer apply -f examples/agents/pr-bot.yaml
+stigmer run pr-bot -m "Write the release notes for everything merged since v1.4.0"
+```
+
 ## Skills
 
 ### Calculator Skill (`skills/calculator/`)

@@ -3,7 +3,7 @@
 How Agents use plugins and the MCP servers inside them, narrow their tools with
 the two tool lists, and which MCP tools ask for approval before they run.
 
-## Plugins and MCP Servers
+## Plugins and MCP servers
 
 MCP (Model Context Protocol) servers provide external tools to AI agents through
 a standard protocol: an agent reaches GitHub, Slack, a database or an internal

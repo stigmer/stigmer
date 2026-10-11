@@ -132,7 +132,22 @@ describe("checkToolScope", () => {
         agentMode: "local",
       });
     expect(run).toThrow(CursorToolListRefusal);
-    expect(run).toThrow('Sub-agent "sub-0" carries its own tool lists');
+    expect(run).toThrow("Subagent 'sub-0' carries its own tool lists");
+  });
+
+  it("names every subagent with lists of its own in one refusal", () => {
+    const run = () =>
+      checkToolScope(
+        input({ tools: [], disallowedTools: [] }, [
+          { tools: ["Read"], disallowedTools: [] },
+          { tools: [], disallowedTools: ["Bash"] },
+        ]),
+        { agentMode: "local" },
+      );
+    expect(run).toThrow(
+      "Subagents 'sub-0', 'sub-1' carry their own tool lists (tools / disallowed_tools), which the Cursor engine cannot enforce: " +
+        "it cannot tell a subagent's tool call from the main agent's. Run this agent on the native engine, or remove the subagents' lists.",
+    );
   });
 
   describe("an MCP entry resolves against the turn's servers", () => {
@@ -183,7 +198,7 @@ describe("checkToolScope", () => {
     expect(run).not.toThrow("sub-0");
     // The admitted sub-1 carrying lists refuses the turn, named, first.
     const admitted = input(lists, [{ tools: [], disallowedTools: [] }, { tools: ["Read"], disallowedTools: [] }]);
-    expect(() => checkToolScope(admitted, { agentMode: "local" })).toThrow('Sub-agent "sub-1" carries its own tool lists');
+    expect(() => checkToolScope(admitted, { agentMode: "local" })).toThrow("Subagent 'sub-1' carries its own tool lists");
   });
 
   describe("an Agent(type, …) type list", () => {
@@ -193,7 +208,7 @@ describe("checkToolScope", () => {
     it("is refused on this engine, naming the entry: Cursor's own sub-agent types start unseen", () => {
       expect(check(["Read", "Agent(explore)"])).toThrow(CursorToolListRefusal);
       expect(check(["Read", "Agent(explore)"])).toThrow(
-        'Agent "a" lists Agent(explore), which the Cursor engine cannot enforce: it cannot limit which sub-agents an agent starts. ' +
+        'Agent "a" lists Agent(explore), which the Cursor engine cannot enforce: it cannot limit which subagents an agent starts. ' +
           "Run this agent on the native engine, or list Agent without types.",
       );
     });

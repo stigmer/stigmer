@@ -95,9 +95,9 @@ its report lists every rule an entry fails.
    licence that permits redistribution (MIT, Apache 2.0, BSD), or Stigmer
    authored it. A licence the audit cannot recognise is read by a person, never
    assumed.
-2. **It becomes something.** At least one skill, sub-agent or MCP server.
-   Rules, hooks and commands are components Stigmer does not install; a plugin
-   made only of those installs as nothing.
+2. **It becomes something.** At least one skill, subagent or MCP server. A
+   plugin made only of hooks, rules or commands is not catalogued, though
+   Stigmer runs a plugin's hooks on tool calls.
 3. **Every MCP server is reachable from Stigmer, as declared.** An HTTP
    endpoint that answers the handshake without a credential, takes a key
    through a declared variable that a header sends, or answers with a standard

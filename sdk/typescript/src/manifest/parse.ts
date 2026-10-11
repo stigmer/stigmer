@@ -51,7 +51,7 @@ export function mcpServerWayForward(document: unknown): string | undefined {
  * lists. Shared with the CLI's `apply` and `validate`.
  */
 export const SUBAGENTS_WAY_FORWARD =
-  "A subagent is now a saved agent: write each sub-agent as an Agent of its own, " +
+  "A subagent is now a saved agent: write each subagent as an Agent of its own, " +
   "then list it under the agent's `subagents` (`- kind: agent` with `slug: <its slug>`).";
 
 /**

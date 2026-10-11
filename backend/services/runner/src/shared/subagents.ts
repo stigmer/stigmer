@@ -50,7 +50,7 @@ export function pluginSubagentScope(
   agent: { readonly name: string; readonly tools: readonly string[]; readonly disallowedTools: readonly string[] },
 ): ToolScope {
   return mainScope
-    .narrow(`Sub-agent "${agent.name}"`, { tools: [...agent.tools], disallowedTools: [...agent.disallowedTools] })
+    .narrow(`Subagent "${agent.name}"`, { tools: [...agent.tools], disallowedTools: [...agent.disallowedTools] })
     .narrow(ONE_LEVEL_LAYER.owner, ONE_LEVEL_LAYER.lists);
 }
 

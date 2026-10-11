@@ -268,17 +268,17 @@ const ERROR_CASES: Record<PluginErrorKind, Case> = {
   "sub-agent-instructions-short": {
     files: cursorPlugin({ agents: [{ file: "terse", frontmatter: { name: "terse" }, body: "Go.\n" }] }),
     kinds: errors("sub-agent-instructions-short"),
-    message: "sub-agent 'terse' in 'agents/terse.md' has instructions under 10 characters; the body of the file is the sub-agent's prompt",
+    message: "subagent 'terse' in 'agents/terse.md' has instructions under 10 characters; the body of the file is the subagent's prompt",
   },
   "sub-agent-name-duplicate": {
     files: cursorPlugin({ agents: [{ file: "a", frontmatter: { name: "same" } }, { file: "b", frontmatter: { name: "same" } }] }),
     kinds: errors("sub-agent-name-duplicate"),
-    message: "sub-agent name 'same' appears more than once (again in 'agents/b.md')",
+    message: "subagent name 'same' appears more than once (again in 'agents/b.md')",
   },
   "sub-agent-tool-list-invalid": {
     files: claudePlugin({ agents: [{ file: "a", frontmatter: { tools: 5 } }] }),
     kinds: errors("sub-agent-tool-list-invalid"),
-    message: "sub-agent 'a' in 'agents/a.md' has a 'tools' field that is neither a comma-separated string nor a list of strings",
+    message: "subagent 'a' in 'agents/a.md' has a 'tools' field that is neither a comma-separated string nor a list of strings",
   },
 
   "hooks-unreadable": {
@@ -402,22 +402,22 @@ const WARNING_CASES: Record<PluginWarningKind, Case> = {
   "sub-agent-name-defaulted": {
     files: cursorPlugin({ agents: [{ file: "helper", frontmatter: null, body: "You help with everything, patiently.\n" }] }),
     kinds: warnings("sub-agent-name-defaulted"),
-    message: "'agents/helper.md' has no 'name' in its frontmatter; the sub-agent is named after the file, 'helper'",
+    message: "'agents/helper.md' has no 'name' in its frontmatter; the subagent is named after the file, 'helper'",
   },
   "sub-agent-skill-unknown": {
     files: claudePlugin({ agents: [{ file: "a", frontmatter: { skills: ["missing"] } }] }),
     kinds: warnings("sub-agent-skill-unknown"),
-    message: "sub-agent 'a' in 'agents/a.md' asks for skill 'missing', which the plugin does not ship",
+    message: "subagent 'a' in 'agents/a.md' asks for skill 'missing', which the plugin does not ship",
   },
   "sub-agent-model-unknown": {
     files: cursorPlugin({ agents: [{ file: "a", frontmatter: { model: "grok-4.6[effort=xhigh]" } }] }),
     kinds: warnings("sub-agent-model-unknown"),
-    message: "sub-agent 'a' in 'agents/a.md' names model 'grok-4.6[effort=xhigh]', which is not a model alias Stigmer knows; the sub-agent runs on it only where the conversation's engine lists it as a model, else on the conversation's model",
+    message: "subagent 'a' in 'agents/a.md' names model 'grok-4.6[effort=xhigh]', which is not a model alias Stigmer knows; the subagent runs on it only where the conversation's engine lists it as a model, else on the conversation's model",
   },
   "sub-agent-field-ignored": {
     files: cursorPlugin({ agents: [{ file: "a", frontmatter: { readonly: true } }] }),
     kinds: warnings("sub-agent-field-ignored"),
-    message: "sub-agent 'a' in 'agents/a.md' has a field 'readonly' Stigmer does not read, ignored",
+    message: "subagent 'a' in 'agents/a.md' has a field 'readonly' Stigmer does not read, ignored",
   },
   "hook-event-not-run": {
     files: claudePlugin({ hooks: { Stop: [{ hooks: [COMMAND] }] } }),

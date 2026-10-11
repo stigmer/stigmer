@@ -251,7 +251,7 @@ export function skillMarkdown(skill: SkillFixture): string {
 
 /** A sub-agent document from a fixture description. */
 export function agentMarkdown(agent: AgentFixture): string {
-  const body = agent.body ?? `You are the ${agent.file} sub-agent. Do the task thoroughly and report back.\n`;
+  const body = agent.body ?? `You are the ${agent.file} subagent. Do the task thoroughly and report back.\n`;
   if (agent.frontmatter === null) return body;
   const frontmatter = { name: agent.file, ...agent.frontmatter };
   return `---\n${stringifyYaml(frontmatter)}---\n${body}`;
