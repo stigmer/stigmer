@@ -76,13 +76,13 @@ describe("an admin service account's key, at the doors that decide membership or
     const made = await asPerson.create(platformClientInput(acme, "doors-portal"));
     const client = made.platformClient;
     const asKey = createClient(PlatformClientCommandController, at.presenting(ciKey));
-    const attempts: ReadonlyArray<Promise<unknown>> = [
-      asKey.create(platformClientInput(acme, "doors-rogue")),
-      asKey.update(client ?? {}),
-      asKey.rotateSecret({ value: client?.metadata?.id ?? "" }),
+    const attempts: ReadonlyArray<() => Promise<unknown>> = [
+      () => asKey.create(platformClientInput(acme, "doors-rogue")),
+      () => asKey.update(client ?? {}),
+      () => asKey.rotateSecret({ value: client?.metadata?.id ?? "" }),
     ];
     for (const attempt of attempts) {
-      const error = await refusal(attempt);
+      const error = await refusal(attempt());
       expect(error.code).toBe(Code.PermissionDenied);
       expect(error.rawMessage).toBe(serviceAccountRefusedMessage("create or change platform clients"));
     }
@@ -91,13 +91,13 @@ describe("an admin service account's key, at the doors that decide membership or
   it("is refused the federated account RPCs before the edition's federation is consulted", async () => {
     const asKey = createClient(IdentityAccountCommandController, at.presenting(ciKey));
     const ref = { org: acme, slug: "doors-okta" };
-    const attempts: ReadonlyArray<Promise<unknown>> = [
-      asKey.createFederatedAccount({ org: acme, identityProviderRef: ref, externalSub: "okta|x", email: "x@acme.test" }),
-      asKey.updateFederatedAccount({ org: acme, identityProviderRef: ref, externalSub: "okta|x", email: "x@acme.test" }),
-      asKey.deprovisionFederatedAccount({ org: acme, identityProviderRef: ref, externalSub: "okta|x" }),
+    const attempts: ReadonlyArray<() => Promise<unknown>> = [
+      () => asKey.createFederatedAccount({ org: acme, identityProviderRef: ref, externalSub: "okta|x", email: "x@acme.test" }),
+      () => asKey.updateFederatedAccount({ org: acme, identityProviderRef: ref, externalSub: "okta|x", email: "x@acme.test" }),
+      () => asKey.deprovisionFederatedAccount({ org: acme, identityProviderRef: ref, externalSub: "okta|x" }),
     ];
     for (const attempt of attempts) {
-      const error = await refusal(attempt);
+      const error = await refusal(attempt());
       expect(error.code).toBe(Code.PermissionDenied);
       expect(error.rawMessage).toBe(serviceAccountRefusedMessage("create, change or remove federated accounts"));
     }
@@ -127,17 +127,17 @@ describe("a credential limited to one organization, at another organization's se
       spec: { boundOrg: globex, neverExpires: true },
     });
     const asLimited = at.presenting(limited.spec?.keyHash ?? "");
-    const attempts: ReadonlyArray<Promise<unknown>> = [
-      createClient(ApiKeyCommandController, asLimited).createForServiceAccount({
+    const attempts: ReadonlyArray<() => Promise<unknown>> = [
+      () => createClient(ApiKeyCommandController, asLimited).createForServiceAccount({
         serviceAccountId: ciId,
         name: "from-globex",
         neverExpires: true,
       }),
-      createClient(ApiKeyQueryController, asLimited).findByAccount({ value: ciId }),
-      createClient(IdentityAccountCommandController, asLimited).delete({ value: ciId }),
+      () => createClient(ApiKeyQueryController, asLimited).findByAccount({ value: ciId }),
+      () => createClient(IdentityAccountCommandController, asLimited).delete({ value: ciId }),
     ];
     for (const attempt of attempts) {
-      expect((await refusal(attempt)).code).toBe(Code.PermissionDenied);
+      expect((await refusal(attempt())).code).toBe(Code.PermissionDenied);
     }
   });
 });
