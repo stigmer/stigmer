@@ -194,8 +194,8 @@ excluded, runs there.
 A subagent the Cursor engine runs works inside the main agent's session: it has
 the main agent's tools, the platform's channel, conversation and memory tools
 included, under the main agent's tool lists and hooks, and its own `env` values
-do not reach it. Run an agent whose subagents need their own values, or must
-not reach the platform's tools, on the native engine.
+do not reach it. Run an agent whose subagents need their own values, or must not
+reach the platform's tools, on the native engine.
 
 ## Writing Descriptions
 
