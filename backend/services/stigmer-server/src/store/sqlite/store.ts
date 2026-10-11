@@ -2518,31 +2518,20 @@ class SqliteSessionEventStore implements SessionEventStore {
     }
   }
 
+  // The events first, then the session's high-water mark: a failure between
+  // the two leaves a mark with no events, never events numbered from zero
+  // again, and the session is being deleted either way.
   async deleteBySession(sessionId: string): Promise<number> {
     const db = this.open();
-    db.exec("BEGIN IMMEDIATE");
-    try {
-      const result = db.prepare(`DELETE FROM session_events WHERE session_id = ?`).run(sessionId);
-      db.prepare(`DELETE FROM session_event_heads WHERE session_id = ?`).run(sessionId);
-      db.exec("COMMIT");
-      return Number(result.changes);
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
-    }
+    const result = db.prepare(`DELETE FROM session_events WHERE session_id = ?`).run(sessionId);
+    db.prepare(`DELETE FROM session_event_heads WHERE session_id = ?`).run(sessionId);
+    return Number(result.changes);
   }
 
   async deleteByOrg(org: string): Promise<number> {
     const db = this.open();
-    db.exec("BEGIN IMMEDIATE");
-    try {
-      const result = db.prepare(`DELETE FROM session_events WHERE org = ?`).run(org);
-      db.prepare(`DELETE FROM session_event_heads WHERE org = ?`).run(org);
-      db.exec("COMMIT");
-      return Number(result.changes);
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
-    }
+    const result = db.prepare(`DELETE FROM session_events WHERE org = ?`).run(org);
+    db.prepare(`DELETE FROM session_event_heads WHERE org = ?`).run(org);
+    return Number(result.changes);
   }
 }
