@@ -419,10 +419,11 @@ describe("migrateAgentRow", () => {
     expect(result.spec?.plugins).toEqual([]);
   });
 
-  it("renames a tool list only by the agent's own organization's servers", () => {
+  it("keeps a deny on the agent's own server, and denies another organization's same-slug plugin server too", () => {
     // Another organization installed a plugin whose server has the same
-    // slug; this organization's `github` server was added by hand. The
-    // agent's disallowed entry must not take the other plugin's name.
+    // slug; this organization's `notes` server was added by hand. The
+    // agent's deny keeps its own name (that server is gone, so the entry
+    // names nothing) and fails closed over the other plugin's server.
     const all = facts();
     all.addPlugin({
       id: "plg_other",
@@ -446,8 +447,9 @@ describe("migrateAgentRow", () => {
       result === undefined
         ? undefined
         : fromBinary(AgentSchema, result.data).spec;
-    expect(spec?.disallowedTools ?? ["mcp__notes__delete_page"]).toEqual([
+    expect(spec?.disallowedTools).toEqual([
       "mcp__notes__delete_page",
+      "mcp__plugin_dev-kit_notes__delete_page",
     ]);
   });
 
@@ -469,6 +471,25 @@ describe("migrateAgentRow", () => {
     const spec = fromBinary(AgentSchema, result!.data).spec;
     expect(spec?.disallowedTools).toEqual(["mcp__plugin_kit_github__delete_repo"]);
     expect(spec?.plugins.map((ref) => `${ref.org}/${ref.slug}`)).toEqual([`${OTHER_ORG}/kit`]);
+  });
+
+  it("keeps a deny on a parent organization's server that reached the agent only through a conversation", () => {
+    // The agent never listed the parent's `github` server; a session did.
+    // After the step, that session lists the parent's plugin, so the
+    // agent's deny must name the server as a turn will.
+    const all = new RetirementFacts();
+    all.addPlugin({ id: "plg_parent", org: OTHER_ORG, slug: "kit", name: "kit" });
+    all.addServer({ id: "mcp_parent", org: OTHER_ORG, slug: "github", name: "github", pluginId: "plg_parent" });
+    const result = migrateAgentRow(
+      agent({ spec: { disallowedTools: ["mcp__github__delete_repo", "Bash"] } }),
+      all,
+      recordingLogger(),
+    );
+    expect(fromBinary(AgentSchema, result!.data).spec?.disallowedTools).toEqual([
+      "mcp__github__delete_repo",
+      "mcp__plugin_kit_github__delete_repo",
+      "Bash",
+    ]);
   });
 
   it("renames by every server of a plugin it now lists, the ones it never used included", () => {

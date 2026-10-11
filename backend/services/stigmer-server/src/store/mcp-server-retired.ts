@@ -172,6 +172,27 @@ export class RetirementFacts {
   }
 
   /**
+   * Every new name a tool-list entry's old server slug may take: one per
+   * plugin server that held the slug, in any organization, in no particular
+   * order but each once. Empty for an entry that names no server slug, or a
+   * slug no plugin server held.
+   */
+  everyRenameOf(entry: string): string[] {
+    const match = /^mcp__([a-z0-9-]+)(__.*)?$/.exec(entry);
+    if (match === null) {
+      return [];
+    }
+    const names = new Set<string>();
+    for (const server of this.servers.values()) {
+      const plugin = server.pluginId === undefined ? undefined : this.plugins.get(server.pluginId);
+      if (server.slug === match[1] && plugin !== undefined) {
+        names.add(`mcp__${toolServerSegment(plugin.name, server.name)}${match[2] ?? ""}`);
+      }
+    }
+    return [...names].sort();
+  }
+
+  /**
    * An agent's old tool-name prefixes and the ones a turn uses now. A tool
    * list names a server by slug alone, and another organization may hold
    * the same slug, so a slug renames by the first server that claims it,
@@ -338,11 +359,24 @@ export function migrateAgentRow(
     }
     return next;
   };
+  // A deny fails closed: besides the agent's own rename, it denies every
+  // plugin server that held the slug in any organization, since the server
+  // it meant may reach the agent through a conversation (a session's plugin)
+  // the agent row does not name.
+  const renameDenies = (entries: string[]): string[] => {
+    const next = [
+      ...new Set(entries.flatMap((entry) => [renamedToolEntry(entry, renames), ...facts.everyRenameOf(entry)])),
+    ];
+    if (next.length !== entries.length || next.some((entry, i) => entry !== entries[i])) {
+      changed = true;
+    }
+    return next;
+  };
   spec.tools = rename(spec.tools);
-  spec.disallowedTools = rename(spec.disallowedTools);
+  spec.disallowedTools = renameDenies(spec.disallowedTools);
   for (const subAgent of spec.subAgents) {
     subAgent.tools = rename(subAgent.tools);
-    subAgent.disallowedTools = rename(subAgent.disallowedTools);
+    subAgent.disallowedTools = renameDenies(subAgent.disallowedTools);
     const kept = subAgent.skillRefs.filter((ref) => facts.memberSkill(ref, org) === undefined);
     if (kept.length !== subAgent.skillRefs.length) {
       changed = true;
