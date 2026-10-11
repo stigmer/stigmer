@@ -386,6 +386,23 @@ describe("RenameServiceAccount — the slug follows the name, unique in the orga
     expect(errors).toEqual([expect.stringMatching(/could not be moved back/)]);
   });
 
+  it("a name table that faults is INTERNAL, never a name check that passed", async () => {
+    const accounts = await seeded();
+    const faulting = {
+      resourceNames: {
+        rename: async () => {
+          throw new Error("name table down");
+        },
+      },
+    } as unknown as Store;
+    const ctx = renaming(existing(accounts, "ida_self"), "CI Deploy Prod");
+    const error = await refusal(() =>
+      newRenameServiceAccountStep(faulting, accounts).execute(ctx),
+    );
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to rename the service account");
+  });
+
   it("clears the person fields whatever the request sent", async () => {
     const accounts = await seeded();
     const ctx = renaming(existing(accounts, "ida_self"), "ci-deploy");
