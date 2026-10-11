@@ -26,6 +26,7 @@
 // the command's noun for its one refusal that names the command, and
 // resources/agent-eval/options.ts adds its own flag to it.
 
+import { ALLOW_TOOL_PATTERN } from "@stigmer/sdk";
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { PluginEvalTargetInput } from "@stigmer/sdk";
@@ -39,14 +40,6 @@ export const DEFAULT_MAX_COST_USD = 5;
 
 /** The most engine-and-model targets one eval runs. */
 const MAX_TARGETS = 6;
-
-/**
- * A tool name the API accepts in `allow_tools`: a Claude tool, an optional
- * specifier, or an MCP pattern in Claude Code's plugin form or Stigmer's
- * server form (the server rewrites the first to the second).
- */
-const TOOL_PATTERN =
-  /^(mcp__\*|mcp__plugin_[A-Za-z0-9.-]+_[A-Za-z0-9_.-]+?(__(\*|[A-Za-z0-9_.-]+))?|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\([^()\r\n]+\))?)$/;
 
 /** A full plugin version digest. */
 const DIGEST_PATTERN = /^[a-f0-9]{64}$/;
@@ -166,7 +159,7 @@ export function readEvalOptions(flags: EvalFlags, noun: EvalNoun): EvalOptions {
   }
   const allowTools = flags.allowTools ?? [];
   for (const tool of allowTools) {
-    if (!TOOL_PATTERN.test(tool)) {
+    if (!ALLOW_TOOL_PATTERN.test(tool)) {
       throw invalid(
         `--allow-tools '${tool}' is not a tool name: use Claude Code's names, as in Write or "Bash(npm test *)", or a plugin's MCP tools as mcp__plugin_<plugin>_<server>__<tool> or mcp__<server>__*`,
       );

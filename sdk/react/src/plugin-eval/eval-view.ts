@@ -33,6 +33,7 @@
  * name the server would refuse is named before the request. Pinned by
  * `__tests__/eval-view.test.ts`.
  */
+import { ALLOW_TOOL_PATTERN } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import {
@@ -174,14 +175,8 @@ export function evalTargetsOf(
 /** The most tools an eval's allowed list names. */
 export const MAX_ALLOW_TOOLS = 64;
 
-/**
- * A tool name an eval may allow, the API's own rule: a Claude Code tool
- * (`Write`, `Bash(npm test *)`), or MCP tools as
- * `mcp__plugin_<plugin>_<server>__<tool>`, `mcp__<server>__<tool>`, with
- * `*` for every tool of a server, or `mcp__*`.
- */
-export const ALLOW_TOOL_PATTERN =
-  /^(mcp__\*|mcp__plugin_[A-Za-z0-9.-]+_[A-Za-z0-9_.-]+?(__(\*|[A-Za-z0-9_.-]+))?|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\([^()\r\n]+\))?)$/;
+/** A tool name an eval may allow: the API's own rule, held once in the SDK. */
+export { ALLOW_TOOL_PATTERN };
 
 /**
  * The allowed tools a person typed, one per line or comma-separated; a

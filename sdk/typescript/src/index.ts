@@ -301,6 +301,7 @@ export {
   buildAgentEvalProto,
   type AgentEvalInput,
 } from "./gen/agenteval.js";
+export { ALLOW_TOOL_PATTERN } from "./plugin-eval/allow-tools.js";
 export {
   toAgentEvalResultDocument,
   type AgentEvalPluginResult,
