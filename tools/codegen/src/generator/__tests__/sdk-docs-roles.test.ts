@@ -12,7 +12,9 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { runSDKDocsGeneration } from "../sdk-docs.js";
+import type { IamRoleMetaEntry, KindMetaEntry } from "../resource-kind.js";
+import { ResourceTier } from "../resource-kind.js";
+import { generateRolesDocPage, runSDKDocsGeneration } from "../sdk-docs.js";
 
 const SCHEMAS = path.resolve(__dirname, "../../../schemas");
 const APIS = path.resolve(__dirname, "../../../../../apis");
@@ -114,5 +116,71 @@ describe("the roles reference page", () => {
   it("leaves out a kind no role can be granted on", () => {
     expect(page).not.toContain("\n## Run\n");
     expect(page).not.toContain("\n## API Key\n");
+  });
+});
+
+describe("generateRolesDocPage", () => {
+  const kind = (overrides: Partial<KindMetaEntry>): KindMetaEntry => ({
+    enumName: "widget",
+    enumNumber: 900,
+    displayName: "Widget",
+    tier: ResourceTier.resource_tier_unspecified,
+    visibility: null,
+    grantableRoles: [],
+    teamGrantableRoles: [],
+    roleDescriptions: [],
+    ...overrides,
+  });
+  const viewer: IamRoleMetaEntry = {
+    role: 4,
+    name: "viewer",
+    displayName: "Viewer",
+    description: "Read it | all of it",
+  };
+
+  it("names no edition for an unspecified tier and links no page the run did not write", () => {
+    const page = generateRolesDocPage(
+      [kind({ grantableRoles: [4] })],
+      [viewer],
+      new Set(),
+    );
+    expect(page).toContain("\n## Widget\n\n**General access**: none;");
+    expect(page).not.toContain("Served by");
+    expect(page).not.toContain("API reference");
+  });
+
+  it("falls back to the kindless sentence, escapes a cell's pipe, and names an unknown role by its number", () => {
+    const page = generateRolesDocPage(
+      [kind({ grantableRoles: [4, 99] })],
+      [viewer],
+      new Set(),
+    );
+    expect(page).toContain("| Viewer | Read it \\| all of it |\n");
+    expect(page).toContain("| 99 |  |\n");
+  });
+
+  it("treats a visibility block that offers no level as no general access setting", () => {
+    const visibility = {
+      supportsOrg: false,
+      supportsChildOrgs: false,
+      defaultsToOrg: false,
+    };
+    const page = generateRolesDocPage(
+      [kind({ grantableRoles: [4], visibility })],
+      [viewer],
+      new Set(),
+    );
+    expect(page).toContain(
+      "**General access**: none; it is shared only through the roles below.\n",
+    );
+  });
+
+  it("names the Cloud edition for a cloud-only kind", () => {
+    const page = generateRolesDocPage(
+      [kind({ grantableRoles: [4], tier: ResourceTier.cloud_only })],
+      [viewer],
+      new Set(),
+    );
+    expect(page).toContain("Served by the Cloud edition.\n");
   });
 });
