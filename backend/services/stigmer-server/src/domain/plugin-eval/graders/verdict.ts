@@ -13,7 +13,7 @@
  * Reasons count and name tools, paths and steps; they never quote what
  * the run wrote, which the author reads on the try's own page.
  */
-import type { EvalFocus } from "@stigmer/plugin-package";
+import type { EvalFocus, EvalGrader } from "@stigmer/plugin-package";
 
 import type { EvalTrace } from "../../score/eval/trace.js";
 
@@ -59,8 +59,6 @@ export const FILES_NOT_RECORDED_REASON =
  */
 export const TOO_MANY_CREATED_FILES_REASON = "too many created files to match";
 
-/** The not-graded reason of a grader over mock calls, which Stigmer does not run yet. */
-export const MOCK_CALLS_NOT_RUN_REASON = "mock_calls are not run yet";
 
 /**
  * The not-graded reason of a pattern that threw while it ran (a regex
@@ -162,11 +160,33 @@ export function focusText(
       }
     }
     case "mock_calls":
-      return { notGraded: MOCK_CALLS_NOT_RUN_REASON };
+      return { text: trace.mockCalls.join("\n") };
     /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
     default: {
       const exhausted: never = focus;
       return exhausted;
     }
   }
+}
+
+/**
+ * The workspace paths a case's graders read the content of: the try's run
+ * returns them as its turn left them (`RunSpec.plugin_eval_case.read_files`),
+ * and the trace reads each one.
+ */
+export function wantedFilesOf(graders: ReadonlyArray<EvalGrader>): string[] {
+  const paths: string[] = [];
+  for (const grader of graders) {
+    const check = grader.check;
+    const focus =
+      check.type === "regex"
+        ? check.target
+        : check.type === "llm"
+          ? check.focus
+          : undefined;
+    if (focus?.kind === "file" && !paths.includes(focus.path)) {
+      paths.push(focus.path);
+    }
+  }
+  return paths;
 }

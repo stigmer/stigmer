@@ -139,23 +139,8 @@ export function pluginNameOf(plugin: Plugin): string {
   return name !== "" ? name : (plugin.metadata?.slug ?? "");
 }
 
-/** The workspace paths a case's graders read the content of. */
-export function wantedFilesOf(graders: ReadonlyArray<EvalGrader>): string[] {
-  const paths: string[] = [];
-  for (const grader of graders) {
-    const check = grader.check;
-    const focus =
-      check.type === "regex"
-        ? check.target
-        : check.type === "llm"
-          ? check.focus
-          : undefined;
-    if (focus?.kind === "file" && !paths.includes(focus.path)) {
-      paths.push(focus.path);
-    }
-  }
-  return paths;
-}
+/** The workspace paths a case's graders read the content of; a try's run returns them too. */
+export { wantedFilesOf } from "../../domain/plugin-eval/graders/verdict.js";
 
 export async function loadRun(
   store: Store,

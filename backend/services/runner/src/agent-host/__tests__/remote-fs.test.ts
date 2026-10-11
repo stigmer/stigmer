@@ -14,7 +14,8 @@
  *    runner removes, and a failure is an `AgentExecError` with its exit code
  *    and output;
  *  - the request carries only the extra variables the caller named, never
- *    the runner's own environment.
+ *    the runner's own environment; with `replaceEnv` those are the
+ *    process's whole environment, and a `timeoutMs` kills it.
  */
 
 import { mkdtempSync, readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
@@ -136,7 +137,7 @@ describe("the agent's processes, run by the host", () => {
 
   it("answers a process that could not be run at all as a failure the runner rebuilds", async () => {
     const reply = await serveExec(
-      { file: "anything", args: [], cwd: null, env: {}, maxBuffer: 1024, input: null },
+      { file: "anything", args: [], cwd: null, env: {}, replaceEnv: false, timeoutMs: null, maxBuffer: 1024, input: null },
       { ...localAgentFs, execFile: () => Promise.reject(new Error("no such process table")) },
     );
     expect(reply).toEqual({ stdout: { inline: "" }, stderr: { inline: "" }, failure: { message: "no such process table", code: null, signal: null } });
@@ -147,6 +148,30 @@ describe("the agent's processes, run by the host", () => {
     const out = await fs.execFile("sh", ["-c", "printf %s \"$ONLY_THIS\""], { env: { ONLY_THIS: "named" } });
     expect(out.stdout.toString()).toBe("named");
     expect(sent.map((request) => request.env)).toEqual([{ ONLY_THIS: "named" }]);
+    close();
+  });
+
+  it("runs with the named variables alone when asked to replace the environment", async () => {
+    const { fs, sent, close } = hostedFs();
+    process.env["REMOTE_FS_LEAK_CHECK"] = "leaked";
+    try {
+      const out = await fs.execFile("/bin/sh", ["-c", "printf '%s|%s' \"$ONLY_THIS\" \"${REMOTE_FS_LEAK_CHECK:-absent}\""], {
+        env: { ONLY_THIS: "named" },
+        replaceEnv: true,
+      });
+      expect(out.stdout.toString()).toBe("named|absent");
+      expect(sent.map((request) => request.replaceEnv)).toEqual([true]);
+    } finally {
+      delete process.env["REMOTE_FS_LEAK_CHECK"];
+    }
+    close();
+  });
+
+  it("kills a process that runs past its limit, failing with the signal", async () => {
+    const { fs, close } = hostedFs();
+    const failure = await fs.execFile("sleep", ["5"], { timeoutMs: 50 }).catch((err: unknown) => err);
+    expect(failure).toBeInstanceOf(AgentExecError);
+    expect(failure).toMatchObject({ signal: "SIGKILL" });
     close();
   });
 });

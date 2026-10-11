@@ -1,0 +1,38 @@
+schema_version: "1.1"
+name: data-summary
+tags: [quality]
+context:
+  scaffold_script: "scaffold.sh"
+execution:
+  prompt: "Summarise data/signups.csv for this week's team update."
+  max_turns: 10
+  allowed_tools: ["Read", "Glob", "Grep", "Skill"]
+  append_system_prompt: "Be direct and concise. Act on requests rather than explaining steps. When you do not know something, say so.\n\nYour workspace is the orders-sync repository."
+graders:
+  - name: latest-total
+    type: "regex"
+    pattern: "\\b840\\b"
+    weight: 1
+  - name: paid-driver
+    type: "regex"
+    pattern: "paid"
+    flags: "i"
+    weight: 1
+  - name: key-finding-first
+    type: "llm"
+    weight: 2
+    criteria: "PASS if the summary opens with the latest week's jump to 840 signups and that paid signups drove it. FAIL otherwise."
+  - name: arithmetic-correct
+    type: "llm"
+    weight: 3
+    criteria: "Reference facts: eight weeks, 2026-08-03 to 2026-09-21; weekly totals 658, 648, 671, 664, 686, 676, 694 and 840; the latest week is up 146 (about 21%) on 694 and well above the earlier seven weeks' average of 671; paid is 310 against 148 to 153 earlier; organic is flat (398 to 431, 409 latest); referral grew from 96 to 121. PASS if every number the summary states matches these, each with its comparison. FAIL on any wrong total, change or percentage."
+  - name: changes-nothing
+    type: "tool_used"
+    tool: "Edit"
+    max: 0
+    weight: 1
+  - name: writes-nothing
+    type: "tool_used"
+    tool: "Write"
+    max: 0
+    weight: 1

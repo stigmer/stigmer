@@ -54,7 +54,6 @@ import {
   FILES_NOT_RECORDED_REASON,
   TOO_MANY_CREATED_FILES_REASON,
   cutReason,
-  MOCK_CALLS_NOT_RUN_REASON,
   PATTERN_TIME_LIMIT_REASON,
   fileAbsentReason,
   focusLabel,
@@ -92,6 +91,7 @@ function trace(overrides: Partial<EvalTrace> = {}): EvalTrace {
       { name: "Bash", input: JSON.stringify({ command: "npm test" }) },
       { name: "Read", input: JSON.stringify({ file_path: "src/b.ts" }) },
     ],
+    mockCalls: [],
     files: {
       kind: "recorded",
       created: ["CHANGELOG.md", "src/new/thing.ts"],
@@ -224,13 +224,20 @@ describe("regex", () => {
     ).toEqual({ notGraded: FILES_NOT_RECORDED_REASON });
   });
 
-  it("leaves a binary file, a mock-call target and an invalid pattern not graded", async () => {
+  it("reads the mock calls, one per line", async () => {
+    const calls = trace({
+      mockCalls: [
+        JSON.stringify({ server: "tracker", tool: "create_issue", input: { title: "Crash" }, answer: "Created #1" }),
+      ],
+    });
+    expect(await verdictOf(regex('"title":"Crash"', { kind: "mock_calls" }), calls)).toMatchObject({ passed: true });
+    expect(await verdictOf(regex("close_issue", { kind: "mock_calls" }), calls)).toMatchObject({ passed: false });
+  });
+
+  it("leaves a binary file and an invalid pattern not graded", async () => {
     expect(
       await verdictOf(regex("x", { kind: "file", path: "logo.png" })),
     ).toMatchObject({ notGraded: expect.stringContaining("binary") });
-    expect(await verdictOf(regex("x", { kind: "mock_calls" }))).toEqual({
-      notGraded: MOCK_CALLS_NOT_RUN_REASON,
-    });
     expect(await verdictOf(regex("(?i)x"))).toMatchObject({
       notGraded: expect.stringContaining("not a valid"),
     });
@@ -875,7 +882,7 @@ describe("the AI-graded checks' evidence and bounds", () => {
     };
   }
 
-  it("renders every transcript line shape it meets, and keeps what it cannot read as it is", () => {
+  it("renders the conversation's blocks, drops records that are not the conversation, and keeps a line that is not JSON", () => {
     const content = [
       "42",
       JSON.stringify({ type: "summary", summary: "s" }),
@@ -893,6 +900,7 @@ describe("the AI-graded checks' evidence and bounds", () => {
           ],
         },
       }),
+      "not json {",
       "",
     ].join("\n");
     const rendered = referenceTranscript(
@@ -901,12 +909,7 @@ describe("the AI-graded checks' evidence and bounds", () => {
       "ref.jsonl",
     );
     expect(rendered).toEqual({
-      text: [
-        "42",
-        'summary: {"type":"summary","summary":"s"}',
-        'entry: {"uuid":"u1"}',
-        'user: "plain" [tool result: ok] [tool result: [{"type":"text","text":"t"}]] {"type":"image","source":"s"} ',
-      ].join("\n"),
+      text: ["user: [tool result: ok] [tool result: t] [image]", "not json {"].join("\n"),
     });
   });
 

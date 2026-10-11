@@ -761,7 +761,7 @@ type PluginEvalSuiteCase struct {
 	// The case's tags.
 	CaseTags []string `protobuf:"bytes,3,rep,name=case_tags,json=caseTags,proto3" json:"case_tags,omitempty"`
 	// Why Stigmer cannot run the case yet, naming the feature, as in
-	// "context.scaffold_script"; empty when it can.
+	// "plugins" for a case that runs with another plugin; empty when it can.
 	Unsupported   string `protobuf:"bytes,4,opt,name=unsupported,proto3" json:"unsupported,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

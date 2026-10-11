@@ -1,0 +1,5 @@
+{
+  "name": "working-agent",
+  "version": "1.0.0",
+  "description": "The harness benchmark's working agent as a plugin: its skills, its reviewer sub-agent, the orders API it calls, and its quality tasks as eval cases."
+}

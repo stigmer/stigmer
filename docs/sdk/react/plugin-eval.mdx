@@ -228,6 +228,7 @@ One case of an eval.
 <TypeTable
   type={{
     cells: { type: "readonly EvalCaseCell[]", description: "One cell per target, in the eval's target order.", required: true },
+    mocked: { type: "readonly string[]", description: "The plugin's MCP servers as the tries saw them, as \"plugin_kit_tracker mocked: create_issue, close_issue\" or \"plugin_kit_wiki not started: no mock\".", required: true },
     name: { type: "string", description: "", required: true },
     notes: { type: "readonly string[]", description: "", required: true },
     notRun: { type: "string", description: "Why the case was not run, naming the feature; empty when it ran.", required: true },
@@ -350,7 +351,7 @@ One try, as a cell's link lists it.
     arm: { type: "\"with\" | \"without\"", description: "", required: true },
     index: { type: "number", description: "", required: true },
     runId: { type: "string", description: "", required: true },
-    summary: { type: "string", description: "\"1.00\", \"not graded: platform busy\", \"waiting or running\", \"waiting\", \"not run\".", required: true },
+    summary: { type: "string", description: "\"1.00\", \"0.00 · aborted by tracker.create_issue: …\", \"not graded: platform busy\", \"waiting or running\", \"waiting\", \"not run\".", required: true },
   }}
 />
 

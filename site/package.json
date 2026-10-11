@@ -71,6 +71,7 @@
     "tailwind-merge": "^3.0.0"
   },
   "resolutions": {
+    "@stigmer/eval-runtime": "file:../backend/libs/ts/eval-runtime",
     "@stigmer/plugin-package": "file:../backend/libs/ts/plugin-package",
     "@stigmer/theme": "file:../sdk/theme"
   },

@@ -25,6 +25,7 @@ on:
       - "sdk/theme/**"
       - "sdk/embed/**"
       - "backend/libs/ts/plugin-package/**"
+      - "backend/libs/ts/eval-runtime/**"
       - ".github/workflows/release.website.yaml"
   workflow_dispatch:
 

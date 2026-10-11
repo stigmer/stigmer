@@ -210,7 +210,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Why Stigmer cannot run the case yet, naming the feature, as in
-   * "context.scaffold_script"; empty when it can.
+   * "plugins" for a case that runs with another plugin; empty when it can.
    * </pre>
    *
    * <code>string unsupported = 4 [json_name = "unsupported"];</code>
@@ -232,7 +232,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Why Stigmer cannot run the case yet, naming the feature, as in
-   * "context.scaffold_script"; empty when it can.
+   * "plugins" for a case that runs with another plugin; empty when it can.
    * </pre>
    *
    * <code>string unsupported = 4 [json_name = "unsupported"];</code>
@@ -972,7 +972,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Why Stigmer cannot run the case yet, naming the feature, as in
-     * "context.scaffold_script"; empty when it can.
+     * "plugins" for a case that runs with another plugin; empty when it can.
      * </pre>
      *
      * <code>string unsupported = 4 [json_name = "unsupported"];</code>
@@ -993,7 +993,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Why Stigmer cannot run the case yet, naming the feature, as in
-     * "context.scaffold_script"; empty when it can.
+     * "plugins" for a case that runs with another plugin; empty when it can.
      * </pre>
      *
      * <code>string unsupported = 4 [json_name = "unsupported"];</code>
@@ -1015,7 +1015,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Why Stigmer cannot run the case yet, naming the feature, as in
-     * "context.scaffold_script"; empty when it can.
+     * "plugins" for a case that runs with another plugin; empty when it can.
      * </pre>
      *
      * <code>string unsupported = 4 [json_name = "unsupported"];</code>
@@ -1033,7 +1033,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Why Stigmer cannot run the case yet, naming the feature, as in
-     * "context.scaffold_script"; empty when it can.
+     * "plugins" for a case that runs with another plugin; empty when it can.
      * </pre>
      *
      * <code>string unsupported = 4 [json_name = "unsupported"];</code>
@@ -1048,7 +1048,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Why Stigmer cannot run the case yet, naming the feature, as in
-     * "context.scaffold_script"; empty when it can.
+     * "plugins" for a case that runs with another plugin; empty when it can.
      * </pre>
      *
      * <code>string unsupported = 4 [json_name = "unsupported"];</code>

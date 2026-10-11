@@ -27,6 +27,8 @@
  * prices cache writes at the input rate.
  */
 
+import { COST_LIMIT_ERROR_PREFIX, formatTryStop } from "@stigmer/eval-runtime";
+
 /**
  * Whether the per-execution cost budget has been exhausted.
  *
@@ -38,23 +40,17 @@ export function costCapExceeded(maxCostUsd: number, estimatedCostUsd: number): b
 }
 
 /**
- * Stable prefix of the cost-limit terminal error. Mirrors the cross-repo
- * pattern of TOOL_CALL_LIMIT_ERROR_PREFIX (tool-rounds.ts): consumers
- * that need to distinguish "ran out of cost budget" from other TERMINATED
- * causes can match on this prefix, because RunStatus carries no
- * structured termination reason. Do not reword without checking consumers:
- * the plugin-eval grader keeps a copy to tell a try its own cap stopped
- * (stigmer-server temporal/evals/case-activities.ts).
+ * Stable prefix of the cost-limit terminal error: consumers that need to
+ * distinguish "ran out of cost budget" from other TERMINATED causes match
+ * on it, because RunStatus carries no structured termination reason. The
+ * wording lives in `@stigmer/eval-runtime` (`try-stop.ts`), which the
+ * plugin eval reads it back with, so the two cannot drift.
  */
-export const COST_LIMIT_ERROR_PREFIX = "Agent reached the cost limit";
+export { COST_LIMIT_ERROR_PREFIX };
 
 /** The terminal `status.error` for a cost-cap stop. */
 export function formatCostLimitError(maxCostUsd: number, estimatedCostUsd: number): string {
-  return (
-    `${COST_LIMIT_ERROR_PREFIX} for this message ` +
-    `(~$${estimatedCostUsd.toFixed(4)} of the $${maxCostUsd.toFixed(2)} budget). ` +
-    `Send another message to continue.`
-  );
+  return formatTryStop({ kind: "cost-limit", estimatedCostUsd, maxCostUsd });
 }
 
 /**

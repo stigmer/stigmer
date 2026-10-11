@@ -84,6 +84,8 @@ export interface PluginEvalInput {
   allowTools?: string[];
   realMcpServers?: boolean;
   vaults?: ResourceRef[];
+  skipScaffold?: boolean;
+  allowRealServers?: boolean;
 }
 
 /** SDK input type for PluginEvalTarget. */
@@ -128,6 +130,8 @@ export function buildPluginEvalProto(input: PluginEvalInput): PluginEval {
       allowTools: input.allowTools,
       realMcpServers: input.realMcpServers,
       vaults,
+      skipScaffold: input.skipScaffold,
+      allowRealServers: input.allowRealServers,
     })),
   }) as PluginEval;
 }

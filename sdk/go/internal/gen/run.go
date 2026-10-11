@@ -197,6 +197,7 @@ type RunInput struct {
 	WorkspaceFileRefs      []string
 	SupersedesRunId        string
 	ConversationCatchup    *ConversationCatchupInput
+	PluginEvalCase         *PluginEvalCaseContextInput
 }
 
 // SessionSpecInput is the SDK input type for SessionSpec.
@@ -260,6 +261,41 @@ type AttachmentInput struct {
 type ConversationCatchupInput struct {
 	Digest    string
 	WindowEnd string
+}
+
+// PluginEvalCaseContextInput is the SDK input type for PluginEvalCaseContext.
+type PluginEvalCaseContextInput struct {
+	PluginId            string
+	PluginDigest        string
+	SuiteDir            string
+	CaseDir             string
+	ScaffoldScript      string
+	AddDirs             []string
+	HistoryFile         string
+	Env                 map[string]string
+	Mocks               []*PluginEvalMockServerInput
+	AgentMockModel      string
+	AgentMockCallBudget int32
+	ReadFiles           []string
+	PluginName          string
+}
+
+// PluginEvalMockServerInput is the SDK input type for PluginEvalMockServer.
+type PluginEvalMockServerInput struct {
+	Server    string
+	Segment   string
+	Tools     []*PluginEvalMockToolInput
+	ToolsFile string
+}
+
+// PluginEvalMockToolInput is the SDK input type for PluginEvalMockTool.
+type PluginEvalMockToolInput struct {
+	Tool       string
+	File       string
+	Kind       runv1.PluginEvalMockKind
+	Error      bool
+	ExpectJson string
+	AbortWhen  string
 }
 
 func (i *RunInput) toProto() (*runv1.Run, error) {
@@ -355,6 +391,13 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 		}
 		resource.Spec.ConversationCatchup = v
 	}
+	if i.PluginEvalCase != nil {
+		v, err := i.PluginEvalCase.toProto()
+		if err != nil {
+			return nil, fieldErr("PluginEvalCase", err)
+		}
+		resource.Spec.PluginEvalCase = v
+	}
 	return resource, nil
 }
 
@@ -418,6 +461,56 @@ func (i *ConversationCatchupInput) toProto() (*runv1.ConversationCatchup, error)
 	return p, nil
 }
 
+func (i *PluginEvalCaseContextInput) toProto() (*runv1.PluginEvalCaseContext, error) {
+	p := &runv1.PluginEvalCaseContext{}
+	p.PluginId = i.PluginId
+	p.PluginDigest = i.PluginDigest
+	p.SuiteDir = i.SuiteDir
+	p.CaseDir = i.CaseDir
+	p.ScaffoldScript = i.ScaffoldScript
+	p.AddDirs = i.AddDirs
+	p.HistoryFile = i.HistoryFile
+	p.Env = i.Env
+	for idx, item := range i.Mocks {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Mocks", idx, err)
+		}
+		p.Mocks = append(p.Mocks, v)
+	}
+	p.AgentMockModel = i.AgentMockModel
+	p.AgentMockCallBudget = i.AgentMockCallBudget
+	p.ReadFiles = i.ReadFiles
+	p.PluginName = i.PluginName
+	return p, nil
+}
+
+func (i *PluginEvalMockServerInput) toProto() (*runv1.PluginEvalMockServer, error) {
+	p := &runv1.PluginEvalMockServer{}
+	p.Server = i.Server
+	p.Segment = i.Segment
+	for idx, item := range i.Tools {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Tools", idx, err)
+		}
+		p.Tools = append(p.Tools, v)
+	}
+	p.ToolsFile = i.ToolsFile
+	return p, nil
+}
+
+func (i *PluginEvalMockToolInput) toProto() (*runv1.PluginEvalMockTool, error) {
+	return &runv1.PluginEvalMockTool{
+		Tool:       i.Tool,
+		File:       i.File,
+		Kind:       i.Kind,
+		Error:      i.Error,
+		ExpectJson: i.ExpectJson,
+		AbortWhen:  i.AbortWhen,
+	}, nil
+}
+
 // RunInputFromProto creates a RunInput from a proto Run resource.
 func RunInputFromProto(p *runv1.Run) *RunInput {
 	if p == nil {
@@ -450,6 +543,7 @@ func RunInputFromProto(p *runv1.Run) *RunInput {
 		input.WorkspaceFileRefs = s.GetWorkspaceFileRefs()
 		input.SupersedesRunId = s.GetSupersedesRunId()
 		input.ConversationCatchup = conversationCatchupInputFromProto(s.GetConversationCatchup())
+		input.PluginEvalCase = pluginEvalCaseContextInputFromProto(s.GetPluginEvalCase())
 		input.SessionId = s.GetSessionId()
 		if ov := s.GetSessionSpec(); ov != nil {
 			input.SessionSpec = sessionSpecInputFromProto(ov)
@@ -553,5 +647,56 @@ func conversationCatchupInputFromProto(p *runv1.ConversationCatchup) *Conversati
 	if ts := p.GetWindowEnd(); ts != nil {
 		input.WindowEnd = ts.AsTime().Format(time.RFC3339)
 	}
+	return input
+}
+
+func pluginEvalCaseContextInputFromProto(p *runv1.PluginEvalCaseContext) *PluginEvalCaseContextInput {
+	if p == nil {
+		return nil
+	}
+	input := &PluginEvalCaseContextInput{}
+	input.PluginId = p.GetPluginId()
+	input.PluginDigest = p.GetPluginDigest()
+	input.SuiteDir = p.GetSuiteDir()
+	input.CaseDir = p.GetCaseDir()
+	input.ScaffoldScript = p.GetScaffoldScript()
+	input.AddDirs = p.GetAddDirs()
+	input.HistoryFile = p.GetHistoryFile()
+	input.Env = p.GetEnv()
+	for _, item := range p.GetMocks() {
+		input.Mocks = append(input.Mocks, pluginEvalMockServerInputFromProto(item))
+	}
+	input.AgentMockModel = p.GetAgentMockModel()
+	input.AgentMockCallBudget = p.GetAgentMockCallBudget()
+	input.ReadFiles = p.GetReadFiles()
+	input.PluginName = p.GetPluginName()
+	return input
+}
+
+func pluginEvalMockServerInputFromProto(p *runv1.PluginEvalMockServer) *PluginEvalMockServerInput {
+	if p == nil {
+		return nil
+	}
+	input := &PluginEvalMockServerInput{}
+	input.Server = p.GetServer()
+	input.Segment = p.GetSegment()
+	for _, item := range p.GetTools() {
+		input.Tools = append(input.Tools, pluginEvalMockToolInputFromProto(item))
+	}
+	input.ToolsFile = p.GetToolsFile()
+	return input
+}
+
+func pluginEvalMockToolInputFromProto(p *runv1.PluginEvalMockTool) *PluginEvalMockToolInput {
+	if p == nil {
+		return nil
+	}
+	input := &PluginEvalMockToolInput{}
+	input.Tool = p.GetTool()
+	input.File = p.GetFile()
+	input.Kind = p.GetKind()
+	input.Error = p.GetError()
+	input.ExpectJson = p.GetExpectJson()
+	input.AbortWhen = p.GetAbortWhen()
 	return input
 }

@@ -25,13 +25,22 @@
  *     since Stigmer activates a skill by reading that file on both
  *     engines. The input is the
  *     engine's own arguments, which `input_match` patterns read by value;
+ *   - the mock calls: each call to a server the try's case mocked (the
+ *     run's own `spec.plugin_eval_case.mocks`, by the name the run gave
+ *     the server), one JSON line each, `{"server", "tool", "input",
+ *     "answer"}`, the server by its key in the plugin and the answer the
+ *     mock gave, an error's text included;
  *   - the files: the paths created in the run (`kind` ADD in the
  *     file-review ledger's captured change sets) and the contents, after
  *     the run, of the paths the graders name, inline or read back through
- *     the run's artifact store when the runner offloaded them. A try's
- *     workspace is an empty non-git directory, so the ledger holds a change
- *     set only where the install has artifact storage; with none, the
- *     files are `not-recorded` and a file grader leaves the try not graded.
+ *     the run's artifact store when the runner offloaded them. A path no
+ *     change set touched (a file a case's scaffold wrote and the try left
+ *     alone) is read from the files the runner returned for the graders
+ *     (`status.plugin_eval_files`); without them it is absent. A try with
+ *     no scaffold starts in an empty non-git directory, so the ledger holds
+ *     a change set only where the install has artifact storage; with none,
+ *     the files are `not-recorded` and a file grader leaves the try not
+ *     graded.
  *
  * Sub-agent runs are not traversed, as the other two readers do not
  * traverse them. A system or thinking message, and a message type this
@@ -63,6 +72,7 @@ import {
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import type { PluginEvalFile } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
@@ -98,6 +108,8 @@ export interface EvalTrace {
   /** The session as JSON lines, one message per line. */
   readonly traceLines: ReadonlyArray<string>;
   readonly toolCalls: ReadonlyArray<EvalToolCall>;
+  /** The calls to mocked servers, one JSON line each (the module header). */
+  readonly mockCalls: ReadonlyArray<string>;
   readonly files: EvalFiles;
 }
 
@@ -151,6 +163,10 @@ export async function evalTraceOf(
 
   const toolCalls: EvalToolCall[] = [];
   const traceLines: string[] = [];
+  const mockCalls: string[] = [];
+  const mockedServers = new Map(
+    (run.spec?.pluginEvalCase?.mocks ?? []).map((mock) => [mock.segment, mock.server] as const),
+  );
   if (!messages.some((message) => message.type === MessageType.MESSAGE_HUMAN)) {
     traceLines.push(
       line({
@@ -178,6 +194,17 @@ export async function evalTraceOf(
         for (const call of message.toolCalls) {
           const named = namedCall(call, engine, deps, created);
           toolCalls.push(named);
+          const mockedServer = mockedServers.get(call.mcpServerSlug);
+          if (call.mcpServerSlug !== "" && mockedServer !== undefined) {
+            mockCalls.push(
+              line({
+                server: mockedServer,
+                tool: call.name,
+                input: call.args ?? {},
+                answer: call.error !== "" ? call.error : call.result,
+              }),
+            );
+          }
           content.push({
             type: "tool_use",
             id: call.id,
@@ -227,7 +254,7 @@ export async function evalTraceOf(
     }
   }
 
-  return { lastMessage: lastMessageOf(run), traceLines, toolCalls, files };
+  return { lastMessage: lastMessageOf(run), traceLines, toolCalls, mockCalls, files };
 }
 
 function line(value: JsonObject): string {
@@ -330,10 +357,13 @@ async function filesOf(run: Run, deps: EvalTraceDeps): Promise<EvalFiles> {
       created.add(path);
     }
   }
+  const reported = new Map(
+    (run.status?.pluginEvalFiles?.files ?? []).map((file) => [normalise(file.path), file] as const),
+  );
   const contents = new Map<string, EvalFileContent>();
   for (const wanted of deps.wantedFiles) {
     const path = normalise(wanted);
-    contents.set(path, await contentOf(changes, path, deps));
+    contents.set(path, await contentOf(changes, path, deps, reported.get(path)));
   }
   return { kind: "recorded", created: [...created], contents };
 }
@@ -343,6 +373,7 @@ async function contentOf(
   changes: ReadonlyArray<CapturedFileChange>,
   path: string,
   deps: EvalTraceDeps,
+  reported: PluginEvalFile | undefined,
 ): Promise<EvalFileContent> {
   let last: CapturedFileChange | undefined;
   for (const change of changes) {
@@ -353,8 +384,10 @@ async function contentOf(
       last = change;
     }
   }
+  if (last === undefined) {
+    return reportedContent(reported);
+  }
   if (
-    last === undefined ||
     last.kind === FileChangeKind.DELETE ||
     normalise(last.pathAfter) !== path
   ) {
@@ -388,5 +421,19 @@ async function contentOf(
       const exhausted: never = after.body;
       return exhausted;
     }
+  }
+}
+
+/** A file no change set touched, as the runner returned it for the graders; absent when it returned none. */
+function reportedContent(file: PluginEvalFile | undefined): EvalFileContent {
+  switch (file?.content.case) {
+    case "text":
+      return { kind: "text", text: file.content.value };
+    case "binary":
+      return { kind: "binary" };
+    case "unreadable":
+      return { kind: "unreadable", reason: file.content.value };
+    default:
+      return { kind: "absent" };
   }
 }

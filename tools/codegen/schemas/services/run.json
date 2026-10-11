@@ -2092,6 +2092,11 @@
           "name": "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND",
           "number": 2,
           "description": "Platform policy auto-kept the set because every mutation in its turn came\n from commands the human explicitly authorized (per-command approval,\n APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified\n against server-authored approval records before authoring. The\n decision's actor is \"policy\", never the user."
+        },
+        {
+          "name": "FILE_DECISION_ORIGIN_POLICY_EVAL_TRY",
+          "number": 3,
+          "description": "Platform policy kept the set because its run is a plugin eval's try: a\n try's edits apply as they do in Claude Code's evals, and nobody reviews\n a try. The decision's actor is \"policy\"."
         }
       ]
     },
@@ -2701,6 +2706,23 @@
           "description": "Create a branch and pull request from the agent's file changes after the run completes."
         }
       ]
+    },
+    {
+      "name": "PluginEvalMockKind",
+      "description": "PluginEvalMockKind is how a mocked tool answers.",
+      "protoType": "ai.stigmer.agentic.run.v1.PluginEvalMockKind",
+      "values": [
+        {
+          "name": "plugin_eval_mock_kind_fixed",
+          "number": 1,
+          "description": "The mock file's body, with its substitutions."
+        },
+        {
+          "name": "plugin_eval_mock_kind_agent",
+          "number": 2,
+          "description": "A model acting as the server from the mock file's instructions."
+        }
+      ]
     }
   ],
   "resourceDescription": "Run represents a single run instance (conversational).\n Follows the standard pattern: spec contains user inputs, status contains run results.",
@@ -3037,6 +3059,17 @@
           "messageType": "RunCredentials"
         },
         "description": "Whose logins and secrets this turn uses: decided once when the turn is\n created, and kept when it is recovered.",
+        "required": false
+      },
+      {
+        "name": "PluginEvalFiles",
+        "jsonName": "pluginEvalFiles",
+        "protoField": "plugin_eval_files",
+        "type": {
+          "kind": "message",
+          "messageType": "PluginEvalFiles"
+        },
+        "description": "The files a plugin eval's graders read, as the try's turn left them.",
         "required": false
       }
     ]
@@ -4443,7 +4476,8 @@
             "enumType": "ai.stigmer.agentic.run.v1.FileDecisionOrigin",
             "enumValues": [
               "FILE_DECISION_ORIGIN_USER",
-              "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND"
+              "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND",
+              "FILE_DECISION_ORIGIN_POLICY_EVAL_TRY"
             ]
           },
           "description": "Which authority authored this decision: a human reviewer (USER; also the\n reading for UNSPECIFIED pre-origin records) or the approved-command\n auto-keep policy. Audit provenance only — never enforcement, never\n correlation, never folded into any digest. See FileDecisionOrigin.",
@@ -5021,6 +5055,96 @@
           },
           "description": "Slug of the plugin whose hook asked for this approval; empty when no\n plugin's hook asked. Copied from ToolCall.approval_policy_hook.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalFile",
+      "description": "PluginEvalFile is one file's content after the turn.",
+      "protoType": "ai.stigmer.agentic.run.v1.PluginEvalFile",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/plugin_eval_case.proto",
+      "fields": [
+        {
+          "name": "Path",
+          "jsonName": "path",
+          "protoField": "path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The path as the case's graders name it.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Text",
+          "jsonName": "text",
+          "protoField": "text",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The file's text.",
+          "required": false,
+          "oneofGroup": "content"
+        },
+        {
+          "name": "Binary",
+          "jsonName": "binary",
+          "protoField": "binary",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "The file is not text.",
+          "required": false,
+          "oneofGroup": "content"
+        },
+        {
+          "name": "Absent",
+          "jsonName": "absent",
+          "protoField": "absent",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Nothing is at the path.",
+          "required": false,
+          "oneofGroup": "content"
+        },
+        {
+          "name": "Unreadable",
+          "jsonName": "unreadable",
+          "protoField": "unreadable",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The file could not be read, and why (too large, not a regular file,\n outside the workspace).",
+          "required": false,
+          "oneofGroup": "content"
+        }
+      ]
+    },
+    {
+      "name": "PluginEvalFiles",
+      "description": "PluginEvalFiles is the content, after a plugin-eval try's turn, of each\n file its case's graders read (PluginEvalCaseContext.read_files).",
+      "protoType": "ai.stigmer.agentic.run.v1.PluginEvalFiles",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/plugin_eval_case.proto",
+      "fields": [
+        {
+          "name": "Files",
+          "jsonName": "files",
+          "protoField": "files",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PluginEvalFile"
+            }
+          },
+          "description": "Each file, once, in the order read_files names them.",
+          "required": false,
+          "validation": {
+            "maxItems": 64
+          }
         }
       ]
     },

@@ -419,4 +419,30 @@ public interface PluginEvalSpecOrBuilder extends
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getVaultsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Skips each case's scaffold script, as Claude Code's --no-scaffold; a
+   * case that has one is then listed as not run.
+   *
+   * A scaffold runs in the try's own sandbox, as the agent, with none of
+   * the eval's vaults, so no opt-in is asked for it.
+   * </pre>
+   *
+   * <code>bool skip_scaffold = 15 [json_name = "skipScaffold"];</code>
+   * @return The skipScaffold.
+   */
+  boolean getSkipScaffold();
+
+  /**
+   * <pre>
+   * Starts the plugin's real MCP servers for the servers no mock answers,
+   * as Claude Code's --allow-real-servers; mocked tools still answer from
+   * their files. Their tools still need allow_tools.
+   * </pre>
+   *
+   * <code>bool allow_real_servers = 16 [json_name = "allowRealServers"];</code>
+   * @return The allowRealServers.
+   */
+  boolean getAllowRealServers();
 }

@@ -69,6 +69,7 @@
     "directory": "backend/libs/ts/plugin-package"
   },
   "dependencies": {
+    "@stigmer/eval-runtime": "*",
     "fflate": "^0.8.3",
     "yaml": "^2.8.2"
   },

@@ -141,6 +141,22 @@ message PluginEvalSpec {
       expression: "this.kind == 59"
     }
   ];
+
+  // Skips each case's scaffold script, as Claude Code's --no-scaffold; a
+  // case that has one is then listed as not run.
+  //
+  // A scaffold runs in the try's own sandbox, as the agent, with none of
+  // the eval's vaults, so no opt-in is asked for it.
+  bool skip_scaffold = 15;
+
+  // Starts the plugin's real MCP servers for the servers no mock answers,
+  // as Claude Code's --allow-real-servers; mocked tools still answer from
+  // their files. Their tools still need allow_tools.
+  //
+  // @internal
+  // Create refuses it with real_mcp_servers, which ignores mocks entirely
+  // (Claude Code's --mocks off): the format pairs this flag with mocks on.
+  bool allow_real_servers = 16;
 }
 
 // PluginEvalTarget is one engine and model a case runs on.

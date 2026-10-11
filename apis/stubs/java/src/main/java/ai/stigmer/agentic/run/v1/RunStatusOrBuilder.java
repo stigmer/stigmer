@@ -1130,4 +1130,31 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue);
    * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
    */
   ai.stigmer.agentic.run.v1.RunCredentialsOrBuilder getCredentialsOrBuilder();
+
+  /**
+   * <pre>
+   * The files a plugin eval's graders read, as the try's turn left them.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+   * @return Whether the pluginEvalFiles field is set.
+   */
+  boolean hasPluginEvalFiles();
+  /**
+   * <pre>
+   * The files a plugin eval's graders read, as the try's turn left them.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+   * @return The pluginEvalFiles.
+   */
+  ai.stigmer.agentic.run.v1.PluginEvalFiles getPluginEvalFiles();
+  /**
+   * <pre>
+   * The files a plugin eval's graders read, as the try's turn left them.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+   */
+  ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder getPluginEvalFilesOrBuilder();
 }

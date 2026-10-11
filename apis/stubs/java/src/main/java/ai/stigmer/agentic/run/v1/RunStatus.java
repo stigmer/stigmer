@@ -1632,6 +1632,44 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     return credentials_ == null ? ai.stigmer.agentic.run.v1.RunCredentials.getDefaultInstance() : credentials_;
   }
 
+  public static final int PLUGIN_EVAL_FILES_FIELD_NUMBER = 34;
+  private ai.stigmer.agentic.run.v1.PluginEvalFiles pluginEvalFiles_;
+  /**
+   * <pre>
+   * The files a plugin eval's graders read, as the try's turn left them.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+   * @return Whether the pluginEvalFiles field is set.
+   */
+  @java.lang.Override
+  public boolean hasPluginEvalFiles() {
+    return ((bitField0_ & 0x00002000) != 0);
+  }
+  /**
+   * <pre>
+   * The files a plugin eval's graders read, as the try's turn left them.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+   * @return The pluginEvalFiles.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.PluginEvalFiles getPluginEvalFiles() {
+    return pluginEvalFiles_ == null ? ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance() : pluginEvalFiles_;
+  }
+  /**
+   * <pre>
+   * The files a plugin eval's graders read, as the try's turn left them.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder getPluginEvalFilesOrBuilder() {
+    return pluginEvalFiles_ == null ? ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance() : pluginEvalFiles_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1726,6 +1764,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     if (((bitField0_ & 0x00001000) != 0)) {
       output.writeMessage(33, getCredentials());
+    }
+    if (((bitField0_ & 0x00002000) != 0)) {
+      output.writeMessage(34, getPluginEvalFiles());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1874,6 +1915,10 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(33, getCredentials());
     }
+    if (((bitField0_ & 0x00002000) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(34, getPluginEvalFiles());
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -1984,6 +2029,11 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (!getCredentials()
           .equals(other.getCredentials())) return false;
     }
+    if (hasPluginEvalFiles() != other.hasPluginEvalFiles()) return false;
+    if (hasPluginEvalFiles()) {
+      if (!getPluginEvalFiles()
+          .equals(other.getPluginEvalFiles())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -2088,6 +2138,10 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     if (hasCredentials()) {
       hash = (37 * hash) + CREDENTIALS_FIELD_NUMBER;
       hash = (53 * hash) + getCredentials().hashCode();
+    }
+    if (hasPluginEvalFiles()) {
+      hash = (37 * hash) + PLUGIN_EVAL_FILES_FIELD_NUMBER;
+      hash = (53 * hash) + getPluginEvalFiles().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -2265,6 +2319,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         internalGetRecalledMemoriesFieldBuilder();
         internalGetRunConfigFieldBuilder();
         internalGetCredentialsFieldBuilder();
+        internalGetPluginEvalFilesFieldBuilder();
       }
     }
     @java.lang.Override
@@ -2385,6 +2440,11 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (credentialsBuilder_ != null) {
         credentialsBuilder_.dispose();
         credentialsBuilder_ = null;
+      }
+      pluginEvalFiles_ = null;
+      if (pluginEvalFilesBuilder_ != null) {
+        pluginEvalFilesBuilder_.dispose();
+        pluginEvalFilesBuilder_ = null;
       }
       return this;
     }
@@ -2579,6 +2639,12 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
             ? credentials_
             : credentialsBuilder_.build();
         to_bitField0_ |= 0x00001000;
+      }
+      if (((from_bitField0_ & 0x08000000) != 0)) {
+        result.pluginEvalFiles_ = pluginEvalFilesBuilder_ == null
+            ? pluginEvalFiles_
+            : pluginEvalFilesBuilder_.build();
+        to_bitField0_ |= 0x00002000;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -2824,6 +2890,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (other.hasCredentials()) {
         mergeCredentials(other.getCredentials());
       }
+      if (other.hasPluginEvalFiles()) {
+        mergePluginEvalFiles(other.getPluginEvalFiles());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -3056,6 +3125,13 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
               bitField0_ |= 0x04000000;
               break;
             } // case 266
+            case 274: {
+              input.readMessage(
+                  internalGetPluginEvalFilesFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x08000000;
+              break;
+            } // case 274
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -8765,6 +8841,163 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         credentials_ = null;
       }
       return credentialsBuilder_;
+    }
+
+    private ai.stigmer.agentic.run.v1.PluginEvalFiles pluginEvalFiles_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.PluginEvalFiles, ai.stigmer.agentic.run.v1.PluginEvalFiles.Builder, ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder> pluginEvalFilesBuilder_;
+    /**
+     * <pre>
+     * The files a plugin eval's graders read, as the try's turn left them.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     * @return Whether the pluginEvalFiles field is set.
+     */
+    public boolean hasPluginEvalFiles() {
+      return ((bitField0_ & 0x08000000) != 0);
+    }
+    /**
+     * <pre>
+     * The files a plugin eval's graders read, as the try's turn left them.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     * @return The pluginEvalFiles.
+     */
+    public ai.stigmer.agentic.run.v1.PluginEvalFiles getPluginEvalFiles() {
+      if (pluginEvalFilesBuilder_ == null) {
+        return pluginEvalFiles_ == null ? ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance() : pluginEvalFiles_;
+      } else {
+        return pluginEvalFilesBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The files a plugin eval's graders read, as the try's turn left them.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     */
+    public Builder setPluginEvalFiles(ai.stigmer.agentic.run.v1.PluginEvalFiles value) {
+      if (pluginEvalFilesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        pluginEvalFiles_ = value;
+      } else {
+        pluginEvalFilesBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x08000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The files a plugin eval's graders read, as the try's turn left them.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     */
+    public Builder setPluginEvalFiles(
+        ai.stigmer.agentic.run.v1.PluginEvalFiles.Builder builderForValue) {
+      if (pluginEvalFilesBuilder_ == null) {
+        pluginEvalFiles_ = builderForValue.build();
+      } else {
+        pluginEvalFilesBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x08000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The files a plugin eval's graders read, as the try's turn left them.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     */
+    public Builder mergePluginEvalFiles(ai.stigmer.agentic.run.v1.PluginEvalFiles value) {
+      if (pluginEvalFilesBuilder_ == null) {
+        if (((bitField0_ & 0x08000000) != 0) &&
+          pluginEvalFiles_ != null &&
+          pluginEvalFiles_ != ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance()) {
+          getPluginEvalFilesBuilder().mergeFrom(value);
+        } else {
+          pluginEvalFiles_ = value;
+        }
+      } else {
+        pluginEvalFilesBuilder_.mergeFrom(value);
+      }
+      if (pluginEvalFiles_ != null) {
+        bitField0_ |= 0x08000000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The files a plugin eval's graders read, as the try's turn left them.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     */
+    public Builder clearPluginEvalFiles() {
+      bitField0_ = (bitField0_ & ~0x08000000);
+      pluginEvalFiles_ = null;
+      if (pluginEvalFilesBuilder_ != null) {
+        pluginEvalFilesBuilder_.dispose();
+        pluginEvalFilesBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The files a plugin eval's graders read, as the try's turn left them.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.PluginEvalFiles.Builder getPluginEvalFilesBuilder() {
+      bitField0_ |= 0x08000000;
+      onChanged();
+      return internalGetPluginEvalFilesFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The files a plugin eval's graders read, as the try's turn left them.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder getPluginEvalFilesOrBuilder() {
+      if (pluginEvalFilesBuilder_ != null) {
+        return pluginEvalFilesBuilder_.getMessageOrBuilder();
+      } else {
+        return pluginEvalFiles_ == null ?
+            ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance() : pluginEvalFiles_;
+      }
+    }
+    /**
+     * <pre>
+     * The files a plugin eval's graders read, as the try's turn left them.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.PluginEvalFiles, ai.stigmer.agentic.run.v1.PluginEvalFiles.Builder, ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder> 
+        internalGetPluginEvalFilesFieldBuilder() {
+      if (pluginEvalFilesBuilder_ == null) {
+        pluginEvalFilesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.run.v1.PluginEvalFiles, ai.stigmer.agentic.run.v1.PluginEvalFiles.Builder, ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder>(
+                getPluginEvalFiles(),
+                getParentForChildren(),
+                isClean());
+        pluginEvalFiles_ = null;
+      }
+      return pluginEvalFilesBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.RunStatus)

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { PluginEvalMockKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import {
   create,
   toJson,
@@ -345,6 +346,35 @@ describe("toAgentExecutionUpdateInput", () => {
         conversationCatchup: {
           digest: "Prior turns summarized.",
           windowEnd: timestampFromDate(new Date("2026-08-15T10:00:00Z")),
+        },
+        pluginEvalCase: {
+          pluginId: "plg_1",
+          pluginDigest: "a".repeat(64),
+          suiteDir: "evals",
+          caseDir: "evals/fix",
+          scaffoldScript: "setup.sh",
+          addDirs: ["resources"],
+          historyFile: "history.jsonl",
+          env: { EVAL_X: "1" },
+          mocks: [
+            {
+              server: "tracker",
+              segment: "tracker-acme",
+              toolsFile: "evals/mocks/tracker/_tools.json",
+              tools: [
+                {
+                  tool: "create_issue",
+                  file: "evals/mocks/tracker/create_issue.md",
+                  kind: PluginEvalMockKind.fixed,
+                  error: true,
+                  expectJson: '{"title":"string"}',
+                  abortWhen: "",
+                },
+              ],
+            },
+          ],
+          agentMockModel: "claude-haiku-4.5",
+          agentMockCallBudget: 40,
         },
       },
     });
