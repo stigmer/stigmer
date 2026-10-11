@@ -17,7 +17,11 @@
  *   - an edition published as its own package, whose entry decides its
  *     units and then boots exactly as the shipped server does. That is why
  *     the body is on the package barrel: such an entry imports the library
- *     by its exports map, and a second copy of this body would drift.
+ *     by its exports map, and a second copy of this body would drift. Such
+ *     an entry may need the boot's config and logger to build its units (a
+ *     license read, a pool over the database URL, the operator's issuer),
+ *     so it may pass a function of them instead of finished units; the
+ *     environment is then read once and there is one logger.
  *
  * The Cloud's entry boots differently on purpose (it runs its own schema
  * chain before composing) and does not call it.
@@ -27,8 +31,10 @@
  * writes stdout; a test records them.
  */
 import { loadConfig } from "./config.js";
+import type { ServerConfig } from "./config.js";
 import { composeServer } from "./compose.js";
 import { createLogger } from "./logger.js";
+import type { Logger } from "./logger.js";
 import { announceReady } from "./ready-line.js";
 import type { ServerExtension } from "../extensions/registry.js";
 import { setOperatorIdentity } from "../pipeline/steps/defaults.js";
@@ -51,16 +57,28 @@ export const nodeProcessHost: ProcessHost = {
   },
 };
 
+/** What the process body has read and made before it composes. */
+export interface ServerBoot {
+  readonly config: ServerConfig;
+  readonly logger: Logger;
+}
+
 export interface RunServerOptions {
-  /** The composed units, in order. */
-  readonly extensions: ReadonlyArray<ServerExtension>;
+  /**
+   * The composed units, in order; or a function of the boot's config and
+   * logger that resolves to them, called once, after both exist and before
+   * composition.
+   */
+  readonly extensions:
+    | ReadonlyArray<ServerExtension>
+    | ((boot: ServerBoot) => Promise<ReadonlyArray<ServerExtension>>);
   readonly host?: ProcessHost;
 }
 
 /**
- * Boots the server. Rejects when the config or the composition fails,
- * before any logger is sure to exist (the caller reports it on stderr);
- * a failed start is logged and exits 1.
+ * Boots the server. Rejects when the config, the units' function or the
+ * composition fails, before any listener exists (the caller reports it on
+ * stderr); a failed start is logged and exits 1.
  */
 export async function runServer(options: RunServerOptions): Promise<void> {
   const host = options.host ?? nodeProcessHost;
@@ -72,11 +90,11 @@ export async function runServer(options: RunServerOptions): Promise<void> {
   // Once per process, before any writer exists (#400) — the one-shot guard
   // makes a duplicate install a loud boot bug.
   setOperatorIdentity(config.operatorEmail, config.operatorName);
-  const server = await composeServer({
-    config,
-    logger,
-    extensions: options.extensions,
-  });
+  const extensions =
+    typeof options.extensions === "function"
+      ? await options.extensions({ config, logger })
+      : options.extensions;
+  const server = await composeServer({ config, logger, extensions });
 
   let shuttingDown = false;
   const shutdown = (signal: string): void => {

@@ -29,6 +29,9 @@ if err != nil {
 defer client.Close()
 ```
 
+In a CI job or a script, use a service account's key, not a person's: see
+[SDK Overview > Automation](/docs/sdk/overview#automation).
+
 The client connects to `api.stigmer.ai:443` by default; override with
 `stigmer.WithBaseURL(target)`. See
 [SDK Overview > Authentication](/docs/sdk/overview#authentication) for

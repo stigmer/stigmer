@@ -91,7 +91,7 @@ export type VisibilityConfig = Message<"ai.stigmer.commons.apiresource.apiresour
    * explicit opt-in, never a surprise.
    *
    * The flag carries a second, coupled semantic for the same kinds — the
-   * ORG FLOOR: when visibility is platform, the org viewer tuple is written
+   * ORG FLOOR: when visibility is child_orgs, the org viewer tuple is written
    * IN ADDITION to the level's own tuple. Sharing a blueprint beyond the
    * org must never make it less visible to the owning org's own members
    * (org-scoped listings resolve through FGA ListObjects on the org tuple,

@@ -110,6 +110,8 @@ client, _ := stigmer.NewClient(stigmer.WithAPIKey("sk_live_..."), stigmer.WithBa
 client, _ := stigmer.NewClient(stigmer.WithBaseURL("localhost:7234"), stigmer.WithInsecure())
 ```
 
+For a CI job or a script, use a [service account's](https://stigmer.ai/docs/guides/authentication/service-accounts) API key, not a person's: it keeps working when that person leaves and works only in its own organization.
+
 ## Error Handling
 
 All methods return `*stigmer.Error` for API errors, wrapping gRPC status codes:

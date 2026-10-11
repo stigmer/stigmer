@@ -28,11 +28,11 @@ Organization's resources.
 
 Stigmer uses fine-grained authorization (FGA) with three elements:
 
-| Element       | Meaning                                                     |
-| ------------- | ----------------------------------------------------------- |
-| **Principal** | Who is requesting access (an Identity Account)              |
-| **Resource**  | What they want to access (Organization, Vault, Agent, etc.) |
-| **Relation**  | What level of access they have (`admin`, `viewer`, `owner`) |
+| Element       | Meaning                                                                             |
+| ------------- | ----------------------------------------------------------------------------------- |
+| **Principal** | Who is requesting access (an Identity Account)                                      |
+| **Resource**  | What they want to access (Organization, Vault, Agent, etc.)                         |
+| **Relation**  | The role they hold (`owner`, `admin`, `member`, `viewer`, or a resource's own role) |
 
 An IAM Policy binds all three. When Stigmer receives an API call, it checks
 whether a policy exists that matches the caller, the target resource, and the
@@ -44,10 +44,15 @@ The most common pattern is granting a role on the Organization itself. This
 gives the user access to resources within that Organization based on the
 relation.
 
-| Relation | Permissions                                            |
-| -------- | ------------------------------------------------------ |
-| `admin`  | Full access to the Organization and all its resources  |
-| `viewer` | Read-only access to the Organization and its resources |
+| Relation | Permissions                                                                                                                                                |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `owner`  | Everything, including deleting the Organization and choosing its owners                                                                                    |
+| `admin`  | Manage people, settings, billing, and the Organization's Agents and tools; cannot read private conversations, delete the Organization or change its owners |
+| `member` | Start conversations with the Agents shared with them, and create Agents when the Organization allows it                                                    |
+| `viewer` | See what is shared with the Organization; cannot start conversations                                                                                       |
+
+[Sharing and access](/docs/concepts/sharing-and-access) explains how these roles
+combine with the roles on a single resource.
 
 Use the account ID returned from
 [`createFederatedAccount`](/docs/guides/authentication/federation/provision-federated-accounts)

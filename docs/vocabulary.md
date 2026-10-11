@@ -362,6 +362,10 @@ An ongoing conversation with an Agent across multiple messages.
 - **Related terms**: A Session contains multiple runs. Each message exchange
   within a Session is one run. The proto also uses `MessageType` (HUMAN, AI,
   TOOL, SYSTEM) for individual messages.
+- **Sharing**: A Session is private to the person who started it, and its
+  Organization's admins do not read it. In the Enterprise and Cloud editions its
+  owner shares it with people one by one, as a **Participant** (reads and sends
+  messages) or a **Viewer** (reads only); never with a Team. See [Role](#role).
 
 **Good examples**:
 
@@ -588,6 +592,11 @@ outside it sees them.
   and a request names its Organization; `stigmer config context set --org`
   points the CLI at one. Signing up for Stigmer Cloud creates an ordinary
   Organization that the new person owns.
+- **Roles and policies**: Everyone in an Organization holds one role in it:
+  Owner, Admin, Member or Viewer ([Role](#role)). The **Members can create
+  agents** policy (`OrganizationPolicies.members_can_create_agents`, on by
+  default, under **Settings > Policies**) lets members create Agents; when it is
+  off, only admins do.
 - **Context rule**: `org` in identifiers, "Organization" in prose. Never call it
   a tenant, and never a Workspace, which is a Session's files. In docs for open
   source, do not make a reader name or create one. "System Organization" is a
@@ -831,16 +840,18 @@ your authentication system.
 
 #### Identity Account
 
-A principal that Stigmer can authenticate and authorize. Comes in four types:
+A principal that Stigmer can authenticate and authorize. Comes in five types:
 Direct (user signed up on Stigmer), Federated (created via an Identity
-Provider), Platform (created via PlatformClient), and Machine
-(service-to-service).
+Provider), Platform (created via PlatformClient; "App users" in the console's
+pickers), Service account (an Organization's own account for automation), and
+Machine (the hosted platform's own service-to-service account, never created by
+a customer).
 
 - **Capitalize**: Yes, when referring to the Stigmer resource.
 - **API surface**: `kind: identity_account`, prefix `ida`. proto:
   `iam/identityaccount/v1/spec.proto`.
 - **Key fields**: `provisioning_mode` (`direct`, `federated`, `platform_client`,
-  `machine`), `identity_provider_ref`, `idp_id`.
+  `machine`, `service_account`), `identity_provider_ref`, `idp_id`.
 - **Context rule**: Do not use on the sales site. In how-to and concept docs,
   capitalize as "Identity Account." In reference, use `IdentityAccount`. In
   quickstart, avoid unless the tutorial covers federation or PlatformClient.
@@ -849,6 +860,44 @@ Provider), Platform (created via PlatformClient), and Machine
   explicitly via `createFederatedAccount`. Platform accounts are created by
   `mintUserToken` when the PlatformClient sets `create_accounts_on_sign_in`, or
   by the platform beforehand.
+
+---
+
+#### Service account
+
+An Organization's own account for automation: a CI job, a script or a backend
+that should keep working when the person who set it up leaves.
+
+- **Capitalize**: No. "service account" in prose; "Service accounts" as a
+  console heading.
+- **API surface**: an Identity Account with
+  `provisioning_mode: service_account`.
+  `IdentityAccountCommandController.createServiceAccount`,
+  `IdentityAccountQueryController.listServiceAccounts`. CLI:
+  `stigmer service-account create|list`, and
+  `stigmer apikey create --service-account <name>` for its key.
+- **Context rule**: Point every CI and automation example at a service account,
+  never at a person's API key. Never call it a "machine account" or a "bot":
+  Machine is the platform's own account type.
+- **Note**: It holds one Organization role (Admin, Member or Viewer, never
+  Owner), acts only through API keys its Organization's admins create for it,
+  and works only in its own Organization. See
+  [Service accounts](/docs/guides/authentication/service-accounts).
+
+---
+
+#### API key
+
+A static secret that authenticates calls to the Stigmer API.
+
+- **Capitalize**: "API key" in prose; `ApiKey` in reference.
+- **API surface**: `kind: api_key`, prefix `key`. proto:
+  `iam/apikey/v1/spec.proto`. CLI: `stigmer apikey`.
+- **Key fields**: `expires_at`, `bound_org` (limits a person's key to one
+  Organization).
+- **Context rule**: Say whose key it is. A key speaks for the account it is for:
+  the person who created it, or the service account an admin created it for. In
+  CI and automation examples, the key is a service account's.
 
 ---
 
@@ -914,8 +963,9 @@ Organization takes it away.
   names it as `team:<id>#member`.
 - **Key fields**: `description`. The members are the access list on the Team,
   not a field.
-- **Editions**: Stigmer Enterprise and Cloud. The open-source edition shares
-  resources with people and with the whole Organization.
+- **Editions**: Stigmer Enterprise and Cloud. The open-source edition grants
+  roles on the Organization only; granting one resource to a person or a Team is
+  Enterprise and Cloud.
 - **Context rule**: On the sales site, say "share with your teams." In concepts
   and how-to, capitalize as "Team." In reference, use `Team`. In quickstart,
   avoid unless the tutorial covers access management.
@@ -923,6 +973,55 @@ Organization takes it away.
   someone from the Organization removes them from every Team at once. Slack
   calls a workspace a "team", so an Agent Channel's `status.slack.team_id` names
   a Slack workspace; it is never a Stigmer Team.
+
+---
+
+#### General access
+
+Who in an Organization reaches a resource without being added to it: **Private**
+(its creator, the people it is shared with, and, for an Agent, Skill or Plugin,
+the Organization's admins), **Organization** (everyone in it), or **Child
+organizations** (everyone in every child organization).
+
+- **Capitalize**: The level names, when naming the setting ("set it to
+  Organization"); "general access" in prose.
+- **API surface**: `metadata.visibility` (`visibility_private`,
+  `visibility_org`, `visibility_child_orgs`); each kind's offered levels are in
+  its `kind_meta.authorization.visibility`. Agents, Skills and Plugins offer all
+  three and default to Organization; a shared vault offers Private and
+  Organization.
+- **Context rule**: "General access" in the console and concept docs, as Google
+  Drive says it; "visibility" in reference. Never "public" for a level, and
+  never "Platform" (see [Public (visibility)](#public-visibility)).
+- **Note**: General access widens who sees and uses a resource, never who may
+  spend: starting a conversation also needs the Organization's Member role. See
+  [Sharing and access](/docs/concepts/sharing-and-access).
+
+---
+
+#### Role
+
+What a person, a Team or a service account may do with one resource, or in an
+Organization.
+
+- **The words**: **Viewer** sees it and changes nothing; **Editor** changes it
+  and never deletes it or decides who has access; **Owner** does everything. Two
+  kinds keep their own word: **Participant** on a Session or an Agent Channel
+  (reads and sends messages) and **Can use** on a shared vault (its logins and
+  secrets reach the person's runs). An Organization's roles are Owner, Admin,
+  Member and Viewer.
+- **Capitalize**: Yes, when naming a role ("grant Viewer", "an Organization
+  Admin"). "admins" and "members" stay lowercase as plain nouns.
+- **API surface**: `IamRole` (`iam/v1/enum.proto`), each value's `role_meta`
+  display name, and each kind's `grantable_roles`, `team_grantable_roles` and
+  `role_descriptions`. The generated
+  [Roles and general access](/docs/sdk/resources/roles) page lists every kind's.
+- **Context rule**: Use the kind's own sentence for what a role allows: an
+  Agent's Viewer runs it, a Session's Viewer sends nothing. Never "read-only"
+  for a role that runs or sends, and never a new role word without a reason the
+  kind's sentence states.
+- **Editions**: Every edition grants the Organization's roles. Granting a role
+  on one resource is Enterprise and Cloud.
 
 ---
 
@@ -949,7 +1048,8 @@ mint Stigmer-signed user tokens for embedding Stigmer in your product.
   users. The backend calls `mintUserToken` to get user-scoped JWTs, each a
   **bound credential** that works in the PlatformClient's Organization only.
   This is the same pattern used by Twilio (Access Tokens), Stream (User Tokens),
-  and Liveblocks (access tokens).
+  and Liveblocks (access tokens). The people it signs in appear as **App users**
+  in the console's people pickers, apart from the Organization's own people.
 
 <!-- vale Vale.Spelling = YES -->
 
@@ -1009,6 +1109,27 @@ message, fire a schedule or open a share link.
 
 ---
 
+#### Agent Share
+
+A hosted chat link for one Agent, with its own audience, origins and
+credentials.
+
+- **User-facing alternative**: "chat link" in the console, guides and sales
+  copy; "share" for the resource in how-to steps ("create a share").
+- **Capitalize**: Yes, when referring to the Stigmer resource.
+- **API surface**: `kind: AgentShare`, prefix `ash`. proto:
+  `agentshare/v1/spec.proto`. CLI: `stigmer share agent`.
+- **Key fields**: `agent_ref`, `enabled`, `audience` (`org` or `public`).
+- **Context rule**: An omitted audience means the Organization: only its
+  signed-in members chat. Say "Anyone with the link can chat" only for the
+  `public` audience, an explicit choice. A chat link lets people chat; it never
+  grants a role on the Agent.
+- **Note**: Creating one is an Organization admin's act, because it spends the
+  Organization's credits with everyone who holds the link. See
+  [Share an Agent](/docs/guides/sharing/share-an-agent).
+
+---
+
 #### Agent Channel
 
 A connection that puts an Agent into an external messaging platform---Slack or
@@ -1029,6 +1150,9 @@ WhatsApp---so people can chat with it where they already work.
   phone number (WhatsApp); people then reach it from any conversation. Provider
   identity facts and credentials live in `status`, written by the install
   flow---applying a manifest never touches them.
+- **Roles**: A channel's **Participant** reads its conversations and replies to
+  customers as the business; its **Viewer** reads them and cannot reply.
+  Connecting an Agent to a channel is an Organization admin's act.
 
 ---
 
@@ -1414,8 +1538,8 @@ Agent, Skill, MCP Server or Plugin readable to every signed-in person on the
 server, and the Library's "All" scope listed other Organizations' public
 resources for reference in place. Both went with the level: a resource is
 visible to its creator (Private), to its Organization (Organization, the
-default), or to every Organization a platform manages through its Identity
-Provider (Platform). Another Organization's work reaches yours as a Plugin you
+default), or to every child organization of its Organization (Child
+organizations). Another Organization's work reaches yours as a Plugin you
 install and own. A server upgrading from a release that still had the level
 moves every row that carried it to Organization visibility.
 
@@ -1425,7 +1549,7 @@ moves every row that carried it to Organization visibility.
   `public` audience of a share) and for a public website or API. A doc
   describing "publishing to the marketplace" or "a public Skill another
   Organization can reference" is describing the retired level; point it at
-  Plugin, or at Platform when the two Organizations share an Identity Provider.
+  Plugin, or at Child organizations when one Organization is the other's parent.
 
 ---
 

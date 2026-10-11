@@ -145,6 +145,18 @@ message, Stigmer creates a run that:
 Runs are **durable** — if the process crashes mid-run, Stigmer recovers and
 resumes from where it left off.
 
+## Who creates, changes and runs an Agent
+
+An Organization's members create Agents while its **Members can create agents**
+policy is on, which it is by default; its admins always can. The person who
+creates an Agent owns it, and so do the Organization's admins. An Agent's
+**Editor** changes and runs it, and its **Viewer** runs it and sees how it is
+set up; with the default Organization general access, everyone in the
+Organization is a Viewer. Running an Agent also needs the Organization's Member
+role or higher. Sharing it on a chat link or connecting it to a channel is an
+admin's act. [Sharing and access](/docs/concepts/sharing-and-access) explains
+the whole model.
+
 ## Versions
 
 Every change to an Agent's definition is kept. The definition is what the Agent

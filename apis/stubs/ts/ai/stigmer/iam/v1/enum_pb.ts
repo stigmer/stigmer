@@ -389,28 +389,37 @@ export enum IamRole {
   iam_role_unspecified = 0,
 
   /**
-   * Full control of the resource. Typically assigned to the creator.
+   * Full control of the resource, including deleting it and deciding who
+   * has access. Typically assigned to the creator.
    *
    * @generated from enum value: owner = 1;
    */
   owner = 1,
 
   /**
-   * Administrative access. Grants most permissions except ownership transfer.
+   * Administers an organization: its people, settings and resources, short
+   * of its owners, its deletion and its private conversations.
    *
    * @generated from enum value: admin = 2;
    */
   admin = 2,
 
   /**
-   * Membership-level access. Grants read and limited write permissions.
+   * Belongs to an organization or a team. In an organization, a member
+   * starts conversations with what is shared with them and creates agents
+   * while the organization allows it; in a team, a member holds what the
+   * team is given.
    *
    * @generated from enum value: member = 3;
    */
   member = 3,
 
   /**
-   * Read-only access to the resource.
+   * Sees the resource and changes nothing. What seeing allows is the kind's
+   * own (role_descriptions): an agent's viewer runs it in the conversations
+   * they may start, a conversation's viewer sends no message, and an
+   * organization's viewer starts no conversation, since starting one needs
+   * the organization's member role or higher.
    *
    * @generated from enum value: viewer = 4;
    */

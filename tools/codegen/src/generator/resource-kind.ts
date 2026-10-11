@@ -10,7 +10,10 @@ import {
   kind_meta,
   ResourceTier,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { AuthorizationScopeType } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
+import {
+  AuthorizationScopeType,
+  type VisibilityConfig,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/authorization_config_pb";
 import { IamRoleSchema, role_meta } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 /** Enum number → lowercase constant name (e.g. 43 → "skill"). */
@@ -27,10 +30,24 @@ export const versionedKinds = new Set<number>();
  */
 export const orglessKinds = new Set<number>();
 
+/**
+ * The general access levels a kind offers beyond private, from
+ * kind_meta.authorization.visibility. A kind with no visibility block is
+ * private only and carries null.
+ */
+export interface KindVisibility {
+  supportsOrg: boolean;
+  supportsChildOrgs: boolean;
+  defaultsToOrg: boolean;
+}
+
 export interface KindMetaEntry {
   enumName: string;
   enumNumber: number;
+  /** kind_meta.display_name ("Agent Share"). */
+  displayName: string;
   tier: ResourceTier;
+  visibility: KindVisibility | null;
   grantableRoles: number[];
   /** The roles a team may be granted on the kind (a subset of grantableRoles). */
   teamGrantableRoles: number[];
@@ -65,7 +82,9 @@ for (const value of ApiResourceKindSchema.values) {
   entries.push({
     enumName: value.name,
     enumNumber: value.number,
+    displayName: meta.displayName,
     tier: meta.tier,
+    visibility: kindVisibility(meta.authorization?.visibility),
     grantableRoles: meta.authorization?.grantableRoles ?? [],
     teamGrantableRoles: meta.authorization?.teamGrantableRoles ?? [],
     roleDescriptions: (meta.authorization?.roleDescriptions ?? []).map((entry) => ({
@@ -76,6 +95,15 @@ for (const value of ApiResourceKindSchema.values) {
 }
 
 entries.sort((a, b) => a.enumNumber - b.enumNumber);
+
+function kindVisibility(config: VisibilityConfig | undefined): KindVisibility | null {
+  if (config === undefined) return null;
+  return {
+    supportsOrg: config.supportsOrg,
+    supportsChildOrgs: config.supportsChildOrgs,
+    defaultsToOrg: config.defaultsToOrgVisibility,
+  };
+}
 
 /** kind_meta entries in enum-number order (port of extractKindMetaEntries). */
 export function kindMetaEntries(): KindMetaEntry[] {

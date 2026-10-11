@@ -47,6 +47,9 @@ class IdentityProviderCommandControllerServicer(object):
 
         If the resource does not exist, creates a new identity provider.
         If the resource exists, updates the existing identity provider.
+
+        Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED
+        included.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -56,6 +59,15 @@ class IdentityProviderCommandControllerServicer(object):
         """Create an identity provider.
 
         The creator's organization owns the identity provider.
+
+        On Stigmer Enterprise, a new identity provider is growth the server's
+        license pays for. Once the license and its grace period have ended, a
+        create is refused with FAILED_PRECONDITION carrying a
+        google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+        written:
+
+        - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
+        identity provider that exists keeps signing people in. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -63,6 +75,16 @@ class IdentityProviderCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update an existing identity provider.
+
+        On Stigmer Enterprise, changing how people sign in is growth the
+        server's license pays for. Once the license and its grace period have
+        ended, an update is refused with FAILED_PRECONDITION carrying a
+        google.rpc.ErrorInfo detail (domain "stigmer.ai"), before anything is
+        written:
+
+        - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
+        identity provider keeps signing people in as it is, and can still
+        be deleted. No metadata.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
