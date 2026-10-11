@@ -255,8 +255,8 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Timestamp expiresAt_;
   /**
    * <pre>
-   * When the term ends. After this instant the license is expired, and the
-   * server it unlocks enters its grace period.
+   * When the term ends. After this instant the server it unlocks is in its
+   * grace period and reports the license as `grace`.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp expires_at = 6 [json_name = "expiresAt", (.buf.validate.field) = { ... }</code>
@@ -268,8 +268,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When the term ends. After this instant the license is expired, and the
-   * server it unlocks enters its grace period.
+   * When the term ends. After this instant the server it unlocks is in its
+   * grace period and reports the license as `grace`.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp expires_at = 6 [json_name = "expiresAt", (.buf.validate.field) = { ... }</code>
@@ -281,8 +281,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When the term ends. After this instant the license is expired, and the
-   * server it unlocks enters its grace period.
+   * When the term ends. After this instant the server it unlocks is in its
+   * grace period and reports the license as `grace`.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp expires_at = 6 [json_name = "expiresAt", (.buf.validate.field) = { ... }</code>
@@ -296,8 +296,9 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Timestamp graceUntil_;
   /**
    * <pre>
-   * The end of the grace period after expiry, during which the server keeps
-   * serving and reports the license as expired. The issuer decides the
+   * The end of the grace period that follows `expires_at`, during which the
+   * server keeps serving and reports the license as `grace`. After this
+   * instant it reports the license as `expired`. The issuer decides the
    * grace; the verifier reads it.
    * </pre>
    *
@@ -310,8 +311,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The end of the grace period after expiry, during which the server keeps
-   * serving and reports the license as expired. The issuer decides the
+   * The end of the grace period that follows `expires_at`, during which the
+   * server keeps serving and reports the license as `grace`. After this
+   * instant it reports the license as `expired`. The issuer decides the
    * grace; the verifier reads it.
    * </pre>
    *
@@ -324,8 +326,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The end of the grace period after expiry, during which the server keeps
-   * serving and reports the license as expired. The issuer decides the
+   * The end of the grace period that follows `expires_at`, during which the
+   * server keeps serving and reports the license as `grace`. After this
+   * instant it reports the license as `expired`. The issuer decides the
    * grace; the verifier reads it.
    * </pre>
    *
@@ -1502,8 +1505,8 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> expiresAtBuilder_;
     /**
      * <pre>
-     * When the term ends. After this instant the license is expired, and the
-     * server it unlocks enters its grace period.
+     * When the term ends. After this instant the server it unlocks is in its
+     * grace period and reports the license as `grace`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp expires_at = 6 [json_name = "expiresAt", (.buf.validate.field) = { ... }</code>
@@ -1514,8 +1517,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the term ends. After this instant the license is expired, and the
-     * server it unlocks enters its grace period.
+     * When the term ends. After this instant the server it unlocks is in its
+     * grace period and reports the license as `grace`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp expires_at = 6 [json_name = "expiresAt", (.buf.validate.field) = { ... }</code>
@@ -1530,8 +1533,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the term ends. After this instant the license is expired, and the
-     * server it unlocks enters its grace period.
+     * When the term ends. After this instant the server it unlocks is in its
+     * grace period and reports the license as `grace`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp expires_at = 6 [json_name = "expiresAt", (.buf.validate.field) = { ... }</code>
@@ -1551,8 +1554,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the term ends. After this instant the license is expired, and the
-     * server it unlocks enters its grace period.
+     * When the term ends. After this instant the server it unlocks is in its
+     * grace period and reports the license as `grace`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp expires_at = 6 [json_name = "expiresAt", (.buf.validate.field) = { ... }</code>
@@ -1570,8 +1573,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the term ends. After this instant the license is expired, and the
-     * server it unlocks enters its grace period.
+     * When the term ends. After this instant the server it unlocks is in its
+     * grace period and reports the license as `grace`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp expires_at = 6 [json_name = "expiresAt", (.buf.validate.field) = { ... }</code>
@@ -1596,8 +1599,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the term ends. After this instant the license is expired, and the
-     * server it unlocks enters its grace period.
+     * When the term ends. After this instant the server it unlocks is in its
+     * grace period and reports the license as `grace`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp expires_at = 6 [json_name = "expiresAt", (.buf.validate.field) = { ... }</code>
@@ -1614,8 +1617,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the term ends. After this instant the license is expired, and the
-     * server it unlocks enters its grace period.
+     * When the term ends. After this instant the server it unlocks is in its
+     * grace period and reports the license as `grace`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp expires_at = 6 [json_name = "expiresAt", (.buf.validate.field) = { ... }</code>
@@ -1627,8 +1630,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the term ends. After this instant the license is expired, and the
-     * server it unlocks enters its grace period.
+     * When the term ends. After this instant the server it unlocks is in its
+     * grace period and reports the license as `grace`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp expires_at = 6 [json_name = "expiresAt", (.buf.validate.field) = { ... }</code>
@@ -1643,8 +1646,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the term ends. After this instant the license is expired, and the
-     * server it unlocks enters its grace period.
+     * When the term ends. After this instant the server it unlocks is in its
+     * grace period and reports the license as `grace`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp expires_at = 6 [json_name = "expiresAt", (.buf.validate.field) = { ... }</code>
@@ -1668,8 +1671,9 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> graceUntilBuilder_;
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the server keeps
-     * serving and reports the license as expired. The issuer decides the
+     * The end of the grace period that follows `expires_at`, during which the
+     * server keeps serving and reports the license as `grace`. After this
+     * instant it reports the license as `expired`. The issuer decides the
      * grace; the verifier reads it.
      * </pre>
      *
@@ -1681,8 +1685,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the server keeps
-     * serving and reports the license as expired. The issuer decides the
+     * The end of the grace period that follows `expires_at`, during which the
+     * server keeps serving and reports the license as `grace`. After this
+     * instant it reports the license as `expired`. The issuer decides the
      * grace; the verifier reads it.
      * </pre>
      *
@@ -1698,8 +1703,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the server keeps
-     * serving and reports the license as expired. The issuer decides the
+     * The end of the grace period that follows `expires_at`, during which the
+     * server keeps serving and reports the license as `grace`. After this
+     * instant it reports the license as `expired`. The issuer decides the
      * grace; the verifier reads it.
      * </pre>
      *
@@ -1720,8 +1726,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the server keeps
-     * serving and reports the license as expired. The issuer decides the
+     * The end of the grace period that follows `expires_at`, during which the
+     * server keeps serving and reports the license as `grace`. After this
+     * instant it reports the license as `expired`. The issuer decides the
      * grace; the verifier reads it.
      * </pre>
      *
@@ -1740,8 +1747,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the server keeps
-     * serving and reports the license as expired. The issuer decides the
+     * The end of the grace period that follows `expires_at`, during which the
+     * server keeps serving and reports the license as `grace`. After this
+     * instant it reports the license as `expired`. The issuer decides the
      * grace; the verifier reads it.
      * </pre>
      *
@@ -1767,8 +1775,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the server keeps
-     * serving and reports the license as expired. The issuer decides the
+     * The end of the grace period that follows `expires_at`, during which the
+     * server keeps serving and reports the license as `grace`. After this
+     * instant it reports the license as `expired`. The issuer decides the
      * grace; the verifier reads it.
      * </pre>
      *
@@ -1786,8 +1795,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the server keeps
-     * serving and reports the license as expired. The issuer decides the
+     * The end of the grace period that follows `expires_at`, during which the
+     * server keeps serving and reports the license as `grace`. After this
+     * instant it reports the license as `expired`. The issuer decides the
      * grace; the verifier reads it.
      * </pre>
      *
@@ -1800,8 +1810,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the server keeps
-     * serving and reports the license as expired. The issuer decides the
+     * The end of the grace period that follows `expires_at`, during which the
+     * server keeps serving and reports the license as `grace`. After this
+     * instant it reports the license as `expired`. The issuer decides the
      * grace; the verifier reads it.
      * </pre>
      *
@@ -1817,8 +1828,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the server keeps
-     * serving and reports the license as expired. The issuer decides the
+     * The end of the grace period that follows `expires_at`, during which the
+     * server keeps serving and reports the license as `grace`. After this
+     * instant it reports the license as `expired`. The issuer decides the
      * grace; the verifier reads it.
      * </pre>
      *

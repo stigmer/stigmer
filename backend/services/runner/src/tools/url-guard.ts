@@ -38,8 +38,12 @@
  *
  * Validation runs on the addresses DNS resolves to immediately before the
  * request is dispatched, and the caller re-validates every redirect hop.
- * The accepted DNS-rebinding limitation is stated in the shared check's
- * header.
+ * The request itself goes through the platform `fetch`, which resolves the
+ * name again when it connects, so the address validated is not pinned to
+ * the socket. The server closes that gap with `@stigmer/outbound/dial`;
+ * the runner does not take it as it is, because importing it installs
+ * undici as this process's dispatcher and changes every other `fetch` the
+ * runner makes.
  */
 import {
   checkEgress,

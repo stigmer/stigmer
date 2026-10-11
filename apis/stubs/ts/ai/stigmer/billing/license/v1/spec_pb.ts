@@ -69,8 +69,9 @@ export type LicenseSpec = Message<"ai.stigmer.billing.license.v1.LicenseSpec"> &
   expiresAt?: Timestamp;
 
   /**
-   * The end of the grace period after expiry, during which the licensed
-   * server keeps serving and reports the license as expired.
+   * The end of the grace period that follows `expires_at`, during which the
+   * licensed server keeps serving and reports the license as `grace`. After
+   * this instant it reports the license as `expired`.
    *
    * @generated from field: google.protobuf.Timestamp grace_until = 6;
    */
