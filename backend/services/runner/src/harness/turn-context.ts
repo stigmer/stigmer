@@ -1287,7 +1287,7 @@ async function hookSources(
   return { kind: "ready", sources };
 }
 
-/** Refuses a subagent's server that takes a main server's name from another plugin. */
+/** Refuses a subagent's server that takes the name of a server already named, from another plugin. */
 function refuseSharedServerNames(
   mainServers: readonly ResolvedMcpServer[],
   servers: readonly ResolvedMcpServer[],
@@ -1325,8 +1325,9 @@ function describeServer(server: ResolvedMcpServer): string {
  *  - Its model ({@link subagentModel}) and its values, by its name.
  *
  * A plugin of a subagent whose hooks cannot be prepared settles the turn
- * naming it, as the main agent's do. A subagent's server that would take a
- * main agent's server's name from another plugin refuses the turn
+ * naming it, as the main agent's do. A subagent's server that would take
+ * the name of a server the main agent or an earlier subagent has, from
+ * another plugin, refuses the turn
  * (`DuplicateServerNameError`): the engine connects one server per name,
  * so one would run with the other's values. Run planning refuses two
  * plugins of one name first; this is the backstop for a plugin that
@@ -1357,11 +1358,14 @@ export async function resolveSubagents(
   const platformValues = turnPlatformValues(blueprint, args.session, sessionId);
   const options = { sessionId, primaryWorkspaceDir: args.primaryDir };
   const subagents: TurnSubagent[] = [];
+  // Every server named so far: the main agent's, then each subagent's.
+  const named: ResolvedMcpServer[] = [...args.mainServers];
   for (const subagent of blueprint.subagents) {
     const { spec } = subagent;
     const toolScope = savedSubagentScope(subagent.name, spec, args.execution.spec);
     const servers = resolvePluginServers(subagent.plugins, values.tools, platformValues, transportPosture, deps.config).resolvedServers;
-    refuseSharedServerNames(args.mainServers, servers);
+    refuseSharedServerNames(named, servers);
+    named.push(...servers);
     const skills: SkillMetadata[] = [];
     if (!toolScope.hidesSkills) {
       skills.push(...(await resolveSkills(deps.client, spec.skillRefs, options)));

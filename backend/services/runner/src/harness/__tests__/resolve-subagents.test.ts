@@ -295,6 +295,25 @@ describe("resolveSubagents: what a subagent runs with", () => {
     ).rejects.toThrow(DuplicateServerNameError);
   });
 
+  it("refuses the turn when two subagents' servers would take one name from different plugins", async () => {
+    const first = plugin("github", { hooks: false });
+    const second = create(PluginSchema, { ...first, metadata: { ...first.metadata!, id: "plg_github_other_org", org: "parent" } });
+    const group = { url: "https://github.example.com/mcp", values: { TOKEN: "t" } };
+    const values: RunValues = {
+      ...NO_RUN_VALUES,
+      tools: new Map([
+        [toolValuesKey("plg_github", "api"), group],
+        [toolValuesKey("plg_github_other_org", "api"), group],
+      ]),
+    };
+    await expect(
+      run(
+        [saved("release-notes", { plugins: [ref("github")] }, [first]), saved("triager", { plugins: [ref("github")] }, [second])],
+        { values },
+      ),
+    ).rejects.toThrow(DuplicateServerNameError);
+  });
+
   it("mounts its own skills and its plugins' skills where the main agent's are", async () => {
     const { client: c } = client(["alpha"]);
     const { result } = await run([saved("release-notes", { skillRefs: [ref("alpha")], plugins: [ref("changelog")] }, [plugin("changelog", { hooks: false })])], { c });

@@ -32,6 +32,7 @@ import { canonicalSpecHash } from "../../pipeline/steps/spec-hash.js";
 import { readSubAgents } from "../frozen-sub-agent.js";
 import {
   SUB_AGENT_REMOVED_MESSAGE,
+  allowedByBoth,
   SUB_AGENT_RETIREMENT_AGENT_KIND,
   SUB_AGENT_RETIREMENT_SESSION_KIND,
   SUB_AGENT_RETIREMENT_VERSION_MESSAGE,
@@ -97,6 +98,31 @@ function logged(fields: Record<string, unknown> | undefined): {
   };
 }
 
+describe("a manifest's tools are what the sub-agent could use under both lists", () => {
+  it("takes either list alone when the other is empty", () => {
+    expect(allowedByBoth([], ["Read", "Grep"])).toEqual(["Read", "Grep"]);
+    expect(allowedByBoth(["Read"], [])).toEqual(["Read"]);
+  });
+
+  it("keeps an entry only when an entry of the other list admits it, the narrower of the two", () => {
+    // A server's family admits its tools and the family itself; mcp__* admits every MCP entry.
+    expect(allowedByBoth(["mcp__plugin_gh_github"], ["mcp__plugin_gh_github__read", "Read"])).toEqual([
+      "mcp__plugin_gh_github__read",
+    ]);
+    expect(allowedByBoth(["mcp__plugin_gh_github__read"], ["mcp__plugin_gh_github__*"])).toEqual([
+      "mcp__plugin_gh_github__read",
+    ]);
+    expect(allowedByBoth(["mcp__*"], ["mcp__plugin_gh_github", "Bash"])).toEqual(["mcp__plugin_gh_github"]);
+    // A bare tool admits its specified forms; one tool never admits another.
+    expect(allowedByBoth(["Bash"], ["Bash(git status *)", "Write"])).toEqual(["Bash(git status *)"]);
+    expect(allowedByBoth(["mcp__plugin_gh_github__read"], ["mcp__plugin_gh_github__write"])).toEqual(["Skill"]);
+  });
+
+  it("grants no tool when the lists share none: only Skill, which names no tool", () => {
+    expect(allowedByBoth(["Read"], ["Bash", "Write"])).toEqual(["Skill"]);
+  });
+});
+
 describe("an agent's sub-agents are dropped and logged as agent manifests", () => {
   it("logs a manifest that runs as the sub-agent ran, with the subagents entry for the parent", () => {
     const logger = recordingLogger();
@@ -122,8 +148,10 @@ describe("an agent's sub-agents are dropped and logged as agent manifests", () =
           GITHUB_TOKEN: { description: "a token for the GitHub API", is_secret: true },
           REGION: { value: "eu" },
         },
-        // Its own tools; the union of both disallowed lists.
-        tools: ["Read", "Grep"],
+        // The tools both lists admit: the parent's list never admitted
+        // Grep, so the sub-agent could not use it, and the manifest grants
+        // it neither. The union of both disallowed lists.
+        tools: ["Read"],
         disallowed_tools: ["Bash", "WebFetch", "Write"],
         run_config: { model_name: "claude-sonnet-4-5" },
         harness: "HARNESS_NATIVE",

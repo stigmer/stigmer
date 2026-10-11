@@ -14,8 +14,14 @@
  *   - its skills;
  *   - the parent's plugins and `env` declarations, because it used the
  *     parent's tools and shell;
- *   - its tool lists over the parent's: its own `tools` when it had any,
- *     else the parent's, and the union of both `disallowed_tools`;
+ *   - its tool lists over the parent's, which the old engine applied both
+ *     of (the parent's list, then the sub-agent's within it): the entries
+ *     both `tools` lists admit (`allowedByBoth`), its own when only it has
+ *     one, the parent's when only the parent does, and the union of both
+ *     `disallowed_tools`. The manifest never grants what the sub-agent
+ *     could not use: an entry neither list provably admits is left out,
+ *     and when no entry is left the manifest lists only `Skill`, the one
+ *     name that grants no tool;
  *   - its model override as `run_config.model_name` on the native engine,
  *     the registry it was checked against.
  * The same line carries the `subagents` entry to add to the parent once
@@ -151,7 +157,7 @@ export function unreadableSubAgentRowError(kind: string, id: string, error: unkn
 export function subAgentManifest(subAgent: FrozenSubAgent, slug: string, parent: AgentSpec): string {
   const reference = (ref: (typeof parent.plugins)[number]) =>
     toJson(ApiResourceReferenceSchema, ref, { useProtoFieldName: true });
-  const tools = subAgent.tools.length > 0 ? subAgent.tools : parent.tools;
+  const tools = allowedByBoth(parent.tools, subAgent.tools);
   const disallowedTools = [...new Set([...parent.disallowedTools, ...subAgent.disallowedTools])];
   const env = Object.fromEntries(
     Object.entries(parent.env).map(([key, declaration]) => [
@@ -200,4 +206,43 @@ export function frozenSlug(name: string): string {
     return "subagent";
   }
   return /^[a-z]/.test(slug) ? slug : `agent-${slug}`;
+}
+
+/**
+ * The `tools` the sub-agent could use under both allow-lists (the module
+ * header): either list alone when the other is empty; else each entry of
+ * one that an entry of the other admits, the narrower of the two kept. An
+ * entry is admitted only by itself, by its server's family
+ * (`mcp__<server>`, `mcp__<server>__*`) or by `mcp__*`, or, for a tool
+ * with a specifier (`Bash(git push *)`), by its bare tool. Anything else
+ * is left out, so the answer is never wider than the old scope. Frozen
+ * with the step (the module header).
+ */
+export function allowedByBoth(parent: readonly string[], own: readonly string[]): string[] {
+  if (parent.length === 0) return [...own];
+  if (own.length === 0) return [...parent];
+  const kept = new Set<string>();
+  for (const p of parent) {
+    for (const o of own) {
+      if (admits(p, o)) kept.add(o);
+      else if (admits(o, p)) kept.add(p);
+    }
+  }
+  return kept.size > 0 ? [...kept] : ["Skill"];
+}
+
+/** Whether the tool-list entry `wide` admits every tool `narrow` names. */
+function admits(wide: string, narrow: string): boolean {
+  if (wide === narrow) return true;
+  if (wide === "mcp__*") return narrow.startsWith("mcp__");
+  if (wide.startsWith("mcp__")) {
+    // A server's name holds no "__", so the first one ends it.
+    const rest = wide.slice("mcp__".length);
+    const separator = rest.indexOf("__");
+    const tool = separator === -1 ? undefined : rest.slice(separator + 2);
+    if (tool !== undefined && tool !== "*") return false;
+    const server = separator === -1 ? rest : rest.slice(0, separator);
+    return narrow === `mcp__${server}` || narrow.startsWith(`mcp__${server}__`);
+  }
+  return /^[A-Z][A-Za-z0-9_]*$/.test(wide) && narrow.startsWith(`${wide}(`);
 }

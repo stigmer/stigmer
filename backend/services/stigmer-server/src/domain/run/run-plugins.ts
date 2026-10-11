@@ -90,7 +90,7 @@ export async function loadRunPlugins(
       throw failedPreconditionError(
         `this conversation uses two plugins named '${name}' (${other.metadata?.org ?? ""}/${other.metadata?.slug ?? ""} and ` +
           `${plugin.metadata?.org ?? ""}/${plugin.metadata?.slug ?? ""}); a turn names a plugin's skills, agents and tools by its name, ` +
-          "so remove one of them from the agent or from the conversation",
+          "so remove one of them from the agent, one of its subagents or the conversation",
       );
     }
     byName.set(name, plugin);
@@ -101,7 +101,7 @@ export async function loadRunPlugins(
         if (holder !== undefined) {
           throw failedPreconditionError(
             `this conversation uses two MCP servers a turn would both name '${segment}' (${holder} and ` +
-              `plugin '${name}' server '${server.name}'); remove one of their plugins from the agent or from the conversation`,
+              `plugin '${name}' server '${server.name}'); remove one of their plugins from the agent, one of its subagents or the conversation`,
           );
         }
         bySegment.set(segment, `plugin '${name}' server '${server.name}'`);
