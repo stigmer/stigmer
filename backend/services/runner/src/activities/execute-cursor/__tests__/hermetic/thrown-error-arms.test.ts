@@ -157,6 +157,7 @@ describe("ExecuteCursor hermetic — thrown-error arms of the outer catch", () =
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/sdk-error-at-create.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/sdk-error-at-create.events.json");
   });
 
   it("a plain Error during blueprint resolution fails the turn through the generic arm", async () => {
@@ -206,5 +207,6 @@ describe("ExecuteCursor hermetic — thrown-error arms of the outer catch", () =
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/resolution-error.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/resolution-error.events.json");
   });
 });

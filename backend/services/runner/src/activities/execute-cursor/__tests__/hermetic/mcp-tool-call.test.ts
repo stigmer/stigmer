@@ -142,5 +142,6 @@ describe("ExecuteCursor hermetic — MCP tool call", () => {
     const final = record.lastFullStatus!;
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/mcp-tool-call.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/mcp-tool-call.events.json");
   });
 });

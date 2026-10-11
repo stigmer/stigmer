@@ -161,5 +161,6 @@ describe("ExecuteCursor hermetic — todo writes", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/todo-write.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/todo-write.events.json");
   });
 });

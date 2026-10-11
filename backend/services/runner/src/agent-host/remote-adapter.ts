@@ -191,7 +191,12 @@ class RemoteTurn {
       notices: {
         activity: ({ detail }) => sink.recordActivity(detail ?? undefined),
         usage: ({ delta }) => sink.reportUsage(clampUsage(delta)),
-        event: ({ event, atWallMs }) => sink.transcript.relayObserved(event, atWallMs - performance.timeOrigin),
+        event: ({ event, atWallMs, messageIndex }) =>
+          sink.transcript.relayObserved(
+            event,
+            atWallMs - performance.timeOrigin,
+            messageIndex === null ? undefined : { messageIndex },
+          ),
         bindCas: () =>
           sink.bindCasObservations(async () => {
             if (this.finalCas) return this.finalCas;

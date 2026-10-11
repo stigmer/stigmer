@@ -31,6 +31,7 @@
  * | `runsHooks`       | yes (in the approval gate)  | yes (the gate's hook server)            | yes (its own hooks)                           | (surveyed later)                               |
  * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG (transport re-sniffs)         | (surveyed later)                              | (surveyed later)                               |
  * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, the gate's files excluded     | (surveyed later)                              | (surveyed later)                               |
+ * | `boundaryRewritesRow` | none                    | the boundary's reopened, hidden and refused rows | (surveyed later)                     | (surveyed later)                               |
  *
  * Adapter-internal, deliberately NOT flags: how MCP servers are bound, how
  * metering is routed, how the cost cap is applied inside the engine, how a
@@ -44,6 +45,7 @@
  * id before its first persist; a `deterministic` one must never bind).
  */
 
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { VisionProfile } from "../shared/attachment-vision.js";
@@ -140,4 +142,14 @@ export interface HarnessCapabilities {
   readonly visionProfile: VisionProfile;
   /** How the harness's captured file changes are identified and what its own repo writes are excluded from a diff. */
   readonly fileReview: FileReviewIdentity;
+  /**
+   * The rows the harness's turn boundary may still rewrite after the stream
+   * settled them (reopen as a gate, hide as a twin, settle as a refusal);
+   * absent when the boundary never rewrites a row. The session event emitter
+   * (`events/emitter.ts`) holds such a row, and everything after it in its
+   * thread, until the turn's terminal write, so the log never records a
+   * fact the boundary reverses. A predicate rather than a flag because only
+   * the adapter knows which rows its boundary touches.
+   */
+  readonly boundaryRewritesRow?: (row: ToolCall) => boolean;
 }

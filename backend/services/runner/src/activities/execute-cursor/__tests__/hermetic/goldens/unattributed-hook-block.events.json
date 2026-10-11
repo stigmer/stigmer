@@ -1,0 +1,50 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Removing the build directory."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-hermetic-hookblock-0001",
+      "input": {
+        "command": "rm -rf build"
+      },
+      "name": "shell"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-hermetic-hookblock-0001.r",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-hookblock-0001",
+      "content": [
+        {
+          "type": "text",
+          "text": "blocked by a hook"
+        }
+      ],
+      "is_error": true
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "I could not clean the build directory: the shell command was blocked."
+        }
+      ]
+    }
+  }
+]

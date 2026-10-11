@@ -118,5 +118,6 @@ describe("ExecuteCursor hermetic — the SDK's task event as a system note", () 
 
     const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/sdk-task-note.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/sdk-task-note.events.json");
   });
 });

@@ -7,7 +7,9 @@
  * (born with the status, seeded by the reinvocation phase, handed to the
  * adapter as `sink.transcript`, finalized once the adapter returns), the turn
  * timeline folded from that builder's events and written once at settle
- * (`turn-timeline.ts`), and the single persist chokepoint;
+ * (`turn-timeline.ts`), the session event emitter that writes what the
+ * agent did into the session's log from the rows every persist carries
+ * (`events/emitter.ts`), and the single persist chokepoint;
  * the periodic heartbeat; the stop controller and its four producers (the
  * stall watchdog, the cost cap, the platform STOP, Temporal's cancellation);
  * the resolution phases (`turn-context.ts`) composed into the `TurnInput`;
@@ -64,6 +66,7 @@ import {
 } from "../shared/worker-shutdown.js";
 import { terminalizeNonExecutingDecisions } from "./approval-decisions.js";
 import { captureCandidate, pinCaptureBaseline, type TurnCapture } from "./capture.js";
+import { SessionEventEmitter } from "./events/emitter.js";
 import { PersistChokepoint } from "./persist-chokepoint.js";
 import { StopController } from "./stop-controller.js";
 import {
@@ -168,14 +171,31 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   // sub-agent spans, the longest silence — for every harness alike.
   const timeline = new TurnTimeline({ originMs, originWallMs, now: () => performance.now() });
 
+  // The session event emitter (`events/emitter.ts`): reads the rows each
+  // persist carries and appends what sealed to the session's log, and
+  // previews what still streams from the builder's token deltas. Inert
+  // until the engine's turn begins (`begin`), so a turn settled during
+  // resolution writes no event. The append presents the credential the
+  // values fetch presents.
+  const events = new SessionEventEmitter({
+    client,
+    runId: executionId,
+    credential: () => client.acquireScopedRunnerToken({ agentExecutionId: executionId }),
+    boundaryRewritesRow: adapter.capabilities.boundaryRewritesRow,
+  });
+
   // The one transcript builder of this turn, born with the status and before
   // any phase, so it exists for everything that writes a row or an output
   // onto the status: the write-back coordinator (phase 2c), the seed of a
   // reinvocation's prior rows (phase 3, through `seed()`, which indexes them
   // as it appends), the adapter (`sink.transcript`), and the epilogue. One
   // constructor call per turn; a second builder over the same status would
-  // index the same rows twice. The timeline is its observer.
-  const transcript = new TranscriptBuilder(executionId, status, (event, at) => timeline.observe(event, at));
+  // index the same rows twice. The timeline and the emitter's previews are
+  // its observer.
+  const transcript = new TranscriptBuilder(executionId, status, (event, at, place) => {
+    timeline.observe(event, at);
+    events.observe(event, place);
+  });
 
   // Cold-start timeline of this turn's setup: one mark after each phase, the
   // adapter's own segments marked through the sink, emitted by the adapter
@@ -226,6 +246,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     progress: () => capture?.progress,
     heartbeat,
     onPlatformStop: () => stop.stop({ kind: "platform-stop" }),
+    events,
   });
 
   try {
@@ -261,14 +282,14 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
    * the arm's own message stand.
    */
   const settleWith = async (arm: TerminalArm, failure?: CancelledFailure): Promise<Settled> => {
-    applyTerminalArm(status, arm);
+    events.skipRootRows(applyTerminalArm(status, arm));
     await recordEvalFiles();
     if (arm.disposition.kind === "return") {
-      await chokepoint.write();
+      await chokepoint.write({ final: true });
       return { kind: "return", value: slimStatus(status) };
     }
     cancelInProgressSubAgentProtos(status.subAgentRuns);
-    await chokepoint.write();
+    await chokepoint.write({ final: true });
     return { kind: "throw", error: failure ?? new CancelledFailure(arm.disposition.message) };
   };
 
@@ -297,12 +318,12 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         // baseline, so what finalize commits is exactly what the user kept.
         // After reconcile, before persist, never on a failed reconcile
         // (diverged bytes must not reach the remote).
-        applyTerminalArm(status, fileReviewResolvedArm(settlement));
+        events.skipRootRows(applyTerminalArm(status, fileReviewResolvedArm(settlement)));
         if (!settlement.failed && frame.writeback) {
           await frame.writeback.finalize();
         }
         await recordEvalFiles();
-        await chokepoint.write();
+        await chokepoint.write({ final: true });
         console.log(
           `${activityName} file-review resume short-circuit: execution=${executionId}, ` +
             `failed=${settlement.failed}, discarded=${settlement.discardedPaths.length}`,
@@ -342,6 +363,14 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   // ── The engine's turn and its outcome ─────────────────────────────────────
 
   async function runEngineTurn(turn: TurnInput): Promise<Settled> {
+    // The emitter starts with the engine's turn, after the reinvocation's
+    // seed: a run that already persisted rows, or an attempt Temporal
+    // retried, reads back what it already wrote first.
+    await events.begin({
+      sessionId: turn.sessionId,
+      resumed: (turn.execution.status?.messages.length ?? 0) > 0 || activity.info.attempt > 1,
+      status,
+    });
     const maxCostUsd = turn.execution.status?.runConfig?.maxCostUsd ?? 0;
     const costCap = new CostCapWatch(maxCostUsd, turn.model.serviceTier, turn.model.thinkingMode);
     const accumulator = costCap.accumulator;
@@ -625,7 +654,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
 
     // NOW persist — the subscriber sees the phase and structured_output atomically.
     await recordEvalFiles();
-    await chokepoint.write();
+    await chokepoint.write({ final: true });
     console.log(
       `${activityName} completed: execution=${executionId}, phase=${RunPhase[status.phase]}, ` +
         `hasStructuredOutput=${status.structuredOutput !== undefined}` +

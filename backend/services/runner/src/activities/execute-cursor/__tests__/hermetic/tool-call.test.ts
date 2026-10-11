@@ -136,5 +136,6 @@ describe("ExecuteCursor hermetic — ungated tool call", () => {
     expect(finalStatus).toBeDefined();
     const json = JSON.stringify(toJson(RunStatusSchema, finalStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/tool-call.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/tool-call.events.json");
   });
 });

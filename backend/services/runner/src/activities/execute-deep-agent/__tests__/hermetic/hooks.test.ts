@@ -203,6 +203,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect(held.approvalMessage).toBe("publishing needs a person");
     expect([held.approvalPolicySource, held.approvalPolicyHook]).toEqual([ApprovalPolicySource.HOOK, "safety"]);
     await expect(statusJson(run1)).toMatchFileSnapshot("./goldens/hooks.turn1.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/hooks.turn1.events.json");
 
     // ── Between turns: approve the publish ───────────────────────────────────
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, "2026-01-01T00:00:30.000Z")).toBe(1);
@@ -224,6 +225,7 @@ describe("ExecuteDeepAgent hermetic — a plugin's hook denies, allows and asks"
     expect(getPluginArtifact).toHaveBeenCalledTimes(1);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
     await expect(statusJson(final)).toMatchFileSnapshot("./goldens/hooks.turn2.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/hooks.turn2.events.json");
   });
 
   it("approve all on the hook's card leases that hook's asks, never the whole shell", async () => {

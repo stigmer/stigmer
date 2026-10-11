@@ -159,6 +159,7 @@ describe("ExecuteDeepAgent hermetic — tool-call budget exhausted", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, persisted), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/recursion-limit.persisted.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/recursion-limit.persisted.events.json");
   });
 
   it("continues on the next message from the checkpoint the stop left (sqlite)", async () => {

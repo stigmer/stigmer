@@ -53,5 +53,6 @@
   "fileChangeProgress": {
     "changeSetId": "aex_hermetic_0001:0",
     "capturedAt": "2026-01-01T00:00:01.000Z"
-  }
+  },
+  "stopCause": "timeout"
 }

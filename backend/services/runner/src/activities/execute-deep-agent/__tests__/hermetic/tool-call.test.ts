@@ -159,5 +159,6 @@ describe("ExecuteDeepAgent hermetic — ungated tool call", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/tool-call.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/tool-call.events.json");
   });
 });

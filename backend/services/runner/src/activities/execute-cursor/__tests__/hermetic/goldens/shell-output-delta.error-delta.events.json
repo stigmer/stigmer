@@ -1,0 +1,64 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Running the tests."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-hermetic-shelldelta-0003",
+      "input": {
+        "command": "npm test"
+      },
+      "name": "shell"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-hermetic-shelldelta-0003.r",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-shelldelta-0003",
+      "content": [
+        {
+          "type": "text",
+          "text": "sh: npm: command not found"
+        }
+      ],
+      "is_error": true
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_thinking": {
+      "id": "aex_hermetic_0001.root.t1"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "stigmer_agent_thinking": {
+      "id": "aex_hermetic_0001.root.t1.text",
+      "thinking_id": "aex_hermetic_0001.root.t1",
+      "text": "The command failed; npm may be missing."
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m2",
+      "content": [
+        {
+          "type": "text",
+          "text": "npm is not installed here."
+        }
+      ]
+    }
+  }
+]

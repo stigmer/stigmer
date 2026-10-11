@@ -163,6 +163,7 @@ describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)",
     expect(run1.artifacts[0].createdAt, "the artifact is stamped at its write's finish").toBe(writeRow.completedAt);
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
     await expect(statusJson(run1)).toMatchFileSnapshot("./goldens/inline-artifact.turn1.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/inline-artifact.turn1.events.json");
 
     // ── Between turns ────────────────────────────────────────────────────────
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, DECIDED_AT)).toBe(1);
@@ -189,5 +190,6 @@ describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)",
     const finalJson = statusJson(final);
     expect(finalJson, "no temp path may reach the golden").not.toContain(env.artifactPath);
     await expect(finalJson).toMatchFileSnapshot("./goldens/inline-artifact.turn2.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/inline-artifact.turn2.events.json");
   });
 });

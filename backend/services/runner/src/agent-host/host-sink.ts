@@ -69,8 +69,13 @@ export class HostTurn {
     timing: TimingRecorderWire,
   ) {
     this.status = decodeMessage(RunStatusSchema, status);
-    const transcript = new TranscriptBuilder(input.executionId, this.status, (event) =>
-      peer.notify("event", { turnId, event, atWallMs: performance.timeOrigin + performance.now() }),
+    const transcript = new TranscriptBuilder(input.executionId, this.status, (event, _atMs, place) =>
+      peer.notify("event", {
+        turnId,
+        event,
+        atWallMs: performance.timeOrigin + performance.now(),
+        messageIndex: place?.messageIndex ?? null,
+      }),
     );
     const setupTiming = TimingRecorder.fromWire(timing);
     const costCap = new CostCapWatch(input.execution.status?.runConfig?.maxCostUsd ?? 0, input.model.serviceTier, input.model.thinkingMode);

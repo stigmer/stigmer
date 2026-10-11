@@ -42,7 +42,8 @@
  */
 
 import { createHash } from "node:crypto";
-import { create, toBinary } from "@bufbuild/protobuf";
+import { create, fromJson, toBinary, toJson } from "@bufbuild/protobuf";
+import type { DescMessage, JsonValue, MessageShape } from "@bufbuild/protobuf";
 import {
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -613,6 +614,46 @@ export async function offloadCandidateChangesToFit(
 
 function encodedSize(status: RunStatus): number {
   return toBinary(RunStatusSchema, status).length;
+}
+
+/**
+ * One message bounded to `maxBytes` encoded, by the status's own elision
+ * rule: its largest string values first (a tool's input, a result, a
+ * message's text, at any depth), each cut to its first
+ * `TEXT_PREVIEW_HEAD_CHARS` characters and marked with
+ * {@link ELISION_MARKER}, until it fits. The session event emitter bounds
+ * every event with it before appending (the log holds at most 256 KiB an
+ * event), so the log and the status agree on what a too-large value looks
+ * like. Returns the message unchanged when it fits, and the most it could
+ * shed when nothing large is left to cut.
+ */
+export function elideToEncodedSize<Desc extends DescMessage>(
+  schema: Desc,
+  message: MessageShape<Desc>,
+  maxBytes: number,
+): MessageShape<Desc> {
+  if (toBinary(schema, message).length <= maxBytes) return message;
+  const json = toJson(schema, message);
+  const leaves: Array<{ readonly holder: Record<string, JsonValue> | JsonValue[]; readonly key: string | number; readonly bytes: number }> = [];
+  const walk = (holder: Record<string, JsonValue> | JsonValue[], key: string | number, value: JsonValue): void => {
+    if (typeof value === "string") {
+      if (byteLen(value) > ELISION_MIN_BYTES) leaves.push({ holder, key, bytes: byteLen(value) });
+    } else if (Array.isArray(value)) {
+      value.forEach((element, index) => walk(value, index, element));
+    } else if (value !== null && typeof value === "object") {
+      for (const [k, v] of Object.entries(value)) walk(value, k, v);
+    }
+  };
+  walk([json], 0, json);
+  leaves.sort((a, b) => b.bytes - a.bytes);
+  let bounded = message;
+  for (const leaf of leaves) {
+    const value = (leaf.holder as Record<string | number, JsonValue>)[leaf.key] as string;
+    (leaf.holder as Record<string | number, JsonValue>)[leaf.key] = `${headChars(value, TEXT_PREVIEW_HEAD_CHARS)}\n\n${ELISION_MARKER}`;
+    bounded = fromJson(schema, json);
+    if (toBinary(schema, bounded).length <= maxBytes) return bounded;
+  }
+  return bounded;
 }
 
 /**

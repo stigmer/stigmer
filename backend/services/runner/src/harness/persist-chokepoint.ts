@@ -22,8 +22,13 @@
  *     and `request()` keeps its promise to the adapters.
  *  3. `streaming_usage` is refreshed from the accumulator when it has turns,
  *     so the summary the UI shows is the one the write carries.
- *  4. `persistStatus` (`shared/status.ts`): tool-output offload, the
- *     aggregate size cap, transient retry, oversize recovery. Never rejects.
+ *  4. `persistStatus` (`shared/status.ts`): tool-output offload, then the
+ *     session event flush (`events/emitter.ts`: what the agent did, read from
+ *     the rows as offloaded and appended to the session's log before the
+ *     status that describes it), then the aggregate size cap, transient
+ *     retry, oversize recovery. Never rejects. The flush is a second RPC
+ *     under the same single flight: an adapter's coalesced follow-up covers
+ *     both.
  *  5. A Temporal heartbeat, so a long streaming turn's liveness is proven by
  *     the writes it makes.
  *  6. The control plane's answer: STOP becomes the runtime's platform-stop
@@ -52,6 +57,7 @@ import type { StigmerClient } from "../client/stigmer-client.js";
 import { captureFileChangeProgress } from "../shared/filereview/progress.js";
 import { persistStatus } from "../shared/status.js";
 import type { ToolOutputOffloadContext } from "../shared/status-offload.js";
+import type { SessionEventEmitter } from "./events/emitter.js";
 import { withholdSecretContentFromMessages } from "../shared/tool-row.js";
 import type { TurnProgress } from "./capture.js";
 import type { UsageAccumulator } from "./usage-accumulator.js";
@@ -78,6 +84,8 @@ export interface PersistChokepointDeps {
   readonly heartbeat: () => void;
   /** The control plane answered STOP to this write. */
   readonly onPlatformStop: () => void;
+  /** Writes the session's events from the rows each write carries; absent in tests that do not read the log. */
+  readonly events?: Pick<SessionEventEmitter, "flush">;
 }
 
 export class PersistChokepoint {
@@ -112,9 +120,11 @@ export class PersistChokepoint {
    * One write, now. The runtime's own writes (a settlement, a terminal
    * status) call this directly: they run when no adapter write can be in
    * flight (before `runTurn` or after it settled), so they need no
-   * coalescing, and they must not be deferred behind one.
+   * coalescing, and they must not be deferred behind one. `final` marks the
+   * turn's terminal write: the boundary has run and nothing streams, so the
+   * session event emitter writes every row that is left.
    */
-  async write(): Promise<void> {
+  async write(opts: { readonly final?: boolean } = {}): Promise<void> {
     const { client, executionId, status, offload, heartbeat } = this.deps;
     withholdSecretContentFromMessages(status.messages, status.subAgentRuns);
     const progress = this.deps.progress();
@@ -125,7 +135,11 @@ export class PersistChokepoint {
     if (usage?.hasTurns) {
       status.streamingUsage = create(StreamingUsageSummarySchema, usage.snapshot());
     }
-    const signal = await persistStatus(client, executionId, status, { offload });
+    const events = this.deps.events;
+    const signal = await persistStatus(client, executionId, status, {
+      offload,
+      ...(events ? { afterOffload: () => events.flush(status, { final: opts.final === true }) } : {}),
+    });
     heartbeat();
     if (signal === RunControlSignal.STOP) {
       this.deps.onPlatformStop();

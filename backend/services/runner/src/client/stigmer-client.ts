@@ -26,6 +26,11 @@ import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/
 import type { RecordLlmCallUsageInput, RecordLlmCallUsageResponse } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type {
+  AppendSessionEventsResponse,
+  SessionEventPreview,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentVersionEntry } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/version_pb";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -495,6 +500,41 @@ export class StigmerClient {
 
   async updateSession(session: Session): Promise<Session> {
     return this.sessionCommand.update(session);
+  }
+
+  /**
+   * Append a run's events, and the live previews of what it is still
+   * producing, to its session's log. The server admits only the runner
+   * acting for that run: it decides the credential as a values fetch does,
+   * so the caller passes the same scoped token
+   * ({@link acquireScopedRunnerToken}); without one the request carries the
+   * credential the interceptor chooses.
+   */
+  async appendSessionEvents(
+    runId: string,
+    events: readonly SessionEvent[],
+    previews: readonly SessionEventPreview[],
+    scopedToken?: string,
+  ): Promise<AppendSessionEventsResponse> {
+    return this.sessionCommand.appendEvents(
+      { runId, events: [...events], previews: [...previews] },
+      scopedToken ? { headers: { authorization: `Bearer ${scopedToken}` } } : undefined,
+    );
+  }
+
+  /**
+   * Every event one run wrote into its session's log, oldest first: what a
+   * resumed turn already sent. Pages to the end, at most 1000 a page.
+   */
+  async listRunSessionEvents(sessionId: string, runId: string): Promise<SessionEvent[]> {
+    const events: SessionEvent[] = [];
+    let pageToken = "";
+    do {
+      const page = await this.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000, pageToken });
+      events.push(...page.events);
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    return events;
   }
 
   /**

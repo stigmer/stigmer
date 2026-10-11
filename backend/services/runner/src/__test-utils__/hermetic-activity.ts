@@ -83,7 +83,7 @@ import { vi } from "vitest";
 import { MockActivityEnvironment } from "@temporalio/testing";
 import { CancelledFailure } from "@temporalio/activity";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { clone, create } from "@bufbuild/protobuf";
+import { clone, create, equals, toJson } from "@bufbuild/protobuf";
 import {
   RunSchema,
   RunStatusSchema,
@@ -99,6 +99,12 @@ import {
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import {
+  AppendSessionEventsResponseSchema,
+  SessionEventPreviewSchema,
+  type SessionEventPreview,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -171,7 +177,23 @@ export interface ExecutionRecordInput {
  *
  * Every persisted status is also kept in order (`persisted`) so a test can
  * assert the phase sequence the activity wrote, independent of the final state.
+ *
+ * The session's event log is modelled too, with the server's append rules
+ * that the runner's emitter depends on: an id the log holds with the same
+ * event is accepted again without a second entry, the same id with another
+ * event is ALREADY_EXISTS, and a run whose held phase is finished takes no
+ * more events (FAILED_PRECONDITION), which is what proves every event of a
+ * turn lands before its terminal status. `listRunSessionEvents` answers
+ * from it, so a reinvocation reads back what the first wrote.
  */
+/** The phases the server treats as finished: an append for such a run is refused. */
+const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
+  RunPhase.RUN_COMPLETED,
+  RunPhase.RUN_FAILED,
+  RunPhase.RUN_CANCELLED,
+  RunPhase.RUN_TERMINATED,
+]);
+
 export class ExecutionRecord {
   readonly execution: Run;
   readonly session: Session;
@@ -191,6 +213,14 @@ export class ExecutionRecord {
    * a fresh-agent recovery, so a live reference would show the second id twice.
    */
   readonly sessionUpdates: Session[] = [];
+  /** The session's event log as the runner appended it, in order (one entry per distinct id). */
+  readonly sessionEvents: SessionEvent[] = [];
+  /** Every preview the runner sent, in order. */
+  readonly sessionPreviews: SessionEventPreview[] = [];
+  /** Ids the runner sent again although the log held them: a resumed turn that forgot what it wrote. */
+  readonly resentEventIds: string[] = [];
+  /** Every append the log refused, by its reason: a runner defect the emitter would drop silently. */
+  readonly refusedAppends: string[] = [];
 
   constructor(input: ExecutionRecordInput) {
     this.execution = clone(RunSchema, input.execution);
@@ -402,6 +432,48 @@ export class ExecutionRecord {
     return this.controlSignal(snapshot);
   }
 
+  /** The server's append rules over the modelled log (the class header). */
+  appendSessionEvents(runId: string, events: readonly SessionEvent[], previews: readonly SessionEventPreview[]): void {
+    const phase = this.execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
+    if (TERMINAL_PHASES.has(phase)) {
+      this.refusedAppends.push(`run '${runId}' is finished`);
+      throw new ConnectError(`run '${runId}' is finished; it takes no more events`, Code.FailedPrecondition);
+    }
+    const fresh: SessionEvent[] = [];
+    for (const event of events) {
+      const id = event.event.case === undefined ? "" : event.event.value.id;
+      const held = [...this.sessionEvents, ...fresh].find((e) => e.event.case !== undefined && e.event.value.id === id);
+      if (held !== undefined) {
+        if (!equals(SessionEventSchema, held, event)) {
+          this.refusedAppends.push(`'${id}' exists with other content`);
+          throw new ConnectError(`session event '${id}' already exists with other content`, Code.AlreadyExists);
+        }
+        this.resentEventIds.push(id);
+        continue;
+      }
+      fresh.push(clone(SessionEventSchema, event));
+    }
+    this.sessionEvents.push(...fresh);
+    this.sessionPreviews.push(...previews.map((p) => clone(SessionEventPreviewSchema, p)));
+  }
+
+  /**
+   * The modelled log as a golden: one protobuf JSON object per event, with
+   * its envelope's thread, in append order. What the runner sent, before
+   * the server stamps a seq or an accepted time. Throws when the runner
+   * resent an id the log held or had an append refused, so every golden
+   * also proves a resumed turn writes only what is new and that nothing
+   * landed after the run finished.
+   */
+  eventsGolden(): string {
+    if (this.resentEventIds.length > 0 || this.refusedAppends.length > 0) {
+      throw new Error(
+        `the session log saw resent ids [${this.resentEventIds.join(", ")}] and refusals [${this.refusedAppends.join("; ")}]`,
+      );
+    }
+    return JSON.stringify(this.sessionEvents.map((e) => toJson(SessionEventSchema, e, { useProtoFieldName: true })), null, 2) + "\n";
+  }
+
   /** The runner's write with the server-stamped fields of the held status carried over. */
   private keepServerStamp(snapshot: RunStatus): RunStatus {
     const next = clone(RunStatusSchema, snapshot);
@@ -454,6 +526,13 @@ export class ExecutionRecord {
         this.sessionUpdates.push(clone(SessionSchema, session));
         return session;
       }),
+      appendSessionEvents: vi.fn(async (runId: string, events: readonly SessionEvent[], previews: readonly SessionEventPreview[]) => {
+        this.appendSessionEvents(runId, events, previews);
+        return create(AppendSessionEventsResponseSchema);
+      }),
+      listRunSessionEvents: vi.fn(async (_sessionId: string, runId: string) =>
+        this.sessionEvents.filter((e) => e.runId === runId).map((e) => clone(SessionEventSchema, e)),
+      ),
       // A run whose agent and tools declare nothing: the fetch answers no values.
       fetchExecutionValues: vi.fn(async () => create(ExecutionValuesSchema)),
       getAgentByReference: vi.fn(async (ref: ApiResourceReference) => {

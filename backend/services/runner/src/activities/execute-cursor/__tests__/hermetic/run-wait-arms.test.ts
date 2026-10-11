@@ -150,6 +150,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/run-error-non-retryable.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/run-error-non-retryable.events.json");
   });
 
   it("a network error on a created agent retries once on a fresh agent with the same prompt and completes", async () => {
@@ -230,6 +231,7 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/recovery-transport-timeout.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/recovery-transport-timeout.events.json");
   });
 
   it("an SDK-side cancel ends the turn CANCELLED with no error and parks the agent", async () => {
@@ -286,5 +288,6 @@ describe("ExecuteCursor hermetic — the run.wait() arms on a created agent", ()
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/run-cancelled.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/run-cancelled.events.json");
   });
 });

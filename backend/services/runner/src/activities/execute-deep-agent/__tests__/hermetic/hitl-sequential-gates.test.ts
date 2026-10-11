@@ -125,6 +125,7 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
     const atGateA = record.lastFullStatus!;
     await expect(statusJson(atGateA), "the same opening as every gated arm").toMatchFileSnapshot(GATE_TURN1_GOLDEN);
+    await expect(record.eventsGolden()).toMatchFileSnapshot(GATE_TURN1_GOLDEN.replace(".status.json", ".events.json"));
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, DECIDED_A_AT)).toBe(1);
 
     // ── Turn 2: A runs, gate B pauses ────────────────────────────────────────
@@ -146,6 +147,7 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
     expect(rowsAtB.map((tc) => tc.id).slice(0, gateAIds.length)).toEqual(gateAIds);
     expect(atGateB.messages.length).toBeGreaterThanOrEqual(atGateA.messages.length);
     await expect(statusJson(atGateB)).toMatchFileSnapshot("./goldens/sequential-gates.turn2.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/sequential-gates.turn2.events.json");
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE, DECIDED_B_AT)).toBe(1);
 
     // ── Turn 3: B runs, the run completes ────────────────────────────────────
@@ -166,5 +168,6 @@ describe("ExecuteDeepAgent hermetic — two sequential gates (sqlite)", () => {
 
     // ── Assert: the golden ───────────────────────────────────────────────────
     await expect(statusJson(final)).toMatchFileSnapshot("./goldens/sequential-gates.turn3.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/sequential-gates.turn3.events.json");
   });
 });

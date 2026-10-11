@@ -311,8 +311,12 @@ export interface HostNotices {
   readonly activity: { readonly turnId: string; readonly detail: string | null };
   /** `TurnSink.reportUsage`. */
   readonly usage: { readonly turnId: string; readonly delta: UsageDelta };
-  /** One event the host's transcript builder folded, at its wall-clock instant, for the runtime's timeline. */
-  readonly event: { readonly turnId: string; readonly event: TranscriptEvent; readonly atWallMs: number };
+  /**
+   * One event the host's transcript builder folded, at its wall-clock
+   * instant, for the runtime's timeline and session event previews, with
+   * where a text or reasoning delta's row sits (null for any other fact).
+   */
+  readonly event: { readonly turnId: string; readonly event: TranscriptEvent; readonly atWallMs: number; readonly messageIndex: number | null };
   /** `TurnSink.bindCasObservations`: the adapter bound a reader. */
   readonly bindCas: { readonly turnId: string };
 }

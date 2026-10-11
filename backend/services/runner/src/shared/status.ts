@@ -63,6 +63,13 @@ export interface PersistStatusOptions {
    * {@link DEFAULT_PERSIST_RETRY}; an omitted `retry` uses it entirely.
    */
   readonly retry?: RetryOptions;
+  /**
+   * Runs once per call after the offload and before the aggregate cap and
+   * the write: the persist chokepoint's session event flush, which must read
+   * the rows as offloaded and land before the status it describes. Never
+   * rejects (the emitter's own contract).
+   */
+  readonly afterOffload?: () => Promise<void>;
 }
 
 /**
@@ -125,6 +132,12 @@ export async function persistStatus(
         console.warn(`[persistStatus] ${executionId}: file-review offload-to-fit failed (non-fatal): ${err}`);
       }
     }
+  }
+  // The status as offloaded, before the aggregate cap elides it: the session
+  // event emitter reads it here (`harness/events/emitter.ts`), so the log
+  // carries the offloaded previews and full-fidelity text.
+  if (options.afterOffload) {
+    await options.afterOffload();
   }
   if (enforceStatusSizeLimit(status)) {
     console.warn(

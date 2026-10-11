@@ -192,5 +192,6 @@ describe("ExecuteCursor hermetic — sub-agent delegation", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/sub-agent-delegation.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/sub-agent-delegation.events.json");
   });
 });

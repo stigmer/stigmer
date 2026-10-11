@@ -199,6 +199,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/stall.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/stall.events.json");
   });
 
   it("a cost cap terminates the turn with the budget copy and parks the agent", async () => {
@@ -260,6 +261,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/cost-cap.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/cost-cap.events.json");
   });
 
   it("a platform stop completes the turn early with the platform copy and parks the agent", async () => {
@@ -332,5 +334,6 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/platform-stop.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/platform-stop.events.json");
   });
 });
