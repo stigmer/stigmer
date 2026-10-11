@@ -2,7 +2,7 @@
  * Pins the agent Evals tab's pure rules: the form starts on the agent as
  * it runs with every plugin, refuses what the API refuses (the shared run
  * limits, no plugin picked, a tool name outside the API's pattern, too
- * many tags), and becomes an unnamed create input that names no plugin
+ * many tags, a tag over 64 characters), and becomes an unnamed create input that names no plugin
  * when every one is picked and the picked ones in the agent's order
  * otherwise; an eval's label is the agent version it ran, short, and when
  * it started; its results are one section per plugin with that plugin's
@@ -62,6 +62,12 @@ describe("the agent's Run evals form", () => {
     expect(
       agentEvalFormProblem({ ...form, caseGlob: "x".repeat(257) }),
     ).toMatch(/longer than 256/);
+    expect(
+      agentEvalFormProblem({ ...form, caseTags: ["smoke", "t".repeat(65)] }),
+    ).toBe("A tag is longer than 64 characters.");
+    expect(
+      agentEvalFormProblem({ ...form, caseTags: ["t".repeat(64)] }),
+    ).toBeNull();
   });
 
   it("names no plugin when every one is picked, so the eval runs every plugin the agent attaches", () => {

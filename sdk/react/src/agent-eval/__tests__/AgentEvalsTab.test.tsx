@@ -14,7 +14,12 @@
  * (no W/OUT, no Δ) with each try a link to its run, and a plugin whose
  * cases did not run with its reason; the result document downloads;
  * Compare labels both agent versions and marks a plugin whose digest
- * differs, and a changed case.
+ * differs, and a changed case. Also: a plugin cleared and picked again
+ * sends no plugin list (every plugin) and the case filters and tries at
+ * once are sent as typed; a past eval picked from the list opens; an eval
+ * whose read fails shows the error; Compare asks for two different evals
+ * when both pickers name one, shows a side whose read failed, and says why
+ * a plugin's cases did not run on a side.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -305,5 +310,94 @@ describe("AgentEvalsTab", () => {
     const linter = screen.getByRole("region", { name: "Compare plugin linter" });
     expect(linter.getAttribute("data-digest-changed")).toBeNull();
     expect(within(linter).queryByText(/plugin version changed/)).toBeNull();
+  });
+
+  it("sends every plugin once a cleared one is picked again, and the case filters and tries at once as typed", async () => {
+    const started = agentEvalWith([], { id: "aev_9" });
+    const mock = client([], { started });
+    render(<AgentEvalsTab agent={agentWith(["thermos", "linter"])} />, { wrapper: wrap(mock) });
+    const thermos = await screen.findByRole("checkbox", { name: "thermos" });
+    fireEvent.click(thermos);
+    expect((thermos as HTMLInputElement).checked).toBe(false);
+    fireEvent.click(thermos);
+    expect((thermos as HTMLInputElement).checked).toBe(true);
+    fireEvent.change(screen.getByLabelText("Cases matching"), { target: { value: "review-*" } });
+    fireEvent.change(screen.getByLabelText("Case tags"), { target: { value: "smoke, fast" } });
+    fireEvent.change(screen.getByLabelText("Tries at once"), { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "Run evals" }));
+    await vi.waitFor(() => expect(mock.agenteval.create).toHaveBeenCalled());
+    expect(mock.agenteval.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plugins: [],
+        caseGlob: "review-*",
+        caseTags: ["smoke", "fast"],
+        concurrency: 3,
+      }),
+    );
+  });
+
+  it("opens a past eval picked from the list", async () => {
+    const newer = agentEvalWith([{ slug: "thermos", cases: [{ name: "a", score: 1 }] }], {
+      id: "aev_2",
+      version: "22222222ffff",
+    });
+    const older = agentEvalWith([{ slug: "thermos", cases: [{ name: "a", score: 0 }] }], {
+      id: "aev_1",
+      version: "11111111ffff",
+    });
+    render(<AgentEvalsTab agent={agentWith(["thermos"])} />, { wrapper: wrap(client([newer, older])) });
+    expect(await screen.findByRole("heading", { name: /^Version 22222222 · started/ })).toBeDefined();
+    const list = screen.getByRole("list", { name: "Past evals" });
+    const [first, second] = within(list).getAllByRole("button");
+    expect(first?.getAttribute("aria-current")).toBe("true");
+    fireEvent.click(second!);
+    expect(await screen.findByRole("heading", { name: /^Version 11111111 · started/ })).toBeDefined();
+    expect(screen.queryByRole("heading", { name: /^Version 22222222 · started/ })).toBeNull();
+    expect(second?.getAttribute("aria-current")).toBe("true");
+    expect(first?.getAttribute("aria-current")).toBeNull();
+  });
+
+  it("shows the error when the eval cannot be read", async () => {
+    const mock = client([TWO_PLUGINS]);
+    mock.agenteval.get.mockRejectedValue(new Error("the server is unavailable"));
+    render(<AgentEvalsTab agent={agentWith(["thermos", "linter"])} />, { wrapper: wrap(mock) });
+    expect(await screen.findByText(/the server is unavailable/)).toBeDefined();
+    expect(screen.queryByRole("region", { name: "Plugin thermos" })).toBeNull();
+    expect(screen.queryByText("Loading the eval…")).toBeNull();
+  });
+
+  it("asks for two different evals when both compare pickers name one", async () => {
+    const newer = agentEvalWith([{ slug: "thermos", cases: [{ name: "a", score: 1 }] }], { id: "aev_2" });
+    const older = agentEvalWith([{ slug: "thermos", cases: [{ name: "a", score: 0 }] }], { id: "aev_1" });
+    render(<AgentEvalsTab agent={agentWith(["thermos"])} />, { wrapper: wrap(client([newer, older])) });
+    expect(await screen.findByRole("region", { name: "Compare plugin thermos" })).toBeDefined();
+    expect(screen.queryByText("Pick two different evals.")).toBeNull();
+    fireEvent.change(screen.getByLabelText("After"), { target: { value: "aev_1" } });
+    expect(screen.getByText("Pick two different evals.")).toBeDefined();
+    expect(screen.queryByRole("region", { name: "Compare plugin thermos" })).toBeNull();
+  });
+
+  it("shows a compare side whose read failed, never loading forever", async () => {
+    const newer = agentEvalWith([{ slug: "thermos", cases: [{ name: "a", score: 1 }] }], { id: "aev_2" });
+    const older = agentEvalWith([{ slug: "thermos", cases: [{ name: "a", score: 0 }] }], { id: "aev_1" });
+    const mock = client([newer, older]);
+    mock.agenteval.get.mockImplementation(async (id: string) => {
+      if (id === "aev_1") throw new Error("the server is unavailable");
+      return newer;
+    });
+    render(<AgentEvalsTab agent={agentWith(["thermos"])} />, { wrapper: wrap(mock) });
+    expect(await screen.findByText("Could not read the Before eval")).toBeDefined();
+    expect(screen.queryByText("Could not read the After eval")).toBeNull();
+    expect(screen.queryByText("Loading the comparison…")).toBeNull();
+  });
+
+  it("says in the comparison why a plugin's cases did not run on a side", async () => {
+    const newer = agentEvalWith([{ slug: "thermos", cases: [{ name: "a", score: 1 }] }], { id: "aev_2" });
+    const older = agentEvalWith([{ slug: "thermos", notRun: "not selected" }], { id: "aev_1" });
+    render(<AgentEvalsTab agent={agentWith(["thermos"])} />, { wrapper: wrap(client([newer, older])) });
+    const thermos = await screen.findByRole("region", { name: "Compare plugin thermos" });
+    expect(within(thermos).getByText("Not run in Before: not selected")).toBeDefined();
+    expect(within(thermos).queryByText(/Not run in After/)).toBeNull();
+    expect(within(thermos).getByRole("row", { name: /^a/ }).getAttribute("data-changed")).toBe("true");
   });
 });
