@@ -4,7 +4,7 @@
  * shows the CLI's "Installs" facts in the CLI's words (skills, servers,
  * sub-agents, variables) and the sentence telling the user the agent will
  * ask for its variables; Install pushes exactly the prepared bytes and
- * reports the members; an org that already holds the digest reads
+ * says what the installed plugin holds, from its status lists; an org that already holds the digest reads
  * "already installed" and Install is disabled; another digest reads as an
  * upgrade with its stated effect; the library's refusal shows every
  * sentence.
@@ -19,9 +19,7 @@ import { Stigmer } from "@stigmer/sdk";
 import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { ListPluginMembersResponseSchema, PluginMemberSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import { PluginMaterializationSchema, PluginState, PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { PluginStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { digestArchive } from "@stigmer/plugin-package/client";
 
@@ -50,8 +48,9 @@ function installedPlugin(digest: string) {
     metadata: create(ApiResourceMetadataSchema, { id: "plg_1", org: ORG, slug: "thermos", name: "thermos" }),
     status: create(PluginStatusSchema, {
       digest,
-      state: PluginState.READY,
-      materialized: create(PluginMaterializationSchema, { skills: 1, mcpServers: 1, agents: 1 }),
+      skills: [{ name: "keep-warm" }],
+      mcpServers: [{ name: "warmth", transport: { case: "http", value: { url: "https://warmth.example/mcp" } } }],
+      agents: [{ name: "thermos" }],
     }),
   });
 }
@@ -69,14 +68,6 @@ function backendTransport(backend: Backend) {
         if (backend.installedDigest === null) throw new ConnectError("no plugin", Code.NotFound);
         return installedPlugin(backend.installedDigest);
       },
-      listMembers: () =>
-        create(ListPluginMembersResponseSchema, {
-          members: [
-            create(PluginMemberSchema, { kind: ApiResourceKind.skill, id: "skl_1", slug: "keep-warm", name: "keep-warm" }),
-            create(PluginMemberSchema, { kind: ApiResourceKind.mcp_server, id: "mcp_1", slug: "warmth", name: "warmth" }),
-            create(PluginMemberSchema, { kind: ApiResourceKind.agent, id: "agt_1", slug: "thermos", name: "thermos" }),
-          ],
-        }),
     });
   });
 }

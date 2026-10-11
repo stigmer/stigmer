@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.session.v1;
 
-import "ai/stigmer/agentic/mcpserver/v1/usage.proto";
 import "ai/stigmer/agentic/session/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/workspace.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
@@ -24,7 +23,7 @@ message SessionSpec {
 
   // The agent this conversation runs, as 'org/slug' with an optional
   // version; empty means no agent, and the built-in assistant answers with
-  // the MCP servers and skills this session itself declares.
+  // the plugins and skills this session itself declares.
   //
   // The conversation runs the agent version this reference resolved to
   // when it was written, recorded in status.agent_id and
@@ -108,22 +107,11 @@ message SessionSpec {
   // When empty, the session uses an empty workspace directory.
   repeated WorkspaceEntry workspace_entries = 6;
 
-  // MCP servers to make available in this session.
-  //
-  // Augments the agent's tool set for this specific conversation without
-  // modifying the agent blueprint. Each usage references an McpServer
-  // resource. The agent's tool lists govern these servers like its own: an
-  // agent whose tools list does not name a session server cannot use it.
-  //
-  // @internal
-  // Merge semantics: session-level usages are union'd with agent-level usages,
-  // one entry per MCP server slug. The agent runner merges these with the
-  // agent's mcp_server_usages when constructing the execution graph.
-  repeated ai.stigmer.agentic.mcpserver.v1.McpServerUsage mcp_server_usages = 7 [(buf.validate.field).repeated.items.cel = {
-    id: "session_mcp_server_usages.kind"
-    message: "mcp_server_usages must reference resources with kind=mcp_server"
-    expression: "this.mcp_server_ref.kind == 44"
-  }];
+  // Field 7 named MCP server resources this conversation added until an MCP
+  // server became configuration inside a plugin: a conversation lists the
+  // plugins it adds in plugins.
+  reserved 7;
+  reserved "mcp_server_usages";
 
   // Skills to inject into this session's context.
   //
@@ -233,4 +221,24 @@ message SessionSpec {
   // A turn with no person, or one that runs another organization's agent,
   // ignores it.
   bool include_my_vault = 18;
+
+  // Plugins this conversation uses, each whole, besides its agent's: their
+  // skills, agents, hooks and MCP servers. A chat with the built-in
+  // assistant gets its tools from these.
+  //
+  // The agent's tool lists govern a conversation's plugins like its own: an
+  // agent whose tools list does not name a plugin's server cannot use it.
+  //
+  // @internal
+  // Added to the agent version's plugins, one entry per plugin; this
+  // reference's version wins when both name it. Resolved at turn start, the
+  // reference's version when set, else the installed version.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [
+    (ai.stigmer.commons.apiresource.reference_kind) = plugin,
+    (buf.validate.field).repeated.items.cel = {
+      id: "session_plugins.kind"
+      message: "plugins must reference resources with kind=plugin"
+      expression: "this.kind == 58"
+    }
+  ];
 }

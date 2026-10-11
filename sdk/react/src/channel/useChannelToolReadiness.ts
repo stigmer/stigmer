@@ -21,7 +21,7 @@ import {
  *
  * The check runs only when serving is enabled (a paused channel serves
  * no traffic), the deployment is cloud (the channel runtime is
- * cloud-only), and the agent declares MCP server usages.
+ * cloud-only), and the agent lists plugins (whose servers read keys).
  */
 export function useChannelToolReadiness(
   agent: Agent,
@@ -29,8 +29,8 @@ export function useChannelToolReadiness(
   vaults: readonly ResourceRef[],
 ): ToolCredentialsReadiness {
   const deploymentMode = useDeploymentMode();
-  const hasMcpTools = (agent.spec?.mcpServerUsages?.length ?? 0) > 0;
-  const applicable = enabled && deploymentMode === "cloud" && hasMcpTools;
+  const usesPlugins = (agent.spec?.plugins?.length ?? 0) > 0;
+  const applicable = enabled && deploymentMode === "cloud" && usesPlugins;
 
   return useToolCredentialsReadiness(applicable, vaults);
 }

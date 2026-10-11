@@ -386,9 +386,11 @@ private static final long serialVersionUID = 0L;
   private boolean provisionalDelta_ = false;
   /**
    * <pre>
-   * True while the comparison with and without the plugin also measures
-   * the agent Stigmer composes for the plugin at install, not only the
-   * plugin's parts.
+   * True when the comparison with and without the plugin also measured an
+   * agent Stigmer composed for the plugin at install, not only the plugin:
+   * an eval made before conversations listed plugins directly. Every eval
+   * made since runs both arms on the assistant, the with-plugin arm with the
+   * plugin listed, and records false.
    * </pre>
    *
    * <code>bool provisional_delta = 11 [json_name = "provisionalDelta"];</code>
@@ -2409,9 +2411,11 @@ java.lang.String defaultValue) {
     private boolean provisionalDelta_ ;
     /**
      * <pre>
-     * True while the comparison with and without the plugin also measures
-     * the agent Stigmer composes for the plugin at install, not only the
-     * plugin's parts.
+     * True when the comparison with and without the plugin also measured an
+     * agent Stigmer composed for the plugin at install, not only the plugin:
+     * an eval made before conversations listed plugins directly. Every eval
+     * made since runs both arms on the assistant, the with-plugin arm with the
+     * plugin listed, and records false.
      * </pre>
      *
      * <code>bool provisional_delta = 11 [json_name = "provisionalDelta"];</code>
@@ -2423,9 +2427,11 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * True while the comparison with and without the plugin also measures
-     * the agent Stigmer composes for the plugin at install, not only the
-     * plugin's parts.
+     * True when the comparison with and without the plugin also measured an
+     * agent Stigmer composed for the plugin at install, not only the plugin:
+     * an eval made before conversations listed plugins directly. Every eval
+     * made since runs both arms on the assistant, the with-plugin arm with the
+     * plugin listed, and records false.
      * </pre>
      *
      * <code>bool provisional_delta = 11 [json_name = "provisionalDelta"];</code>
@@ -2441,9 +2447,11 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * True while the comparison with and without the plugin also measures
-     * the agent Stigmer composes for the plugin at install, not only the
-     * plugin's parts.
+     * True when the comparison with and without the plugin also measured an
+     * agent Stigmer composed for the plugin at install, not only the plugin:
+     * an eval made before conversations listed plugins directly. Every eval
+     * made since runs both arms on the assistant, the with-plugin arm with the
+     * plugin listed, and records false.
      * </pre>
      *
      * <code>bool provisional_delta = 11 [json_name = "provisionalDelta"];</code>

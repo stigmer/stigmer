@@ -108,6 +108,8 @@ import type { SandboxLane } from "../../sandbox/lane.js";
 import { deprovisionSessionSandboxBestEffort } from "../../sandbox/steps.js";
 import type { RunScoreCascade } from "../score/cascade.js";
 import { newResolveSessionAgentStep } from "./resolve-session-agent.js";
+import { newRefuseLocalProgramsStep } from "./refuse-local-programs.js";
+import { newLocalProgramPolicy } from "../run/local-programs.js";
 import { sessionRunTarget } from "./run-target.js";
 import { sessionSearchExtractor } from "./search-extractor.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
@@ -260,7 +262,13 @@ async function createSession(
     .addStep(
       newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
     )
-    .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget));
+    .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
+    .addStep(
+      newRefuseLocalProgramsStep(
+        deps.store,
+        newLocalProgramPolicy(deps.sandboxLane, deps.temporalConfig),
+      ),
+    );
   // The pre-side-effect gate slot (see the create doc comment). Empty in
   // OSS.
   for (const step of stepsForSlot<typeof SessionSchema>(

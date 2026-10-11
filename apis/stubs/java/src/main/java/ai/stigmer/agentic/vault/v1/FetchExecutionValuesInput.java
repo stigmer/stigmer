@@ -58,7 +58,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object executionId_ = "";
   /**
    * <pre>
-   * The run's id, or the id of a tool connect's attempt.
+   * The run's id, or the id of a tools listing's connect attempt.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -79,7 +79,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The run's id, or the id of a tool connect's attempt.
+   * The run's id, or the id of a tools listing's connect attempt.
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -401,7 +401,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object executionId_ = "";
     /**
      * <pre>
-     * The run's id, or the id of a tool connect's attempt.
+     * The run's id, or the id of a tools listing's connect attempt.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -421,7 +421,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The run's id, or the id of a tool connect's attempt.
+     * The run's id, or the id of a tools listing's connect attempt.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -442,7 +442,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The run's id, or the id of a tool connect's attempt.
+     * The run's id, or the id of a tools listing's connect attempt.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -459,7 +459,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The run's id, or the id of a tool connect's attempt.
+     * The run's id, or the id of a tools listing's connect attempt.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -473,7 +473,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The run's id, or the id of a tool connect's attempt.
+     * The run's id, or the id of a tools listing's connect attempt.
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

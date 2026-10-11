@@ -62,15 +62,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_plugin_v1_PluginArtifactDownloadUrl_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_plugin_v1_PluginMember_descriptor;
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginToolsInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_plugin_v1_PluginMember_fieldAccessorTable;
+      internal_static_ai_stigmer_agentic_plugin_v1_ListPluginToolsInput_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginMembersResponse_descriptor;
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginToolsOutput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_plugin_v1_ListPluginMembersResponse_fieldAccessorTable;
+      internal_static_ai_stigmer_agentic_plugin_v1_ListPluginToolsOutput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginTool_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_plugin_v1_PluginTool_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_plugin_v1_ListPluginVersionsInput_descriptor;
   static final 
@@ -96,68 +101,67 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n%ai/stigmer/agentic/plugin/v1/io.proto\022" +
-      "\034ai.stigmer.agentic.plugin.v1\032Fai/stigme" +
-      "r/commons/apiresource/apiresourcekind/ap" +
-      "i_resource_kind.proto\032)ai/stigmer/common" +
-      "s/apiresource/enum.proto\032+ai/stigmer/com" +
-      "mons/apiresource/status.proto\032\033buf/valid" +
-      "ate/validate.proto\032\037google/protobuf/time" +
-      "stamp.proto\"(\n\010PluginId\022\034\n\005value\030\001 \001(\tB\006" +
-      "\272H\003\310\001\001R\005value\"\256\003\n\021PushPluginRequest\022\030\n\003o" +
-      "rg\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\032\n\010artifact\030\002 \001(\014R" +
-      "\010artifact\022.\n\023artifact_upload_ref\030\003 \001(\tR\021" +
-      "artifactUploadRef\022_\n\nvisibility\030\004 \001(\01625." +
-      "ai.stigmer.commons.apiresource.ApiResour" +
-      "ceVisibilityB\010\272H\005\202\001\002\020\001R\nvisibility\022\030\n\007me" +
-      "ssage\030\005 \001(\tR\007message:\267\001\272H\263\001\032\260\001\n#push_plu" +
-      "gin_request.artifact_source\022Iexactly one" +
-      " of artifact (inline bytes) or artifact_" +
-      "upload_ref must be set\032>(this.artifact.s" +
-      "ize() > 0) != (this.artifact_upload_ref " +
-      "!= \'\')\"h\n$CreatePluginArtifactUploadUrlR" +
-      "equest\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022&\n\nsize" +
-      "_bytes\030\002 \001(\003B\007\272H\004\"\002 \000R\tsizeBytes\"|\n\027Plug" +
-      "inArtifactUploadUrl\022\020\n\003url\030\001 \001(\tR\003url\022.\n" +
-      "\023artifact_upload_ref\030\002 \001(\tR\021artifactUplo" +
-      "adRef\022\037\n\013ttl_seconds\030\003 \001(\005R\nttlSeconds\"N" +
-      "\n\022GetArtifactRequest\0228\n\024artifact_storage" +
-      "_key\030\001 \001(\tB\006\272H\003\310\001\001R\022artifactStorageKey\"1" +
-      "\n\023GetArtifactResponse\022\032\n\010artifact\030\001 \001(\014R" +
-      "\010artifact\"m\n\031PluginArtifactDownloadUrl\022\020" +
-      "\n\003url\030\001 \001(\tR\003url\022\037\n\013ttl_seconds\030\002 \001(\005R\nt" +
-      "tlSeconds\022\035\n\nsize_bytes\030\003 \001(\003R\tsizeBytes" +
-      "\"\233\001\n\014PluginMember\022S\n\004kind\030\001 \001(\0162?.ai.sti" +
-      "gmer.commons.apiresource.apiresourcekind" +
-      ".ApiResourceKindR\004kind\022\016\n\002id\030\002 \001(\tR\002id\022\022" +
-      "\n\004slug\030\003 \001(\tR\004slug\022\022\n\004name\030\004 \001(\tR\004name\"a" +
-      "\n\031ListPluginMembersResponse\022D\n\007members\030\001" +
-      " \003(\0132*.ai.stigmer.agentic.plugin.v1.Plug" +
-      "inMemberR\007members\"\213\001\n\027ListPluginVersions" +
-      "Input\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\032\n\004slug\030" +
-      "\002 \001(\tB\006\272H\003\310\001\001R\004slug\022\035\n\npage_token\030\003 \001(\tR" +
-      "\tpageToken\022\033\n\tpage_size\030\004 \001(\005R\010pageSize\"" +
-      "\266\002\n\022PluginVersionEntry\022\026\n\006digest\030\001 \001(\tR\006" +
-      "digest\0227\n\tpushed_at\030\002 \001(\0132\032.google.proto" +
-      "buf.TimestampR\010pushedAt\022R\n\tpushed_by\030\003 \001" +
-      "(\01325.ai.stigmer.commons.apiresource.ApiR" +
-      "esourceAuditActorR\010pushedBy\022\020\n\003tag\030\004 \001(\t" +
-      "R\003tag\022\035\n\nis_current\030\005 \001(\010R\tisCurrent\022\030\n\007" +
-      "message\030\006 \001(\tR\007message\0220\n\024artifact_stora" +
-      "ge_key\030\007 \001(\tR\022artifactStorageKey\"\263\001\n\032Lis" +
-      "tPluginVersionsResponse\022L\n\010versions\030\001 \003(" +
-      "\01320.ai.stigmer.agentic.plugin.v1.PluginV" +
-      "ersionEntryR\010versions\022&\n\017next_page_token" +
-      "\030\002 \001(\tR\rnextPageToken\022\037\n\013total_count\030\003 \001" +
-      "(\005R\ntotalCountB\236\001B\007IoProtoP\001\242\002\004ASAP\252\002\034Ai" +
-      ".Stigmer.Agentic.Plugin.V1\312\002\034Ai\\Stigmer\\" +
-      "Agentic\\Plugin\\V1\342\002(Ai\\Stigmer\\Agentic\\P" +
-      "lugin\\V1\\GPBMetadata\352\002 Ai::Stigmer::Agen" +
-      "tic::Plugin::V1b\006proto3"
+      "\034ai.stigmer.agentic.plugin.v1\032)ai/stigme" +
+      "r/commons/apiresource/enum.proto\032+ai/sti" +
+      "gmer/commons/apiresource/status.proto\032\033b" +
+      "uf/validate/validate.proto\032\037google/proto" +
+      "buf/timestamp.proto\"(\n\010PluginId\022\034\n\005value" +
+      "\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\256\003\n\021PushPluginRequ" +
+      "est\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\032\n\010artifac" +
+      "t\030\002 \001(\014R\010artifact\022.\n\023artifact_upload_ref" +
+      "\030\003 \001(\tR\021artifactUploadRef\022_\n\nvisibility\030" +
+      "\004 \001(\01625.ai.stigmer.commons.apiresource.A" +
+      "piResourceVisibilityB\010\272H\005\202\001\002\020\001R\nvisibili" +
+      "ty\022\030\n\007message\030\005 \001(\tR\007message:\267\001\272H\263\001\032\260\001\n#" +
+      "push_plugin_request.artifact_source\022Iexa" +
+      "ctly one of artifact (inline bytes) or a" +
+      "rtifact_upload_ref must be set\032>(this.ar" +
+      "tifact.size() > 0) != (this.artifact_upl" +
+      "oad_ref != \'\')\"h\n$CreatePluginArtifactUp" +
+      "loadUrlRequest\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org" +
+      "\022&\n\nsize_bytes\030\002 \001(\003B\007\272H\004\"\002 \000R\tsizeBytes" +
+      "\"|\n\027PluginArtifactUploadUrl\022\020\n\003url\030\001 \001(\t" +
+      "R\003url\022.\n\023artifact_upload_ref\030\002 \001(\tR\021arti" +
+      "factUploadRef\022\037\n\013ttl_seconds\030\003 \001(\005R\nttlS" +
+      "econds\"N\n\022GetArtifactRequest\0228\n\024artifact" +
+      "_storage_key\030\001 \001(\tB\006\272H\003\310\001\001R\022artifactStor" +
+      "ageKey\"1\n\023GetArtifactResponse\022\032\n\010artifac" +
+      "t\030\001 \001(\014R\010artifact\"m\n\031PluginArtifactDownl" +
+      "oadUrl\022\020\n\003url\030\001 \001(\tR\003url\022\037\n\013ttl_seconds\030" +
+      "\002 \001(\005R\nttlSeconds\022\035\n\nsize_bytes\030\003 \001(\003R\ts" +
+      "izeBytes\"v\n\024ListPluginToolsInput\022#\n\tplug" +
+      "in_id\030\001 \001(\tB\006\272H\003\310\001\001R\010pluginId\022\036\n\006server\030" +
+      "\002 \001(\tB\006\272H\003\310\001\001R\006server\022\031\n\003org\030\003 \001(\tB\007\272H\004r" +
+      "\002\020\001R\003org\"W\n\025ListPluginToolsOutput\022>\n\005too" +
+      "ls\030\001 \003(\0132(.ai.stigmer.agentic.plugin.v1." +
+      "PluginToolR\005tools\"d\n\nPluginTool\022\022\n\004name\030" +
+      "\001 \001(\tR\004name\022 \n\013description\030\002 \001(\tR\013descri" +
+      "ption\022 \n\013destructive\030\003 \001(\010R\013destructive\"" +
+      "\213\001\n\027ListPluginVersionsInput\022\030\n\003org\030\001 \001(\t" +
+      "B\006\272H\003\310\001\001R\003org\022\032\n\004slug\030\002 \001(\tB\006\272H\003\310\001\001R\004slu" +
+      "g\022\035\n\npage_token\030\003 \001(\tR\tpageToken\022\033\n\tpage" +
+      "_size\030\004 \001(\005R\010pageSize\"\266\002\n\022PluginVersionE" +
+      "ntry\022\026\n\006digest\030\001 \001(\tR\006digest\0227\n\tpushed_a" +
+      "t\030\002 \001(\0132\032.google.protobuf.TimestampR\010pus" +
+      "hedAt\022R\n\tpushed_by\030\003 \001(\01325.ai.stigmer.co" +
+      "mmons.apiresource.ApiResourceAuditActorR" +
+      "\010pushedBy\022\020\n\003tag\030\004 \001(\tR\003tag\022\035\n\nis_curren" +
+      "t\030\005 \001(\010R\tisCurrent\022\030\n\007message\030\006 \001(\tR\007mes" +
+      "sage\0220\n\024artifact_storage_key\030\007 \001(\tR\022arti" +
+      "factStorageKey\"\263\001\n\032ListPluginVersionsRes" +
+      "ponse\022L\n\010versions\030\001 \003(\01320.ai.stigmer.age" +
+      "ntic.plugin.v1.PluginVersionEntryR\010versi" +
+      "ons\022&\n\017next_page_token\030\002 \001(\tR\rnextPageTo" +
+      "ken\022\037\n\013total_count\030\003 \001(\005R\ntotalCountB\236\001B" +
+      "\007IoProtoP\001\242\002\004ASAP\252\002\034Ai.Stigmer.Agentic.P" +
+      "lugin.V1\312\002\034Ai\\Stigmer\\Agentic\\Plugin\\V1\342" +
+      "\002(Ai\\Stigmer\\Agentic\\Plugin\\V1\\GPBMetada" +
+      "ta\352\002 Ai::Stigmer::Agentic::Plugin::V1b\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindProto.getDescriptor(),
           ai.stigmer.commons.apiresource.EnumProto.getDescriptor(),
           ai.stigmer.commons.apiresource.StatusProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
@@ -205,38 +209,43 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_PluginArtifactDownloadUrl_descriptor,
         new java.lang.String[] { "Url", "TtlSeconds", "SizeBytes", });
-    internal_static_ai_stigmer_agentic_plugin_v1_PluginMember_descriptor =
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginToolsInput_descriptor =
       getDescriptor().getMessageType(7);
-    internal_static_ai_stigmer_agentic_plugin_v1_PluginMember_fieldAccessorTable = new
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginToolsInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_plugin_v1_PluginMember_descriptor,
-        new java.lang.String[] { "Kind", "Id", "Slug", "Name", });
-    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginMembersResponse_descriptor =
+        internal_static_ai_stigmer_agentic_plugin_v1_ListPluginToolsInput_descriptor,
+        new java.lang.String[] { "PluginId", "Server", "Org", });
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginToolsOutput_descriptor =
       getDescriptor().getMessageType(8);
-    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginMembersResponse_fieldAccessorTable = new
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginToolsOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_plugin_v1_ListPluginMembersResponse_descriptor,
-        new java.lang.String[] { "Members", });
-    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginVersionsInput_descriptor =
+        internal_static_ai_stigmer_agentic_plugin_v1_ListPluginToolsOutput_descriptor,
+        new java.lang.String[] { "Tools", });
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginTool_descriptor =
       getDescriptor().getMessageType(9);
+    internal_static_ai_stigmer_agentic_plugin_v1_PluginTool_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_plugin_v1_PluginTool_descriptor,
+        new java.lang.String[] { "Name", "Description", "Destructive", });
+    internal_static_ai_stigmer_agentic_plugin_v1_ListPluginVersionsInput_descriptor =
+      getDescriptor().getMessageType(10);
     internal_static_ai_stigmer_agentic_plugin_v1_ListPluginVersionsInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_ListPluginVersionsInput_descriptor,
         new java.lang.String[] { "Org", "Slug", "PageToken", "PageSize", });
     internal_static_ai_stigmer_agentic_plugin_v1_PluginVersionEntry_descriptor =
-      getDescriptor().getMessageType(10);
+      getDescriptor().getMessageType(11);
     internal_static_ai_stigmer_agentic_plugin_v1_PluginVersionEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_PluginVersionEntry_descriptor,
         new java.lang.String[] { "Digest", "PushedAt", "PushedBy", "Tag", "IsCurrent", "Message", "ArtifactStorageKey", });
     internal_static_ai_stigmer_agentic_plugin_v1_ListPluginVersionsResponse_descriptor =
-      getDescriptor().getMessageType(11);
+      getDescriptor().getMessageType(12);
     internal_static_ai_stigmer_agentic_plugin_v1_ListPluginVersionsResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_plugin_v1_ListPluginVersionsResponse_descriptor,
         new java.lang.String[] { "Versions", "NextPageToken", "TotalCount", });
     descriptor.resolveAllFeaturesImmutable();
-    ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindProto.getDescriptor();
     ai.stigmer.commons.apiresource.EnumProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

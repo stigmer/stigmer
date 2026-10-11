@@ -17,8 +17,6 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -29,11 +27,6 @@ import { createServer } from "../../server";
 configureLogger({ level: "error", format: "text" });
 
 const agent = create(AgentSchema, { apiVersion: "v1", kind: "agent", metadata: { slug: "a", org: "acme" } });
-const mcpServer = create(McpServerSchema, {
-  apiVersion: "v1",
-  kind: "mcp_server",
-  metadata: { slug: "m", org: "acme" },
-});
 const skill = create(SkillSchema, { apiVersion: "v1", kind: "skill", metadata: { slug: "s", org: "acme" } });
 
 let backend: Http2Server;
@@ -48,7 +41,6 @@ interface ResourceResult {
 beforeAll(async () => {
   const routes = (router: ConnectRouter) => {
     router.service(AgentQueryController, { getByReference: () => agent });
-    router.service(McpServerQueryController, { getByReference: () => mcpServer });
     router.service(SkillQueryController, {
       getByReference: (req) => {
         lastSkillVersion = req.version;
@@ -82,7 +74,6 @@ describe("resource templates integration", () => {
     expect(resourceTemplates.map((t) => t.name)).toEqual(
       expect.arrayContaining([
         "stigmer_agent",
-        "stigmer_mcp_server",
         "stigmer_skill",
         "stigmer_skill_version",
       ]),
@@ -94,15 +85,6 @@ describe("resource templates integration", () => {
     expect(result.contents[0]?.mimeType).toBe("application/json");
     expect(JSON.parse(result.contents[0]?.text ?? "{}")).toEqual(
       toJson(AgentSchema, agent, { useProtoFieldName: true }),
-    );
-  });
-
-  it("reads an mcp-server resource", async () => {
-    const result = (await client.readResource({
-      uri: "stigmer://mcp-servers/acme/m",
-    })) as ResourceResult;
-    expect(JSON.parse(result.contents[0]?.text ?? "{}")).toEqual(
-      toJson(McpServerSchema, mcpServer, { useProtoFieldName: true }),
     );
   });
 

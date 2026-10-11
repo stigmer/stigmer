@@ -8,10 +8,11 @@
 /**
  * Generate every accepted input form for a resource kind.
  *
- * From name "McpServer":      "mcpserver", "mcp-server", "mcp_server", "McpServer"
- * From displayName "MCP Server": "mcp" / "MCP"
- * From idPrefix "mcp":         "mcp"
- * From protoName "mcp_server": usually re-derives the forms above; for
+ * From name "AgentChannel":   "agentchannel", "agent-channel", "agent_channel", "AgentChannel"
+ * From displayName "Agent Channel": nothing here ("agent" is the name's own prefix);
+ *                              a single-word display name adds its lower/upper forms
+ * From idPrefix "ach":         "ach"
+ * From protoName "agent_channel": usually re-derives the forms above; for
  *                              "OAuthApp" it contributes "oauth_app"/"oauth-app"
  * Plus the plural of every form above.
  */
@@ -33,13 +34,13 @@ export function generateAliases(
     }
   };
 
-  // From name: "McpServer"
-  add(name.toLowerCase()); // "mcpserver"
-  add(toKebabCase(name)); // "mcp-server"
-  add(toSnakeCase(name)); // "mcp_server"
-  add(name); // "McpServer"
+  // From name: "AgentChannel"
+  add(name.toLowerCase()); // "agentchannel"
+  add(toKebabCase(name)); // "agent-channel"
+  add(toSnakeCase(name)); // "agent_channel"
+  add(name); // "AgentChannel"
 
-  // From the proto enum value name: "mcp_server". For most kinds this re-derives
+  // From the proto enum value name: "agent_channel". For most kinds this re-derives
   // the snake/kebab forms above, but it is the only source that knows the true
   // word boundaries when the PascalCase name has consecutive capitals — no split
   // of "OAuthApp" can recover "oauth_app", because "OAuth" being one word is
@@ -52,7 +53,8 @@ export function generateAliases(
   // From display_name: single-word names contribute lower/upper forms; for
   // multi-word names only the first word is added, and only when it does not
   // simply re-derive the name (this stops "Agent Share" from stealing
-  // "agent" from "Agent", while still letting "MCP Server" register "mcp").
+  // "agent" from "Agent", while still letting a display name whose first word
+  // is not the name's own prefix register that word).
   const words = displayName.split(/\s+/).filter((w) => w.length > 0);
   if (words.length === 1) {
     add(words[0].toLowerCase());
@@ -66,7 +68,7 @@ export function generateAliases(
     }
   }
 
-  // From id_prefix: "mcp"
+  // From id_prefix: "ach"
   add(idPrefix);
 
   // Plurals of every form gathered so far.
@@ -77,12 +79,12 @@ export function generateAliases(
   return aliases;
 }
 
-/** Convert PascalCase to kebab-case: "McpServer" -> "mcp-server". */
+/** Convert PascalCase to kebab-case: "AgentChannel" -> "agent-channel". */
 export function toKebabCase(s: string): string {
   return splitCase(s, "-");
 }
 
-/** Convert PascalCase to snake_case: "McpServer" -> "mcp_server". */
+/** Convert PascalCase to snake_case: "AgentChannel" -> "agent_channel". */
 export function toSnakeCase(s: string): string {
   return splitCase(s, "_");
 }

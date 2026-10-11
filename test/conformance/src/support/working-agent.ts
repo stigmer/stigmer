@@ -8,9 +8,9 @@
 // request-shape goldens photograph. It has no tools, no MCP server, no skills
 // and no workspace, so a benchmark of it can say nothing about the turns a
 // user actually waits on. This agent carries each of those, one of a kind:
-// - an HTTP MCP server on the execution target's tool fixture, serving the
-//   read-only `lookup_order` table (harness/mcp-server.ts). That is the
-//   user-declared remote shape;
+// - a plugin whose one HTTP MCP server is the execution target's tool
+//   fixture, serving the read-only `lookup_order` table
+//   (harness/mcp-server.ts). That is the user-installed remote shape;
 // - memory on, through a real Organization with fixed confirmed facts. That
 //   is the platform's stdio attachment: the runner spawns `stigmer
 //   mcp-server` per turn (runner shared/memory-attachment.ts), so the
@@ -27,7 +27,7 @@
 // workspace, so the agent under measurement is the product's, not invented.
 //
 // Every name this module chooses that can reach the model's prompt is FIXED:
-// the skill, sub-agent and MCP server names, the workspace entry and its host
+// the skill, sub-agent, plugin and MCP server names, the workspace entry and its host
 // path, the facts, the instructions. Each provisioning gets a fresh
 // Organization, which is what makes fixed names legal, and fixed names are
 // what keep the prompt identical from session to session. A user's names and
@@ -53,7 +53,7 @@ import type { ConformanceClients } from "../harness/clients";
 import type { FixtureTracker } from "../harness/fixtures";
 import { LOOKUP_ORDER_TOOL_NAME, type FixtureTool } from "../harness/mcp-server";
 import { type AgentRefInit, agentRefOf, makeAgent } from "./agents";
-import { makeHttpMcpServer } from "./mcpservers";
+import { oneServerPlugin, pushPlugin } from "./plugins";
 import { provisionOrgWithFacts } from "./memories";
 import { localWorkspaceEntries, type LocalWorkspaceOption } from "./sessions";
 import { zipFiles } from "./skills";
@@ -62,7 +62,9 @@ import { zipFiles } from "./skills";
 export const WORKING_AGENT_FIXTURE_DIR = resolve(import.meta.dirname, "..", "..", "fixtures", "working-agent");
 
 export const WORKING_AGENT_NAME = "orders-assistant";
-export const WORKING_AGENT_MCP_SERVER_NAME = "orders-api";
+/** The plugin the agent uses, and its one MCP server's name inside it. */
+export const WORKING_AGENT_PLUGIN_NAME = "orders-api";
+export const WORKING_AGENT_MCP_SERVER_NAME = "orders";
 export const WORKING_AGENT_SUB_AGENT_NAME = "reviewer";
 
 /** The workspace entry's name, and the basename every seeded workspace directory must carry. */
@@ -97,7 +99,8 @@ export interface WorkingAgent {
   agentRef: AgentRefInit;
   /** The seeded workspace, as the session mounts it. */
   workspace: LocalWorkspaceOption;
-  mcpServerSlug: string;
+  /** The slug of the plugin whose one server is the orders API. */
+  pluginSlug: string;
   /** The pushed skills' slugs, in the fixture's (sorted) order. */
   skillSlugs: string[];
 }
@@ -110,8 +113,8 @@ export interface WorkingAgentOptions {
 }
 
 /**
- * Seeds the workspace, then creates the organization with its facts, the MCP
- * server, the eight skills and the agent, each deferred for cleanup on
+ * Seeds the workspace, then creates the organization with its facts, the
+ * plugin carrying the MCP server, the eight skills and the agent, each deferred for cleanup on
  * `fixtures`. One call per session: a session's edits never reach the next.
  */
 export async function provisionWorkingAgent(
@@ -122,10 +125,12 @@ export async function provisionWorkingAgent(
   await seedWorkingWorkspace(opts.workspaceDir);
   const { org } = await provisionOrgWithFacts(clients, fixtures, WORKING_AGENT_FACTS);
 
-  const mcpServer = await clients.mcpServerCommand.create(
-    makeHttpMcpServer({ org, name: WORKING_AGENT_MCP_SERVER_NAME, url: opts.mcpUrl, description: "the orders API" }),
+  const plugin = await pushPlugin(
+    clients,
+    fixtures,
+    org,
+    oneServerPlugin({ name: WORKING_AGENT_PLUGIN_NAME, serverName: WORKING_AGENT_MCP_SERVER_NAME, server: { url: opts.mcpUrl } }),
   );
-  fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: mcpServer.metadata!.id }));
 
   const skillSlugs: string[] = [];
   for (const name of await workingAgentSkillNames()) {
@@ -141,7 +146,7 @@ export async function provisionWorkingAgent(
       name: WORKING_AGENT_NAME,
       description: "the harness benchmark's working agent",
       instructions: WORKING_AGENT_INSTRUCTIONS,
-      mcpServerRefs: [mcpServer.metadata!.slug],
+      plugins: [plugin.metadata!.slug],
       skillRefs: skillSlugs,
       subAgents: [
         {
@@ -158,7 +163,7 @@ export async function provisionWorkingAgent(
     org,
     agentRef: agentRefOf(agent),
     workspace: { name: WORKING_AGENT_WORKSPACE_NAME, path: opts.workspaceDir },
-    mcpServerSlug: mcpServer.metadata!.slug,
+    pluginSlug: plugin.metadata!.slug,
     skillSlugs,
   };
 }

@@ -46,15 +46,11 @@ message PluginEvalStatus {
   google.protobuf.Timestamp started_at = 9;
   google.protobuf.Timestamp finished_at = 10;
 
-  // True while the comparison with and without the plugin also measures
-  // the agent Stigmer composes for the plugin at install, not only the
-  // plugin's parts.
-  //
-  // @internal
-  // The with-arm runs on the plugin's composed agent, whose instructions
-  // name the plugin; the without-arm runs on the assistant. When sessions
-  // attach plugins directly, both arms run on the assistant and this is
-  // false.
+  // True when the comparison with and without the plugin also measured an
+  // agent Stigmer composed for the plugin at install, not only the plugin:
+  // an eval made before conversations listed plugins directly. Every eval
+  // made since runs both arms on the assistant, the with-plugin arm with the
+  // plugin listed, and records false.
   bool provisional_delta = 11;
 
   // Who attached each of this eval's vaults, by vault id: the account

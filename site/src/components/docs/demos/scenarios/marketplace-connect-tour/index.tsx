@@ -1,18 +1,30 @@
 "use client";
 
+/**
+ * Renders the marketplace connect tour: the Plugins grid, then the real
+ * `PluginDetailView` for Neon over preview fixtures (the plugin's read, My
+ * vault's read, and the server's tools listing).
+ *
+ * The tools beat is the real "Check tools": `RealButtonTarget` tags the
+ * button for the cursor on the beat before, and on the tools beat (a fresh
+ * mount) presses it, so `usePluginTools` asks `listTools` and the fixture
+ * answers. Every other beat is the page as it loads.
+ */
+
 import { useCallback, useMemo, useRef, useState } from "react";
-import { McpServerDetailView } from "@stigmer/react";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { PluginDetailView } from "@stigmer/react";
+import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import {
   ScenarioPlayer,
   useNarrationManifest,
   Cursor,
   useStepInteractions,
 } from "@scenar/react";
-import { emptyMyVault } from "../../fixtures";
+import { myVaultHolding } from "../../fixtures";
 import { StigmerPreviewProvider } from "../../shared/StigmerPreviewProvider";
+import { RealButtonTarget } from "../../shared/RealButtonTarget";
 import { connectFixture } from "@scenar/preview/connect";
 import { AppShell } from "../../views/AppShell";
 import { ResourceListPage } from "../../views/ResourceListPage";
@@ -23,15 +35,17 @@ import {
   marketplaceConnectSteps,
   DEMO_ORG,
   DEMO_SLUG,
+  NEON_KEY,
+  NEON_PLUGIN,
+  NEON_TOOLS,
 } from "./steps";
-
 
 function cursorTargetFor(step: MarketplaceConnectStep): string | undefined {
   switch (step.view) {
     case "grid-select":
       return step.targetSlug;
-    case "click-connect":
-      return "connect-button";
+    case "click-check-tools":
+      return "check-tools";
     default:
       return undefined;
   }
@@ -41,32 +55,24 @@ function contentKeyFor(step: MarketplaceConnectStep): string {
   switch (step.view) {
     case "grid-browse":
     case "grid-select":
-      return "mcp-servers-grid";
-    case "detail-view":
-    case "click-connect":
-    case "connected-tools":
-      return "mcp-detail";
+      return "plugins-grid";
+    case "plugin-detail":
+    case "click-check-tools":
+    case "tools-listed":
+      return "plugin-detail";
   }
 }
 
 function slideDirectionFor(
   step: MarketplaceConnectStep,
 ): "forward" | "backward" | undefined {
-  if (step.view === "detail-view") return "forward";
+  if (step.view === "plugin-detail") return "forward";
   return undefined;
 }
 
+/** The page stays mounted until the tools beat, whose fresh mount presses Check tools. */
 function componentKeyFor(step: MarketplaceConnectStep): string {
-  switch (step.view) {
-    case "grid-browse":
-    case "grid-select":
-      return "grid";
-    case "detail-view":
-    case "click-connect":
-      return "detail-base";
-    case "connected-tools":
-      return "connected-tools";
-  }
+  return step.view === "tools-listed" ? "tools-listed" : "plugin-detail";
 }
 
 function renderGridStep(step: MarketplaceConnectStep) {
@@ -77,10 +83,10 @@ function renderGridStep(step: MarketplaceConnectStep) {
       contentKey={contentKeyFor(step)}
     >
       <ResourceListPage
-        title="MCP Servers"
-        createLabel="Add MCP Server"
-        cursorTarget="create-mcp-server"
-        items={step.servers}
+        title="Plugins"
+        createLabel="Add MCP server"
+        cursorTarget="add-mcp-server"
+        items={step.plugins}
         layout="grid"
       />
     </AppShell>
@@ -92,12 +98,13 @@ export function MarketplaceConnectTour() {
     "marketplace-connect-tour",
   );
 
-  const currentServerRef = useRef<McpServer>(null!);
-
   const previewFixtures = useMemo(
     () => [
-      connectFixture(McpServerQueryController, "getByReference", () => currentServerRef.current),
-      connectFixture(VaultQueryController, "getMine", emptyMyVault),
+      connectFixture(PluginQueryController, "getByReference", () => NEON_PLUGIN),
+      connectFixture(VaultQueryController, "getMine", () =>
+        myVaultHolding(NEON_KEY, "Neon API key"),
+      ),
+      connectFixture(PluginCommandController, "listTools", () => NEON_TOOLS),
     ],
     [],
   );
@@ -135,7 +142,6 @@ export function MarketplaceConnectTour() {
               return renderGridStep(step);
             }
 
-            currentServerRef.current = step.server;
             return (
               <AppShell
                 activeNav="library"
@@ -149,11 +155,14 @@ export function MarketplaceConnectTour() {
                   style={{ zoom: DEMO_CONTENT_ZOOM }}
                 >
                   <div className="p-4">
-                    <McpServerDetailView
-                      org={DEMO_ORG}
-                      slug={DEMO_SLUG}
-                    />
-                    <div data-scroll-target="capabilities-bottom" />
+                    <RealButtonTarget
+                      label="Check tools"
+                      target="check-tools"
+                      press={step.view === "tools-listed"}
+                    >
+                      <PluginDetailView org={DEMO_ORG} slug={DEMO_SLUG} />
+                    </RealButtonTarget>
+                    <div data-scroll-target="plugin-bottom" />
                   </div>
                 </div>
               </AppShell>

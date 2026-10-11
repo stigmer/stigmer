@@ -231,7 +231,7 @@ describe("the built-in assistant (no session and no session_spec named)", () => 
     execution.spec!.target = {
       case: "sessionSpec",
       value: create(SessionSpecSchema, {
-        mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }],
+        plugins: [{ org: "acme", slug: "github" }],
       }),
     };
     const ctx = newContext(execution);
@@ -240,7 +240,7 @@ describe("the built-in assistant (no session and no session_spec named)", () => 
 
     const created = sessions.created();
     expect(created?.spec?.agentRef).toBeUndefined();
-    expect(created?.spec?.mcpServerUsages.map((u) => u.mcpServerRef?.slug)).toEqual(["github"]);
+    expect(created?.spec?.plugins.map((ref) => ref.slug)).toEqual(["github"]);
   });
 });
 

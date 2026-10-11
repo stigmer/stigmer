@@ -48,7 +48,7 @@ export class CursorFold {
     this.status = options.status ?? create(RunStatusSchema, {});
     if (options.messages) this.status.messages = options.messages;
     this.translator = new CursorTranslator({
-      mcpDefault: options.mcpDefault ?? { destructive: new Set(), leasedServers: new Set() },
+      mcpDefault: options.mcpDefault ?? { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() },
       leases: options.leases ?? { global: false, categories: new Set() },
       seeded: this.status.messages,
     });

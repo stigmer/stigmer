@@ -16,7 +16,7 @@ The `apis/` directory houses all `.proto` files that define:
 apis/
 ├── ai/stigmer/agentic/           # Agentic AI APIs
 │   ├── agent/                    # Agent definitions
-│   ├── mcpserver/                # MCP server definitions
+│   ├── plugin/                   # Installed plugins (skills, agents, hooks, MCP servers)
 │   ├── run/                      # Run tracking
 │   ├── schedule/                 # Scheduled runs
 │   ├── session/                  # User sessions

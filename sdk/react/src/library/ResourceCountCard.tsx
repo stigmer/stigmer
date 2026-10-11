@@ -11,7 +11,7 @@ export interface ResourceCountCardProps {
    * (typical for resource type icons alongside a text label).
    */
   readonly icon: React.ReactNode;
-  /** Display label — e.g. "Agents", "Skills", "MCP Servers". */
+  /** Display label — e.g. "Agents", "Skills", "Plugins". */
   readonly label: string;
   /**
    * Resource count to display. When `undefined` and `isLoading` is
@@ -62,7 +62,7 @@ export interface ResourceCountCardProps {
  *
  * Purely presentational: the consumer provides the count (typically
  * from {@link useAgentCount}, {@link useSkillCount}, or
- * {@link useMcpServerCount}) and the card handles rendering, loading
+ * {@link usePluginCount}) and the card handles rendering, loading
  * skeletons, and accessible navigation semantics.
  *
  * The root element adapts to the provided props:
@@ -104,7 +104,7 @@ export interface ResourceCountCardProps {
  *
  * @see {@link useAgentCount} — data hook for agent count
  * @see {@link useSkillCount} — data hook for skill count
- * @see {@link useMcpServerCount} — data hook for MCP server count
+ * @see {@link usePluginCount} — data hook for plugin count
  */
 export function ResourceCountCard({
   icon,

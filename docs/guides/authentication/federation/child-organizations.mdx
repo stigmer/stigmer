@@ -23,13 +23,13 @@ You already have a working
 or a [PlatformClient](/docs/guides/authentication/platform-client/overview), and
 you want to:
 
-- give each of your customers its own Agents, Skills, MCP Servers and Sessions
+- give each of your customers its own Agents, Skills, Plugins and Sessions
 - mirror your platform's customers in Stigmer, one Organization each, and find
   each by your own customer id
 - manage those Organizations from your own (their settings, members and access)
   and see their billing
-- share a catalog of Agents, Skills, MCP Servers and Plugins with every
-  customer, including customers you add later
+- share a catalog of Agents, Skills and Plugins with every customer, including
+  customers you add later
 
 ## Prerequisites
 
@@ -399,7 +399,7 @@ A token bound to a child organization can reach:
 
 - The child organization's resources, as the user's role there allows
 - What belongs to no Organization: the user's own Identity Account and API keys
-- The Agents, Skills, MCP Servers and Plugins your Organization
+- The Agents, Skills and Plugins your Organization
   [shares with its children](#share-a-catalog-with-every-child), to read and to
   run
 
@@ -650,13 +650,13 @@ there too.
 
 ## Share a catalog with every child
 
-Set an Agent, Skill, MCP Server or Plugin in your Organization to
-`visibility_child_orgs` (the console's **Child organizations** level, or
-`visibility: child-orgs` in a skill's frontmatter) and everyone in every child
-organization can read and run it, including children you create later. Nobody
-outside your children can, and your own Organization keeps seeing it as an
-Organization-visible resource. Sessions, runs and Vaults are never shared this
-way: each child runs the shared blueprint inside its own boundary.
+Set an Agent, Skill or Plugin in your Organization to `visibility_child_orgs`
+(the console's **Child organizations** level, or `visibility: child-orgs` in a
+skill's frontmatter) and everyone in every child organization can read and run
+it, including children you create later. Nobody outside your children can, and
+your own Organization keeps seeing it as an Organization-visible resource.
+Sessions, runs and Vaults are never shared this way: each child runs the shared
+blueprint inside its own boundary.
 
 A child organization can reference your shared blueprint by `org/slug` (an
 Agent's skill or MCP server); any other organization's blueprint is refused at

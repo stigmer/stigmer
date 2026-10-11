@@ -7,9 +7,11 @@
 //
 // What is real here and what is scripted: the agent's instructions are the
 // fixture's (support/stigmer-mcp-stdio.ts; the product ships no such agent),
-// the McpServer is the real `@stigmer/mcp-server` full roster spawned by the
-// runner as a stdio child (it reaches THIS server through the
-// STIGMER_SERVER_ADDRESS the run's runtime env supplies), and the tool call
+// the agent lists a plugin whose one local program is the real
+// `@stigmer/mcp-server` full roster, spawned by the runner as a stdio child
+// (it reaches THIS server through the STIGMER_SERVER_ADDRESS the plugin
+// references and the platform fills from the runner's public endpoint, so no
+// vault is asked for it), and the tool call
 // (get_agent) executes for real against this server. Only the model's turns
 // are scripted on the mock. So a passing arm proves the whole chain: fixture
 // prompt → runner → stdio mcp-server → this server → tool result on the
@@ -31,10 +33,11 @@ import { allToolCalls, awaitTerminal, makeAgentExecution, requireLlmProxy } from
 import { agentRefOf } from "../support/agents";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
+import { pushPlugin } from "../support/plugins";
 import {
   STDIO_READ_TOOL,
   makeStdioAgent,
-  makeStigmerMcpServer,
+  stigmerMcpPlugin,
 } from "../support/stigmer-mcp-stdio";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -78,14 +81,11 @@ interface StdioAgent {
 // a read through the stdio server must return.
 async function provisionStdioAgent(): Promise<StdioAgent> {
   const { org } = await target.provisionTenancy();
-  const server = await clients.mcpServerCommand.create(
-    makeStigmerMcpServer({ org, name: uniqueName("stigmer-mcp"), serverBaseUrl: serverAddress() }),
-  );
-  fixtures.defer(() => clients.mcpServerCommand.delete({ resourceId: server.metadata!.id }));
+  const plugin = await pushPlugin(clients, fixtures, org, stigmerMcpPlugin(uniqueName("stigmer-mcp")));
 
   const description = uniqueName("read-through-stdio");
   const agent = await clients.agentCommand.create(
-    makeStdioAgent({ org, name: uniqueName("reader"), description, stigmerMcpServerSlug: server.metadata!.slug }),
+    makeStdioAgent({ org, name: uniqueName("reader"), description, stigmerMcpPluginSlug: plugin.metadata!.slug }),
   );
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
   const session = await clients.sessionCommand.create(
@@ -99,16 +99,6 @@ async function provisionStdioAgent(): Promise<StdioAgent> {
     description,
     sessionId: session.metadata!.id,
   };
-}
-
-// The gRPC origin the stdio mcp-server child dials: the server this suite
-// talks to. The execution targets expose it as the unified port's base URL.
-function serverAddress(): string {
-  const url = target.httpBaseUrl?.();
-  if (url === undefined) {
-    throw new Error(`target ${target.name} exposes no server base URL for the stdio mcp-server to dial`);
-  }
-  return url;
 }
 
 // Scripts one read: a get_agent call on the fixture agent, then an answer.

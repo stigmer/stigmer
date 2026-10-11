@@ -137,7 +137,6 @@ export const BOUND_ELSEWHERE_DENY_REASON =
  */
 const SHARED_BLUEPRINTS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.agent,
-  ApiResourceKind.mcp_server,
   ApiResourceKind.plugin,
   ApiResourceKind.skill,
 ]);
@@ -145,15 +144,14 @@ const SHARED_BLUEPRINTS: ReadonlySet<ApiResourceKind> = new Set([
 const CAN_VIEW = IamPermission[IamPermission.can_view];
 
 /**
- * The permissions that read or run: the only ones admitted outside. An MCP
- * server is run by connecting to it (its model derives `can_connect` from
- * `viewer`, and it has no `can_execute`); the connect lanes still refuse
- * writing into another organization (refuse-bound-elsewhere.ts).
+ * The permissions that read or run: the only ones admitted outside. A
+ * plugin's server is checked by whoever may view the plugin; the tools
+ * listing still refuses writing into another organization
+ * (refuse-bound-elsewhere.ts).
  */
 const READ_OR_RUN_PERMISSIONS: ReadonlySet<string> = new Set([
   CAN_VIEW,
   IamPermission[IamPermission.can_execute],
-  IamPermission[IamPermission.can_connect],
 ]);
 
 /**

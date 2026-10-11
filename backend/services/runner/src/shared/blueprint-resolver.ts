@@ -1,6 +1,7 @@
 /**
- * Resolves the agent blueprint of a turn: the agent spec the turn runs, and
- * the merge of its MCP usages and skill refs with the session's own.
+ * Resolves the agent blueprint of a turn: the agent spec the turn runs, the
+ * plugins it uses (the agent's and the session's), and the merge of its
+ * skill refs with the session's own.
  *
  * The agent comes from the turn's stamp alone (status.agent_id and
  * agent_version_hash), which the server records on every turn before it
@@ -21,15 +22,27 @@
  * A turn whose stamp names no agent is the built-in assistant: `agent` is
  * undefined, the instructions are empty (each harness's prompt builder
  * substitutes the one built-in prompt, shared/builtin-assistant-prompt.ts),
- * there are no sub-agents, and the session's own MCP usages and skill refs
- * are the whole tool set — the same merge with an empty agent side, so no
- * consumer downstream needs an agent-less arm of its own.
+ * there are no sub-agents of its own, and the session's own plugins and
+ * skill refs are the whole tool set — the same merge with an empty agent
+ * side, so no consumer downstream needs an agent-less arm of its own.
+ *
+ * Plugins. The agent version's `plugins` and the session's are merged one
+ * entry per plugin (organization and slug), the session's reference winning
+ * (its version is the one the conversation chose); the server plans a run's
+ * values from the same merge (domain/run/run-plugins.ts). Each resolves
+ * like a skill reference, its version when set, else the installed one, at
+ * turn start. A listed plugin that cannot be read fails the turn naming it,
+ * as a conversation whose agent is gone does: running without it would run
+ * its tools, hooks and skills away silently. Each plugin's agents join the
+ * turn's sub-agents as `<plugin>:<agent>`, after the agent's own, with the
+ * plugin's own tool lists; their skills are the plugin's (the skills phase,
+ * harness/turn-context.ts).
  *
  * A turn whose run carries the judge label is the built-in judge
  * (builtin-judge.ts), whatever its stamp: the judge's code-defined spec is
- * the agent, with id "" as the built-ins have, and the turn gets no MCP
- * usage, skill ref or sub-agent, not even the session's own, so the judge
- * can act on nothing in the conversation it grades.
+ * the agent, with id "" as the built-ins have, and the turn gets no plugin,
+ * skill ref or sub-agent, not even the session's own, so the judge can act
+ * on nothing in the conversation it grades.
  *
  * Workspace isolation: resolved workspace directories are validated to
  * ensure they never point at the runner's own app directory. Paths
@@ -39,20 +52,15 @@
 import { ConnectError } from "@connectrpc/connect";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { create } from "@bufbuild/protobuf";
+import { SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { AgentSpec, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/usage_pb";
+import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { builtInJudgeSpec, isJudgeRunLabels } from "./builtin-judge.js";
-import { mergeMcpServerUsages } from "./mcp-resolver.js";
-
-// Both harnesses must merge agent + session usages identically (one usage
-// per slug, the session's when both name it), so the merge lives in
-// shared/mcp-resolver.ts. Re-exported here for its historical
-// home alongside mergeSkillRefs.
-export { mergeMcpServerUsages } from "./mcp-resolver.js";
 
 export interface CloudRepo {
   url: string;
@@ -76,8 +84,10 @@ export interface ResolvedBlueprint {
   session: Session;
   sessionSpec: SessionSpec;
   instructions: string;
+  /** The agent's own sub-agents, then each plugin's agents as `<plugin>:<agent>`. */
   subAgents: SubAgent[];
-  mergedMcpServerUsages: McpServerUsage[];
+  /** The turn's plugins, each at the version it resolved to, in merge order. */
+  plugins: Plugin[];
   mergedSkillRefs: ApiResourceReference[];
   cloudRepos: CloudRepo[];
 }
@@ -103,7 +113,7 @@ export async function resolveBlueprint(
       sessionSpec,
       instructions: spec.instructions,
       subAgents: [],
-      mergedMcpServerUsages: [],
+      plugins: [],
       mergedSkillRefs: [],
       cloudRepos: [],
     };
@@ -112,10 +122,10 @@ export async function resolveBlueprint(
   const agent = await resolveRunAgent(client, recorded);
   const agentSpec = agent?.spec;
 
-  const mergedMcpServerUsages = mergeMcpServerUsages(
-    agentSpec?.mcpServerUsages ?? [],
-    sessionSpec.mcpServerUsages,
-  );
+  const org = session.metadata?.org ?? "";
+  const plugins = await resolvePlugins(client, mergePluginRefs(agentSpec?.plugins ?? [], sessionSpec.plugins, org));
+  const ownSubAgents = agentSpec?.subAgents ?? [];
+  const pluginAgents = plugins.flatMap(pluginSubAgents);
 
   const mergedSkillRefs = mergeSkillRefs(
     agentSpec?.skillRefs ?? [],
@@ -129,8 +139,10 @@ export async function resolveBlueprint(
     session,
     sessionSpec,
     instructions: agentSpec?.instructions ?? "",
-    subAgents: agentSpec?.subAgents ?? [],
-    mergedMcpServerUsages,
+    // The agent spec's own list when the plugins add none, so the agent
+    // host's codec can carry it by reference (agent-host/codec.ts).
+    subAgents: pluginAgents.length === 0 ? ownSubAgents : [...ownSubAgents, ...pluginAgents],
+    plugins,
     mergedSkillRefs,
     cloudRepos,
   };
@@ -163,6 +175,62 @@ async function resolveRunAgent(
 }
 
 // ---------------------------------------------------------------------------
+// Plugins
+// ---------------------------------------------------------------------------
+
+/**
+ * Merge plugin references from the agent and the session, one per plugin
+ * by organization and slug (an empty organization is the session's), the
+ * session's reference winning.
+ */
+export function mergePluginRefs(
+  agentRefs: readonly ApiResourceReference[],
+  sessionRefs: readonly ApiResourceReference[],
+  org: string,
+): ApiResourceReference[] {
+  const merged = new Map<string, ApiResourceReference>();
+  for (const ref of [...agentRefs, ...sessionRefs]) {
+    if (ref.slug) merged.set(`${ref.org || org}/${ref.slug}`, ref);
+  }
+  return [...merged.values()];
+}
+
+async function resolvePlugins(client: StigmerClient, refs: readonly ApiResourceReference[]): Promise<Plugin[]> {
+  const plugins: Plugin[] = [];
+  for (const ref of refs) {
+    try {
+      plugins.push(await client.getPluginByReference(ref));
+    } catch (error) {
+      const what = `the plugin '${ref.slug}' this conversation uses could not be read`;
+      if (error instanceof ConnectError) {
+        throw new ConnectError(`${what}: ${error.rawMessage}`, error.code);
+      }
+      throw new Error(`${what}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  return plugins;
+}
+
+/** A plugin's agents as the turn's sub-agents, named `<plugin>:<agent>`, with the plugin's own tool lists. */
+export function pluginSubAgents(plugin: Plugin): SubAgent[] {
+  const pluginName = plugin.metadata?.name ?? "";
+  return (plugin.status?.agents ?? []).map((agent) =>
+    create(SubAgentSchema, {
+      name: pluginAgentName(pluginName, agent.name),
+      description: agent.description,
+      instructions: agent.instructions,
+      tools: [...agent.tools],
+      disallowedTools: [...agent.disallowedTools],
+    }),
+  );
+}
+
+/** `<plugin>:<agent>`, as Claude Code names a plugin's agent. */
+export function pluginAgentName(pluginName: string, agentName: string): string {
+  return `${pluginName}:${agentName}`;
+}
+
+// ---------------------------------------------------------------------------
 // Cloud repo extraction
 // ---------------------------------------------------------------------------
 
@@ -192,7 +260,7 @@ export function resolveCloudRepos(workspaceEntries: WorkspaceEntry[]): CloudRepo
 }
 
 // ---------------------------------------------------------------------------
-// MCP and skill merging
+// Skill merging
 // ---------------------------------------------------------------------------
 
 /**

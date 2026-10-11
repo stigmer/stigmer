@@ -15,7 +15,7 @@ import {
 // - DETAIL children yield to the overlay via
 //   useRouteDetailYieldsToOverlay, so a cold deep-load of a detail URL
 //   renders the page exactly once: no double data fetching, no second
-//   live instance for document-global behavior. (The five route wrappers'
+//   live instance for document-global behavior. (The four route wrappers'
 //   use of the hook is pinned end-to-end by
 //   test/e2e/tests/interactive/duplicate-dom-ids.spec.ts.)
 
@@ -46,9 +46,6 @@ vi.mock("@/domain/library/agents/AgentDetailPage", async () => {
 });
 vi.mock("@/domain/library/skills/SkillDetailPage", () => ({
   SkillDetailPageInner: () => <div data-testid="skill-detail" />,
-}));
-vi.mock("@/domain/library/mcp-servers/McpServerDetailPage", () => ({
-  McpServerDetailPageInner: () => <div data-testid="mcp-server-detail" />,
 }));
 vi.mock("@/domain/library/schedules/ScheduleDetailPage", () => ({
   ScheduleDetailPageInner: () => <div data-testid="schedule-detail" />,
@@ -100,7 +97,7 @@ function setRoute(path: string) {
 
 /**
  * Stand-in for a route-level detail wrapper: same yield contract as
- * AgentDetailPage and its four siblings.
+ * AgentDetailPage and its three siblings.
  */
 function YieldingDetailRouteChild() {
   const yieldsToOverlay = useRouteDetailYieldsToOverlay();

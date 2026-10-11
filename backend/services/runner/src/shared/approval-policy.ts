@@ -27,7 +27,7 @@ import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/pro
 import { SENSITIVE_ARG_KEYS } from "./args-preview.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "./tool-kind.js";
 import { extractFilePath } from "./file-tools.js";
-import type { ResolvedMcpServer } from "./mcp-resolver.js";
+import type { McpToolListing } from "./mcp-tool-listing.js";
 
 /**
  * The set of run-lifetime approval leases active for an execution.
@@ -291,13 +291,20 @@ export function toProtoPolicySource(source: PolicySource | undefined): ApprovalP
 
 /**
  * The MCP half of the default for one turn: which MCP tools ask, and which
- * servers a lease has cleared. Built once per turn from the resolved servers
- * ({@link buildMcpApprovalDefault}) and read by the gate, the provenance
- * stamp and the Cursor hook state alike.
+ * servers a lease has cleared. Built by the engine that binds the tools,
+ * from the marks it read live ({@link buildMcpApprovalDefault}): the native
+ * engine from the tools it loads, the Cursor engine from the turn start's
+ * listing. Read by the gate, the provenance stamp and the Cursor hook state
+ * alike.
  */
 export interface McpApprovalDefault {
   /** `${serverSlug}/${toolName}` for every tool its server marks destructive. */
   readonly destructive: ReadonlySet<string>;
+  /**
+   * Plugin servers whose tools could not be listed this turn: every one of
+   * their tools asks, since an unread mark never means "ask nothing".
+   */
+  readonly unlisted: ReadonlySet<string>;
   /** MCP server slugs with a run-lifetime lease (covers all of the server's tools). */
   readonly leasedServers: ReadonlySet<string>;
 }
@@ -307,17 +314,20 @@ export function mcpToolKey(serverSlug: string, toolName: string): string {
   return `${serverSlug}/${toolName}`;
 }
 
-/** Build the turn's {@link McpApprovalDefault} from its resolved servers and leases. */
+/** Build the turn's {@link McpApprovalDefault} from what its servers listed and its leases. */
 export function buildMcpApprovalDefault(
-  resolvedServers: readonly ResolvedMcpServer[],
+  listing: McpToolListing,
   leases: ActiveLeases,
 ): McpApprovalDefault {
-  const destructive = new Set<string>();
-  for (const server of resolvedServers) {
-    for (const tool of server.destructiveTools) destructive.add(mcpToolKey(server.slug, tool));
-  }
-  return { destructive, leasedServers: leases.servers };
+  return {
+    destructive: new Set(listing.destructive.map(({ server, tool }) => mcpToolKey(server, tool))),
+    unlisted: new Set(listing.unlisted),
+    leasedServers: leases.servers,
+  };
 }
+
+/** Nothing listed yet: the leases alone, before an engine reads its tools' marks. */
+export const NOTHING_LISTED: McpToolListing = { listed: [], destructive: [], unlisted: [] };
 
 /**
  * Derive the authorization provenance — what decided this tool's approval —
@@ -348,6 +358,7 @@ export function resolveApprovalProvenance(
   if (serverSlug) {
     if (mcpDefault.leasedServers.has(serverSlug)) return "approval_lease";
     if (mcpDefault.destructive.has(mcpToolKey(serverSlug, toolName))) return "annotation_destructive_tighten";
+    if (mcpDefault.unlisted.has(serverSlug)) return "annotation_destructive_tighten";
     return undefined;
   }
 
@@ -499,6 +510,13 @@ export function resolveToolApproval(
         source: "annotation_destructive_tighten",
       };
     }
+    if (mcpDefault.unlisted.has(serverSlug)) {
+      return {
+        requiresApproval: true,
+        message: resolveApprovalMessage(UNLISTED_MCP_APPROVAL_MESSAGE, toolName, args),
+        source: "annotation_destructive_tighten",
+      };
+    }
     return { requiresApproval: false, message: "", source: undefined };
   }
 
@@ -519,3 +537,7 @@ export function resolveToolApproval(
 
 /** The approval-card message for an MCP tool its server marks destructive. */
 export const DESTRUCTIVE_MCP_APPROVAL_MESSAGE = "Execute {{tool_name}}";
+
+/** The question for a tool of a server whose tools could not be listed, so whether it is destructive is unknown. */
+export const UNLISTED_MCP_APPROVAL_MESSAGE =
+  "Execute {{tool_name}} (its server's tools could not be listed this turn, so whether it changes anything is unknown)";

@@ -22,8 +22,8 @@ import { DESTRUCTIVE_ECHO_TOOL_NAME } from "../harness/mcp-server";
 import { agentRefOf, makeAgent } from "../support/agents";
 import {
   awaitPhase,
-  createConnectedMcpServer,
   makeAgentExecution,
+  pushFixturePlugin,
   requireLlmProxy,
   requireMcpFixture,
 } from "../support/runs";
@@ -58,13 +58,13 @@ describe("Organization purge with a live run", () => {
   it("[rpc:OrganizationCommandController.delete] [rpc:RunQueryController.get] [rpc:RunCommandController.submitApproval] a run parked at a gate answers not found once its organization is deleted, and the purge stops and removes it before the slug comes free", async () => {
     const { org } = await target.provisionTenancy();
     const slug = await organizationSlug(clients.organizationQuery, org);
-    const server = await createConnectedMcpServer(clients, mcp, fixtures, {
+    const plugin = await pushFixturePlugin(clients, mcp, fixtures, {
       org,
-      name: uniqueName("mcp"),
+      name: uniqueName("purge"),
       tools: [DESTRUCTIVE_ECHO_TOOL_NAME],
     });
     const agent = await clients.agentCommand.create(
-      makeAgent({ org, name: uniqueName("agent-purge"), mcpServerRefs: [server.metadata!.slug] }),
+      makeAgent({ org, name: uniqueName("agent-purge"), plugins: [plugin.metadata!.slug] }),
     );
     mock.enqueue(
       anthropicToolUses([

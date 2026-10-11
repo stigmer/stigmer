@@ -19,11 +19,9 @@ import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { createNodeTransport, normalizeEndpoint } from "@stigmer/sdk/node";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { applyItem, requiresOrgContext, resolveApplyItems } from "../apply.js";
+import { applyItem, marshalItem, requiresOrgContext, resolveApplyItems } from "../apply.js";
 import type { ControllerFn } from "../handlers.js";
 
 let backend: Http2Server;
@@ -31,12 +29,10 @@ let controllerFn: ControllerFn;
 const openSessions = new Set<ServerHttp2Session>();
 
 let appliedAgents: Agent[] = [];
-let appliedMcps: McpServer[] = [];
 let appliedChannelApps: ChannelApp[] = [];
 
 beforeEach(() => {
   appliedAgents = [];
-  appliedMcps = [];
   appliedChannelApps = [];
 });
 
@@ -52,12 +48,6 @@ beforeAll(async () => {
       apply: (req) => {
         appliedAgents.push(req);
         return req; // echo back the full proto the server received
-      },
-    });
-    router.service(McpServerCommandController, {
-      apply: (req) => {
-        appliedMcps.push(req);
-        return req;
       },
     });
     router.service(ChannelAppCommandController, {
@@ -281,6 +271,33 @@ describe("file-mode apply — kinds the registry does not know", () => {
     }
   });
 
+  it("refuses an McpServer manifest, naming mcp add and an agent's plugins", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "server.yaml", ["kind: McpServer", "metadata:", "  name: github", ""].join("\n"));
+      expect(() => resolveApplyItems(dir)).toThrow(
+        /kind 'McpServer' in .*server\.yaml is no longer a Stigmer resource\. An MCP server is now part of a plugin: run `stigmer mcp add <name> <url>`.*`plugins`/,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses an agent listing mcp_server_usages, naming mcp add and the agent's plugins", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(
+        dir,
+        "agent.yaml",
+        AGENT_WITH_ID + ["  mcp_server_usages:", "    - mcp_server_ref:", "        slug: github", ""].join("\n"),
+      );
+      const [item] = resolveApplyItems(dir);
+      expect(() => marshalItem(item)).toThrow(/invalid Agent in .*agent\.yaml: .*\n.*stigmer mcp add <name> <url>.*`plugins`/s);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("refuses an AgentInstance manifest, naming the agent as where a conversation starts", () => {
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
@@ -337,19 +354,13 @@ describe("file-mode apply — kinds the registry does not know", () => {
 });
 
 describe("file-mode apply — orchestration", () => {
-  it("sorts items into dependency order (mcp_server before agent)", () => {
+  it("sorts items into dependency order (agent before channel app), whatever the file order", () => {
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
       writeYaml(dir, "agent.yaml", AGENT_WITH_ID);
-      writeYaml(
-        dir,
-        "mcp.yaml",
-        ["kind: McpServer", "metadata:", "  name: fs", "  slug: fs", "spec:", "  stdio:", "    command: node", ""].join(
-          "\n",
-        ),
-      );
+      writeYaml(dir, "a-app.yaml", ["kind: ChannelApp", "metadata:", "  name: slack", ""].join("\n"));
       const items = resolveApplyItems(dir);
-      expect(items.map((i) => i.handler.displayName)).toEqual(["MCP Server", "Agent"]);
+      expect(items.map((i) => i.handler.displayName)).toEqual(["Agent", "Channel App"]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

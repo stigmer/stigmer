@@ -31,7 +31,7 @@ export interface InvokeAgentExecutionWorkflowInput {
    * bound to this execution), minted by the engine client at dispatch
    * when the composed credential provider defines `mintRunCredential`
    * and omitted otherwise. The connect lane's key for the same token
-   * type (domain/mcpserver/engine.ts). The workflow hands it to the
+   * type (domain/plugin/tools/engine.ts). The workflow hands it to the
    * runner's activities, which present it on the run's own RPCs: under
    * the built-in authorization posture it admits the runner as the
    * human whose run this is, for as long as the run lives. Like the

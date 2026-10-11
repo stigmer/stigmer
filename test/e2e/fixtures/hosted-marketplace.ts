@@ -4,8 +4,8 @@
  * API listing and the raw file reads for one repository at one commit,
  * and the avatars the marks load abort, so the run never touches GitHub.
  * The tree offers a plugin with a skill, a sub-agent and an HTTP MCP server that declares
- * `${API_TOKEN}`, so the journey can prove that the agent the install
- * materialises asks for its tool's variable at session start. The same
+ * `${API_TOKEN}`, so the journey can prove that the plugin's page lists all
+ * three by the names a turn uses and names the key its server reads. The same
  * plugin, under a second suffix, is written to a directory for the upload
  * arm, which hands it to the folder input as a browser would.
  */

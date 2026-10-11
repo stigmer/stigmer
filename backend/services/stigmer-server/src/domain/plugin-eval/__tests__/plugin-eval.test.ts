@@ -2,8 +2,9 @@
  * Composed-server round-trips for the PluginEval kind: a real server over a
  * temp SQLite store with no engine behind it, raw Connect clients, plugins
  * pushed as the CLI pushes them. Pins: create mints the eval's own id,
- * stamps the plugin's current version, plans its tries and, with no engine
- * to start its workflow, answers the eval failed with the reason; create
+ * stamps the plugin's current version, plans its tries (the comparison not
+ * provisional) and, with no engine to start its workflow, answers the eval
+ * failed with the reason; create
  * refuses a digest that is not the plugin's current version (an earlier
  * one, or one that is no version of it), an organization that is not the
  * plugin's, a case_glob that is not a glob, a missing plugin, a
@@ -205,7 +206,8 @@ describe("plugin eval create", () => {
     expect(created.spec?.pluginDigest).toBe(plugin.status?.digest);
     // review-fires: 3 tries per arm; review-quiet: its own 2; two arms each.
     expect(created.status?.triesTotal).toBe(2 * 3 + 2 * 2);
-    expect(created.status?.provisionalDelta).toBe(true);
+    // Both arms run the built-in assistant, the with-arm listing the plugin: the comparison is not provisional.
+    expect(created.status?.provisionalDelta).toBe(false);
     expect(created.status?.phase).toBe(PluginEvalPhase.failed);
     expect(created.status?.error).toBe("the eval's workflow could not be started");
 

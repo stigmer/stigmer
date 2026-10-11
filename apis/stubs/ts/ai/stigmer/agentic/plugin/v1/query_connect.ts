@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetArtifactRequest, GetArtifactResponse, ListPluginMembersResponse, ListPluginVersionsInput, ListPluginVersionsResponse, PluginArtifactDownloadUrl, PluginId } from "./io_pbjs";
+import { GetArtifactRequest, GetArtifactResponse, ListPluginVersionsInput, ListPluginVersionsResponse, PluginArtifactDownloadUrl, PluginId } from "./io_pbjs";
 import { Plugin } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -41,20 +41,6 @@ export const PluginQueryController = {
       name: "getByReference",
       I: ApiResourceReference,
       O: Plugin,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * List the resources an installed plugin materialised.
-     *
-     * Returns every skill, MCP server and agent the plugin owns, in
-     * materialisation order.
-     *
-     * @generated from rpc ai.stigmer.agentic.plugin.v1.PluginQueryController.listMembers
-     */
-    listMembers: {
-      name: "listMembers",
-      I: PluginId,
-      O: ListPluginMembersResponse,
       kind: MethodKind.Unary,
     },
     /**

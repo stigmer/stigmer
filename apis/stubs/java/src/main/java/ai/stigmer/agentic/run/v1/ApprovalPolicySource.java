@@ -63,8 +63,8 @@ public enum ApprovalPolicySource
   /**
    * <pre>
    * The default asked for an MCP tool because its server marks it destructive
-   * (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint
-   * annotation).
+   * (the tool's MCP destructiveHint annotation, read live from the server's
+   * tools each turn), or because its server's tools could not be listed.
    * </pre>
    *
    * <code>APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;</code>
@@ -149,8 +149,8 @@ public enum ApprovalPolicySource
   /**
    * <pre>
    * The default asked for an MCP tool because its server marks it destructive
-   * (DiscoveredTool.destructive_hint, from the tool's MCP destructiveHint
-   * annotation).
+   * (the tool's MCP destructiveHint annotation, read live from the server's
+   * tools each turn), or because its server's tools could not be listed.
    * </pre>
    *
    * <code>APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;</code>

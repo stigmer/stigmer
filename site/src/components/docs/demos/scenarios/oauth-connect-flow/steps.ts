@@ -1,35 +1,33 @@
 /**
- * OAuth connect flow — walkthrough of connecting an OAuth-protected
- * MCP server:
+ * OAuth connect flow: signing in to an MCP server that signs in with
+ * OAuth, from the page of the plugin that holds it.
  *
- * MCP server detail (pre-connect, "Sign in to connect") → cursor
- * clicks sign-in → GitHub authorization page → connected detail
- * with tools discovered → credential status showing healthy token.
+ * The plugin's page (its one server "Not signed in", a Sign in button) →
+ * cursor on Sign in → GitHub's authorization page → the page again, the
+ * server "Signed in" from the login My vault now holds at its address,
+ * and "Check tools" listing what the server offers.
  *
- * Fixture data modeled after the GitHub MCP server
- * entry (vendor OAuth, HTTP transport).
+ * Fixture data is modeled after the GitHub MCP server (HTTP, vendor
+ * OAuth). Which My vault the page reads is step data: nothing saved before
+ * the sign-in, the login at the server's address after it (its token
+ * blanked, as every read blanks it).
  */
 
 import { create } from "@bufbuild/protobuf";
+import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
+import { PluginDialect, PluginSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/spec_pb";
 import {
-  McpServerSpecSchema,
-  HttpServerConfigSchema,
-  McpServerAuthSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
+  HttpMcpServerSchema,
+  McpServerEntrySchema,
+  McpServerSignInSchema,
+  PluginStatusSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/status_pb";
 import {
-  McpServerStatusSchema,
-  DiscoveredCapabilitiesSchema,
-  DiscoveredToolSchema,
-  ValidationState,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
-import {
-  GetOAuthGrantStatusOutputSchema,
-  OAuthConnectionHealth,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/declaration_pb";
-import { samples } from "@stigmer/react/test";
-import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import type { GetOAuthGrantStatusOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+  ListPluginToolsOutputSchema,
+  PluginToolSchema,
+  type ListPluginToolsOutput,
+} from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
@@ -37,122 +35,79 @@ import type { ScenarioStep } from "@scenar/react";
 // ---------------------------------------------------------------------------
 
 export const DEMO_ORG = "acme";
-export const DEMO_SLUG = "mcp-server-github";
+export const DEMO_SLUG = "github";
+
+/** The server's name in the plugin: its Sign in button reads "Sign in to github". */
+export const SERVER_NAME = "github";
+
+/** The address the login is saved at: the server's URL, normalized as the vault normalizes it. */
+export const SERVER_ADDRESS = "https://api.githubcopilot.com/mcp";
 
 // ---------------------------------------------------------------------------
-// McpServer fixtures — GitHub (vendor OAuth)
+// Plugin fixture — GitHub, one MCP server that signs in
 // ---------------------------------------------------------------------------
 
-function buildGitHubBase(): McpServer {
-  const server = samples.mcpServer({
-    name: "mcp-server-github",
+export const GITHUB_PLUGIN: Plugin = create(PluginSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Plugin",
+  metadata: create(ApiResourceMetadataSchema, {
+    id: "plg-00000000-0000-0000-0000-000000000001",
+    name: "github",
+    slug: DEMO_SLUG,
     org: DEMO_ORG,
+  }),
+  spec: create(PluginSpecSchema, {
+    name: "github",
+    version: "1.0.0",
     description:
-      "GitHub MCP server for repository management, code search, issue and PR workflows, branch operations, and team collaboration.",
-  });
-
-  server.spec = create(McpServerSpecSchema, {
-    description: server.spec!.description,
-    iconUrl:
-      "/tours/icons/github.svg",
-    repositoryUrl: "https://github.com/github/github-mcp-server",
-    githubStars: 28600,
-    tags: ["github", "git", "version-control", "code-review"],
-    serverType: {
-      case: "http",
-      value: create(HttpServerConfigSchema, {
-        url: "https://api.githubcopilot.com/mcp/",
-        headers: { Authorization: "Bearer ${GITHUB_ACCESS_TOKEN}" },
+      "GitHub's MCP server for repository management, code search, issue and PR workflows, branch operations, and team collaboration.",
+    repository: "https://github.com/github/github-mcp-server",
+    license: "MIT",
+    dialect: PluginDialect.CLAUDE,
+  }),
+  status: create(PluginStatusSchema, {
+    mcpServers: [
+      create(McpServerEntrySchema, {
+        name: SERVER_NAME,
+        transport: {
+          case: "http",
+          value: create(HttpMcpServerSchema, { url: "https://api.githubcopilot.com/mcp/" }),
+        },
+        signIn: create(McpServerSignInSchema, {}),
       }),
-    },
-    env: {
-      GITHUB_ACCESS_TOKEN: create(EnvVarDeclarationSchema, {
-        isSecret: true,
-        description:
-          "GitHub OAuth token or personal access token (generate at github.com/settings/tokens)",
-      }),
-    },
-    auth: create(McpServerAuthSchema, {
-      targetEnvVar: "GITHUB_ACCESS_TOKEN",
-      tokenLifetimeHint: "8h",
-      scopeHints: ["repo", "read:org", "read:user"],
-    }),
-  });
-
-  // No oauth_status block: no organization app gates this address, so a
-  // real backend leaves it absent (presence signals a vendor gate).
-  server.status = create(McpServerStatusSchema, {
-    validationState: ValidationState.valid,
-  });
-
-  return server;
-}
-
-function buildGitHubConnected(): McpServer {
-  const server = buildGitHubBase();
-
-  server.status = create(McpServerStatusSchema, {
-    validationState: ValidationState.valid,
-    discoveredCapabilities: create(DiscoveredCapabilitiesSchema, {
-      tools: [
-        create(DiscoveredToolSchema, {
-          name: "create_issue",
-          description:
-            "Create a new issue in a GitHub repository with title, body, labels, and assignees.",
-        }),
-        create(DiscoveredToolSchema, {
-          name: "search_repositories",
-          description:
-            "Search for GitHub repositories by name, topic, language, or other criteria.",
-        }),
-        create(DiscoveredToolSchema, {
-          name: "create_pull_request",
-          description:
-            "Open a pull request with a title, body, source branch, and target branch.",
-        }),
-        create(DiscoveredToolSchema, {
-          name: "get_file_contents",
-          description:
-            "Retrieve the contents of a file or directory from a repository at a specific ref.",
-        }),
-        create(DiscoveredToolSchema, {
-          name: "list_commits",
-          description:
-            "List commits on a branch with author, date, and message for each entry.",
-        }),
-        create(DiscoveredToolSchema, {
-          name: "push_files",
-          description:
-            "Create or update multiple files in a repository in a single commit.",
-        }),
-      ],
-    }),
-  });
-
-  return server;
-}
-
-// ---------------------------------------------------------------------------
-// OAuth grant status fixtures
-// ---------------------------------------------------------------------------
-
-export const NO_GRANT = create(GetOAuthGrantStatusOutputSchema, {
-  connected: false,
-  connectionHealth:
-    OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_NO_GRANT,
+    ],
+  }),
 });
 
-const EIGHT_HOURS_FROM_NOW = BigInt(
-  Math.floor(Date.now() / 1000) + 8 * 60 * 60,
-);
-
-export const HEALTHY_GRANT = create(GetOAuthGrantStatusOutputSchema, {
-  connected: true,
-  accessTokenExpiresAt: EIGHT_HOURS_FROM_NOW,
-  targetEnvVar: "GITHUB_ACCESS_TOKEN",
-  authMethod: "vendor_oauth",
-  connectionHealth:
-    OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_HEALTHY,
+/** What "Check tools" answers once signed in. */
+export const GITHUB_TOOLS: ListPluginToolsOutput = create(ListPluginToolsOutputSchema, {
+  tools: [
+    create(PluginToolSchema, {
+      name: "create_issue",
+      description: "Create a new issue in a GitHub repository with title, body, labels, and assignees.",
+    }),
+    create(PluginToolSchema, {
+      name: "search_repositories",
+      description: "Search for GitHub repositories by name, topic, language, or other criteria.",
+    }),
+    create(PluginToolSchema, {
+      name: "create_pull_request",
+      description: "Open a pull request with a title, body, source branch, and target branch.",
+    }),
+    create(PluginToolSchema, {
+      name: "get_file_contents",
+      description: "Retrieve the contents of a file or directory from a repository at a specific ref.",
+    }),
+    create(PluginToolSchema, {
+      name: "list_commits",
+      description: "List commits on a branch with author, date, and message for each entry.",
+    }),
+    create(PluginToolSchema, {
+      name: "push_files",
+      description: "Create or update multiple files in a repository in a single commit.",
+      destructive: true,
+    }),
+  ],
 });
 
 // ---------------------------------------------------------------------------
@@ -160,13 +115,10 @@ export const HEALTHY_GRANT = create(GetOAuthGrantStatusOutputSchema, {
 // ---------------------------------------------------------------------------
 
 export type OAuthConnectStep =
-  | { view: "detail-preconnect"; server: McpServer; grant: GetOAuthGrantStatusOutput }
-  | { view: "click-sign-in"; server: McpServer; grant: GetOAuthGrantStatusOutput }
+  | { view: "detail-signed-out" }
+  | { view: "click-sign-in" }
   | { view: "github-authorize" }
-  | { view: "detail-connected"; server: McpServer; grant: GetOAuthGrantStatusOutput };
-
-const baseServer = buildGitHubBase();
-const connectedServer = buildGitHubConnected();
+  | { view: "detail-signed-in" };
 
 // ---------------------------------------------------------------------------
 // Step sequence
@@ -175,24 +127,16 @@ const connectedServer = buildGitHubConnected();
 export const oauthConnectSteps: ScenarioStep<OAuthConnectStep>[] = [
   {
     delayMs: 0,
-    data: {
-      view: "detail-preconnect",
-      server: baseServer,
-      grant: NO_GRANT,
-    },
+    data: { view: "detail-signed-out" },
     narration:
-      "This MCP server uses OAuth authentication. Instead of entering a token manually, you sign in through GitHub and Stigmer handles the rest.",
+      "GitHub's plugin holds one MCP server that signs in with OAuth. Instead of pasting a token, you sign in through GitHub, right from the plugin's page.",
     interactions: [
-      { atPercent: 0.4, type: "scroll_to", target: "capabilities-bottom" },
+      { atPercent: 0.4, type: "scroll_to", target: "plugin-bottom" },
     ],
   },
   {
     delayMs: 3500,
-    data: {
-      view: "click-sign-in",
-      server: baseServer,
-      grant: NO_GRANT,
-    },
+    data: { view: "click-sign-in" },
   },
   {
     delayMs: 2500,
@@ -202,15 +146,11 @@ export const oauthConnectSteps: ScenarioStep<OAuthConnectStep>[] = [
   },
   {
     delayMs: 3500,
-    data: {
-      view: "detail-connected",
-      server: connectedServer,
-      grant: HEALTHY_GRANT,
-    },
+    data: { view: "detail-signed-in" },
     narration:
-      "After authorization, Stigmer exchanges the code for a token, stores it securely, connects to the server, and discovers its tools. Only a tool the server marks destructive will ask for approval before it runs.",
+      "The login is saved in your vault at the server's address, so every chat that uses the plugin reaches GitHub as you. Check tools lists what the server offers; only a tool it marks destructive asks for approval before it runs.",
     interactions: [
-      { atPercent: 0.35, type: "scroll_to", target: "capabilities-bottom" },
+      { atPercent: 0.35, type: "scroll_to", target: "plugin-bottom" },
     ],
   },
 ];

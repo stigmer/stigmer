@@ -93,6 +93,7 @@ const BASE_FLAGS: AgentExecFlags = {
   commit: "",
   vault: [],
   myVault: true,
+  plugin: [],
   model: "",
   autoApprove: false,
   mode: "",

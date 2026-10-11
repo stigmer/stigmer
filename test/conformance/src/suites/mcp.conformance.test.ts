@@ -156,17 +156,15 @@ afterAll(async () => {
 });
 
 describe("MCP server conformance (live backend)", () => {
-  it("advertises the full tool roster", async () => {
+  it("advertises the full tool roster, and no tool for an MCP server resource", async () => {
     const { tools } = await mcpClient.listTools();
-    expect(tools.map((t) => t.name)).toEqual(
-      expect.arrayContaining([
-        "search",
-        "get_agent",
-        "apply_agent",
-        "delete_agent",
-        "apply_mcp_server",
-      ]),
+    const names = tools.map((t) => t.name);
+    expect(names).toEqual(
+      expect.arrayContaining(["search", "get_agent", "apply_agent", "delete_agent"]),
     );
+    // An MCP server is configuration inside a plugin, not a resource of its
+    // own, so the bridge offers no tool that would read or write one.
+    expect(names.filter((name) => name.includes("mcp_server"))).toEqual([]);
   });
 
   it("apply_agent creates on the real server and get_agent reads it back", async () => {

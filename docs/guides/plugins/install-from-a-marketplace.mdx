@@ -56,23 +56,22 @@ Plugin
   Marketplace  stigmer (built in)
 
 Installed
-  MCP servers  linear
+  MCP servers  linear (http)
 
 Next
-  - Sign in to linear:  stigmer connect mcp-server linear
-  - Add these tools to an agent: list 'linear' under mcp_server_usages in an agent's YAML, or from the plugin's page in the console
+  - Sign in to linear:  stigmer connect plugin linear
+  - Use it in a conversation:  stigmer run --plugin linear
+  - Give it to an agent: add '- slug: linear' under spec.plugins in the agent's YAML, or from the plugin's page in the console
 ```
 
-A plugin installs as an Agent, as tools for your Agents, or both. Most of the
-catalogue is tools: an MCP Server that a vendor hosts, which your own Agents
-list under `mcp_server_usages`. The `Next` section says what each server still
-needs before its first tool call. A server that signs in with OAuth and has no
-sign-in in your vault yet names the command that runs one
-(`stigmer connect mcp-server <server>` opens the console's sign-in and waits for
-it); each person signs in once for themselves. A server that wants an API key
-names the variables and where they are asked. A plugin that carries an Agent
-ends with none of this: the Agent asks for what its tools need at its first
-Session.
+Most of the catalogue is tools: an MCP server that a vendor hosts, in a plugin
+your chats and Agents list. The `Next` section says what stands before its first
+tool call. A server that signs in with OAuth names the command that runs the
+sign-in (`stigmer connect plugin <plugin>` opens the login page in your browser,
+waits for it, then lists the server's tools); each person signs in once for
+themselves. A server that wants an API key names the variables and the vault
+command that saves them. Then `Next` names the two ways to use the plugin: in a
+conversation with `--plugin`, or on an Agent under `spec.plugins`.
 
 ## Add your own marketplace
 

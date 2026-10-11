@@ -43,7 +43,6 @@ import { newChannelAppPurge } from "../domain/channelapp/purge.js";
 import { newEvaluatorPurge } from "../domain/evaluator/purge.js";
 import { newPluginEvalPurge } from "../domain/plugin-eval/purge.js";
 import type { PluginEvalWorkflows } from "../domain/plugin-eval/workflows.js";
-import { newMcpServerPurge } from "../domain/mcpserver/purge.js";
 import { newMemoryPurge } from "../domain/memory/purge.js";
 import { newVaultPurge } from "../domain/vault/purge.js";
 import { newOAuthAppPurge } from "../domain/oauthapp/purge.js";
@@ -120,14 +119,10 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newPluginEvalPurge(deps),
       newChannelAppPurge(deps),
       newMemoryPurge(deps),
-      // A plugin's members before the plugin: its purge does not cascade
-      // them (plugin/purge.ts says why).
       newAgentPurge(deps),
       newSkillPurge(deps),
-      newMcpServerPurge(deps),
       newPluginPurge(deps),
-      // What runs and blueprints read, last: an MCP server references its
-      // OAuth app, and a run its vaults.
+      // What runs and blueprints read, last: a run references its vaults.
       newVaultPurge(deps),
       newOAuthAppPurge(deps),
       newPlatformClientPurge(deps),
@@ -160,7 +155,6 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.memory,
   ApiResourceKind.agent,
   ApiResourceKind.skill,
-  ApiResourceKind.mcp_server,
   ApiResourceKind.plugin,
   ApiResourceKind.vault,
   ApiResourceKind.oauth_app,

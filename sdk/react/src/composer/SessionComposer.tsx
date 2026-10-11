@@ -2,7 +2,7 @@
 
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, type AttachmentInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
+import { getUserMessage, type AttachmentInput, type ResourceRef } from "@stigmer/sdk";
 import type { EnvVarInput } from "../vault/types.js";
 import { useComposer } from "./useComposer.js";
 import { ComposerToolbar } from "./ComposerToolbar.js";
@@ -20,15 +20,15 @@ import {
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor.js";
 import { AgentPicker } from "../agent/AgentPicker.js";
 import { AgentEnvForm } from "../agent/AgentEnvForm.js";
-import { McpServerReadiness } from "../plugin/McpServerReadiness.js";
+import { PluginServerSignIn } from "../plugin/PluginServerSignIn.js";
+import { PluginServerSignIns } from "../plugin/PluginServerSignIns.js";
+import { PluginPicker } from "../plugin/PluginPicker.js";
+import { PluginIcon } from "../plugin/PluginIcon.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup.js";
 import type { AgentRunDefaults } from "../agent/run-defaults.js";
 import { PersonalKeyDisclosure } from "./PersonalKeyDisclosure.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/SecretFlowErrorGuide.js";
-import { McpServerPicker } from "../mcp-server/McpServerPicker.js";
-import { useMcpServerSetup } from "../mcp-server/useMcpServerSetup.js";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SkillPicker } from "../skill/SkillPicker.js";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries.js";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
@@ -46,7 +46,6 @@ import { useRenderTracer } from "../internal/dev/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import {
   AgentIcon,
-  McpServerIcon,
   SkillIcon,
   SecretsIcon,
   AlertTriangleIcon,
@@ -354,8 +353,8 @@ export interface SessionComposerProps {
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
 
   /**
-   * Organization id for agent, MCP server, and skill searches (a slug is also accepted).
-   * Required when agent, MCP, or skill pickers are enabled.
+   * Organization id for agent, plugin, and skill searches (a slug is also accepted).
+   * Required when agent, plugin, or skill pickers are enabled.
    */
   readonly org?: string;
 
@@ -465,8 +464,8 @@ export interface SessionComposerProps {
 
   /**
    * Whether the conversation includes its sender's My vault already, the
-   * picker's starting tick. Also what the agent's and the MCP servers'
-   * setups weigh while the picker is untouched.
+   * picker's starting tick. Also what the agent's setup and the plugins'
+   * sign-ins weigh while the picker is untouched.
    *
    * @default true
    */
@@ -505,13 +504,14 @@ export interface SessionComposerProps {
   readonly lockAgent?: boolean;
 
   /**
-   * Currently selected MCP server usages.
-   * When `onMcpServerUsagesChange` is provided, a MCP server trigger
-   * appears in the toolbar.
+   * Plugins the conversation uses, each whole: their skills, agents, hooks
+   * and MCP servers. When `onPluginRefsChange` is provided, a Plugins entry
+   * appears in the Configure menu, with a sign-in row for each of the
+   * picked plugins' servers that signs in.
    */
-  readonly mcpServerUsages?: McpServerUsageInput[];
-  /** Called when the MCP server selection changes. Providing this enables the MCP trigger. */
-  readonly onMcpServerUsagesChange?: (usages: McpServerUsageInput[]) => void;
+  readonly pluginRefs?: ResourceRef[];
+  /** Called when the plugin selection changes. Providing this enables the Plugins entry. */
+  readonly onPluginRefsChange?: (refs: ResourceRef[]) => void;
 
   /**
    * Currently selected skill references.
@@ -597,11 +597,11 @@ export interface SessionComposerProps {
  * Unified message composer for Stigmer sessions.
  *
  * Combines a self-resizing textarea, model selector, and context pickers
- * (agent, workspace, MCP servers, skills) into a single input card.
+ * (agent, workspace, plugins, skills) into a single input card.
  *
  * The toolbar uses a two-group layout:
  * - **Left (primary state):** Interaction Mode, Model Selector
- * - **Right (secondary actions, icon-only):** Workspace, Attach, Configure (Agent, MCP, Skills, Vaults), Send
+ * - **Right (secondary actions, icon-only):** Workspace, Attach, Configure (Agent, Plugins, Skills, Vaults), Send
  *
  * Selected items render as removable chips between the textarea and toolbar.
  *
@@ -625,8 +625,8 @@ export interface SessionComposerProps {
  *   onAgentResolutionChange={setResolution}
  *   workspace={workspace}
  *   enableGitHub
- *   mcpServerUsages={mcpUsages}
- *   onMcpServerUsagesChange={setMcpUsages}
+ *   pluginRefs={pluginRefs}
+ *   onPluginRefsChange={setPluginRefs}
  *   skillRefs={skillRefs}
  *   onSkillRefsChange={setSkillRefs}
  *   initialRows={3}
@@ -694,8 +694,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   vaultPickCreatorId,
   sessionId,
   lockAgent = false,
-  mcpServerUsages,
-  onMcpServerUsagesChange,
+  pluginRefs,
+  onPluginRefsChange,
   skillRefs,
   onSkillRefsChange,
   enableAttachments = true,
@@ -796,7 +796,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const stopMode = onStop != null;
 
   const showAgent = onAgentRefChange != null && org != null;
-  const showMcp = onMcpServerUsagesChange != null && org != null;
+  const showPlugins = onPluginRefsChange != null && org != null;
   const showWorkspace = workspace != null;
   const showSkills = onSkillRefsChange != null && org != null;
   const showAttach = enableAttachments;
@@ -807,7 +807,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
   const [configOpen, setConfigOpen] = useState(false);
   const [configActivePanel, setConfigActivePanel] = useState<string | null>(null);
-  const configMcpInitialServerKeyRef = useRef<string | undefined>(undefined);
 
   // ---------------------------------------------------------------------------
   // The vaults the conversation uses — My vault when included, then the
@@ -875,12 +874,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
 
   const agentSetup = useAgentSetup(
     showAgent ? (org ?? null) : null,
-    platformKeys,
-    shownVaults,
-  );
-
-  const mcpSetup = useMcpServerSetup(
-    showMcp ? (org ?? null) : null,
     platformKeys,
     shownVaults,
   );
@@ -1360,7 +1353,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     (open: boolean) => {
       setConfigOpen(open);
       if (!open) {
-        configMcpInitialServerKeyRef.current = undefined;
         if (
           configActivePanel === "agent" &&
           agentSetup.state.status !== "needsEnvVars" &&
@@ -1516,48 +1508,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     }
   }, [initialAttachments, enableAttachments, attachments]);
 
-  // ---------------------------------------------------------------------------
-  // Initial MCP: seed useMcpServerSetup from mcpServerUsages prop on mount
-  // ---------------------------------------------------------------------------
-
-  const initialMcpSeeded = useRef(false);
-  const mcpSetupAddServerRef = useRef(mcpSetup.addServer);
-  mcpSetupAddServerRef.current = mcpSetup.addServer;
-
-  useEffect(() => {
-    if (!showMcp || initialMcpSeeded.current || !mcpServerUsages?.length) return;
-    initialMcpSeeded.current = true;
-
-    for (const usage of mcpServerUsages) {
-      const ref = usage.mcpServerRef;
-      if (!ref) continue;
-
-      mcpSetupAddServerRef.current(ref).catch(() => {
-        // Non-fatal: server may have been deleted or become inaccessible.
-        // The user can re-add it via the MCP picker.
-      });
-    }
-  }, [showMcp, mcpServerUsages]);
-
-  // ---------------------------------------------------------------------------
-  // MCP server setup: sync usageInputs to consumer
-  // ---------------------------------------------------------------------------
-
-  const hasLoadingMcpEntries = useMemo(
-    () => Object.values(mcpSetup.entries).some(e => e.status === "loading"),
-    [mcpSetup.entries],
-  );
-
-  useEffect(() => {
-    if (!showMcp || hasLoadingMcpEntries) return;
-    onMcpServerUsagesChange?.(mcpSetup.usageInputs);
-  }, [showMcp, mcpSetup.usageInputs, onMcpServerUsagesChange, hasLoadingMcpEntries]);
-
-  // ---------------------------------------------------------------------------
-  // Submission blocking: MCP servers must be fully configured before send
-  // ---------------------------------------------------------------------------
-
-  const mcpBlocked = showMcp && !mcpSetup.allReady;
   // Send waits for in-flight work: toAttachmentInputs() carries only
   // "ready" entries, so a send racing an upload would silently drop the
   // file the user just pasted — the worst failure for "what's wrong in
@@ -1565,13 +1515,13 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // retry/remove); isUploading covers both the preparing and uploading
   // phases (see its doc — same drop class).
   const uploadsBlocked = enableAttachments && attachments.isUploading;
-  const canSend = composer.canSubmit && !mcpBlocked && !uploadsBlocked;
+  const canSend = composer.canSubmit && !uploadsBlocked;
 
   // True when the upload gate is the OPERATIVE blocker — the message would
   // send right now if uploads were done. Drives the attempt-triggered wait
   // notice so it never claims "waiting for attachments" when the real
-  // blocker is an empty message or MCP setup.
-  const uploadWaitOperative = composer.canSubmit && !mcpBlocked && uploadsBlocked;
+  // blocker is an empty message.
+  const uploadWaitOperative = composer.canSubmit && uploadsBlocked;
   const [showUploadWaitNotice, setShowUploadWaitNotice] = useState(false);
   useEffect(() => {
     if (!uploadsBlocked) setShowUploadWaitNotice(false);
@@ -1624,7 +1574,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     [workspaceCount, enableGitHub, enableLocal],
   );
 
-  const mcpCount = showMcp ? Object.keys(mcpSetup.entries).length : 0;
+  const pluginCount = showPlugins ? (pluginRefs?.length ?? 0) : 0;
   const skillCount = skillRefs?.length ?? 0;
   const vaultCount = shownVaults.vaults.length + (shownVaults.includeMyVault ? 1 : 0);
 
@@ -1654,13 +1604,12 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         });
       }
     }
-    if (showMcp) {
+    if (showPlugins) {
       items.push({
-        id: "mcp",
-        icon: <McpServerIcon />,
-        label: "MCP Servers",
-        count: mcpCount,
-        hasWarning: mcpSetup.needsSetupCount > 0,
+        id: "plugins",
+        icon: <PluginIcon className="stg:size-3.5" />,
+        label: "Plugins",
+        count: pluginCount,
       });
     }
     if (showSkills) {
@@ -1680,7 +1629,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       });
     }
     return items;
-  }, [showAgent, lockAgent, agentRef, agentSetup.state, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showVaults, vaultCount]);
+  }, [showAgent, lockAgent, agentRef, agentSetup.state, showPlugins, pluginCount, showSkills, skillCount, showVaults, vaultCount]);
 
   const renderConfigPanel = useCallback(
     (panelId: string): React.ReactNode => {
@@ -1700,15 +1649,14 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
                   </p>
                   <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:divide-y stg:divide-border stg:rounded-md stg:border stg:border-border")} aria-label="Sign-ins this agent needs">
                     {agentSetup.state.pendingSignIns.map((signIn) => (
-                      <li key={signIn.id} className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:px-3 stg:py-2">
+                      <li key={signIn.address} className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:px-3 stg:py-2">
                         <span className="stg:text-sm stg:font-medium stg:text-foreground">{signIn.name}</span>
-                        <McpServerReadiness
-                          org={signIn.ref.org}
-                          slug={signIn.ref.slug}
-                          keysAskedAt="agent"
-                          onSignedIn={(id) => {
+                        <PluginServerSignIn
+                          org={org!}
+                          server={signIn.server}
+                          onSignedIn={(address) => {
                             includeMyVaultForSave();
-                            void agentSetup.signInCompleted(id);
+                            void agentSetup.signInCompleted(address);
                           }}
                         />
                       </li>
@@ -1751,25 +1699,23 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             </div>
           );
 
-        case "mcp":
+        case "plugins":
           return (
-            <McpServerPicker
-              org={org!}
-              setup={{
-                entries: mcpSetup.entries,
-                onServerAdded: (ref) => mcpSetup.addServer(ref),
-                onServerRemoved: (ref) => mcpSetup.removeServer(ref),
-                onSubmitEnvVars: (ref, values) => {
-                  void mcpSetup.submitEnvVars(ref, values).then((saved) => {
-                    if (saved) includeMyVaultForSave();
-                  });
-                },
-                onSignedIn: () => includeMyVaultForSave(),
-              }}
-              initialServerKey={configMcpInitialServerKeyRef.current}
-              onDisplayNameResolved={handleDisplayNameResolved}
-              disabled={isDisabled}
-            />
+            <div className="stg:flex stg:flex-col stg:gap-3">
+              <PluginPicker
+                org={org!}
+                value={pluginRefs ?? []}
+                onChange={onPluginRefsChange!}
+                onDisplayNameResolved={handleDisplayNameResolved}
+                disabled={isDisabled}
+              />
+              {/* A sign-in is saved in My vault, so it counts once the conversation includes it. */}
+              <PluginServerSignIns
+                org={org!}
+                plugins={pluginRefs ?? []}
+                onSignedIn={() => includeMyVaultForSave()}
+              />
+            </div>
           );
 
         case "skills":
@@ -1821,7 +1767,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       handleAgentSelect,
       handleEnvFormSubmit,
       handleDisplayNameResolved,
-      mcpSetup,
+      pluginRefs,
+      onPluginRefsChange,
       skillRefs,
       onSkillRefsChange,
       shownVaults,
@@ -2002,40 +1949,6 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             </div>
           )}
 
-        {/* Zone 2.75: MCP setup warning */}
-        {showMcp && mcpSetup.needsSetupCount > 0 && (
-          <div
-            role="status"
-            className="stg:mx-3 stg:mb-2 stg:flex stg:items-center stg:gap-2 stg:rounded-md stg:bg-warning/10 stg:px-2.5 stg:py-1.5 stg:text-xs stg:text-warning"
-          >
-            <AlertTriangleIcon />
-            <span>
-              {mcpSetup.needsSetupCount === 1
-                ? "1 MCP server needs configuration"
-                : `${mcpSetup.needsSetupCount} MCP servers need configuration`}
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                if (mcpSetup.needsSetupCount === 1) {
-                  const key = Object.entries(mcpSetup.entries).find(
-                    ([, e]) => e.status === "needsSetup",
-                  )?.[0];
-                  configMcpInitialServerKeyRef.current = key;
-                } else {
-                  configMcpInitialServerKeyRef.current = undefined;
-                }
-                setConfigOpen(true);
-                setConfigActivePanel("mcp");
-              }}
-              disabled={isDisabled}
-              className="stg:ml-auto stg:shrink-0 stg:rounded stg:px-1.5 stg:py-0.5 stg:text-[0.6rem] stg:font-medium stg:hover:bg-warning/20 stg:disabled:pointer-events-none stg:disabled:opacity-50"
-            >
-              Configure
-            </button>
-          </div>
-        )}
-
         {/* Zone 3: Toolbar */}
         <ComposerToolbar
           disabled={isDisabled}
@@ -2154,17 +2067,3 @@ function AgentSetupError({ error }: { error: Error }) {
     </p>
   );
 }
-
-// ---------------------------------------------------------------------------
-// MCP key-to-ref utility
-// ---------------------------------------------------------------------------
-
-function mcpRefFromKey(key: string): ResourceRef {
-  const idx = key.indexOf("/");
-  return {
-    org: key.slice(0, idx),
-    slug: key.slice(idx + 1),
-    kind: ApiResourceKind.mcp_server,
-  };
-}
-

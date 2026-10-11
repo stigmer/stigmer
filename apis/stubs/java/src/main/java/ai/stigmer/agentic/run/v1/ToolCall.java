@@ -783,11 +783,12 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object mcpServerSlug_ = "";
   /**
    * <pre>
-   * Slug of the MCP server that provides this tool.
+   * Name of the MCP server that provides this tool, as its tools are named
+   * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
    * Empty for built-in sandbox tools.
    * Populated by the worker using the mcp_tools_config reverse lookup.
    *
-   * Examples: "planton", "github", "slack"
+   * Examples: "plugin_linear_linear", "plugin_github_github"
    *
    * Used by CLI/UI to render a qualified tool name (e.g., "planton/search")
    * so users can distinguish tools with the same name from different servers.
@@ -811,11 +812,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Slug of the MCP server that provides this tool.
+   * Name of the MCP server that provides this tool, as its tools are named
+   * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
    * Empty for built-in sandbox tools.
    * Populated by the worker using the mcp_tools_config reverse lookup.
    *
-   * Examples: "planton", "github", "slack"
+   * Examples: "plugin_linear_linear", "plugin_github_github"
    *
    * Used by CLI/UI to render a qualified tool name (e.g., "planton/search")
    * so users can distinguish tools with the same name from different servers.
@@ -3834,11 +3836,12 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object mcpServerSlug_ = "";
     /**
      * <pre>
-     * Slug of the MCP server that provides this tool.
+     * Name of the MCP server that provides this tool, as its tools are named
+     * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
      * Empty for built-in sandbox tools.
      * Populated by the worker using the mcp_tools_config reverse lookup.
      *
-     * Examples: "planton", "github", "slack"
+     * Examples: "plugin_linear_linear", "plugin_github_github"
      *
      * Used by CLI/UI to render a qualified tool name (e.g., "planton/search")
      * so users can distinguish tools with the same name from different servers.
@@ -3861,11 +3864,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the MCP server that provides this tool.
+     * Name of the MCP server that provides this tool, as its tools are named
+     * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
      * Empty for built-in sandbox tools.
      * Populated by the worker using the mcp_tools_config reverse lookup.
      *
-     * Examples: "planton", "github", "slack"
+     * Examples: "plugin_linear_linear", "plugin_github_github"
      *
      * Used by CLI/UI to render a qualified tool name (e.g., "planton/search")
      * so users can distinguish tools with the same name from different servers.
@@ -3889,11 +3893,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the MCP server that provides this tool.
+     * Name of the MCP server that provides this tool, as its tools are named
+     * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
      * Empty for built-in sandbox tools.
      * Populated by the worker using the mcp_tools_config reverse lookup.
      *
-     * Examples: "planton", "github", "slack"
+     * Examples: "plugin_linear_linear", "plugin_github_github"
      *
      * Used by CLI/UI to render a qualified tool name (e.g., "planton/search")
      * so users can distinguish tools with the same name from different servers.
@@ -3913,11 +3918,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the MCP server that provides this tool.
+     * Name of the MCP server that provides this tool, as its tools are named
+     * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
      * Empty for built-in sandbox tools.
      * Populated by the worker using the mcp_tools_config reverse lookup.
      *
-     * Examples: "planton", "github", "slack"
+     * Examples: "plugin_linear_linear", "plugin_github_github"
      *
      * Used by CLI/UI to render a qualified tool name (e.g., "planton/search")
      * so users can distinguish tools with the same name from different servers.
@@ -3934,11 +3940,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Slug of the MCP server that provides this tool.
+     * Name of the MCP server that provides this tool, as its tools are named
+     * (plugin_&lt;plugin&gt;_&lt;server&gt; for a plugin's server).
      * Empty for built-in sandbox tools.
      * Populated by the worker using the mcp_tools_config reverse lookup.
      *
-     * Examples: "planton", "github", "slack"
+     * Examples: "plugin_linear_linear", "plugin_github_github"
      *
      * Used by CLI/UI to render a qualified tool name (e.g., "planton/search")
      * so users can distinguish tools with the same name from different servers.

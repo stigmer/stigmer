@@ -62,7 +62,7 @@ describe("native harness shell execute approval", () => {
       checkpointer: checkpointer as never,
       backend,
       middleware: [
-        createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), leasedServers: new Set() }, toolServerMap: new Map() }),
+        createApprovalGateMiddleware({ mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() }),
       ],
     } as Parameters<typeof createDeepAgent>[0]);
 
@@ -183,7 +183,7 @@ describe("general-purpose sub-agent gating", () => {
     const compiled = await compileSubagents([gpSpec], {
       parentModelName: "claude-sonnet-4-6",
       workspaceRootDir: root,
-      approvalGate: { mcpDefault: { destructive: new Set(), leasedServers: new Set() }, toolServerMap: new Map() },
+      approvalGate: { mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() },
       shellEnv: {},
       modelFactory: async () => new ScriptedModel(roleScript),
     });

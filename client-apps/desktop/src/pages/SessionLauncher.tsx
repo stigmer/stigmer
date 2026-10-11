@@ -16,8 +16,10 @@ import { useNativeWorkspaceContentSearcher } from "../hooks/useNativeWorkspaceCo
 /**
  * Desktop session launcher — thin shell that composes the SDK
  * `NewSessionViewer` with router navigation, org context, the native
- * workspace hooks, and the `?agent=org/slug` URL parameter a "Start
- * session" action arrives with.
+ * workspace hooks, the `?agent=org/slug` URL parameter a "Start session"
+ * action arrives with, and the `?plugin=org/slug` one a plugin's "Start a
+ * chat" arrives with. The person's plugin picks are remembered on this
+ * machine for the next conversation, as the web console remembers them.
  */
 export function SessionLauncher() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -39,24 +41,36 @@ export function SessionLauncher() {
   // -------------------------------------------------------------------------
 
   const liveAgentParam = searchParams.get("agent");
+  const livePluginParam = searchParams.get("plugin");
 
   const [initialAgentRef, setInitialAgentRef] = useState<ResourceRef | undefined>(
-    () => parseAgentParam(liveAgentParam),
+    () => parseRefParam(liveAgentParam),
   );
   const agentParamCaptured = useRef(liveAgentParam !== null);
+  const [initialPluginRef, setInitialPluginRef] = useState<ResourceRef | undefined>(
+    () => parseRefParam(livePluginParam),
+  );
+  const pluginParamCaptured = useRef(livePluginParam !== null);
 
   useEffect(() => {
     if (!agentParamCaptured.current && liveAgentParam) {
       agentParamCaptured.current = true;
-      setInitialAgentRef(parseAgentParam(liveAgentParam));
+      setInitialAgentRef(parseRefParam(liveAgentParam));
     }
   }, [liveAgentParam]);
 
   useEffect(() => {
-    if (liveAgentParam) {
+    if (!pluginParamCaptured.current && livePluginParam) {
+      pluginParamCaptured.current = true;
+      setInitialPluginRef(parseRefParam(livePluginParam));
+    }
+  }, [livePluginParam]);
+
+  useEffect(() => {
+    if (liveAgentParam || livePluginParam) {
       setSearchParams({}, { replace: true });
     }
-  }, [liveAgentParam, setSearchParams]);
+  }, [liveAgentParam, livePluginParam, setSearchParams]);
 
   return (
     <NewSessionViewer
@@ -71,16 +85,18 @@ export function SessionLauncher() {
       workspaceFileReader={workspaceFileReader}
       workspaceContentSearcher={workspaceContentSearcher}
       initialAgentRef={initialAgentRef}
+      initialPluginRefs={initialPluginRef ? [initialPluginRef] : undefined}
+      rememberPluginPicks
       className="h-full"
     />
   );
 }
 
 /**
- * Parse an `agent` query param of the form `org/slug` into a
+ * Parse an `agent` or `plugin` query param of the form `org/slug` into a
  * {@link ResourceRef}. Returns `undefined` when absent or malformed.
  */
-function parseAgentParam(value: string | null): ResourceRef | undefined {
+function parseRefParam(value: string | null): ResourceRef | undefined {
   if (!value) return undefined;
   const slashIndex = value.indexOf("/");
   if (slashIndex <= 0 || slashIndex === value.length - 1) return undefined;

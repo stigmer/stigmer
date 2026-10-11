@@ -45,7 +45,7 @@ const INITIAL_DATA: ResourceListData = {
  * the read scope, never the client).
  *
  * Powers the public resource list hooks (`useAgentList`, `useSkillList`,
- * `useMcpServerList`) — not exported from the public API.
+ * `usePluginList`) — not exported from the public API.
  *
  * Unlike {@link useResourceSearch} which manages its own debounced query
  * state for picker/type-ahead UX, this hook accepts all parameters

@@ -53,7 +53,7 @@ interface FlatResult {
  * content search is a separate substrate-specific capability.
  *
  * Keyboard/a11y follows the platform's combobox+listbox pattern (see
- * `mcp-server/McpServerPicker`): the input is a `role="combobox"` driving
+ * `plugin/PluginPicker`): the input is a `role="combobox"` driving
  * `aria-activedescendant`, results are a `role="listbox"` of `role="option"`
  * rows, and ArrowUp/Down move a virtual focus with Enter to open — focus stays
  * in the input. All visual properties flow through `--stgm-*` tokens.

@@ -15,7 +15,7 @@ package ai.stigmer.commons.apiresource;
  * written: the target must exist, and a target in another organization
  * must be one the writing organization's parent shares with its child
  * organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be
- * more visible than the skills, MCP servers and agents it references, so
+ * more visible than the skills, plugins and agents it references, so
  * what a person can run they can also read. A reference that fails the
  * check is refused at write, never at run.
  * </pre>
@@ -145,7 +145,7 @@ private static final long serialVersionUID = 0L;
   private int kind_ = 0;
   /**
    * <pre>
-   * Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+   * Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2 [json_name = "kind"];</code>
@@ -156,7 +156,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+   * Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2 [json_name = "kind"];</code>
@@ -491,7 +491,7 @@ private static final long serialVersionUID = 0L;
    * written: the target must exist, and a target in another organization
    * must be one the writing organization's parent shares with its child
    * organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be
-   * more visible than the skills, MCP servers and agents it references, so
+   * more visible than the skills, plugins and agents it references, so
    * what a person can run they can also read. A reference that fails the
    * check is refused at write, never at run.
    * </pre>
@@ -838,7 +838,7 @@ private static final long serialVersionUID = 0L;
     private int kind_ = 0;
     /**
      * <pre>
-     * Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+     * Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2 [json_name = "kind"];</code>
@@ -849,7 +849,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+     * Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2 [json_name = "kind"];</code>
@@ -865,7 +865,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+     * Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2 [json_name = "kind"];</code>
@@ -878,7 +878,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+     * Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2 [json_name = "kind"];</code>
@@ -894,7 +894,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
+     * Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind kind = 2 [json_name = "kind"];</code>

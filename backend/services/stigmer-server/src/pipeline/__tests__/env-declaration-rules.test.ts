@@ -5,13 +5,14 @@
  * when a run starts and a value written into a blueprint would be readable
  * by everyone who can read the blueprint.
  *
- * Both blueprints that declare env are driven through the REAL stack (a
- * composed server on an ephemeral port, a native gRPC client and the full
- * interceptor chain): an agent's spec.env and an MCP server's spec.env each
- * refuse a secret with a value as InvalidArgument carrying the rule's
- * message, and each accepts the two shapes the rule leaves alone (a secret
- * with no value, a plain setting with one), so the refusal is the rule and
- * not some other check on the same create.
+ * The agent, the blueprint a client writes env on, is driven through the
+ * REAL stack (a composed server on an ephemeral port, a native gRPC client
+ * and the full interceptor chain): its spec.env refuses a secret with a
+ * value as InvalidArgument carrying the rule's message, and accepts the two
+ * shapes the rule leaves alone (a secret with no value, a plain setting with
+ * one), so the refusal is the rule and not some other check on the same
+ * create. A plugin's env is read from its archive at install, not written
+ * by a client, so no create of it is driven here.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -23,7 +24,6 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 
 import { loadConfig } from "../../boot/config.js";
 import { composeServer } from "../../boot/compose.js";
@@ -51,7 +51,6 @@ interface Declaration {
 let dir: string;
 let server: ComposedServer;
 let agents: Client<typeof AgentCommandController>;
-let mcpServers: Client<typeof McpServerCommandController>;
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "env-declaration-rules-test-"));
@@ -76,7 +75,6 @@ beforeAll(async () => {
   });
   await seedOrganizations(transport, [ORG]);
   agents = createClient(AgentCommandController, transport);
-  mcpServers = createClient(McpServerCommandController, transport);
 });
 
 afterAll(async () => {
@@ -94,23 +92,6 @@ function agentInput(env: Record<string, Declaration>) {
     metadata: { name: `Env Rule Agent ${counter}`, org: ORG },
     spec: {
       instructions: "You are an agent used by the env declaration tests.",
-      env,
-    },
-  };
-}
-
-function mcpServerInput(env: Record<string, Declaration>) {
-  counter += 1;
-  return {
-    apiVersion: API_VERSION,
-    kind: "McpServer",
-    metadata: { name: `Env Rule Server ${counter}`, org: ORG },
-    spec: {
-      description: "created by the env declaration tests",
-      serverType: {
-        case: "stdio" as const,
-        value: { command: "npx", args: ["-y", "@example/mcp"] },
-      },
       env,
     },
   };
@@ -147,25 +128,9 @@ describe("env declaration: a secret carries no value", () => {
     expect(error.rawMessage).toContain(RULE_MESSAGE);
   });
 
-  it("refuses an MCP server whose env declares a secret with a value", async () => {
-    const error = await grpcError(() =>
-      mcpServers.create(mcpServerInput(SECRET_WITH_VALUE)),
-    );
-    expect(error.code).toBe(Code.InvalidArgument);
-    expect(error.rawMessage).toContain(RULE_MESSAGE);
-  });
-
   it("accepts an agent with a secret that has no value and a plain setting that has one", async () => {
     const created = await agents.create(
       agentInput({ ...SECRET_WITHOUT_VALUE, ...PLAIN_WITH_VALUE }),
-    );
-    expect(created.spec?.env.API_TOKEN?.isSecret).toBe(true);
-    expect(created.spec?.env.WORKSPACE?.value).toBe("support");
-  });
-
-  it("accepts an MCP server with a secret that has no value and a plain setting that has one", async () => {
-    const created = await mcpServers.create(
-      mcpServerInput({ ...SECRET_WITHOUT_VALUE, ...PLAIN_WITH_VALUE }),
     );
     expect(created.spec?.env.API_TOKEN?.isSecret).toBe(true);
     expect(created.spec?.env.WORKSPACE?.value).toBe("support");

@@ -34,8 +34,10 @@ private static final long serialVersionUID = 0L;
   private RunValueDeclarer() {
     kind_ = 0;
     name_ = "";
-    mcpServerId_ = "";
     repositoryUrl_ = "";
+    pluginId_ = "";
+    server_ = "";
+    pluginDigest_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -60,7 +62,7 @@ private static final long serialVersionUID = 0L;
   private int kind_ = 0;
   /**
    * <pre>
-   * Agent, tool or repository.
+   * Agent, tool, plugin or repository.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunValueDeclarerKind kind = 1 [json_name = "kind"];</code>
@@ -71,7 +73,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Agent, tool or repository.
+   * Agent, tool, plugin or repository.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.RunValueDeclarerKind kind = 1 [json_name = "kind"];</code>
@@ -87,7 +89,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object name_ = "";
   /**
    * <pre>
-   * The agent's or tool's name, or the repository entry's name.
+   * The agent's name; a tool's name as plugin:&lt;plugin&gt;:&lt;server&gt;; the
+   * plugin's name; or the repository entry's name.
    * </pre>
    *
    * <code>string name = 2 [json_name = "name"];</code>
@@ -108,7 +111,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The agent's or tool's name, or the repository entry's name.
+   * The agent's name; a tool's name as plugin:&lt;plugin&gt;:&lt;server&gt;; the
+   * plugin's name; or the repository entry's name.
    * </pre>
    *
    * <code>string name = 2 [json_name = "name"];</code>
@@ -129,59 +133,12 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int MCP_SERVER_ID_FIELD_NUMBER = 3;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object mcpServerId_ = "";
-  /**
-   * <pre>
-   * The tool's MCP server id; empty for an agent or a repository.
-   * </pre>
-   *
-   * <code>string mcp_server_id = 3 [json_name = "mcpServerId"];</code>
-   * @return The mcpServerId.
-   */
-  @java.lang.Override
-  public java.lang.String getMcpServerId() {
-    java.lang.Object ref = mcpServerId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      mcpServerId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * The tool's MCP server id; empty for an agent or a repository.
-   * </pre>
-   *
-   * <code>string mcp_server_id = 3 [json_name = "mcpServerId"];</code>
-   * @return The bytes for mcpServerId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getMcpServerIdBytes() {
-    java.lang.Object ref = mcpServerId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      mcpServerId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
   public static final int REPOSITORY_URL_FIELD_NUMBER = 4;
   @SuppressWarnings("serial")
   private volatile java.lang.Object repositoryUrl_ = "";
   /**
    * <pre>
-   * The repository's URL; empty for an agent or a tool.
+   * The repository's URL; empty for an agent, a tool or a plugin.
    * </pre>
    *
    * <code>string repository_url = 4 [json_name = "repositoryUrl"];</code>
@@ -202,7 +159,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The repository's URL; empty for an agent or a tool.
+   * The repository's URL; empty for an agent, a tool or a plugin.
    * </pre>
    *
    * <code>string repository_url = 4 [json_name = "repositoryUrl"];</code>
@@ -217,6 +174,155 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
       repositoryUrl_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int PLUGIN_ID_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object pluginId_ = "";
+  /**
+   * <pre>
+   * The plugin that declared it: a tool's plugin, or the plugin whose hooks
+   * read it; empty for an agent or a repository.
+   * </pre>
+   *
+   * <code>string plugin_id = 5 [json_name = "pluginId"];</code>
+   * @return The pluginId.
+   */
+  @java.lang.Override
+  public java.lang.String getPluginId() {
+    java.lang.Object ref = pluginId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      pluginId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The plugin that declared it: a tool's plugin, or the plugin whose hooks
+   * read it; empty for an agent or a repository.
+   * </pre>
+   *
+   * <code>string plugin_id = 5 [json_name = "pluginId"];</code>
+   * @return The bytes for pluginId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPluginIdBytes() {
+    java.lang.Object ref = pluginId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      pluginId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int SERVER_FIELD_NUMBER = 6;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object server_ = "";
+  /**
+   * <pre>
+   * The tool's server name in its plugin; empty for everything else.
+   * </pre>
+   *
+   * <code>string server = 6 [json_name = "server"];</code>
+   * @return The server.
+   */
+  @java.lang.Override
+  public java.lang.String getServer() {
+    java.lang.Object ref = server_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      server_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The tool's server name in its plugin; empty for everything else.
+   * </pre>
+   *
+   * <code>string server = 6 [json_name = "server"];</code>
+   * @return The bytes for server.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getServerBytes() {
+    java.lang.Object ref = server_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      server_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int PLUGIN_DIGEST_FIELD_NUMBER = 7;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object pluginDigest_ = "";
+  /**
+   * <pre>
+   * The archive of the tool's plugin this run planned (the plugin's
+   * digest); empty for everything else. The values fetch reads the server
+   * at that version, so a run of a pinned version keeps its tools when the
+   * plugin is pushed again.
+   * </pre>
+   *
+   * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+   * @return The pluginDigest.
+   */
+  @java.lang.Override
+  public java.lang.String getPluginDigest() {
+    java.lang.Object ref = pluginDigest_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      pluginDigest_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The archive of the tool's plugin this run planned (the plugin's
+   * digest); empty for everything else. The values fetch reads the server
+   * at that version, so a run of a pinned version keeps its tools when the
+   * plugin is pushed again.
+   * </pre>
+   *
+   * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+   * @return The bytes for pluginDigest.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPluginDigestBytes() {
+    java.lang.Object ref = pluginDigest_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      pluginDigest_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -243,11 +349,17 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(name_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, name_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, mcpServerId_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(repositoryUrl_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, repositoryUrl_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pluginId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, pluginId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(server_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 6, server_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pluginDigest_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 7, pluginDigest_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -265,11 +377,17 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(name_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, name_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, mcpServerId_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(repositoryUrl_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, repositoryUrl_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pluginId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, pluginId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(server_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(6, server_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(pluginDigest_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, pluginDigest_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -289,10 +407,14 @@ private static final long serialVersionUID = 0L;
     if (kind_ != other.kind_) return false;
     if (!getName()
         .equals(other.getName())) return false;
-    if (!getMcpServerId()
-        .equals(other.getMcpServerId())) return false;
     if (!getRepositoryUrl()
         .equals(other.getRepositoryUrl())) return false;
+    if (!getPluginId()
+        .equals(other.getPluginId())) return false;
+    if (!getServer()
+        .equals(other.getServer())) return false;
+    if (!getPluginDigest()
+        .equals(other.getPluginDigest())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -308,10 +430,14 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + kind_;
     hash = (37 * hash) + NAME_FIELD_NUMBER;
     hash = (53 * hash) + getName().hashCode();
-    hash = (37 * hash) + MCP_SERVER_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getMcpServerId().hashCode();
     hash = (37 * hash) + REPOSITORY_URL_FIELD_NUMBER;
     hash = (53 * hash) + getRepositoryUrl().hashCode();
+    hash = (37 * hash) + PLUGIN_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getPluginId().hashCode();
+    hash = (37 * hash) + SERVER_FIELD_NUMBER;
+    hash = (53 * hash) + getServer().hashCode();
+    hash = (37 * hash) + PLUGIN_DIGEST_FIELD_NUMBER;
+    hash = (53 * hash) + getPluginDigest().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -449,8 +575,10 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       kind_ = 0;
       name_ = "";
-      mcpServerId_ = "";
       repositoryUrl_ = "";
+      pluginId_ = "";
+      server_ = "";
+      pluginDigest_ = "";
       return this;
     }
 
@@ -491,10 +619,16 @@ private static final long serialVersionUID = 0L;
         result.name_ = name_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.mcpServerId_ = mcpServerId_;
+        result.repositoryUrl_ = repositoryUrl_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.repositoryUrl_ = repositoryUrl_;
+        result.pluginId_ = pluginId_;
+      }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.server_ = server_;
+      }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.pluginDigest_ = pluginDigest_;
       }
     }
 
@@ -518,14 +652,24 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (!other.getMcpServerId().isEmpty()) {
-        mcpServerId_ = other.mcpServerId_;
+      if (!other.getRepositoryUrl().isEmpty()) {
+        repositoryUrl_ = other.repositoryUrl_;
         bitField0_ |= 0x00000004;
         onChanged();
       }
-      if (!other.getRepositoryUrl().isEmpty()) {
-        repositoryUrl_ = other.repositoryUrl_;
+      if (!other.getPluginId().isEmpty()) {
+        pluginId_ = other.pluginId_;
         bitField0_ |= 0x00000008;
+        onChanged();
+      }
+      if (!other.getServer().isEmpty()) {
+        server_ = other.server_;
+        bitField0_ |= 0x00000010;
+        onChanged();
+      }
+      if (!other.getPluginDigest().isEmpty()) {
+        pluginDigest_ = other.pluginDigest_;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -564,16 +708,26 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
-            case 26: {
-              mcpServerId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
-              break;
-            } // case 26
             case 34: {
               repositoryUrl_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000004;
               break;
             } // case 34
+            case 42: {
+              pluginId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 42
+            case 50: {
+              server_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 50
+            case 58: {
+              pluginDigest_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -594,7 +748,7 @@ private static final long serialVersionUID = 0L;
     private int kind_ = 0;
     /**
      * <pre>
-     * Agent, tool or repository.
+     * Agent, tool, plugin or repository.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunValueDeclarerKind kind = 1 [json_name = "kind"];</code>
@@ -605,7 +759,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent, tool or repository.
+     * Agent, tool, plugin or repository.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunValueDeclarerKind kind = 1 [json_name = "kind"];</code>
@@ -621,7 +775,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent, tool or repository.
+     * Agent, tool, plugin or repository.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunValueDeclarerKind kind = 1 [json_name = "kind"];</code>
@@ -634,7 +788,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent, tool or repository.
+     * Agent, tool, plugin or repository.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunValueDeclarerKind kind = 1 [json_name = "kind"];</code>
@@ -650,7 +804,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent, tool or repository.
+     * Agent, tool, plugin or repository.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.RunValueDeclarerKind kind = 1 [json_name = "kind"];</code>
@@ -666,7 +820,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object name_ = "";
     /**
      * <pre>
-     * The agent's or tool's name, or the repository entry's name.
+     * The agent's name; a tool's name as plugin:&lt;plugin&gt;:&lt;server&gt;; the
+     * plugin's name; or the repository entry's name.
      * </pre>
      *
      * <code>string name = 2 [json_name = "name"];</code>
@@ -686,7 +841,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The agent's or tool's name, or the repository entry's name.
+     * The agent's name; a tool's name as plugin:&lt;plugin&gt;:&lt;server&gt;; the
+     * plugin's name; or the repository entry's name.
      * </pre>
      *
      * <code>string name = 2 [json_name = "name"];</code>
@@ -707,7 +863,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The agent's or tool's name, or the repository entry's name.
+     * The agent's name; a tool's name as plugin:&lt;plugin&gt;:&lt;server&gt;; the
+     * plugin's name; or the repository entry's name.
      * </pre>
      *
      * <code>string name = 2 [json_name = "name"];</code>
@@ -724,7 +881,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The agent's or tool's name, or the repository entry's name.
+     * The agent's name; a tool's name as plugin:&lt;plugin&gt;:&lt;server&gt;; the
+     * plugin's name; or the repository entry's name.
      * </pre>
      *
      * <code>string name = 2 [json_name = "name"];</code>
@@ -738,7 +896,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The agent's or tool's name, or the repository entry's name.
+     * The agent's name; a tool's name as plugin:&lt;plugin&gt;:&lt;server&gt;; the
+     * plugin's name; or the repository entry's name.
      * </pre>
      *
      * <code>string name = 2 [json_name = "name"];</code>
@@ -755,102 +914,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object mcpServerId_ = "";
-    /**
-     * <pre>
-     * The tool's MCP server id; empty for an agent or a repository.
-     * </pre>
-     *
-     * <code>string mcp_server_id = 3 [json_name = "mcpServerId"];</code>
-     * @return The mcpServerId.
-     */
-    public java.lang.String getMcpServerId() {
-      java.lang.Object ref = mcpServerId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        mcpServerId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * The tool's MCP server id; empty for an agent or a repository.
-     * </pre>
-     *
-     * <code>string mcp_server_id = 3 [json_name = "mcpServerId"];</code>
-     * @return The bytes for mcpServerId.
-     */
-    public com.google.protobuf.ByteString
-        getMcpServerIdBytes() {
-      java.lang.Object ref = mcpServerId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        mcpServerId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * The tool's MCP server id; empty for an agent or a repository.
-     * </pre>
-     *
-     * <code>string mcp_server_id = 3 [json_name = "mcpServerId"];</code>
-     * @param value The mcpServerId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setMcpServerId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      mcpServerId_ = value;
-      bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The tool's MCP server id; empty for an agent or a repository.
-     * </pre>
-     *
-     * <code>string mcp_server_id = 3 [json_name = "mcpServerId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearMcpServerId() {
-      mcpServerId_ = getDefaultInstance().getMcpServerId();
-      bitField0_ = (bitField0_ & ~0x00000004);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The tool's MCP server id; empty for an agent or a repository.
-     * </pre>
-     *
-     * <code>string mcp_server_id = 3 [json_name = "mcpServerId"];</code>
-     * @param value The bytes for mcpServerId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setMcpServerIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      mcpServerId_ = value;
-      bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object repositoryUrl_ = "";
     /**
      * <pre>
-     * The repository's URL; empty for an agent or a tool.
+     * The repository's URL; empty for an agent, a tool or a plugin.
      * </pre>
      *
      * <code>string repository_url = 4 [json_name = "repositoryUrl"];</code>
@@ -870,7 +937,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The repository's URL; empty for an agent or a tool.
+     * The repository's URL; empty for an agent, a tool or a plugin.
      * </pre>
      *
      * <code>string repository_url = 4 [json_name = "repositoryUrl"];</code>
@@ -891,7 +958,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The repository's URL; empty for an agent or a tool.
+     * The repository's URL; empty for an agent, a tool or a plugin.
      * </pre>
      *
      * <code>string repository_url = 4 [json_name = "repositoryUrl"];</code>
@@ -902,13 +969,13 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       repositoryUrl_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The repository's URL; empty for an agent or a tool.
+     * The repository's URL; empty for an agent, a tool or a plugin.
      * </pre>
      *
      * <code>string repository_url = 4 [json_name = "repositoryUrl"];</code>
@@ -916,13 +983,13 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearRepositoryUrl() {
       repositoryUrl_ = getDefaultInstance().getRepositoryUrl();
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * The repository's URL; empty for an agent or a tool.
+     * The repository's URL; empty for an agent, a tool or a plugin.
      * </pre>
      *
      * <code>string repository_url = 4 [json_name = "repositoryUrl"];</code>
@@ -934,7 +1001,303 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       repositoryUrl_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object pluginId_ = "";
+    /**
+     * <pre>
+     * The plugin that declared it: a tool's plugin, or the plugin whose hooks
+     * read it; empty for an agent or a repository.
+     * </pre>
+     *
+     * <code>string plugin_id = 5 [json_name = "pluginId"];</code>
+     * @return The pluginId.
+     */
+    public java.lang.String getPluginId() {
+      java.lang.Object ref = pluginId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        pluginId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The plugin that declared it: a tool's plugin, or the plugin whose hooks
+     * read it; empty for an agent or a repository.
+     * </pre>
+     *
+     * <code>string plugin_id = 5 [json_name = "pluginId"];</code>
+     * @return The bytes for pluginId.
+     */
+    public com.google.protobuf.ByteString
+        getPluginIdBytes() {
+      java.lang.Object ref = pluginId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        pluginId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The plugin that declared it: a tool's plugin, or the plugin whose hooks
+     * read it; empty for an agent or a repository.
+     * </pre>
+     *
+     * <code>string plugin_id = 5 [json_name = "pluginId"];</code>
+     * @param value The pluginId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPluginId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      pluginId_ = value;
       bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin that declared it: a tool's plugin, or the plugin whose hooks
+     * read it; empty for an agent or a repository.
+     * </pre>
+     *
+     * <code>string plugin_id = 5 [json_name = "pluginId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPluginId() {
+      pluginId_ = getDefaultInstance().getPluginId();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The plugin that declared it: a tool's plugin, or the plugin whose hooks
+     * read it; empty for an agent or a repository.
+     * </pre>
+     *
+     * <code>string plugin_id = 5 [json_name = "pluginId"];</code>
+     * @param value The bytes for pluginId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPluginIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      pluginId_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object server_ = "";
+    /**
+     * <pre>
+     * The tool's server name in its plugin; empty for everything else.
+     * </pre>
+     *
+     * <code>string server = 6 [json_name = "server"];</code>
+     * @return The server.
+     */
+    public java.lang.String getServer() {
+      java.lang.Object ref = server_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        server_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The tool's server name in its plugin; empty for everything else.
+     * </pre>
+     *
+     * <code>string server = 6 [json_name = "server"];</code>
+     * @return The bytes for server.
+     */
+    public com.google.protobuf.ByteString
+        getServerBytes() {
+      java.lang.Object ref = server_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        server_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The tool's server name in its plugin; empty for everything else.
+     * </pre>
+     *
+     * <code>string server = 6 [json_name = "server"];</code>
+     * @param value The server to set.
+     * @return This builder for chaining.
+     */
+    public Builder setServer(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      server_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The tool's server name in its plugin; empty for everything else.
+     * </pre>
+     *
+     * <code>string server = 6 [json_name = "server"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearServer() {
+      server_ = getDefaultInstance().getServer();
+      bitField0_ = (bitField0_ & ~0x00000010);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The tool's server name in its plugin; empty for everything else.
+     * </pre>
+     *
+     * <code>string server = 6 [json_name = "server"];</code>
+     * @param value The bytes for server to set.
+     * @return This builder for chaining.
+     */
+    public Builder setServerBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      server_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object pluginDigest_ = "";
+    /**
+     * <pre>
+     * The archive of the tool's plugin this run planned (the plugin's
+     * digest); empty for everything else. The values fetch reads the server
+     * at that version, so a run of a pinned version keeps its tools when the
+     * plugin is pushed again.
+     * </pre>
+     *
+     * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+     * @return The pluginDigest.
+     */
+    public java.lang.String getPluginDigest() {
+      java.lang.Object ref = pluginDigest_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        pluginDigest_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The archive of the tool's plugin this run planned (the plugin's
+     * digest); empty for everything else. The values fetch reads the server
+     * at that version, so a run of a pinned version keeps its tools when the
+     * plugin is pushed again.
+     * </pre>
+     *
+     * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+     * @return The bytes for pluginDigest.
+     */
+    public com.google.protobuf.ByteString
+        getPluginDigestBytes() {
+      java.lang.Object ref = pluginDigest_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        pluginDigest_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The archive of the tool's plugin this run planned (the plugin's
+     * digest); empty for everything else. The values fetch reads the server
+     * at that version, so a run of a pinned version keeps its tools when the
+     * plugin is pushed again.
+     * </pre>
+     *
+     * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+     * @param value The pluginDigest to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPluginDigest(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      pluginDigest_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The archive of the tool's plugin this run planned (the plugin's
+     * digest); empty for everything else. The values fetch reads the server
+     * at that version, so a run of a pinned version keeps its tools when the
+     * plugin is pushed again.
+     * </pre>
+     *
+     * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPluginDigest() {
+      pluginDigest_ = getDefaultInstance().getPluginDigest();
+      bitField0_ = (bitField0_ & ~0x00000020);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The archive of the tool's plugin this run planned (the plugin's
+     * digest); empty for everything else. The values fetch reads the server
+     * at that version, so a run of a pinned version keeps its tools when the
+     * plugin is pushed again.
+     * </pre>
+     *
+     * <code>string plugin_digest = 7 [json_name = "pluginDigest"];</code>
+     * @param value The bytes for pluginDigest to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPluginDigestBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      pluginDigest_ = value;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }

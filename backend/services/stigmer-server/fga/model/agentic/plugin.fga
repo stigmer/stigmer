@@ -3,26 +3,24 @@ module agentic
 # ========================================
 # PLUGIN TYPE (Organization-scoped)
 # ========================================
-# The unit of install: an Agent Plugins package whose push materialises
-# skills, MCP servers and an agent in the organization, each
-# labelled with the plugin's id. The plugin head is a blueprint-shaped kind
+# The unit of install: an Agent Plugins package holding skills, agents,
+# hooks and MCP servers, which agents and conversations list whole. It is a
+# blueprint-shaped kind
 # and follows the skill model exactly: org-scoped, owner-attributed, four
 # visibility levels through the tuples VisibilityTupleReconciler writes
 # (see agent.fga for the pattern, including the org floor).
 #
-# What the model does NOT do: a member's permission is the member kind's
-# own. The OSS server materialises members through the owning domain's
-# full chain AS THE INSTALLING CALLER, so a skill the plugin installed has
-# the same owner and visibility tuples as one pushed by hand, and its
-# `can_edit` is answered by skill.fga. The plugin's `can_edit` gates
-# push (upgrade) and updateVisibility of the head; `can_delete` gates the
-# cascade. Membership itself is a label on the member, never a tuple here.
+# A plugin is one resource: install writes it and nothing else, so its
+# skills, agents, hooks and servers are reached through the plugin's own
+# relations. `can_view` lets a member list it on an agent or a
+# conversation, and check its servers' tools; `can_edit` gates push
+# (upgrade) and updateVisibility; `can_delete` gates removal.
 #
 # Authorization model (visibility is REAL — no unconditional org grant):
 # - PRIVATE: owner (incl. org admins, see below) + explicit grants only.
 # - ORG and above: org members can view/use via the explicit viewer tuple.
 # - Owners (installers) and org admins can upgrade/re-level/remove (admin
-#   inheritance — mirrors skill and mcp_server).
+#   inheritance — mirrors skill and agent).
 #
 # FGA tuples on install:
 # - plugin:thermos#organization@organization:stigmer

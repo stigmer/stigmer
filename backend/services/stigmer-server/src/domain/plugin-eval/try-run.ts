@@ -10,7 +10,8 @@
  * and its slug must be free in the organization, so a retried start, which
  * may meet the session an earlier attempt left, names its own); its
  * subject is the case's name, so no titling call is made; its harness is
- * the target's; it runs the agent its arm names (arm.ts). The run:
+ * the target's; it runs the built-in assistant with the plugins its arm
+ * lists (arm.ts). The run:
  *
  *   - the target's model, and as its own cap the budget the suite workflow
  *     hands the try when it starts (tryBudgetUsd): an equal share of what
@@ -24,8 +25,8 @@
  *     `tools`; `Skill` in `disallowed_tools` when the case does not list
  *     it, since an allow-list without `Skill` keeps skills in Stigmer; and,
  *     unless the eval runs real servers, each of the plugin's MCP servers
- *     disallowed (`mcp__<server>`), the format's default of not starting
- *     them. With nothing granted the try still gets an allow-list, so an
+ *     disallowed (`mcp__plugin_<plugin>_<server>`, as a turn names it), the
+ *     format's default of not starting them. With nothing granted the try still gets an allow-list, so an
  *     engine's own extras (Cursor's `generateImage`, ...) and every MCP
  *     server are out of scope exactly as for a read-only case: the runner
  *     reads an empty `tools` as every tool and refuses one in which nothing
@@ -122,7 +123,7 @@ export interface TryTools {
 export function tryToolsOf(
   evalCase: Pick<EvalCase, "allowedTools">,
   spec: Pick<PluginEvalSpec, "allowTools" | "realMcpServers">,
-  pluginServerSlugs: ReadonlyArray<string>,
+  pluginServerSegments: ReadonlyArray<string>,
 ): TryTools {
   const readOnly = new Set(READ_ONLY_EVAL_TOOLS);
   const granted: string[] = [];
@@ -149,8 +150,8 @@ export function tryToolsOf(
   const grantedNames = new Set(granted.map(baseName));
   const disallowed: string[] = grantedNames.has("Skill") ? [] : ["Skill"];
   if (!spec.realMcpServers) {
-    for (const slug of pluginServerSlugs) {
-      disallowed.push(`mcp__${slug}`);
+    for (const segment of pluginServerSegments) {
+      disallowed.push(`mcp__${segment}`);
     }
   }
   return {
@@ -221,10 +222,7 @@ export function trySessionRequest(input: {
       subject: input.caseName,
       harness:
         input.harness === Harness.UNSPECIFIED ? Harness.NATIVE : input.harness,
-      ...(input.attachment.agentRef === undefined
-        ? {}
-        : { agentRef: input.attachment.agentRef }),
-      mcpServerUsages: [...input.attachment.mcpServerUsages],
+      plugins: [...input.attachment.plugins],
     }),
   });
 }
@@ -240,9 +238,9 @@ export function tryRunRequest(input: {
   readonly modelName: string;
   /** The run's spending cap: the try's share of what the eval has left (temporal/evals/names.ts CaseInput). */
   readonly budgetUsd: number;
-  readonly pluginServerSlugs: ReadonlyArray<string>;
+  readonly pluginServerSegments: ReadonlyArray<string>;
 }): Run {
-  const tools = tryToolsOf(input.evalCase, input.spec, input.pluginServerSlugs);
+  const tools = tryToolsOf(input.evalCase, input.spec, input.pluginServerSegments);
   return create(RunSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Run",

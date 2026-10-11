@@ -76,8 +76,8 @@ const stubNewSessionFlow = {
     isUpdating: false,
     updateError: null,
   },
-  mcpServerUsages: [],
-  setMcpServerUsages: vi.fn(),
+  pluginRefs: [],
+  setPluginRefs: vi.fn(),
   skillRefs: [],
   setSkillRefs: vi.fn(),
   workspace: stubWorkspace,
@@ -108,7 +108,7 @@ const stubConv = {
   retryLastSend: vi.fn(),
   pendingUserMessage: null,
   workspaceEntries: [],
-  mcpServerUsages: [],
+  plugins: [],
   skillRefs: [],
   pendingApprovals: [],
   submitApproval: vi.fn(),
@@ -142,8 +142,8 @@ const stubSessionPageFlow = {
     isUpdating: false,
     updateError: null,
   },
-  mcpServerUsages: [],
-  setMcpServerUsages: vi.fn(),
+  pluginRefs: [],
+  setPluginRefs: vi.fn(),
   skillRefs: [],
   setSkillRefs: vi.fn(),
   workspace: stubWorkspace,
@@ -227,7 +227,7 @@ describe("NewSessionViewer — audience wiring", () => {
 
     const props = lastComposerProps();
     expect(props.lockAgent).toBe(false);
-    expect(props.onMcpServerUsagesChange).toBeDefined();
+    expect(props.onPluginRefsChange).toBeDefined();
     expect(props.onSkillRefsChange).toBeDefined();
     expect(props.enableVaultPicker).toBe(true);
     expect(openedConfigFacet().mutations).toBeDefined();
@@ -245,7 +245,7 @@ describe("NewSessionViewer — audience wiring", () => {
 
     const props = lastComposerProps();
     expect(props.lockAgent).toBe(true);
-    expect(props.onMcpServerUsagesChange).toBeUndefined();
+    expect(props.onPluginRefsChange).toBeUndefined();
     expect(props.onSkillRefsChange).toBeUndefined();
     expect(props.enableVaultPicker).toBe(false);
     // End-user controls survive the curation.
@@ -310,7 +310,7 @@ describe("NewSessionViewer — audience wiring", () => {
 
     const props = lastComposerProps();
     expect(props.lockAgent).toBe(true);
-    expect(props.onMcpServerUsagesChange).toBeUndefined();
+    expect(props.onPluginRefsChange).toBeUndefined();
     expect(props.onSkillRefsChange).toBeUndefined();
     expect(props.enableVaultPicker).toBe(false);
     // Guest-only restrictions on top of the endUser curation.
@@ -370,7 +370,7 @@ describe("SessionViewer — audience wiring", () => {
 
     const props = lastComposerProps();
     expect(props.lockAgent).toBe(false);
-    expect(props.onMcpServerUsagesChange).toBeDefined();
+    expect(props.onPluginRefsChange).toBeDefined();
     expect(props.onSkillRefsChange).toBeDefined();
     expect(props.enableVaultPicker).toBe(true);
     expect(openedConfigFacet().mutations).toBeDefined();
@@ -381,7 +381,7 @@ describe("SessionViewer — audience wiring", () => {
 
     const props = lastComposerProps();
     expect(props.lockAgent).toBe(true);
-    expect(props.onMcpServerUsagesChange).toBeUndefined();
+    expect(props.onPluginRefsChange).toBeUndefined();
     expect(props.onSkillRefsChange).toBeUndefined();
     expect(props.enableVaultPicker).toBe(false);
     // End-user controls survive the curation.
@@ -394,7 +394,7 @@ describe("SessionViewer — audience wiring", () => {
 
     const props = lastComposerProps();
     expect(props.lockAgent).toBe(true);
-    expect(props.onMcpServerUsagesChange).toBeUndefined();
+    expect(props.onPluginRefsChange).toBeUndefined();
     expect(props.onSkillRefsChange).toBeUndefined();
     expect(props.enableVaultPicker).toBe(false);
     // Guest-only restrictions on top of the endUser curation.

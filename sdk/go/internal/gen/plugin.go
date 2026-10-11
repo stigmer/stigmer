@@ -48,6 +48,11 @@ func (p *PluginClient) Delete(ctx context.Context, id string) (*pluginv1.Plugin,
 	return resp, wrapErr(err)
 }
 
+func (p *PluginClient) ListTools(ctx context.Context, input *pluginv1.ListPluginToolsInput) (*pluginv1.ListPluginToolsOutput, error) {
+	resp, err := p.command.ListTools(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (p *PluginClient) Get(ctx context.Context, id string) (*pluginv1.Plugin, error) {
 	resp, err := p.query.Get(ctx, &pluginv1.PluginId{Value: id})
 	return resp, wrapErr(err)
@@ -56,11 +61,6 @@ func (p *PluginClient) Get(ctx context.Context, id string) (*pluginv1.Plugin, er
 func (p *PluginClient) GetByReference(ctx context.Context, ref ResourceRef) (*pluginv1.Plugin, error) {
 	ref.Kind = apiresourcekind.ApiResourceKind_plugin
 	resp, err := p.query.GetByReference(ctx, ref.toProto())
-	return resp, wrapErr(err)
-}
-
-func (p *PluginClient) ListMembers(ctx context.Context, id string) (*pluginv1.ListPluginMembersResponse, error) {
-	resp, err := p.query.ListMembers(ctx, &pluginv1.PluginId{Value: id})
 	return resp, wrapErr(err)
 }
 

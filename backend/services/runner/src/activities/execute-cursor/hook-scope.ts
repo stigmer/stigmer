@@ -45,6 +45,7 @@
 import { approvalCategory } from "./approval-policy.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { CURSOR_HOOK_TOOL_COVERS, type ClaudeTool } from "@stigmer/tool-vocabulary";
+import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
 import {
   outOfScopeMessage,
   type McpScopeTable,
@@ -163,7 +164,9 @@ export const AGENT_SCOPE_KEY = scopeKey("Task", CURSOR_HOOK_TOOL_COVERS);
 /** What {@link compileHookToolScope} reads, all of it from the turn's record. */
 export interface HookToolScopeInput {
   readonly scope: ToolScope;
-  readonly servers: readonly Pick<ResolvedMcpServer, "slug" | "discoveredToolNames">[];
+  readonly servers: readonly Pick<ResolvedMcpServer, "slug">[];
+  /** What the turn start listed of each plugin server's tools (`TurnMcp.listing`). */
+  readonly listing: McpToolListing | undefined;
   /** The synthesized attachments' slugs: the platform's servers, outside every list. */
   readonly platformServerSlugs: ReadonlySet<string>;
   /** {@link HookToolScope.readRoot}, resolved by the caller (`turn-setup.ts` `platformReadRoot`). */
@@ -186,9 +189,10 @@ export function compileHookToolScope(input: HookToolScopeInput): HookToolScope {
     ]),
   );
 
+  const listed = new Map((input.listing?.listed ?? []).map(({ server, tools }) => [server, tools]));
   const known = new Map<string, readonly string[]>();
   for (const server of servers) {
-    if (!platformServerSlugs.has(server.slug)) known.set(server.slug, server.discoveredToolNames ?? []);
+    if (!platformServerSlugs.has(server.slug)) known.set(server.slug, listed.get(server.slug) ?? []);
   }
   const table = scope.mcpTable(known);
   const mcp: McpScopeTable = {

@@ -121,6 +121,13 @@ export interface HarnessCapabilities {
    * is fetched: a hook that silently does not run is a policy that vanished.
    */
   readonly runsHooks: boolean;
+  /**
+   * The engine loads the turn's MCP tools itself and reads each one's
+   * destructive mark from what it loaded, building the approval default
+   * there. Otherwise the runtime lists each plugin server's tools at turn
+   * start (shared/mcp-tool-listing.ts) and builds the default for it.
+   */
+  readonly readsToolMarks: boolean;
   /** Which image types the engine can display inline; the runtime degrades the rest before the turn. */
   readonly visionProfile: VisionProfile;
   /** How the harness's captured file changes are identified and what its own repo writes are excluded from a diff. */

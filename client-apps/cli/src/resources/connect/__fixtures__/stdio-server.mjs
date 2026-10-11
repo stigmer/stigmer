@@ -5,7 +5,8 @@
 // (the most version-stable surface of @modelcontextprotocol/sdk). It also echoes
 // an --env-provided value AND the CLI args it received (process.argv beyond the
 // script path) through the tool description, so tests can assert env propagation
-// and ${VAR} argument expansion.
+// and ${VAR} argument expansion. `noop` is marked destructive, so tests can
+// assert the mark reaches the listing.
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -30,7 +31,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         `(args=${JSON.stringify(receivedArgs)})`,
       inputSchema: { type: "object", properties: { text: { type: "string" } } },
     },
-    { name: "noop", description: "", inputSchema: { type: "object" } },
+    { name: "noop", description: "", inputSchema: { type: "object" }, annotations: { destructiveHint: true } },
   ],
 }));
 

@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
-import { type PluginMember, PushPluginRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
+import { PushPluginRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
 import type { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -13,7 +13,7 @@ import type { PreparedInstall } from "./sources/read.js";
 export interface InstallPluginOptions {
   /** The organization the plugin is installed into. */
   readonly org: string;
-  /** Visibility for the plugin and every resource it materialises; the kind's default when omitted. */
+  /** Visibility for the plugin; the kind's default when omitted. */
   readonly visibility?: ApiResourceVisibility;
   /**
    * The source the archive came from, kept in the version message as
@@ -23,15 +23,17 @@ export interface InstallPluginOptions {
   readonly installedFrom?: string;
 }
 
-/** The install as the server reports it: the plugin and the members it now holds. */
+/**
+ * The install as the server reports it: the plugin, whose status lists
+ * what the archive holds (its skills, agents, MCP servers and hooks).
+ */
 export interface InstallPluginOutcome {
   readonly plugin: Plugin;
-  readonly members: readonly PluginMember[];
 }
 
 /** Return value of {@link useInstallPlugin}. */
 export interface UseInstallPluginReturn {
-  /** Push the prepared archive; resolves with the plugin and its members. Rejects with the server's refusal. */
+  /** Push the prepared archive; resolves with the installed plugin. Rejects with the server's refusal. */
   readonly install: (prepared: PreparedInstall, options: InstallPluginOptions) => Promise<InstallPluginOutcome>;
   /** `true` while the push is in flight. */
   readonly isInstalling: boolean;
@@ -77,8 +79,7 @@ export function useInstallPlugin(): UseInstallPluginReturn {
             ...(options.visibility !== undefined && { visibility: options.visibility }),
           }),
         );
-        const members = (await stigmer.plugin.listMembers(plugin.metadata?.id ?? "")).members;
-        return { plugin, members };
+        return { plugin };
       } catch (err) {
         const wrapped = toError(err);
         setError(wrapped);

@@ -319,16 +319,6 @@ const ERROR_CASES: Record<PluginErrorKind, Case> = {
     message: "variable name 'my-token' in '.cursor-plugin/plugin.json' is invalid: an environment variable name is letters, digits and underscores, not starting with a digit",
   },
 
-  "overlay-server-unknown": {
-    files: openPlugin({ mcpServers: { s: HTTP }, files: { "ai.stigmer/mcp-servers/other.yaml": "spec: {}\n" } }),
-    kinds: errors("overlay-server-unknown"),
-    message: "'ai.stigmer/mcp-servers/other.yaml' overlays MCP server 'other', which the plugin does not declare",
-  },
-  "overlay-document-unknown": {
-    files: openPlugin({ files: { "ai.stigmer/agent.yml": "kind: Agent\n" } }),
-    kinds: errors("overlay-document-unknown"),
-    message: "'ai.stigmer/agent.yml' is not a document Stigmer reads; the 'ai.stigmer/' folder holds 'agent.yaml' and 'mcp-servers/<server>.yaml'",
-  },
 };
 
 const warnings = (...kinds: PluginWarningKind[]): Kinds => ({ errors: [], warnings: [...kinds].sort() });
@@ -382,7 +372,7 @@ const WARNING_CASES: Record<PluginWarningKind, Case> = {
   "mcp-server-auth-ignored": {
     files: cursorPlugin({ mcpServers: { s: { ...CURSOR_HTTP, auth: { scopes: ["read"] } } } }),
     kinds: warnings("mcp-server-auth-ignored"),
-    message: "MCP server 's' in 'mcp.json' has an 'auth' block Stigmer does not read; OAuth for a server is declared in 'ai.stigmer/mcp-servers/s.yaml'",
+    message: "MCP server 's' in 'mcp.json' has an 'auth' block Stigmer does not read; a person signs in to a server at its address",
   },
   "variable-inferred": {
     files: cursorPlugin({ mcpServers: { s: { ...CURSOR_HTTP, headers: { Authorization: "Bearer ${TOKEN}" } } } }),
@@ -474,6 +464,11 @@ const WARNING_CASES: Record<PluginWarningKind, Case> = {
     files: claudePlugin({ settings: { subagentStatusLine: { type: "command", command: "x" } } }),
     kinds: warnings("settings-key-ignored"),
     message: "plugin settings in 'settings.json' have a key 'subagentStatusLine' Stigmer does not apply, ignored",
+  },
+  "stigmer-folder-ignored": {
+    files: openPlugin({ files: { "ai.stigmer/agent.yaml": "kind: Agent\n" } }),
+    kinds: warnings("stigmer-folder-ignored"),
+    message: "'ai.stigmer/' is not read: Stigmer installs a plugin from its skills, agents, hooks and MCP configuration, as every other client does",
   },
 };
 

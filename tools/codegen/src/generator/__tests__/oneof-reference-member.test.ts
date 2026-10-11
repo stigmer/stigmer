@@ -1,14 +1,15 @@
 /**
  * Pins how the generated SDK inputs carry a reference that is a member of a
- * real oneof: an agent's hook source, whose `plugin` member is a reference
- * to a plugin beside the `inline` hooks block. A plain reference field has
- * its kind filled from its reference_kind option, so a caller names only an
- * organization and a slug; a reference inside a oneof gets the same, or the
- * server's kind check refuses every call that left it out. In Go the
- * reference is a ResourceRef value, not a generated input type, so the
- * member is set only when it names something. The generators run over the
- * real schemas into a temporary directory, and these cases read what they
- * wrote.
+ * oneof. A plain reference field has its kind filled from its
+ * reference_kind option, so a caller names only an organization and a slug;
+ * a reference inside a oneof gets the same, or the server's kind check
+ * refuses every call that left it out. In Go the reference is a ResourceRef
+ * value, not a generated input type, so the member is set only when it
+ * names something. No message of the contract holds such a member today,
+ * so the generators run over a copy of the real schemas in which an
+ * agent's hook source gains one, a `plugin` reference beside its `inline`
+ * hooks block (the shape it once had), into a temporary directory, and
+ * these cases read what they wrote.
  */
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -24,14 +25,32 @@ let root: string;
 let go: string;
 let ts: string;
 
+/** A reference member of the hook source's oneof, as the schema generator writes one. */
+const PLUGIN_MEMBER = {
+  name: "Plugin",
+  jsonName: "plugin",
+  protoField: "plugin",
+  type: { kind: "message", messageType: "ApiResourceReference" },
+  description: "A plugin whose recorded hooks apply to this agent.",
+  required: false,
+  referenceKind: 58,
+  oneofGroup: "source",
+};
+
 beforeAll(() => {
   // The Go generator writes re-export files two levels above its output, so
   // the output nests inside the temporary root.
   root = fs.mkdtempSync(path.join(os.tmpdir(), "codegen-oneof-ref-"));
+  const schemas = path.join(root, "schemas");
+  fs.cpSync(SCHEMAS, schemas, { recursive: true });
+  const hookSourcePath = path.join(schemas, "agentic", "agent", "types", "hooksource.json");
+  const hookSource = JSON.parse(fs.readFileSync(hookSourcePath, "utf8")) as { fields: unknown[] };
+  hookSource.fields.unshift(PLUGIN_MEMBER);
+  fs.writeFileSync(hookSourcePath, JSON.stringify(hookSource, null, 2));
   const goOut = path.join(root, "go", "internal", "gen");
   const tsOut = path.join(root, "ts");
-  runSDKClientGeneration(SCHEMAS, goOut);
-  runSDKClientTSGeneration(SCHEMAS, tsOut);
+  runSDKClientGeneration(schemas, goOut);
+  runSDKClientTSGeneration(schemas, tsOut);
   go = fs.readFileSync(path.join(goOut, "agent.go"), "utf8");
   ts = fs.readFileSync(path.join(tsOut, "agent.ts"), "utf8");
 });

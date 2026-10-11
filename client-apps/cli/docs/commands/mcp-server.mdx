@@ -1,8 +1,8 @@
 Start the MCP server that exposes Stigmer resources to AI coding assistants.
 
 The MCP (Model Context Protocol) server lets tools like Cursor, Claude Desktop,
-and Windsurf search, list, and inspect agents, skills, and MCP servers stored
-in Stigmer. By default the server runs in STDIO mode — the MCP client spawns this
+and Windsurf search, list, and inspect the agents and skills stored in
+Stigmer. By default the server runs in STDIO mode — the MCP client spawns this
 process and communicates over stdin/stdout.
 
 When running via the CLI, the server address and API key are automatically
@@ -136,7 +136,7 @@ does not change the manual-header behavior.
 | Command | Description |
 |---------|-------------|
 | [`stigmer up`](./up) | Start the local Stigmer stack |
-| [`stigmer connect`](./connect) | Discover MCP server capabilities |
+| [`stigmer mcp add`](./mcp) | Install one MCP server at an address as a plugin |
 | [`stigmer config`](./config) | Configure server address and API key |
 
 ## See also

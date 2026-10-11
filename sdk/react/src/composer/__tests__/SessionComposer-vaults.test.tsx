@@ -4,16 +4,14 @@
  * Vaults panel's pick rides the submit as `includeMyVault` with `vaults`,
  * together, and an untouched picker sends neither; a pick belongs to its
  * conversation, so a composer kept mounted while the host moves to another
- * conversation (the desktop app) drops it; the agent's and the MCP servers'
- * setups weigh the conversation's choice, with only the platform's own keys
- * as their pool. Only a conversation's creator may change its vaults: a
- * teammate sees the pick read-only and nothing they save ticks it. For the
- * creator, a typed key saved in My vault (the agent's, or an MCP server's
- * from the picker) and a sign-in landing in My vault tick My vault in a
- * conversation that left it out, so the next turn uses them; the tick is
- * laid over the pick as it stands when the save lands, keeping a vault
- * picked meanwhile; an MCP server's save that fails ticks nothing. A
- * teammate's saved key that the conversation still does not read keeps the
+ * conversation (the desktop app) drops it; the agent's setup weighs the
+ * conversation's choice, with only the platform's own keys as its pool.
+ * Only a conversation's creator may change its vaults: a teammate sees the
+ * pick read-only and nothing they save ticks it. For the creator, a typed
+ * key saved in My vault (the agent's) and a sign-in landing in My vault
+ * (from the Plugins panel's sign-in rows) tick My vault in a conversation
+ * that left it out, so the next turn uses them, keeping the vaults it
+ * lists. A teammate's saved key that the conversation still does not read keeps the
  * agent panel open on what is owed, committing nothing. The personal-keys
  * line shows only while My vault is included. The
  * picker itself is pinned in `vault/__tests__/vault-components.test.tsx`
@@ -21,7 +19,7 @@
  * state machine).
  */
 import { describe, it, expect, vi, beforeAll, afterEach, beforeEach } from "vitest";
-import { render, screen, cleanup, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { ResourceRef, Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
@@ -30,7 +28,6 @@ import { openMenu } from "../../__tests__/helpers/open-menu";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import type { ConversationVaults } from "../../vault/conversationVaults";
 import type { VaultPickerMyVault } from "../../vault/VaultPicker";
-import type { EnvVarInput } from "../../vault/types";
 
 const READY_STATE = {
   status: "ready",
@@ -54,43 +51,15 @@ vi.mock("../../agent/useAgentSetup", () => ({
   },
 }));
 
-const mcpSetupCalls: unknown[][] = [];
-/** When set, stands in for the MCP setup's `submitEnvVars` (a save in My vault). */
-const mcpSubmitEnvVars: {
-  current: ((ref: ResourceRef, values: Record<string, EnvVarInput>) => Promise<boolean>) | null;
-} = { current: null };
-vi.mock("../../mcp-server/useMcpServerSetup", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../mcp-server/useMcpServerSetup")>();
-  return {
-    ...actual,
-    useMcpServerSetup: (...args: Parameters<typeof actual.useMcpServerSetup>) => {
-      mcpSetupCalls.push(args);
-      const setup = actual.useMcpServerSetup(...args);
-      return mcpSubmitEnvVars.current === null ? setup : { ...setup, submitEnvVars: mcpSubmitEnvVars.current };
-    },
-  };
-});
+vi.mock("../../plugin/PluginPicker.js", () => ({
+  PluginPicker: () => <p>Plugin picker</p>,
+}));
 
-vi.mock("../../mcp-server/McpServerPicker.js", () => ({
-  McpServerPicker: ({
-    setup,
-  }: {
-    readonly setup?: {
-      readonly onSignedIn?: (ref: ResourceRef) => void;
-      readonly onSubmitEnvVars?: (ref: ResourceRef, values: Record<string, EnvVarInput>) => void;
-    };
-  }) => (
-    <div>
-      <button type="button" onClick={() => setup?.onSignedIn?.({ org: "acme", slug: "linear" })}>
-        Sign in to Linear
-      </button>
-      <button
-        type="button"
-        onClick={() => setup?.onSubmitEnvVars?.({ org: "acme", slug: "zendesk" }, { ZENDESK_TOKEN: { value: "t", isSecret: true } })}
-      >
-        Save Zendesk key
-      </button>
-    </div>
+vi.mock("../../plugin/PluginServerSignIns.js", () => ({
+  PluginServerSignIns: ({ onSignedIn }: { readonly onSignedIn?: (address: string) => void }) => (
+    <button type="button" onClick={() => onSignedIn?.("https://mcp.linear.app/mcp")}>
+      Sign in to Linear
+    </button>
   ),
 }));
 
@@ -136,8 +105,6 @@ beforeEach(() => {
   mockAgentSetup.state = READY_STATE;
   mockAgentSetup.submitEnvVars.mockReset();
   agentSetupCalls.length = 0;
-  mcpSetupCalls.length = 0;
-  mcpSubmitEnvVars.current = null;
 });
 
 afterEach(cleanup);
@@ -239,18 +206,16 @@ describe("SessionComposer — the conversation's vaults", () => {
     expect(second?.includeMyVault).toBeUndefined();
   });
 
-  it("hands the conversation's vault choice to both setups, with only the platform's keys as their pool", async () => {
-    const props = { onSubmit: vi.fn(), ...AGENT_PROPS, onMcpServerUsagesChange: vi.fn() };
+  it("hands the conversation's vault choice to the agent's setup, with only the platform's keys as its pool", async () => {
+    const props = { onSubmit: vi.fn(), ...AGENT_PROPS, onPluginRefsChange: vi.fn() };
     const { rerender } = render(<SessionComposer {...props} />, { wrapper: wrapperFor(client()) });
     expect(agentSetupCalls.at(-1)?.[2]).toEqual({ includeMyVault: true, vaults: [] } satisfies ConversationVaults);
-    expect(mcpSetupCalls.at(-1)?.[2]).toEqual({ includeMyVault: true, vaults: [] });
     const pool = agentSetupCalls.at(-1)?.[1] as ReadonlySet<string>;
     expect(pool.has("STIGMER_SERVER_ADDRESS")).toBe(true);
 
     const listed = [{ org: "acme", slug: "support-tools" }];
     rerender(<SessionComposer {...props} initialIncludeMyVault={false} initialVaultRefs={listed} />);
     expect(agentSetupCalls.at(-1)?.[2]).toEqual({ includeMyVault: false, vaults: listed });
-    expect(mcpSetupCalls.at(-1)?.[2]).toEqual({ includeMyVault: false, vaults: listed });
   });
 });
 
@@ -317,93 +282,22 @@ describe("SessionComposer — a key or sign-in saved in My vault includes My vau
     expect(context?.vaults).toEqual([]);
   });
 
-  it("ticks My vault for the creator when a sign-in from the MCP picker lands", async () => {
+  it("ticks My vault for the creator when a sign-in from the Plugins panel lands", async () => {
     const onSubmit = vi.fn();
     render(
       <SessionComposer
         onSubmit={onSubmit}
         {...AGENT_PROPS}
-        onMcpServerUsagesChange={vi.fn()}
+        pluginRefs={[{ org: "acme", slug: "linear" }]}
+        onPluginRefsChange={vi.fn()}
         initialIncludeMyVault={false}
         initialVaultRefs={[{ org: "acme", slug: "support-tools" }]}
       />,
       { wrapper: wrapperFor(client()) },
     );
 
-    await openPanel(/MCP Servers/);
+    await openPanel(/Plugins/);
     fireEvent.click(await screen.findByRole("button", { name: "Sign in to Linear" }));
-
-    const context = await send(onSubmit, "Go");
-    expect(context?.includeMyVault).toBe(true);
-    expect(context?.vaults).toEqual([{ org: "acme", slug: "support-tools" }]);
-  });
-
-  it.each([
-    { saved: true, outcome: "ticks My vault" },
-    { saved: false, outcome: "ticks nothing" },
-  ])("when an MCP server's key saved from the picker resolves $saved, $outcome", async ({ saved }) => {
-    const submitted: Promise<boolean>[] = [];
-    const submitEnvVars = vi.fn<(ref: ResourceRef, values: Record<string, EnvVarInput>) => Promise<boolean>>(() => {
-      const result = Promise.resolve(saved);
-      submitted.push(result);
-      return result;
-    });
-    mcpSubmitEnvVars.current = submitEnvVars;
-    const onSubmit = vi.fn();
-    render(
-      <SessionComposer
-        onSubmit={onSubmit}
-        {...AGENT_PROPS}
-        onMcpServerUsagesChange={vi.fn()}
-        initialIncludeMyVault={false}
-        initialVaultRefs={[{ org: "acme", slug: "support-tools" }]}
-      />,
-      { wrapper: wrapperFor(client()) },
-    );
-
-    await openPanel(/MCP Servers/);
-    fireEvent.click(await screen.findByRole("button", { name: "Save Zendesk key" }));
-    expect(submitEnvVars).toHaveBeenCalledWith(
-      { org: "acme", slug: "zendesk" },
-      { ZENDESK_TOKEN: { value: "t", isSecret: true } },
-    );
-    await act(async () => {
-      await Promise.all(submitted);
-    });
-
-    const context = await send(onSubmit, "Go");
-    if (saved) {
-      expect(context?.includeMyVault).toBe(true);
-      expect(context?.vaults).toEqual([{ org: "acme", slug: "support-tools" }]);
-    } else {
-      expect(context).toBeUndefined();
-    }
-  });
-
-  it("keeps a vault picked while an MCP server's save was in flight, ticking My vault beside it", async () => {
-    let land = (_: boolean): void => undefined;
-    mcpSubmitEnvVars.current = vi.fn(
-      () =>
-        new Promise<boolean>((resolve) => {
-          land = resolve;
-        }),
-    );
-    const onSubmit = vi.fn();
-    render(
-      <SessionComposer onSubmit={onSubmit} {...AGENT_PROPS} onMcpServerUsagesChange={vi.fn()} initialIncludeMyVault={false} />,
-      { wrapper: wrapperFor(client()) },
-    );
-
-    await openPanel(/MCP Servers/);
-    fireEvent.click(await screen.findByRole("button", { name: "Save Zendesk key" }));
-    // While the save is in flight, the person picks a shared vault.
-    fireEvent.click(screen.getByRole("button", { name: "Back to configuration menu" }));
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Vaults/ }));
-    fireEvent.click(await screen.findByRole("button", { name: "Pick support-tools" }));
-    await act(async () => {
-      land(true);
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
 
     const context = await send(onSubmit, "Go");
     expect(context?.includeMyVault).toBe(true);
@@ -459,7 +353,8 @@ describe("SessionComposer — a key or sign-in saved in My vault includes My vau
       <SessionComposer
         onSubmit={onSubmit}
         {...AGENT_PROPS}
-        onMcpServerUsagesChange={vi.fn()}
+        pluginRefs={[{ org: "acme", slug: "linear" }]}
+        onPluginRefsChange={vi.fn()}
         initialIncludeMyVault={false}
         sessionId="ses_a"
         vaultPickCreatorId="ida_creator"
@@ -467,7 +362,7 @@ describe("SessionComposer — a key or sign-in saved in My vault includes My vau
       { wrapper: wrapperFor(client("ida_teammate")) },
     );
 
-    await openPanel(/MCP Servers/);
+    await openPanel(/Plugins/);
     fireEvent.click(await screen.findByRole("button", { name: "Sign in to Linear" }));
 
     const context = await send(onSubmit, "Go");

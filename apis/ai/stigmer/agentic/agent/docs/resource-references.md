@@ -1,6 +1,6 @@
 # ApiResourceReference Format
 
-When an Agent references another resource (MCP server, skill), it uses the `ApiResourceReference` message defined in `ai/stigmer/commons/apiresource/io.proto`. This document is the single source of truth for that format.
+When an Agent references another resource (plugin, skill), it uses the `ApiResourceReference` message defined in `ai/stigmer/commons/apiresource/io.proto`. This document is the single source of truth for that format.
 
 ## YAML Format
 
@@ -17,7 +17,7 @@ version: stable
 | `org` | No | `^$\|^[a-z][a-z0-9-]*[a-z0-9]$\|^org_[0-9a-z]{26}$`, at most 63 chars | Organization that owns the referenced resource. Empty = relative reference (resolved from the parent resource's `metadata.org` at write time). |
 | `kind` | Yes | Lowercase string enum name | Resource kind. See [Kind Values](#kind-values). |
 | `slug` | Yes | `^[a-z][a-z0-9-]*[a-z0-9]$`, 2 to 63 chars | Resource slug, unique within the organization. |
-| `version` | No | Tag, hash, or empty | Version pin. Only applicable to versioned resources (Skills). Ignored for non-versioned resources. |
+| `version` | No | Tag, hash, or empty | Version pin. Only applicable to versioned resources (Skills, Plugins). Ignored for non-versioned resources. |
 
 ## Kind Values
 
@@ -26,22 +26,22 @@ The `kind` field uses the **lowercase string name** of the `ApiResourceKind` enu
 | YAML Value | Enum Integer | Resource Type |
 |---|---|---|
 | `skill` | 43 | Skill — reusable knowledge package |
-| `mcp_server` | 44 | MCP Server — external tool provider |
+| `plugin` | 58 | Plugin — an installed package of skills, agents, hooks and MCP servers |
 
-**Important:** The proto enum uses integer values internally (e.g., `this.kind == 43` in CEL validation expressions). In YAML serialization, the YAML parser accepts the **lowercase string name**. Always use `kind: skill` or `kind: mcp_server` in YAML files.
+**Important:** The proto enum uses integer values internally (e.g., `this.kind == 43` in CEL validation expressions). In YAML serialization, the YAML parser accepts the **lowercase string name**. Always use `kind: skill` or `kind: plugin` in YAML files.
 
 ```yaml
 # Correct
 kind: skill
-kind: mcp_server
+kind: plugin
 
 # Wrong — do not use integers in YAML
 kind: 43
-kind: 44
+kind: 58
 
 # Wrong — do not capitalize
 kind: Skill
-kind: MCP_SERVER
+kind: PLUGIN
 ```
 
 ## Organization (`org`)
@@ -61,7 +61,7 @@ skill_refs:
 
 ### Absolute References
 
-Set `org` explicitly when referencing a resource in a different organization. The server accepts it only when that organization is your organization's parent and shares the resource with its children at `visibility_child_orgs`; any other cross-organization reference is refused at write, and a missing target is refused with the same sentence (the rule never says whether another organization's slug exists). To use another organization's skill or server otherwise, install the plugin that carries it and reference your own copy.
+Set `org` explicitly when referencing a resource in a different organization. The server accepts it only when that organization is your organization's parent and shares the resource with its children at `visibility_child_orgs`; any other cross-organization reference is refused at write, and a missing target is refused with the same sentence (the rule never says whether another organization's slug exists). To use another organization's skill or MCP server otherwise, install the plugin that carries it and reference your own copy.
 
 ```yaml
 # Absolute — a skill the parent organization shares with its child organizations
@@ -101,9 +101,9 @@ slug: codeReviewer     # camelCase
 slug: 2nd-reviewer     # starts with digit
 ```
 
-## Version Pinning (Skills Only)
+## Version Pinning
 
-The `version` field is only meaningful for versioned resources. Currently, only Skills are versioned. For non-versioned resources (MCP servers, agents), the field is ignored.
+The `version` field is only meaningful for versioned resources: Skills and Plugins. A plugin's versions are its archive digests, each tagged with the manifest's `version`; a plugin reference with no `version` follows the installed version. For other resources, the field is ignored.
 
 | Value | Behavior |
 |---|---|
@@ -144,5 +144,5 @@ The proto enforces these constraints via `buf.validate`:
 
 Additional CEL validation on Agent fields:
 
-- `mcp_server_usages[*].mcp_server_ref.kind` must equal `mcp_server` (enum value 44)
+- `plugins[*].kind` must equal `plugin` (enum value 58)
 - `skill_refs[*].kind` must equal `skill` (enum value 43)

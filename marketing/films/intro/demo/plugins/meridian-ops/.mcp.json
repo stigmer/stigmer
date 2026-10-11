@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "meridian-ops": {
+      "command": "node",
+      "args": ["__MERIDIAN_DEMO_DIR__/mcp/meridian-ops.mjs"]
+    }
+  }
+}

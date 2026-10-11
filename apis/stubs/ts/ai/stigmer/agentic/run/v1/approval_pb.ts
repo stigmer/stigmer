@@ -96,7 +96,8 @@ export type PendingApproval = Message<"ai.stigmer.agentic.run.v1.PendingApproval
   subAgentName: string;
 
   /**
-   * Slug of the MCP server that provides this tool.
+   * Name of the MCP server that provides this tool, as its tools are named
+   * (plugin_<plugin>_<server> for a plugin's server).
    * Copied from ToolCall.mcp_server_slug for UI convenience.
    * Empty for built-in sandbox tools (read, write, shell, etc.).
    *
@@ -104,7 +105,7 @@ export type PendingApproval = Message<"ai.stigmer.agentic.run.v1.PendingApproval
    * structured argument previews (scalar grids, humanized names)
    * instead of falling back to raw JSON.
    *
-   * Examples: "planton", "github", "slack"
+   * Examples: "plugin_linear_linear", "plugin_github_github"
    *
    * @generated from field: string mcp_server_slug = 8;
    */
@@ -283,7 +284,7 @@ export type ApprovalRequest = Message<"ai.stigmer.agentic.run.v1.ApprovalRequest
   subAgentSubject: string;
 
   /**
-   * Slug of the MCP server providing this tool; empty for built-in tools.
+   * Name of the MCP server providing this tool; empty for built-in tools.
    * Copied from ToolCall.mcp_server_slug.
    *
    * @generated from field: string mcp_server_slug = 10;

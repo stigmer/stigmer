@@ -62,7 +62,7 @@ message AgentChannelSpec {
   //
   // @internal
   // Provider variance is config-shaped, not lifecycle-shaped
-  // — one kind, a validated oneof (McpServerSpec.server_type precedent).
+  // — one kind, a validated oneof (McpServerEntry.transport precedent).
   // Adding WhatsApp extends this oneof; it touches zero kinds.
   oneof provider_config {
     option (buf.validate.oneof).required = true;

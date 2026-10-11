@@ -38,7 +38,7 @@
  *     exchange and the connect and sandbox lanes, whose one unit of work
  *     has a bounded lifetime. `exp` is present and enforced. The connect
  *     lane's token binds no execution row but the connect's own attempt
- *     (domain/mcpserver/connect-execution-id.ts), and under the built-in
+ *     (domain/plugin/tools/execution-id.ts), and under the built-in
  *     posture it too is an identity: its bearer acts as the person who
  *     asked for the connect, whom that row records (bound-execution.ts,
  *     the `mcp-connect` binding).

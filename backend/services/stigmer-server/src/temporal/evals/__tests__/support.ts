@@ -1,6 +1,7 @@
 /**
  * Shared doubles for the eval activities' tests: a temp store seeded with
- * a plugin, its composed agent and server, and an eval; an in-memory
+ * a plugin (one row, its status listing a skill and an MCP server, as
+ * install writes it) and an eval; an in-memory
  * suite source over real `evals/` files read by `readEvalSuite`; a
  * catalog that knows one model; a try lane that records what it is asked
  * and creates rows in the store as the real chains would; a score
@@ -11,8 +12,6 @@ import { Code, ConnectError } from "@connectrpc/connect";
 
 import type { PluginFiles } from "@stigmer/plugin-package";
 import { inMemoryPluginFiles } from "@stigmer/plugin-package";
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { PluginEvalSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
@@ -41,7 +40,6 @@ import type {
 import { listRunScores } from "../../../domain/score/queries.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
-import { PLUGIN_LABEL } from "../../../pipeline/apiresource-labels.js";
 import type { Store } from "../../../store/interface.js";
 import type { EvalSuiteSource } from "../../../domain/plugin-eval/suite.js";
 import type { PluginEvalTryLane } from "../ports.js";
@@ -95,10 +93,15 @@ export const catalog: EvalModelCatalog = {
   defaultModel: () => "",
 };
 
-export async function seedPlugin(
-  store: Store,
-  withAgent = true,
-): Promise<void> {
+/** The seeded plugin's one skill, at its path in the plugin. */
+export const PLUGIN_SKILL = { name: "commit-message", path: "skills/commit-message" } as const;
+
+/** The seeded plugin's one MCP server, and the segment a turn names it by (`toolServerSegment`). */
+export const PLUGIN_SERVER = "github";
+export const PLUGIN_SERVER_SEGMENT = "plugin_thermos_github";
+
+/** The plugin under eval: one row whose status lists what it carries, at DIGEST. */
+export async function seedPlugin(store: Store): Promise<void> {
   await store.saveResource(
     ApiResourceKind.plugin,
     PLUGIN_ID,
@@ -106,36 +109,10 @@ export async function seedPlugin(
     create(PluginSchema, {
       metadata: { id: PLUGIN_ID, org: ORG, slug: "thermos", name: "thermos" },
       spec: { name: "thermos" },
-      status: { digest: DIGEST },
-    }),
-  );
-  if (withAgent) {
-    await store.saveResource(
-      ApiResourceKind.agent,
-      "agt_1",
-      AgentSchema,
-      create(AgentSchema, {
-        metadata: {
-          id: "agt_1",
-          org: ORG,
-          slug: "thermos",
-          name: "thermos",
-          labels: { [PLUGIN_LABEL]: PLUGIN_ID },
-        },
-      }),
-    );
-  }
-  await store.saveResource(
-    ApiResourceKind.mcp_server,
-    "mcp_1",
-    McpServerSchema,
-    create(McpServerSchema, {
-      metadata: {
-        id: "mcp_1",
-        org: ORG,
-        slug: "github",
-        name: "github",
-        labels: { [PLUGIN_LABEL]: PLUGIN_ID },
+      status: {
+        digest: DIGEST,
+        skills: [{ ...PLUGIN_SKILL, description: "Writes commit messages" }],
+        mcpServers: [{ name: PLUGIN_SERVER }],
       },
     }),
   );

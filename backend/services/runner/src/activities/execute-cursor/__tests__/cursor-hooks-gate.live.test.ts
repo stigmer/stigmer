@@ -134,7 +134,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Cursor engine: an agent's hooks 
       workspaceRoot,
       hitlDir,
       // "Trust this whole run": the default asks nothing, so only the hook decides.
-      approvalState: buildApprovalState({ destructive: new Set(), leasedServers: new Set() }, true, new Set()),
+      approvalState: buildApprovalState({ destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, true, new Set()),
       runnerPid: process.pid,
       hooks: { socketPath: server.socketPath, token: server.token },
       folders: workspaceFolders([workspaceRoot], []),
@@ -232,7 +232,7 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("Cursor engine: an agent's hooks 
       workspaceRoot,
       hitlDir,
       // "Trust this whole run": the default asks nothing, so only hookify decides.
-      approvalState: buildApprovalState({ destructive: new Set(), leasedServers: new Set() }, true, new Set()),
+      approvalState: buildApprovalState({ destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, true, new Set()),
       runnerPid: process.pid,
       hooks: { socketPath: server.socketPath, token: server.token },
       folders: workspaceFolders([workspaceRoot], []),

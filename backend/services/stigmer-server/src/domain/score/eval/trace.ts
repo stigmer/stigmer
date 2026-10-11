@@ -18,12 +18,12 @@
  *     input. An engine name reads as the Claude tool it covers
  *     (`@stigmer/tool-vocabulary` `claudeNameOf`): a tool that writes and
  *     edits reads as Write when its file was created in the run, as Edit
- *     otherwise. An MCP call reads as `mcp__plugin_<plugin>_<server>__<tool>`,
- *     `<server>` the server's name as the plugin declares it (its
- *     `mcpServers` key), found from the call's `mcp_server_slug` through
- *     `mcpServerKeys`; a slug the plugin does not name reads as itself. A read of a mounted skill's `SKILL.md`
- *     reads as `Skill {"skill": "<plugin>:<name>"}`, since Stigmer activates
- *     a skill by reading that file on both engines. The input is the
+ *     otherwise. An MCP call reads as `mcp__<server>__<tool>`, its
+ *     `mcp_server_slug` already the name a turn gives a plugin's server,
+ *     `plugin_<plugin>_<server>`, as Claude Code does. A read of a mounted
+ *     skill's `SKILL.md` reads as `Skill {"skill": "<plugin>:<name>"}`,
+ *     since Stigmer activates a skill by reading that file on both
+ *     engines. The input is the
  *     engine's own arguments, which `input_match` patterns read by value;
  *   - the files: the paths created in the run (`kind` ADD in the
  *     file-review ledger's captured change sets) and the contents, after
@@ -37,14 +37,18 @@
  * traverse them. A system or thinking message, and a message type this
  * server does not know, add no line.
  *
- * The skill mount: the runner writes each skill's file at
- * `.stigmer/skills/<name>/SKILL.md` in the workspace, a link into the
- * session's platform directory (`.../platform/skills/<name>/SKILL.md`), on
- * both engines (the runner's shared/skill-resolver.ts, rendered by
+ * The skill mounts, on both engines, rendered by
  * execute-deep-agent/prompt-builder.ts `renderSkillsSection` and
- * execute-cursor/prompt-builder.ts `formatSkillsSection`). SKILL_READ_PATH
- * must follow that mount: when the mount moves, a skill read stops reading
- * as `Skill` and every `tool_used: Skill` grader fails.
+ * execute-cursor/prompt-builder.ts `formatSkillsSection`: an organization's
+ * own skill at `.stigmer/skills/<name>/SKILL.md` in the workspace, a link
+ * into the session's platform directory (`.../platform/skills/<name>/`,
+ * the runner's shared/skill-resolver.ts); a plugin's skill inside the
+ * plugin's mounted tree, `.stigmer/plugins/<digest>/<path>/SKILL.md`
+ * (shared/plugin-mount.ts, harness/turn-context.ts `mountPluginSkills`),
+ * named by the plugin's own list (`skillNames`, path to name).
+ * SKILL_READ_PATH and PLUGIN_SKILL_READ_PATH must follow those mounts: when
+ * a mount moves, a skill read stops reading as `Skill` and every
+ * `tool_used: Skill` grader fails.
  *
  * Proven by __tests__/trace.test.ts, over a native and a Cursor transcript.
  */
@@ -104,6 +108,13 @@ export interface EvalTrace {
 export const SKILL_READ_PATH =
   /(?:^|\/)(?:\.stigmer|platform)\/skills\/([^/]+)\/SKILL\.md$/;
 
+/**
+ * A read of a plugin skill's file inside the plugin's mounted tree (the
+ * module header): the skill's path in the plugin captured.
+ */
+export const PLUGIN_SKILL_READ_PATH =
+  /(?:^|\/)(?:\.stigmer|platform)\/plugins\/[^/]+\/(.+)\/SKILL\.md$/;
+
 /** The argument names a file tool carries its path in, on either engine. */
 const PATH_ARGUMENTS = [
   "file_path",
@@ -119,19 +130,12 @@ export interface EvalTraceDeps {
   readonly pluginName: string;
   /** The engine the try ran on. */
   readonly harness: Harness;
-  /** The plugin's MCP servers' declared names by slug (the module header); none when absent. */
-  readonly mcpServerKeys?: ReadonlyMap<string, string>;
+  /** The plugin's skills' names by their path in the plugin (`PluginSkill.path`); none when absent. */
+  readonly skillNames?: ReadonlyMap<string, string>;
   /** The workspace-relative paths whose content the graders read. */
   readonly wantedFiles: ReadonlyArray<string>;
   /** The run's artifact store, for content the runner offloaded. */
   readArtifact(storageKey: string): Promise<Uint8Array>;
-}
-
-/** Whether `run` called any MCP tool, so a reader knows whether it needs the servers' names. */
-export function callsMcpServers(run: Run): boolean {
-  return (run.status?.messages ?? []).some((message) =>
-    message.toolCalls.some((call) => call.mcpServerSlug !== ""),
-  );
 }
 
 /** The graders' view of `run` (the module header). */
@@ -253,12 +257,7 @@ function namedCall(
   const args: JsonObject = call.args ?? {};
   const input = JSON.stringify(args);
   if (call.mcpServerSlug !== "") {
-    const server =
-      deps.mcpServerKeys?.get(call.mcpServerSlug) ?? call.mcpServerSlug;
-    return {
-      name: `mcp__plugin_${pluginName}_${server}__${call.name}`,
-      input,
-    };
+    return { name: `mcp__${call.mcpServerSlug}__${call.name}`, input };
   }
   const path = pathArgumentOf(args);
   const fileChange =
@@ -269,7 +268,11 @@ function namedCall(
         : "modify";
   const name = claudeNameOf(engine, call.name, fileChange);
   if (name === "Read" && path !== undefined) {
-    const skill = SKILL_READ_PATH.exec(path)?.[1];
+    const pluginSkill = PLUGIN_SKILL_READ_PATH.exec(path)?.[1];
+    const skill =
+      pluginSkill === undefined
+        ? SKILL_READ_PATH.exec(path)?.[1]
+        : (deps.skillNames?.get(pluginSkill) ?? pluginSkill.split("/").pop());
     if (skill !== undefined) {
       return {
         name: "Skill",

@@ -61,12 +61,12 @@ An authored plugin:
 1. Add its folder under `plugins/<name>/` in the open Agent Plugins format
    (`plugin.json` with `$schema`, `author.name` `Stigmer`,
    `extensions["ai.stigmer"].displayName`), portable to Cursor, Claude Code and
-   Codex. Anything only Stigmer reads goes under `ai.stigmer/`.
+   Codex. Anything only Stigmer reads goes under `extensions["ai.stigmer"]` in
+   the manifest; an `ai.stigmer/` folder is not read, and install warns about it.
 2. `make sync-plugins` writes its `marketplace.json` line.
 3. `make test-plugins-static`: the files and the tree agree, every entry
-   installs under its own name with a version and a description, each agent
-   overlay names its own plugin, none carries the retired default-agent
-   label, and npm would publish every staged file.
+   installs under its own name with a version and a description, none
+   carries an `ai.stigmer/` folder, and npm would publish every staged file.
 4. `stigmer validate -f plugins/<name>` for the offline read the server will
    repeat, and `stigmer install stigmer/<name>` from a checkout to see it land.
 

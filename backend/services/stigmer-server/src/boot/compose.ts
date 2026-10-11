@@ -71,7 +71,7 @@ import type { ArtifactStorage } from "../artifactstorage/artifact-storage.js";
 import { downloadUrlSignerFor } from "../artifactstorage/url-signer.js";
 import { StreamBroker } from "../domain/run/stream-broker.js";
 import { newExecutionEngineStateProvider } from "../temporal/agentexecution/engine-client.js";
-import { newMcpServerEngineStateProvider } from "../temporal/mcpserver/engine-client.js";
+import { newPluginToolsEngineStateProvider } from "../temporal/plugintools/engine-client.js";
 import { newAgentExecutionWorkerFactory } from "../temporal/agentexecution/worker.js";
 import { TemporalManager } from "../temporal/manager.js";
 import { loadServerPayloadCodecs } from "../temporal/payload-codec.js";
@@ -164,11 +164,12 @@ import {
   newShredStage,
 } from "../domain/organization/purge/core-stages.js";
 import { OrganizationPurgeRunner } from "../domain/organization/purge/runner.js";
-import { registerMcpServerServices } from "../domain/mcpserver/controller.js";
 import { registerPlatformServices } from "../domain/platform/controller.js";
 import { SERVER_VERSION } from "../domain/platform/version.js";
 import { registerSessionServices } from "../domain/session/controller.js";
 import { registerPluginServices } from "../domain/plugin/controller.js";
+import { refreshLegacyPluginStatuses } from "../domain/plugin/legacy-status.js";
+import { newLocalProgramPolicy } from "../domain/run/local-programs.js";
 import { PLUGIN_ARTIFACT_KEY_PREFIX } from "../domain/plugin/constants.js";
 import { registerSkillServices } from "../domain/skill/controller.js";
 import {
@@ -1480,10 +1481,10 @@ export async function composeServer(
   );
   // The activity recents feed — pure reads over listResources.
   const activityHandler = new ActivityHandler(store, logger, listReadScope);
-  // The mcpserver connect-engine provider — the same manager-backed
-  // request-time idiom as executionEngineState above; the connect lanes
-  // start the RUNNER's workflow, so no worker factory is added here.
-  const mcpServerEngineState = newMcpServerEngineStateProvider({
+  // The plugin tools listing's engine provider — the same manager-backed
+  // request-time idiom as executionEngineState above; a listing starts the
+  // RUNNER's workflow, so no worker factory is added here.
+  const pluginToolsEngineState = newPluginToolsEngineStateProvider({
     manager: temporalManager,
     config: temporalConfig,
     logger,
@@ -1923,28 +1924,7 @@ export async function composeServer(
         agentLoader: () => requireInProcess().executionAgentLoader,
         sessionLoader: () => requireInProcess().executionSessionLoader,
         vaultResolver,
-      },
-    });
-    // The whole surface: the CRUD slice plus the connect/OAuth
-    // slice. All connect deps are wired unconditionally per the
-    // composition-root idiom — engine availability is the modeled state
-    // the provider answers at request time. Sign-in saves into vaults and
-    // connect resolves through the run's resolver.
-    registerMcpServerServices(router, {
-      store,
-      logger,
-      authorizer,
-      authorizationLifecycle,
-      connect: {
-        store,
-        logger,
-        authorizer,
-        engineState: mcpServerEngineState,
-        vaults: vaultService,
-        vaultResolver,
-        runnerAuth: runnerCredentials,
-        sandboxLane,
-        outboundFetch,
+        localPrograms: newLocalProgramPolicy(sandboxLane, temporalConfig),
       },
     });
     registerSkillServices(router, {
@@ -1958,18 +1938,27 @@ export async function composeServer(
       executionArtifactStorage: artifactStorage,
       staging: skillArchiveStaging,
     });
-    // Plugins materialise their members through the in-process lane as
-    // the installing caller; the lazy provider resolves the clients built
-    // from these same routes after boot. The staging port is the skill
-    // lane's: one upload surface for every archive.
+    // The staging port is the skill lane's: one upload surface for every
+    // archive. A tools listing's deps are wired unconditionally per the
+    // composition-root idiom — engine availability is the modeled state
+    // the provider answers at request time.
     registerPluginServices(router, {
       store,
       logger,
       authorizer,
       authorizationLifecycle,
       artifactStorage: pluginArtifactStorage,
-      materializerProvider: () => requireInProcess().pluginMaterializer,
+      outboundFetch,
       staging: skillArchiveStaging,
+      tools: {
+        store,
+        logger,
+        authorizer,
+        engineState: pluginToolsEngineState,
+        runnerAuth: runnerCredentials,
+        vaultResolver,
+        sandboxLane,
+      },
       pluginEvals: {
         store,
         logger,
@@ -2340,6 +2329,16 @@ export async function composeServer(
           );
         }
       }
+      // A plugin installed before plugins were whole has its status
+      // filled from its archive before search indexes it and before any
+      // turn reads it (domain/plugin/legacy-status.ts), which warns and
+      // never throws, so boot never fails on it.
+      await refreshLegacyPluginStatuses({
+        store,
+        artifactStorage: pluginArtifactStorage,
+        outboundFetch,
+        logger,
+      });
       // Rebuild the search index before the port binds (Go
       // server.go:617): the index is separate from the resources table,
       // and rebuilding here makes every resource — including rows an

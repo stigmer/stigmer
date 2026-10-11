@@ -1,16 +1,19 @@
 /**
- * The two sign-in demos on the integrations pages (the marketplace connect
- * tour, the OAuth connect flow) mount with their preview
- * fixtures, which answer My vault's read with an empty vault: the console
- * views they replay offer to sign in or paste a token, never a saved value.
- * The management shell lists Vaults in its Configuration group, where the
- * console's settings put them.
+ * The two plugin demos on the integrations pages (the marketplace connect
+ * tour, the OAuth connect flow) mount with their preview fixtures: the
+ * plugin's read, My vault's read and the server's tools listing, the three
+ * RPCs a plugin page makes. My vault never answers a value: the OAuth flow
+ * opens on a vault holding nothing (its server offers to sign in), and the
+ * marketplace tour's holds the one key its server reads, by name, its value
+ * blanked as every read blanks it. The management shell lists Vaults in its
+ * Configuration group, where the console's settings put them.
  *
  * Pins: each scenario mounts over its fixtures (it draws nothing until the
- * docs page plays it) and hands its preview provider the RPCs it answers,
- * My vault's read among them; asked that read the way the console asks it
- * (a Connect POST to VaultQueryController/getMine), each answers a Vault
- * holding no secret and no login; and the shell's navigation names Vaults.
+ * docs page plays it) and hands its preview provider exactly those RPCs;
+ * asked My vault's read the way the console asks it (a Connect POST to
+ * VaultQueryController/getMine), each answers a Vault holding no login and
+ * no secret value, with exactly the secret names it depicts; and the
+ * shell's navigation names Vaults.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -19,7 +22,8 @@ import { fromJson, type JsonValue } from "@bufbuild/protobuf";
 import { getResponse, type HttpHandler } from "msw";
 import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultQueryController } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/query_pb";
-import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { PluginCommandController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/command_pb";
+import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 
 import { MarketplaceConnectTour } from "../marketplace-connect-tour/index";
 import { OAuthConnectFlow } from "../oauth-connect-flow/index";
@@ -48,8 +52,8 @@ function rpcPath(service: { readonly typeName: string; readonly method: Record<s
 }
 
 const GET_MINE = rpcPath(VaultQueryController, "getMine");
-const GET_SERVER = rpcPath(McpServerQueryController, "getByReference");
-const GET_GRANT = rpcPath(McpServerQueryController, "getOAuthGrantStatus");
+const GET_PLUGIN = rpcPath(PluginQueryController, "getByReference");
+const LIST_TOOLS = rpcPath(PluginCommandController, "listTools");
 
 /** Mounts a scenario and returns the fixtures it handed its preview provider. */
 function fixturesOf(Scenario: ComponentType): readonly HttpHandler[] {
@@ -59,14 +63,14 @@ function fixturesOf(Scenario: ComponentType): readonly HttpHandler[] {
   return fixtures;
 }
 
-describe("the sign-in demos over an empty My vault", () => {
+describe("the plugin demos over My vault", () => {
   it.each([
-    ["marketplace connect tour", MarketplaceConnectTour, [GET_SERVER, GET_MINE]],
-    ["OAuth connect flow", OAuthConnectFlow, [GET_SERVER, GET_MINE, GET_GRANT]],
-  ] as const)("%s answers the console's reads, My vault's with a vault holding nothing", async (_name, Scenario, rpcs) => {
+    ["marketplace connect tour", MarketplaceConnectTour, ["NEON_API_KEY"]],
+    ["OAuth connect flow", OAuthConnectFlow, []],
+  ] as const)("%s answers a plugin page's reads, My vault's with no value in it", async (_name, Scenario, secretNames) => {
     const fixtures = fixturesOf(Scenario);
     expect(fixtures.map((fixture) => `${String(fixture.info.method)} ${String(fixture.info.path)}`)).toEqual(
-      rpcs.map((path) => `POST ${path}`),
+      [GET_PLUGIN, GET_MINE, LIST_TOOLS].map((path) => `POST ${path}`),
     );
 
     const request = new Request(`https://api.example/${VaultQueryController.typeName}/getMine`, {
@@ -79,7 +83,9 @@ describe("the sign-in demos over an empty My vault", () => {
     expect(response?.headers.get("content-type")).toBe("application/json");
     const vault = fromJson(VaultSchema, (await response!.json()) as JsonValue);
     expect(vault.$typeName).toBe("ai.stigmer.agentic.vault.v1.Vault");
-    expect(vault.spec?.secrets ?? {}).toEqual({});
+    const secrets = vault.spec?.secrets ?? {};
+    expect(Object.keys(secrets)).toEqual([...secretNames]);
+    expect(Object.values(secrets).map((secret) => secret.value)).toEqual(secretNames.map(() => ""));
     expect(vault.spec?.connections ?? {}).toEqual({});
   });
 });

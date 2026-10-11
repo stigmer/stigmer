@@ -93,7 +93,7 @@ import type { UsageAccumulator } from "./usage-accumulator.js";
 /**
  * Interval of the activity-wide periodic heartbeat. Started before any phase
  * runs: setup phases make network calls (blueprint resolution, workspace
- * clone, MCP backfill, engine create) that can stall, and a pulse only
+ * clone, MCP tools listing, engine create) that can stall, and a pulse only
  * between them leaves every individual call uncovered — the production
  * stale-proxy incident hung inside `Agent.create` with zero heartbeats and
  * surfaced as an opaque five-minute Temporal timeout. The details name the

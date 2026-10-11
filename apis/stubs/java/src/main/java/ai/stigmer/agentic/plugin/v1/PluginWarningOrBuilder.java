@@ -12,9 +12,8 @@ public interface PluginWarningOrBuilder extends
 
   /**
    * <pre>
-   * Stable warning kind, e.g. "component-ignored", "member-adopted",
+   * Stable warning kind, e.g. "agent-not-installed", "component-ignored",
    * "model-hint-unresolved", "settings-agent-not-applied",
-   * "sub-agent-name-builtin", "sub-agent-not-installed",
    * "tool-list-entry-dropped", "version-not-taggable".
    * </pre>
    *
@@ -24,9 +23,8 @@ public interface PluginWarningOrBuilder extends
   java.lang.String getKind();
   /**
    * <pre>
-   * Stable warning kind, e.g. "component-ignored", "member-adopted",
+   * Stable warning kind, e.g. "agent-not-installed", "component-ignored",
    * "model-hint-unresolved", "settings-agent-not-applied",
-   * "sub-agent-name-builtin", "sub-agent-not-installed",
    * "tool-list-entry-dropped", "version-not-taggable".
    * </pre>
    *

@@ -378,7 +378,7 @@ type RunSpec_SessionSpec struct {
 	//
 	// This is the one-call session bootstrap: a single create carries the
 	// full session shape (the agent, workspace_entries, harness,
-	// execution_target, MCP servers, skills) together with the first
+	// execution_target, plugins, skills) together with the first
 	// message, so embedders do not need to orchestrate session.create
 	// followed by run.create. The created session's ID is
 	// returned on the persisted run's session_id.
@@ -763,7 +763,7 @@ var File_ai_stigmer_agentic_run_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x91\f\n" +
+	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcf\f\n" +
 	"\aRunSpec\x12\x1f\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tH\x00R\tsessionId\x12O\n" +
@@ -773,9 +773,9 @@ const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"run_config\x18\x12 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12_\n" +
 	"\x10interaction_mode\x18\x13 \x01(\x0e2*.ai.stigmer.agentic.run.v1.InteractionModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x0finteractionMode\x12&\n" +
 	"\x0fbuild_from_plan\x18\x14 \x01(\bR\rbuildFromPlan\x12Q\n" +
-	"\x18structured_output_schema\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\x12\x8d\x01\n" +
-	"\x05tools\x18\x16 \x03(\tBw\xbaHt\x92\x01q\x10\x80\x01\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x05tools\x12\xa2\x01\n" +
-	"\x10disallowed_tools\x18\x17 \x03(\tBw\xbaHt\x92\x01q\x10\x80\x01\"lrj\x18\x80\x022e^(mcp__\\*|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x0fdisallowedTools\x12;\n" +
+	"\x18structured_output_schema\x18\x15 \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\x12\xac\x01\n" +
+	"\x05tools\x18\x16 \x03(\tB\x95\x01\xbaH\x91\x01\x92\x01\x8d\x01\x10\x80\x01\"\x87\x01r\x84\x01\x18\x80\x022\x7f^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x05tools\x12\xc1\x01\n" +
+	"\x10disallowed_tools\x18\x17 \x03(\tB\x95\x01\xbaH\x91\x01\x92\x01\x8d\x01\x10\x80\x01\"\x87\x01r\x84\x01\x18\x80\x022\x7f^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x0fdisallowedTools\x12;\n" +
 	"\x14append_system_prompt\x18\x18 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x02R\x12appendSystemPrompt\x12(\n" +
 	"\x10auto_approve_all\x18\a \x01(\bR\x0eautoApproveAll\x12G\n" +
 	"\vattachments\x18\t \x03(\v2%.ai.stigmer.agentic.run.v1.AttachmentR\vattachments\x12.\n" +

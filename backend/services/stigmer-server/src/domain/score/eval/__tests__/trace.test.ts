@@ -2,9 +2,13 @@
  * Pins the eval's transcript reader (trace.ts) over a native and a Cursor
  * transcript: engine names read as Claude's (Write for a file the run
  * created, Edit for one it changed), an MCP call as
- * `mcp__plugin_<plugin>_<server>__<tool>`, a read of a mounted skill's
- * SKILL.md (the workspace link and the platform directory) as `Skill`,
- * the trace as Claude Code's JSON lines, the final message, created paths
+ * `mcp__<server>__<tool>`, its server slug read as written since a turn
+ * already names a plugin's server `plugin_<plugin>_<server>`; a read of a
+ * mounted skill's SKILL.md (the workspace link and the platform
+ * directory) as `Skill`, and a read of a plugin skill's SKILL.md inside
+ * the plugin's mounted tree as `Skill` named `<plugin>:<name>`, the name
+ * looked up by the skill's path in the plugin's list and, for a path the
+ * list lacks, the path's last segment; the trace as Claude Code's JSON lines, the final message, created paths
  * from the ledger's last candidate per change set, contents inline, read
  * back from the artifact store, binary, deleted or unreadable, and a run
  * with no capture event read as "not recorded". A tool message reads as
@@ -40,7 +44,11 @@ import {
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-import { SKILL_READ_PATH, callsMcpServers, evalTraceOf } from "../trace.js";
+import {
+  PLUGIN_SKILL_READ_PATH,
+  SKILL_READ_PATH,
+  evalTraceOf,
+} from "../trace.js";
 import type { EvalTraceDeps } from "../trace.js";
 
 function call(
@@ -135,7 +143,7 @@ describe("the eval trace, native transcript", () => {
       call("c3", "write_file", { file_path: "CHANGELOG.md", content: "x" }),
       call("c4", "edit_file", { file_path: "src/a.ts" }),
       call("c5", "execute", { command: "npm test" }, { error: "exit 1" }),
-      call("c6", "search_issues", { q: "bug" }, { mcpServerSlug: "github" }),
+      call("c6", "search_issues", { q: "bug" }, { mcpServerSlug: "plugin_thermos_github" }),
       call("c7", "some_engine_tool", {}),
     ],
     [baseline("t1"), candidate("t1", [created])],
@@ -160,30 +168,24 @@ describe("the eval trace, native transcript", () => {
     );
   });
 
-  it("names an MCP call by the server's name as the plugin declares it, not its install slug", async () => {
-    // generateSlug drops the underscore and the capitals of `My_Server`.
+  it("names an MCP call by its server slug as written: a plugin's segment, or a server outside any plugin", async () => {
+    // A turn names a plugin's server `plugin_<plugin>_<server>`, as Claude
+    // Code does, so the slug a call carries is already the grader's name.
     const run = runOf(
       [
-        call("m1", "search", { q: "bug" }, { mcpServerSlug: "myserver" }),
-        call("m2", "list", {}, { mcpServerSlug: "unnamed" }),
+        call("m1", "search", { q: "bug" }, { mcpServerSlug: "plugin_thermos_My_Server" }),
+        call("m2", "list", {}, { mcpServerSlug: "github" }),
       ],
       [],
     );
-    const trace = await evalTraceOf(
-      run,
-      deps(Harness.NATIVE, {
-        mcpServerKeys: new Map([["myserver", "My_Server"]]),
-      }),
-    );
+    const trace = await evalTraceOf(run, deps(Harness.NATIVE));
     expect(trace.toolCalls.map((c) => c.name)).toEqual([
       "mcp__plugin_thermos_My_Server__search",
-      "mcp__plugin_thermos_unnamed__list",
+      "mcp__github__list",
     ]);
     expect(trace.traceLines[1]).toContain(
       '"name":"mcp__plugin_thermos_My_Server__search"',
     );
-    expect(callsMcpServers(run)).toBe(true);
-    expect(callsMcpServers(runOf([call("r1", "read_file", {})], []))).toBe(false);
   });
 
   it("writes the trace as Claude Code's JSON lines and keeps the final message", async () => {
@@ -216,6 +218,71 @@ describe("the eval trace, native transcript", () => {
         ["missing.md", { kind: "absent" }],
       ]),
     });
+  });
+});
+
+describe("the eval trace, a plugin skill's read", () => {
+  const DIGEST = "d".repeat(64);
+  const skillNames = new Map([
+    ["skills/review", "code-review"],
+    ["nested/tools/skills/lint", "lint"],
+  ]);
+
+  it("reads as Skill named by the plugin's list, on either engine and at any depth in the plugin", async () => {
+    const run = runOf(
+      [
+        call("p1", "read_file", {
+          file_path: `/work/.stigmer/plugins/${DIGEST}/skills/review/SKILL.md`,
+        }),
+        call("p2", "read_file", {
+          file_path: `.stigmer/plugins/${DIGEST}/nested/tools/skills/lint/SKILL.md`,
+        }),
+      ],
+      [],
+    );
+    const trace = await evalTraceOf(run, deps(Harness.NATIVE, { skillNames }));
+    expect(trace.toolCalls).toEqual([
+      { name: "Skill", input: JSON.stringify({ skill: "thermos:code-review" }) },
+      { name: "Skill", input: JSON.stringify({ skill: "thermos:lint" }) },
+    ]);
+
+    const cursor = runOf(
+      [
+        call("k1", "read", {
+          path: `/home/u/.stigmer/sessions/s/platform/plugins/${DIGEST}/skills/review/SKILL.md`,
+        }),
+      ],
+      [],
+    );
+    const viaCursor = await evalTraceOf(cursor, deps(Harness.CURSOR, { skillNames }));
+    expect(viaCursor.toolCalls[0]?.input).toBe(
+      JSON.stringify({ skill: "thermos:code-review" }),
+    );
+  });
+
+  it("falls back to the path's last segment for a skill the list lacks, or with no list", async () => {
+    const run = runOf(
+      [
+        call("p1", "read_file", {
+          file_path: `.stigmer/plugins/${DIGEST}/skills/unlisted/SKILL.md`,
+        }),
+      ],
+      [],
+    );
+    for (const overrides of [{ skillNames }, {}]) {
+      const trace = await evalTraceOf(run, deps(Harness.NATIVE, overrides));
+      expect(trace.toolCalls).toEqual([
+        { name: "Skill", input: JSON.stringify({ skill: "thermos:unlisted" }) },
+      ]);
+    }
+  });
+
+  it("matches only a SKILL.md inside a mounted plugin's tree", () => {
+    expect(
+      PLUGIN_SKILL_READ_PATH.exec(`.stigmer/plugins/${DIGEST}/skills/review/SKILL.md`)?.[1],
+    ).toBe("skills/review");
+    expect(PLUGIN_SKILL_READ_PATH.test(`docs/plugins/${DIGEST}/skills/x/SKILL.md`)).toBe(false);
+    expect(PLUGIN_SKILL_READ_PATH.test(`.stigmer/plugins/${DIGEST}/SKILL.md`)).toBe(false);
   });
 });
 

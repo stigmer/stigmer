@@ -120,7 +120,7 @@ describe("resource-ID classification", () => {
   it("recognizes any known prefix via hasResourceIdPrefix (length-agnostic)", () => {
     expect(hasResourceIdPrefix("agt_short")).toBe(true);
     expect(hasResourceIdPrefix("ses_anything")).toBe(true);
-    expect(hasResourceIdPrefix("mcp-x")).toBe(true);
+    expect(hasResourceIdPrefix("plg-x")).toBe(true);
     expect(hasResourceIdPrefix("plain-slug")).toBe(false);
   });
 
