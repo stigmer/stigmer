@@ -20,6 +20,10 @@
  * entries force:
  *   - the compose entry and config loading (composeServer + its options'
  *     required types: ServerConfig via loadConfig, Logger via createLogger)
+ *   - the process body (runServer: config, logger, operator identity,
+ *     compose, start, the ready line and the signal-driven shutdown), for
+ *     an entry that composes its own units and should boot a process the
+ *     way the shipped server does
  *   - the extension-point types (the whole src/extensions contract)
  *   - the pipeline primitives extensions build gates AND extension-
  *     registered services from (PipelineStep, RequestContext, the semantic
@@ -57,6 +61,10 @@ export type {
 export { loadConfig } from "./boot/config.js";
 export type { ServerConfig } from "./boot/config.js";
 export { createLogger } from "./boot/logger.js";
+// The process body every entry boots through: the shipped server's, the
+// test harness's, and an edition's own entry that composes other units.
+export { runServer } from "./boot/run.js";
+export type { ProcessHost, RunServerOptions } from "./boot/run.js";
 export type {
   LogEntry,
   LogFields,
@@ -76,9 +84,22 @@ export type {
 } from "./extensions/registry.js";
 // What the composition hands a unit (ServerExtension.onComposed): its one
 // Authorizer and list read scope (bound by the credential binding), the
-// binding itself, the policy check, tuple lifecycle and in-process
-// transport, whichever posture built them.
-export type { ComposedServices } from "./extensions/composed-services.js";
+// binding itself, the policy check, tuple lifecycle, in-process transport
+// and the identity accounts' store binding and create path, whichever
+// posture built them.
+export type {
+  ComposedIdentityAccounts,
+  ComposedServices,
+} from "./extensions/composed-services.js";
+// The identity-account create path's input, as a unit hands it: the spec,
+// the name, and how the account was provisioned (a federated account names
+// the identity provider that vouches for it).
+export type {
+  AccountProvisioning,
+  CreateAccount,
+  CreateAccountInput,
+  FederatedProvider,
+} from "./domain/identityaccount/provisioning.js";
 export type {
   CallerClass,
   CallerIdentity,

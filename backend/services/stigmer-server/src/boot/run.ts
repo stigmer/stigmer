@@ -5,18 +5,22 @@
  * → drain → exit). The CLI's daemon, the container image and the test
  * harnesses all start a process this way.
  *
- * Two entries call it with different units, so the two cannot drift in how
- * a process boots:
+ * Every entry calls it with its own units, so none can drift in how a
+ * process boots:
  *
  *   - main.ts, the shipped entry: the open-source edition's unit
  *     (editions/open-source.ts), so the server holds one organization;
  *   - the test harness's library entry (test/support/src/library-server.mjs):
  *     no unit, the library as a composition sees it, holding any number of
  *     organizations, which the suites that prove isolation between
- *     organizations run on.
+ *     organizations run on;
+ *   - an edition published as its own package, whose entry decides its
+ *     units and then boots exactly as the shipped server does. That is why
+ *     the body is on the package barrel: such an entry imports the library
+ *     by its exports map, and a second copy of this body would drift.
  *
- * Not on the package barrel: no composition outside this repository needs
- * a process body, and the Cloud's entry boots differently on purpose.
+ * The Cloud's entry boots differently on purpose (it runs its own schema
+ * chain before composing) and does not call it.
  *
  * The process itself is a port (`ProcessHost`), so a test drives the whole
  * body in-process: the real process registers signal handlers, exits and
