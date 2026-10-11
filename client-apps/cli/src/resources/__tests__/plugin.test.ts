@@ -349,7 +349,7 @@ describe("the hooks summary", () => {
       }),
     );
     expect(text).toContain("Main agent");
-    expect(text).toMatch(/Sub-agents\s+none/);
+    expect(text).toMatch(/Subagents\s+none/);
     expect(text).toContain("Claude Code format: PreToolUse 1");
   });
 

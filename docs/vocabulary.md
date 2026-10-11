@@ -54,38 +54,33 @@ more precise language. Never use a right-column term in a left-column context.
 Scan this table to find the right word for your context. Detailed entries with
 definitions, API names, and examples follow below.
 
-| Term              | Sales site       | Quickstart / tutorial                  | Concepts / how-to   | Reference / SDK                        | README         |
-| ----------------- | ---------------- | -------------------------------------- | ------------------- | -------------------------------------- | -------------- |
-| **Agent**         | Agent            | Agent                                  | Agent               | Agent, `kind: Agent`                   | Agent          |
-| **Skill**         | domain knowledge | Skill ("domain knowledge")             | Skill               | Skill, `skill_refs`                    | Skill          |
-| **Plugin**        | plugin           | plugin ("what you install")            | Plugin              | Plugin, `kind: Plugin`                 | plugin         |
-| **Marketplace**   | marketplace      | Marketplace ("where you install from") | Marketplace         | Marketplace; source, `stigmer install` | marketplace    |
-| **MCP server**    | tools            | MCP server ("tool connection")         | MCP server          | `PluginStatus.mcp_servers`, `plugins`  | MCP server     |
-| **Session**       | conversation     | Session ("conversation")               | Session             | Session, `kind: Session`               | Session        |
-| **Runner**        | compute          | runner ("where your Agent runs")       | Runner              | Runner                                 | runner         |
-| **Harness**       | execution engine | harness ("execution engine")           | Harness             | Harness, `SessionSpec.harness`         | harness        |
-| **Approval flow** | approval flow    | approval flow                          | approval flow, HITL | `destructiveHint`, `submitApproval`    | HITL, approval |
-| **Organization**  | Organization     | Organization                           | Organization        | Organization, `kind: organization`     | Organization   |
-| **Team**          | teams            | ---                                    | Team                | Team, `kind: team`                     | Team           |
-| **Vault**         | vault            | vault ("your keys and logins")         | Vault               | Vault, `kind: Vault`                   | vault          |
-| **Preference**    | preferences      | preference ("standing context")        | Preference          | `spec.preferences.standing_context`    | Preference     |
-
 <!-- vale Stigmer.terms = NO -->
 
-| **Identity Provider** | --- | identity provider | Identity Provider |
-IdentityProvider, `kind: identity_provider` | Identity Provider |
+| Term                  | Sales site       | Quickstart / tutorial                  | Concepts / how-to      | Reference / SDK                             | README            |
+| --------------------- | ---------------- | -------------------------------------- | ---------------------- | ------------------------------------------- | ----------------- |
+| **Agent**             | Agent            | Agent                                  | Agent                  | Agent, `kind: Agent`                        | Agent             |
+| **Skill**             | domain knowledge | Skill ("domain knowledge")             | Skill                  | Skill, `skill_refs`                         | Skill             |
+| **Plugin**            | plugin           | plugin ("what you install")            | Plugin                 | Plugin, `kind: Plugin`                      | plugin            |
+| **Marketplace**       | marketplace      | Marketplace ("where you install from") | Marketplace            | Marketplace; source, `stigmer install`      | marketplace       |
+| **MCP server**        | tools            | MCP server ("tool connection")         | MCP server             | `PluginStatus.mcp_servers`, `plugins`       | MCP server        |
+| **Session**           | conversation     | Session ("conversation")               | Session                | Session, `kind: Session`                    | Session           |
+| **Runner**            | compute          | runner ("where your Agent runs")       | Runner                 | Runner                                      | runner            |
+| **Harness**           | execution engine | harness ("execution engine")           | Harness                | Harness, `SessionSpec.harness`              | harness           |
+| **Approval flow**     | approval flow    | approval flow                          | approval flow, HITL    | `destructiveHint`, `submitApproval`         | HITL, approval    |
+| **Organization**      | Organization     | Organization                           | Organization           | Organization, `kind: organization`          | Organization      |
+| **Team**              | teams            | ---                                    | Team                   | Team, `kind: team`                          | Team              |
+| **Vault**             | vault            | vault ("your keys and logins")         | Vault                  | Vault, `kind: Vault`                        | vault             |
+| **Preference**        | preferences      | preference ("standing context")        | Preference             | `spec.preferences.standing_context`         | Preference        |
+| **Identity Provider** | ---              | identity provider                      | Identity Provider      | IdentityProvider, `kind: identity_provider` | Identity Provider |
+| **Identity Account**  | ---              | ---                                    | Identity Account       | IdentityAccount, `kind: identity_account`   | Identity Account  |
+| **PlatformClient**    | ---              | ---                                    | PlatformClient         | PlatformClient, `kind: platform_client`     | PlatformClient    |
+| **Run**               | ---              | run                                    | run                    | Run, `kind: Run`                            | Run               |
+| **Subagent**          | ---              | ---                                    | subagent               | subagent, `subagents`, `<plugin>:<agent>`   | subagent          |
+| **Agent Channel**     | ---              | ---                                    | channel, Agent Channel | AgentChannel, `kind: AgentChannel`          | Agent Channel     |
+| **Channel App**       | ---              | ---                                    | Channel App            | ChannelApp, `kind: ChannelApp`              | Channel App       |
+| **Schedule**          | ---              | ---                                    | schedule, Schedule     | Schedule, `kind: Schedule`                  | Schedule          |
 
 <!-- vale Stigmer.terms = YES -->
-
-| **Identity Account** | --- | --- | Identity Account | IdentityAccount,
-`kind: identity_account` | Identity Account | | **PlatformClient** | --- | --- |
-PlatformClient | PlatformClient, `kind: platform_client` | PlatformClient | |
-**Run** | --- | run | run | Run, `kind: Run` | Run | | **Subagent** | --- | ---
-| subagent | subagent, `subagents`, `<plugin>:<agent>` | subagent | | **Agent
-Channel** | --- | --- | channel, Agent Channel | AgentChannel,
-`kind: AgentChannel` | Agent Channel | | **Channel App** | --- | --- | Channel
-App | ChannelApp, `kind: ChannelApp` | Channel App | | **Schedule** | --- | ---
-| schedule, Schedule | Schedule, `kind: Schedule` | Schedule |
 
 Dash (—) means the term should not appear in that context.
 
@@ -114,7 +109,12 @@ A reusable definition of what an AI assistant knows and can do.
   `stigmer apply -f agent.yaml`, `stigmer run <name>`,
   `stigmer get agent <name>`, `stigmer list agent`.
 - **YAML fields**: `spec.instructions`, `spec.plugins` (references with
-  `kind: plugin`, each plugin attached whole), `spec.skill_refs`, `spec.tools`.
+  `kind: plugin`, each plugin attached whole), `spec.skill_refs`, `spec.tools`,
+  `spec.subagents` (saved Agents it may hand work to, each pinned to a version
+  when this Agent is saved, one level deep), and `spec.run_config` with
+  `spec.harness`: the model and engine a conversation on the Agent starts on, a
+  default that a message, a channel or a schedule may override (see
+  [Run settings](/docs/concepts/agents#run-settings)).
 
 **Good examples**:
 
@@ -127,10 +127,11 @@ A reusable definition of what an AI assistant knows and can do.
 
 **Bad examples**:
 
-| Context    | Copy                                                    | Problem                                                    |
-| ---------- | ------------------------------------------------------- | ---------------------------------------------------------- |
-| Sales site | "Define an Agent resource with YAML."                   | Technical language in a business context.                  |
-| Quickstart | "The Agent abstraction encapsulates LLM orchestration." | Jargon. The reader just wants to create their first Agent. |
+| Context    | Copy                                                    | Problem                                                                                             |
+| ---------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Sales site | "Define an Agent resource with YAML."                   | Technical language in a business context.                                                           |
+| Quickstart | "The Agent abstraction encapsulates LLM orchestration." | Jargon. The reader just wants to create their first Agent.                                          |
+| Concepts   | "Install the plugin to get its agent."                  | Installing stores the plugin alone; an Agent is saved on its own and lists the plugin in `plugins`. |
 
 ---
 
@@ -148,6 +149,10 @@ A piece of knowledge you attach to an Agent so it has domain expertise.
 - **YAML/file structure**: A Skill is a directory containing a `SKILL.md` file
   with YAML frontmatter. proto fields: `skill_md`, `name`, `description`, `tag`.
   Referenced on Agents and Sessions via `skill_refs`.
+- **Skills from a plugin**: a plugin's skills live in the plugin and are not in
+  the Skill list. A turn names each one `<plugin>:<skill>` (`thermos:review`),
+  so two plugins may both ship `review`; they change when the plugin is pushed
+  again (see [Plugins](/docs/concepts/plugins)).
 
 **Good examples**:
 
@@ -191,12 +196,12 @@ in `plugins` gets all of it.
   or a `.zip` from your computer (the console's `stigmer push plugin`); a
   plugin's page is where an install ends: it shows what the plugin holds, says
   per MCP server what stands before its first tool call ("Sign in", "Signed in",
-  the variables it needs, or nothing), starts a session on its agent, lists its
-  hooks with every command each runs beside the ones Stigmer does not run,
-  offers "Sign in" and "Check tools" per server, and "Start a chat" and "Add to
-  an agent" (the plugin listed in that agent's `plugins`); "Remove" is the
-  console's word for `delete plugin`. A plugin is never authored as YAML: its
-  spec is read from the package manifest.
+  the variables it needs, or nothing), lists its hooks with every command each
+  runs beside the ones Stigmer does not run, offers "Sign in" and "Check tools"
+  per server, and "Start a chat" (a conversation with the built-in assistant and
+  the plugin on) and "Add to an agent" (the plugin listed in that agent's
+  `plugins`); "Remove" is the console's word for `delete plugin`. A plugin is
+  never authored as YAML: its spec is read from the package manifest.
 - **File structure**: A plugin is a directory holding a manifest (`plugin.json`,
   `.cursor-plugin/plugin.json`, `.claude-plugin/plugin.json` or
   `.codex-plugin/plugin.json`), `skills/`, `mcp.json`, `agents/` and `hooks/`.
@@ -207,6 +212,8 @@ in `plugins` gets all of it.
 - **What it is not**: a plugin does not run on its own. An Agent or a
   conversation that lists it runs, in a Session, on a Runner; the plugin's
   skills, agents, hooks and servers join that run.
+- **Concept page**: [Plugins](/docs/concepts/plugins), with how Stigmer's plugin
+  compares with Claude Code's, Cursor's and Codex's and where it differs.
 
 **Good examples**:
 
@@ -1422,6 +1429,10 @@ plugins, Skills, hooks and values; a plugin subagent comes from a plugin's
   saved Agents by reference (`kind: agent`), each pinned to a version when the
   listing Agent is saved. A plugin's agents are named `<plugin>:<agent>`
   (`PluginStatus.agents`). Run tracking: `run/v1/subagent.proto`.
+- **Retired shape**: subagents written inside an Agent (`sub_agents`) are gone;
+  a reader meets the field only in the sentence `stigmer apply -f` and
+  `stigmer validate -f` print for a manifest that still writes it, which says to
+  save each one as an Agent and list it in `subagents`.
 - **Context rule**: Concepts and reference only. Never on the sales site. In
   tutorials, if needed, describe as "an Agent that hands work to another Agent."
 
@@ -1609,6 +1620,24 @@ surface that started it, or the sending person's own).
   the sentence `stigmer apply -f` and `stigmer validate -f` print for a manifest
   that still carries `kind: AgentInstance`, which says what happened and names
   `stigmer run`.
+
+---
+
+#### MCP Server (the kind)
+
+Retired term. A `kind: McpServer` was a resource of its own that described one
+MCP server, and an Agent attached it through `mcp_server_usages`. The kind was
+removed: an MCP server is an entry in a plugin's `mcp.json`, an Agent or a
+conversation lists the plugin in `plugins`, and an admin's one-off server is a
+plugin of one server (`stigmer mcp add <name> <url>`). See MCP server and
+Plugin.
+
+- **Capitalize**: Yes, when naming the retired kind in an upgrade note.
+- **Context rule**: Do not use in new writing; write "MCP server", lowercase
+  "server". A reader still meets the kind in the sentence `stigmer apply -f` and
+  `stigmer validate -f` print for a manifest that still carries
+  `kind: McpServer` or `mcp_server_usages`, which says what happened and names
+  `stigmer mcp add`.
 
 ---
 

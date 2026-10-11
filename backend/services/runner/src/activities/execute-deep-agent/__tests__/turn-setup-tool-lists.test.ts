@@ -115,7 +115,7 @@ describe("checkTurnToolLists", () => {
   it("still refuses the turn over an admitted plugin subagent whose tools name nothing", () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     expect(check(["Read", "Agent(kit:reviewer)"])).toThrow(ToolListResolutionError);
-    expect(check(["Read", "Agent(kit:reviewer)"])).toThrow(/Sub-agent "kit:reviewer"/);
+    expect(check(["Read", "Agent(kit:reviewer)"])).toThrow(/Subagent "kit:reviewer"/);
   });
 
   it("judges the main agent's lists against its own servers, never a server only a subagent has", () => {
@@ -187,6 +187,6 @@ describe("checkTurnToolLists with a turn layer", () => {
 
   it("still refuses the turn over a plugin subagent whose list resolves to nothing under its agent's own lists", () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    expect(turn(["Read", "Agent"], ["Read", "Agent"]).check).toThrow(/Sub-agent "kit:writer"/);
+    expect(turn(["Read", "Agent"], ["Read", "Agent"]).check).toThrow(/Subagent "kit:writer"/);
   });
 });

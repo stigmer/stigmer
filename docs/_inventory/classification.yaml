@@ -161,6 +161,15 @@ pages:
       The embed exists to show the Skill detail page next to its source; a
       single frame is the honest medium for a static screen.
 
+  concepts/plugins:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A plugin is one package of Skills, MCP servers, hooks and subagents in the
+      Claude Code, Cursor and Codex format, its parts named after it, turned on
+      for one chat or listed on an Agent, and the three places Stigmer differs.
+    medium: none
+
   concepts/scores:
     fate: keep
     diataxis: explanation

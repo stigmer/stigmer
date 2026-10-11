@@ -145,8 +145,8 @@ describe("Claude's tool lists", () => {
     const outcome = read(claudePlugin({ agents: [{ file: "a", frontmatter: { hooks: {}, color: "blue" } }] }));
     const messages = outcome.warnings.map((f) => f.message);
     expect(messages).toEqual([
-      "sub-agent 'a' in 'agents/a.md' has a field 'hooks' Stigmer does not read, ignored; Claude Code ignores it on a plugin's agents too",
-      "sub-agent 'a' in 'agents/a.md' has a field 'color' Stigmer does not read, ignored",
+      "subagent 'a' in 'agents/a.md' has a field 'hooks' Stigmer does not read, ignored; Claude Code ignores it on a plugin's agents too",
+      "subagent 'a' in 'agents/a.md' has a field 'color' Stigmer does not read, ignored",
     ]);
   });
 });

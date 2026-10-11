@@ -53,7 +53,7 @@ export function InstallPreview({ prepared, relation, className }: InstallPreview
           rows={[
             ["Skills", named(plugin.skills.map((s) => s.name))],
             ["MCP servers", named(plugin.mcpServers.map((s) => `${s.name} (${s.transport})`))],
-            ["Sub-agents", named(plugin.subAgents.map((a) => a.name))],
+            ["Subagents", named(plugin.subAgents.map((a) => a.name))],
             ["Hooks", plugin.hooks === undefined ? "none" : hooksSummary(plugin.hooks.format, plugin.hooks.groups)],
             [
               "Variables",
