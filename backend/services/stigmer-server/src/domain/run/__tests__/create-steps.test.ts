@@ -23,9 +23,14 @@
  * every lane keeps it but a visitor, whose run never reads the
  * organization, and a classifier that throws withholds it. The same
  * classifier refuses a visitor's appended system prompt
- * (RefuseVisitorAppendedPrompt), the server's own requests excepted.
+ * (RefuseVisitorAppendedPrompt), the server's own requests excepted; and a
+ * plugin-eval case's context, refused on any request the server did not
+ * compose (GuardPluginEvalCase), and on update kept as the create stored
+ * it, whatever the request carries (KeepPluginEvalCase).
  */
+import { PluginEvalCaseContextSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { VisitorClassifier } from "../../../extensions/visitor-classifier.js";
@@ -76,6 +81,9 @@ import {
   buildAutoCreateSessionSpec,
   newComposeDeclaredPreferencesStep,
   newRefuseVisitorAppendedPromptStep,
+  newGuardPluginEvalCaseStep,
+  newKeepPluginEvalCaseStep,
+  PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE,
   VISITOR_APPENDED_PROMPT_MESSAGE,
   newComposeRecalledMemoriesStep,
   newCreateSessionIfNeededStep,
@@ -1438,3 +1446,69 @@ describe("newRefuseVisitorAppendedPromptStep", () => {
   });
 });
 
+describe("newGuardPluginEvalCaseStep", () => {
+  const step = newGuardPluginEvalCaseStep();
+
+  function withCase(caller: CallerIdentity, set: boolean) {
+    const execution = newExecution("ses_1");
+    if (set) {
+      execution.spec!.pluginEvalCase = create(PluginEvalCaseContextSchema, {
+        pluginId: "plg_1",
+        pluginDigest: "a".repeat(64),
+        suiteDir: "evals",
+        caseDir: "evals/c",
+        scaffoldScript: "setup.sh",
+      });
+    }
+    return newContext(execution, caller);
+  }
+
+  it("refuses a case context from any caller the server did not compose", async () => {
+    await expect(step.execute(withCase(testCallerIdentity(), true))).rejects.toThrow(PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE);
+    await expect(step.execute(withCase(testCallerIdentity({ callerClass: "api_key" }), true))).rejects.toThrow(
+      PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE,
+    );
+  });
+
+  it("passes the server's own request, and any request without one", async () => {
+    await step.execute(withCase(testCallerIdentity({ origin: "in-process" }), true));
+    await step.execute(withCase(testCallerIdentity(), false));
+  });
+});
+
+describe("newKeepPluginEvalCaseStep", () => {
+  const step = newKeepPluginEvalCaseStep();
+  const composed = create(PluginEvalCaseContextSchema, {
+    pluginId: "plg_1",
+    pluginDigest: "a".repeat(64),
+    suiteDir: "evals",
+    caseDir: "evals/c",
+    scaffoldScript: "setup.sh",
+  });
+
+  /** An update of a run whose create stored `stored`, asking for `requested`. */
+  function update(stored: typeof composed | undefined, requested: typeof composed | undefined) {
+    const existing = newExecution("ses_1");
+    if (stored !== undefined) existing.spec!.pluginEvalCase = stored;
+    const execution = newExecution("ses_1");
+    if (requested !== undefined) execution.spec!.pluginEvalCase = requested;
+    const ctx = newContext(execution, testCallerIdentity());
+    ctx.set(EXISTING_RESOURCE_KEY, existing);
+    return ctx;
+  }
+
+  it("refuses to set a case context on a run that has none", async () => {
+    const ctx = update(undefined, composed);
+    await step.execute(ctx);
+    expect(ctx.newState.spec?.pluginEvalCase).toBeUndefined();
+  });
+
+  it("keeps the stored context against a changed one, and against an update that leaves it out", async () => {
+    const changed = update(composed, create(PluginEvalCaseContextSchema, { ...composed, scaffoldScript: "other.sh" }));
+    await step.execute(changed);
+    expect(changed.newState.spec?.pluginEvalCase?.scaffoldScript).toBe("setup.sh");
+    const cleared = update(composed, undefined);
+    await step.execute(cleared);
+    expect(cleared.newState.spec?.pluginEvalCase?.scaffoldScript).toBe("setup.sh");
+  });
+});

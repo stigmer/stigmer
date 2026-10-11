@@ -58,8 +58,11 @@ import { provisionOrgWithFacts } from "./memories";
 import { localWorkspaceEntries, type LocalWorkspaceOption } from "./sessions";
 import { zipFiles } from "./skills";
 
-/** The checked-in fixture tree: `workspace/` and `skills/<name>/SKILL.md`. */
+/** The checked-in fixture tree: a plugin, its `skills/<name>/SKILL.md` and its `evals/` suite (the quality arm's). */
 export const WORKING_AGENT_FIXTURE_DIR = resolve(import.meta.dirname, "..", "..", "fixtures", "working-agent");
+
+/** The repository the agent works in, kept once in the suite as the scaffolds' shared fixture. */
+export const WORKING_AGENT_WORKSPACE_FIXTURE_DIR = join(WORKING_AGENT_FIXTURE_DIR, "evals", "_fixture", "workspace");
 
 export const WORKING_AGENT_NAME = "orders-assistant";
 /** The plugin the agent uses, and its one MCP server's name inside it. */
@@ -187,7 +190,7 @@ export async function seedWorkingWorkspace(dir: string): Promise<void> {
     throw new Error(`refusing to seed ${dir}: a working-agent workspace directory is named ${WORKING_AGENT_WORKSPACE_NAME}`);
   }
   await rm(dir, { recursive: true, force: true });
-  await cp(join(WORKING_AGENT_FIXTURE_DIR, "workspace"), dir, { recursive: true });
+  await cp(WORKING_AGENT_WORKSPACE_FIXTURE_DIR, dir, { recursive: true });
 }
 
 /** The fixture's skill directory names, sorted, so the push order is fixed. */

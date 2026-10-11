@@ -15,6 +15,10 @@
  * server checks them again. No server writes a try's `running` state, so a
  * try not finished reads by the eval's phase: "waiting" while the eval
  * starts, "waiting or running" while it runs, "not run" once it stopped.
+ * A graded try a mock stopped reads "0.00 · aborted by <server>.<tool>:
+ * <reason>", one with an error "<score> · <error>" (a failed scaffold reads
+ * "0.00 · scaffold failed: …"). A case lists its plugin's MCP servers as
+ * its tries saw them: mocked with their tools, or not started.
  * A comparison is "changed" when a case's score or difference reads
  * differently to two decimals, as its cells show them, or the case ran on
  * one side only. A phase, reason or try state
@@ -182,7 +186,7 @@ export interface EvalTryView {
   readonly arm: "with" | "without";
   readonly index: number;
   readonly runId: string;
-  /** "1.00", "not graded: platform busy", "waiting or running", "waiting", "not run". */
+  /** "1.00", "0.00 · aborted by tracker.create_issue: …", "not graded: platform busy", "waiting or running", "waiting", "not run". */
   readonly summary: string;
 }
 
@@ -205,6 +209,8 @@ export interface EvalCaseRow {
   /** Why the case was not run, naming the feature; empty when it ran. */
   readonly notRun: string;
   readonly notes: readonly string[];
+  /** The plugin's MCP servers as the tries saw them, as "plugin_kit_tracker mocked: create_issue, close_issue" or "plugin_kit_wiki not started: no mock". */
+  readonly mocked: readonly string[];
   /** One cell per target, in the eval's target order. */
   readonly cells: readonly EvalCaseCell[];
 }
@@ -234,6 +240,11 @@ export function evalCaseRowsOf(pluginEval: PluginEval): readonly EvalCaseRow[] {
     name: evalCase.caseName,
     notRun: evalCase.notRunReason,
     notes: evalCase.notes,
+    mocked: evalCase.mockedServers.map((server) =>
+      server.notStartedReason !== ""
+        ? `${server.name} ${server.notStartedReason}`
+        : `${server.name} mocked: ${server.tools.join(", ")}`,
+    ),
     cells:
       evalCase.notRunReason !== ""
         ? []
@@ -301,8 +312,14 @@ function unfinishedTryLabel(phase: PluginEvalPhase): string {
 
 function trySummary(attempt: PluginEvalTry, unfinished: string): string {
   switch (attempt.state) {
-    case PluginEvalTryState.graded:
-      return formatScore(attempt.score);
+    case PluginEvalTryState.graded: {
+      const score = formatScore(attempt.score);
+      if (attempt.aborted !== undefined) {
+        const { server, tool, reason } = attempt.aborted;
+        return `${score} · aborted by ${server}.${tool}: ${reason}`;
+      }
+      return attempt.error === "" ? score : `${score} · ${attempt.error}`;
+    }
     case PluginEvalTryState.not_graded:
       return attempt.notGradedReason === ""
         ? "not graded"

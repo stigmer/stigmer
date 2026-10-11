@@ -8,10 +8,12 @@
 //
 // The fields carried: `schemaVersion` 1, `partial` and `partialReason`, the
 // suite's `aggregates`, each case's `name`, `aggregates.score` and
-// `aggregates.delta`, each run's `error` under `arms.with` and
-// `arms.without`, `costUsd` and `durationSeconds`. Listed fields for
-// features Stigmer does not have are absent (a run's `aborted` and
-// `skippedPaidGraders`, `claudeVersion`), and the rest of Claude Code's
+// `aggregates.delta`, each run's `error` and `aborted` (present when a
+// mock stopped the run, with `server`, `tool` and `reason`; the run scores
+// 0 and its `error` stays `null`) under `arms.with` and `arms.without`,
+// `costUsd` and `durationSeconds`. Listed fields for features Stigmer does
+// not have are absent (a run's `skippedPaidGraders`, `claudeVersion`), and
+// the rest of Claude Code's
 // file is not mimicked: its echo of the suite's configuration, its grader
 // definitions and its per-run grader results. The format tells scripts to
 // ignore fields they do not recognise, so Stigmer's additions ride beside
@@ -60,6 +62,8 @@ export interface ResultRun {
   readonly notGradedReason: string | null;
   /** The try's run; empty until it exists. */
   readonly runId: string;
+  /** Present when a mock stopped the run; it then scores 0 and `error` is `null`. */
+  readonly aborted?: { readonly server: string; readonly tool: string; readonly reason: string };
 }
 
 /** One case on one target. */
@@ -278,6 +282,9 @@ function runOf(attempt: PluginEvalTry): ResultRun {
     score: graded ? attempt.score : null,
     notGradedReason: attempt.notGradedReason === "" ? null : attempt.notGradedReason,
     runId: attempt.runId,
+    ...(attempt.aborted !== undefined && {
+      aborted: { server: attempt.aborted.server, tool: attempt.aborted.tool, reason: attempt.aborted.reason },
+    }),
   };
 }
 

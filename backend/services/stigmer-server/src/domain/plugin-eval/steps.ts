@@ -81,6 +81,7 @@ import {
   pluginEvalNoCasesMessage,
   pluginEvalOrgMismatchMessage,
   pluginEvalOtherPluginToolMessage,
+  PLUGIN_EVAL_REAL_SERVERS_CONFLICT_MESSAGE,
   pluginEvalCaseGlobMessage,
   pluginEvalNotCurrentVersionMessage,
   pluginEvalTooLargeMessage,
@@ -244,7 +245,9 @@ function evaluatedPluginOf(ctx: RequestContext<typeof PluginEvalSchema>): Plugin
  * version when empty, and refused (FAILED_PRECONDITION) when it names any
  * other: the with-plugin arm runs the plugin as installed now (arm.ts), so
  * an earlier version's suite would be graded against today's plugin;
- * spec.allow_tools is held in Stigmer's names (allow-tools.ts).
+ * spec.allow_tools is held in Stigmer's names (allow-tools.ts);
+ * spec.allow_real_servers with spec.real_mcp_servers is refused, as the
+ * format pairs --allow-real-servers with --mocks record, never off.
  */
 export function newResolvePluginEvalDefaultsStep(
   store: Store,
@@ -264,6 +267,9 @@ export function newResolvePluginEvalDefaultsStep(
       const spec = ctx.newState.spec;
       if (spec === undefined) {
         throw invalidArgumentError("spec is required for a plugin eval");
+      }
+      if (spec.allowRealServers && spec.realMcpServers) {
+        throw invalidArgumentError(PLUGIN_EVAL_REAL_SERVERS_CONFLICT_MESSAGE);
       }
       const current = pluginVersionedBinding.headHashOf(plugin);
       if (current === "") {

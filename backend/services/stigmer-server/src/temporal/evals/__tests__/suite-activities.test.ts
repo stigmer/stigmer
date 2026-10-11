@@ -202,7 +202,7 @@ describe("load-suite", () => {
     expect(status?.triesTotal).toBe(2);
     expect(status?.cases.map((planned) => planned.caseName)).toEqual([
       "first-case",
-      "scaffolded",
+      "other-plugin",
     ]);
   });
 

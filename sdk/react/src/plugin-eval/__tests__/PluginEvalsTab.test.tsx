@@ -81,7 +81,7 @@ const plugin = create(PluginSchema, {
         {
           caseName: "needs-fixture",
           path: "evals/needs-fixture",
-          unsupported: "context.scaffold_script",
+          unsupported: "plugins",
         },
       ],
       findings: [
@@ -167,7 +167,7 @@ describe("PluginEvalsTab", () => {
     expect(screen.getByText(/tags: smoke/)).toBeDefined();
     const notRun = screen.getByRole("list", { name: "Cases not run yet" });
     expect(
-      within(notRun).getByText(/not run yet: context.scaffold_script/),
+      within(notRun).getByText(/not run yet: plugins/),
     ).toBeDefined();
     // The message starts with the path, as the library writes it: shown once.
     expect(screen.getByText("evals/bad/prompt.md: unknown key 'foo'")).toBeDefined();

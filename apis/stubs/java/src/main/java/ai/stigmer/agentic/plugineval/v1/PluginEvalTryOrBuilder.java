@@ -144,4 +144,37 @@ public interface PluginEvalTryOrBuilder extends
    * @return The durationSeconds.
    */
   double getDurationSeconds();
+
+  /**
+   * <pre>
+   * Set when a mock stopped the try: its input guard was violated, its
+   * agent ended the run, or the agent mocks' call budget ran out. The try
+   * scores 0 and error stays empty, as Claude Code reports it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+   * @return Whether the aborted field is set.
+   */
+  boolean hasAborted();
+  /**
+   * <pre>
+   * Set when a mock stopped the try: its input guard was violated, its
+   * agent ended the run, or the agent mocks' call budget ran out. The try
+   * scores 0 and error stays empty, as Claude Code reports it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+   * @return The aborted.
+   */
+  ai.stigmer.agentic.plugineval.v1.PluginEvalAbort getAborted();
+  /**
+   * <pre>
+   * Set when a mock stopped the try: its input guard was violated, its
+   * agent ended the run, or the agent mocks' call budget ran out. The try
+   * scores 0 and error stays empty, as Claude Code reports it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.plugineval.v1.PluginEvalAbort aborted = 10 [json_name = "aborted"];</code>
+   */
+  ai.stigmer.agentic.plugineval.v1.PluginEvalAbortOrBuilder getAbortedOrBuilder();
 }

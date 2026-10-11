@@ -165,8 +165,8 @@ describe("the SDK resource docs' Go example", () => {
 
   it("notes that an optional scalar's zero is unset in Go, and only in Go", () => {
     const page = fs.readFileSync(path.join(root, "plugin-eval.mdx"), "utf8");
-    expect(page).toContain("  Threshold:      0, // zero is unset: not sent, so the server's default applies\n");
+    expect(page).toContain("  Threshold:        0, // zero is unset: not sent, so the server's default applies\n");
     expect(page).toContain("  threshold: 0,\n");
-    expect(page).toContain("  Runs:           0,\n");
+    expect(page).toContain("  Runs:             0,\n");
   });
 });

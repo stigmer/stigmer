@@ -72,6 +72,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { ApplicationFailure } from "@temporalio/common";
 import { Context } from "@temporalio/activity";
 
+import { parseTryStop } from "@stigmer/eval-runtime";
 import type { EvalGrader } from "@stigmer/plugin-package";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -102,11 +103,13 @@ import { isNotGraded } from "../../domain/plugin-eval/graders/verdict.js";
 import {
   gradedEvalScore,
   notGradedEvalScore,
+  stoppedEvalScore,
   writeEvalScore,
 } from "../../domain/plugin-eval/score-writer.js";
 import { scoringOf, tryScore } from "../../domain/plugin-eval/scoring.js";
 import {
   tryRunName,
+  pluginServersOf,
   tryRunRequest,
   trySessionRequest,
   voteRunRequest,
@@ -164,6 +167,7 @@ import type {
   TryResult,
   TrySpend,
   TryStart,
+  TryStopped,
   VoteRead,
   VoteStart,
   WireOutcome,
@@ -337,7 +341,14 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         spec,
         modelName: cell.target.target.modelName,
         budgetUsd: input.budgetUsd,
-        pluginServerSegments: facts.serverSegments,
+        pluginServers: pluginServersOf(context.plugin),
+        arm: input.arm,
+        source: {
+          pluginId: spec.pluginId,
+          pluginName: context.plugin.metadata?.name ?? "",
+          digest: context.digest,
+          suiteDir: context.suite.dir,
+        },
       });
       try {
         const created = await deps.tries().createRun(request, caller);
@@ -382,6 +393,16 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         };
       }
       const graders = cell.evalCase.graders;
+      const stopped = timedOut ? undefined : caseStopOf(run);
+      if (stopped !== undefined) {
+        return {
+          outcomes: graders.map(() => ({ notGraded: stoppedWhy(stopped) })),
+          stopped,
+          error: "",
+          costUsd: run.status?.streamingUsage?.estimatedCostUsd ?? 0,
+          durationSeconds: durationOf(run),
+        };
+      }
       if (!timedOut && stoppedAtItsShare(run, input.budgetUsd)) {
         return {
           outcomes: graders.map(() => ({ notGraded: TRY_SPENDING_SHARE_REASON })),
@@ -639,6 +660,25 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         };
       }
       const graders = cell.evalCase.graders;
+      const run = await loadRun(deps.store, started.runId);
+      if (grade.stopped !== undefined) {
+        const { stopped } = grade;
+        if (run !== undefined) {
+          await writeScore(deps, run, () =>
+            stoppedEvalScore(run, context.digest, graders, stoppedWhy(stopped)),
+          );
+        }
+        return {
+          ...base,
+          state: "graded",
+          score: 0,
+          notGradedReason: "",
+          outOfCredit: false,
+          ...(stopped.kind === "scaffold-failed"
+            ? { error: `scaffold failed: ${stopped.detail}` }
+            : { aborted: { server: stopped.server, tool: stopped.tool, reason: stopped.reason } }),
+        };
+      }
       const verdicts: GraderVerdict[] = graders.map((_, index) => {
         const outcome = grade.outcomes[index];
         if (outcome === undefined) {
@@ -653,7 +693,6 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         (verdict, index): verdict is { readonly notGraded: string } =>
           isNotGraded(verdict) && scoring[index]?.scored !== false,
       );
-      const run = await loadRun(deps.store, started.runId);
       if (failed !== undefined) {
         if (run !== undefined) {
           await writeScore(deps, run, () =>
@@ -947,20 +986,14 @@ async function writeScore(
   );
 }
 
-/**
- * The leading words of the error a run carries when its own cost cap
- * stopped it: the runner's stable prefix (runner/src/shared/cost-guard.ts
- * COST_LIMIT_ERROR_PREFIX), the one way a run tells that stop from the
- * platform's others, since its status names no termination reason.
- */
-const COST_LIMIT_ERROR_PREFIX = "Agent reached the cost limit";
-
 /** How far under the try's budget a capped run's estimated cost may stop and still be the budget's stop. */
 const SHARE_MARGIN_USD = 0.01;
 
 /**
- * Whether the try's own budget stopped the run: a cost-cap stop
- * (COST_LIMIT_ERROR_PREFIX) with the run's estimated cost within a cent of
+ * Whether the try's own budget stopped the run: a cost-cap stop (the try
+ * stop the runner writes and `@stigmer/eval-runtime` `parseTryStop` reads,
+ * the one way a run tells that stop from the platform's others, since its
+ * status names no termination reason) with the run's estimated cost within a cent of
  * `budgetUsd`, or, for a budget no larger than that cent (the floor), at
  * the budget itself. The run's cap is the tightest of its layers, so a
  * stop below the budget was a lower cap's (the agent's own, its
@@ -971,9 +1004,38 @@ function stoppedAtItsShare(run: Run, budgetUsd: number): boolean {
     budgetUsd > SHARE_MARGIN_USD ? budgetUsd - SHARE_MARGIN_USD : budgetUsd;
   return (
     run.status?.phase === RunPhase.RUN_TERMINATED &&
-    (run.status.error ?? "").startsWith(COST_LIMIT_ERROR_PREFIX) &&
+    parseTryStop(run.status.error ?? "")?.kind === "cost-limit" &&
     (run.status.streamingUsage?.estimatedCostUsd ?? 0) >= reached
   );
+}
+
+/**
+ * The stop a try's case made, when the run carries one: the scaffold failed
+ * before the engine started, or a mock stopped the run (the runner writes
+ * the sentence, `@stigmer/eval-runtime` `formatTryStop`). A cost-limit stop
+ * is the budget's, read by `stoppedAtItsShare`.
+ */
+function caseStopOf(run: Run): TryStopped | undefined {
+  const stop = parseTryStop(run.status?.error ?? "");
+  switch (stop?.kind) {
+    case "scaffold-failed":
+      return { kind: "scaffold-failed", detail: stop.detail };
+    case "mock-aborted":
+      return { kind: "mock-aborted", server: stop.server, tool: stop.tool, reason: stop.reason };
+    case "cost-limit":
+    case undefined:
+      return undefined;
+    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
+    default: {
+      const exhausted: never = stop;
+      return exhausted;
+    }
+  }
+}
+
+/** Why a stopped try's graders were not checked, as each criterion says it. */
+function stoppedWhy(stopped: TryStopped): string {
+  return stopped.kind === "scaffold-failed" ? "the scaffold failed" : `aborted by ${stopped.server}.${stopped.tool}`;
 }
 
 /** The run's own failure, in the format's words (the module header). */

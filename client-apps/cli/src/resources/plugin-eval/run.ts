@@ -276,6 +276,8 @@ async function startEval(
       concurrency: options.concurrency,
       allowTools: [...options.allowTools],
       realMcpServers: options.realMcpServers,
+      allowRealServers: options.allowRealServers,
+      skipScaffold: options.skipScaffold,
     });
   } catch (error) {
     return asStartRefusal(error);

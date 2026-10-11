@@ -13,7 +13,8 @@
  * (stigmer#1370), so the runner's straggler streaming cannot un-pause it.
  * And the agent a turn ran (status.agent_id, agent_version_hash) is the
  * create pipeline's stamp alone: no status write, the runner's or the
- * platform's, changes it.
+ * platform's, changes it. And the files a plugin-eval try's graders read
+ * (plugin_eval_files) are kept on a try's run only.
  * These exercise applyUpdateStatusMerge directly on a clone — mirroring
  * the freshly-loaded resource the merge mutates in place inside the
  * updateResource write lock.
@@ -415,6 +416,32 @@ describe("the presence-guarded runner-owned field pattern (recalled_memories_rep
       },
     );
     expect(merged.status?.recalledMemoriesReport).toBeUndefined();
+  });
+});
+
+describe("the files a plugin-eval try's graders read (plugin_eval_files)", () => {
+  const files = {
+    files: [{ path: "app.txt", content: { case: "text" as const, value: "version = 1\n" } }],
+  };
+
+  it("keeps the runner's files on a try's run, and across a write without them", () => {
+    const existing = existingWith(RunPhase.RUN_IN_PROGRESS, "m1");
+    existing.spec = create(RunSchema, {
+      spec: { pluginEvalCase: { pluginId: "plg_1", pluginDigest: "a".repeat(64), suiteDir: "evals", caseDir: "evals/fix" } },
+    }).spec;
+    const merged = runBuildStep(existing, { phase: RunPhase.RUN_COMPLETED, messages: [{ content: "m1" }], pluginEvalFiles: files });
+    expect(merged.status?.pluginEvalFiles?.files.map((f) => [f.path, f.content.value])).toEqual([["app.txt", "version = 1\n"]]);
+    const again = runBuildStep(merged, { phase: RunPhase.RUN_COMPLETED, messages: [{ content: "m1" }] });
+    expect(again.status?.pluginEvalFiles?.files).toHaveLength(1);
+  });
+
+  it("drops them on any other run", () => {
+    const merged = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS, "m1"), {
+      phase: RunPhase.RUN_COMPLETED,
+      messages: [{ content: "m1" }],
+      pluginEvalFiles: files,
+    });
+    expect(merged.status?.pluginEvalFiles).toBeUndefined();
   });
 });
 

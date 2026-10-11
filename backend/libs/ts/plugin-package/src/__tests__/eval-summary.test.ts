@@ -111,11 +111,11 @@ describe("summariseEvalSuite", () => {
     const suite = suiteOf({
       "evals/bad/prompt.md": "---\nruns: 0\n---\nHi.",
       "evals/bad/graders/judge.md": LLM_GRADER,
-      "evals/env/prompt.md": "---\nenv:\n  EVAL_X: one\n---\nHi.",
-      "evals/env/graders/judge.md": LLM_GRADER,
+      "evals/other/prompt.md": "---\nplugins: [/plugins/other]\n---\nHi.",
+      "evals/other/graders/judge.md": LLM_GRADER,
     });
     const summary = summariseEvalSuite(suite);
     expect(summary.findings).toEqual(suite.findings);
-    expect(summary.cases).toEqual([{ name: "env", dir: "evals/env", tags: [], unsupported: "env" }]);
+    expect(summary.cases).toEqual([{ name: "other", dir: "evals/other", tags: [], unsupported: "plugins" }]);
   });
 });

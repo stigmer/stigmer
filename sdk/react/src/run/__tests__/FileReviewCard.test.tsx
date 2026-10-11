@@ -834,6 +834,23 @@ describe("FileReviewCard", () => {
       expect(screen.getAllByText("Kept")).toHaveLength(2);
     });
 
+    it("labels a plugin eval's try keep as automatic too, naming the eval", () => {
+      const evalKeep = create(FileDecisionSchema, {
+        changeSetId: "aex-1:0",
+        scope: FileDecisionScope.CHANGE_SET,
+        action: FileDecisionAction.APPROVE,
+        origin: FileDecisionOrigin.POLICY_EVAL_TRY,
+      });
+      render(
+        <FileReviewCard
+          fileChangeSet={multiChangeSet({ decisions: [evalKeep] })}
+          interactive={false}
+        />,
+      );
+      expect(screen.getByText("Kept automatically — an eval's try keeps its edits")).toBeTruthy();
+      expect(screen.queryByText("2 kept")).toBeNull();
+    });
+
     it("a human whole-set approve keeps the plain verdict summary (origin USER)", () => {
       const humanKeep = create(FileDecisionSchema, {
         changeSetId: "aex-1:0",

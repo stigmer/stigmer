@@ -81,6 +81,11 @@ import { fetchTurnValues, RunValuesRefusedError, type RepositoryToken, type RunV
 import { provisionSessionWorkspace } from "../shared/workspace/session-provision.js";
 import { WriteBackCoordinator } from "../shared/workspace/writeback-coordinator.js";
 import { isGitWorkTree } from "../shared/filereview/git-substrate.js";
+import { type CaseArchive, fetchCaseArchive } from "../shared/plugin-eval/case-archive.js";
+import { prepareEvalCase, type PreparedEvalCase } from "../shared/plugin-eval/prepare-case.js";
+import { chatAgentMockModel } from "../shared/plugin-eval/agent-mock.js";
+import type { MockEndpoint } from "../shared/plugin-eval/mock-endpoint.js";
+import { formatTryStop } from "@stigmer/eval-runtime";
 import { applyCaptureDecisions, deriveCaptureMode } from "../shared/filereview/capture.js";
 import { casBlobReader } from "../shared/filereview/cas-substrate.js";
 import {
@@ -238,6 +243,9 @@ export interface TurnReinvocation {
  *    finished its turn during capture and the reconcile is the whole act.
  *    COMPLETED, returned, with the write-back finalized first when the
  *    reconcile held.
+ *  - `eval-scaffold-failed`: a plugin-eval try's scaffold exited non-zero or
+ *    ran past its limit. TERMINATED with the try stop's sentence, returned:
+ *    the eval scores the try 0, and a retry would run the same script.
  *
  * A REJECTed tool is not a settlement: the run continues without it
  * (`approval-decisions.ts`).
@@ -258,6 +266,11 @@ export type TurnSettlement =
   | {
       /** The run's values could not be fetched; `message` is the server's, naming the key, its declarer and the vault. */
       readonly kind: "values-refused";
+      readonly message: string;
+    }
+  | {
+      /** A plugin-eval try's scaffold failed; `message` is the try stop's sentence (`@stigmer/eval-runtime` `formatTryStop`). */
+      readonly kind: "eval-scaffold-failed";
       readonly message: string;
     };
 
@@ -595,6 +608,122 @@ export async function acquireWorkspaceTurnLock(
   return { kind: "acquired", release };
 }
 
+/** The eval phase's answer: nothing to do, the prepared case, or the settlement a failed scaffold produces. */
+export type EvalCaseOutcome =
+  | {
+      readonly kind: "ready";
+      /** Absent on every run that is not a plugin-eval try. */
+      readonly prepared:
+        | {
+            readonly case: PreparedEvalCase;
+            /** The workspace with its capture substrate re-derived after the scaffold. */
+            readonly workspace: TurnWorkspace;
+            /** The run's values with the case's `EVAL_*` variables over the agent's. */
+            readonly values: RunValues;
+            /** The plugin's archive at the eval's version, which the mocks answer from. */
+            readonly archive: CaseArchive;
+          }
+        | undefined;
+    }
+  | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "eval-scaffold-failed" }> };
+
+/**
+ * Phase 2d: a plugin-eval try's own setup (`shared/plugin-eval/
+ * prepare-case.ts`), after the workspace lock because the scaffold mutates
+ * the tree. The scaffold may make the workspace a git repository, so the
+ * capture substrate is derived again; the capture baseline is pinned after
+ * every phase (`run-turn.ts`), so what the scaffold made is baseline, never
+ * the try's change. The case's variables join the agent's run values, the
+ * one path to the native shell and the plugin's hooks.
+ */
+export async function prepareEvalCasePhase(
+  deps: ResolutionDeps,
+  args: {
+    readonly spec: RunSpec;
+    readonly sessionId: string;
+    readonly workspace: TurnWorkspace;
+    readonly values: RunValues;
+  },
+): Promise<EvalCaseOutcome> {
+  const context = args.spec.pluginEvalCase;
+  if (context === undefined) return { kind: "ready", prepared: undefined };
+  deps.enterPhase("prepare_eval_case");
+  await deps.reportProgress("Preparing the eval case");
+  const archive = await fetchCaseArchive(deps.client, context);
+  const outcome = await prepareEvalCase({ context, archive, sessionId: args.sessionId, primaryDir: args.workspace.primaryDir });
+  deps.timing.mark("prepare_eval_case");
+  if (outcome.kind === "scaffold-failed") {
+    return {
+      kind: "settled",
+      settlement: { kind: "eval-scaffold-failed", message: formatTryStop({ kind: "scaffold-failed", detail: outcome.detail }) },
+    };
+  }
+  const { primaryDir } = args.workspace;
+  const gitWorkspace = primaryDir ? await isGitWorkTree(primaryDir) : false;
+  return {
+    kind: "ready",
+    prepared: {
+      case: outcome.prepared,
+      workspace: { ...args.workspace, gitWorkspace, captureMode: deriveCaptureMode(primaryDir, gitWorkspace, !!deps.artifactStorage) },
+      values: { ...args.values, agent: { ...args.values.agent, ...outcome.prepared.env } },
+      archive,
+    },
+  };
+}
+
+/**
+ * Phase 4c: a plugin-eval try's MCP stand-ins (`shared/plugin-eval/
+ * mock-endpoint.ts`). Each replaces the plugin's own server of the same
+ * name in the turn's list, so the real one is never started; a stand-in
+ * the turn's lists exclude whole is left out like any server (#2106). The
+ * endpoint goes on the frame at once, so the turn's `finally` closes it
+ * whatever happens next. Loaded only for a try with mocks: the MCP SDK's
+ * HTTP server imports `node:http2`, which must stay out of the pre-boot
+ * module graph (`src/__tests__/harness-boot-order.test.ts`).
+ */
+export async function startEvalMocks(
+  deps: ResolutionDeps,
+  args: {
+    readonly spec: RunSpec;
+    readonly archive: CaseArchive;
+    readonly mcp: TurnMcp;
+    readonly frame: TurnFrame;
+  },
+): Promise<TurnMcp> {
+  const context = args.spec.pluginEvalCase;
+  if (context === undefined || context.mocks.length === 0) return args.mcp;
+  deps.enterPhase("start_eval_mocks");
+  const { startMockEndpoint } = await import("../shared/plugin-eval/mock-endpoint.js");
+  const endpoint = await startMockEndpoint({
+    context,
+    archive: args.archive,
+    agentModel: chatAgentMockModel({ modelName: context.agentMockModel, config: deps.config, executionId: deps.input.executionId }),
+  });
+  if (endpoint === undefined) return args.mcp;
+  args.frame.evalMocks = endpoint;
+  const standIns = callableServers(endpoint.servers, args.mcp.toolScope, args.mcp.platformServerSlugs);
+  const replaced = new Set(endpoint.servers.map((server) => server.slug));
+  const kept = new Set(standIns.map((server) => server.slug));
+  // An engine that does not read its tools' marks scopes a server's tools
+  // by the listing: a stand-in lists its mocked tools, none destructive.
+  const { listing } = args.mcp;
+  return {
+    ...args.mcp,
+    servers: [...args.mcp.servers.filter((server) => !replaced.has(server.slug)), ...standIns],
+    listing:
+      listing === undefined
+        ? undefined
+        : {
+            listed: [
+              ...listing.listed.filter(({ server }) => !replaced.has(server)),
+              ...endpoint.listed.filter(({ server }) => kept.has(server)),
+            ],
+            destructive: listing.destructive.filter(({ server }) => !replaced.has(server)),
+            unlisted: listing.unlisted.filter((server) => !replaced.has(server)),
+          },
+  };
+}
+
 /**
  * Set OTel baggage so downstream calls carry execution
  * context. Best-effort; tracing not initialized is a silent skip. Runs after
@@ -780,6 +909,23 @@ export async function resolveMcpServersAndPolicies(
   ).resolvedServers;
   deps.timing.mark("resolve_mcp_servers");
 
+  // The turn's tool scope (the agent's lists, then this turn's over them,
+  // which can only narrow), and the servers it leaves standing, before
+  // anything connects, the tool listing included: a server the lists
+  // exclude whole is never started or dialled, since no tool of it could be
+  // called (#2106). A plugin-eval try's mocked servers are left out too:
+  // their stand-ins take their names (`startEvalMocks`), and the real ones
+  // must never start. The platform's own servers, added below, are always
+  // kept.
+  const toolScope = mainToolScope(blueprint, execution.spec);
+  const standIns = new Set((execution.spec?.pluginEvalCase?.mocks ?? []).map((mock) => mock.segment));
+  const resolved = servers;
+  servers = callableServers(resolved, toolScope, new Set()).filter((server) => !standIns.has(server.slug));
+  if (servers.length < resolved.length) {
+    const left = resolved.filter((server) => !servers.includes(server)).map((server) => server.slug);
+    console.log(`[turn-context] execution=${executionId}: not connecting ${left.join(", ")}: excluded whole by the turn's tool lists, or answered by a stand-in`);
+  }
+
   // Phase 4a: the plugin servers' tools, listed now for an engine that does
   // not load them itself.
   let listing: McpToolListing | undefined;
@@ -861,14 +1007,26 @@ export async function resolveMcpServersAndPolicies(
     platformServerSlugs.add(memoryAttachment.slug);
   }
 
-  // Phase 4b: the approval default's MCP half, and the turn's tool scope:
-  // the agent's lists, then this turn's over them, which can only narrow.
+  // Phase 4b: the approval default's MCP half, over the servers the turn
+  // connects.
   const leases = deriveActiveLeases(execution);
   const mcpDefault = buildMcpApprovalDefault(listing ?? NOTHING_LISTED, leases);
-  const toolScope = mainToolScope(blueprint, execution.spec);
 
 
   return { servers, channelMessaging, leases, mcpDefault, listing, platformServerSlugs, toolScope };
+}
+
+/**
+ * The servers a turn connects: every one whose tools the scope can reach at
+ * all (`ToolScope.allowsMcpFamily`), and the platform's own. A server
+ * excluded tool by tool still connects, since its other tools may remain.
+ */
+export function callableServers(
+  servers: readonly ResolvedMcpServer[],
+  toolScope: ToolScope,
+  platformServerSlugs: ReadonlySet<string>,
+): readonly ResolvedMcpServer[] {
+  return servers.filter((server) => platformServerSlugs.has(server.slug) || toolScope.allowsMcpFamily(server.slug));
 }
 
 /**
@@ -1353,6 +1511,10 @@ export interface TurnFrame {
   releaseWorkspaceLock: ReleaseWorkspaceLock | undefined;
   /** Finalizes at exactly two seams: the pure file-review resume and terminal completion. `null` when nothing is eligible. */
   writeback: WriteBackCoordinator | null;
+  /** A plugin-eval try's mock endpoint, bound when the engine's turn starts and closed when the turn ends. */
+  evalMocks: MockEndpoint | undefined;
+  /** The files a plugin-eval try's graders read, returned on the run as the turn leaves them (`read-files.ts`); set once its case is prepared. */
+  evalReadFiles: readonly string[] | undefined;
 }
 
 /** What the composer answers: the whole record, or a settlement the caller writes and returns. */
@@ -1385,8 +1547,10 @@ export async function resolveTurnContext(
   if (unrunnable !== undefined) return { kind: "settled", settlement: unrunnable };
   const fetched = await fetchValues(deps);
   if (fetched.kind === "settled") return { kind: "settled", settlement: fetched.settlement };
-  const { values } = fetched;
-  const { workspace, writeback } = await provisionWorkspace(deps, { session, sessionId, repositories: values.repositories });
+  let { values } = fetched;
+  const provisioned = await provisionWorkspace(deps, { session, sessionId, repositories: values.repositories });
+  let { workspace } = provisioned;
+  const { writeback } = provisioned;
   frame.primaryDir = workspace.primaryDir;
   frame.writeback = writeback;
 
@@ -1396,6 +1560,15 @@ export async function resolveTurnContext(
 
   await bindTelemetryBaggage(deps, { session, sessionId });
 
+  const evalCase = await prepareEvalCasePhase(deps, { spec, sessionId, workspace, values });
+  if (evalCase.kind === "settled") return { kind: "settled", settlement: evalCase.settlement };
+  const prepared = evalCase.prepared;
+  if (prepared !== undefined) {
+    workspace = prepared.workspace;
+    values = prepared.values;
+    frame.evalReadFiles = spec.pluginEvalCase?.readFiles;
+  }
+
   const reinvoked = await reconcileReinvocation(deps, {
     stateIdSource: capabilities.stateIdSource,
     execution,
@@ -1404,7 +1577,7 @@ export async function resolveTurnContext(
   });
   if (reinvoked.kind === "settled") return { kind: "settled", settlement: reinvoked.settlement };
 
-  const mcp = await resolveMcpServersAndPolicies(deps, {
+  const resolvedMcp = await resolveMcpServersAndPolicies(deps, {
     execution,
     session,
     sessionId,
@@ -1412,6 +1585,8 @@ export async function resolveTurnContext(
     values,
     readsToolMarks: capabilities.readsToolMarks,
   });
+  const mcp =
+    prepared === undefined ? resolvedMcp : await startEvalMocks(deps, { spec, archive: prepared.archive, mcp: resolvedMcp, frame });
   const skills = await mountSkills(deps, {
     blueprint,
     sessionId,
@@ -1421,13 +1596,17 @@ export async function resolveTurnContext(
   });
   const hookResolution = await resolveHooks(deps, { blueprint, sessionId, servers: mcp.servers });
   if (hookResolution.kind === "settled") return hookResolution;
-  const attachments = await resolveTurnAttachments(deps, {
+  const resolvedAttachments = await resolveTurnAttachments(deps, {
     spec,
     runConfig: execution.status?.runConfig,
     sessionId,
     primaryDir: workspace.primaryDir,
     visionProfile: capabilities.visionProfile,
   });
+  const attachments: TurnAttachments =
+    prepared === undefined || prepared.case.referenceInputs.length === 0
+      ? resolvedAttachments
+      : { ...resolvedAttachments, results: [...resolvedAttachments.results, ...prepared.case.referenceInputs] };
   const appliedToolCallIds = await applyApprovedWrites(deps, {
     pausePrimitive: capabilities.pausePrimitive,
     workspace,
@@ -1463,6 +1642,7 @@ export async function resolveTurnContext(
       appendSystemPrompt: spec.appendSystemPrompt,
       standing: resolveStandingContext(deps, { execution, spec, blueprint }),
       artifactStorage: deps.artifactStorage,
+      ...(prepared?.case.history !== undefined && { resumedHistory: prepared.case.history }),
     },
   };
 }

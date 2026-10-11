@@ -1,0 +1,39 @@
+schema_version: "1.1"
+name: tool-lookup
+tags: [quality]
+context:
+  scaffold_script: "scaffold.sh"
+execution:
+  prompt: "What's the status of order ORD-4821, and when will it arrive?"
+  max_turns: 10
+  allowed_tools: ["Read", "Glob", "Grep", "Skill"]
+  append_system_prompt: "Be direct and concise. Act on requests rather than explaining steps. When you do not know something, say so.\n\nYour workspace is the orders-sync repository."
+graders:
+  - name: looked-it-up
+    type: "tool_used"
+    tool: "mcp__plugin_working-agent_orders-api__lookup_order"
+    input_match: "ORD-4821"
+    weight: 2
+  - name: asked-for-the-order
+    type: "regex"
+    pattern: "\"order_id\":\"ORD-4821\""
+    target: "mock_calls"
+    weight: 1
+  - name: status
+    type: "regex"
+    pattern: "shipped"
+    flags: "i"
+    weight: 2
+  - name: delivery
+    type: "regex"
+    pattern: "2026-09-29|September 29|Sep 29"
+    flags: "i"
+    weight: 2
+  - name: tracking
+    type: "regex"
+    pattern: "1Z999AA10123456784"
+    weight: 1
+  - name: invents-nothing
+    type: "llm"
+    weight: 2
+    criteria: "Reference facts: ORD-4821 is shipped, shipped on 2026-09-24 with UPS, tracking number 1Z999AA10123456784, estimated delivery 2026-09-29, one electric kettle, 1.7 L. PASS if every detail the answer states matches these and nothing is guessed. FAIL otherwise."

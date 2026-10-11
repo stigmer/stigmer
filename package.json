@@ -8,6 +8,7 @@
     "backend/libs/ts/plugin-package",
     "backend/libs/ts/outbound",
     "backend/libs/ts/tool-vocabulary",
+    "backend/libs/ts/eval-runtime",
     "sdk/typescript",
     "sdk/theme",
     "sdk/react",

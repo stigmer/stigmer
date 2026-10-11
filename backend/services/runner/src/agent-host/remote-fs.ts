@@ -105,6 +105,8 @@ export function remoteAgentFs(host: FsHost): AgentFs {
         args,
         cwd: options?.cwd ?? null,
         env: options?.env ?? {},
+        replaceEnv: options?.replaceEnv ?? false,
+        timeoutMs: options?.timeoutMs ?? null,
         maxBuffer: options?.maxBuffer ?? DEFAULT_EXEC_MAX_BUFFER,
         input: options?.input === undefined ? null : Buffer.from(options.input).toString("base64"),
       });

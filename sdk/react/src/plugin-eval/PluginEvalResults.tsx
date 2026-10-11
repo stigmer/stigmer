@@ -398,6 +398,16 @@ function TryList({
           ))}
         </ul>
       )}
+      {row.mocked.length > 0 && (
+        <ul
+          className={cn(UNSTYLED_LIST, "stg:font-mono stg:text-muted-foreground")}
+          aria-label={`MCP servers of ${row.name}`}
+        >
+          {row.mocked.map((server) => (
+            <li key={server}>{server}</li>
+          ))}
+        </ul>
+      )}
       {row.cells.map((cell) => (
         <div key={cell.target} className="stg:flex stg:flex-col stg:gap-0.5">
           <span className="stg:font-mono stg:text-muted-foreground">

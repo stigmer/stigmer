@@ -12,12 +12,19 @@
  *     matches `case_glob`, as Claude Code's `--case`, and it carries any of
  *     `case_tags`, as `--tag`; an empty filter keeps every case;
  *   - a case that needs a feature Stigmer does not run yet is planned with
- *     `not run: <feature>` and no cells, never run degraded;
+ *     `not run: <feature>` and no cells, never run degraded; so is a case
+ *     with a scaffold script when the eval skips scaffolds (`not run:
+ *     scaffold skipped`, Claude Code's `--no-scaffold`);
  *   - the targets are the spec's; with none, the case's own `model` on the
  *     native harness when the catalog knows it there, else the native
  *     harness's default. A `model` the catalog does not know is that
  *     target's `not run: model '<name>' is not in Stigmer's catalog`: no
  *     alias is guessed, since "sonnet" names nothing Stigmer runs;
+ *   - a target on an engine that cannot run one of the case's features is
+ *     that target's `not run on <engine>: <feature>`, and the case runs on
+ *     the others: the Cursor engine resumes no recorded conversation and
+ *     passes no `env` (`@stigmer/plugin-package`
+ *     `evalCaseUnsupportedOnCursor`);
  *   - tries per arm are the spec's `runs`, else the case's, else 3;
  *   - ablation `none` plans the with-arm only.
  *
@@ -28,7 +35,7 @@
  *
  * Proven by __tests__/matrix.test.ts.
  */
-import type { EvalCase, EvalSuite } from "@stigmer/plugin-package";
+import { evalCaseUnsupportedOnCursor, type EvalCase, type EvalSuite } from "@stigmer/plugin-package";
 import type { PluginEvalSpec } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -104,6 +111,14 @@ export function unsupportedFeatureReason(feature: string): string {
   return `not run: ${feature}`;
 }
 
+/** The not-run copy for a case with a scaffold in an eval that skips scaffolds. */
+export const SCAFFOLD_SKIPPED_REASON = "not run: scaffold skipped";
+
+/** The not-run copy for a target whose engine cannot run one of the case's features. */
+export function engineUnsupportedReason(engine: string, feature: string): string {
+  return `not run on ${engine}: ${feature}`;
+}
+
 /** How large the matrix is, counted without building its cells. */
 export interface EvalMatrixSize {
   cases: number;
@@ -164,6 +179,10 @@ function walkMatrix(
       });
       continue;
     }
+    if (spec.skipScaffold && evalCase.context.scaffoldScript !== undefined) {
+      cases.push({ evalCase, notRunReason: SCAFFOLD_SKIPPED_REASON, targets: [] });
+      continue;
+    }
     const targets = targetsOf(evalCase, spec, catalog, runs);
     cases.push({ evalCase, targets });
     targets.forEach((planned, targetIndex) => {
@@ -185,6 +204,21 @@ function walkMatrix(
 }
 
 function targetsOf(
+  evalCase: EvalCase,
+  spec: PluginEvalSpec,
+  catalog: EvalModelCatalog,
+  runs: number,
+): PlannedTarget[] {
+  return candidateTargets(evalCase, spec, catalog, runs).map((planned) => {
+    if (planned.notRunReason !== undefined || planned.target.harness !== Harness.CURSOR) {
+      return planned;
+    }
+    const feature = evalCaseUnsupportedOnCursor(evalCase);
+    return feature === undefined ? planned : { ...planned, notRunReason: engineUnsupportedReason("Cursor", feature) };
+  });
+}
+
+function candidateTargets(
   evalCase: EvalCase,
   spec: PluginEvalSpec,
   catalog: EvalModelCatalog,

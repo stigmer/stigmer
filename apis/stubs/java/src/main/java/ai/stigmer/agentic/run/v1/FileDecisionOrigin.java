@@ -49,6 +49,16 @@ public enum FileDecisionOrigin
    * <code>FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND = 2;</code>
    */
   FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND(2),
+  /**
+   * <pre>
+   * Platform policy kept the set because its run is a plugin eval's try: a
+   * try's edits apply as they do in Claude Code's evals, and nobody reviews
+   * a try. The decision's actor is "policy".
+   * </pre>
+   *
+   * <code>FILE_DECISION_ORIGIN_POLICY_EVAL_TRY = 3;</code>
+   */
+  FILE_DECISION_ORIGIN_POLICY_EVAL_TRY(3),
   UNRECOGNIZED(-1),
   ;
 
@@ -90,6 +100,16 @@ public enum FileDecisionOrigin
    * <code>FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND = 2;</code>
    */
   public static final int FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND_VALUE = 2;
+  /**
+   * <pre>
+   * Platform policy kept the set because its run is a plugin eval's try: a
+   * try's edits apply as they do in Claude Code's evals, and nobody reviews
+   * a try. The decision's actor is "policy".
+   * </pre>
+   *
+   * <code>FILE_DECISION_ORIGIN_POLICY_EVAL_TRY = 3;</code>
+   */
+  public static final int FILE_DECISION_ORIGIN_POLICY_EVAL_TRY_VALUE = 3;
 
 
   public final int getNumber() {
@@ -119,6 +139,7 @@ public enum FileDecisionOrigin
       case 0: return FILE_DECISION_ORIGIN_UNSPECIFIED;
       case 1: return FILE_DECISION_ORIGIN_USER;
       case 2: return FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND;
+      case 3: return FILE_DECISION_ORIGIN_POLICY_EVAL_TRY;
       default: return null;
     }
   }

@@ -129,7 +129,7 @@ export { PluginEvalClient } from "./plugineval.js";
 export { type PluginEvalInput, type PluginEvalTargetInput } from "./plugineval.js";
 export { ProviderKeyClient } from "./providerkey.js";
 export { RunClient } from "./run.js";
-export { type RunInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type AttachmentInput, type ConversationCatchupInput } from "./run.js";
+export { type RunInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type AttachmentInput, type ConversationCatchupInput, type PluginEvalCaseContextInput, type PluginEvalMockServerInput, type PluginEvalMockToolInput } from "./run.js";
 export { ScheduleClient } from "./schedule.js";
 export { type ScheduleInput, type AgentInvocationInput } from "./schedule.js";
 export { ScoreClient } from "./score.js";

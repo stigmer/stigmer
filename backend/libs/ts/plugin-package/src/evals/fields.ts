@@ -70,7 +70,7 @@ export interface FieldScope {
   readonly path: string;
   /** Prepended to each field name in a sentence, e.g. "execution." or "grader 'x': ". */
   readonly label: string;
-  readonly invalid: Extract<EvalFindingKind, "eval-case-invalid" | "eval-grader-invalid">;
+  readonly invalid: Extract<EvalFindingKind, "eval-case-invalid" | "eval-grader-invalid" | "eval-mock-invalid">;
   readonly findings: CaseFindings;
 }
 

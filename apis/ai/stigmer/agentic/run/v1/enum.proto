@@ -1127,6 +1127,11 @@ enum FileDecisionOrigin {
   // against server-authored approval records before authoring. The
   // decision's actor is "policy", never the user.
   FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND = 2;
+
+  // Platform policy kept the set because its run is a plugin eval's try: a
+  // try's edits apply as they do in Claude Code's evals, and nobody reviews
+  // a try. The decision's actor is "policy".
+  FILE_DECISION_ORIGIN_POLICY_EVAL_TRY = 3;
 }
 
 // FileReviewEventType is the kind of event in the append-only file-review

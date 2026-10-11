@@ -27,6 +27,7 @@
  *
  * Proven by __tests__/graders.test.ts.
  */
+import { renderTranscript } from "@stigmer/eval-runtime";
 import type { JsonObject } from "@bufbuild/protobuf";
 
 import type {
@@ -139,59 +140,7 @@ export function referenceTranscript(
     return { notGraded: `the baseline file '${path}' is not in the plugin` };
   }
   const raw = new TextDecoder().decode(files.read(path));
-  const rendered = raw
-    .split("\n")
-    .filter((line) => line.trim() !== "")
-    .map(renderTranscriptLine)
-    .join("\n");
-  return { text: cut(rendered, REFERENCE_MAX_LENGTH) };
-}
-
-/** One `.jsonl` line as "role: text", with tool use and results named. */
-function renderTranscriptLine(line: string): string {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(line);
-  } catch {
-    return line;
-  }
-  if (!isRecord(parsed)) {
-    return line;
-  }
-  const message = isRecord(parsed["message"]) ? parsed["message"] : parsed;
-  const role =
-    typeof message["role"] === "string"
-      ? message["role"]
-      : typeof parsed["type"] === "string"
-        ? parsed["type"]
-        : "entry";
-  const content = message["content"];
-  if (typeof content === "string") {
-    return `${role}: ${content}`;
-  }
-  if (!Array.isArray(content)) {
-    return `${role}: ${JSON.stringify(message)}`;
-  }
-  const parts = content.map((block: unknown): string => {
-    if (!isRecord(block)) {
-      return JSON.stringify(block);
-    }
-    switch (block["type"]) {
-      case "text":
-        return typeof block["text"] === "string" ? block["text"] : "";
-      case "tool_use":
-        return `[called ${String(block["name"])} ${JSON.stringify(block["input"] ?? {})}]`;
-      case "tool_result":
-        return `[tool result: ${typeof block["content"] === "string" ? block["content"] : JSON.stringify(block["content"])}]`;
-      default:
-        return JSON.stringify(block);
-    }
-  });
-  return `${role}: ${parts.join(" ")}`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return { text: cut(renderTranscript(raw), REFERENCE_MAX_LENGTH) };
 }
 
 /** The vote's verdict shape: one rubric, passed or failed, with a reason. */

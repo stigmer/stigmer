@@ -15,10 +15,11 @@
 // - Two provisionings of the working agent send the model byte-identical
 //   system prompts and tool surfaces: the instrument's own claim that its
 //   fixed names keep the provider's prompt cache as warm as a user's.
-// - A composed subject graded by the judge run, with a scripted
-//   verdict read back off the run's structured output with its criteria and
-//   their weighted score, and a verdict missing a criterion refused as a
-//   judge failure.
+// - The quality arm: the working agent's plugin pushed, one of its eval
+//   cases run by the platform's plugin evals on the scripted model (its
+//   order lookup answered by the suite's own mock), the eval's result
+//   document kept as the report's `quality`, and the operator's table read
+//   from it. Gated as well on the runner creating the try's run.
 // Domain: conformance harness (the benchmark instrument's wiring).
 //
 // Why a smoke and not a facet: nothing here is a contract of the platform; it
@@ -43,12 +44,10 @@ import { join } from "node:path";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { JUDGE_MODEL } from "../benchmark/cells";
-import { judge } from "../benchmark/quality";
-import type { QualityTask } from "../benchmark/quality-tasks";
+import { JUDGE_MODEL, PARITY_MODEL } from "../benchmark/cells";
+import { renderQuality, runQualityEval } from "../benchmark/quality-eval";
 import { measureSession, type SessionStack } from "../benchmark/session";
-import { composeSubject } from "../benchmark/subject";
-import { changedFiles, readWorkspaceFile } from "../benchmark/workspace-facts";
+import { changedFiles } from "../benchmark/workspace-facts";
 import { statusFacts, visibleRows } from "../benchmark/status-facts";
 import { subscribeTo, watchExecution } from "../benchmark/stream-watch";
 import { executeActivityNameFor, historyAxes, invokeWorkflowIdFor, showWorkflow } from "../benchmark/temporal-history";
@@ -68,6 +67,7 @@ import {
   provisionWorkingAgent,
   seedWorkingWorkspace,
   WORKING_AGENT_FIXTURE_DIR,
+  WORKING_AGENT_WORKSPACE_FIXTURE_DIR,
   WORKING_AGENT_MCP_TOOLS,
   WORKING_AGENT_WORKSPACE_NAME,
   workingAgentSessionSpec,
@@ -154,6 +154,36 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
     expect(before.ensure_thread_ms, "the history shows the EnsureThread hop completing").not.toBeNull();
   });
 
+  it.skipIf(!probe.capabilities.runnerActsAsRunCreator)(
+    "the quality arm runs the working agent's plugin eval and keeps its result document",
+    async () => {
+      // One case of the suite, one try, on the scripted model: the order
+      // lookup answered by the suite's own mock, then the answer, then the
+      // llm grader's three votes.
+      mock.enqueue(anthropicToolUse("call_lookup", "lookup_order", { order_id: "ORD-4821" }));
+      mock.enqueue(
+        anthropicText("ORD-4821 is shipped: UPS, tracking 1Z999AA10123456784, shipped 2026-09-24, arriving 2026-09-29."),
+      );
+      const vote = anthropicText(JSON.stringify({ "invents-nothing": { result: "passed", reason: "Every detail matches." } }));
+      for (let i = 0; i < 3; i++) mock.enqueue(vote);
+
+      const quality = await runQualityEval(
+        clients,
+        [{ id: "quality/deep-agent", harness: "deep-agent", modelRequested: PARITY_MODEL["deep-agent"] }],
+        { runs: 1, judgeModel: JUDGE_MODEL, concurrency: 1, caseGlob: "tool-lookup", timeoutMs: 240_000 },
+        { log: () => undefined },
+      );
+      expect(quality.failure, JSON.stringify(quality.failure)).toBeUndefined();
+      expect(quality.eval_id).toMatch(/^pev_/);
+      expect(quality.plugin).toBe("working-agent");
+      const document = quality.document as { schemaVersion: number; cases: { name: string; aggregates: { score: number | null } }[] };
+      expect(document.schemaVersion).toBe(1);
+      expect(document.cases.map((c) => [c.name, c.aggregates.score])).toEqual([["tool-lookup", 1]]);
+      expect(renderQuality(quality)).toContain(`| tool-lookup | native/${PARITY_MODEL["deep-agent"]} | 1.00 | yes |`);
+    },
+    300_000,
+  );
+
   describe.skipIf(!hasWorkingAgent)("the working agent", () => {
     let base: string;
     let workspaceDir: string;
@@ -218,7 +248,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
       expect(sample.timing.turn_first_event).toBeNull();
 
       expect(await readFile(join(workspaceDir, "NOTES.md"), "utf8"), "the approved write is on disk").toBe("ORD-4821 shipped\n");
-      expect(await changedFiles(join(WORKING_AGENT_FIXTURE_DIR, "workspace"), workspaceDir)).toEqual([
+      expect(await changedFiles(WORKING_AGENT_WORKSPACE_FIXTURE_DIR, workspaceDir)).toEqual([
         { path: "NOTES.md", change: "added" },
       ]);
     });
@@ -248,52 +278,6 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
       const second = await firstTurn();
       expect(renderSystemPrompt(second), "a fresh org, the same fixed names: the same system prompt").toBe(renderSystemPrompt(first));
       expect(renderToolSurface(second), "and the same tool surface").toBe(renderToolSurface(first));
-    });
-
-    it("the judge grades a composed subject by its criteria, and refuses a verdict missing one", async () => {
-      const { org } = await target.provisionTenancy();
-      await seedWorkingWorkspace(workspaceDir);
-      const task: QualityTask = {
-        id: "smoke-task",
-        placeholder: false,
-        turns: ["Explain ParseMinutes."],
-        files: ["duration/duration.go"],
-        checks: [],
-        rubric: "Grade the explanation of ParseMinutes against the file.",
-        criteria: [
-          { name: "accurate", description: "The explanation matches the code.", weight: 3 },
-          { name: "concise", description: "It is short.", weight: 1 },
-        ],
-      };
-      const subject = composeSubject({
-        turns: [{ prompt: task.turns[0]!, reply: "It sums hours and minutes.", outcome: "completed" }],
-        filesChanged: await changedFiles(join(WORKING_AGENT_FIXTURE_DIR, "workspace"), workspaceDir),
-        namedFiles: [{ path: "duration/duration.go", content: await readWorkspaceFile(workspaceDir, "duration/duration.go") }],
-        checks: [],
-      });
-
-      mock.enqueue(
-        anthropicText(
-          JSON.stringify({
-            accurate: { score: 1, reasoning: "Matches the code." },
-            concise: { score: 0.5, reasoning: "A little long." },
-          }),
-        ),
-      );
-      const graded = await judge(clients, fixtures, { org, task, subject, judgeModel: JUDGE_MODEL, timeoutMs: 120_000 });
-      expect(graded.outcome, JSON.stringify(graded.failure)).toBe("completed");
-      expect(graded.score, "the benchmark weighted the two criteria").toBeCloseTo(0.875, 5);
-      expect(graded.criteria.map((criterion) => [criterion.name, criterion.weight, criterion.score])).toEqual([
-        ["accurate", 3, 1],
-        ["concise", 1, 0.5],
-      ]);
-      expect(graded.judge_model, "the judge run reported the model it ran under").not.toBe("");
-      expect(graded.judge_run_id, "the grade names the judge run it came from").toMatch(/^run_/);
-
-      mock.enqueue(anthropicText(JSON.stringify({ accurate: { score: 1, reasoning: "Matches the code." } })));
-      const refused = await judge(clients, fixtures, { org, task, subject, judgeModel: JUDGE_MODEL, timeoutMs: 120_000 });
-      expect(refused.score, "a skipped criterion is never read as a grade").toBeNull();
-      expect(refused.failure?.stage).toBe("judge");
     });
   });
 });

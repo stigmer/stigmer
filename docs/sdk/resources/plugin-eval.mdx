@@ -185,30 +185,34 @@ const pluginEval = await stigmer.plugineval.create({
   allowTools: [],
   realMcpServers: false,
   vaults: [],
+  skipScaffold: false,
+  allowRealServers: false,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 pluginEval, err := client.PluginEval.Create(ctx, &stigmer.PluginEvalInput{
-  Name:           "my-plugin-eval",
-  Org:            "acme",
-  Slug:           "...",
-  Labels:         map[string]string{},
-  PluginId:       "...",
-  PluginDigest:   "...",
-  Targets:        []stigmer.PluginEvalTargetInput{},
-  Runs:           0,
-  Ablation:       "...",
-  Threshold:      0, // zero is unset: not sent, so the server's default applies
-  CaseGlob:       "...",
-  CaseTags:       []string{},
-  JudgeModel:     "...",
-  MaxCostUsd:     0,
-  Concurrency:    0,
-  AllowTools:     []string{},
-  RealMcpServers: false,
-  Vaults:         []stigmer.ResourceRef{},
+  Name:             "my-plugin-eval",
+  Org:              "acme",
+  Slug:             "...",
+  Labels:           map[string]string{},
+  PluginId:         "...",
+  PluginDigest:     "...",
+  Targets:          []stigmer.PluginEvalTargetInput{},
+  Runs:             0,
+  Ablation:         "...",
+  Threshold:        0, // zero is unset: not sent, so the server's default applies
+  CaseGlob:         "...",
+  CaseTags:         []string{},
+  JudgeModel:       "...",
+  MaxCostUsd:       0,
+  Concurrency:      0,
+  AllowTools:       []string{},
+  RealMcpServers:   false,
+  Vaults:           []stigmer.ResourceRef{},
+  SkipScaffold:     false,
+  AllowRealServers: false,
 })
 ```
 </Tab>
@@ -233,6 +237,8 @@ plugin_eval = client.pluginevals.create(PluginEvalInput(
     allow_tools=[],
     real_mcp_servers=False,
     vaults=[],
+    skip_scaffold=False,
+    allow_real_servers=False,
 ))
 ```
 </Tab>
@@ -257,6 +263,8 @@ PluginEval pluginEval = client.pluginevals().create(PluginEvalInput.builder()
     .allowTools(List.of())
     .realMcpServers(false)
     .vaults(List.of())
+    .skipScaffold(false)
+    .allowRealServers(false)
     .build());
 ```
 </Tab>
@@ -366,6 +374,8 @@ Input for creating or updating a Plugin Eval.
     allowTools: { type: "string[]", description: "Tools every try may use beyond each case's own list, in Claude Code's names, as Claude Code's --allow-tools." },
     realMcpServers: { type: "boolean", description: "Runs the plugin's MCP servers for real, with the organization's connections." },
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets the tries use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
+    skipScaffold: { type: "boolean", description: "Skips each case's scaffold script, as Claude Code's --no-scaffold; a case that has one is then listed as not run." },
+    allowRealServers: { type: "boolean", description: "Starts the plugin's real MCP servers for the servers no mock answers, as Claude Code's --allow-real-servers; mocked tools still answer from their files." },
   }}
 />
 
@@ -450,6 +460,18 @@ PluginEvalStatus holds an eval's progress and results: per case, per target and 
   }}
 />
 
+### PluginEvalAbort
+
+PluginEvalAbort says which mock stopped a try, and why.
+
+<TypeTable
+  type={{
+    server: { type: "string", description: "The mocked server's key in the plugin's MCP configuration." },
+    tool: { type: "string", description: "The tool whose call was stopped." },
+    reason: { type: "string", description: "Why, as in \"input.priority must be one of low, medium, high\"." },
+  }}
+/>
+
 ### PluginEvalAggregates
 
 PluginEvalAggregates are the suite's totals, in Claude Code's names.
@@ -486,9 +508,10 @@ PluginEvalCase is one case of the suite and its results.
     caseName: { type: "string", description: "The case's name, from its case.yaml or its directory." },
     path: { type: "string", description: "The case's directory, relative to the plugin's root, as in \"evals/review-fires\"." },
     caseTags: { type: "string[]", description: "The case's tags." },
-    notRunReason: { type: "string", description: "Why the case is not run, naming the feature Stigmer does not run yet, as in \"not run: context.scaffold_script\"; empty when the case runs." },
+    notRunReason: { type: "string", description: "Why the case is not run, as in \"not run: plugins\" for a feature Stigmer does not run yet, or \"not run: scaffold skipped\"; empty when the case runs." },
     targets: { type: "PluginEvalCaseTarget[]", description: "Results per target, in the eval's target order.", typeDescriptionLink: "#pluginevalcasetarget" },
     notes: { type: "string[]", description: "Notes about how the case was run, as in \"max_turns 4 raised to the run's minimum of 10 tool rounds\"." },
+    mockedServers: { type: "PluginEvalMockedServer[]", description: "The plugin's MCP servers the case answers with mocks, and those it leaves unstarted, as Claude Code's mocked: line.", typeDescriptionLink: "#pluginevalmockedserver" },
   }}
 />
 
@@ -499,12 +522,24 @@ PluginEvalCaseTarget is one case's results on one target.
 <TypeTable
   type={{
     target: { type: "PluginEvalTarget", description: "The engine and model.", typeDescriptionLink: "#pluginevaltarget" },
-    notRunReason: { type: "string", description: "Why this case did not run on this target, as in \"not run: model 'sonnet' is not in Stigmer's catalog\"; empty when it ran." },
+    notRunReason: { type: "string", description: "Why this case did not run on this target, as in \"not run: model 'sonnet' is not in Stigmer's catalog\" or \"not run on Cursor: resumed conversations\"; empty when it ran." },
     withPlugin: { type: "PluginEvalArm", description: "The tries with the plugin.", typeDescriptionLink: "#pluginevalarm" },
     withoutPlugin: { type: "PluginEvalArm", description: "The tries without the plugin; unset when the eval makes no comparison.", typeDescriptionLink: "#pluginevalarm" },
     delta: { type: "number", description: "The with-plugin score minus the without-plugin score; unset when either is missing." },
     passed: { type: "boolean", description: "Whether the with-plugin score reached the threshold." },
     passK: { type: "boolean", description: "Whether every with-plugin try scored 1 (pass^k, k being the tries)." },
+  }}
+/>
+
+### PluginEvalMockedServer
+
+PluginEvalMockedServer is one plugin MCP server as a case's tries see it.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "The server's name in the run, as in \"plugin_tracker_issues\"." },
+    tools: { type: "string[]", description: "The tools its mocks answer." },
+    notStartedReason: { type: "string", description: "Why the server is not started, as in \"not started: no mock\"; empty when its mocks answer." },
   }}
 />
 
@@ -534,6 +569,7 @@ PluginEvalTry is one try: one run in a fresh conversation.
     error: { type: "string", description: "The run's own failure, when it had one, as in \"timed out after 300s\"." },
     costUsd: { type: "number", description: "The try's estimated model cost, AI-graded checks included, in US dollars." },
     durationSeconds: { type: "number", description: "How long the try ran, in seconds." },
+    aborted: { type: "PluginEvalAbort", description: "Set when a mock stopped the try: its input guard was violated, its agent ended the run, or the agent mocks' call budget ran out.", typeDescriptionLink: "#pluginevalabort" },
   }}
 />
 

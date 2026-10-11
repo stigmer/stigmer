@@ -13,9 +13,11 @@
  * implementation below runs the same operations here.
  *
  * Whatever an operation returns is data the agent wrote, and the runtime
- * treats it as such. `execFile` takes extra environment variables only: the
- * process runs with the environment of the process that performs it, which
- * in the runner's case is the host's, never the runner's own.
+ * treats it as such. `execFile` adds variables to the environment of the
+ * process that performs it, which in the runner's case is the host's, never
+ * the runner's own; with `replaceEnv` the given variables are the whole
+ * environment instead, for a script that must see nothing else (a plugin
+ * eval's scaffold).
  */
 
 import { execFile as execFileCallback } from "node:child_process";
@@ -52,8 +54,12 @@ export interface AgentCpOptions {
 
 export interface AgentExecOptions {
   readonly cwd?: string;
-  /** Added to the environment of the process that performs the operation. */
+  /** Added to the environment of the process that performs the operation, or, with `replaceEnv`, the whole of it. */
   readonly env?: Readonly<Record<string, string>>;
+  /** `env` is the process's whole environment; nothing of the performing process's own reaches it. */
+  readonly replaceEnv?: boolean;
+  /** Kill the process (SIGKILL) once it has run this long; it then fails with `signal` set. */
+  readonly timeoutMs?: number;
   readonly maxBuffer?: number;
   /** Bytes for the process's standard input. */
   readonly input?: Uint8Array;
@@ -239,8 +245,9 @@ function execLocally(file: string, args: readonly string[], options: AgentExecOp
       [...args],
       {
         cwd: options.cwd,
-        env: options.env === undefined ? process.env : { ...process.env, ...options.env },
+        env: options.replaceEnv === true ? { ...options.env } : options.env === undefined ? process.env : { ...process.env, ...options.env },
         maxBuffer: options.maxBuffer ?? DEFAULT_EXEC_MAX_BUFFER,
+        ...(options.timeoutMs !== undefined && { timeout: options.timeoutMs, killSignal: "SIGKILL" as const }),
         encoding: "buffer",
       },
       (err, stdout, stderr) => {

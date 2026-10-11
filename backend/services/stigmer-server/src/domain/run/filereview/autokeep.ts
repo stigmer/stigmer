@@ -247,3 +247,60 @@ function findToolCall(
   }
   return undefined;
 }
+
+/** The audit-trail text on a plugin-eval try's policy decision. */
+const EVAL_TRY_KEEP_REASON =
+  "Kept automatically: a plugin eval's try keeps its edits, as Claude Code's evals do; nobody reviews a try";
+
+/**
+ * The plugin-eval try keep: a run that is an eval's try (the reserved
+ * `stigmer.ai/plugin-eval` label, which only the server can set) keeps every
+ * undecided AWAITING_REVIEW change set, binary changes included, in the same
+ * write that folded it, so the try's run never waits for a review nobody
+ * gives. Its change sets stay on record: the eval's file graders read them.
+ * A set that cannot be approved whole (an unreviewable capture) is left to
+ * the try's timeout, logged. Returns how many sets were kept.
+ *
+ * Idempotent and first-append-wins, as the approved-command keep is.
+ */
+export function autoKeepPluginEvalTrySets(
+  status: RunStatus,
+  executionId: string,
+  isEvalTry: boolean,
+  logger: Logger,
+): number {
+  const stream = status.fileReviewEventStream;
+  if (!isEvalTry || stream === undefined || stream.events.length === 0) {
+    return 0;
+  }
+  let kept = 0;
+  for (const cs of projectFileChangeSets(status.phase, stream)) {
+    if (cs.status !== FileChangeSetStatus.AWAITING_REVIEW || cs.decisions.length > 0) {
+      continue;
+    }
+    const blockedReason = approveBlockedReason(cs, FileDecisionScope.CHANGE_SET, "", true);
+    if (blockedReason !== "") {
+      logger.warn("Eval try keep skipped: set cannot be approved whole", {
+        executionId,
+        changeSetId: cs.id,
+        blockedReason,
+      });
+      continue;
+    }
+    const decision = create(FileDecisionSchema, {
+      changeSetId: cs.id,
+      scope: FileDecisionScope.CHANGE_SET,
+      action: FileDecisionAction.APPROVE,
+      expectedDigest: cs.aggregateDigest,
+      decidedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+      reason: EVAL_TRY_KEEP_REASON,
+      origin: FileDecisionOrigin.POLICY_EVAL_TRY,
+      acknowledgeUnreviewable: true,
+    });
+    decision.id = `${cs.id}:${decisionScopeId(decision)}`;
+    recordFileDecisionEventWithActor(status, executionId, decision, ACTOR_POLICY);
+    kept++;
+  }
+  return kept;
+}
+
