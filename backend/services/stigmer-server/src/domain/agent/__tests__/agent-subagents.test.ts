@@ -468,7 +468,8 @@ describe("the writer clause on subagents", () => {
     flaky = await command.create(agentInput(uniqueName("flaky")));
   });
 
-  function parentListing(...listed: Agent[]): Agent {
+  /** A parent listing `listed`; `pinned` gives each reference a version (a stored row always carries its pins). */
+  function parentListing(listed: readonly Agent[], pinned: ReadonlyMap<Agent, string> = new Map()): Agent {
     return create(AgentSchema, {
       apiVersion: API_VERSION,
       kind: "Agent",
@@ -479,15 +480,25 @@ describe("the writer clause on subagents", () => {
           kind: ApiResourceKind.agent,
           org: ORG_ID,
           slug: agent.metadata!.slug,
+          version: pinned.get(agent) ?? "",
         })),
       },
     });
   }
 
+  /** Each agent pinned at its head, as the save step leaves a stored row. */
+  function atHeads(...agents: Agent[]): ReadonlyMap<Agent, string> {
+    return new Map(agents.map((agent) => [agent, agent.status!.versionHash]));
+  }
+
   async function write(opts: {
     readonly writer: string;
     readonly lists: readonly Agent[];
+    /** The versions the write names, by agent; none names no version. */
+    readonly versions?: ReadonlyMap<Agent, string>;
     readonly stored?: readonly Agent[];
+    /** The stored row's pins; every stored agent at its head when absent. */
+    readonly storedPins?: ReadonlyMap<Agent, string>;
     readonly callerClass?: string;
     readonly checks?: string[];
   }): Promise<unknown> {
@@ -498,12 +509,12 @@ describe("the writer clause on subagents", () => {
     });
     const ctx = new RequestContext(
       AgentSchema,
-      parentListing(...opts.lists),
+      parentListing(opts.lists, opts.versions),
       testCallerIdentity({ identityId: opts.writer, callerClass: opts.callerClass ?? "user" }),
       ApiResourceKind.agent,
     );
     if (opts.stored !== undefined) {
-      ctx.set(EXISTING_RESOURCE_KEY, parentListing(...opts.stored));
+      ctx.set(EXISTING_RESOURCE_KEY, parentListing(opts.stored, opts.storedPins ?? atHeads(...opts.stored)));
     }
     try {
       await newValidateReferencesStep<typeof AgentSchema>(server.store, authorizer).execute(ctx);
@@ -545,6 +556,48 @@ describe("the writer clause on subagents", () => {
     expect((error as ConnectError).code).toBe(Code.PermissionDenied);
   });
 
+  it("judges a kept reference whose pin the write moves: choosing another version of an agent one may not run is refused", async () => {
+    const older = anas.status!.versionHash;
+    const newer = await command.update(instructed(anas, "Ana's agent, revised."));
+    anas = newer;
+    try {
+      // Kept at the head it is pinned to: the write moves nothing, and asks nothing.
+      const checks: string[] = [];
+      expect(await write({ writer: "acc_ben", lists: [anas], stored: [anas], checks })).toBeUndefined();
+      expect(checks).toEqual([]);
+      // Moved back to the older version by someone who may not run it.
+      const moved = await write({
+        writer: "acc_ben",
+        lists: [anas],
+        versions: new Map([[anas, older]]),
+        stored: [anas],
+        checks,
+      });
+      expect((moved as ConnectError).code).toBe(Code.PermissionDenied);
+      expect(checks).toEqual([`acc_ben:can_execute:${anas.metadata!.id}`]);
+      // Moved forward to the head from an older pin: still a move, still judged.
+      const forward = await write({
+        writer: "acc_ben",
+        lists: [anas],
+        stored: [anas],
+        storedPins: new Map([[anas, older]]),
+      });
+      expect((forward as ConnectError).code).toBe(Code.PermissionDenied);
+      // Its owner may move it.
+      expect(
+        await write({ writer: "acc_ana", lists: [anas], versions: new Map([[anas, older]]), stored: [anas] }),
+      ).toBeUndefined();
+    } finally {
+      anas = await query.get({ value: anas.metadata!.id });
+    }
+  });
+
+  it("refuses an agent one may not run before reading any of its versions, so the refusal says nothing of them", async () => {
+    const error = await write({ writer: "acc_ben", lists: [anas], versions: new Map([[anas, "no-such-tag"]]) });
+    expect((error as ConnectError).code).toBe(Code.PermissionDenied);
+    expect((error as ConnectError).rawMessage).toBe(subagentNotRunnableMessage(anas.metadata!.slug));
+  });
+
   it("exempts the server acting as itself", async () => {
     const checks: string[] = [];
     expect(
@@ -568,7 +621,7 @@ describe("the writer clause on subagents", () => {
   it("pins every reference before judging the writer: an admitted write carries the hashes", async () => {
     const ctx = new RequestContext(
       AgentSchema,
-      parentListing(teams),
+      parentListing([teams]),
       testCallerIdentity({ identityId: "acc_ben" }),
       ApiResourceKind.agent,
     );

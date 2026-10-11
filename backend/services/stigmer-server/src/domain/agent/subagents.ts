@@ -25,9 +25,11 @@
  *          subagent cannot hand work on (one level). The check cannot go
  *          stale, because a pinned version never changes;
  *       4. asks the writer clause with can_execute, on this field only: a
- *          reference the write introduces must name an agent the writer may
- *          run (checkWriter's rules: same organization, not already on the
- *          stored row, the server's own calls exempt). Whoever runs the
+ *          reference the write introduces, and a kept reference whose pin
+ *          the write moves, must name an agent the writer may run
+ *          (checkWriter's rules: same organization, the server's own calls
+ *          exempt). An introduced reference is judged before step 1, so a
+ *          refusal tells the writer nothing about the agent's versions. Whoever runs the
  *          parent runs its subagents, so listing one is a choice only
  *          someone who may run it makes. The clause is not the agent
  *          kind's (writerMust): a session, a share, a channel and a
@@ -167,13 +169,35 @@ export function newPinSubagentsStep(
           "pin subagents",
         );
       }
+      const parent: ReferenceParent = {
+        org: metadata.org,
+        visibility: metadata.visibility,
+      };
+      const stored = storedSubagents(ctx);
+      // A reference the write introduces is judged before any version is
+      // read, so a refusal tells the writer nothing about the agent's
+      // versions or its own subagents.
+      await judgeWriter(
+        ctx,
+        authorizer,
+        refs.filter((ref) => heldPin(stored, ref) === undefined),
+        parent,
+      );
+      const kept = new Map(refs.map((ref) => [ref, heldPin(stored, ref)]));
       for (const ref of refs) {
         ref.version = await pinnedHash(store, ref);
       }
-      await judgeWriter(ctx, authorizer, refs, {
-        org: metadata.org,
-        visibility: metadata.visibility,
-      });
+      // A kept reference whose pin moves is judged too: moving it chooses
+      // which version every surface of this agent runs.
+      await judgeWriter(
+        ctx,
+        authorizer,
+        refs.filter((ref) => {
+          const held = kept.get(ref);
+          return held !== undefined && held !== ref.version;
+        }),
+        parent,
+      );
     },
   };
 }
@@ -226,13 +250,39 @@ async function pinnedHash(
   return hash;
 }
 
-/** Step 4 of the module header: can_execute on every reference the write introduces. */
+/** The subagent references the stored row carries; none on a create. */
+function storedSubagents(ctx: RequestContext<AgentDesc>): SpecReference[] {
+  const existing = ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined;
+  return existing === undefined
+    ? []
+    : collectSpecReferences(AgentSchema, existing).filter(
+        (held) => held.kind === ApiResourceKind.agent,
+      );
+}
+
+/** The version the stored row pins `ref`'s agent at, or undefined when the write introduces it. */
+function heldPin(
+  stored: ReadonlyArray<SpecReference>,
+  ref: ApiResourceReference,
+): string | undefined {
+  return stored.find((held) => held.org === ref.org && held.slug === ref.slug)
+    ?.version;
+}
+
+/**
+ * Step 4 of the module header: can_execute on each of `refs`, which the
+ * caller has already chosen (the references the write introduces, then
+ * the kept ones whose pin it moves).
+ */
 async function judgeWriter(
   ctx: RequestContext<AgentDesc>,
   authorizer: Authorizer,
   refs: ReadonlyArray<ApiResourceReference>,
   parent: ReferenceParent,
 ): Promise<void> {
+  if (refs.length === 0) {
+    return;
+  }
   const targets = resolvedReferenceTargets(ctx);
   if (targets === undefined) {
     throw internalError(
@@ -242,13 +292,6 @@ async function judgeWriter(
       "pin subagents requires the resolved references",
     );
   }
-  const existing = ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined;
-  const stored =
-    existing === undefined
-      ? []
-      : collectSpecReferences(AgentSchema, existing).filter(
-          (held) => held.kind === ApiResourceKind.agent,
-        );
   for (const ref of refs) {
     const spec: SpecReference = {
       kind: ApiResourceKind.agent,
@@ -260,7 +303,7 @@ async function judgeWriter(
       targets,
       parent,
       spec,
-      { authorizer, caller: ctx.callerIdentity, stored },
+      { authorizer, caller: ctx.callerIdentity, stored: [] },
       IamPermission.can_execute,
     );
     if (verdict.kind === "not-viewable") {
