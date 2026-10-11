@@ -66,9 +66,9 @@ export function newGuardUnlistedStep<Desc extends DescMessage>(
   return {
     name: "GuardUnlisted",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
-      const metadata = metadataOf(
-        ctx.get(EXISTING_RESOURCE_KEY) as Message,
-      );
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined;
+      const metadata =
+        existing === undefined ? undefined : metadataOf(existing);
       if (metadata === undefined) {
         throw internalError(
           new Error(

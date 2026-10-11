@@ -5,8 +5,11 @@
  *   - an McpServer row (api_version 1, kind 2, metadata 3, spec 4), the
  *     plugin it came from named by the `stigmer.ai/plugin` label;
  *   - an Agent row whose spec carries server usages (AgentSpec field 4, each
- *     an McpServerUsage whose field 1 is the server reference) and hook
- *     sources naming a plugin (HookSource field 1);
+ *     an McpServerUsage whose field 1 is the server reference), hook
+ *     sources naming a plugin (HookSource field 1) and sub-agents written
+ *     inside it (AgentSpec field 6, each a SubAgent: name 1, description 2,
+ *     instructions 3, skill_refs 5, model_override 6, tools 7,
+ *     disallowed_tools 8);
  *   - a Session row whose spec carries server usages (SessionSpec field 7).
  * Plugins, skills and policies are written in the live schema, a member
  * skill carrying the two labels an install stamped.
@@ -35,6 +38,7 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 
 import { canonicalSpecHash } from "../../pipeline/steps/spec-hash.js";
 import type { StoreLogger } from "../logger.js";
+import { readSubAgents } from "../frozen-sub-agent.js";
 import { RETIREMENT_VERSION_MESSAGE } from "../mcp-server-retired.js";
 import { policyRow } from "./retired-instance-rows.js";
 
@@ -87,6 +91,41 @@ function usageBytes(ref: ReferenceInit, others: readonly string[] = []): Uint8Ar
   return usage.tag(1, WireType.LengthDelimited).bytes(referenceBytes(ref)).finish();
 }
 
+/** A sub-agent as an earlier release wrote it inside an agent. */
+export interface SubAgentInit {
+  readonly name: string;
+  readonly description?: string;
+  readonly instructions?: string;
+  readonly skillRefs?: readonly ReferenceInit[];
+  readonly modelOverride?: string;
+  readonly tools?: readonly string[];
+  readonly disallowedTools?: readonly string[];
+}
+
+/** One retired SubAgent's bytes, written field by field in its wire numbers. */
+export function subAgentBytes(subAgent: SubAgentInit): Uint8Array {
+  const writer = new BinaryWriter();
+  const text = (no: number, value: string | undefined): void => {
+    if (value !== undefined && value !== "") {
+      writer.tag(no, WireType.LengthDelimited).string(value);
+    }
+  };
+  text(1, subAgent.name);
+  text(2, subAgent.description);
+  text(3, subAgent.instructions);
+  for (const ref of subAgent.skillRefs ?? []) {
+    writer.tag(5, WireType.LengthDelimited).bytes(referenceBytes(ref));
+  }
+  text(6, subAgent.modelOverride);
+  for (const tool of subAgent.tools ?? []) {
+    writer.tag(7, WireType.LengthDelimited).string(tool);
+  }
+  for (const tool of subAgent.disallowedTools ?? []) {
+    writer.tag(8, WireType.LengthDelimited).string(tool);
+  }
+  return writer.finish();
+}
+
 /** An McpServer row as an earlier release stored it. */
 export function retiredServerRow(options: {
   readonly metadata: MetadataInit;
@@ -111,8 +150,8 @@ export function retiredServerRow(options: {
 
 /**
  * An Agent row as an earlier release stored it: the live spec plus the
- * retired server usages (field 4) and plugin hook sources (field 12, each
- * a HookSource holding only field 1).
+ * retired server usages (field 4), plugin hook sources (field 12, each a
+ * HookSource holding only field 1) and sub-agents (field 6).
  */
 export function retiredAgentRow(options: {
   readonly metadata: MetadataInit;
@@ -122,10 +161,14 @@ export function retiredAgentRow(options: {
   /** Strings every server usage also carries in its field 2, before its reference. */
   readonly usageOthers?: readonly string[];
   readonly pluginHooks?: readonly ReferenceInit[];
+  readonly subAgents?: readonly SubAgentInit[];
 }): Uint8Array {
   const spec = new BinaryWriter().raw(
     toBinary(AgentSpecSchema, create(AgentSpecSchema, options.spec ?? {})),
   );
+  for (const subAgent of options.subAgents ?? []) {
+    spec.tag(6, WireType.LengthDelimited).bytes(subAgentBytes(subAgent));
+  }
   for (const ref of options.serverUsages ?? []) {
     spec.tag(4, WireType.LengthDelimited).bytes(usageBytes(ref, options.usageOthers));
   }
@@ -320,8 +363,8 @@ const agentComposed = retiredAgentRow({
   },
   spec: {
     instructions: "The plugin's main agent, composed at install.",
-    subAgents: [{ name: "triager", instructions: "Triage every new issue." }],
   },
+  subAgents: [{ name: "triager", instructions: "Triage every new issue." }],
   status: { versionHash: ESTATE_OLD_HASH },
   serverUsages: [serverRef("github")],
 });
@@ -601,7 +644,7 @@ export async function expectEstateRetired(
     (await view.data("agent", "agt_composed"))!,
   );
   expect(composed.metadata?.labels).toEqual({ team: "platform" });
-  expect(composed.spec?.subAgents).toEqual([]);
+  expect(readSubAgents(composed.spec!)).toEqual([]);
   expect(composed.spec?.instructions).toBe(
     "The plugin's main agent, composed at install.",
   );

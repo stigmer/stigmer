@@ -30,9 +30,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| AgentCommandController.apply | `metadata.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.plugins.org` |
-| AgentCommandController.create | `metadata.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.plugins.org` |
-| AgentCommandController.update | `metadata.org`, `spec.skill_refs.org`, `spec.sub_agents.skill_refs.org`, `spec.plugins.org` |
+| AgentCommandController.apply | `metadata.org`, `spec.skill_refs.org`, `spec.plugins.org`, `spec.subagents.org` |
+| AgentCommandController.create | `metadata.org`, `spec.skill_refs.org`, `spec.plugins.org`, `spec.subagents.org` |
+| AgentCommandController.update | `metadata.org`, `spec.skill_refs.org`, `spec.plugins.org`, `spec.subagents.org` |
 | AgentQueryController.getByReference | `org` |
 | AgentQueryController.listVersions | `org` |
 

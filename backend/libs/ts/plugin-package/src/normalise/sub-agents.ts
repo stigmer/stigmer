@@ -1,5 +1,5 @@
 /**
- * Sub-agent files (`agents/*.md`) into the shape `SubAgent` takes.
+ * Sub-agent files (`agents/*.md`) into the shape `PluginAgent` takes.
  *
  * Cursor and Claude Code define this component; the open format does not,
  * so `agents/` is read only when a vendor manifest is present (`detect.ts`
@@ -10,9 +10,9 @@
  *
  * The body of the file is the sub-agent's prompt. A body under
  * `SUB_AGENT_INSTRUCTIONS_MIN` characters is refused, because that is the
- * proto's floor for `SubAgent.instructions` and a parser that let it through
- * would add a second silent path after the runner's own (which drops a
- * sub-agent whose model is unregistered). Frontmatter is optional (a bare
+ * floor every agent's instructions meet (the proto's
+ * `AgentSpec.instructions` `min_len`), and a plugin agent's instructions
+ * are an agent's prompt like any other. Frontmatter is optional (a bare
  * prompt is named after its file, Claude's rule) but must parse when
  * present: Claude degrades an unparseable header to a file-named agent with
  * every field ignored, and a faithful install is better refused than
@@ -43,7 +43,7 @@ import type { ModelAlias, ModelHint, PluginSkill, PluginSubAgent } from "../type
 
 export const DEFAULT_AGENTS_DIR = "agents";
 
-/** The proto's `SubAgent.instructions` `min_len`. */
+/** A plugin agent's instructions floor: the proto's `AgentSpec.instructions` `min_len`. */
 export const SUB_AGENT_INSTRUCTIONS_MIN = 10;
 
 const READ_FIELDS: ReadonlySet<string> = new Set(["name", "description", "model", "skills", "tools", "disallowedTools"]);

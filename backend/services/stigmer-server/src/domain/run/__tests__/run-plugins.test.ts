@@ -5,7 +5,9 @@
  * conversation's, one per organization and slug (a reference naming no
  * organization keys under the run's), the conversation's reference
  * winning where both name one, so its chosen version is the one planned;
- * a reference with no slug is dropped.
+ * then each subagent's, only for a plugin neither already names, the
+ * first subagent's winning, a subagent's reference naming no organization
+ * filed under the subagent's own; a reference with no slug is dropped.
  *
  * loadRunPlugins: each reference resolves like a skill reference, the
  * installed plugin for no version, an archived one by its digest or its
@@ -34,6 +36,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import { loadRunPlugins, runPluginReferences } from "../run-plugins.js";
+import type { RunSubagent } from "../run-subagents.js";
 
 const ORG = "acme";
 const OTHER_ORG = "elsewhere";
@@ -125,6 +128,41 @@ function ref(org: string, slug: string, version = ""): ApiResourceReference {
 }
 
 describe("runPluginReferences", () => {
+  /** A subagent at its pinned version, listing `plugins`. */
+  function subagent(name: string, org: string, plugins: ApiResourceReference[]): RunSubagent {
+    return { name, org, spec: create(AgentSpecSchema, { plugins }) };
+  }
+
+  it("adds each subagent's plugins after the agent's and the conversation's, only where neither names one, the first subagent winning", () => {
+    const refs = runPluginReferences(
+      create(AgentSpecSchema, { plugins: [ref(ORG, "linear", "1.0.0")] }),
+      create(SessionSchema, { spec: { plugins: [ref(ORG, "notion", "2.0.0")] } }),
+      ORG,
+      [
+        subagent("researcher", ORG, [ref(ORG, "linear", "9.9.9"), ref(ORG, "notion", "9.9.9"), ref(ORG, "github", "1.0.0")]),
+        subagent("writer", ORG, [ref(ORG, "github", "2.0.0"), ref(ORG, "docs")]),
+      ],
+    );
+    expect(refs.map((r) => [r.org, r.slug, r.version])).toEqual([
+      // The agent's, then the conversation's: no subagent overrides either.
+      [ORG, "linear", "1.0.0"],
+      [ORG, "notion", "2.0.0"],
+      // The first subagent to name a plugin wins it.
+      [ORG, "github", "1.0.0"],
+      [ORG, "docs", ""],
+    ]);
+  });
+
+  it("files a subagent's reference naming no organization under the subagent's own", () => {
+    const refs = runPluginReferences(
+      create(AgentSpecSchema, { plugins: [ref("", "linear")] }),
+      undefined,
+      ORG,
+      [subagent("theirs", OTHER_ORG, [ref("", "linear"), ref("", "")])],
+    );
+    expect(refs.map((r) => `${r.org}/${r.slug}`)).toEqual([`/linear`, `${OTHER_ORG}/linear`]);
+  });
+
   it("lists the agent's references then the conversation's, once each, the conversation's reference winning", () => {
     const refs = runPluginReferences(
       create(AgentSpecSchema, { plugins: [ref(ORG, "linear", "1.0.0"), ref("", "notion")] }),

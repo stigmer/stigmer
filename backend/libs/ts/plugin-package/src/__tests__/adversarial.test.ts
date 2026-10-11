@@ -412,7 +412,7 @@ const WARNING_CASES: Record<PluginWarningKind, Case> = {
   "sub-agent-model-unknown": {
     files: cursorPlugin({ agents: [{ file: "a", frontmatter: { model: "grok-4.6[effort=xhigh]" } }] }),
     kinds: warnings("sub-agent-model-unknown"),
-    message: "sub-agent 'a' in 'agents/a.md' names model 'grok-4.6[effort=xhigh]', which Stigmer cannot map; the sub-agent runs on the session's model",
+    message: "sub-agent 'a' in 'agents/a.md' names model 'grok-4.6[effort=xhigh]', which is not a model alias Stigmer knows; the sub-agent runs on it only where the conversation's engine lists it as a model, else on the conversation's model",
   },
   "sub-agent-field-ignored": {
     files: cursorPlugin({ agents: [{ file: "a", frontmatter: { readonly: true } }] }),
