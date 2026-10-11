@@ -80,7 +80,7 @@
       "type": {
         "kind": "timestamp"
       },
-      "description": "The end of the grace period after expiry, during which the licensed\n server keeps serving and reports the license as expired.",
+      "description": "The end of the grace period that follows `expires_at`, during which the\n licensed server keeps serving and reports the license as `grace`. After\n this instant it reports the license as `expired`.",
       "required": true,
       "validation": {
         "required": true

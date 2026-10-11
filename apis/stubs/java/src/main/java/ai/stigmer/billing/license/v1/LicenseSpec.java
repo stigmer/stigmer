@@ -258,8 +258,9 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Timestamp graceUntil_;
   /**
    * <pre>
-   * The end of the grace period after expiry, during which the licensed
-   * server keeps serving and reports the license as expired.
+   * The end of the grace period that follows `expires_at`, during which the
+   * licensed server keeps serving and reports the license as `grace`. After
+   * this instant it reports the license as `expired`.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -271,8 +272,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The end of the grace period after expiry, during which the licensed
-   * server keeps serving and reports the license as expired.
+   * The end of the grace period that follows `expires_at`, during which the
+   * licensed server keeps serving and reports the license as `grace`. After
+   * this instant it reports the license as `expired`.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -284,8 +286,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The end of the grace period after expiry, during which the licensed
-   * server keeps serving and reports the license as expired.
+   * The end of the grace period that follows `expires_at`, during which the
+   * licensed server keeps serving and reports the license as `grace`. After
+   * this instant it reports the license as `expired`.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -1507,8 +1510,9 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> graceUntilBuilder_;
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the licensed
-     * server keeps serving and reports the license as expired.
+     * The end of the grace period that follows `expires_at`, during which the
+     * licensed server keeps serving and reports the license as `grace`. After
+     * this instant it reports the license as `expired`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -1519,8 +1523,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the licensed
-     * server keeps serving and reports the license as expired.
+     * The end of the grace period that follows `expires_at`, during which the
+     * licensed server keeps serving and reports the license as `grace`. After
+     * this instant it reports the license as `expired`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -1535,8 +1540,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the licensed
-     * server keeps serving and reports the license as expired.
+     * The end of the grace period that follows `expires_at`, during which the
+     * licensed server keeps serving and reports the license as `grace`. After
+     * this instant it reports the license as `expired`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -1556,8 +1562,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the licensed
-     * server keeps serving and reports the license as expired.
+     * The end of the grace period that follows `expires_at`, during which the
+     * licensed server keeps serving and reports the license as `grace`. After
+     * this instant it reports the license as `expired`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -1575,8 +1582,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the licensed
-     * server keeps serving and reports the license as expired.
+     * The end of the grace period that follows `expires_at`, during which the
+     * licensed server keeps serving and reports the license as `grace`. After
+     * this instant it reports the license as `expired`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -1601,8 +1609,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the licensed
-     * server keeps serving and reports the license as expired.
+     * The end of the grace period that follows `expires_at`, during which the
+     * licensed server keeps serving and reports the license as `grace`. After
+     * this instant it reports the license as `expired`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -1619,8 +1628,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the licensed
-     * server keeps serving and reports the license as expired.
+     * The end of the grace period that follows `expires_at`, during which the
+     * licensed server keeps serving and reports the license as `grace`. After
+     * this instant it reports the license as `expired`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -1632,8 +1642,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the licensed
-     * server keeps serving and reports the license as expired.
+     * The end of the grace period that follows `expires_at`, during which the
+     * licensed server keeps serving and reports the license as `grace`. After
+     * this instant it reports the license as `expired`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>
@@ -1648,8 +1659,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The end of the grace period after expiry, during which the licensed
-     * server keeps serving and reports the license as expired.
+     * The end of the grace period that follows `expires_at`, during which the
+     * licensed server keeps serving and reports the license as `grace`. After
+     * this instant it reports the license as `expired`.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp grace_until = 6 [json_name = "graceUntil", (.buf.validate.field) = { ... }</code>

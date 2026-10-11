@@ -51,12 +51,13 @@ message LicenseClaims {
   // When the ticket was signed.
   google.protobuf.Timestamp issued_at = 5 [(buf.validate.field).required = true];
 
-  // When the term ends. After this instant the license is expired, and the
-  // server it unlocks enters its grace period.
+  // When the term ends. After this instant the server it unlocks is in its
+  // grace period and reports the license as `grace`.
   google.protobuf.Timestamp expires_at = 6 [(buf.validate.field).required = true];
 
-  // The end of the grace period after expiry, during which the server keeps
-  // serving and reports the license as expired. The issuer decides the
+  // The end of the grace period that follows `expires_at`, during which the
+  // server keeps serving and reports the license as `grace`. After this
+  // instant it reports the license as `expired`. The issuer decides the
   // grace; the verifier reads it.
   google.protobuf.Timestamp grace_until = 7 [(buf.validate.field).required = true];
 }
