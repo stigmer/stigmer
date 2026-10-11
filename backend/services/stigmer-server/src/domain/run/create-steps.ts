@@ -19,6 +19,7 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { PluginEvalCaseContextSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import {
   DeclaredPreferencesSchema,
   RecalledMemoriesSchema,
@@ -49,6 +50,7 @@ import {
 } from "../../pipeline/errors.js";
 import { ConnectError } from "@connectrpc/connect";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
+import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -371,6 +373,29 @@ export function newGuardPluginEvalCaseStep(): PipelineStep<CreateDesc> {
       if (!isServerComposedRequest(ctx.callerIdentity)) {
         throw permissionDeniedError(PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE);
       }
+    },
+  };
+}
+
+/**
+ * KeepPluginEvalCase: on update, a run's `spec.plugin_eval_case` stays what
+ * the server's case workflow composed at create, whatever the request
+ * carries. Run update is a person's (`can_edit`) and replaces the spec
+ * whole, and the runner reads the context again at every turn's start, so
+ * an update that could set it would run a scaffold, empty the session's
+ * workspace and answer the plugin's servers with stand-ins outside the
+ * create guard (GuardPluginEvalCase). Nothing sets, changes or clears it
+ * after create.
+ */
+export function newKeepPluginEvalCaseStep(): PipelineStep<CreateDesc> {
+  return {
+    name: "KeepPluginEvalCase",
+    execute(ctx) {
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Run | undefined;
+      const stored = existing?.spec?.pluginEvalCase;
+      ctx.newState.spec ??= create(RunSpecSchema);
+      ctx.newState.spec.pluginEvalCase =
+        stored === undefined ? undefined : clone(PluginEvalCaseContextSchema, stored);
     },
   };
 }
