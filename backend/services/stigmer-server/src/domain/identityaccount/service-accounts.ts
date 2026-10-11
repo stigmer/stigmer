@@ -243,9 +243,6 @@ export async function refuseTakenName(
     }
     holder = await accounts.findById(id);
   } catch (error) {
-    if (error instanceof ConnectError) {
-      throw error;
-    }
     throw internalError(error, "failed to check the service account's name");
   }
   if (holder !== undefined && isServiceAccount(holder)) {

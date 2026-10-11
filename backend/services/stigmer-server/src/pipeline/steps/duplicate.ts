@@ -10,7 +10,6 @@
  * module).
  */
 import type { DescMessage } from "@bufbuild/protobuf";
-import { ConnectError } from "@connectrpc/connect";
 
 import type { Store } from "../../store/interface.js";
 import { getKindName } from "../apiresource-meta.js";
@@ -51,9 +50,6 @@ export function newCheckDuplicateStep<Desc extends DescMessage>(
           metadata.slug,
         );
       } catch (error) {
-        if (error instanceof ConnectError) {
-          throw error;
-        }
         throw internalError(error, "failed to check for duplicates");
       }
 

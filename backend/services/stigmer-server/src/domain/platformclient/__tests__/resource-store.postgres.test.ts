@@ -5,7 +5,8 @@
  * and pins how a lookup by slug reaches it (steps.ts findClientByName): a
  * name read in the name table, then this adapter by id, so a slug the
  * create chain never claimed resolves to nothing and an empty organization
- * is the platform's scope rather than every organization.
+ * is the platform's scope rather than every organization; a client holds
+ * its name while the port finds its row.
  *
  * The kit's case list is pinned by name here so a case cannot drop out of
  * the kit unnoticed: the cloud driver's test iterates the same export and
@@ -26,7 +27,7 @@ import {
 } from "../../../store/postgres/__tests__/support.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import { newResourcePlatformClientStore } from "../resource-store.js";
-import { findClientByName } from "../steps.js";
+import { findClientByName, platformClientNameHolder } from "../steps.js";
 import type { PlatformClientStoreContractFixture } from "../store-contract.js";
 import { platformClientStoreContract } from "../store-contract.js";
 
@@ -144,6 +145,17 @@ describe.each([sqliteFixture, postgresFixture])(
           expect(
             await findClientByName(opened.store, clients, "globex", "dashboard"),
           ).toBeUndefined();
+          const entry = {
+            kind: "platform_client",
+            org: "acme",
+            name: "dashboard",
+            state: "current" as const,
+            claimedAt: now,
+            expiresAt: "",
+          };
+          const holder = platformClientNameHolder(clients);
+          expect(await holder.holds({ ...entry, id: "pcl_acme_dashboard" })).toBe(true);
+          expect(await holder.holds({ ...entry, id: "pcl_gone" })).toBe(false);
           expect(
             await findClientByName(opened.store, clients, "", "dashboard"),
             "an empty organization is the platform's scope, never every organization",

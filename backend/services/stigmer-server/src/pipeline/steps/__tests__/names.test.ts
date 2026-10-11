@@ -18,7 +18,11 @@
  *   - findResourceByName reads an empty organization as the platform's own
  *     scope, never every organization, and refuses a kind whose slugs are
  *     not names;
- *   - releaseNameAfterFailure lets a name go only when its row never landed.
+ *   - releaseNameAfterFailure lets a name go only when its row never landed;
+ *   - the steps' own faults: a claim with no slug or id, a name table that
+ *     faults, and a name table alone with no holder are INTERNAL; a
+ *     release after a failed create or a delete that faults is logged,
+ *     never thrown, and ReleaseNames with no loaded row is INTERNAL.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -59,16 +63,22 @@ import {
 import type { TestDatabase } from "../../../store/postgres/__tests__/support.js";
 import { testCallerIdentity } from "../../__tests__/support.js";
 import { RequestContext } from "../../request-context.js";
+import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import {
   ABANDONED_NAME_AFTER_MS,
   NAMED_KINDS,
   claimName,
+  claimNameOf,
   findResourceByName,
   newClaimNameStep,
+  newReleaseNamesStep,
+  portHolder,
   releaseNameAfterFailure,
   resourceNameKey,
   storedRowHolder,
 } from "../names.js";
+import type { NameTable } from "../names.js";
+import type { Store } from "../../../store/interface.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 const ACME = "org_01jz00000000000000000acme0";
@@ -118,7 +128,9 @@ describe("NAMED_KINDS", () => {
 describe.each(driverFixtures([ApiResourceKind.agent]))("claimName ($name)", (fixture) => {
   afterAll(dropPostgresFixture);
 
-  const key = resourceNameKey(ApiResourceKind.agent, ACME, "support");
+  // Each case its own slug: Postgres's test database is shared across the
+  // cases, and its name table is not cleared between them.
+  const keyFor = (slug: string) => resourceNameKey(ApiResourceKind.agent, ACME, slug);
   const holdsNothing = { holds: async () => false };
   const holdsAll = { holds: async () => true };
   const longAgo = new Date(Date.now() - ABANDONED_NAME_AFTER_MS - 60_000);
@@ -127,6 +139,7 @@ describe.each(driverFixtures([ApiResourceKind.agent]))("claimName ($name)", (fix
     const opened = await fixture.open();
     try {
       const store = opened.store;
+      const key = keyFor("won");
       const first = await claimName(store, key, "agt_a", new Date(), holdsNothing);
       expect(first).toMatchObject({ claimed: true, entry: { id: "agt_a", state: "current" } });
       const again = await claimName(store, key, "agt_a", new Date(), holdsNothing);
@@ -140,6 +153,7 @@ describe.each(driverFixtures([ApiResourceKind.agent]))("claimName ($name)", (fix
     const opened = await fixture.open();
     try {
       const store = opened.store;
+      const key = keyFor("live");
       await claimName(store, key, "agt_a", new Date(), holdsAll);
       const live = await claimName(store, key, "agt_b", new Date(), holdsAll);
       expect(live).toMatchObject({ claimed: false, entry: { id: "agt_a" } });
@@ -157,6 +171,7 @@ describe.each(driverFixtures([ApiResourceKind.agent]))("claimName ($name)", (fix
     const opened = await fixture.open();
     try {
       const store = opened.store;
+      const key = keyFor("gone");
       await store.resourceNames.claim(key, "agt_gone", longAgo.toISOString());
       const taken = await claimName(store, key, "agt_b", new Date(), holdsNothing);
       expect(taken).toMatchObject({ claimed: true, entry: { id: "agt_b" } });
@@ -223,15 +238,15 @@ describe.each(driverFixtures([ApiResourceKind.agent]))("claimName ($name)", (fix
     const opened = await fixture.open();
     try {
       const store = opened.store;
-      await store.resourceNames.claim(key, "agt_acme", new Date().toISOString());
+      await store.resourceNames.claim(keyFor("scoped"), "agt_acme", new Date().toISOString());
       await store.saveResource(
         ApiResourceKind.agent,
         "agt_acme",
         AgentSchema,
-        create(AgentSchema, { metadata: { id: "agt_acme", org: ACME, slug: "support" } }),
+        create(AgentSchema, { metadata: { id: "agt_acme", org: ACME, slug: "scoped" } }),
       );
       expect(
-        await findResourceByName(store, ApiResourceKind.agent, AgentSchema, "", "support"),
+        await findResourceByName(store, ApiResourceKind.agent, AgentSchema, "", "scoped"),
       ).toBeUndefined();
       await expect(
         findResourceByName(opened.store, ApiResourceKind.run, RunSchema, ACME, "run-1"),
@@ -239,6 +254,109 @@ describe.each(driverFixtures([ApiResourceKind.agent]))("claimName ($name)", (fix
     } finally {
       await opened.close();
     }
+  });
+});
+
+/** What `run` throws, or undefined when it resolves. */
+async function failureOf(run: () => unknown): Promise<unknown> {
+  try {
+    await run();
+  } catch (error) {
+    return error;
+  }
+  return undefined;
+}
+
+describe("the name steps' own faults", () => {
+  const agent = (metadata: { id?: string; slug?: string }) =>
+    create(AgentSchema, { metadata: { org: ACME, ...metadata } });
+  const contextOf = (resource: ReturnType<typeof agent>) =>
+    new RequestContext(AgentSchema, resource, testCallerIdentity(), ApiResourceKind.agent);
+  const entryOf = (id: string) => ({
+    kind: "agent",
+    org: ACME,
+    name: "support",
+    id,
+    state: "current" as const,
+    claimedAt: new Date().toISOString(),
+    expiresAt: "",
+  });
+  const recording = () => {
+    const errors: string[] = [];
+    const logger = createLogger({ level: "error", pretty: false, write: () => {} });
+    logger.error = (message: string) => {
+      errors.push(message);
+    };
+    return { logger, errors };
+  };
+  const tableThat = (resourceNames: Partial<Store["resourceNames"]>): NameTable =>
+    ({ resourceNames }) as unknown as NameTable;
+
+  it("a port holder holds a name while its port finds the row", async () => {
+    const holder = portHolder(async (id) => (id === "agt_live" ? {} : undefined));
+    expect(await holder.holds(entryOf("agt_live"))).toBe(true);
+    expect(await holder.holds(entryOf("agt_gone"))).toBe(false);
+  });
+
+  it("ClaimName with no slug or id, a name table that faults, and a name table alone with no holder are INTERNAL", async () => {
+    const claimed = tableThat({ claim: async () => ({ claimed: true, entry: entryOf("agt_1") }) });
+    const holder = portHolder(async () => undefined);
+    for (const resource of [agent({ id: "agt_1" }), agent({ slug: "support" })]) {
+      const error = await failureOf(() =>
+        newClaimNameStep(claimed, ApiResourceKind.agent, holder).execute(contextOf(resource)),
+      );
+      expect(ConnectError.from(error).code).toBe(Code.Internal);
+    }
+    const faulting = tableThat({
+      claim: async () => {
+        throw new Error("name table down");
+      },
+    });
+    const fault = await failureOf(() =>
+      newClaimNameStep(faulting, ApiResourceKind.agent, holder).execute(
+        contextOf(agent({ id: "agt_1", slug: "support" })),
+      ),
+    );
+    expect(ConnectError.from(fault).rawMessage).toBe("failed to claim the resource's name");
+    const holderless = await claimNameOf(
+      contextOf(agent({ id: "agt_1", slug: "support" })),
+      claimed,
+      ApiResourceKind.agent,
+      agent({ id: "agt_1", slug: "support" }),
+      AgentSchema,
+    ).catch((caught: unknown) => caught);
+    expect(ConnectError.from(holderless).code).toBe(Code.Internal);
+  });
+
+  it("a failed create's release that faults is logged, never thrown", async () => {
+    const { logger, errors } = recording();
+    const ctx = contextOf(agent({ id: "agt_1", slug: "support" }));
+    const table = tableThat({
+      claim: async () => ({ claimed: true, entry: entryOf("agt_1") }),
+      release: async () => {
+        throw new Error("name table down");
+      },
+    });
+    await newClaimNameStep(table, ApiResourceKind.agent, portHolder(async () => undefined)).execute(ctx);
+    await expect(releaseNameAfterFailure(table, logger, ctx)).resolves.toBeUndefined();
+    expect(errors).toEqual([expect.stringMatching(/could not be released/)]);
+  });
+
+  it("ReleaseNames with no loaded row is INTERNAL, and a release that faults is logged, never thrown", async () => {
+    const { logger, errors } = recording();
+    const table = tableThat({
+      release: async () => {
+        throw new Error("name table down");
+      },
+    });
+    const step = newReleaseNamesStep(table, logger, ApiResourceKind.agent);
+    const missing = await failureOf(() => step.execute(contextOf(agent({}))));
+    expect(ConnectError.from(missing).code).toBe(Code.Internal);
+
+    const loaded = contextOf(agent({}));
+    loaded.set(EXISTING_RESOURCE_KEY, agent({ id: "agt_1", slug: "support" }));
+    await expect(step.execute(loaded)).resolves.toBeUndefined();
+    expect(errors).toEqual([expect.stringMatching(/names could not be released/)]);
   });
 });
 

@@ -12,6 +12,7 @@
  *   - a person's identity account names nothing, a service account its
  *     slug; a row with no organization or no slug names nothing;
  *   - a name the table already holds is left as it is;
+ *   - a kind is read past its first page;
  *   - a row that does not decode stops the step, naming the row.
  */
 import { mkdtempSync, rmSync } from "node:fs";
@@ -43,6 +44,7 @@ import {
 import {
   KindNameBackfill,
   NAMED_KINDS_AT_BACKFILL,
+  RESOURCE_NAMES_BACKFILL_PAGE_SIZE,
 } from "../resource-names-backfill.js";
 import {
   SCHEMA_VERSION_29,
@@ -133,6 +135,19 @@ const ESTATE: ReadonlyArray<SeededRow> = [
   },
 ];
 
+/** One more agent than a page holds, each its own slug: the step reads past the first page. */
+const PAGED: ReadonlyArray<SeededRow> = Array.from(
+  { length: RESOURCE_NAMES_BACKFILL_PAGE_SIZE + 1 },
+  (_, i) => {
+    const id = `agt_p${String(i).padStart(4, "0")}`;
+    return { kind: "agent", id, data: agentRow(id, ACME, `paged-${i}`, JANUARY) };
+  },
+);
+
+async function expectPagedNamed(count: () => Promise<number>): Promise<void> {
+  expect(await count(), "every paged agent's slug is its name").toBe(PAGED.length);
+}
+
 /** A name the table held before the step: kept as it was. */
 const HELD = { kind: "vault", org: ACME, name: "keys", id: "vlt_01keys", claimedAt: "2025-12-01T00:00:00.000Z" };
 
@@ -181,11 +196,12 @@ afterEach(async () => {
 });
 
 describe("the name backfill's reading of one kind", () => {
-  it("keeps the older of two rows by creation time, then by id, and a row with no stamp loses to one with", () => {
+  it("keeps the older of two rows by creation time, then by id, and a row with no stamp loses to one with, whichever comes first", () => {
     const named = NAMED_KINDS_AT_BACKFILL.find((entry) => entry.kind === "agent")!;
     const backfill = new KindNameBackfill(named, "2026-10-12T00:00:00.000Z");
     backfill.add("agt_09", agentRow("agt_09", ACME, "a"));
     backfill.add("agt_08", agentRow("agt_08", ACME, "a", FEBRUARY));
+    backfill.add("agt_07", agentRow("agt_07", ACME, "a"));
     backfill.add("agt_02", agentRow("agt_02", ACME, "b"));
     backfill.add("agt_01", agentRow("agt_01", ACME, "b"));
     const logger = recordingLogger();
@@ -193,7 +209,7 @@ describe("the name backfill's reading of one kind", () => {
       "a=agt_08",
       "b=agt_01",
     ]);
-    expect(logger.warnings.map((warning) => warning.fields?.id)).toEqual(["agt_09", "agt_02"]);
+    expect(logger.warnings.map((warning) => warning.fields?.id)).toEqual(["agt_09", "agt_07", "agt_02"]);
   });
 
   it("refuses a row that does not decode, naming it", () => {
@@ -240,6 +256,21 @@ describe("sqlite v29: every named kind's slug becomes its name", () => {
       .prepare(`SELECT kind, org, name, id, state, claimed_at FROM resource_names WHERE kind <> 'organization'`)
       .all() as unknown as NameRow[];
     expectBackfilled(rows, logger);
+  });
+
+  it("reads every page of a kind", async () => {
+    const db = v28Database();
+    seed(db, PAGED);
+    runSqliteMigrations(db, SCHEMA_VERSION_29);
+    await expectPagedNamed(async () =>
+      Number(
+        (
+          db
+            .prepare(`SELECT COUNT(*) AS n FROM resource_names WHERE kind = 'agent' AND name LIKE 'paged-%'`)
+            .get() as { n: number }
+        ).n,
+      ),
+    );
   });
 
   it("stops on a row that does not decode, and records nothing", () => {
@@ -303,6 +334,21 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
         )
       ).rows;
       expectBackfilled(rows, logger);
+    });
+
+    it("reads every page of a kind", async () => {
+      const { client, url } = await v23Database();
+      await seed(client, PAGED);
+      await migrate(url, SCHEMA_VERSION_24);
+      await expectPagedNamed(async () =>
+        Number(
+          (
+            await client.query<{ n: string }>(
+              `SELECT COUNT(*) AS n FROM resource_names WHERE kind = 'agent' AND name LIKE 'paged-%'`,
+            )
+          ).rows[0]?.n,
+        ),
+      );
     });
 
     it("stops on a row that does not decode, and records nothing", async () => {

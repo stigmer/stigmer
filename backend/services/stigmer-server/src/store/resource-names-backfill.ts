@@ -35,9 +35,8 @@
  */
 import { fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage, Message } from "@bufbuild/protobuf";
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import { reflect } from "@bufbuild/protobuf/reflect";
-import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
@@ -139,21 +138,22 @@ export class KindNameBackfill {
     if (this.named.names !== undefined && !this.named.names(resource)) {
       return;
     }
-    const root = reflect(this.named.schema, resource);
-    const metadata = metadataFieldsOf(root);
-    if (metadata.org === "" || metadata.slug === "") {
+    const row = resource as NamedRow;
+    const org = row.metadata?.org ?? "";
+    const slug = row.metadata?.slug ?? "";
+    if (org === "" || slug === "") {
       return;
     }
-    const createdAt = createdAtOf(root);
+    const createdAt = createdAtOf(row);
     const candidate: Candidate = {
       kind: this.named.kind,
-      org: metadata.org,
-      name: metadata.slug,
+      org,
+      name: slug,
       id,
       claimedAt: createdAt === "" ? this.now : createdAt,
       createdAt,
     };
-    const key = `${metadata.org}\u0000${metadata.slug}`;
+    const key = `${org}\u0000${slug}`;
     const holder = this.held.get(key);
     if (holder === undefined) {
       this.held.set(key, candidate);
@@ -217,60 +217,22 @@ function isOlder(a: Candidate, b: Candidate): boolean {
   return a.id < b.id;
 }
 
-/** `metadata.org` and `metadata.slug` of any kind's row, read by field name. */
-function metadataFieldsOf(root: ReflectMessage): { org: string; slug: string } {
-  const metadata = messageField(root, "metadata");
-  return {
-    org: stringField(metadata, "org"),
-    slug: stringField(metadata, "slug"),
+/**
+ * The fields this step reads, which every named kind's row shares: the
+ * resource envelope's metadata and its status audit.
+ */
+interface NamedRow {
+  readonly metadata?: { readonly org: string; readonly slug: string };
+  readonly status?: {
+    readonly audit?: { readonly specAudit?: { readonly createdAt?: Timestamp } };
   };
 }
 
 /** `status.audit.spec_audit.created_at` as RFC-3339, or "" when the row has none. */
-function createdAtOf(root: ReflectMessage): string {
-  const status = messageField(root, "status");
-  const audit = messageField(status, "audit");
-  const specAudit = messageField(audit, "spec_audit");
-  const createdAt = messageField(specAudit, "created_at")?.message as
-    | Timestamp
-    | undefined;
+function createdAtOf(row: NamedRow): string {
+  const createdAt = row.status?.audit?.specAudit?.createdAt;
   if (createdAt === undefined) {
     return "";
   }
-  const ms =
-    Number(createdAt.seconds) * 1000 + Math.floor(createdAt.nanos / 1_000_000);
-  return new Date(ms).toISOString();
-}
-
-function messageField(
-  message: ReflectMessage | undefined,
-  name: string,
-): ReflectMessage | undefined {
-  if (message === undefined) {
-    return undefined;
-  }
-  const field = message.fields.find((f) => f.name === name);
-  if (
-    field === undefined ||
-    field.fieldKind !== "message" ||
-    !message.isSet(field)
-  ) {
-    return undefined;
-  }
-  return message.get(field);
-}
-
-function stringField(
-  message: ReflectMessage | undefined,
-  name: string,
-): string {
-  if (message === undefined) {
-    return "";
-  }
-  const field = message.fields.find((f) => f.name === name);
-  if (field === undefined || field.fieldKind !== "scalar") {
-    return "";
-  }
-  const value = message.get(field);
-  return typeof value === "string" ? value : "";
+  return timestampDate(createdAt).toISOString();
 }

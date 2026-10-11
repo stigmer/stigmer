@@ -967,6 +967,13 @@ describe("the step over a store", () => {
     expect((error as ConnectError).rawMessage).toContain("failed to read the writing organization");
   });
 
+  it("a reference to a kind the rule table does not hold is INTERNAL: a contract the pin test has not admitted", async () => {
+    const error = await failureOf(async () => {
+      await loadReferenceTargets(store, [ref(K.run, "acme", "run-1")], "acme");
+    });
+    expect((error as ConnectError).code).toBe(Code.Internal);
+  });
+
   it("the loaded targets are keyed by (kind, org, slug): the same slug in another organization is another row", async () => {
     await seedSkill("skl_a", "acme", "shared-name", V.visibility_org);
     await seedSkill("skl_g", "globex", "shared-name", V.visibility_child_orgs);

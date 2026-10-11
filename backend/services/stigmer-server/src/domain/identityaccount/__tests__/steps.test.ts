@@ -20,7 +20,9 @@
  *     the organization's service accounts: a name another service account
  *     of the organization holds is ALREADY_EXISTS with the
  *     SERVICE_ACCOUNT_NAME_TAKEN reason and moves nothing, the old name is
- *     free at once, the account may keep (or re-save) its own name, a name
+ *     free at once, a name a gone account still holds is taken once its
+ *     claim is old, a failed write moves the name back (a move back that
+ *     faults is logged), the account may keep (or re-save) its own name, a name
  *     held in another organization is free, the person fields are cleared,
  *     and a person's account passes untouched.
  */
@@ -48,14 +50,17 @@ import {
   newAssignBackendFieldsStep,
   newClaimServiceAccountNameStep,
   newRenameServiceAccountStep,
+  revertServiceAccountRenameOnFailure,
 } from "../steps.js";
 import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { fakeIdentityAccountStore } from "./support.js";
 import type { FakeIdentityAccountStore } from "./support.js";
+import { createLogger } from "../../../boot/logger.js";
 
 const ORG = "org_acme";
+const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 const OTHER_ORG = "org_other";
 
 type AccountContext = RequestContext<typeof IdentityAccountSchema>;
@@ -336,6 +341,49 @@ describe("RenameServiceAccount — the slug follows the name, unique in the orga
     metadata.slug = "stale-slug";
     await newRenameServiceAccountStep(accounts.store, accounts).execute(ctx);
     expect(ctx.newState.metadata?.slug).toBe("ci-deploy");
+  });
+
+  it("takes a name an account that is gone still holds, once its claim is old", async () => {
+    const accounts = await seeded();
+    const longAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    await accounts.store.resourceNames.claim(
+      { kind: "identity_account", org: ORG, name: "retired" },
+      "ida_gone",
+      longAgo,
+    );
+    const ctx = renaming(existing(accounts, "ida_self"), "retired");
+    await newRenameServiceAccountStep(accounts.store, accounts).execute(ctx);
+    expect(ctx.newState.metadata?.slug).toBe("retired");
+    expect(await nameOf(accounts.store, ORG, "retired")).toBe("ida_self");
+  });
+
+  it("moves the name back when the account's write fails, and logs a move back that faults", async () => {
+    const accounts = await seeded();
+    const ctx = renaming(existing(accounts, "ida_self"), "CI Deploy Prod");
+    await newRenameServiceAccountStep(accounts.store, accounts).execute(ctx);
+    const writeFailed = new Error("account store down");
+    await expect(
+      revertServiceAccountRenameOnFailure(accounts.store, silentLogger, ctx)(writeFailed),
+    ).rejects.toBe(writeFailed);
+    expect(await nameOf(accounts.store, ORG, "ci-deploy")).toBe("ida_self");
+    expect(await nameOf(accounts.store, ORG, "ci-deploy-prod")).toBeUndefined();
+
+    const errors: string[] = [];
+    const logger = createLogger({ level: "error", pretty: false, write: () => {} });
+    logger.error = (message: string) => {
+      errors.push(message);
+    };
+    const faulting = {
+      resourceNames: {
+        revertRename: async () => {
+          throw new Error("name table down");
+        },
+      },
+    } as unknown as Store;
+    await expect(
+      revertServiceAccountRenameOnFailure(faulting, logger, ctx)(writeFailed),
+    ).rejects.toBe(writeFailed);
+    expect(errors).toEqual([expect.stringMatching(/could not be moved back/)]);
   });
 
   it("clears the person fields whatever the request sent", async () => {
