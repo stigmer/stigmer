@@ -163,14 +163,10 @@ async function agentIn(org: string): Promise<{ id: string; slug: string; ref: Ag
   return { id: agent.metadata!.id, slug: agent.metadata!.slug, ref: agentRefOf(agent) };
 }
 
-// An execution create is authorized against the org's credits where billing
-// gates run, so the org is funded there first.
-async function fundedWhereMetered(org: string): Promise<void> {
-  if (!target.capabilities.billingGates) return;
-  if (target.fundTenancy === undefined) {
-    throw new Error(`target ${target.name} declares billingGates but cannot fund a tenancy`);
-  }
-  await target.fundTenancy(org);
+// A native run needs a key for its model's provider where provider keys
+// exist (the hosted edition), so the org saves the fixture keys there first.
+async function withProviderKeys(org: string): Promise<void> {
+  await target.keyTenancy?.(org);
 }
 
 const ROWS: readonly Row[] = [
@@ -244,7 +240,7 @@ const ROWS: readonly Row[] = [
     kind: ApiResourceKind.run,
     edition: "engine",
     async send({ org }, chosenId) {
-      await fundedWhereMetered(org);
+      await withProviderKeys(org);
       const agent = await agentIn(org);
       const name = uniqueName("mint-aex");
       // No runner need pick the run up: the create's answer and a read of the

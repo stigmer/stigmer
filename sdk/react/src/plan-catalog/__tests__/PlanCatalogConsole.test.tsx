@@ -53,7 +53,7 @@ describe("PlanCatalogConsole", () => {
     const catalog = await screen.findByRole("list", { name: "Plan catalog" });
     expect(within(catalog).getAllByText("On sale")).toHaveLength(2);
     expect(within(catalog).getByText("Retired")).toBeTruthy();
-    expect(within(catalog).getAllByText(/Bring your own provider keys/).length).toBeGreaterThan(0);
+    expect(within(catalog).getAllByText(/Child organizations/).length).toBeGreaterThan(0);
     expect(within(catalog).queryByText(/not offered yet/)).toBeNull();
   });
 

@@ -143,6 +143,7 @@ function useNewSessionFlow(options: UseNewSessionFlowOptions): UseNewSessionFlow
     skillRefs: { type: "ResourceRef[]", description: "Active skill references." },
     submit: { type: "(message: string, model?: string, context?: SessionComposerSubmitContext) => Promise<void>", description: "Create a session with the first run.  Composes all managed state (agent, workspace, plugins, skills, model, the vaults the conversation uses) into a single bootstrap RPC — `run.create` with an embedded session spec — then calls `onSessionCreated` on success.  The `model` parameter overrides `modelId` for this submission only (used when SessionComposer passes a per-message model selection)." },
     submitError: { type: "string | null", description: "Human-readable error from the last failed submission, or `null`." },
+    submitFailure: { type: "Error | null", description: "The last failed submission's error itself, or `null`: for a caller that renders a typed refusal (a `PROVIDER_KEY_REQUIRED` one, say) by its reason rather than its text." },
     workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace entries manager (git repos and local paths).", typeDescriptionLink: "/docs/sdk/react/workspace#useworkspaceentriesreturn" },
   }}
 />

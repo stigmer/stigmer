@@ -12,6 +12,7 @@
  */
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
+import { explicitProvider } from "./document-catalog.js";
 import type { ModelCatalogProvider } from "./model-catalog-provider.js";
 
 /**
@@ -59,6 +60,12 @@ export function harnessName(h: Harness): string {
  * evaluated at the run starter's fire-time backstop: upstream registry
  * drift must never break a previously-valid schedule at its 3 AM fire.
  *
+ * An explicit `openai:<name>` or `anthropic:<name>` reference passes on the
+ * native harness (and on "", any harness) without a registry entry: it names
+ * a model the organization serves on its own endpoint, which the runner
+ * routes by the prefix and no catalog lists. The Cursor harness runs only
+ * catalog models, so the form is judged like any other name there.
+ *
  * Degrades to a no-op ("") when the registry is empty or lacks the harness
  * section — a build without a usable registry must not refuse every write
  * (the hasAnyModels posture).
@@ -73,6 +80,13 @@ export function unknownModelPinRefusal(
 ): string {
   model = model.trim();
   if (model === "") {
+    return "";
+  }
+
+  if (
+    (harness === "" || harness === HARNESS_NAME_NATIVE) &&
+    explicitProvider(model) !== undefined
+  ) {
     return "";
   }
 

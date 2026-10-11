@@ -244,6 +244,16 @@ export class ModelRegistryStore implements ModelCatalogProvider {
       capability,
     );
   }
+  /** See {@link ModelCatalogProvider.providerOf}. */
+  providerOf(harness: string, model: string): string | undefined {
+    return this.currentCatalog.providerOf(harness, model);
+  }
+
+  /** See {@link ModelCatalogProvider.defaultModel}. */
+  defaultModel(harness: string): string | undefined {
+    return this.currentCatalog.defaultModel(harness);
+  }
+
 
   /** Immediate refresh, then hourly — Go's goroutine shape (:435-447). */
   startRefresh(): void {

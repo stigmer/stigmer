@@ -11,9 +11,13 @@ package ai.stigmer.billing.providerkey.v1;
  * itself never leaves the server, only which provider it is for, a hint to
  * tell two keys apart, and who saved it and when.
  *
- * An organization holds at most one key per provider. While its plan
- * includes bring-your-own provider keys, the Stigmer Cloud proxy serves the
- * organization's calls to that provider on this key: the provider bills the
+ * An organization holds at most one key per provider, where the provider
+ * names the wire protocol: "anthropic" is Anthropic's API or any endpoint
+ * that speaks it, "openai" is OpenAI's API or any endpoint that speaks it.
+ * The Stigmer Cloud proxy serves every one of the organization's calls to
+ * that provider on this key, on every plan, and on no other: a run whose
+ * model needs a provider the organization holds no key for is refused with
+ * FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED. The provider bills the
  * organization directly, and Stigmer meters the calls without charging them.
  *
  * Provider keys are not an API resource. They are keyed by organization and
@@ -47,6 +51,7 @@ private static final long serialVersionUID = 0L;
     keyHint_ = "";
     createdBy_ = "";
     inheritedFromOrg_ = "";
+    baseUrl_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -367,9 +372,9 @@ private static final long serialVersionUID = 0L;
   private boolean inUse_ = false;
   /**
    * <pre>
-   * False when the organization's plan no longer includes bring-your-own
-   * provider keys: the key is kept and can be removed, but the proxy serves
-   * the organization on the platform's key, metered, until the plan does.
+   * No longer used: always true. Every plan serves calls on the
+   * organization's own key, and list never returns a parent's key the
+   * organization's own key shadows. Kept because it is a wire field.
    * </pre>
    *
    * <code>bool in_use = 8 [json_name = "inUse"];</code>
@@ -431,6 +436,59 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int BASE_URL_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object baseUrl_ = "";
+  /**
+   * <pre>
+   * The endpoint the key is used against, as the provider's own SDK takes
+   * it as its base URL; empty means the provider's own API. For example
+   * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
+   * gateway. Always empty on an inherited row.
+   * </pre>
+   *
+   * <code>string base_url = 10 [json_name = "baseUrl"];</code>
+   * @return The baseUrl.
+   */
+  @java.lang.Override
+  public java.lang.String getBaseUrl() {
+    java.lang.Object ref = baseUrl_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      baseUrl_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The endpoint the key is used against, as the provider's own SDK takes
+   * it as its base URL; empty means the provider's own API. For example
+   * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
+   * gateway. Always empty on an inherited row.
+   * </pre>
+   *
+   * <code>string base_url = 10 [json_name = "baseUrl"];</code>
+   * @return The bytes for baseUrl.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getBaseUrlBytes() {
+    java.lang.Object ref = baseUrl_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      baseUrl_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -472,6 +530,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(inheritedFromOrg_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, inheritedFromOrg_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(baseUrl_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 10, baseUrl_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -511,6 +572,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(inheritedFromOrg_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, inheritedFromOrg_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(baseUrl_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(10, baseUrl_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -554,6 +618,8 @@ private static final long serialVersionUID = 0L;
         != other.getInUse()) return false;
     if (!getInheritedFromOrg()
         .equals(other.getInheritedFromOrg())) return false;
+    if (!getBaseUrl()
+        .equals(other.getBaseUrl())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -590,6 +656,8 @@ private static final long serialVersionUID = 0L;
         getInUse());
     hash = (37 * hash) + INHERITED_FROM_ORG_FIELD_NUMBER;
     hash = (53 * hash) + getInheritedFromOrg().hashCode();
+    hash = (37 * hash) + BASE_URL_FIELD_NUMBER;
+    hash = (53 * hash) + getBaseUrl().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -693,9 +761,13 @@ private static final long serialVersionUID = 0L;
    * itself never leaves the server, only which provider it is for, a hint to
    * tell two keys apart, and who saved it and when.
    *
-   * An organization holds at most one key per provider. While its plan
-   * includes bring-your-own provider keys, the Stigmer Cloud proxy serves the
-   * organization's calls to that provider on this key: the provider bills the
+   * An organization holds at most one key per provider, where the provider
+   * names the wire protocol: "anthropic" is Anthropic's API or any endpoint
+   * that speaks it, "openai" is OpenAI's API or any endpoint that speaks it.
+   * The Stigmer Cloud proxy serves every one of the organization's calls to
+   * that provider on this key, on every plan, and on no other: a run whose
+   * model needs a provider the organization holds no key for is refused with
+   * FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED. The provider bills the
    * organization directly, and Stigmer meters the calls without charging them.
    *
    * Provider keys are not an API resource. They are keyed by organization and
@@ -764,6 +836,7 @@ private static final long serialVersionUID = 0L;
       }
       inUse_ = false;
       inheritedFromOrg_ = "";
+      baseUrl_ = "";
       return this;
     }
 
@@ -834,6 +907,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.inheritedFromOrg_ = inheritedFromOrg_;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.baseUrl_ = baseUrl_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -884,6 +960,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getInheritedFromOrg().isEmpty()) {
         inheritedFromOrg_ = other.inheritedFromOrg_;
         bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      if (!other.getBaseUrl().isEmpty()) {
+        baseUrl_ = other.baseUrl_;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -963,6 +1044,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 74
+            case 82: {
+              baseUrl_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1800,9 +1886,9 @@ private static final long serialVersionUID = 0L;
     private boolean inUse_ ;
     /**
      * <pre>
-     * False when the organization's plan no longer includes bring-your-own
-     * provider keys: the key is kept and can be removed, but the proxy serves
-     * the organization on the platform's key, metered, until the plan does.
+     * No longer used: always true. Every plan serves calls on the
+     * organization's own key, and list never returns a parent's key the
+     * organization's own key shadows. Kept because it is a wire field.
      * </pre>
      *
      * <code>bool in_use = 8 [json_name = "inUse"];</code>
@@ -1814,9 +1900,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * False when the organization's plan no longer includes bring-your-own
-     * provider keys: the key is kept and can be removed, but the proxy serves
-     * the organization on the platform's key, metered, until the plan does.
+     * No longer used: always true. Every plan serves calls on the
+     * organization's own key, and list never returns a parent's key the
+     * organization's own key shadows. Kept because it is a wire field.
      * </pre>
      *
      * <code>bool in_use = 8 [json_name = "inUse"];</code>
@@ -1832,9 +1918,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * False when the organization's plan no longer includes bring-your-own
-     * provider keys: the key is kept and can be removed, but the proxy serves
-     * the organization on the platform's key, metered, until the plan does.
+     * No longer used: always true. Every plan serves calls on the
+     * organization's own key, and list never returns a parent's key the
+     * organization's own key shadows. Kept because it is a wire field.
      * </pre>
      *
      * <code>bool in_use = 8 [json_name = "inUse"];</code>
@@ -1945,6 +2031,113 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       inheritedFromOrg_ = value;
       bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object baseUrl_ = "";
+    /**
+     * <pre>
+     * The endpoint the key is used against, as the provider's own SDK takes
+     * it as its base URL; empty means the provider's own API. For example
+     * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
+     * gateway. Always empty on an inherited row.
+     * </pre>
+     *
+     * <code>string base_url = 10 [json_name = "baseUrl"];</code>
+     * @return The baseUrl.
+     */
+    public java.lang.String getBaseUrl() {
+      java.lang.Object ref = baseUrl_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        baseUrl_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The endpoint the key is used against, as the provider's own SDK takes
+     * it as its base URL; empty means the provider's own API. For example
+     * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
+     * gateway. Always empty on an inherited row.
+     * </pre>
+     *
+     * <code>string base_url = 10 [json_name = "baseUrl"];</code>
+     * @return The bytes for baseUrl.
+     */
+    public com.google.protobuf.ByteString
+        getBaseUrlBytes() {
+      java.lang.Object ref = baseUrl_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        baseUrl_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The endpoint the key is used against, as the provider's own SDK takes
+     * it as its base URL; empty means the provider's own API. For example
+     * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
+     * gateway. Always empty on an inherited row.
+     * </pre>
+     *
+     * <code>string base_url = 10 [json_name = "baseUrl"];</code>
+     * @param value The baseUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setBaseUrl(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      baseUrl_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The endpoint the key is used against, as the provider's own SDK takes
+     * it as its base URL; empty means the provider's own API. For example
+     * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
+     * gateway. Always empty on an inherited row.
+     * </pre>
+     *
+     * <code>string base_url = 10 [json_name = "baseUrl"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearBaseUrl() {
+      baseUrl_ = getDefaultInstance().getBaseUrl();
+      bitField0_ = (bitField0_ & ~0x00000200);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The endpoint the key is used against, as the provider's own SDK takes
+     * it as its base URL; empty means the provider's own API. For example
+     * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
+     * gateway. Always empty on an inherited row.
+     * </pre>
+     *
+     * <code>string base_url = 10 [json_name = "baseUrl"];</code>
+     * @param value The bytes for baseUrl to set.
+     * @return This builder for chaining.
+     */
+    public Builder setBaseUrlBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      baseUrl_ = value;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }

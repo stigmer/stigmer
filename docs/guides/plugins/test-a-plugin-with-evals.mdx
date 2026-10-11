@@ -399,23 +399,24 @@ Tries are kept out of the conversation list, so an eval of 200 tries does not
 bury your conversations. You reach them from the eval's page, or by ID.
 
 The Organization that installed the plugin pays for every try and every vote of
-an AI-graded check, from its own credit. Tries use its own provider keys. The
-vaults an eval names for its tries' logins and secrets are shared vaults; an
-eval refuses a person's own vault, its creator's included, because in Stigmer
-Cloud every viewer of the plugin reads each try, and a hook's or MCP server's
-output can show what a key unlocked. A shared vault is accepted whoever else may
-use it, so in Stigmer Cloud every viewer of the plugin in the Organization can
-read a try whose output shows a value from an attached vault. Whoever attaches a
-vault chooses that audience. The cost limit is an estimate, checked before each
-try starts against what the tries already spent plus the share each running try
-may still spend. Each try may spend at most an equal share of what is left for
-the tries that run at once; a try that needs more than its share is stopped at
-it and shown as not graded. Tries already running when the limit is reached
-finish, and so do their AI-graded checks, each vote capped at $0.25, so the
-spend can pass the limit by those. So can a try whose start failed or whose stop
-failed: it is recorded as not graded, and its run may still spend a little after
-that. So can a second run created by a start that raced its own retry: the try
-keeps the first run and stops the other when it finds it.
+an AI-graded check: native tries run on its own provider keys, billed by its
+provider, and a Cursor try draws on its credit. The vaults an eval names for its
+tries' logins and secrets are shared vaults; an eval refuses a person's own
+vault, its creator's included, because in Stigmer Cloud every viewer of the
+plugin reads each try, and a hook's or MCP server's output can show what a key
+unlocked. A shared vault is accepted whoever else may use it, so in Stigmer
+Cloud every viewer of the plugin in the Organization can read a try whose output
+shows a value from an attached vault. Whoever attaches a vault chooses that
+audience. The cost limit is an estimate, checked before each try starts against
+what the tries already spent plus the share each running try may still spend.
+Each try may spend at most an equal share of what is left for the tries that run
+at once; a try that needs more than its share is stopped at it and shown as not
+graded. Tries already running when the limit is reached finish, and so do their
+AI-graded checks, each vote capped at $0.25, so the spend can pass the limit by
+those. So can a try whose start failed or whose stop failed: it is recorded as
+not graded, and its run may still spend a little after that. So can a second run
+created by a start that raced its own retry: the try keeps the first run and
+stops the other when it finds it.
 
 ## Turn a bad run into a test case
 

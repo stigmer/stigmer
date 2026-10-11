@@ -130,4 +130,23 @@ export interface ModelCatalogProvider {
     harness: string,
     capability: string,
   ): string[];
+
+  /**
+   * The provider that serves a model on a harness: the catalog entry's
+   * `provider` for a canonical or provider api id, else the prefix of an
+   * explicit `openai:<name>` or `anthropic:<name>` reference (a model the
+   * catalog does not list, served on the organization's own endpoint).
+   * Undefined when neither names one. Admission reads it to know which
+   * provider key a run needs before the runner starts.
+   */
+  providerOf(harness: string, model: string): string | undefined;
+
+  /**
+   * The model a run on the harness executes when no settings layer named
+   * one: the runner's rule over the same document (the first featured
+   * standard entry for the harness, else the first standard entry), as the
+   * id the runner sends the provider. Undefined when no entry qualifies.
+   * The runner decides the default; this answers which one it will pick.
+   */
+  defaultModel(harness: string): string | undefined;
 }

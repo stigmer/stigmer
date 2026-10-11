@@ -58,22 +58,23 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n*ai/stigmer/billing/providerkey/v1/io.p" +
       "roto\022!ai.stigmer.billing.providerkey.v1\032" +
       "+ai/stigmer/billing/providerkey/v1/api.p" +
-      "roto\032\033buf/validate/validate.proto\"\213\001\n\023Se" +
+      "roto\032\033buf/validate/validate.proto\"\300\001\n\023Se" +
       "tProviderKeyInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R" +
       "\003org\0224\n\010provider\030\002 \001(\tB\030\272H\025r\023R\tanthropic" +
       "R\006openaiR\010provider\022#\n\007api_key\030\003 \001(\tB\n\272H\007" +
-      "r\005\020\010\030\200\004R\006apiKey\"i\n\026DeleteProviderKeyInpu" +
-      "t\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\0224\n\010provider" +
-      "\030\002 \001(\tB\030\272H\025r\023R\tanthropicR\006openaiR\010provid" +
-      "er\"2\n\025ListProviderKeysInput\022\031\n\003org\030\001 \001(\t" +
-      "B\007\272H\004r\002\020\001R\003org\"\\\n\026ListProviderKeysOutput" +
-      "\022B\n\004keys\030\001 \003(\0132..ai.stigmer.billing.prov" +
-      "iderkey.v1.ProviderKeyR\004keysB\262\001B\007IoProto" +
-      "P\001\242\002\004ASBP\252\002!Ai.Stigmer.Billing.Providerk" +
-      "ey.V1\312\002!Ai\\Stigmer\\Billing\\Providerkey\\V" +
-      "1\342\002-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GP" +
-      "BMetadata\352\002%Ai::Stigmer::Billing::Provid" +
-      "erkey::V1b\006proto3"
+      "r\005\020\010\030\200\004R\006apiKey\0223\n\010base_url\030\004 \001(\tB\030\272H\025r\020" +
+      "\030\200\020:\010https://\210\001\001\330\001\001R\007baseUrl\"i\n\026DeletePr" +
+      "oviderKeyInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003or" +
+      "g\0224\n\010provider\030\002 \001(\tB\030\272H\025r\023R\tanthropicR\006o" +
+      "penaiR\010provider\"2\n\025ListProviderKeysInput" +
+      "\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"\\\n\026ListProvi" +
+      "derKeysOutput\022B\n\004keys\030\001 \003(\0132..ai.stigmer" +
+      ".billing.providerkey.v1.ProviderKeyR\004key" +
+      "sB\262\001B\007IoProtoP\001\242\002\004ASBP\252\002!Ai.Stigmer.Bill" +
+      "ing.Providerkey.V1\312\002!Ai\\Stigmer\\Billing\\" +
+      "Providerkey\\V1\342\002-Ai\\Stigmer\\Billing\\Prov" +
+      "iderkey\\V1\\GPBMetadata\352\002%Ai::Stigmer::Bi" +
+      "lling::Providerkey::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -86,7 +87,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_providerkey_v1_SetProviderKeyInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_providerkey_v1_SetProviderKeyInput_descriptor,
-        new java.lang.String[] { "Org", "Provider", "ApiKey", });
+        new java.lang.String[] { "Org", "Provider", "ApiKey", "BaseUrl", });
     internal_static_ai_stigmer_billing_providerkey_v1_DeleteProviderKeyInput_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_billing_providerkey_v1_DeleteProviderKeyInput_fieldAccessorTable = new

@@ -169,19 +169,6 @@ async function getRegistry(): Promise<readonly RegistryModel[]> {
 }
 
 /**
- * Check whether a model identifier is known to the registry.
- *
- * Used to validate SubAgent model_override values. Returns false if the
- * registry is empty (fetch failed) — callers should treat this as "unknown"
- * and reject the override to avoid running on an unintended model.
- */
-export async function isModelRegistered(modelId: string): Promise<boolean> {
-  const registry = await getRegistry();
-  if (registry.length === 0) return false;
-  return registry.some((m) => m.id === modelId);
-}
-
-/**
  * Whether one engine's registry section lists a model by its id: a model a
  * subagent's run defaults or a plugin agent's file names runs only then
  * (an alias such as `sonnet` is no id and never matches). False when the

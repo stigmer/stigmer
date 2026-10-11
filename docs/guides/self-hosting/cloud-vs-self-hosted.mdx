@@ -23,14 +23,14 @@ change, not a rewrite.
 - Your data or compliance posture requires everything on your infrastructure.
 - You already operate Postgres and Docker (or Kubernetes) and want full control.
 - One team uses the server, and your own OIDC provider handles sign-in.
-- You want to pay LLM providers directly with your own API keys.
+- You want your model calls never to leave your infrastructure.
 
 **Choose Stigmer Cloud if:**
 
 - You want to build with Agents today, not operate a platform.
 - You need multiple Organizations, SSO/SAML, or per-resource permissions.
 - You want Agents reachable in Slack and WhatsApp.
-- You prefer one metered bill over managing provider keys and infrastructure.
+- You want a managed platform rather than operating infrastructure.
 
 ## Side by side
 
@@ -43,7 +43,7 @@ change, not a rewrite.
 | Permissions                           | Owner, admin, member and viewer roles per Organization; Private stays private | The Organization's roles, plus per-resource roles (Viewer, Editor, Owner) and Teams |
 | Sandbox isolation                     | Pluggable drivers: local process, Docker, Kubernetes (off by default)         | Managed Kubernetes isolation                                                        |
 | Channels (Slack, WhatsApp)            | Not available                                                                 | Included                                                                            |
-| LLM costs                             | Your provider keys, billed by providers directly                              | Metered prepaid credits, one bill                                                   |
+| LLM costs                             | Your provider keys, billed by providers directly                              | Your Organization's provider keys, billed by providers directly                     |
 | Model catalog                         | Bundled, refreshes automatically                                              | Always current                                                                      |
 | Operations, backups, upgrades         | Yours                                                                         | Managed                                                                             |
 
@@ -94,9 +94,11 @@ service requires:
 - **Channels.** Agents that talk to your users
   [in Slack and WhatsApp](/docs/guides/channels/connect-slack) — webhook
   delivery, provider apps, and outbound messaging are cloud infrastructure.
-- **Metered LLM billing.** LLM calls route through the managed proxy with
-  per-call metering, budget reservations, and cost caps — prepaid credits
-  instead of juggling provider keys. See [Billing](/docs/concepts/billing).
+- **Model calls on your own keys, metered.** LLM calls route through the managed
+  proxy on your Organization's own provider keys (or your own compatible
+  endpoint), with per-call metering and cost caps; the provider bills you
+  directly. See
+  [Model provider keys](/docs/guides/integrations/model-provider-keys).
 - **Someone else on call.** Upgrades, backups, scaling, and sandbox isolation
   are operated for you.
 

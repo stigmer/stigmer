@@ -31,7 +31,6 @@ describe("offeredFeatures", () => {
   it("lists what Cloud offers, leaving out what names nothing, in contract order", () => {
     const listed = create(EntitlementsSchema, { features: [Feature.teams, Feature.platform_client, ...BUSINESS.features] });
     expect(offeredFeatures(listed).map((f) => f.label)).toEqual([
-      "Bring your own provider keys",
       "Channels",
       "Sharing",
       "Teams",
@@ -95,10 +94,7 @@ describe("which plans are offered", () => {
   });
 
   it("says what a switch stops the organization creating, and nothing for an upgrade", () => {
-    expect(featuresLost(BUSINESS_PLAN, TEAM).map((feature) => feature.label)).toEqual([
-      "Bring your own provider keys",
-      "Child organizations",
-    ]);
+    expect(featuresLost(BUSINESS_PLAN, TEAM).map((feature) => feature.label)).toEqual(["Child organizations"]);
     expect(featuresLost(TEAM, BUSINESS_PLAN)).toEqual([]);
   });
 });

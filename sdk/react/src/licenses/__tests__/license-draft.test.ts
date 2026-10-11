@@ -79,7 +79,7 @@ describe("toLicenseInput", () => {
     graceDays: 30,
     maxUsers: 50,
     maxOrgs: undefined,
-    features: [Feature.sso_enforcement, Feature.byo_provider_keys],
+    features: [Feature.sso_enforcement],
     notes: "  PO 4411  ",
   };
 
@@ -102,14 +102,14 @@ describe("toLicenseInput", () => {
     expect(input.customer).toEqual({ id: "cus_acme", displayName: "Acme Corp", contactEmail: "ops@acme.test" });
     expect(input.entitlements).toEqual({
       limits: { maxUsers: 50 },
-      features: [Feature.sso_enforcement, Feature.byo_provider_keys],
+      features: [Feature.sso_enforcement],
     });
     expect(input.notes).toBe("PO 4411");
   });
 
   it("omits the limits entirely when both are unlimited", () => {
     const input = toLicenseInput({ ...draft, maxUsers: undefined, notes: "" });
-    expect(input.entitlements).toEqual({ features: [Feature.sso_enforcement, Feature.byo_provider_keys] });
+    expect(input.entitlements).toEqual({ features: [Feature.sso_enforcement] });
     expect(input.notes).toBeUndefined();
   });
 });

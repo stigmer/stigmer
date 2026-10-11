@@ -142,7 +142,6 @@ beforeAll(async () => {
   clients = target.clients();
   mock = requireLlmProxy(target);
   tenancy = await target.provisionTenancy();
-  await target.fundTenancy?.(tenancy.org);
 });
 
 afterEach(async () => {
@@ -484,7 +483,7 @@ describe.skipIf(!runnerServesTries)("PluginEval — what a try is given", () => 
   it("[rpc:PluginEvalQueryController.get] a try composes no standing context and no memory, although its organization has both", async () => {
     const fact = "The team ships on Thursdays.";
     const standing = "Always answer in French.";
-    const { org } = await provisionOrgWithFacts(clients, fixtures, [fact], (slug) => target.fundTenancy?.(slug) ?? Promise.resolve());
+    const { org } = await provisionOrgWithFacts(clients, fixtures, [fact], (slug) => target.keyTenancy?.(slug) ?? Promise.resolve());
     const organization = await clients.organizationQuery.get({ value: org });
     const spec = clone(OrganizationSpecSchema, organization.spec ?? create(OrganizationSpecSchema));
     spec.preferences ??= create(OrganizationPreferencesSchema);

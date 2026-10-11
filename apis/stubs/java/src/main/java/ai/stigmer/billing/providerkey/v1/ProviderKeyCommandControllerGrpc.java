@@ -156,11 +156,11 @@ public final class ProviderKeyCommandControllerGrpc {
     /**
      * <pre>
      * Save the organization's key for a provider.
-     * The key is checked once against the provider before it is saved, and a
-     * key the provider rejects is refused with INVALID_ARGUMENT. Refused with
-     * FAILED_PRECONDITION, reason PLAN_UPGRADE_REQUIRED, when the
-     * organization's plan does not include bring-your-own provider keys.
-     * Returns the saved key without its secret.
+     * Allowed on every plan. The key is checked once against the provider
+     * (or the base URL, when one is given) before it is saved, and a key the
+     * provider rejects is refused with INVALID_ARGUMENT, as is a base URL
+     * that is not https or does not resolve to a public address. Returns the
+     * saved key without its secret.
      * </pre>
      */
     default void set(ai.stigmer.billing.providerkey.v1.SetProviderKeyInput request,
@@ -171,8 +171,7 @@ public final class ProviderKeyCommandControllerGrpc {
     /**
      * <pre>
      * Remove the organization's key for a provider.
-     * Allowed on every plan, so an organization that left the plan can always
-     * remove what it saved. NOT_FOUND when the organization holds no key for
+     * NOT_FOUND when the organization holds no key for
      * the provider. Returns the removed key without its secret.
      * </pre>
      */
@@ -228,11 +227,11 @@ public final class ProviderKeyCommandControllerGrpc {
     /**
      * <pre>
      * Save the organization's key for a provider.
-     * The key is checked once against the provider before it is saved, and a
-     * key the provider rejects is refused with INVALID_ARGUMENT. Refused with
-     * FAILED_PRECONDITION, reason PLAN_UPGRADE_REQUIRED, when the
-     * organization's plan does not include bring-your-own provider keys.
-     * Returns the saved key without its secret.
+     * Allowed on every plan. The key is checked once against the provider
+     * (or the base URL, when one is given) before it is saved, and a key the
+     * provider rejects is refused with INVALID_ARGUMENT, as is a base URL
+     * that is not https or does not resolve to a public address. Returns the
+     * saved key without its secret.
      * </pre>
      */
     public void set(ai.stigmer.billing.providerkey.v1.SetProviderKeyInput request,
@@ -244,8 +243,7 @@ public final class ProviderKeyCommandControllerGrpc {
     /**
      * <pre>
      * Remove the organization's key for a provider.
-     * Allowed on every plan, so an organization that left the plan can always
-     * remove what it saved. NOT_FOUND when the organization holds no key for
+     * NOT_FOUND when the organization holds no key for
      * the provider. Returns the removed key without its secret.
      * </pre>
      */
@@ -283,11 +281,11 @@ public final class ProviderKeyCommandControllerGrpc {
     /**
      * <pre>
      * Save the organization's key for a provider.
-     * The key is checked once against the provider before it is saved, and a
-     * key the provider rejects is refused with INVALID_ARGUMENT. Refused with
-     * FAILED_PRECONDITION, reason PLAN_UPGRADE_REQUIRED, when the
-     * organization's plan does not include bring-your-own provider keys.
-     * Returns the saved key without its secret.
+     * Allowed on every plan. The key is checked once against the provider
+     * (or the base URL, when one is given) before it is saved, and a key the
+     * provider rejects is refused with INVALID_ARGUMENT, as is a base URL
+     * that is not https or does not resolve to a public address. Returns the
+     * saved key without its secret.
      * </pre>
      */
     public ai.stigmer.billing.providerkey.v1.ProviderKey set(ai.stigmer.billing.providerkey.v1.SetProviderKeyInput request) throws io.grpc.StatusException {
@@ -298,8 +296,7 @@ public final class ProviderKeyCommandControllerGrpc {
     /**
      * <pre>
      * Remove the organization's key for a provider.
-     * Allowed on every plan, so an organization that left the plan can always
-     * remove what it saved. NOT_FOUND when the organization holds no key for
+     * NOT_FOUND when the organization holds no key for
      * the provider. Returns the removed key without its secret.
      * </pre>
      */
@@ -336,11 +333,11 @@ public final class ProviderKeyCommandControllerGrpc {
     /**
      * <pre>
      * Save the organization's key for a provider.
-     * The key is checked once against the provider before it is saved, and a
-     * key the provider rejects is refused with INVALID_ARGUMENT. Refused with
-     * FAILED_PRECONDITION, reason PLAN_UPGRADE_REQUIRED, when the
-     * organization's plan does not include bring-your-own provider keys.
-     * Returns the saved key without its secret.
+     * Allowed on every plan. The key is checked once against the provider
+     * (or the base URL, when one is given) before it is saved, and a key the
+     * provider rejects is refused with INVALID_ARGUMENT, as is a base URL
+     * that is not https or does not resolve to a public address. Returns the
+     * saved key without its secret.
      * </pre>
      */
     public ai.stigmer.billing.providerkey.v1.ProviderKey set(ai.stigmer.billing.providerkey.v1.SetProviderKeyInput request) {
@@ -351,8 +348,7 @@ public final class ProviderKeyCommandControllerGrpc {
     /**
      * <pre>
      * Remove the organization's key for a provider.
-     * Allowed on every plan, so an organization that left the plan can always
-     * remove what it saved. NOT_FOUND when the organization holds no key for
+     * NOT_FOUND when the organization holds no key for
      * the provider. Returns the removed key without its secret.
      * </pre>
      */
@@ -389,11 +385,11 @@ public final class ProviderKeyCommandControllerGrpc {
     /**
      * <pre>
      * Save the organization's key for a provider.
-     * The key is checked once against the provider before it is saved, and a
-     * key the provider rejects is refused with INVALID_ARGUMENT. Refused with
-     * FAILED_PRECONDITION, reason PLAN_UPGRADE_REQUIRED, when the
-     * organization's plan does not include bring-your-own provider keys.
-     * Returns the saved key without its secret.
+     * Allowed on every plan. The key is checked once against the provider
+     * (or the base URL, when one is given) before it is saved, and a key the
+     * provider rejects is refused with INVALID_ARGUMENT, as is a base URL
+     * that is not https or does not resolve to a public address. Returns the
+     * saved key without its secret.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.providerkey.v1.ProviderKey> set(
@@ -405,8 +401,7 @@ public final class ProviderKeyCommandControllerGrpc {
     /**
      * <pre>
      * Remove the organization's key for a provider.
-     * Allowed on every plan, so an organization that left the plan can always
-     * remove what it saved. NOT_FOUND when the organization holds no key for
+     * NOT_FOUND when the organization holds no key for
      * the provider. Returns the removed key without its secret.
      * </pre>
      */

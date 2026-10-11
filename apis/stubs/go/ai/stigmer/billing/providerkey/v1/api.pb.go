@@ -26,9 +26,13 @@ const (
 // itself never leaves the server, only which provider it is for, a hint to
 // tell two keys apart, and who saved it and when.
 //
-// An organization holds at most one key per provider. While its plan
-// includes bring-your-own provider keys, the Stigmer Cloud proxy serves the
-// organization's calls to that provider on this key: the provider bills the
+// An organization holds at most one key per provider, where the provider
+// names the wire protocol: "anthropic" is Anthropic's API or any endpoint
+// that speaks it, "openai" is OpenAI's API or any endpoint that speaks it.
+// The Stigmer Cloud proxy serves every one of the organization's calls to
+// that provider on this key, on every plan, and on no other: a run whose
+// model needs a provider the organization holds no key for is refused with
+// FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED. The provider bills the
 // organization directly, and Stigmer meters the calls without charging them.
 //
 // Provider keys are not an API resource. They are keyed by organization and
@@ -50,16 +54,21 @@ type ProviderKey struct {
 	// When the proxy last served a call on the key; unset when it never has.
 	// Updated at most once a minute.
 	LastUsedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
-	// False when the organization's plan no longer includes bring-your-own
-	// provider keys: the key is kept and can be removed, but the proxy serves
-	// the organization on the platform's key, metered, until the plan does.
+	// No longer used: always true. Every plan serves calls on the
+	// organization's own key, and list never returns a parent's key the
+	// organization's own key shadows. Kept because it is a wire field.
 	InUse bool `protobuf:"varint,8,opt,name=in_use,json=inUse,proto3" json:"in_use,omitempty"`
 	// Set when the row is the parent organization's key, serving this child
 	// organization because it holds none of its own for the provider. Such a
 	// row is read-only here; it is managed on the parent.
 	InheritedFromOrg string `protobuf:"bytes,9,opt,name=inherited_from_org,json=inheritedFromOrg,proto3" json:"inherited_from_org,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The endpoint the key is used against, as the provider's own SDK takes
+	// it as its base URL; empty means the provider's own API. For example
+	// "https://gateway.example.com/openai/v1" for an OpenAI-compatible
+	// gateway. Always empty on an inherited row.
+	BaseUrl       string `protobuf:"bytes,10,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ProviderKey) Reset() {
@@ -155,11 +164,18 @@ func (x *ProviderKey) GetInheritedFromOrg() string {
 	return ""
 }
 
+func (x *ProviderKey) GetBaseUrl() string {
+	if x != nil {
+		return x.BaseUrl
+	}
+	return ""
+}
+
 var File_ai_stigmer_billing_providerkey_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/billing/providerkey/v1/api.proto\x12!ai.stigmer.billing.providerkey.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xee\x02\n" +
+	"+ai/stigmer/billing/providerkey/v1/api.proto\x12!ai.stigmer.billing.providerkey.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x89\x03\n" +
 	"\vProviderKey\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x19\n" +
@@ -173,7 +189,9 @@ const file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc = "" +
 	"\flast_used_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"lastUsedAt\x12\x15\n" +
 	"\x06in_use\x18\b \x01(\bR\x05inUse\x12,\n" +
-	"\x12inherited_from_org\x18\t \x01(\tR\x10inheritedFromOrgB\xb4\x02\n" +
+	"\x12inherited_from_org\x18\t \x01(\tR\x10inheritedFromOrg\x12\x19\n" +
+	"\bbase_url\x18\n" +
+	" \x01(\tR\abaseUrlB\xb4\x02\n" +
 	"%com.ai.stigmer.billing.providerkey.v1B\bApiProtoP\x01ZXgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"
 
 var (

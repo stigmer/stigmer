@@ -1,0 +1,120 @@
+// Conformance suite for run admission on the organization's own provider keys
+// (billingGates targets).
+// Domain: billing — the provider-key gate an agent-execution create runs
+// through on the hosted edition, on the create chain's
+// `agent-execution-create:pre-side-effect-gate` slot, after the request's own
+// validation.
+//
+// The hosted edition serves every model call on a key the organization
+// owns and never on one of its own, so a native run is admitted on a key and
+// on nothing else, and spends no credit:
+//   - an organization with no key for the run's model's provider is refused
+//     synchronously at create, FAILED_PRECONDITION with ErrorInfo reason
+//     PROVIDER_KEY_REQUIRED naming the provider and the model, and nothing
+//     reaches a model;
+//   - the same organization, once it saves its keys, runs to completion with
+//     no credit at all, and its balance does not move: the provider bills the
+//     organization directly.
+//
+// Skipped on the local OSS targets: no provider-key gate exists there (a
+// self-hosted runner calls its providers with the operator's own keys).
+import { Code } from "@connectrpc/connect";
+import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { expectGrpcCode } from "../contract/errors";
+import type { ConformanceClients } from "../harness/clients";
+import { FixtureTracker } from "../harness/fixtures";
+import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
+import { anthropicText } from "@stigmer/test-support/mock-llm";
+import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
+import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
+import { uniqueName } from "../support/naming";
+import { createTarget, type TargetProfile, type TenancyContext } from "../targets";
+
+// Collection-time capability read (the schedule-firing/forwarder pattern).
+const billingEnabled = createTarget().capabilities.billingGates;
+
+let target: TargetProfile;
+let clients: ConformanceClients;
+let mock: MockLlmProxy;
+const fixtures = new FixtureTracker();
+
+describe.skipIf(!billingEnabled)(
+  "Run admission — a native run runs on the organization's own provider key (billingGates targets)",
+  () => {
+    beforeAll(async () => {
+      target = createTarget();
+      await target.setup();
+      clients = target.clients();
+      mock = requireLlmProxy(target);
+    });
+
+    afterEach(async () => {
+      await fixtures.cleanup();
+      mock.reset();
+    });
+
+    afterAll(async () => {
+      await target?.teardown();
+    });
+
+    // A billingGates target without these lanes is a target bug, not a
+    // skippable condition — fail loudly rather than false-green.
+    async function provisionBare(): Promise<TenancyContext> {
+      if (target.provisionUnfundedTenancy === undefined || target.keyTenancy === undefined) {
+        throw new Error(
+          `target ${target.name} declares billingGates but provides no provisionUnfundedTenancy() or keyTenancy()`,
+        );
+      }
+      const context = await target.provisionUnfundedTenancy();
+      fixtures.defer(() => target.cleanupTenancy(context));
+      return context;
+    }
+
+    async function provisionAgent(org: string): Promise<AgentRefInit> {
+      const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
+      fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+      return agentRefOf(agent);
+    }
+
+    it("[billing.gate.provider-key.keyless-run-refused] an organization with no provider key is refused at create with PROVIDER_KEY_REQUIRED, and nothing reaches a model", async () => {
+      const { org } = await provisionBare();
+      const agentRef = await provisionAgent(org);
+
+      // No mock turn is queued: nothing may reach the model.
+      const err = await expectGrpcCode(
+        () => clients.agentExecutionCommand.create(makeAgentExecution({ org, name: uniqueName("aex"), agentRef })),
+        Code.FailedPrecondition,
+        "keyless create",
+      );
+      const [info] = err.findDetails(ErrorInfoSchema);
+      expect(info?.reason).toBe("PROVIDER_KEY_REQUIRED");
+      expect(info?.metadata["org"]).toBe(org);
+      expect(["anthropic", "openai"]).toContain(info?.metadata["provider"]);
+      expect(info?.metadata["model"], "the refusal names the model the run would have used").not.toBe("");
+      expect(err.rawMessage).toMatch(/^This organization has no (Anthropic|OpenAI) key for model '.+', so the run was not started\./);
+      expect(err.rawMessage).toContain("An admin can add one in Settings → Provider keys.");
+      expect(mock.remaining()).toBe(0);
+    });
+
+    it("[billing.gate.provider-key.keyed-run-completes-without-credit] the same organization, once keyed, runs with no credit and its balance does not move", async () => {
+      const { org } = await provisionBare();
+      const agentRef = await provisionAgent(org);
+      await target.keyTenancy!(org);
+      const before = await clients.billingQuery.getCreditBalance({ org });
+
+      mock.enqueue(anthropicText("Done."));
+      const created = await clients.agentExecutionCommand.create(
+        makeAgentExecution({ org, name: uniqueName("aex"), agentRef }),
+      );
+      fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
+
+      const final = await awaitTerminal(clients, created.metadata!.id);
+      expect(final.status?.phase, "the keyed org's run completes with no credit").toBe(RunPhase.RUN_COMPLETED);
+      const after = await clients.billingQuery.getCreditBalance({ org });
+      expect(after.availableMicros, "a run on the org's own key spends no credit").toBe(before.availableMicros);
+      expect(after.reservedMicros, "and holds none").toBe(0n);
+    });
+  },
+);

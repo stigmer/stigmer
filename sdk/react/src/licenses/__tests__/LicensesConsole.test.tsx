@@ -219,7 +219,7 @@ describe("LicensesConsole issue", () => {
     // are Cloud plan features.
     expect(screen.queryByLabelText(/Channels/)).toBeNull();
     expect(screen.queryByLabelText(/Sharing/)).toBeNull();
-    await user.click(screen.getByLabelText(/Bring your own provider keys/));
+    await user.click(screen.getByLabelText(/SSO enforcement/));
     expect(screen.getByText("Paid license for Initech until 2027-09-27")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Issue license" }));
 
@@ -229,7 +229,7 @@ describe("LicensesConsole issue", () => {
       name: "Paid license for Initech until 2027-09-27",
       org: "",
       customer: { displayName: "Initech", contactEmail: "ops@initech.test" },
-      entitlements: { limits: { maxUsers: 25 }, features: [Feature.byo_provider_keys] },
+      entitlements: { limits: { maxUsers: 25 }, features: [Feature.sso_enforcement] },
       term: LicenseTerm.paid,
       expiresAt: new Date("2027-09-28T00:00:00Z"),
       graceUntil: new Date("2027-10-28T00:00:00Z"),

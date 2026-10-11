@@ -38,7 +38,7 @@ each audience; the full list lives in the runner README
 
 | Your situation                                   | Stigmer token        | Backend endpoint      | Temporal address        | Cursor key                | LLM provider keys         |
 | ------------------------------------------------ | -------------------- | --------------------- | ----------------------- | ------------------------- | ------------------------- |
-| **Cloud, cloud execution** (no embedding)        | Pass to the SDK only | Platform-managed      | Platform-managed        | Platform-managed          | Platform-managed          |
+| **Cloud, cloud execution** (no embedding)        | Pass to the SDK only | Platform-managed      | Platform-managed        | Platform-managed          | Your Organization's       |
 | **Cloud, embedded local execution** (desktop)    | Required             | Required (your Cloud) | Discovered (token)      | Not needed (proxied)      | Not needed (proxied)      |
 | **Self-managed (OSS or self-hosted full stack)** | Optional             | Defaults to localhost | Discovered or localhost | Required (Cursor harness) | Required (native harness) |
 
@@ -53,8 +53,9 @@ How to read each row:
   the runner discovers it from the control plane at boot using your token (see
   [Temporal self-discovery](#temporal-self-discovery)). Setting the token also
   activates **proxy mode**: the runner routes its model traffic and artifact
-  uploads through the Stigmer proxy, which injects the real Cursor key, so you
-  do not pass `CURSOR_API_KEY`.
+  uploads through the Stigmer proxy, which injects the real Cursor key and your
+  Organization's own provider keys, so you pass neither `CURSOR_API_KEY` nor a
+  provider key.
 - **Self-managed.** You run your own Temporal and Stigmer Server. In the default
   `MODE=local`, `TEMPORAL_SERVICE_ADDRESS` defaults to `localhost:7233` and
   `STIGMER_BACKEND_ENDPOINT` to `http://localhost:7234`. `STIGMER_TOKEN` is

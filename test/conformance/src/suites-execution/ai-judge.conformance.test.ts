@@ -101,7 +101,6 @@ async function gradedRun(
   script: AnthropicMessageBody[],
 ): Promise<Graded> {
   const { org } = await target.provisionTenancy();
-  await target.fundTenancy?.(org);
   const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("judged") }));
   fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
   let evaluatorId: string | undefined;

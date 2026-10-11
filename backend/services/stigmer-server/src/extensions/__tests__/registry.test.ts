@@ -74,6 +74,8 @@ function fakeCatalog(): ModelCatalogProvider {
     canonicalModelsWithVariantForHarness: () => [],
     hasCapabilityForHarness: () => false,
     canonicalModelsWithCapabilityForHarness: () => [],
+    providerOf: () => undefined,
+    defaultModel: () => undefined,
   };
 }
 

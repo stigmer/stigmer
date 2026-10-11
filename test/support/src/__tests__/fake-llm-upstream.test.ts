@@ -91,6 +91,14 @@ describe("FakeLlmUpstream in the install journeys' modes", () => {
     expect(modelCalls(upstream)).toBe(0);
   });
 
+  it("answers a key save's model listing with an empty list, capturing nothing", async () => {
+    const upstream = await started({ defaultError: { message: ERROR_MESSAGE } });
+    const response = await fetch(`${upstream.url()}/v1/models`, { headers: { "x-api-key": "sk-ant-check" } });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ object: "list", data: [] });
+    expect(upstream.requests()).toEqual([]);
+  });
+
   it("answers an OpenAI call in error mode with OpenAI's error shape", async () => {
     const upstream = await started({ defaultError: { message: ERROR_MESSAGE } });
     const response = await post(upstream, "/v1/chat/completions", { model: "gpt-5", messages: [] });

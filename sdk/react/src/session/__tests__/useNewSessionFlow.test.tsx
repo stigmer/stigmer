@@ -1332,6 +1332,30 @@ describe("useNewSessionFlow", () => {
       expect(result.current.submitError).toBe(ownerCopy);
       expect(opts.onError).toHaveBeenCalledWith(ownerCopy);
     });
+
+    it("keeps the failed submission's error itself, for a refusal read by its reason, and clears it on the next try", async () => {
+      const { ConnectError, Code } = await import("@connectrpc/connect");
+      const refused = new ConnectError("This organization has no Anthropic key.", Code.FailedPrecondition);
+      mockCreateExecution.mockRejectedValueOnce(refused);
+
+      const opts = { ...defaultOptions(), audience: "guest" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+      act(() => {
+        result.current.setAgentRef({ org: "acme", slug: "support-bot" });
+        result.current.setResolution({ mode: "direct" });
+      });
+      expect(result.current.submitFailure).toBeNull();
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+      expect(result.current.submitFailure?.message).toContain("no Anthropic key");
+
+      mockCreateExecution.mockResolvedValueOnce({ sessionId: "ses_next" });
+      await act(async () => {
+        await result.current.submit("Hello again");
+      });
+      expect(result.current.submitFailure).toBeNull();
+    });
   });
   describe("plugins", () => {
     const PICKS_KEY = "stigmer:plugins:last-picks:v1:acme";

@@ -473,6 +473,16 @@ export type { VisitorClassifier } from "./extensions/visitor-classifier.js";
 // edition's own tests.
 export type { RunLane, RunLanes } from "./extensions/run-lanes.js";
 export { resolveRunConfig } from "./domain/run/resolve-run-config.js";
+// What ResolveRunConfig decided for a turn, read by a gate on the
+// agent-execution create slot: the engine the conversation runs on and the
+// settings it runs with (a gate that must know which provider a run's model
+// needs reads both here rather than re-deriving the engine), and the key it
+// rides under, for an edition's tests of such a gate.
+export {
+  RUN_CONFIG_PLACEMENT_KEY,
+  runConfigPlacementOf,
+} from "./domain/run/resolve-run-config.js";
+export type { RunConfigPlacement } from "./domain/run/resolve-run-config.js";
 // The tuple lifecycle's resolution, for a kind a composition serves outside
 // the generic chains (a cloud-served create): `resolveResourceCreatedEvent`
 // derives the creation event from the kind's `kind_meta` exactly as the

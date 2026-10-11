@@ -31,6 +31,9 @@ interface ModelRegistryEntry {
   id?: unknown;
   harness?: unknown;
   apiModelId?: unknown;
+  provider?: unknown;
+  costTier?: unknown;
+  featured?: unknown;
   pricingVariants?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
 }
@@ -52,6 +55,10 @@ interface RegistryIndexes {
   modelsByCapability: Map<string, Map<string, Set<string>>>;
   /** capability → harness → sorted canonical ids. */
   sortedModelsByCapabilityHarness: Map<string, Map<string, string[]>>;
+  /** harness → model reference (canonical or api id) → provider. */
+  providerByHarness: Map<string, Map<string, string>>;
+  /** harness → the default model's provider-facing id (the runner's rule). */
+  defaultModelByHarness: Map<string, string>;
 }
 
 /**
@@ -179,6 +186,39 @@ export class DocumentModelCatalog implements ModelCatalogProvider {
         ?.get(harness) ?? []
     );
   }
+
+  providerOf(harness: string, model: string): string | undefined {
+    const listed = this.indexes.providerByHarness.get(harness)?.get(model);
+    if (listed !== undefined) {
+      return listed;
+    }
+    return explicitProvider(model);
+  }
+
+  defaultModel(harness: string): string | undefined {
+    return this.indexes.defaultModelByHarness.get(harness);
+  }
+}
+
+/**
+ * The providers a model reference may name explicitly as `<provider>:<name>`,
+ * the form the runner routes without a catalog entry
+ * (`backend/services/runner/src/shared/llm-proxy.ts`, inferProvider).
+ */
+export const EXPLICIT_MODEL_PROVIDERS: readonly string[] = ["anthropic", "openai"];
+
+/**
+ * The provider an explicit `<provider>:<name>` reference names, or
+ * undefined. The prefix is matched case-insensitively and the name must be
+ * non-empty, as the runner reads it.
+ */
+export function explicitProvider(model: string): string | undefined {
+  const colon = model.indexOf(":");
+  if (colon <= 0 || colon === model.length - 1) {
+    return undefined;
+  }
+  const prefix = model.slice(0, colon).toLowerCase();
+  return EXPLICIT_MODEL_PROVIDERS.includes(prefix) ? prefix : undefined;
 }
 
 /**
@@ -229,6 +269,13 @@ function buildIndexes(document: string): RegistryIndexes | undefined {
     string,
     Map<string, string[]>
   >();
+  const providerByHarness = new Map<string, Map<string, string>>();
+  // The runner's default rule (backend/services/runner/src/shared/
+  // model-registry.ts, getDefaultModel), in document order: the first
+  // featured standard entry, else the first standard entry. A missing
+  // costTier reads as standard, as the runner reads it.
+  const featuredStandardByHarness = new Map<string, string>();
+  const anyStandardByHarness = new Map<string, string>();
 
   for (const raw of parsed.models as ModelRegistryEntry[]) {
     if (raw === null || typeof raw !== "object") {
@@ -246,6 +293,26 @@ function buildIndexes(document: string): RegistryIndexes | undefined {
     mapList(sortedModelsByHarness, harness).push(id);
     if (apiModelId !== "") {
       mapSet(modelsByHarness, harness).add(apiModelId);
+    }
+
+    const provider = typeof raw.provider === "string" ? raw.provider : "";
+    if (provider !== "") {
+      const byModel = mapStringMap(providerByHarness, harness);
+      byModel.set(id, provider);
+      if (apiModelId !== "") {
+        byModel.set(apiModelId, provider);
+      }
+      const costTier =
+        typeof raw.costTier === "string" ? raw.costTier : "standard";
+      if (costTier === "standard") {
+        const sent = apiModelId !== "" ? apiModelId : id;
+        if (raw.featured === true && !featuredStandardByHarness.has(harness)) {
+          featuredStandardByHarness.set(harness, sent);
+        }
+        if (!anyStandardByHarness.has(harness)) {
+          anyStandardByHarness.set(harness, sent);
+        }
+      }
     }
 
     if (raw.pricingVariants !== null && typeof raw.pricingVariants === "object") {
@@ -300,6 +367,11 @@ function buildIndexes(document: string): RegistryIndexes | undefined {
     }
   }
 
+  const defaultModelByHarness = new Map(anyStandardByHarness);
+  for (const [harness, model] of featuredStandardByHarness) {
+    defaultModelByHarness.set(harness, model);
+  }
+
   return {
     modelsByHarness,
     sortedModelsByHarness,
@@ -308,6 +380,8 @@ function buildIndexes(document: string): RegistryIndexes | undefined {
     sortedModelsByVariantHarness,
     modelsByCapability,
     sortedModelsByCapabilityHarness,
+    providerByHarness,
+    defaultModelByHarness,
   };
 }
 
@@ -315,6 +389,18 @@ function mapSet(m: Map<string, Set<string>>, key: string): Set<string> {
   let v = m.get(key);
   if (v === undefined) {
     v = new Set();
+    m.set(key, v);
+  }
+  return v;
+}
+
+function mapStringMap(
+  m: Map<string, Map<string, string>>,
+  key: string,
+): Map<string, string> {
+  let v = m.get(key);
+  if (v === undefined) {
+    v = new Map();
     m.set(key, v);
   }
   return v;
