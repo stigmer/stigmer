@@ -3076,6 +3076,29 @@
         },
         "description": "The files a plugin eval's graders read, as the try's turn left them.",
         "required": false
+      },
+      {
+        "name": "StopCause",
+        "jsonName": "stopCause",
+        "protoField": "stop_cause",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Why the turn stopped, as one word: budget_reached (the cost cap or the\n tool-call limit), timeout (a stall or the workspace lock), infrastructure\n (the worker shut down or stopped answering), platform_stop, user (a pause\n or a cancel), model_error (the model provider failed the turn), failed\n (any other failure), eval_stopped (a plugin eval's mock or scaffold\n stopped the try) or review_resolved (a file review was settled). Empty\n while the turn works, and when it ended on its own.",
+        "required": false,
+        "validation": {
+          "enum": [
+            "budget_reached",
+            "timeout",
+            "infrastructure",
+            "platform_stop",
+            "user",
+            "model_error",
+            "failed",
+            "eval_stopped",
+            "review_resolved"
+          ]
+        }
       }
     ]
   },

@@ -73,7 +73,7 @@ class UpdateSessionSubjectRequest(_message.Message):
     def __init__(self, id: _Optional[str] = ..., subject: _Optional[str] = ...) -> None: ...
 
 class ListSessionEventsRequest(_message.Message):
-    __slots__ = ("session_id", "page_size", "page_token", "order", "types", "created_at_gt", "created_at_gte", "created_at_lt", "created_at_lte")
+    __slots__ = ("session_id", "page_size", "page_token", "order", "types", "created_at_gt", "created_at_gte", "created_at_lt", "created_at_lte", "run_id")
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
@@ -83,6 +83,7 @@ class ListSessionEventsRequest(_message.Message):
     CREATED_AT_GTE_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_LT_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_LTE_FIELD_NUMBER: _ClassVar[int]
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
     session_id: str
     page_size: int
     page_token: str
@@ -92,7 +93,8 @@ class ListSessionEventsRequest(_message.Message):
     created_at_gte: str
     created_at_lt: str
     created_at_lte: str
-    def __init__(self, session_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., order: _Optional[str] = ..., types: _Optional[_Iterable[str]] = ..., created_at_gt: _Optional[str] = ..., created_at_gte: _Optional[str] = ..., created_at_lt: _Optional[str] = ..., created_at_lte: _Optional[str] = ...) -> None: ...
+    run_id: str
+    def __init__(self, session_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., order: _Optional[str] = ..., types: _Optional[_Iterable[str]] = ..., created_at_gt: _Optional[str] = ..., created_at_gte: _Optional[str] = ..., created_at_lt: _Optional[str] = ..., created_at_lte: _Optional[str] = ..., run_id: _Optional[str] = ...) -> None: ...
 
 class SessionEventList(_message.Message):
     __slots__ = ("events", "next_page_token")
@@ -113,22 +115,26 @@ class StreamSessionEventsRequest(_message.Message):
     def __init__(self, session_id: _Optional[str] = ..., event_deltas: _Optional[_Iterable[str]] = ..., after_seq: _Optional[int] = ...) -> None: ...
 
 class StreamSessionEventsResponse(_message.Message):
-    __slots__ = ("event", "event_start", "event_delta")
+    __slots__ = ("event", "event_start", "event_delta", "stigmer_tool_output_delta")
     EVENT_FIELD_NUMBER: _ClassVar[int]
     EVENT_START_FIELD_NUMBER: _ClassVar[int]
     EVENT_DELTA_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_TOOL_OUTPUT_DELTA_FIELD_NUMBER: _ClassVar[int]
     event: _event_pb2.SessionEvent
     event_start: _event_pb2.EventStart
     event_delta: _event_pb2.EventDelta
-    def __init__(self, event: _Optional[_Union[_event_pb2.SessionEvent, _Mapping]] = ..., event_start: _Optional[_Union[_event_pb2.EventStart, _Mapping]] = ..., event_delta: _Optional[_Union[_event_pb2.EventDelta, _Mapping]] = ...) -> None: ...
+    stigmer_tool_output_delta: _event_pb2.ToolOutputDelta
+    def __init__(self, event: _Optional[_Union[_event_pb2.SessionEvent, _Mapping]] = ..., event_start: _Optional[_Union[_event_pb2.EventStart, _Mapping]] = ..., event_delta: _Optional[_Union[_event_pb2.EventDelta, _Mapping]] = ..., stigmer_tool_output_delta: _Optional[_Union[_event_pb2.ToolOutputDelta, _Mapping]] = ...) -> None: ...
 
 class SessionEventPreview(_message.Message):
-    __slots__ = ("event_start", "event_delta")
+    __slots__ = ("event_start", "event_delta", "stigmer_tool_output_delta")
     EVENT_START_FIELD_NUMBER: _ClassVar[int]
     EVENT_DELTA_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_TOOL_OUTPUT_DELTA_FIELD_NUMBER: _ClassVar[int]
     event_start: _event_pb2.EventStart
     event_delta: _event_pb2.EventDelta
-    def __init__(self, event_start: _Optional[_Union[_event_pb2.EventStart, _Mapping]] = ..., event_delta: _Optional[_Union[_event_pb2.EventDelta, _Mapping]] = ...) -> None: ...
+    stigmer_tool_output_delta: _event_pb2.ToolOutputDelta
+    def __init__(self, event_start: _Optional[_Union[_event_pb2.EventStart, _Mapping]] = ..., event_delta: _Optional[_Union[_event_pb2.EventDelta, _Mapping]] = ..., stigmer_tool_output_delta: _Optional[_Union[_event_pb2.ToolOutputDelta, _Mapping]] = ...) -> None: ...
 
 class AppendSessionEventsInput(_message.Message):
     __slots__ = ("run_id", "events", "previews")

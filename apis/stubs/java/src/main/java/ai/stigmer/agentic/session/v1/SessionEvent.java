@@ -82,6 +82,11 @@ private static final long serialVersionUID = 0L;
     AGENT_THREAD_MESSAGE_SENT(23),
     AGENT_THREAD_MESSAGE_RECEIVED(24),
     AGENT_THREAD_CONTEXT_COMPACTED(25),
+    STIGMER_AGENT_THINKING(100),
+    STIGMER_PERMISSION_ASKED(101),
+    STIGMER_HARNESS_NOTE(102),
+    STIGMER_AGENT_STRUCTURED_OUTPUT(103),
+    STIGMER_MEMORY_RECALLED(104),
     EVENT_NOT_SET(0);
     private final int value;
     private EventCase(int value) {
@@ -115,6 +120,11 @@ private static final long serialVersionUID = 0L;
         case 23: return AGENT_THREAD_MESSAGE_SENT;
         case 24: return AGENT_THREAD_MESSAGE_RECEIVED;
         case 25: return AGENT_THREAD_CONTEXT_COMPACTED;
+        case 100: return STIGMER_AGENT_THINKING;
+        case 101: return STIGMER_PERMISSION_ASKED;
+        case 102: return STIGMER_HARNESS_NOTE;
+        case 103: return STIGMER_AGENT_STRUCTURED_OUTPUT;
+        case 104: return STIGMER_MEMORY_RECALLED;
         case 0: return EVENT_NOT_SET;
         default: return null;
       }
@@ -977,6 +987,221 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.session.v1.AgentThreadContextCompactedEvent.getDefaultInstance();
   }
 
+  public static final int STIGMER_AGENT_THINKING_FIELD_NUMBER = 100;
+  /**
+   * <pre>
+   * The text of the agent's thinking.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+   * @return Whether the stigmerAgentThinking field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerAgentThinking() {
+    return eventCase_ == 100;
+  }
+  /**
+   * <pre>
+   * The text of the agent's thinking.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+   * @return The stigmerAgentThinking.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent getStigmerAgentThinking() {
+    if (eventCase_ == 100) {
+       return (ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * The text of the agent's thinking.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerAgentThinkingEventOrBuilder getStigmerAgentThinkingOrBuilder() {
+    if (eventCase_ == 100) {
+       return (ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.getDefaultInstance();
+  }
+
+  public static final int STIGMER_PERMISSION_ASKED_FIELD_NUMBER = 101;
+  /**
+   * <pre>
+   * Why a tool use waits for a person's answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+   * @return Whether the stigmerPermissionAsked field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerPermissionAsked() {
+    return eventCase_ == 101;
+  }
+  /**
+   * <pre>
+   * Why a tool use waits for a person's answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+   * @return The stigmerPermissionAsked.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent getStigmerPermissionAsked() {
+    if (eventCase_ == 101) {
+       return (ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * Why a tool use waits for a person's answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerPermissionAskedEventOrBuilder getStigmerPermissionAskedOrBuilder() {
+    if (eventCase_ == 101) {
+       return (ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.getDefaultInstance();
+  }
+
+  public static final int STIGMER_HARNESS_NOTE_FIELD_NUMBER = 102;
+  /**
+   * <pre>
+   * A line the platform added to the conversation in its own voice.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+   * @return Whether the stigmerHarnessNote field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerHarnessNote() {
+    return eventCase_ == 102;
+  }
+  /**
+   * <pre>
+   * A line the platform added to the conversation in its own voice.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+   * @return The stigmerHarnessNote.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent getStigmerHarnessNote() {
+    if (eventCase_ == 102) {
+       return (ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * A line the platform added to the conversation in its own voice.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerHarnessNoteEventOrBuilder getStigmerHarnessNoteOrBuilder() {
+    if (eventCase_ == 102) {
+       return (ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.getDefaultInstance();
+  }
+
+  public static final int STIGMER_AGENT_STRUCTURED_OUTPUT_FIELD_NUMBER = 103;
+  /**
+   * <pre>
+   * The structured output the turn produced.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+   * @return Whether the stigmerAgentStructuredOutput field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerAgentStructuredOutput() {
+    return eventCase_ == 103;
+  }
+  /**
+   * <pre>
+   * The structured output the turn produced.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+   * @return The stigmerAgentStructuredOutput.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent getStigmerAgentStructuredOutput() {
+    if (eventCase_ == 103) {
+       return (ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * The structured output the turn produced.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEventOrBuilder getStigmerAgentStructuredOutputOrBuilder() {
+    if (eventCase_ == 103) {
+       return (ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.getDefaultInstance();
+  }
+
+  public static final int STIGMER_MEMORY_RECALLED_FIELD_NUMBER = 104;
+  /**
+   * <pre>
+   * Which of the agent's memories the turn recalled.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+   * @return Whether the stigmerMemoryRecalled field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerMemoryRecalled() {
+    return eventCase_ == 104;
+  }
+  /**
+   * <pre>
+   * Which of the agent's memories the turn recalled.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+   * @return The stigmerMemoryRecalled.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent getStigmerMemoryRecalled() {
+    if (eventCase_ == 104) {
+       return (ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * Which of the agent's memories the turn recalled.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEventOrBuilder getStigmerMemoryRecalledOrBuilder() {
+    if (eventCase_ == 104) {
+       return (ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1050,6 +1275,21 @@ private static final long serialVersionUID = 0L;
     }
     if (eventCase_ == 25) {
       output.writeMessage(25, (ai.stigmer.agentic.session.v1.AgentThreadContextCompactedEvent) event_);
+    }
+    if (eventCase_ == 100) {
+      output.writeMessage(100, (ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent) event_);
+    }
+    if (eventCase_ == 101) {
+      output.writeMessage(101, (ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent) event_);
+    }
+    if (eventCase_ == 102) {
+      output.writeMessage(102, (ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent) event_);
+    }
+    if (eventCase_ == 103) {
+      output.writeMessage(103, (ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent) event_);
+    }
+    if (eventCase_ == 104) {
+      output.writeMessage(104, (ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent) event_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1136,6 +1376,26 @@ private static final long serialVersionUID = 0L;
     if (eventCase_ == 25) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(25, (ai.stigmer.agentic.session.v1.AgentThreadContextCompactedEvent) event_);
+    }
+    if (eventCase_ == 100) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(100, (ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent) event_);
+    }
+    if (eventCase_ == 101) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(101, (ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent) event_);
+    }
+    if (eventCase_ == 102) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(102, (ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent) event_);
+    }
+    if (eventCase_ == 103) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(103, (ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent) event_);
+    }
+    if (eventCase_ == 104) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(104, (ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent) event_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -1226,6 +1486,26 @@ private static final long serialVersionUID = 0L;
         if (!getAgentThreadContextCompacted()
             .equals(other.getAgentThreadContextCompacted())) return false;
         break;
+      case 100:
+        if (!getStigmerAgentThinking()
+            .equals(other.getStigmerAgentThinking())) return false;
+        break;
+      case 101:
+        if (!getStigmerPermissionAsked()
+            .equals(other.getStigmerPermissionAsked())) return false;
+        break;
+      case 102:
+        if (!getStigmerHarnessNote()
+            .equals(other.getStigmerHarnessNote())) return false;
+        break;
+      case 103:
+        if (!getStigmerAgentStructuredOutput()
+            .equals(other.getStigmerAgentStructuredOutput())) return false;
+        break;
+      case 104:
+        if (!getStigmerMemoryRecalled()
+            .equals(other.getStigmerMemoryRecalled())) return false;
+        break;
       case 0:
       default:
     }
@@ -1313,6 +1593,26 @@ private static final long serialVersionUID = 0L;
       case 25:
         hash = (37 * hash) + AGENT_THREAD_CONTEXT_COMPACTED_FIELD_NUMBER;
         hash = (53 * hash) + getAgentThreadContextCompacted().hashCode();
+        break;
+      case 100:
+        hash = (37 * hash) + STIGMER_AGENT_THINKING_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerAgentThinking().hashCode();
+        break;
+      case 101:
+        hash = (37 * hash) + STIGMER_PERMISSION_ASKED_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerPermissionAsked().hashCode();
+        break;
+      case 102:
+        hash = (37 * hash) + STIGMER_HARNESS_NOTE_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerHarnessNote().hashCode();
+        break;
+      case 103:
+        hash = (37 * hash) + STIGMER_AGENT_STRUCTURED_OUTPUT_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerAgentStructuredOutput().hashCode();
+        break;
+      case 104:
+        hash = (37 * hash) + STIGMER_MEMORY_RECALLED_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerMemoryRecalled().hashCode();
         break;
       case 0:
       default:
@@ -1509,6 +1809,21 @@ private static final long serialVersionUID = 0L;
       if (agentThreadContextCompactedBuilder_ != null) {
         agentThreadContextCompactedBuilder_.clear();
       }
+      if (stigmerAgentThinkingBuilder_ != null) {
+        stigmerAgentThinkingBuilder_.clear();
+      }
+      if (stigmerPermissionAskedBuilder_ != null) {
+        stigmerPermissionAskedBuilder_.clear();
+      }
+      if (stigmerHarnessNoteBuilder_ != null) {
+        stigmerHarnessNoteBuilder_.clear();
+      }
+      if (stigmerAgentStructuredOutputBuilder_ != null) {
+        stigmerAgentStructuredOutputBuilder_.clear();
+      }
+      if (stigmerMemoryRecalledBuilder_ != null) {
+        stigmerMemoryRecalledBuilder_.clear();
+      }
       eventCase_ = 0;
       event_ = null;
       return this;
@@ -1626,6 +1941,26 @@ private static final long serialVersionUID = 0L;
           agentThreadContextCompactedBuilder_ != null) {
         result.event_ = agentThreadContextCompactedBuilder_.build();
       }
+      if (eventCase_ == 100 &&
+          stigmerAgentThinkingBuilder_ != null) {
+        result.event_ = stigmerAgentThinkingBuilder_.build();
+      }
+      if (eventCase_ == 101 &&
+          stigmerPermissionAskedBuilder_ != null) {
+        result.event_ = stigmerPermissionAskedBuilder_.build();
+      }
+      if (eventCase_ == 102 &&
+          stigmerHarnessNoteBuilder_ != null) {
+        result.event_ = stigmerHarnessNoteBuilder_.build();
+      }
+      if (eventCase_ == 103 &&
+          stigmerAgentStructuredOutputBuilder_ != null) {
+        result.event_ = stigmerAgentStructuredOutputBuilder_.build();
+      }
+      if (eventCase_ == 104 &&
+          stigmerMemoryRecalledBuilder_ != null) {
+        result.event_ = stigmerMemoryRecalledBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -1721,6 +2056,26 @@ private static final long serialVersionUID = 0L;
         }
         case AGENT_THREAD_CONTEXT_COMPACTED: {
           mergeAgentThreadContextCompacted(other.getAgentThreadContextCompacted());
+          break;
+        }
+        case STIGMER_AGENT_THINKING: {
+          mergeStigmerAgentThinking(other.getStigmerAgentThinking());
+          break;
+        }
+        case STIGMER_PERMISSION_ASKED: {
+          mergeStigmerPermissionAsked(other.getStigmerPermissionAsked());
+          break;
+        }
+        case STIGMER_HARNESS_NOTE: {
+          mergeStigmerHarnessNote(other.getStigmerHarnessNote());
+          break;
+        }
+        case STIGMER_AGENT_STRUCTURED_OUTPUT: {
+          mergeStigmerAgentStructuredOutput(other.getStigmerAgentStructuredOutput());
+          break;
+        }
+        case STIGMER_MEMORY_RECALLED: {
+          mergeStigmerMemoryRecalled(other.getStigmerMemoryRecalled());
           break;
         }
         case EVENT_NOT_SET: {
@@ -1885,6 +2240,41 @@ private static final long serialVersionUID = 0L;
               eventCase_ = 25;
               break;
             } // case 202
+            case 802: {
+              input.readMessage(
+                  internalGetStigmerAgentThinkingFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 100;
+              break;
+            } // case 802
+            case 810: {
+              input.readMessage(
+                  internalGetStigmerPermissionAskedFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 101;
+              break;
+            } // case 810
+            case 818: {
+              input.readMessage(
+                  internalGetStigmerHarnessNoteFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 102;
+              break;
+            } // case 818
+            case 826: {
+              input.readMessage(
+                  internalGetStigmerAgentStructuredOutputFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 103;
+              break;
+            } // case 826
+            case 834: {
+              input.readMessage(
+                  internalGetStigmerMemoryRecalledFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 104;
+              break;
+            } // case 834
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -5091,6 +5481,896 @@ private static final long serialVersionUID = 0L;
       eventCase_ = 25;
       onChanged();
       return agentThreadContextCompactedBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent, ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.Builder, ai.stigmer.agentic.session.v1.StigmerAgentThinkingEventOrBuilder> stigmerAgentThinkingBuilder_;
+    /**
+     * <pre>
+     * The text of the agent's thinking.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+     * @return Whether the stigmerAgentThinking field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerAgentThinking() {
+      return eventCase_ == 100;
+    }
+    /**
+     * <pre>
+     * The text of the agent's thinking.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+     * @return The stigmerAgentThinking.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent getStigmerAgentThinking() {
+      if (stigmerAgentThinkingBuilder_ == null) {
+        if (eventCase_ == 100) {
+          return (ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 100) {
+          return stigmerAgentThinkingBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * The text of the agent's thinking.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+     */
+    public Builder setStigmerAgentThinking(ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent value) {
+      if (stigmerAgentThinkingBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerAgentThinkingBuilder_.setMessage(value);
+      }
+      eventCase_ = 100;
+      return this;
+    }
+    /**
+     * <pre>
+     * The text of the agent's thinking.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+     */
+    public Builder setStigmerAgentThinking(
+        ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.Builder builderForValue) {
+      if (stigmerAgentThinkingBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerAgentThinkingBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 100;
+      return this;
+    }
+    /**
+     * <pre>
+     * The text of the agent's thinking.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+     */
+    public Builder mergeStigmerAgentThinking(ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent value) {
+      if (stigmerAgentThinkingBuilder_ == null) {
+        if (eventCase_ == 100 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 100) {
+          stigmerAgentThinkingBuilder_.mergeFrom(value);
+        } else {
+          stigmerAgentThinkingBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 100;
+      return this;
+    }
+    /**
+     * <pre>
+     * The text of the agent's thinking.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+     */
+    public Builder clearStigmerAgentThinking() {
+      if (stigmerAgentThinkingBuilder_ == null) {
+        if (eventCase_ == 100) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 100) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerAgentThinkingBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The text of the agent's thinking.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.Builder getStigmerAgentThinkingBuilder() {
+      return internalGetStigmerAgentThinkingFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The text of the agent's thinking.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerAgentThinkingEventOrBuilder getStigmerAgentThinkingOrBuilder() {
+      if ((eventCase_ == 100) && (stigmerAgentThinkingBuilder_ != null)) {
+        return stigmerAgentThinkingBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 100) {
+          return (ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * The text of the agent's thinking.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent, ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.Builder, ai.stigmer.agentic.session.v1.StigmerAgentThinkingEventOrBuilder> 
+        internalGetStigmerAgentThinkingFieldBuilder() {
+      if (stigmerAgentThinkingBuilder_ == null) {
+        if (!(eventCase_ == 100)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.getDefaultInstance();
+        }
+        stigmerAgentThinkingBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent, ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.Builder, ai.stigmer.agentic.session.v1.StigmerAgentThinkingEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 100;
+      onChanged();
+      return stigmerAgentThinkingBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent, ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.Builder, ai.stigmer.agentic.session.v1.StigmerPermissionAskedEventOrBuilder> stigmerPermissionAskedBuilder_;
+    /**
+     * <pre>
+     * Why a tool use waits for a person's answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+     * @return Whether the stigmerPermissionAsked field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerPermissionAsked() {
+      return eventCase_ == 101;
+    }
+    /**
+     * <pre>
+     * Why a tool use waits for a person's answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+     * @return The stigmerPermissionAsked.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent getStigmerPermissionAsked() {
+      if (stigmerPermissionAskedBuilder_ == null) {
+        if (eventCase_ == 101) {
+          return (ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 101) {
+          return stigmerPermissionAskedBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * Why a tool use waits for a person's answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+     */
+    public Builder setStigmerPermissionAsked(ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent value) {
+      if (stigmerPermissionAskedBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerPermissionAskedBuilder_.setMessage(value);
+      }
+      eventCase_ = 101;
+      return this;
+    }
+    /**
+     * <pre>
+     * Why a tool use waits for a person's answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+     */
+    public Builder setStigmerPermissionAsked(
+        ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.Builder builderForValue) {
+      if (stigmerPermissionAskedBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerPermissionAskedBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 101;
+      return this;
+    }
+    /**
+     * <pre>
+     * Why a tool use waits for a person's answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+     */
+    public Builder mergeStigmerPermissionAsked(ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent value) {
+      if (stigmerPermissionAskedBuilder_ == null) {
+        if (eventCase_ == 101 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 101) {
+          stigmerPermissionAskedBuilder_.mergeFrom(value);
+        } else {
+          stigmerPermissionAskedBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 101;
+      return this;
+    }
+    /**
+     * <pre>
+     * Why a tool use waits for a person's answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+     */
+    public Builder clearStigmerPermissionAsked() {
+      if (stigmerPermissionAskedBuilder_ == null) {
+        if (eventCase_ == 101) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 101) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerPermissionAskedBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Why a tool use waits for a person's answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.Builder getStigmerPermissionAskedBuilder() {
+      return internalGetStigmerPermissionAskedFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Why a tool use waits for a person's answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerPermissionAskedEventOrBuilder getStigmerPermissionAskedOrBuilder() {
+      if ((eventCase_ == 101) && (stigmerPermissionAskedBuilder_ != null)) {
+        return stigmerPermissionAskedBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 101) {
+          return (ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * Why a tool use waits for a person's answer.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent, ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.Builder, ai.stigmer.agentic.session.v1.StigmerPermissionAskedEventOrBuilder> 
+        internalGetStigmerPermissionAskedFieldBuilder() {
+      if (stigmerPermissionAskedBuilder_ == null) {
+        if (!(eventCase_ == 101)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.getDefaultInstance();
+        }
+        stigmerPermissionAskedBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent, ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.Builder, ai.stigmer.agentic.session.v1.StigmerPermissionAskedEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 101;
+      onChanged();
+      return stigmerPermissionAskedBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent, ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.Builder, ai.stigmer.agentic.session.v1.StigmerHarnessNoteEventOrBuilder> stigmerHarnessNoteBuilder_;
+    /**
+     * <pre>
+     * A line the platform added to the conversation in its own voice.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+     * @return Whether the stigmerHarnessNote field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerHarnessNote() {
+      return eventCase_ == 102;
+    }
+    /**
+     * <pre>
+     * A line the platform added to the conversation in its own voice.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+     * @return The stigmerHarnessNote.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent getStigmerHarnessNote() {
+      if (stigmerHarnessNoteBuilder_ == null) {
+        if (eventCase_ == 102) {
+          return (ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 102) {
+          return stigmerHarnessNoteBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A line the platform added to the conversation in its own voice.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+     */
+    public Builder setStigmerHarnessNote(ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent value) {
+      if (stigmerHarnessNoteBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerHarnessNoteBuilder_.setMessage(value);
+      }
+      eventCase_ = 102;
+      return this;
+    }
+    /**
+     * <pre>
+     * A line the platform added to the conversation in its own voice.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+     */
+    public Builder setStigmerHarnessNote(
+        ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.Builder builderForValue) {
+      if (stigmerHarnessNoteBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerHarnessNoteBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 102;
+      return this;
+    }
+    /**
+     * <pre>
+     * A line the platform added to the conversation in its own voice.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+     */
+    public Builder mergeStigmerHarnessNote(ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent value) {
+      if (stigmerHarnessNoteBuilder_ == null) {
+        if (eventCase_ == 102 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 102) {
+          stigmerHarnessNoteBuilder_.mergeFrom(value);
+        } else {
+          stigmerHarnessNoteBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 102;
+      return this;
+    }
+    /**
+     * <pre>
+     * A line the platform added to the conversation in its own voice.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+     */
+    public Builder clearStigmerHarnessNote() {
+      if (stigmerHarnessNoteBuilder_ == null) {
+        if (eventCase_ == 102) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 102) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerHarnessNoteBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * A line the platform added to the conversation in its own voice.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.Builder getStigmerHarnessNoteBuilder() {
+      return internalGetStigmerHarnessNoteFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * A line the platform added to the conversation in its own voice.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerHarnessNoteEventOrBuilder getStigmerHarnessNoteOrBuilder() {
+      if ((eventCase_ == 102) && (stigmerHarnessNoteBuilder_ != null)) {
+        return stigmerHarnessNoteBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 102) {
+          return (ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A line the platform added to the conversation in its own voice.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent, ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.Builder, ai.stigmer.agentic.session.v1.StigmerHarnessNoteEventOrBuilder> 
+        internalGetStigmerHarnessNoteFieldBuilder() {
+      if (stigmerHarnessNoteBuilder_ == null) {
+        if (!(eventCase_ == 102)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.getDefaultInstance();
+        }
+        stigmerHarnessNoteBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent, ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.Builder, ai.stigmer.agentic.session.v1.StigmerHarnessNoteEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 102;
+      onChanged();
+      return stigmerHarnessNoteBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent, ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.Builder, ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEventOrBuilder> stigmerAgentStructuredOutputBuilder_;
+    /**
+     * <pre>
+     * The structured output the turn produced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+     * @return Whether the stigmerAgentStructuredOutput field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerAgentStructuredOutput() {
+      return eventCase_ == 103;
+    }
+    /**
+     * <pre>
+     * The structured output the turn produced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+     * @return The stigmerAgentStructuredOutput.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent getStigmerAgentStructuredOutput() {
+      if (stigmerAgentStructuredOutputBuilder_ == null) {
+        if (eventCase_ == 103) {
+          return (ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 103) {
+          return stigmerAgentStructuredOutputBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * The structured output the turn produced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+     */
+    public Builder setStigmerAgentStructuredOutput(ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent value) {
+      if (stigmerAgentStructuredOutputBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerAgentStructuredOutputBuilder_.setMessage(value);
+      }
+      eventCase_ = 103;
+      return this;
+    }
+    /**
+     * <pre>
+     * The structured output the turn produced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+     */
+    public Builder setStigmerAgentStructuredOutput(
+        ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.Builder builderForValue) {
+      if (stigmerAgentStructuredOutputBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerAgentStructuredOutputBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 103;
+      return this;
+    }
+    /**
+     * <pre>
+     * The structured output the turn produced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+     */
+    public Builder mergeStigmerAgentStructuredOutput(ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent value) {
+      if (stigmerAgentStructuredOutputBuilder_ == null) {
+        if (eventCase_ == 103 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 103) {
+          stigmerAgentStructuredOutputBuilder_.mergeFrom(value);
+        } else {
+          stigmerAgentStructuredOutputBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 103;
+      return this;
+    }
+    /**
+     * <pre>
+     * The structured output the turn produced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+     */
+    public Builder clearStigmerAgentStructuredOutput() {
+      if (stigmerAgentStructuredOutputBuilder_ == null) {
+        if (eventCase_ == 103) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 103) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerAgentStructuredOutputBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The structured output the turn produced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.Builder getStigmerAgentStructuredOutputBuilder() {
+      return internalGetStigmerAgentStructuredOutputFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The structured output the turn produced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEventOrBuilder getStigmerAgentStructuredOutputOrBuilder() {
+      if ((eventCase_ == 103) && (stigmerAgentStructuredOutputBuilder_ != null)) {
+        return stigmerAgentStructuredOutputBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 103) {
+          return (ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * The structured output the turn produced.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent, ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.Builder, ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEventOrBuilder> 
+        internalGetStigmerAgentStructuredOutputFieldBuilder() {
+      if (stigmerAgentStructuredOutputBuilder_ == null) {
+        if (!(eventCase_ == 103)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.getDefaultInstance();
+        }
+        stigmerAgentStructuredOutputBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent, ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.Builder, ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 103;
+      onChanged();
+      return stigmerAgentStructuredOutputBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent, ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.Builder, ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEventOrBuilder> stigmerMemoryRecalledBuilder_;
+    /**
+     * <pre>
+     * Which of the agent's memories the turn recalled.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+     * @return Whether the stigmerMemoryRecalled field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerMemoryRecalled() {
+      return eventCase_ == 104;
+    }
+    /**
+     * <pre>
+     * Which of the agent's memories the turn recalled.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+     * @return The stigmerMemoryRecalled.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent getStigmerMemoryRecalled() {
+      if (stigmerMemoryRecalledBuilder_ == null) {
+        if (eventCase_ == 104) {
+          return (ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 104) {
+          return stigmerMemoryRecalledBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * Which of the agent's memories the turn recalled.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+     */
+    public Builder setStigmerMemoryRecalled(ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent value) {
+      if (stigmerMemoryRecalledBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerMemoryRecalledBuilder_.setMessage(value);
+      }
+      eventCase_ = 104;
+      return this;
+    }
+    /**
+     * <pre>
+     * Which of the agent's memories the turn recalled.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+     */
+    public Builder setStigmerMemoryRecalled(
+        ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.Builder builderForValue) {
+      if (stigmerMemoryRecalledBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerMemoryRecalledBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 104;
+      return this;
+    }
+    /**
+     * <pre>
+     * Which of the agent's memories the turn recalled.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+     */
+    public Builder mergeStigmerMemoryRecalled(ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent value) {
+      if (stigmerMemoryRecalledBuilder_ == null) {
+        if (eventCase_ == 104 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 104) {
+          stigmerMemoryRecalledBuilder_.mergeFrom(value);
+        } else {
+          stigmerMemoryRecalledBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 104;
+      return this;
+    }
+    /**
+     * <pre>
+     * Which of the agent's memories the turn recalled.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+     */
+    public Builder clearStigmerMemoryRecalled() {
+      if (stigmerMemoryRecalledBuilder_ == null) {
+        if (eventCase_ == 104) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 104) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerMemoryRecalledBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Which of the agent's memories the turn recalled.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.Builder getStigmerMemoryRecalledBuilder() {
+      return internalGetStigmerMemoryRecalledFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Which of the agent's memories the turn recalled.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEventOrBuilder getStigmerMemoryRecalledOrBuilder() {
+      if ((eventCase_ == 104) && (stigmerMemoryRecalledBuilder_ != null)) {
+        return stigmerMemoryRecalledBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 104) {
+          return (ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * Which of the agent's memories the turn recalled.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent, ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.Builder, ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEventOrBuilder> 
+        internalGetStigmerMemoryRecalledFieldBuilder() {
+      if (stigmerMemoryRecalledBuilder_ == null) {
+        if (!(eventCase_ == 104)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.getDefaultInstance();
+        }
+        stigmerMemoryRecalledBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent, ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.Builder, ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 104;
+      onChanged();
+      return stigmerMemoryRecalledBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionEvent)

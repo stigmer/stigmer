@@ -46,6 +46,7 @@ private static final long serialVersionUID = 0L;
     agentId_ = "";
     agentVersionHash_ = "";
     approvalMode_ = 0;
+    stopCause_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1670,6 +1671,65 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     return pluginEvalFiles_ == null ? ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance() : pluginEvalFiles_;
   }
 
+  public static final int STOP_CAUSE_FIELD_NUMBER = 35;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object stopCause_ = "";
+  /**
+   * <pre>
+   * Why the turn stopped, as one word: budget_reached (the cost cap or the
+   * tool-call limit), timeout (a stall or the workspace lock), infrastructure
+   * (the worker shut down or stopped answering), platform_stop, user (a pause
+   * or a cancel), model_error (the model provider failed the turn), failed
+   * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+   * stopped the try) or review_resolved (a file review was settled). Empty
+   * while the turn works, and when it ended on its own.
+   * </pre>
+   *
+   * <code>string stop_cause = 35 [json_name = "stopCause", (.buf.validate.field) = { ... }</code>
+   * @return The stopCause.
+   */
+  @java.lang.Override
+  public java.lang.String getStopCause() {
+    java.lang.Object ref = stopCause_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      stopCause_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Why the turn stopped, as one word: budget_reached (the cost cap or the
+   * tool-call limit), timeout (a stall or the workspace lock), infrastructure
+   * (the worker shut down or stopped answering), platform_stop, user (a pause
+   * or a cancel), model_error (the model provider failed the turn), failed
+   * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+   * stopped the try) or review_resolved (a file review was settled). Empty
+   * while the turn works, and when it ended on its own.
+   * </pre>
+   *
+   * <code>string stop_cause = 35 [json_name = "stopCause", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for stopCause.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getStopCauseBytes() {
+    java.lang.Object ref = stopCause_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      stopCause_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1767,6 +1827,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
     if (((bitField0_ & 0x00002000) != 0)) {
       output.writeMessage(34, getPluginEvalFiles());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(stopCause_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 35, stopCause_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1919,6 +1982,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(34, getPluginEvalFiles());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(stopCause_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(35, stopCause_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -2034,6 +2100,8 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (!getPluginEvalFiles()
           .equals(other.getPluginEvalFiles())) return false;
     }
+    if (!getStopCause()
+        .equals(other.getStopCause())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -2143,6 +2211,8 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       hash = (37 * hash) + PLUGIN_EVAL_FILES_FIELD_NUMBER;
       hash = (53 * hash) + getPluginEvalFiles().hashCode();
     }
+    hash = (37 * hash) + STOP_CAUSE_FIELD_NUMBER;
+    hash = (53 * hash) + getStopCause().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -2446,6 +2516,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         pluginEvalFilesBuilder_.dispose();
         pluginEvalFilesBuilder_ = null;
       }
+      stopCause_ = "";
       return this;
     }
 
@@ -2645,6 +2716,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
             ? pluginEvalFiles_
             : pluginEvalFilesBuilder_.build();
         to_bitField0_ |= 0x00002000;
+      }
+      if (((from_bitField0_ & 0x10000000) != 0)) {
+        result.stopCause_ = stopCause_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -2893,6 +2967,11 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (other.hasPluginEvalFiles()) {
         mergePluginEvalFiles(other.getPluginEvalFiles());
       }
+      if (!other.getStopCause().isEmpty()) {
+        stopCause_ = other.stopCause_;
+        bitField0_ |= 0x10000000;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -3132,6 +3211,11 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
               bitField0_ |= 0x08000000;
               break;
             } // case 274
+            case 282: {
+              stopCause_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x10000000;
+              break;
+            } // case 282
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -8998,6 +9082,128 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         pluginEvalFiles_ = null;
       }
       return pluginEvalFilesBuilder_;
+    }
+
+    private java.lang.Object stopCause_ = "";
+    /**
+     * <pre>
+     * Why the turn stopped, as one word: budget_reached (the cost cap or the
+     * tool-call limit), timeout (a stall or the workspace lock), infrastructure
+     * (the worker shut down or stopped answering), platform_stop, user (a pause
+     * or a cancel), model_error (the model provider failed the turn), failed
+     * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+     * stopped the try) or review_resolved (a file review was settled). Empty
+     * while the turn works, and when it ended on its own.
+     * </pre>
+     *
+     * <code>string stop_cause = 35 [json_name = "stopCause", (.buf.validate.field) = { ... }</code>
+     * @return The stopCause.
+     */
+    public java.lang.String getStopCause() {
+      java.lang.Object ref = stopCause_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        stopCause_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Why the turn stopped, as one word: budget_reached (the cost cap or the
+     * tool-call limit), timeout (a stall or the workspace lock), infrastructure
+     * (the worker shut down or stopped answering), platform_stop, user (a pause
+     * or a cancel), model_error (the model provider failed the turn), failed
+     * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+     * stopped the try) or review_resolved (a file review was settled). Empty
+     * while the turn works, and when it ended on its own.
+     * </pre>
+     *
+     * <code>string stop_cause = 35 [json_name = "stopCause", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for stopCause.
+     */
+    public com.google.protobuf.ByteString
+        getStopCauseBytes() {
+      java.lang.Object ref = stopCause_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        stopCause_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Why the turn stopped, as one word: budget_reached (the cost cap or the
+     * tool-call limit), timeout (a stall or the workspace lock), infrastructure
+     * (the worker shut down or stopped answering), platform_stop, user (a pause
+     * or a cancel), model_error (the model provider failed the turn), failed
+     * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+     * stopped the try) or review_resolved (a file review was settled). Empty
+     * while the turn works, and when it ended on its own.
+     * </pre>
+     *
+     * <code>string stop_cause = 35 [json_name = "stopCause", (.buf.validate.field) = { ... }</code>
+     * @param value The stopCause to set.
+     * @return This builder for chaining.
+     */
+    public Builder setStopCause(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      stopCause_ = value;
+      bitField0_ |= 0x10000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Why the turn stopped, as one word: budget_reached (the cost cap or the
+     * tool-call limit), timeout (a stall or the workspace lock), infrastructure
+     * (the worker shut down or stopped answering), platform_stop, user (a pause
+     * or a cancel), model_error (the model provider failed the turn), failed
+     * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+     * stopped the try) or review_resolved (a file review was settled). Empty
+     * while the turn works, and when it ended on its own.
+     * </pre>
+     *
+     * <code>string stop_cause = 35 [json_name = "stopCause", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearStopCause() {
+      stopCause_ = getDefaultInstance().getStopCause();
+      bitField0_ = (bitField0_ & ~0x10000000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Why the turn stopped, as one word: budget_reached (the cost cap or the
+     * tool-call limit), timeout (a stall or the workspace lock), infrastructure
+     * (the worker shut down or stopped answering), platform_stop, user (a pause
+     * or a cancel), model_error (the model provider failed the turn), failed
+     * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+     * stopped the try) or review_resolved (a file review was settled). Empty
+     * while the turn works, and when it ended on its own.
+     * </pre>
+     *
+     * <code>string stop_cause = 35 [json_name = "stopCause", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for stopCause to set.
+     * @return This builder for chaining.
+     */
+    public Builder setStopCauseBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      stopCause_ = value;
+      bitField0_ |= 0x10000000;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.RunStatus)

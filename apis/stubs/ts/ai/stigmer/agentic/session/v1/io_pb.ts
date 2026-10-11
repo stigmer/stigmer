@@ -6,7 +6,7 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Session } from "./api_pb.js";
 import { file_ai_stigmer_agentic_session_v1_api } from "./api_pb.js";
-import type { EventDelta, EventStart, SessionEvent } from "./event_pb.js";
+import type { EventDelta, EventStart, SessionEvent, ToolOutputDelta } from "./event_pb.js";
 import { file_ai_stigmer_agentic_session_v1_event } from "./event_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInQKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCSJgChNMaXN0U2Vzc2lvbnNSZXF1ZXN0EhoKCXBhZ2Vfc2l6ZRgBIAEoBUIHukgEGgIoABISCgpwYWdlX3Rva2VuGAIgASgJEgwKBHRhZ3MYAyADKAkSCwoDb3JnGAQgASgJImYKGkxpc3RTZXNzaW9uc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiagocTGlzdFNlc3Npb25zQnlDaGFubmVsUmVxdWVzdBIaCgpjaGFubmVsX2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiQgobVXBkYXRlU2Vzc2lvblN1YmplY3RSZXF1ZXN0EhIKAmlkGAEgASgJQga6SAPIAQESDwoHc3ViamVjdBgCIAEoCSKfAgoYTGlzdFNlc3Npb25FdmVudHNSZXF1ZXN0EhoKCnNlc3Npb25faWQYASABKAlCBrpIA8gBARIdCglwYWdlX3NpemUYAiABKAVCCrpIBxoFGOgHKAASEgoKcGFnZV90b2tlbhgDIAEoCRIiCgVvcmRlchgEIAEoCUITukgQ2AEBcgtSA2FzY1IEZGVzYxIyCgV0eXBlcxgFIAMoCUIjukggkgEdEEAiGXIXMhVeW2Etel9dKyhcLlthLXpfXSspKyQSFQoNY3JlYXRlZF9hdF9ndBgGIAEoCRIWCg5jcmVhdGVkX2F0X2d0ZRgHIAEoCRIVCg1jcmVhdGVkX2F0X2x0GAggASgJEhYKDmNyZWF0ZWRfYXRfbHRlGAkgASgJImgKEFNlc3Npb25FdmVudExpc3QSOwoGZXZlbnRzGAEgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkV2ZW50EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSKsAQoaU3RyZWFtU2Vzc2lvbkV2ZW50c1JlcXVlc3QSGgoKc2Vzc2lvbl9pZBgBIAEoCUIGukgDyAEBEkMKDGV2ZW50X2RlbHRhcxgCIAMoCUItukgqkgEnEAIYASIhch9SDWFnZW50Lm1lc3NhZ2VSDmFnZW50LnRoaW5raW5nEh8KCWFmdGVyX3NlcRgDIAEoA0IHukgEIgIoAEgAiAEBQgwKCl9hZnRlcl9zZXEiigIKG1N0cmVhbVNlc3Npb25FdmVudHNSZXNwb25zZRI8CgVldmVudBgBIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25FdmVudEgAElEKC2V2ZW50X3N0YXJ0GAIgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuRXZlbnRTdGFydEIP8oUsC2V2ZW50X3N0YXJ0SAASUQoLZXZlbnRfZGVsdGEYAyABKAsyKS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FdmVudERlbHRhQg/yhSwLZXZlbnRfZGVsdGFIAEIHCgVmcmFtZSLNAQoTU2Vzc2lvbkV2ZW50UHJldmlldxJRCgtldmVudF9zdGFydBgBIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV2ZW50U3RhcnRCD/KFLAtldmVudF9zdGFydEgAElEKC2V2ZW50X2RlbHRhGAIgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuRXZlbnREZWx0YUIP8oUsC2V2ZW50X2RlbHRhSABCEAoHcHJldmlldxIFukgCCAEiywEKGEFwcGVuZFNlc3Npb25FdmVudHNJbnB1dBIWCgZydW5faWQYASABKAlCBrpIA8gBARJGCgZldmVudHMYAiADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXZlbnRCCbpIBpIBAxDoBxJPCghwcmV2aWV3cxgDIAMoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25FdmVudFByZXZpZXdCCbpIBpIBAxDoByJaChtBcHBlbmRTZXNzaW9uRXZlbnRzUmVzcG9uc2USOwoGZXZlbnRzGAEgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkV2ZW50YgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_event, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInQKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCSJgChNMaXN0U2Vzc2lvbnNSZXF1ZXN0EhoKCXBhZ2Vfc2l6ZRgBIAEoBUIHukgEGgIoABISCgpwYWdlX3Rva2VuGAIgASgJEgwKBHRhZ3MYAyADKAkSCwoDb3JnGAQgASgJImYKGkxpc3RTZXNzaW9uc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiagocTGlzdFNlc3Npb25zQnlDaGFubmVsUmVxdWVzdBIaCgpjaGFubmVsX2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiQgobVXBkYXRlU2Vzc2lvblN1YmplY3RSZXF1ZXN0EhIKAmlkGAEgASgJQga6SAPIAQESDwoHc3ViamVjdBgCIAEoCSKvAgoYTGlzdFNlc3Npb25FdmVudHNSZXF1ZXN0EhoKCnNlc3Npb25faWQYASABKAlCBrpIA8gBARIdCglwYWdlX3NpemUYAiABKAVCCrpIBxoFGOgHKAASEgoKcGFnZV90b2tlbhgDIAEoCRIiCgVvcmRlchgEIAEoCUITukgQ2AEBcgtSA2FzY1IEZGVzYxIyCgV0eXBlcxgFIAMoCUIjukggkgEdEEAiGXIXMhVeW2Etel9dKyhcLlthLXpfXSspKyQSFQoNY3JlYXRlZF9hdF9ndBgGIAEoCRIWCg5jcmVhdGVkX2F0X2d0ZRgHIAEoCRIVCg1jcmVhdGVkX2F0X2x0GAggASgJEhYKDmNyZWF0ZWRfYXRfbHRlGAkgASgJEg4KBnJ1bl9pZBgKIAEoCSJoChBTZXNzaW9uRXZlbnRMaXN0EjsKBmV2ZW50cxgBIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25FdmVudBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkixwEKGlN0cmVhbVNlc3Npb25FdmVudHNSZXF1ZXN0EhoKCnNlc3Npb25faWQYASABKAlCBrpIA8gBARJeCgxldmVudF9kZWx0YXMYAiADKAlCSLpIRZIBQhADGAEiPHI6Ug1hZ2VudC5tZXNzYWdlUg5hZ2VudC50aGlua2luZ1IZc3RpZ21lci50b29sX291dHB1dF9kZWx0YRIfCglhZnRlcl9zZXEYAyABKANCB7pIBCICKABIAIgBAUIMCgpfYWZ0ZXJfc2VxIv4CChtTdHJlYW1TZXNzaW9uRXZlbnRzUmVzcG9uc2USPAoFZXZlbnQYASABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXZlbnRIABJRCgtldmVudF9zdGFydBgCIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV2ZW50U3RhcnRCD/KFLAtldmVudF9zdGFydEgAElEKC2V2ZW50X2RlbHRhGAMgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuRXZlbnREZWx0YUIP8oUsC2V2ZW50X2RlbHRhSAAScgoZc3RpZ21lcl90b29sX291dHB1dF9kZWx0YRgEIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlRvb2xPdXRwdXREZWx0YUId8oUsGXN0aWdtZXIudG9vbF9vdXRwdXRfZGVsdGFIAEIHCgVmcmFtZSLBAgoTU2Vzc2lvbkV2ZW50UHJldmlldxJRCgtldmVudF9zdGFydBgBIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV2ZW50U3RhcnRCD/KFLAtldmVudF9zdGFydEgAElEKC2V2ZW50X2RlbHRhGAIgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuRXZlbnREZWx0YUIP8oUsC2V2ZW50X2RlbHRhSAAScgoZc3RpZ21lcl90b29sX291dHB1dF9kZWx0YRgDIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlRvb2xPdXRwdXREZWx0YUId8oUsGXN0aWdtZXIudG9vbF9vdXRwdXRfZGVsdGFIAEIQCgdwcmV2aWV3EgW6SAIIASLLAQoYQXBwZW5kU2Vzc2lvbkV2ZW50c0lucHV0EhYKBnJ1bl9pZBgBIAEoCUIGukgDyAEBEkYKBmV2ZW50cxgCIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25FdmVudEIJukgGkgEDEOgHEk8KCHByZXZpZXdzGAMgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkV2ZW50UHJldmlld0IJukgGkgEDEOgHIloKG0FwcGVuZFNlc3Npb25FdmVudHNSZXNwb25zZRI7CgZldmVudHMYASADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXZlbnRiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_event, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
  * SessionId wraps a session identifier.
@@ -313,6 +313,13 @@ export type ListSessionEventsRequest = Message<"ai.stigmer.agentic.session.v1.Li
    * @generated from field: string created_at_lte = 9;
    */
   createdAtLte: string;
+
+  /**
+   * Only the events of this run (turn); empty lists every run's.
+   *
+   * @generated from field: string run_id = 10;
+   */
+  runId: string;
 };
 
 /**
@@ -366,7 +373,8 @@ export type StreamSessionEventsRequest = Message<"ai.stigmer.agentic.session.v1.
 
   /**
    * The event types to preview while they are produced: agent.message,
-   * agent.thinking. Empty streams no previews.
+   * agent.thinking, and Stigmer's stigmer.tool_output_delta (a running
+   * tool's output). Empty streams no previews.
    *
    * @generated from field: repeated string event_deltas = 2;
    */
@@ -426,6 +434,14 @@ export type StreamSessionEventsResponse = Message<"ai.stigmer.agentic.session.v1
      */
     value: EventDelta;
     case: "eventDelta";
+  } | {
+    /**
+     * A fragment of a running tool's output.
+     *
+     * @generated from field: ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 4;
+     */
+    value: ToolOutputDelta;
+    case: "stigmerToolOutputDelta";
   } | { case: undefined; value?: undefined };
 };
 
@@ -464,6 +480,14 @@ export type SessionEventPreview = Message<"ai.stigmer.agentic.session.v1.Session
      */
     value: EventDelta;
     case: "eventDelta";
+  } | {
+    /**
+     * A fragment of a running tool's output.
+     *
+     * @generated from field: ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3;
+     */
+    value: ToolOutputDelta;
+    case: "stigmerToolOutputDelta";
   } | { case: undefined; value?: undefined };
 };
 

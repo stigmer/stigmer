@@ -65,6 +65,8 @@ export interface SessionEventQuery {
   readonly afterSeq?: number;
   /** Only events of these types; absent or empty reads every type. */
   readonly types?: ReadonlyArray<string>;
+  /** Only events of this run; absent reads every run's. */
+  readonly runId?: string;
   /** Bounds on processedAt, each fixed-width UTC text compared as bytes. */
   readonly processedAtGt?: string;
   readonly processedAtGte?: string;

@@ -10,7 +10,15 @@ import { describe, expect, it } from "vitest";
 
 import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
-import { RUNNER_EVENT_TYPES, SESSION_EVENT_TYPES, SESSION_STATUS_TYPES, eventCaseOf, eventIdOf, eventTypeOf } from "../catalog.js";
+import {
+  RUNNER_EVENT_TYPES,
+  SESSION_EVENT_TYPES,
+  SESSION_STATUS_TYPES,
+  eventCaseOf,
+  eventIdOf,
+  eventTypeOf,
+  isStigmerEventType,
+} from "../catalog.js";
 import { draftOf, eventOf } from "../codec.js";
 
 describe("the catalog", () => {
@@ -18,8 +26,22 @@ describe("the catalog", () => {
     expect(SESSION_EVENT_TYPES.length).toBe(SessionEventSchema.oneofs[0]!.fields.length);
     expect(new Set(SESSION_EVENT_TYPES).size).toBe(SESSION_EVENT_TYPES.length);
     for (const type of SESSION_EVENT_TYPES) {
-      expect(type).toMatch(/^[a-z_]+\.[a-z_]+$/);
+      expect(type).toMatch(isStigmerEventType(type) ? /^stigmer(\.[a-z_]+){2}$/ : /^[a-z_]+\.[a-z_]+$/);
       expect(eventCaseOf(type)).toBeDefined();
+    }
+  });
+
+  it("every Stigmer event is the runner's to append", () => {
+    const own = SESSION_EVENT_TYPES.filter(isStigmerEventType);
+    expect(own).toEqual([
+      "stigmer.agent.thinking",
+      "stigmer.permission.asked",
+      "stigmer.harness.note",
+      "stigmer.agent.structured_output",
+      "stigmer.memory.recalled",
+    ]);
+    for (const type of own) {
+      expect(RUNNER_EVENT_TYPES.has(type)).toBe(true);
     }
   });
 

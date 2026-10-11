@@ -64,5 +64,32 @@ public interface SessionEventPreviewOrBuilder extends
    */
   ai.stigmer.agentic.session.v1.EventDeltaOrBuilder getEventDeltaOrBuilder();
 
+  /**
+   * <pre>
+   * A fragment of a running tool's output.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+   * @return Whether the stigmerToolOutputDelta field is set.
+   */
+  boolean hasStigmerToolOutputDelta();
+  /**
+   * <pre>
+   * A fragment of a running tool's output.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+   * @return The stigmerToolOutputDelta.
+   */
+  ai.stigmer.agentic.session.v1.ToolOutputDelta getStigmerToolOutputDelta();
+  /**
+   * <pre>
+   * A fragment of a running tool's output.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+   */
+  ai.stigmer.agentic.session.v1.ToolOutputDeltaOrBuilder getStigmerToolOutputDeltaOrBuilder();
+
   ai.stigmer.agentic.session.v1.SessionEventPreview.PreviewCase getPreviewCase();
 }

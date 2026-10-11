@@ -26,15 +26,22 @@
  *
  *   created .................. user.message; then running if the session
  *                              did not read running
- *   the session stops working  session.status_idle (end_turn), or, when
- *                              this run just FAILED, retries_exhausted
- *   this run just FAILED ..... session.error (unknown_error, terminal)
- *                              first, whether or not others still work
+ *   the session stops working  session.status_idle (end_turn); when this
+ *                              run just FAILED, retries_exhausted; when it
+ *                              just stopped on its budget (the cost cap or
+ *                              the tool-call limit), budget_reached
+ *   this run just FAILED ..... session.error (terminal) first, whether or
+ *                              not others still work: model_request_failed_
+ *                              error when the model provider failed the
+ *                              turn, unknown_error otherwise
  *   the session works again .. session.status_running (resume, recover)
  *   removed while working .... as stopping (end_turn)
  *
- * PAUSED and TERMINATED end the turn as end_turn: a Stigmer client reads
- * the pause and the precise cause from the run. session.status_terminated
+ * The cause is the run's `stop_cause`, written with its terminal status
+ * by the runner's terminal table or the workflow (RunStatus.stop_cause),
+ * never matched from its error text. PAUSED, and TERMINATED for any other
+ * cause, end the turn as end_turn: a Stigmer client reads the pause and
+ * the precise cause from the run. session.status_terminated
  * is never written: in Managed Agents it is a session that can no longer
  * be used, and a Stigmer conversation always takes another message.
  *
@@ -99,6 +106,7 @@ export function sessionEventsForTransition(
       : (transition.run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED);
   const isWorking = transition.kind !== "remove" && isWorkingPhase(nextPhase);
   const failed = wasWorking && nextPhase === RunPhase.RUN_FAILED;
+  const stopCause = transition.kind === "remove" ? "" : (transition.run.status?.stopCause ?? "");
   if (failed && transition.kind !== "remove") {
     events.push(
       event({
@@ -106,7 +114,7 @@ export function sessionEventsForTransition(
         value: {
           id: id(),
           error: {
-            type: "unknown_error",
+            type: stopCause === "model_error" ? "model_request_failed_error" : "unknown_error",
             message: transition.run.status?.error ?? "",
             retryStatus: { type: "terminal" },
           },
@@ -114,6 +122,12 @@ export function sessionEventsForTransition(
       }),
     );
   }
+  const stopped = wasWorking && !isWorking;
+  const idleReason = failed
+    ? "retries_exhausted"
+    : stopped && stopCause === "budget_reached"
+      ? "budget_reached"
+      : "end_turn";
 
   const sessionWorks = isWorking || session.othersWorking > 0;
   if (sessionWorks && session.state !== "running") {
@@ -122,7 +136,7 @@ export function sessionEventsForTransition(
     events.push(
       event({
         case: "sessionStatusIdle",
-        value: { id: id(), stopReason: { type: failed ? "retries_exhausted" : "end_turn" } },
+        value: { id: id(), stopReason: { type: idleReason } },
       }),
     );
   }

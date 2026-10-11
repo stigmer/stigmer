@@ -326,6 +326,25 @@ describe("the phase latch and terminal settle", () => {
     });
     expect(merged.status?.completedAt).toBe("");
   });
+
+  it("keeps the stop cause a terminal write sends, and drops it once the turn works again", () => {
+    const existing = create(RunSchema, {
+      metadata: { id: "exec-stop", name: "exec-stop" },
+      spec: {},
+      status: { phase: RunPhase.RUN_IN_PROGRESS, messages: [{ content: "m1" }] },
+    });
+    const stopped = runBuildStep(existing, {
+      phase: RunPhase.RUN_PAUSED,
+      stopCause: "user",
+      messages: [{ content: "m1" }],
+    });
+    expect(stopped.status?.stopCause).toBe("user");
+    const unchanged = runBuildStep(stopped, { phase: RunPhase.RUN_PAUSED, messages: [{ content: "m1" }] });
+    expect(unchanged.status?.stopCause, "an empty cause never clears a stated one").toBe("user");
+    const resumed = runBuildStep(stopped, { phase: RunPhase.RUN_IN_PROGRESS, messages: [{ content: "m1" }] }, "platform");
+    expect(resumed.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
+    expect(resumed.status?.stopCause, "the resumed turn has not stopped").toBe("");
+  });
 });
 
 describe("a first write and the sub-agent runs", () => {

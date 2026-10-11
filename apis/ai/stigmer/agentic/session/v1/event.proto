@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.session.v1;
 
+import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/event_content.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
@@ -86,6 +87,24 @@ message SessionEvent {
 
     // A thread's context was compacted.
     AgentThreadContextCompactedEvent agent_thread_context_compacted = 25 [(ai.stigmer.commons.apiresource.event_type) = "agent.thread_context_compacted"];
+
+    // Stigmer's own events (types starting with stigmer.): optional for a
+    // Managed Agents client, which skips a type it does not know.
+
+    // The text of the agent's thinking.
+    StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];
+
+    // Why a tool use waits for a person's answer.
+    StigmerPermissionAskedEvent stigmer_permission_asked = 101 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];
+
+    // A line the platform added to the conversation in its own voice.
+    StigmerHarnessNoteEvent stigmer_harness_note = 102 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];
+
+    // The structured output the turn produced.
+    StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];
+
+    // Which of the agent's memories the turn recalled.
+    StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];
   }
 }
 
@@ -368,6 +387,108 @@ message AgentThreadContextCompactedEvent {
 
   // When the event was appended, as RFC 3339 UTC.
   string processed_at = 2;
+}
+
+// StigmerAgentThinkingEvent is the text of the agent's thinking:
+// stigmer.agent.thinking. It follows the agent.thinking event it belongs
+// to, which carries no text.
+message StigmerAgentThinkingEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The agent.thinking event this text belongs to.
+  string thinking_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // The thinking's text.
+  string text = 4;
+}
+
+// StigmerPermissionAskedEvent says why a tool use waits for a person's
+// answer: stigmer.permission.asked. It follows the tool use, whose
+// evaluated_permission is ask.
+message StigmerPermissionAskedEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The agent.tool_use or agent.mcp_tool_use event that waits.
+  string tool_use_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // What to show the person who answers, for example "Delete repo: my-repo".
+  string message = 4;
+
+  // A short preview of the tool's input, with secret values redacted.
+  string args_preview = 5;
+
+  // Which rule asked.
+  ai.stigmer.agentic.run.v1.ApprovalPolicySource policy_source = 6;
+
+  // The plugin whose hook asked; empty for the agent's own hooks, or when no
+  // hook asked.
+  string policy_hook = 7;
+}
+
+// StigmerHarnessNoteEvent is a line the platform added to the conversation
+// in its own voice, for example that the platform's tools are off for this
+// turn: stigmer.harness.note. It is not model input.
+message StigmerHarnessNoteEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The line.
+  string text = 3;
+}
+
+// StigmerAgentStructuredOutputEvent is the structured output the turn
+// produced, when its run asked for one: stigmer.agent.structured_output.
+message StigmerAgentStructuredOutputEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The output, conforming to the run's structured output schema.
+  google.protobuf.Struct output = 3 [(buf.validate.field).required = true];
+}
+
+// StigmerMemoryRecalledEvent says which of the agent's memories the turn
+// recalled: stigmer.memory.recalled.
+message StigmerMemoryRecalledEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // Whether the turn chose among the memories; false means the agent saw
+  // every one.
+  bool selection_active = 3;
+
+  // The memories the turn recalled, by id, when it chose among them.
+  repeated string injected_memory_ids = 4;
+
+  // The embedding model that chose them; empty when the turn did not choose.
+  string embedding_model = 5;
+}
+
+// ToolOutputDelta is one fragment of a running tool's output:
+// stigmer.tool_output_delta. Streamed, never stored; the tool's result
+// event carries the whole output.
+message ToolOutputDelta {
+  // The tool use whose output grows.
+  string tool_use_id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // The fragment.
+  string delta = 2;
 }
 
 // EventStart opens a live preview of an event still being produced: the

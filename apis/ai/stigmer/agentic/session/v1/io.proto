@@ -140,6 +140,9 @@ message ListSessionEventsRequest {
 
   // Only events appended at or before this RFC 3339 instant.
   string created_at_lte = 9;
+
+  // Only the events of this run (turn); empty lists every run's.
+  string run_id = 10;
 }
 
 // SessionEventList is one page of a session's events.
@@ -158,15 +161,17 @@ message StreamSessionEventsRequest {
   string session_id = 1 [(buf.validate.field).required = true];
 
   // The event types to preview while they are produced: agent.message,
-  // agent.thinking. Empty streams no previews.
+  // agent.thinking, and Stigmer's stigmer.tool_output_delta (a running
+  // tool's output). Empty streams no previews.
   repeated string event_deltas = 2 [(buf.validate.field).repeated = {
-    max_items: 2
+    max_items: 3
     unique: true
     items: {
       string: {
         in: [
           "agent.message",
-          "agent.thinking"
+          "agent.thinking",
+          "stigmer.tool_output_delta"
         ]
       }
     }
@@ -192,6 +197,9 @@ message StreamSessionEventsResponse {
 
     // A fragment of a previewed event.
     EventDelta event_delta = 3 [(ai.stigmer.commons.apiresource.event_type) = "event_delta"];
+
+    // A fragment of a running tool's output.
+    ToolOutputDelta stigmer_tool_output_delta = 4 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];
   }
 }
 
@@ -207,6 +215,9 @@ message SessionEventPreview {
 
     // A fragment of a previewed event.
     EventDelta event_delta = 2 [(ai.stigmer.commons.apiresource.event_type) = "event_delta"];
+
+    // A fragment of a running tool's output.
+    ToolOutputDelta stigmer_tool_output_delta = 3 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];
   }
 }
 

@@ -17,11 +17,11 @@ import type { RunTransition } from "../transitions.js";
 
 const P = RunPhase;
 
-function run(phase: RunPhase, extra: { error?: string; message?: string } = {}): Run {
+function run(phase: RunPhase, extra: { error?: string; message?: string; stopCause?: string } = {}): Run {
   return create(RunSchema, {
     metadata: { id: "run_1" },
     spec: { target: { case: "sessionId", value: "ses_1" }, message: extra.message ?? "summarise the repo" },
-    status: { phase, error: extra.error ?? "" },
+    status: { phase, error: extra.error ?? "", stopCause: extra.stopCause ?? "" },
   });
 }
 
@@ -88,6 +88,40 @@ describe("a run that stops working", () => {
     ]);
     const idle = events[1]!.event;
     expect(idle.case === "sessionStatusIdle" && idle.value.stopReason?.type).toBe("retries_exhausted");
+  });
+
+  it("a turn stopped on its budget ends the session as budget_reached, read from the run's stop cause", () => {
+    const events = eventsFor({
+      kind: "update",
+      previousPhase: P.RUN_IN_PROGRESS,
+      run: run(P.RUN_TERMINATED, { error: "Cost limit exceeded", stopCause: "budget_reached" }),
+    });
+    expect(events.map(eventTypeOf)).toEqual(["session.status_idle"]);
+    const idle = events[0]!.event;
+    expect(idle.case === "sessionStatusIdle" && idle.value.stopReason?.type).toBe("budget_reached");
+  });
+
+  it("any other stop cause of a TERMINATED turn ends it as end_turn; the error text is never read", () => {
+    for (const stopCause of ["", "eval_stopped", "user"]) {
+      const events = eventsFor({
+        kind: "update",
+        previousPhase: P.RUN_IN_PROGRESS,
+        run: run(P.RUN_TERMINATED, { error: "Cost limit exceeded", stopCause }),
+      });
+      const idle = events[0]!.event;
+      expect(idle.case === "sessionStatusIdle" && idle.value.stopReason?.type).toBe("end_turn");
+    }
+  });
+
+  it("a turn the model provider failed reports model_request_failed_error; every other failure unknown_error", () => {
+    const failed = (stopCause: string) =>
+      eventsFor({ kind: "update", previousPhase: P.RUN_IN_PROGRESS, run: run(P.RUN_FAILED, { error: "x", stopCause }) })[0]!.event;
+    const model = failed("model_error");
+    expect(model.case === "sessionError" && model.value.error?.type).toBe("model_request_failed_error");
+    for (const stopCause of ["", "failed", "timeout", "infrastructure"]) {
+      const other = failed(stopCause);
+      expect(other.case === "sessionError" && other.value.error?.type).toBe("unknown_error");
+    }
   });
 
   it("writes no idle while another run of the session still works; FAILED still reports its error", () => {

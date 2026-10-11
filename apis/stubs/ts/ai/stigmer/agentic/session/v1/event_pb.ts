@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { ApprovalPolicySource } from "../../run/v1/enum_pb.js";
+import { file_ai_stigmer_agentic_run_v1_enum } from "../../run/v1/enum_pb.js";
 import type { ContentBlock, SessionError, StopDetails, StopReason, ToolEvaluation } from "./event_content_pb.js";
 import { file_ai_stigmer_agentic_session_v1_event_content } from "./event_content_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
@@ -15,7 +17,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/event.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_event: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9ldmVudC5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEitw8KDFNlc3Npb25FdmVudBILCgNzZXEYASABKAMSEgoKc2Vzc2lvbl9pZBgCIAEoCRIOCgZydW5faWQYAyABKAkSQAoJdGhyZWFkX2lkGAQgASgJQi26SCrYAQFyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSWQoMdXNlcl9tZXNzYWdlGAogASgLMi8uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuVXNlck1lc3NhZ2VFdmVudEIQ8oUsDHVzZXIubWVzc2FnZUgAEnYKFnNlc3Npb25fc3RhdHVzX3J1bm5pbmcYCyABKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3RhdHVzUnVubmluZ0V2ZW50QhryhSwWc2Vzc2lvbi5zdGF0dXNfcnVubmluZ0gAEm0KE3Nlc3Npb25fc3RhdHVzX2lkbGUYDCABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3RhdHVzSWRsZUV2ZW50QhfyhSwTc2Vzc2lvbi5zdGF0dXNfaWRsZUgAElwKDXNlc3Npb25fZXJyb3IYDSABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXJyb3JFdmVudEIR8oUsDXNlc3Npb24uZXJyb3JIABJcCg1hZ2VudF9tZXNzYWdlGA4gASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQWdlbnRNZXNzYWdlRXZlbnRCEfKFLA1hZ2VudC5tZXNzYWdlSAASXwoOYWdlbnRfdGhpbmtpbmcYDyABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5BZ2VudFRoaW5raW5nRXZlbnRCEvKFLA5hZ2VudC50aGlua2luZ0gAEl4KDmFnZW50X3Rvb2xfdXNlGBAgASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQWdlbnRUb29sVXNlRXZlbnRCEvKFLA5hZ2VudC50b29sX3VzZUgAEmcKEWFnZW50X3Rvb2xfcmVzdWx0GBEgASgLMjMuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQWdlbnRUb29sUmVzdWx0RXZlbnRCFfKFLBFhZ2VudC50b29sX3Jlc3VsdEgAEmkKEmFnZW50X21jcF90b29sX3VzZRgSIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkFnZW50TWNwVG9vbFVzZUV2ZW50QhbyhSwSYWdlbnQubWNwX3Rvb2xfdXNlSAAScgoVYWdlbnRfbWNwX3Rvb2xfcmVzdWx0GBMgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQWdlbnRNY3BUb29sUmVzdWx0RXZlbnRCGfKFLBVhZ2VudC5tY3BfdG9vbF9yZXN1bHRIABJ2ChZzZXNzaW9uX3RocmVhZF9jcmVhdGVkGBQgASgLMjguYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblRocmVhZENyZWF0ZWRFdmVudEIa8oUsFnNlc3Npb24udGhyZWFkX2NyZWF0ZWRIABKKAQodc2Vzc2lvbl90aHJlYWRfc3RhdHVzX3J1bm5pbmcYFSABKAsyPi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uVGhyZWFkU3RhdHVzUnVubmluZ0V2ZW50QiHyhSwdc2Vzc2lvbi50aHJlYWRfc3RhdHVzX3J1bm5pbmdIABKBAQoac2Vzc2lvbl90aHJlYWRfc3RhdHVzX2lkbGUYFiABKAsyOy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uVGhyZWFkU3RhdHVzSWRsZUV2ZW50Qh7yhSwac2Vzc2lvbi50aHJlYWRfc3RhdHVzX2lkbGVIABJ+ChlhZ2VudF90aHJlYWRfbWVzc2FnZV9zZW50GBcgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQWdlbnRUaHJlYWRNZXNzYWdlU2VudEV2ZW50Qh3yhSwZYWdlbnQudGhyZWFkX21lc3NhZ2Vfc2VudEgAEooBCh1hZ2VudF90aHJlYWRfbWVzc2FnZV9yZWNlaXZlZBgYIAEoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkFnZW50VGhyZWFkTWVzc2FnZVJlY2VpdmVkRXZlbnRCIfKFLB1hZ2VudC50aHJlYWRfbWVzc2FnZV9yZWNlaXZlZEgAEo0BCh5hZ2VudF90aHJlYWRfY29udGV4dF9jb21wYWN0ZWQYGSABKAsyPy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5BZ2VudFRocmVhZENvbnRleHRDb21wYWN0ZWRFdmVudEIi8oUsHmFnZW50LnRocmVhZF9jb250ZXh0X2NvbXBhY3RlZEgAQgcKBWV2ZW50Ip4BChBVc2VyTWVzc2FnZUV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSPAoHY29udGVudBgCIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkNvbnRlbnRCbG9jaxIUCgxwcm9jZXNzZWRfYXQYAyABKAkiaQoZU2Vzc2lvblN0YXR1c1J1bm5pbmdFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEhQKDHByb2Nlc3NlZF9hdBgCIAEoCSKGAgoWU2Vzc2lvblN0YXR1c0lkbGVFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEhQKDHByb2Nlc3NlZF9hdBgCIAEoCRJGCgtzdG9wX3JlYXNvbhgDIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlN0b3BSZWFzb25CBrpIA8gBARJFCgxzdG9wX2RldGFpbHMYBCABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TdG9wRGV0YWlsc0gAiAEBQg8KDV9zdG9wX2RldGFpbHMipQEKEVNlc3Npb25FcnJvckV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSFAoMcHJvY2Vzc2VkX2F0GAIgASgJEkIKBWVycm9yGAMgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkVycm9yQga6SAPIAQEinwEKEUFnZW50TWVzc2FnZUV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSPAoHY29udGVudBgCIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkNvbnRlbnRCbG9jaxIUCgxwcm9jZXNzZWRfYXQYAyABKAkiYgoSQWdlbnRUaGlua2luZ0V2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSFAoMcHJvY2Vzc2VkX2F0GAIgASgJIsACChFBZ2VudFRvb2xVc2VFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEi4KBWlucHV0GAIgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdEIGukgDyAEBEhUKBG5hbWUYAyABKAlCB7pIBHICEAESFAoMcHJvY2Vzc2VkX2F0GAQgASgJEjgKFGV2YWx1YXRlZF9wZXJtaXNzaW9uGAUgASgJQhq6SBfYAQFyElIFYWxsb3dSA2Fza1IEZGVueRJBCgpldmFsdWF0aW9uGAYgASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuVG9vbEV2YWx1YXRpb24SGQoRc2Vzc2lvbl90aHJlYWRfaWQYByABKAki0gEKFEFnZW50VG9vbFJlc3VsdEV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSFAoMcHJvY2Vzc2VkX2F0GAIgASgJEhwKC3Rvb2xfdXNlX2lkGAMgASgJQge6SARyAhABEjwKB2NvbnRlbnQYBCADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Db250ZW50QmxvY2sSEAoIaXNfZXJyb3IYBSABKAgi5QIKFEFnZW50TWNwVG9vbFVzZUV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSLgoFaW5wdXQYAiABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Qga6SAPIAQESIAoPbWNwX3NlcnZlcl9uYW1lGAMgASgJQge6SARyAhABEhUKBG5hbWUYBCABKAlCB7pIBHICEAESFAoMcHJvY2Vzc2VkX2F0GAUgASgJEjgKFGV2YWx1YXRlZF9wZXJtaXNzaW9uGAYgASgJQhq6SBfYAQFyElIFYWxsb3dSA2Fza1IEZGVueRJBCgpldmFsdWF0aW9uGAcgASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuVG9vbEV2YWx1YXRpb24SGQoRc2Vzc2lvbl90aHJlYWRfaWQYCCABKAki2QEKF0FnZW50TWNwVG9vbFJlc3VsdEV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSIAoPbWNwX3Rvb2xfdXNlX2lkGAIgASgJQge6SARyAhABEhQKDHByb2Nlc3NlZF9hdBgDIAEoCRI8Cgdjb250ZW50GAQgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQ29udGVudEJsb2NrEhAKCGlzX2Vycm9yGAUgASgIIqEBChlTZXNzaW9uVGhyZWFkQ3JlYXRlZEV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSEgoKYWdlbnRfbmFtZRgCIAEoCRIUCgxwcm9jZXNzZWRfYXQYAyABKAkSIgoRc2Vzc2lvbl90aHJlYWRfaWQYBCABKAlCB7pIBHICEAEipwEKH1Nlc3Npb25UaHJlYWRTdGF0dXNSdW5uaW5nRXZlbnQSNgoCaWQYASABKAlCKrpIJ3IlMiNeW0EtWmEtejAtOV1bQS1aYS16MC05Xy46LV17MCwxMjd9JBISCgphZ2VudF9uYW1lGAIgASgJEhQKDHByb2Nlc3NlZF9hdBgDIAEoCRIiChFzZXNzaW9uX3RocmVhZF9pZBgEIAEoCUIHukgEcgIQASLEAgocU2Vzc2lvblRocmVhZFN0YXR1c0lkbGVFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEhIKCmFnZW50X25hbWUYAiABKAkSFAoMcHJvY2Vzc2VkX2F0GAMgASgJEiIKEXNlc3Npb25fdGhyZWFkX2lkGAQgASgJQge6SARyAhABEkYKC3N0b3BfcmVhc29uGAUgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU3RvcFJlYXNvbkIGukgDyAEBEkUKDHN0b3BfZGV0YWlscxgGIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlN0b3BEZXRhaWxzSACIAQFCDwoNX3N0b3BfZGV0YWlscyLnAQobQWdlbnRUaHJlYWRNZXNzYWdlU2VudEV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSPAoHY29udGVudBgCIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkNvbnRlbnRCbG9jaxIUCgxwcm9jZXNzZWRfYXQYAyABKAkSJQoUdG9fc2Vzc2lvbl90aHJlYWRfaWQYBCABKAlCB7pIBHICEAESFQoNdG9fYWdlbnRfbmFtZRgFIAEoCSLvAQofQWdlbnRUaHJlYWRNZXNzYWdlUmVjZWl2ZWRFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEjwKB2NvbnRlbnQYAiADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Db250ZW50QmxvY2sSJwoWZnJvbV9zZXNzaW9uX3RocmVhZF9pZBgDIAEoCUIHukgEcgIQARIUCgxwcm9jZXNzZWRfYXQYBCABKAkSFwoPZnJvbV9hZ2VudF9uYW1lGAUgASgJInAKIEFnZW50VGhyZWFkQ29udGV4dENvbXBhY3RlZEV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSFAoMcHJvY2Vzc2VkX2F0GAIgASgJIlAKCkV2ZW50U3RhcnQSQgoFZXZlbnQYASABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FdmVudFByZXZpZXdCBrpIA8gBASJ6CgxFdmVudFByZXZpZXcSNgoCaWQYASABKAlCKrpIJ3IlMiNeW0EtWmEtejAtOV1bQS1aYS16MC05Xy46LV17MCwxMjd9JBIyCgR0eXBlGAIgASgJQiS6SCFyH1INYWdlbnQubWVzc2FnZVIOYWdlbnQudGhpbmtpbmcijgEKCkV2ZW50RGVsdGESQgoFZGVsdGEYASABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5EZWx0YUNvbnRlbnRCBrpIA8gBARI8CghldmVudF9pZBgCIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kIpABCgxEZWx0YUNvbnRlbnQSRAoHY29udGVudBgBIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkNvbnRlbnRCbG9ja0IGukgDyAEBEiIKBHR5cGUYAiABKAlCFLpIEXIPUg1jb250ZW50X2RlbHRhEhYKBWluZGV4GAMgASgFQge6SAQaAigAYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_event_content, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9ldmVudC5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEirRQKDFNlc3Npb25FdmVudBILCgNzZXEYASABKAMSEgoKc2Vzc2lvbl9pZBgCIAEoCRIOCgZydW5faWQYAyABKAkSQAoJdGhyZWFkX2lkGAQgASgJQi26SCrYAQFyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSWQoMdXNlcl9tZXNzYWdlGAogASgLMi8uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuVXNlck1lc3NhZ2VFdmVudEIQ8oUsDHVzZXIubWVzc2FnZUgAEnYKFnNlc3Npb25fc3RhdHVzX3J1bm5pbmcYCyABKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3RhdHVzUnVubmluZ0V2ZW50QhryhSwWc2Vzc2lvbi5zdGF0dXNfcnVubmluZ0gAEm0KE3Nlc3Npb25fc3RhdHVzX2lkbGUYDCABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3RhdHVzSWRsZUV2ZW50QhfyhSwTc2Vzc2lvbi5zdGF0dXNfaWRsZUgAElwKDXNlc3Npb25fZXJyb3IYDSABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXJyb3JFdmVudEIR8oUsDXNlc3Npb24uZXJyb3JIABJcCg1hZ2VudF9tZXNzYWdlGA4gASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQWdlbnRNZXNzYWdlRXZlbnRCEfKFLA1hZ2VudC5tZXNzYWdlSAASXwoOYWdlbnRfdGhpbmtpbmcYDyABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5BZ2VudFRoaW5raW5nRXZlbnRCEvKFLA5hZ2VudC50aGlua2luZ0gAEl4KDmFnZW50X3Rvb2xfdXNlGBAgASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQWdlbnRUb29sVXNlRXZlbnRCEvKFLA5hZ2VudC50b29sX3VzZUgAEmcKEWFnZW50X3Rvb2xfcmVzdWx0GBEgASgLMjMuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQWdlbnRUb29sUmVzdWx0RXZlbnRCFfKFLBFhZ2VudC50b29sX3Jlc3VsdEgAEmkKEmFnZW50X21jcF90b29sX3VzZRgSIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkFnZW50TWNwVG9vbFVzZUV2ZW50QhbyhSwSYWdlbnQubWNwX3Rvb2xfdXNlSAAScgoVYWdlbnRfbWNwX3Rvb2xfcmVzdWx0GBMgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQWdlbnRNY3BUb29sUmVzdWx0RXZlbnRCGfKFLBVhZ2VudC5tY3BfdG9vbF9yZXN1bHRIABJ2ChZzZXNzaW9uX3RocmVhZF9jcmVhdGVkGBQgASgLMjguYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblRocmVhZENyZWF0ZWRFdmVudEIa8oUsFnNlc3Npb24udGhyZWFkX2NyZWF0ZWRIABKKAQodc2Vzc2lvbl90aHJlYWRfc3RhdHVzX3J1bm5pbmcYFSABKAsyPi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uVGhyZWFkU3RhdHVzUnVubmluZ0V2ZW50QiHyhSwdc2Vzc2lvbi50aHJlYWRfc3RhdHVzX3J1bm5pbmdIABKBAQoac2Vzc2lvbl90aHJlYWRfc3RhdHVzX2lkbGUYFiABKAsyOy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uVGhyZWFkU3RhdHVzSWRsZUV2ZW50Qh7yhSwac2Vzc2lvbi50aHJlYWRfc3RhdHVzX2lkbGVIABJ+ChlhZ2VudF90aHJlYWRfbWVzc2FnZV9zZW50GBcgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQWdlbnRUaHJlYWRNZXNzYWdlU2VudEV2ZW50Qh3yhSwZYWdlbnQudGhyZWFkX21lc3NhZ2Vfc2VudEgAEooBCh1hZ2VudF90aHJlYWRfbWVzc2FnZV9yZWNlaXZlZBgYIAEoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkFnZW50VGhyZWFkTWVzc2FnZVJlY2VpdmVkRXZlbnRCIfKFLB1hZ2VudC50aHJlYWRfbWVzc2FnZV9yZWNlaXZlZEgAEo0BCh5hZ2VudF90aHJlYWRfY29udGV4dF9jb21wYWN0ZWQYGSABKAsyPy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5BZ2VudFRocmVhZENvbnRleHRDb21wYWN0ZWRFdmVudEIi8oUsHmFnZW50LnRocmVhZF9jb250ZXh0X2NvbXBhY3RlZEgAEnYKFnN0aWdtZXJfYWdlbnRfdGhpbmtpbmcYZCABKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TdGlnbWVyQWdlbnRUaGlua2luZ0V2ZW50QhryhSwWc3RpZ21lci5hZ2VudC50aGlua2luZ0gAEnwKGHN0aWdtZXJfcGVybWlzc2lvbl9hc2tlZBhlIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlN0aWdtZXJQZXJtaXNzaW9uQXNrZWRFdmVudEIc8oUsGHN0aWdtZXIucGVybWlzc2lvbi5hc2tlZEgAEnAKFHN0aWdtZXJfaGFybmVzc19ub3RlGGYgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU3RpZ21lckhhcm5lc3NOb3RlRXZlbnRCGPKFLBRzdGlnbWVyLmhhcm5lc3Mubm90ZUgAEpABCh9zdGlnbWVyX2FnZW50X3N0cnVjdHVyZWRfb3V0cHV0GGcgASgLMkAuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU3RpZ21lckFnZW50U3RydWN0dXJlZE91dHB1dEV2ZW50QiPyhSwfc3RpZ21lci5hZ2VudC5zdHJ1Y3R1cmVkX291dHB1dEgAEnkKF3N0aWdtZXJfbWVtb3J5X3JlY2FsbGVkGGggASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU3RpZ21lck1lbW9yeVJlY2FsbGVkRXZlbnRCG/KFLBdzdGlnbWVyLm1lbW9yeS5yZWNhbGxlZEgAQgcKBWV2ZW50Ip4BChBVc2VyTWVzc2FnZUV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSPAoHY29udGVudBgCIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkNvbnRlbnRCbG9jaxIUCgxwcm9jZXNzZWRfYXQYAyABKAkiaQoZU2Vzc2lvblN0YXR1c1J1bm5pbmdFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEhQKDHByb2Nlc3NlZF9hdBgCIAEoCSKGAgoWU2Vzc2lvblN0YXR1c0lkbGVFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEhQKDHByb2Nlc3NlZF9hdBgCIAEoCRJGCgtzdG9wX3JlYXNvbhgDIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlN0b3BSZWFzb25CBrpIA8gBARJFCgxzdG9wX2RldGFpbHMYBCABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TdG9wRGV0YWlsc0gAiAEBQg8KDV9zdG9wX2RldGFpbHMipQEKEVNlc3Npb25FcnJvckV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSFAoMcHJvY2Vzc2VkX2F0GAIgASgJEkIKBWVycm9yGAMgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkVycm9yQga6SAPIAQEinwEKEUFnZW50TWVzc2FnZUV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSPAoHY29udGVudBgCIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkNvbnRlbnRCbG9jaxIUCgxwcm9jZXNzZWRfYXQYAyABKAkiYgoSQWdlbnRUaGlua2luZ0V2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSFAoMcHJvY2Vzc2VkX2F0GAIgASgJIsACChFBZ2VudFRvb2xVc2VFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEi4KBWlucHV0GAIgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdEIGukgDyAEBEhUKBG5hbWUYAyABKAlCB7pIBHICEAESFAoMcHJvY2Vzc2VkX2F0GAQgASgJEjgKFGV2YWx1YXRlZF9wZXJtaXNzaW9uGAUgASgJQhq6SBfYAQFyElIFYWxsb3dSA2Fza1IEZGVueRJBCgpldmFsdWF0aW9uGAYgASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuVG9vbEV2YWx1YXRpb24SGQoRc2Vzc2lvbl90aHJlYWRfaWQYByABKAki0gEKFEFnZW50VG9vbFJlc3VsdEV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSFAoMcHJvY2Vzc2VkX2F0GAIgASgJEhwKC3Rvb2xfdXNlX2lkGAMgASgJQge6SARyAhABEjwKB2NvbnRlbnQYBCADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Db250ZW50QmxvY2sSEAoIaXNfZXJyb3IYBSABKAgi5QIKFEFnZW50TWNwVG9vbFVzZUV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSLgoFaW5wdXQYAiABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Qga6SAPIAQESIAoPbWNwX3NlcnZlcl9uYW1lGAMgASgJQge6SARyAhABEhUKBG5hbWUYBCABKAlCB7pIBHICEAESFAoMcHJvY2Vzc2VkX2F0GAUgASgJEjgKFGV2YWx1YXRlZF9wZXJtaXNzaW9uGAYgASgJQhq6SBfYAQFyElIFYWxsb3dSA2Fza1IEZGVueRJBCgpldmFsdWF0aW9uGAcgASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuVG9vbEV2YWx1YXRpb24SGQoRc2Vzc2lvbl90aHJlYWRfaWQYCCABKAki2QEKF0FnZW50TWNwVG9vbFJlc3VsdEV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSIAoPbWNwX3Rvb2xfdXNlX2lkGAIgASgJQge6SARyAhABEhQKDHByb2Nlc3NlZF9hdBgDIAEoCRI8Cgdjb250ZW50GAQgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQ29udGVudEJsb2NrEhAKCGlzX2Vycm9yGAUgASgIIqEBChlTZXNzaW9uVGhyZWFkQ3JlYXRlZEV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSEgoKYWdlbnRfbmFtZRgCIAEoCRIUCgxwcm9jZXNzZWRfYXQYAyABKAkSIgoRc2Vzc2lvbl90aHJlYWRfaWQYBCABKAlCB7pIBHICEAEipwEKH1Nlc3Npb25UaHJlYWRTdGF0dXNSdW5uaW5nRXZlbnQSNgoCaWQYASABKAlCKrpIJ3IlMiNeW0EtWmEtejAtOV1bQS1aYS16MC05Xy46LV17MCwxMjd9JBISCgphZ2VudF9uYW1lGAIgASgJEhQKDHByb2Nlc3NlZF9hdBgDIAEoCRIiChFzZXNzaW9uX3RocmVhZF9pZBgEIAEoCUIHukgEcgIQASLEAgocU2Vzc2lvblRocmVhZFN0YXR1c0lkbGVFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEhIKCmFnZW50X25hbWUYAiABKAkSFAoMcHJvY2Vzc2VkX2F0GAMgASgJEiIKEXNlc3Npb25fdGhyZWFkX2lkGAQgASgJQge6SARyAhABEkYKC3N0b3BfcmVhc29uGAUgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU3RvcFJlYXNvbkIGukgDyAEBEkUKDHN0b3BfZGV0YWlscxgGIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlN0b3BEZXRhaWxzSACIAQFCDwoNX3N0b3BfZGV0YWlscyLnAQobQWdlbnRUaHJlYWRNZXNzYWdlU2VudEV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSPAoHY29udGVudBgCIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkNvbnRlbnRCbG9jaxIUCgxwcm9jZXNzZWRfYXQYAyABKAkSJQoUdG9fc2Vzc2lvbl90aHJlYWRfaWQYBCABKAlCB7pIBHICEAESFQoNdG9fYWdlbnRfbmFtZRgFIAEoCSLvAQofQWdlbnRUaHJlYWRNZXNzYWdlUmVjZWl2ZWRFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEjwKB2NvbnRlbnQYAiADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Db250ZW50QmxvY2sSJwoWZnJvbV9zZXNzaW9uX3RocmVhZF9pZBgDIAEoCUIHukgEcgIQARIUCgxwcm9jZXNzZWRfYXQYBCABKAkSFwoPZnJvbV9hZ2VudF9uYW1lGAUgASgJInAKIEFnZW50VGhyZWFkQ29udGV4dENvbXBhY3RlZEV2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSFAoMcHJvY2Vzc2VkX2F0GAIgASgJIpUBChlTdGlnbWVyQWdlbnRUaGlua2luZ0V2ZW50EjYKAmlkGAEgASgJQiq6SCdyJTIjXltBLVphLXowLTldW0EtWmEtejAtOV8uOi1dezAsMTI3fSQSFAoMcHJvY2Vzc2VkX2F0GAIgASgJEhwKC3RoaW5raW5nX2lkGAMgASgJQge6SARyAhABEgwKBHRleHQYBCABKAkijQIKG1N0aWdtZXJQZXJtaXNzaW9uQXNrZWRFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEhQKDHByb2Nlc3NlZF9hdBgCIAEoCRIcCgt0b29sX3VzZV9pZBgDIAEoCUIHukgEcgIQARIPCgdtZXNzYWdlGAQgASgJEhQKDGFyZ3NfcHJldmlldxgFIAEoCRJGCg1wb2xpY3lfc291cmNlGAYgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5BcHByb3ZhbFBvbGljeVNvdXJjZRITCgtwb2xpY3lfaG9vaxgHIAEoCSJ1ChdTdGlnbWVySGFybmVzc05vdGVFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEhQKDHByb2Nlc3NlZF9hdBgCIAEoCRIMCgR0ZXh0GAMgASgJIqIBCiFTdGlnbWVyQWdlbnRTdHJ1Y3R1cmVkT3V0cHV0RXZlbnQSNgoCaWQYASABKAlCKrpIJ3IlMiNeW0EtWmEtejAtOV1bQS1aYS16MC05Xy46LV17MCwxMjd9JBIUCgxwcm9jZXNzZWRfYXQYAiABKAkSLwoGb3V0cHV0GAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdEIGukgDyAEBIroBChpTdGlnbWVyTWVtb3J5UmVjYWxsZWRFdmVudBI2CgJpZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEhQKDHByb2Nlc3NlZF9hdBgCIAEoCRIYChBzZWxlY3Rpb25fYWN0aXZlGAMgASgIEhsKE2luamVjdGVkX21lbW9yeV9pZHMYBCADKAkSFwoPZW1iZWRkaW5nX21vZGVsGAUgASgJImEKD1Rvb2xPdXRwdXREZWx0YRI/Cgt0b29sX3VzZV9pZBgBIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kEg0KBWRlbHRhGAIgASgJIlAKCkV2ZW50U3RhcnQSQgoFZXZlbnQYASABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FdmVudFByZXZpZXdCBrpIA8gBASJ6CgxFdmVudFByZXZpZXcSNgoCaWQYASABKAlCKrpIJ3IlMiNeW0EtWmEtejAtOV1bQS1aYS16MC05Xy46LV17MCwxMjd9JBIyCgR0eXBlGAIgASgJQiS6SCFyH1INYWdlbnQubWVzc2FnZVIOYWdlbnQudGhpbmtpbmcijgEKCkV2ZW50RGVsdGESQgoFZGVsdGEYASABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5EZWx0YUNvbnRlbnRCBrpIA8gBARI8CghldmVudF9pZBgCIAEoCUIqukgnciUyI15bQS1aYS16MC05XVtBLVphLXowLTlfLjotXXswLDEyN30kIpABCgxEZWx0YUNvbnRlbnQSRAoHY29udGVudBgBIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkNvbnRlbnRCbG9ja0IGukgDyAEBEiIKBHR5cGUYAiABKAlCFLpIEXIPUg1jb250ZW50X2RlbHRhEhYKBWluZGV4GAMgASgFQge6SAQaAigAYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_session_v1_event_content, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * SessionEvent is one entry in a session's ordered event log.
@@ -191,6 +193,46 @@ export type SessionEvent = Message<"ai.stigmer.agentic.session.v1.SessionEvent">
      */
     value: AgentThreadContextCompactedEvent;
     case: "agentThreadContextCompacted";
+  } | {
+    /**
+     * The text of the agent's thinking.
+     *
+     * @generated from field: ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100;
+     */
+    value: StigmerAgentThinkingEvent;
+    case: "stigmerAgentThinking";
+  } | {
+    /**
+     * Why a tool use waits for a person's answer.
+     *
+     * @generated from field: ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101;
+     */
+    value: StigmerPermissionAskedEvent;
+    case: "stigmerPermissionAsked";
+  } | {
+    /**
+     * A line the platform added to the conversation in its own voice.
+     *
+     * @generated from field: ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102;
+     */
+    value: StigmerHarnessNoteEvent;
+    case: "stigmerHarnessNote";
+  } | {
+    /**
+     * The structured output the turn produced.
+     *
+     * @generated from field: ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103;
+     */
+    value: StigmerAgentStructuredOutputEvent;
+    case: "stigmerAgentStructuredOutput";
+  } | {
+    /**
+     * Which of the agent's memories the turn recalled.
+     *
+     * @generated from field: ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104;
+     */
+    value: StigmerMemoryRecalledEvent;
+    case: "stigmerMemoryRecalled";
   } | { case: undefined; value?: undefined };
 };
 
@@ -913,6 +955,270 @@ export const AgentThreadContextCompactedEventSchema: GenMessage<AgentThreadConte
   messageDesc(file_ai_stigmer_agentic_session_v1_event, 16);
 
 /**
+ * StigmerAgentThinkingEvent is the text of the agent's thinking:
+ * stigmer.agent.thinking. It follows the agent.thinking event it belongs
+ * to, which carries no text.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent
+ */
+export type StigmerAgentThinkingEvent = Message<"ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent"> & {
+  /**
+   * The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * When the event was appended, as RFC 3339 UTC.
+   *
+   * @generated from field: string processed_at = 2;
+   */
+  processedAt: string;
+
+  /**
+   * The agent.thinking event this text belongs to.
+   *
+   * @generated from field: string thinking_id = 3;
+   */
+  thinkingId: string;
+
+  /**
+   * The thinking's text.
+   *
+   * @generated from field: string text = 4;
+   */
+  text: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent.
+ * Use `create(StigmerAgentThinkingEventSchema)` to create a new message.
+ */
+export const StigmerAgentThinkingEventSchema: GenMessage<StigmerAgentThinkingEvent> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_event, 17);
+
+/**
+ * StigmerPermissionAskedEvent says why a tool use waits for a person's
+ * answer: stigmer.permission.asked. It follows the tool use, whose
+ * evaluated_permission is ask.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent
+ */
+export type StigmerPermissionAskedEvent = Message<"ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent"> & {
+  /**
+   * The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * When the event was appended, as RFC 3339 UTC.
+   *
+   * @generated from field: string processed_at = 2;
+   */
+  processedAt: string;
+
+  /**
+   * The agent.tool_use or agent.mcp_tool_use event that waits.
+   *
+   * @generated from field: string tool_use_id = 3;
+   */
+  toolUseId: string;
+
+  /**
+   * What to show the person who answers, for example "Delete repo: my-repo".
+   *
+   * @generated from field: string message = 4;
+   */
+  message: string;
+
+  /**
+   * A short preview of the tool's input, with secret values redacted.
+   *
+   * @generated from field: string args_preview = 5;
+   */
+  argsPreview: string;
+
+  /**
+   * Which rule asked.
+   *
+   * @generated from field: ai.stigmer.agentic.run.v1.ApprovalPolicySource policy_source = 6;
+   */
+  policySource: ApprovalPolicySource;
+
+  /**
+   * The plugin whose hook asked; empty for the agent's own hooks, or when no
+   * hook asked.
+   *
+   * @generated from field: string policy_hook = 7;
+   */
+  policyHook: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.
+ * Use `create(StigmerPermissionAskedEventSchema)` to create a new message.
+ */
+export const StigmerPermissionAskedEventSchema: GenMessage<StigmerPermissionAskedEvent> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_event, 18);
+
+/**
+ * StigmerHarnessNoteEvent is a line the platform added to the conversation
+ * in its own voice, for example that the platform's tools are off for this
+ * turn: stigmer.harness.note. It is not model input.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent
+ */
+export type StigmerHarnessNoteEvent = Message<"ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent"> & {
+  /**
+   * The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * When the event was appended, as RFC 3339 UTC.
+   *
+   * @generated from field: string processed_at = 2;
+   */
+  processedAt: string;
+
+  /**
+   * The line.
+   *
+   * @generated from field: string text = 3;
+   */
+  text: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent.
+ * Use `create(StigmerHarnessNoteEventSchema)` to create a new message.
+ */
+export const StigmerHarnessNoteEventSchema: GenMessage<StigmerHarnessNoteEvent> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_event, 19);
+
+/**
+ * StigmerAgentStructuredOutputEvent is the structured output the turn
+ * produced, when its run asked for one: stigmer.agent.structured_output.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent
+ */
+export type StigmerAgentStructuredOutputEvent = Message<"ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent"> & {
+  /**
+   * The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * When the event was appended, as RFC 3339 UTC.
+   *
+   * @generated from field: string processed_at = 2;
+   */
+  processedAt: string;
+
+  /**
+   * The output, conforming to the run's structured output schema.
+   *
+   * @generated from field: google.protobuf.Struct output = 3;
+   */
+  output?: JsonObject;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.
+ * Use `create(StigmerAgentStructuredOutputEventSchema)` to create a new message.
+ */
+export const StigmerAgentStructuredOutputEventSchema: GenMessage<StigmerAgentStructuredOutputEvent> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_event, 20);
+
+/**
+ * StigmerMemoryRecalledEvent says which of the agent's memories the turn
+ * recalled: stigmer.memory.recalled.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent
+ */
+export type StigmerMemoryRecalledEvent = Message<"ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent"> & {
+  /**
+   * The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * When the event was appended, as RFC 3339 UTC.
+   *
+   * @generated from field: string processed_at = 2;
+   */
+  processedAt: string;
+
+  /**
+   * Whether the turn chose among the memories; false means the agent saw
+   * every one.
+   *
+   * @generated from field: bool selection_active = 3;
+   */
+  selectionActive: boolean;
+
+  /**
+   * The memories the turn recalled, by id, when it chose among them.
+   *
+   * @generated from field: repeated string injected_memory_ids = 4;
+   */
+  injectedMemoryIds: string[];
+
+  /**
+   * The embedding model that chose them; empty when the turn did not choose.
+   *
+   * @generated from field: string embedding_model = 5;
+   */
+  embeddingModel: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.
+ * Use `create(StigmerMemoryRecalledEventSchema)` to create a new message.
+ */
+export const StigmerMemoryRecalledEventSchema: GenMessage<StigmerMemoryRecalledEvent> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_event, 21);
+
+/**
+ * ToolOutputDelta is one fragment of a running tool's output:
+ * stigmer.tool_output_delta. Streamed, never stored; the tool's result
+ * event carries the whole output.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.ToolOutputDelta
+ */
+export type ToolOutputDelta = Message<"ai.stigmer.agentic.session.v1.ToolOutputDelta"> & {
+  /**
+   * The tool use whose output grows.
+   *
+   * @generated from field: string tool_use_id = 1;
+   */
+  toolUseId: string;
+
+  /**
+   * The fragment.
+   *
+   * @generated from field: string delta = 2;
+   */
+  delta: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.ToolOutputDelta.
+ * Use `create(ToolOutputDeltaSchema)` to create a new message.
+ */
+export const ToolOutputDeltaSchema: GenMessage<ToolOutputDelta> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_event, 22);
+
+/**
  * EventStart opens a live preview of an event still being produced: the
  * event's type and id. Previews are streamed, never stored; the stored
  * event with the same id replaces the preview.
@@ -933,7 +1239,7 @@ export type EventStart = Message<"ai.stigmer.agentic.session.v1.EventStart"> & {
  * Use `create(EventStartSchema)` to create a new message.
  */
 export const EventStartSchema: GenMessage<EventStart> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_event, 17);
+  messageDesc(file_ai_stigmer_agentic_session_v1_event, 23);
 
 /**
  * EventPreview names a previewed event.
@@ -961,7 +1267,7 @@ export type EventPreview = Message<"ai.stigmer.agentic.session.v1.EventPreview">
  * Use `create(EventPreviewSchema)` to create a new message.
  */
 export const EventPreviewSchema: GenMessage<EventPreview> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_event, 18);
+  messageDesc(file_ai_stigmer_agentic_session_v1_event, 24);
 
 /**
  * EventDelta is one fragment of a previewed agent.message.
@@ -989,7 +1295,7 @@ export type EventDelta = Message<"ai.stigmer.agentic.session.v1.EventDelta"> & {
  * Use `create(EventDeltaSchema)` to create a new message.
  */
 export const EventDeltaSchema: GenMessage<EventDelta> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_event, 19);
+  messageDesc(file_ai_stigmer_agentic_session_v1_event, 25);
 
 /**
  * DeltaContent is a fragment of a previewed event's content.
@@ -1024,5 +1330,5 @@ export type DeltaContent = Message<"ai.stigmer.agentic.session.v1.DeltaContent">
  * Use `create(DeltaContentSchema)` to create a new message.
  */
 export const DeltaContentSchema: GenMessage<DeltaContent> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_event, 20);
+  messageDesc(file_ai_stigmer_agentic_session_v1_event, 26);
 

@@ -2440,6 +2440,10 @@ class SqliteSessionEventStore implements SessionEventStore {
       where.push(`type IN (${query.types.map(() => "?").join(", ")})`);
       params.push(...query.types);
     }
+    if (query.runId !== undefined) {
+      where.push("run_id = ?");
+      params.push(query.runId);
+    }
     const bounds: Array<[string | undefined, string]> = [
       [query.processedAtGt, ">"],
       [query.processedAtGte, ">="],

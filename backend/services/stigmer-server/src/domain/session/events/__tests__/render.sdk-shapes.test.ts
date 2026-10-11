@@ -34,10 +34,11 @@ import type {
 } from "@anthropic-ai/sdk/resources/beta/sessions/sessions";
 import { describe, expect, it } from "vitest";
 
+import { ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { StreamSessionEventsResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
-import { SESSION_EVENT_TYPES } from "../catalog.js";
+import { SESSION_EVENT_TYPES, isStigmerEventType } from "../catalog.js";
 import { toManagedAgentsJson, toManagedAgentsStreamJson } from "../render.js";
 
 const AT = "2026-10-11T09:30:00.000Z";
@@ -327,8 +328,68 @@ describe("every event the contract carries renders as the pinned SDK types it", 
     expect(toManagedAgentsJson(event)).toEqual(sdk);
   });
 
-  it("the cases cover every event type the contract lands", () => {
-    expect(new Set(CASES.map((c) => c.sdk.type))).toEqual(new Set(SESSION_EVENT_TYPES));
+  it("the cases cover every Managed Agents event type the contract lands", () => {
+    expect(new Set(CASES.map((c) => c.sdk.type))).toEqual(
+      new Set(SESSION_EVENT_TYPES.filter((type) => !isStigmerEventType(type))),
+    );
+  });
+});
+
+describe("Stigmer's own events render by the same three rules, under their stigmer.* type", () => {
+  const own: ReadonlyArray<{ readonly proto: EventInit; readonly json: Record<string, unknown> }> = [
+    {
+      proto: { case: "stigmerAgentThinking", value: { id: "s1", processedAt: AT, thinkingId: "t1", text: "weigh it" } },
+      json: { id: "s1", type: "stigmer.agent.thinking", processed_at: AT, thinking_id: "t1", text: "weigh it" },
+    },
+    {
+      proto: {
+        case: "stigmerPermissionAsked",
+        value: { id: "s2", processedAt: AT, toolUseId: "u1", message: "Run npm test", argsPreview: "{}", policySource: ApprovalPolicySource.BUILTIN_CATEGORY },
+      },
+      json: {
+        id: "s2",
+        type: "stigmer.permission.asked",
+        processed_at: AT,
+        tool_use_id: "u1",
+        message: "Run npm test",
+        args_preview: "{}",
+        policy_source: "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+      },
+    },
+    {
+      proto: { case: "stigmerHarnessNote", value: { id: "s3", processedAt: AT, text: "tools are off" } },
+      json: { id: "s3", type: "stigmer.harness.note", processed_at: AT, text: "tools are off" },
+    },
+    {
+      proto: { case: "stigmerAgentStructuredOutput", value: { id: "s4", processedAt: AT, output: { verdict: "ok" } } },
+      json: { id: "s4", type: "stigmer.agent.structured_output", processed_at: AT, output: { verdict: "ok" } },
+    },
+    {
+      proto: { case: "stigmerMemoryRecalled", value: { id: "s5", processedAt: AT, selectionActive: true, injectedMemoryIds: ["m1"], embeddingModel: "e" } },
+      json: {
+        id: "s5",
+        type: "stigmer.memory.recalled",
+        processed_at: AT,
+        selection_active: true,
+        injected_memory_ids: ["m1"],
+        embedding_model: "e",
+      },
+    },
+  ];
+
+  it.each(own)("$json.type", ({ proto, json }) => {
+    expect(toManagedAgentsJson(create(SessionEventSchema, { event: proto }))).toEqual(json);
+  });
+
+  it("the cases cover every Stigmer event type", () => {
+    expect(new Set(own.map((c) => c.json.type))).toEqual(new Set(SESSION_EVENT_TYPES.filter(isStigmerEventType)));
+  });
+
+  it("a running tool's output fragment renders as stigmer.tool_output_delta", () => {
+    const frame = create(StreamSessionEventsResponseSchema, {
+      frame: { case: "stigmerToolOutputDelta", value: { toolUseId: "u1", delta: "PASS" } },
+    });
+    expect(toManagedAgentsStreamJson(frame)).toEqual({ tool_use_id: "u1", delta: "PASS", type: "stigmer.tool_output_delta" });
   });
 });
 

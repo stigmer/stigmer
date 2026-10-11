@@ -1,3 +1,4 @@
+from ai.stigmer.agentic.run.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.session.v1 import event_content_pb2 as _event_content_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from buf.validate import validate_pb2 as _validate_pb2
@@ -11,7 +12,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SessionEvent(_message.Message):
-    __slots__ = ("seq", "session_id", "run_id", "thread_id", "user_message", "session_status_running", "session_status_idle", "session_error", "agent_message", "agent_thinking", "agent_tool_use", "agent_tool_result", "agent_mcp_tool_use", "agent_mcp_tool_result", "session_thread_created", "session_thread_status_running", "session_thread_status_idle", "agent_thread_message_sent", "agent_thread_message_received", "agent_thread_context_compacted")
+    __slots__ = ("seq", "session_id", "run_id", "thread_id", "user_message", "session_status_running", "session_status_idle", "session_error", "agent_message", "agent_thinking", "agent_tool_use", "agent_tool_result", "agent_mcp_tool_use", "agent_mcp_tool_result", "session_thread_created", "session_thread_status_running", "session_thread_status_idle", "agent_thread_message_sent", "agent_thread_message_received", "agent_thread_context_compacted", "stigmer_agent_thinking", "stigmer_permission_asked", "stigmer_harness_note", "stigmer_agent_structured_output", "stigmer_memory_recalled")
     SEQ_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
@@ -32,6 +33,11 @@ class SessionEvent(_message.Message):
     AGENT_THREAD_MESSAGE_SENT_FIELD_NUMBER: _ClassVar[int]
     AGENT_THREAD_MESSAGE_RECEIVED_FIELD_NUMBER: _ClassVar[int]
     AGENT_THREAD_CONTEXT_COMPACTED_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_AGENT_THINKING_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_PERMISSION_ASKED_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_HARNESS_NOTE_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_AGENT_STRUCTURED_OUTPUT_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_MEMORY_RECALLED_FIELD_NUMBER: _ClassVar[int]
     seq: int
     session_id: str
     run_id: str
@@ -52,7 +58,12 @@ class SessionEvent(_message.Message):
     agent_thread_message_sent: AgentThreadMessageSentEvent
     agent_thread_message_received: AgentThreadMessageReceivedEvent
     agent_thread_context_compacted: AgentThreadContextCompactedEvent
-    def __init__(self, seq: _Optional[int] = ..., session_id: _Optional[str] = ..., run_id: _Optional[str] = ..., thread_id: _Optional[str] = ..., user_message: _Optional[_Union[UserMessageEvent, _Mapping]] = ..., session_status_running: _Optional[_Union[SessionStatusRunningEvent, _Mapping]] = ..., session_status_idle: _Optional[_Union[SessionStatusIdleEvent, _Mapping]] = ..., session_error: _Optional[_Union[SessionErrorEvent, _Mapping]] = ..., agent_message: _Optional[_Union[AgentMessageEvent, _Mapping]] = ..., agent_thinking: _Optional[_Union[AgentThinkingEvent, _Mapping]] = ..., agent_tool_use: _Optional[_Union[AgentToolUseEvent, _Mapping]] = ..., agent_tool_result: _Optional[_Union[AgentToolResultEvent, _Mapping]] = ..., agent_mcp_tool_use: _Optional[_Union[AgentMcpToolUseEvent, _Mapping]] = ..., agent_mcp_tool_result: _Optional[_Union[AgentMcpToolResultEvent, _Mapping]] = ..., session_thread_created: _Optional[_Union[SessionThreadCreatedEvent, _Mapping]] = ..., session_thread_status_running: _Optional[_Union[SessionThreadStatusRunningEvent, _Mapping]] = ..., session_thread_status_idle: _Optional[_Union[SessionThreadStatusIdleEvent, _Mapping]] = ..., agent_thread_message_sent: _Optional[_Union[AgentThreadMessageSentEvent, _Mapping]] = ..., agent_thread_message_received: _Optional[_Union[AgentThreadMessageReceivedEvent, _Mapping]] = ..., agent_thread_context_compacted: _Optional[_Union[AgentThreadContextCompactedEvent, _Mapping]] = ...) -> None: ...
+    stigmer_agent_thinking: StigmerAgentThinkingEvent
+    stigmer_permission_asked: StigmerPermissionAskedEvent
+    stigmer_harness_note: StigmerHarnessNoteEvent
+    stigmer_agent_structured_output: StigmerAgentStructuredOutputEvent
+    stigmer_memory_recalled: StigmerMemoryRecalledEvent
+    def __init__(self, seq: _Optional[int] = ..., session_id: _Optional[str] = ..., run_id: _Optional[str] = ..., thread_id: _Optional[str] = ..., user_message: _Optional[_Union[UserMessageEvent, _Mapping]] = ..., session_status_running: _Optional[_Union[SessionStatusRunningEvent, _Mapping]] = ..., session_status_idle: _Optional[_Union[SessionStatusIdleEvent, _Mapping]] = ..., session_error: _Optional[_Union[SessionErrorEvent, _Mapping]] = ..., agent_message: _Optional[_Union[AgentMessageEvent, _Mapping]] = ..., agent_thinking: _Optional[_Union[AgentThinkingEvent, _Mapping]] = ..., agent_tool_use: _Optional[_Union[AgentToolUseEvent, _Mapping]] = ..., agent_tool_result: _Optional[_Union[AgentToolResultEvent, _Mapping]] = ..., agent_mcp_tool_use: _Optional[_Union[AgentMcpToolUseEvent, _Mapping]] = ..., agent_mcp_tool_result: _Optional[_Union[AgentMcpToolResultEvent, _Mapping]] = ..., session_thread_created: _Optional[_Union[SessionThreadCreatedEvent, _Mapping]] = ..., session_thread_status_running: _Optional[_Union[SessionThreadStatusRunningEvent, _Mapping]] = ..., session_thread_status_idle: _Optional[_Union[SessionThreadStatusIdleEvent, _Mapping]] = ..., agent_thread_message_sent: _Optional[_Union[AgentThreadMessageSentEvent, _Mapping]] = ..., agent_thread_message_received: _Optional[_Union[AgentThreadMessageReceivedEvent, _Mapping]] = ..., agent_thread_context_compacted: _Optional[_Union[AgentThreadContextCompactedEvent, _Mapping]] = ..., stigmer_agent_thinking: _Optional[_Union[StigmerAgentThinkingEvent, _Mapping]] = ..., stigmer_permission_asked: _Optional[_Union[StigmerPermissionAskedEvent, _Mapping]] = ..., stigmer_harness_note: _Optional[_Union[StigmerHarnessNoteEvent, _Mapping]] = ..., stigmer_agent_structured_output: _Optional[_Union[StigmerAgentStructuredOutputEvent, _Mapping]] = ..., stigmer_memory_recalled: _Optional[_Union[StigmerMemoryRecalledEvent, _Mapping]] = ...) -> None: ...
 
 class UserMessageEvent(_message.Message):
     __slots__ = ("id", "content", "processed_at")
@@ -253,6 +264,78 @@ class AgentThreadContextCompactedEvent(_message.Message):
     id: str
     processed_at: str
     def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ...) -> None: ...
+
+class StigmerAgentThinkingEvent(_message.Message):
+    __slots__ = ("id", "processed_at", "thinking_id", "text")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
+    THINKING_ID_FIELD_NUMBER: _ClassVar[int]
+    TEXT_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    processed_at: str
+    thinking_id: str
+    text: str
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., thinking_id: _Optional[str] = ..., text: _Optional[str] = ...) -> None: ...
+
+class StigmerPermissionAskedEvent(_message.Message):
+    __slots__ = ("id", "processed_at", "tool_use_id", "message", "args_preview", "policy_source", "policy_hook")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
+    TOOL_USE_ID_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    ARGS_PREVIEW_FIELD_NUMBER: _ClassVar[int]
+    POLICY_SOURCE_FIELD_NUMBER: _ClassVar[int]
+    POLICY_HOOK_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    processed_at: str
+    tool_use_id: str
+    message: str
+    args_preview: str
+    policy_source: _enum_pb2.ApprovalPolicySource
+    policy_hook: str
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., tool_use_id: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., policy_source: _Optional[_Union[_enum_pb2.ApprovalPolicySource, str]] = ..., policy_hook: _Optional[str] = ...) -> None: ...
+
+class StigmerHarnessNoteEvent(_message.Message):
+    __slots__ = ("id", "processed_at", "text")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
+    TEXT_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    processed_at: str
+    text: str
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., text: _Optional[str] = ...) -> None: ...
+
+class StigmerAgentStructuredOutputEvent(_message.Message):
+    __slots__ = ("id", "processed_at", "output")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
+    OUTPUT_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    processed_at: str
+    output: _struct_pb2.Struct
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
+
+class StigmerMemoryRecalledEvent(_message.Message):
+    __slots__ = ("id", "processed_at", "selection_active", "injected_memory_ids", "embedding_model")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
+    SELECTION_ACTIVE_FIELD_NUMBER: _ClassVar[int]
+    INJECTED_MEMORY_IDS_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDING_MODEL_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    processed_at: str
+    selection_active: bool
+    injected_memory_ids: _containers.RepeatedScalarFieldContainer[str]
+    embedding_model: str
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., selection_active: bool = ..., injected_memory_ids: _Optional[_Iterable[str]] = ..., embedding_model: _Optional[str] = ...) -> None: ...
+
+class ToolOutputDelta(_message.Message):
+    __slots__ = ("tool_use_id", "delta")
+    TOOL_USE_ID_FIELD_NUMBER: _ClassVar[int]
+    DELTA_FIELD_NUMBER: _ClassVar[int]
+    tool_use_id: str
+    delta: str
+    def __init__(self, tool_use_id: _Optional[str] = ..., delta: _Optional[str] = ...) -> None: ...
 
 class EventStart(_message.Message):
     __slots__ = ("event",)
