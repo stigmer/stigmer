@@ -37,6 +37,8 @@ import { withTimeout } from "./with-timeout.js";
 
 const HTTP_INIT_TIMEOUT_MS = 30_000;
 const STDIO_INIT_TIMEOUT_MS = 270_000;
+/** The most pages of tools one listing reads before it gives up: a server that never stops paging asks for every tool. */
+const MAX_LIST_PAGES = 100;
 
 /** One tool a server lists. */
 export interface ListedTool {
@@ -125,14 +127,26 @@ export async function listServerTools(server: ResolvedMcpServer): Promise<Listed
         if (!mcpClient) {
           throw new Error(`Failed to get MCP client for server '${slug}' after initialization`);
         }
-        const listed = await mcpClient.listTools();
-        for (const tool of listed.tools) {
-          tools.push({
-            name: tool.name,
-            description: tool.description ?? "",
-            destructive: tool.annotations?.destructiveHint === true,
-          });
-        }
+        // Every page the server answers: a destructive tool on a later page
+        // must ask as one on the first does. The native engine's loader
+        // follows the cursor the same way.
+        let cursor: string | undefined;
+        let pages = 0;
+        do {
+          const listed = await mcpClient.listTools(cursor === undefined ? undefined : { cursor });
+          for (const tool of listed.tools) {
+            tools.push({
+              name: tool.name,
+              description: tool.description ?? "",
+              destructive: tool.annotations?.destructiveHint === true,
+            });
+          }
+          cursor = listed.nextCursor;
+          pages += 1;
+          if (cursor !== undefined && pages >= MAX_LIST_PAGES) {
+            throw new Error(`MCP server '${slug}' answered more than ${MAX_LIST_PAGES} pages of tools`);
+          }
+        } while (cursor !== undefined);
       },
     );
   } catch (err) {

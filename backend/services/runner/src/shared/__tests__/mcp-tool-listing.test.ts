@@ -137,6 +137,32 @@ describe("listServerTools", () => {
     expect(mcp.close).toHaveBeenCalledTimes(1);
   });
 
+  it("reads every page the server answers, so a destructive tool on a later page still asks", async () => {
+    mcp.initializeConnections.mockResolvedValue({});
+    const listTools = vi
+      .fn()
+      .mockResolvedValueOnce({ tools: [{ name: "read_rows" }], nextCursor: "page-2" })
+      .mockResolvedValueOnce({ tools: [{ name: "drop_table", annotations: { destructiveHint: true } }] });
+    mcp.getClient.mockResolvedValue({ listTools });
+
+    expect(await listServerTools(pluginServer("plugin_a_api"))).toEqual([
+      { name: "read_rows", description: "", destructive: false },
+      { name: "drop_table", description: "", destructive: true },
+    ]);
+    expect(listTools.mock.calls).toEqual([[undefined], [{ cursor: "page-2" }]]);
+  });
+
+  it("gives up on a server that never stops paging, so every one of its tools asks", async () => {
+    mcp.initializeConnections.mockResolvedValue({});
+    mcp.getClient.mockResolvedValue({
+      listTools: vi.fn().mockResolvedValue({ tools: [{ name: "read_rows" }], nextCursor: "again" }),
+    });
+    await expect(listServerTools(pluginServer("plugin_a_api"))).rejects.toThrow(
+      "MCP server 'plugin_a_api' answered more than 100 pages of tools",
+    );
+    expect(mcp.close).toHaveBeenCalledTimes(1);
+  });
+
   it("closes the client when the listing fails, and throws the server's failure", async () => {
     mcp.initializeConnections.mockRejectedValue(new Error("Connection refused"));
     await expect(listServerTools(pluginServer("plugin_a_api"))).rejects.toThrow("Connection refused");
