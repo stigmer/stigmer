@@ -98,7 +98,8 @@ output, in OpenTelemetry's message format (`gen_ai.input.messages`,
 `gen_ai.output.messages`, `gen_ai.system_instructions`,
 `gen_ai.tool.call.arguments`, `gen_ai.tool.call.result`), and `user.id`, the
 person who started the run. Without it, none of these is set, for any kind of
-run.
+run, and no span carries a failure's message either, since an error can quote
+what a call was given: a failed span keeps its error status and `error.type`.
 
 Your tool never shows more than Stigmer's own saved conversation shows:
 
@@ -115,8 +116,9 @@ conversation your console shows.
 
 With the text on, every model call repeats the conversation so far, so a long
 Session sends a lot of data. The runner sends spans in batches of 32 then, so a
-batch stays under the 4 MiB a gRPC collector accepts by default;
-`OTEL_BSP_MAX_EXPORT_BATCH_SIZE` overrides it.
+batch stays under the 4 MiB a gRPC collector accepts by default.
+`OTEL_BSP_MAX_EXPORT_BATCH_SIZE` overrides it; a larger batch with the text on
+can pass that limit, so raise the collector's limit with it.
 
 ## Langfuse
 

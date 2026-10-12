@@ -44,7 +44,7 @@
  * none of them.
  */
 
-import type { SpanExporter } from "@opentelemetry/sdk-trace-base";
+import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
 import type { PushMetricExporter } from "@opentelemetry/sdk-metrics";
 
 import { getRunnerSecret } from "./shared/runner-credential-store.js";
@@ -290,4 +290,36 @@ export async function laneMetricExporter(settings: TelemetrySettings, lane: Tele
   }
   const { OTLPMetricExporter } = await import("@opentelemetry/exporter-metrics-otlp-proto");
   return new OTLPMetricExporter(await laneOptions(lane, "metrics"));
+}
+
+// ─── The content switch, at the door ───────────────────────────────────────
+
+/**
+ * With content off, no span leaves this process carrying a failure's text:
+ * every span's `exception` events and status message are dropped at the
+ * exporter, whatever instrumentation recorded them. Stigmer's own spans set
+ * none with content off (`shared/telemetry-content.ts` `markFailed`); this
+ * holds the switch for the spans other libraries record through the global
+ * tracer, the Cursor SDK's own and Temporal's among them, whose errors can
+ * quote what a call was given. With content on, spans pass as they are.
+ */
+export function contentGuardedExporter(exporter: SpanExporter, content: boolean): SpanExporter {
+  if (content) return exporter;
+  return {
+    export: (spans, done) => exporter.export(spans.map(withoutFailureText), done),
+    shutdown: () => exporter.shutdown(),
+    ...(exporter.forceFlush ? { forceFlush: () => exporter.forceFlush!() } : {}),
+  };
+}
+
+/** `span` seen with no exception events and no status message; every other field read through to it. */
+function withoutFailureText(span: ReadableSpan): ReadableSpan {
+  const hasException = span.events.some((event) => event.name === "exception");
+  if (!hasException && span.status.message === undefined) return span;
+  const view: ReadableSpan = Object.create(span) as ReadableSpan;
+  Object.defineProperties(view, {
+    events: { value: span.events.filter((event) => event.name !== "exception") },
+    status: { value: { code: span.status.code } },
+  });
+  return view;
 }

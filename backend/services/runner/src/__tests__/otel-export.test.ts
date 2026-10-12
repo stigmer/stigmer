@@ -10,6 +10,8 @@
  */
 
 import { afterEach, describe, expect, it } from "vitest";
+import { SpanStatusCode } from "@opentelemetry/api";
+import { BasicTracerProvider, InMemorySpanExporter, SimpleSpanProcessor, type ReadableSpan } from "@opentelemetry/sdk-trace-base";
 import { OTLPTraceExporter as GrpcTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { OTLPTraceExporter as ProtoTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
 import { OTLPTraceExporter as JsonTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
@@ -26,6 +28,7 @@ import {
   collectorMetricExporter,
   collectorSpanExporter,
   contentCaptureOn,
+  contentGuardedExporter,
   laneEncoding,
   laneMetricExporter,
   laneSpanExporter,
@@ -214,3 +217,37 @@ describe("the exporters", () => {
     await metrics.shutdown();
   });
 });
+
+describe("the content switch at the exporter", () => {
+  async function exportedThrough(content: boolean): Promise<ReadableSpan> {
+    const sink = new InMemorySpanExporter();
+    const provider = new BasicTracerProvider({ spanProcessors: [new SimpleSpanProcessor(contentGuardedExporter(sink, content))] });
+    // Another library's span, recorded through its own tracer: a failure whose text quotes the call.
+    const span = provider.getTracer("@cursor/sdk").startSpan("McpSdkClient.callTool", { attributes: { kept: "yes" } });
+    span.recordException(new Error("refused kwargs {\"token\":\"canary-arg\"}"));
+    span.addEvent("progress");
+    span.setStatus({ code: SpanStatusCode.ERROR, message: "refused kwargs {\"token\":\"canary-arg\"}" });
+    span.end();
+    await provider.forceFlush();
+    const [exported] = sink.getFinishedSpans();
+    await provider.shutdown();
+    return exported!;
+  }
+
+  it("drops every span's exception events and status message with content off, whatever recorded them", async () => {
+    const exported = await exportedThrough(false);
+    expect(exported.status).toEqual({ code: SpanStatusCode.ERROR });
+    expect(exported.events.map((event) => event.name)).toEqual(["progress"]);
+    expect(exported.name).toBe("McpSdkClient.callTool");
+    expect(exported.attributes).toEqual({ kept: "yes" });
+    expect(exported.spanContext().traceId).toMatch(/^[0-9a-f]{32}$/);
+    expect(JSON.stringify([exported.status, exported.events])).not.toContain("canary-arg");
+  });
+
+  it("passes spans as they are with content on", async () => {
+    const exported = await exportedThrough(true);
+    expect(exported.status.message).toContain("canary-arg");
+    expect(exported.events.map((event) => event.name)).toEqual(["exception", "progress"]);
+  });
+});
+

@@ -48,7 +48,7 @@ function runnerResourceAttributes(serviceName: string, processRole: string | und
 }
 
 export async function initTracing(serviceName: string, options: TelemetryInitOptions = {}): Promise<(() => Promise<void>) | null> {
-  const { telemetrySettings, collectorSpanExporter, laneSpanExporter } = await import("./otel-export.js");
+  const { telemetrySettings, collectorSpanExporter, laneSpanExporter, contentGuardedExporter } = await import("./otel-export.js");
   const settings = telemetrySettings();
   if (!settings.traces.enabled) {
     return null;
@@ -62,7 +62,10 @@ export async function initTracing(serviceName: string, options: TelemetryInitOpt
   const otelApi = await import("@opentelemetry/api");
 
   const resource = resourceFromAttributes(runnerResourceAttributes(serviceName, options.processRole));
-  const exporter = options.lane ? await laneSpanExporter(settings, options.lane) : await collectorSpanExporter(settings);
+  const exporter = contentGuardedExporter(
+    options.lane ? await laneSpanExporter(settings, options.lane) : await collectorSpanExporter(settings),
+    settings.content,
+  );
   const provider = new NodeTracerProvider({
     resource,
     idGenerator: new RunTraceIdGenerator(),

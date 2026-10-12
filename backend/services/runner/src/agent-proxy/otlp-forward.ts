@@ -23,7 +23,8 @@
  * response when the collector took the batch; 503 when it did not, after
  * the delegate's own retries, so the host's exporter retries once more
  * inside its own bound; 404 when this runner exports no such signal; 415
- * for a body in another encoding or compressed; 413 above
+ * for a body in another encoding or compressed; 502, with a fixed sentence,
+ * when the exporter itself could not be built; 413 above
  * {@link MAX_OTLP_BODY_BYTES}, after the body has been read to its end and
  * dropped: the exporter streams its body, and a request cut off mid-body
  * reads to it as a dropped connection, which it retries. A failing collector is logged when it starts
@@ -40,9 +41,15 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { laneEncoding, collectorHeaders, grpcMetadata, telemetrySettings, type TelemetrySettings, type TelemetrySignal } from "../otel-export.js";
 import { LaneRefusal } from "./lanes.js";
+import { MAX_REQUEST_BYTES } from "./relay.js";
 
-/** The largest body the lane accepts: twice the largest batch content export allows (32 spans of 64 KiB, `otel-export.ts`). */
-export const MAX_OTLP_BODY_BYTES = 8 * 1024 * 1024;
+/**
+ * The largest body the lane accepts: the bound every lane holds the host to
+ * (`relay.ts`), there to protect the runner's memory, not to judge a batch.
+ * A batch the operator raised (`OTEL_BSP_MAX_EXPORT_BATCH_SIZE`) with content
+ * on can pass 8 MiB; dropping it whole here would hide every engine span.
+ */
+export const MAX_OTLP_BODY_BYTES = MAX_REQUEST_BYTES;
 
 /** The content type each lane encoding arrives in. */
 const CONTENT_TYPE = { protobuf: "application/x-protobuf", json: "application/json" } as const;
@@ -150,9 +157,12 @@ export class OtlpForward {
     let delegate = this.delegates.get(signal);
     if (delegate === undefined) {
       // A delegate that could not be built is built again on the next export.
+      // Its error is never echoed: the header parser quotes a value it
+      // refuses, and the value is the collector's login.
       delegate = delegateFor(this.settings(), signal).catch((err: unknown) => {
         this.delegates.delete(signal);
-        throw err;
+        console.warn(`[agent-proxy] the ${signal} exporter could not be built (${err instanceof Error ? err.name : "error"}); check the OTEL_EXPORTER_OTLP_* settings`);
+        throw new LaneRefusal(502, `this runner's ${signal} exporter could not be built`);
       });
       this.delegates.set(signal, delegate);
     }

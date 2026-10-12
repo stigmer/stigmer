@@ -1,7 +1,9 @@
 /**
  * The telemetry lane's forward builds its export delegate on first use
  * (`agent-proxy/otlp-forward.ts`); a delegate that could not be built is
- * built again on the next export instead of failing every export after it.
+ * built again on the next export instead of failing every export after it,
+ * and its error is never echoed, since a header parser quotes the value it
+ * refuses and that value is the collector's login.
  * OpenTelemetry's HTTP delegate factory is made to fail once at its module
  * seam; the second export goes through a real delegate to a test collector.
  */
@@ -50,7 +52,13 @@ describe("the forward's delegate", () => {
     const settings = resolveTelemetrySettings({ OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT });
     const forward = new OtlpForward(() => settings);
 
-    await expect(forward.forward("traces", new Uint8Array([1]))).rejects.toThrow("the delegate could not be built");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const refused = await forward.forward("traces", new Uint8Array([1])).catch((err: unknown) => err);
+    // The builder's error can quote a header value it refuses, which is the
+    // collector's login: never echoed to the host or the log.
+    expect(refused).toMatchObject({ status: 502, message: "this runner's traces exporter could not be built" });
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("the delegate could not be built");
+    warn.mockRestore();
     expect(await forward.forward("traces", new Uint8Array([1]))).toEqual({ ok: true });
     expect(received).toEqual(["/v1/traces"]);
     await forward.close();

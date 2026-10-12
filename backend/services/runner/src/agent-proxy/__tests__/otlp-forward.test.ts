@@ -233,6 +233,18 @@ describe("what the telemetry lane takes", () => {
     expect(collector.received).toHaveLength(1);
   });
 
+  it("forwards a batch past 8 MiB, as a raised batch size with content on sends", async () => {
+    const collector = new TestCollector();
+    const url = await collector.start();
+    cleanups.push(() => collector.stop());
+    const proxy = await runnerExportingTo(url, "http/protobuf");
+
+    const answer = await rawCall(proxy, TRACES_PATH, { headers: asHostProtobuf, body: Buffer.alloc(9 * 1024 * 1024) });
+
+    expect(answer).toBe(200);
+    expect(collector.received).toHaveLength(1);
+  });
+
   it("keeps a body above the bound from the collector", async () => {
     const collector = new TestCollector();
     const url = await collector.start();

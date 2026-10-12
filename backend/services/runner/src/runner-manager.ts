@@ -37,7 +37,7 @@ import {
   type WorkflowSource,
 } from "./workflow-source.js";
 import { runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
-import { collectorSpanExporter, telemetrySettings } from "./otel-export.js";
+import { collectorSpanExporter, contentGuardedExporter, telemetrySettings } from "./otel-export.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
 import { assertLlmBackendsPreflight } from "./preflight.js";
 import {
@@ -833,7 +833,7 @@ export async function buildInterceptorConfig(
     const resource = resourceFromAttributes({
       "service.name": "stigmer-runner-manager",
     });
-    const exporter = await collectorSpanExporter(telemetry);
+    const exporter = contentGuardedExporter(await collectorSpanExporter(telemetry), telemetry.content);
     const otelSinks = makeWorkflowExporter(
       exporter as any,
       resource as any,

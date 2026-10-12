@@ -17,7 +17,7 @@ import { NativeConnection, Worker, type ActivityInterceptorsFactory, type Inject
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
 import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
-import { collectorSpanExporter, telemetrySettings } from "./otel-export.js";
+import { collectorSpanExporter, contentGuardedExporter, telemetrySettings } from "./otel-export.js";
 import { runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
 
 export interface WorkerActivities {
@@ -71,7 +71,7 @@ export async function startWorker(opts: StartWorkerOptions): Promise<StartedWork
     );
 
     const resource = resourceFromAttributes({ "service.name": "stigmer-runner" });
-    const exporter = await collectorSpanExporter(telemetry);
+    const exporter = contentGuardedExporter(await collectorSpanExporter(telemetry), telemetry.content);
     // Type assertion needed due to OTel SDK version mismatch between
     // @temporalio/interceptors-opentelemetry's bundled types and ours.
     // Runtime types are compatible — this is a pure type-system issue.
