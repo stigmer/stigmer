@@ -107,6 +107,8 @@ import { listTurnTools, type McpToolListing } from "../shared/mcp-tool-listing.j
 import { ToolScope } from "../shared/tool-lists.js";
 import { resolveAttachments } from "../shared/attachment-resolver.js";
 import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
+import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { loadedVersionsOf } from "./loaded-versions.js";
 import { mountPlugin, PluginMountError } from "../shared/plugin-mount.js";
 import { isTerminalError } from "../shared/grpc-retry.js";
 import type { PluginServerName } from "../shared/hooks/tool-view.js";
@@ -1064,6 +1066,11 @@ export function mainToolScope(blueprint: ResolvedBlueprint, spec: RunSpec | unde
  * native orchestrator fetched and mounted sub-agent skills itself
  * (`subagent-transformer.ts` with a client); this phase is where that read
  * lives now.
+ *
+ * Beside the skills it returns `loaded`: the root's mounted skills by id at
+ * their version hash, for the run's record of what it loaded
+ * (`loaded-versions.ts`). A plugin's skills are not listed; the plugin's
+ * digest names them.
  */
 export async function mountSkills(
   deps: ResolutionDeps,
@@ -1075,7 +1082,7 @@ export async function mountSkills(
     /** The main scope ({@link mainToolScope}), which decides whether skills are hidden. */
     readonly toolScope: ToolScope;
   },
-): Promise<TurnSkills> {
+): Promise<{ readonly skills: TurnSkills; readonly loaded: readonly ApiResourceReference[] }> {
   deps.enterPhase("resolve_skills");
   await deps.reportProgress("Resolving skills");
   const options = { sessionId: args.sessionId, primaryWorkspaceDir: args.primaryDir };
@@ -1083,7 +1090,8 @@ export async function mountSkills(
   if (toolScope.hidesSkills) {
     console.log(`[resolveSkills] execution=${deps.input.executionId}: the tool lists deny Skill; no skills this turn`);
   }
-  const root = toolScope.hidesSkills ? [] : [...(await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options))];
+  const resolved = toolScope.hidesSkills ? [] : await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options);
+  const root = resolved.map((skill) => skill.metadata);
   const bySubAgent = new Map<string, readonly SkillMetadata[]>();
   for (const plugin of args.blueprint.plugins) {
     // The same rule for a plugin's skills: the root lists them unless the
@@ -1106,7 +1114,7 @@ export async function mountSkills(
     }
   }
   deps.timing.mark("resolve_skills");
-  return { root, bySubAgent };
+  return { skills: { root, bySubAgent }, loaded: resolved.map((skill) => skill.loaded) };
 }
 
 /**
@@ -1310,6 +1318,10 @@ function describeServer(server: ResolvedMcpServer): string {
  * so one would run with the other's values. Run planning refuses two
  * plugins of one name first; this is the backstop for a plugin that
  * appeared or changed since.
+ *
+ * Ready, it also returns `loadedSkills`: every subagent's own mounted
+ * skills by id at their version hash, in subagent order, for the run's
+ * record of what it loaded (`loaded-versions.ts`).
  */
 export async function resolveSubagents(
   deps: ResolutionDeps,
@@ -1325,17 +1337,18 @@ export async function resolveSubagents(
     readonly mainServers: readonly ResolvedMcpServer[];
   },
 ): Promise<
-  | { readonly kind: "ready"; readonly subagents: readonly TurnSubagent[] }
+  | { readonly kind: "ready"; readonly subagents: readonly TurnSubagent[]; readonly loadedSkills: readonly ApiResourceReference[] }
   | { readonly kind: "settled"; readonly settlement: TurnSettlement }
 > {
   const { blueprint, values, sessionId } = args;
-  if (blueprint.subagents.length === 0 || !args.capabilities.subAgents) return { kind: "ready", subagents: [] };
+  if (blueprint.subagents.length === 0 || !args.capabilities.subAgents) return { kind: "ready", subagents: [], loadedSkills: [] };
   deps.enterPhase("resolve_subagents");
   await deps.reportProgress("Resolving subagents");
   const transportPosture = resolveMcpTransportPosture(deps.config.mode);
   const platformValues = turnPlatformValues(blueprint, args.session, sessionId);
   const options = { sessionId, primaryWorkspaceDir: args.primaryDir };
   const subagents: TurnSubagent[] = [];
+  const loadedSkills: ApiResourceReference[] = [];
   // Every server named so far: the main agent's, then each subagent's.
   const named: ResolvedMcpServer[] = [...args.mainServers];
   for (const subagent of blueprint.subagents) {
@@ -1346,7 +1359,9 @@ export async function resolveSubagents(
     named.push(...servers);
     const skills: SkillMetadata[] = [];
     if (!toolScope.hidesSkills) {
-      skills.push(...(await resolveSkills(deps.client, spec.skillRefs, options)));
+      const own = await resolveSkills(deps.client, spec.skillRefs, options);
+      skills.push(...own.map((skill) => skill.metadata));
+      loadedSkills.push(...own.map((skill) => skill.loaded));
       for (const plugin of subagent.plugins) {
         skills.push(...(await mountPluginSkills(deps, plugin, sessionId, args.primaryDir)).values());
       }
@@ -1371,7 +1386,7 @@ export async function resolveSubagents(
     });
   }
   deps.timing.mark("resolve_subagents");
-  return { kind: "ready", subagents };
+  return { kind: "ready", subagents, loadedSkills };
 }
 
 /** A recorded hook format as the evaluator names it; an unset format is Claude Code's, as apply fills it. */
@@ -1701,7 +1716,7 @@ export async function resolveTurnContext(
   });
   const mcp =
     prepared === undefined ? resolvedMcp : await startEvalMocks(deps, { spec, archive: prepared.archive, mcp: resolvedMcp, frame });
-  const skills = await mountSkills(deps, {
+  const mounted = await mountSkills(deps, {
     blueprint,
     sessionId,
     primaryDir: workspace.primaryDir,
@@ -1744,6 +1759,15 @@ export async function resolveTurnContext(
     await persist();
   }
 
+  // What this turn loaded, recorded once it is ready to run; the
+  // adapter's first persist carries it.
+  const loadedVersions = loadedVersionsOf(
+    [...mounted.loaded, ...subagentResolution.loadedSkills],
+    blueprint,
+    capabilities.subAgents,
+  );
+  if (loadedVersions !== undefined) deps.status.loadedVersions = loadedVersions;
+
   return {
     kind: "ready",
     input: {
@@ -1758,7 +1782,7 @@ export async function resolveTurnContext(
       values,
       workspace,
       mcp,
-      skills,
+      skills: mounted.skills,
       hooks: hookResolution.hooks,
       subagents: subagentResolution.subagents,
       attachments,

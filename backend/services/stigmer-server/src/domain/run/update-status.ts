@@ -35,6 +35,17 @@
  * and keeps streaming IN_PROGRESS until then, and without the latch its
  * stragglers un-pause the execution and Resume finds nothing to resume.
  *
+ * loaded_versions is the one field merged by union rather than replaced:
+ * every attempt of a turn resolves its skills and plugins again, so a turn
+ * resumed after a pause may load a newer version than it started on, and a
+ * run that ran two versions of one skill must say both. Its entries are
+ * admitted first (AdmitLoadedVersions): updateStatus is open to whoever
+ * may edit the run, not only the runner, and every read names each stored
+ * entry with its target's current slug, so an entry the reference rule
+ * would refuse from the run's organization (another organization's
+ * resource, a parent's not shared with its children, an id nothing holds)
+ * is dropped, never stored and never named.
+ *
  * A turn's file review closes when a later message is sent
  * (filereview/autokeep.ts keepOutdatedSets). The next turn's workflow
  * closes a turn that already captured; a turn that captures after the
@@ -50,6 +61,7 @@ import { create } from "@bufbuild/protobuf";
 
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
+  LoadedVersionsSchema,
   RunSchema,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -66,6 +78,8 @@ import type {
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -83,6 +97,11 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import { isServerComposedRequest } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  checkReference,
+  loadReferenceTargets,
+  type SpecReference,
+} from "../../pipeline/steps/references.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
@@ -169,6 +188,12 @@ export async function updateStatus(
         if (ctx.input.status === undefined) {
           throw invalidArgumentError("status is required");
         }
+      },
+    })
+    .addStep({
+      name: "AdmitLoadedVersions",
+      async execute(ctx) {
+        await admitLoadedVersions(deps.store, ctx.input, deps.logger);
       },
     })
     .addStep({
@@ -684,10 +709,130 @@ export function applyUpdateStatusMerge(
     status.pluginEvalFiles = requestStatus.pluginEvalFiles;
   }
 
+  // Merge loaded_versions: runner-owned, sent with every write of a turn
+  // attempt. A union over (id, version), never a replace: a resumed attempt
+  // that loads a moved head adds the version it ran beside the one before,
+  // and a resend of the same list adds nothing.
+  if (requestStatus.loadedVersions !== undefined) {
+    const loaded = status.loadedVersions ?? create(LoadedVersionsSchema);
+    loaded.skills = unionReferences(
+      loaded.skills,
+      requestStatus.loadedVersions.skills,
+      ApiResourceKind.skill,
+    );
+    loaded.plugins = unionReferences(
+      loaded.plugins,
+      requestStatus.loadedVersions.plugins,
+      ApiResourceKind.plugin,
+    );
+    status.loadedVersions = loaded;
+  }
+
   logger.debug("Merged status fields", {
     executionId: input.runId,
     phase: RunPhase[status.phase],
     messagesCount: status.messages.length,
     pendingApprovalsCount: status.pendingApprovals.length,
   });
+}
+
+/**
+ * The stored list followed by every incoming entry whose (id, version) it
+ * does not hold, in the order sent. Stored entries are never removed or
+ * reordered. Each appended entry takes its stored form: the list's kind,
+ * no slug (the response interceptor names it).
+ */
+function unionReferences(
+  stored: readonly ApiResourceReference[],
+  incoming: readonly ApiResourceReference[],
+  kind: ApiResourceKind,
+): ApiResourceReference[] {
+  const merged = [...stored];
+  const held = new Set(stored.map((ref) => `${ref.id}@${ref.version}`));
+  for (const ref of incoming) {
+    const key = `${ref.id}@${ref.version}`;
+    if (held.has(key)) {
+      continue;
+    }
+    held.add(key);
+    merged.push(
+      create(ApiResourceReferenceSchema, {
+        org: ref.org,
+        kind,
+        id: ref.id,
+        version: ref.version,
+      }),
+    );
+  }
+  return merged;
+}
+
+/**
+ * Keeps, in a write's loaded_versions, only the entries the run may hold:
+ * those it holds already, and new ones the reference rule admits from the
+ * run's organization (`checkReference`: a resource of its own organization
+ * that exists, or one its parent shares with child organizations). Each new
+ * target is read once; a write that adds nothing new reads nothing but the
+ * run. The floor clause does not apply: the run did load what it lists, and
+ * the floor guards what a spec exposes. A dropped entry is logged, never
+ * refused, so a skill deleted mid-turn cannot fail the turn's later writes.
+ */
+export async function admitLoadedVersions(
+  store: Store,
+  input: RunUpdateStatusInput,
+  logger: Logger,
+): Promise<void> {
+  const loaded = input.status?.loadedVersions;
+  if (loaded === undefined || (loaded.skills.length === 0 && loaded.plugins.length === 0)) {
+    return;
+  }
+  let run: Run;
+  try {
+    run = await store.getResource(ApiResourceKind.run, input.runId, RunSchema);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      // The merge answers NotFound for the same read.
+      return;
+    }
+    /* v8 ignore next -- @preserve: a store fault other than a missing row; no test injects one here */
+    throw internalError(error, "failed to read the run");
+  }
+  const runOrg = run.metadata?.org ?? "";
+  const held = new Set(
+    [...(run.status?.loadedVersions?.skills ?? []), ...(run.status?.loadedVersions?.plugins ?? [])].map(
+      (ref) => `${ref.id}@${ref.version}`,
+    ),
+  );
+  const lists = [
+    [ApiResourceKind.skill, loaded.skills],
+    [ApiResourceKind.plugin, loaded.plugins],
+  ] as const;
+  const fresh: SpecReference[] = lists.flatMap(([kind, refs]) =>
+    refs
+      .filter((ref) => !held.has(`${ref.id}@${ref.version}`))
+      .map((ref) => ({ kind, org: ref.org, id: ref.id, slug: "" })),
+  );
+  if (fresh.length === 0) {
+    return;
+  }
+  const targets = await loadReferenceTargets(store, fresh, runOrg);
+  const parent = { org: runOrg, visibility: run.metadata?.visibility ?? 0 };
+  const admits = (kind: ApiResourceKind, ref: ApiResourceReference): boolean => {
+    if (held.has(`${ref.id}@${ref.version}`)) {
+      return true;
+    }
+    const verdict = checkReference(targets, parent, { kind, org: ref.org, id: ref.id, slug: "" });
+    if (verdict.kind === "ok" || verdict.kind === "below-floor") {
+      return true;
+    }
+    logger.warn("Dropped a loaded version the run's organization may not reference", {
+      executionId: input.runId,
+      kind: ApiResourceKind[kind],
+      id: ref.id,
+      verdict: verdict.kind,
+    });
+    return false;
+  };
+  loaded.skills = loaded.skills.filter((ref) => admits(ApiResourceKind.skill, ref));
+  loaded.plugins = loaded.plugins.filter((ref) => admits(ApiResourceKind.plugin, ref));
 }

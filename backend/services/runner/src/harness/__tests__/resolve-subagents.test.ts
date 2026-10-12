@@ -16,6 +16,9 @@
  *    brings beyond instructions, model and skills.
  *  - A harness without subagents, or a turn whose agent lists none,
  *    resolves nothing and reports nothing.
+ *  - Beside the subagents, the skills each one mounted from its own refs,
+ *    by id at their version hash, for the run's record of what it loaded;
+ *    a skill that failed is not listed, nor a plugin's skill.
  *
  * The client is doubled with scripted skills and a plugin archive; `HOME`
  * is the hermetic environment's, so mounts land under a temp platform dir;
@@ -239,7 +242,7 @@ function ready(result: Awaited<ReturnType<typeof run>>["result"]) {
 describe("resolveSubagents: what a subagent runs with", () => {
   it("resolves nothing, and reports nothing, for a turn whose agent lists no subagent", async () => {
     const { result, labels } = await run([]);
-    expect(result).toEqual({ kind: "ready", subagents: [] });
+    expect(result).toEqual({ kind: "ready", subagents: [], loadedSkills: [] });
     expect(labels).toEqual([]);
   });
 
@@ -249,7 +252,7 @@ describe("resolveSubagents: what a subagent runs with", () => {
       c,
       capabilities: { harness: Harness.NATIVE, subAgents: false },
     });
-    expect(result).toEqual({ kind: "ready", subagents: [] });
+    expect(result).toEqual({ kind: "ready", subagents: [], loadedSkills: [] });
     expect(labels).toEqual([]);
     expect(fetches).toEqual([]);
   });
@@ -322,13 +325,17 @@ describe("resolveSubagents: what a subagent runs with", () => {
     expect(subagent!.skills.map((s) => s.name)).toEqual(["alpha", "changelog:changelog"]);
     expect(subagent!.skills[0]!.path).toBe(".stigmer/skills/alpha/SKILL.md");
     expect(subagent!.skills[1]!.path).toContain(DIGEST);
+    const loaded = result.kind === "ready" ? result.loadedSkills : [];
+    expect(loaded.map((r) => [r.org, r.id, r.version]), "its own skill by id at its version; its plugin's is named by the digest").toEqual([
+      ["acme", "skill-alpha", "hash-alpha"],
+    ]);
   });
 
   it("mounts a skill the main agent also has once: the second resolution hits the hash-keyed marker", async () => {
     const { client: c, fetches } = client(["shared"]);
     const { deps } = depsWith(c);
     const writes = vi.spyOn(await import("../../shared/skill-mount.js"), "writeSkillMount");
-    const root = await mountSkills(deps, {
+    const { skills: root } = await mountSkills(deps, {
       blueprint: turnInputFixture({ sessionId, blueprint: { mergedSkillRefs: [ref("shared")] } }).blueprint,
       sessionId,
       primaryDir,
@@ -347,6 +354,7 @@ describe("resolveSubagents: what a subagent runs with", () => {
     const { client: c } = client(["beta"]);
     const { result } = await run([saved("release-notes", { skillRefs: [ref("missing"), ref("beta")] })], { c });
     expect(ready(result)[0]!.skills.map((s) => s.name)).toEqual(["beta"]);
+    expect(result.kind === "ready" ? result.loadedSkills.map((r) => r.id) : [], "a skill that did not mount is not listed").toEqual(["skill-beta"]);
   });
 
   it.each<[string, { disallowedTools?: string[] }, { disallowedTools?: string[] }]>([

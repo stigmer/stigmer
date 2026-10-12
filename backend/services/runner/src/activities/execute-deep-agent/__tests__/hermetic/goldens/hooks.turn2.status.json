@@ -93,5 +93,15 @@
     "observedAt": "2026-01-01T00:00:04.000Z",
     "requestedServiceTier": "SERVICE_TIER_STANDARD",
     "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "loadedVersions": {
+    "plugins": [
+      {
+        "org": "hermetic-org",
+        "kind": "plugin",
+        "version": "6aa6b643d95fbe90e7664eb90603aceebf3deec22eff2bc6abc54a0d357169b8",
+        "id": "plg_safety"
+      }
+    ]
   }
 }

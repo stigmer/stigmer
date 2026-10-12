@@ -1781,6 +1781,158 @@
       ]
     },
     {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "team",
+          "number": 24,
+          "description": "Named group of an organization's people that access is shared with as one."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "The boundary that holds people, Agents, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "run",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
+        },
+        {
+          "name": "schedule",
+          "number": 56,
+          "description": "Recurring trigger that runs an agent on a cron schedule."
+        },
+        {
+          "name": "memory",
+          "number": 57,
+          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
+        },
+        {
+          "name": "plugin",
+          "number": 58,
+          "description": "An installed Agent Plugins package: one thing holding skills, agents,\n hooks and MCP servers, which agents and conversations list whole."
+        },
+        {
+          "name": "vault",
+          "number": 59,
+          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
+        },
+        {
+          "name": "score",
+          "number": 61,
+          "description": "One grade of a finished run: a person's thumbs or a free run-health\n check."
+        },
+        {
+          "name": "evaluator",
+          "number": 62,
+          "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
+        },
+        {
+          "name": "plugin_eval",
+          "number": 63,
+          "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
+        },
+        {
+          "name": "agent_eval",
+          "number": 64,
+          "description": "One run of the eval cases of the plugins an agent attaches, on the\n agent itself: each plugin's cases at the version the agent attaches,\n on the models the eval names, stamped with the agent's version."
+        },
+        {
+          "name": "plan",
+          "number": 70,
+          "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
+        },
+        {
+          "name": "subscription",
+          "number": 71,
+          "description": "An organization's binding to a Plan; at most one active per organization.\n\n System-created: the payment system drives its lifecycle, so it has no\n owner and grants no roles. Its reads and writes authorize on the\n organization through the billing permissions."
+        },
+        {
+          "name": "license",
+          "number": 72,
+          "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
+        }
+      ]
+    },
+    {
       "name": "ApprovalEventType",
       "description": "ApprovalEventType is the kind of event in the append-only approval-event\n stream (see ApprovalEvent in approval.proto).\n\n The event stream is the single source of truth for HITL approvals:\n PendingApproval is projected from it, with the message scan kept as a\n cross-check that must agree.\n\n The set covers every way an approval request resolves: the three user\n decisions (APPROVED / REJECTED / SKIPPED) plus RETRACTED — the platform\n withdrawing an in-flight request whose gated call became unreachable before a\n decision. Together they make the lifecycle total, which is what lets the\n event-stream projection stand on its own. Lease-expiry events remain\n intentionally omitted until a component emits them; enums extend additively,\n so adding them later is non-breaking.\n\n event_type is the coarse lifecycle bucket; the precise user action (including\n APPROVE_ALL, which buckets as APPROVED) lives on ApprovalDecision.action.",
       "protoType": "ai.stigmer.agentic.run.v1.ApprovalEventType",
@@ -2559,158 +2711,6 @@
       ]
     },
     {
-      "name": "ApiResourceKind",
-      "description": "API resource kinds for Stigmer.",
-      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
-      "values": [
-        {
-          "name": "api_resource_version",
-          "number": 1,
-          "description": "Immutable version record tracking changes to an API resource."
-        },
-        {
-          "name": "iam_policy",
-          "number": 10,
-          "description": "Role-based access control policy for granting permissions on resources."
-        },
-        {
-          "name": "identity_account",
-          "number": 11,
-          "description": "User account in the identity system."
-        },
-        {
-          "name": "api_key",
-          "number": 12,
-          "description": "Credential for programmatic API access."
-        },
-        {
-          "name": "invitation",
-          "number": 20,
-          "description": "Shareable link for joining an organization with a configurable role."
-        },
-        {
-          "name": "identity_provider",
-          "number": 21,
-          "description": "External identity provider for federated authentication."
-        },
-        {
-          "name": "oauth_app",
-          "number": 22,
-          "description": "Registered OAuth application with an external vendor for outbound authentication."
-        },
-        {
-          "name": "platform_client",
-          "number": 23,
-          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
-        },
-        {
-          "name": "team",
-          "number": 24,
-          "description": "Named group of an organization's people that access is shared with as one."
-        },
-        {
-          "name": "organization",
-          "number": 30,
-          "description": "The boundary that holds people, Agents, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
-        },
-        {
-          "name": "platform",
-          "number": 31,
-          "description": "Singleton platform instance representing the Stigmer deployment."
-        },
-        {
-          "name": "agent",
-          "number": 40,
-          "description": "AI assistant with instructions, tools, skills, and a delegation model."
-        },
-        {
-          "name": "run",
-          "number": 41,
-          "description": "Single run of an agent within a session, tracking tool calls and responses."
-        },
-        {
-          "name": "session",
-          "number": 42,
-          "description": "Conversation thread between a user and an agent."
-        },
-        {
-          "name": "skill",
-          "number": 43,
-          "description": "Knowledge resource that provides domain-specific context to an agent."
-        },
-        {
-          "name": "agent_share",
-          "number": 46,
-          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
-        },
-        {
-          "name": "agent_channel",
-          "number": 47,
-          "description": "Connection binding an agent to an external messaging platform workspace."
-        },
-        {
-          "name": "channel_app",
-          "number": 48,
-          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
-        },
-        {
-          "name": "schedule",
-          "number": 56,
-          "description": "Recurring trigger that runs an agent on a cron schedule."
-        },
-        {
-          "name": "memory",
-          "number": 57,
-          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
-        },
-        {
-          "name": "plugin",
-          "number": 58,
-          "description": "An installed Agent Plugins package: one thing holding skills, agents,\n hooks and MCP servers, which agents and conversations list whole."
-        },
-        {
-          "name": "vault",
-          "number": 59,
-          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
-        },
-        {
-          "name": "score",
-          "number": 61,
-          "description": "One grade of a finished run: a person's thumbs or a free run-health\n check."
-        },
-        {
-          "name": "evaluator",
-          "number": 62,
-          "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
-        },
-        {
-          "name": "plugin_eval",
-          "number": 63,
-          "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
-        },
-        {
-          "name": "agent_eval",
-          "number": 64,
-          "description": "One run of the eval cases of the plugins an agent attaches, on the\n agent itself: each plugin's cases at the version the agent attaches,\n on the models the eval names, stamped with the agent's version."
-        },
-        {
-          "name": "plan",
-          "number": 70,
-          "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
-        },
-        {
-          "name": "subscription",
-          "number": 71,
-          "description": "An organization's binding to a Plan; at most one active per organization.\n\n System-created: the payment system drives its lifecycle, so it has no\n owner and grants no roles. Its reads and writes authorize on the\n organization through the billing permissions."
-        },
-        {
-          "name": "license",
-          "number": 72,
-          "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
-        }
-      ]
-    },
-    {
       "name": "GitWriteBackMode",
       "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.",
       "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
@@ -3015,6 +3015,17 @@
           "kind": "string"
         },
         "description": "Content hash of the agent version this turn ran (AgentStatus.version_hash\n at create; resolvable through AgentQueryController.getVersion with\n agent_id).\n\n Empty when agent_id is empty, or when the agent had no recorded version\n at create (an agent last written before agents were versioned, or one\n whose last version failed to archive); such a turn runs the agent as\n it is when the turn starts.",
+        "required": false
+      },
+      {
+        "name": "LoadedVersions",
+        "jsonName": "loadedVersions",
+        "protoField": "loaded_versions",
+        "type": {
+          "kind": "message",
+          "messageType": "LoadedVersions"
+        },
+        "description": "Every skill and plugin a turn of this run loaded, for the agent and its\n subagents, at the version it loaded. A turn that resumes after a pause\n and loads a newer version adds an entry, so a run that ran two versions\n of one skill lists both. Empty for a run that loaded none, and for runs\n that predate this field.",
         "required": false
       },
       {
@@ -3337,6 +3348,108 @@
             "kind": "string"
           },
           "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical written format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n A reference has three forms:\n - Written: by name (org and slug), by id, or by both. A write that carries\n   both must have them agree, or it is refused naming both. A name is\n   resolved to its resource's id when the referring resource is written.\n - Stored: org (the organization's id), kind, id and version. The slug is\n   not stored, so a reference keeps pointing at the resource it meant when\n   that resource is renamed, and never at a new resource that takes its old\n   name after it is deleted.\n - Returned: as stored, with slug filled with the resource's current name.\n   A reference whose resource was deleted is returned with an empty slug.\n\n The kind a reference names is the kind its field declares\n (reference_kind); a reference that carries another kind is refused.\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, plugins and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource, by slug or id.\n\n When non-empty: an organization slug (lowercase alphanumeric with hyphens,\n starts with a letter, 2-63 characters; e.g. \"stigmer\", \"acme-corp\") or an\n organization id (org_\u003culid\u003e). The server stores the id, so a stored\n reference keeps pointing at its organization across a rename.\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form, the id).\n\n Use empty org for same-org references (the common case).\n An explicit other org is accepted only when that organization is your\n organization's parent and shares the resource with its children\n (visibility_child_orgs).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[0-9a-z]{26}$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "identity_provider",
+              "oauth_app",
+              "platform_client",
+              "team",
+              "organization",
+              "platform",
+              "agent",
+              "run",
+              "session",
+              "skill",
+              "agent_share",
+              "agent_channel",
+              "channel_app",
+              "schedule",
+              "memory",
+              "plugin",
+              "vault",
+              "score",
+              "evaluator",
+              "plugin_eval",
+              "agent_eval",
+              "plan",
+              "subscription",
+              "license"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.\n\n Written to name the resource; never stored; returned filled with the\n resource's current name, empty when the resource was deleted.",
+          "required": false,
+          "validation": {
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        },
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The referenced resource's id: what a stored reference holds. Optional\n on write, where the slug may name the resource instead; an id no\n resource of the kind holds answers as a missing resource.",
           "required": false
         }
       ]
@@ -4910,6 +5023,44 @@
           },
           "description": "The ref the snapshot is pinned under, e.g.\n \"refs/stigmer/{run}/{baseline|candidate|approved}\". Keeps the\n snapshot reachable (un-GC'd) without a commit on any user branch.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "LoadedVersions",
+      "description": "LoadedVersions lists what a run loaded besides its agent: one list per\n kind, each entry a reference to the exact version that ran.",
+      "protoType": "ai.stigmer.agentic.run.v1.LoadedVersions",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/api.proto",
+      "fields": [
+        {
+          "name": "Skills",
+          "jsonName": "skills",
+          "protoField": "skills",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ApiResourceReference"
+            }
+          },
+          "description": "Skills, each at its version hash (SkillStatus.version_hash). The version\n is empty only for a skill whose last version failed to archive, which\n loads as it is.",
+          "required": false,
+          "referenceKind": 43
+        },
+        {
+          "name": "Plugins",
+          "jsonName": "plugins",
+          "protoField": "plugins",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ApiResourceReference"
+            }
+          },
+          "description": "Plugins, each at its archive's digest (PluginStatus.digest). A plugin's\n own skills, servers and hooks are named by its digest.",
+          "required": false,
+          "referenceKind": 58
         }
       ]
     },

@@ -8,7 +8,7 @@ It is held equal to the contract by `src/pipeline/steps/__tests__/reference-fiel
 
 - **manifest reference**: an `ApiResourceReference` a person writes in a resource's spec. Resolved to the id at write, stored as `{org, kind, id, version}`, returned with the current slug.
 - **request reference**: a reference a request carries to name the resource it acts on: the federated-account inputs' `identity_provider_ref`, resolved the same way before the edition's arm runs, and the requests that name a resource by `org` and `slug` strings, which stay names a person types and resolve through the name table. Every `getByReference` takes an `ApiResourceReference` as its whole input: by `id` (a point read, then a check that the organization and kind agree) or by `org` and `slug`, and both must agree when both are given.
-- **stamped reference**: an `ApiResourceReference` the server or the runner writes, never a person: held by id like any stored reference.
+- **stamped reference**: an `ApiResourceReference` the server or the runner writes, never a person: held by id like any stored reference. A run's loaded versions (`LoadedVersions`) are the runner's, written through `updateStatus`, which whoever may edit the run can call too, so each new entry is admitted by the reference rule from the run's organization before it is stored (`src/domain/run/update-status.ts`).
 - **stamped id**: a `<kind>_id` string the server writes or a request names the resource by: an id already.
 - **display slug**: a slug kept beside an id for people to read, never resolved.
 - **create-time selector**: names a person writes that choose among a resource's own references once, at create, after which the server stamps ids: `AgentEvalSpec.plugins` chooses among the evaluated agent's attached plugins, and the eval stamps each one's id and digest.
@@ -120,6 +120,8 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.GetSessionUsageReportInput.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.session_id` | stamped id |
+| `ai.stigmer.agentic.run.v1.LoadedVersions.plugins` | stamped reference |
+| `ai.stigmer.agentic.run.v1.LoadedVersions.skills` | stamped reference |
 | `ai.stigmer.agentic.run.v1.PendingApproval.mcp_server_slug` | not a resource: an MCP server's tool-name segment, plugin_<plugin>_<server> |
 | `ai.stigmer.agentic.run.v1.PluginEvalCaseContext.plugin_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RecalledMemoryFact.memory_id` | stamped id |

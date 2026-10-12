@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
+  LoadedVersionsSchema,
   RunSchema,
   RunStatusSchema,
   type Run,
@@ -10,6 +11,7 @@ import {
   RunSpecSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   AgentMessageSchema,
   ToolCallSchema,
@@ -467,6 +469,44 @@ describe("MessageThread", () => {
     expect(
       screen.getAllByTestId("agent-version-marker").map((m) => m.textContent),
     ).toEqual(["Agent version h1", "Agent version v2"]);
+  });
+
+  it("marks a skill or plugin a turn ran at another version than the turn before, by its current name, and none on the first turn", () => {
+    const loaded = (skills: [string, string, string][], plugins: [string, string, string][] = []) =>
+      create(LoadedVersionsSchema, {
+        skills: skills.map(([id, slug, version]) => ({ org: "org_a", kind: ApiResourceKind.skill, id, slug, version })),
+        plugins: plugins.map(([id, slug, version]) => ({ org: "org_a", kind: ApiResourceKind.plugin, id, slug, version })),
+      });
+    const first = makeExecution({ id: "exec-a", specMessage: "one" });
+    first.status!.loadedVersions = loaded([["skl_1", "refunds", "v1"]], [["plg_1", "github-tools", "d1"]]);
+    // Resumed after a push: it holds both versions, and the later one is what it ran last.
+    const second = makeExecution({ id: "exec-b", specMessage: "two" });
+    second.status!.loadedVersions = loaded([["skl_1", "refunds", "v1"], ["skl_1", "refunds", "v2"]], [["plg_1", "github-tools", "d1"]]);
+    // A turn that recorded no list leaves the comparison where it stands.
+    const third = makeExecution({ id: "exec-c", specMessage: "three" });
+    // A newly loaded skill is not "updated"; the plugin moved.
+    const fourth = makeExecution({ id: "exec-d", specMessage: "four" });
+    fourth.status!.loadedVersions = loaded([["skl_1", "refunds", "v2"], ["skl_2", "triage", "v1"]], [["plg_1", "github-tools", "d2"]]);
+
+    render(<MessageThread runs={[first, second, third, fourth]} />);
+
+    expect(screen.getAllByTestId("loaded-versions-marker").map((m) => m.textContent)).toEqual([
+      "Skill refunds updated",
+      "Plugin github-tools updated",
+    ]);
+  });
+
+  it("names a moved skill that was deleted since as a deleted skill", () => {
+    const at = (version: string, slug: string) =>
+      create(LoadedVersionsSchema, { skills: [{ org: "org_a", kind: ApiResourceKind.skill, id: "skl_1", slug, version }] });
+    const first = makeExecution({ id: "exec-a", specMessage: "one" });
+    first.status!.loadedVersions = at("v1", "");
+    const second = makeExecution({ id: "exec-b", specMessage: "two" });
+    second.status!.loadedVersions = at("v2", "");
+
+    render(<MessageThread runs={[first, second]} />);
+
+    expect(screen.getAllByTestId("loaded-versions-marker").map((m) => m.textContent)).toEqual(["Deleted skill updated"]);
   });
 
   it("renders no agent version divider without a label function", () => {

@@ -137,7 +137,14 @@ describe("resolveSkills — artifact extraction", () => {
 
     try {
       expect(result).toHaveLength(1);
-      expect(result[0].name).toBe("garden-design-makeover");
+      expect(result[0].metadata.name).toBe("garden-design-makeover");
+      // Beside what the prompt renders, the skill by id at the version mounted.
+      expect([result[0].loaded.org, result[0].loaded.kind, result[0].loaded.id, result[0].loaded.version]).toEqual([
+        "test-org",
+        43,
+        "skill-garden-design-makeover",
+        "abc",
+      ]);
 
       const skillDir = join(platformDir, "skills", "garden-design-makeover");
       expect(readFileSync(join(skillDir, "SKILL.md"), "utf-8")).toBe(skillMd);
@@ -192,7 +199,7 @@ describe("resolveSkills — artifact extraction", () => {
 
     try {
       expect(result).toHaveLength(1);
-      expect(result[0].name).toBe("flaky-skill");
+      expect(result[0].metadata.name).toBe("flaky-skill");
 
       const skillDir = join(platformDir, "skills", "flaky-skill");
       expect(readFileSync(join(skillDir, "SKILL.md"), "utf-8")).toBe("# Flaky");
@@ -228,7 +235,7 @@ describe("resolveSkills — artifact extraction", () => {
 
       const second = await resolveAgain();
       expect(second).toHaveLength(1);
-      expect(second[0].name).toBe("cached-skill");
+      expect(second[0].metadata.name).toBe("cached-skill");
       // Metadata was re-fetched (latest-version freshness)...
       expect(client.getSkillByReference).toHaveBeenCalledTimes(2);
       // ...but the artifact transfer and rewrite were skipped.
