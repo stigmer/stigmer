@@ -31,7 +31,7 @@
       "tool_use_id": "aex_hermetic_0001.call-hermetic-shell-0001",
       "message": "Run command: npm run build",
       "args_preview": "{\"command\":\"npm run build\",\"cwd\":\"/x\",\"timeout\":30000}",
-      "policy_source": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY"
+      "policy_source": "builtin_category"
     }
   }
 ]

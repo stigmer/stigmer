@@ -29,7 +29,7 @@
       "tool_use_id": "aex_hermetic_0001.call-hermetic-exec-0001",
       "message": "Run command: echo hermetic-a",
       "args_preview": "{\"command\":\"echo hermetic-a\"}",
-      "policy_source": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY"
+      "policy_source": "builtin_category"
     }
   },
   {

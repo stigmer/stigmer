@@ -904,43 +904,6 @@
           "description": "Create a branch and pull request from the agent's file changes after the run completes."
         }
       ]
-    },
-    {
-      "name": "ApprovalPolicySource",
-      "description": "ApprovalPolicySource is the policy layer that decided a tool call's approval\n requirement — the provenance recorded on every gated or auto-approved tool\n call so a run's authorizations are auditable.\n\n Set by the runner at the approval gate (the one component that evaluates the\n merged policy) and persisted on ToolCall.approval_policy_source, exactly as\n ToolCall.tool_kind is set and persisted. Clients render it to answer \"why was\n this tool gated or auto-approved?\".",
-      "protoType": "ai.stigmer.agentic.run.v1.ApprovalPolicySource",
-      "values": [
-        {
-          "name": "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
-          "number": 4,
-          "description": "Layer 4: the pre-armed RunSpec.auto_approve_all whole-run global\n bypass cleared this call."
-        },
-        {
-          "name": "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
-          "number": 5,
-          "description": "Layer 4: a run-lifetime scoped lease (the successor to a global \"approve\n all\"; see APPROVAL_ACTION_APPROVE_ALL) cleared this call because it matched\n the leased class."
-        },
-        {
-          "name": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "number": 6,
-          "description": "The default asked for a built-in tool of an approval class\n (write / delete / shell)."
-        },
-        {
-          "name": "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
-          "number": 7,
-          "description": "The default asked for an MCP tool because its server marks it destructive\n (the tool's MCP destructiveHint annotation, read live from the server's\n tools each turn), or because its server's tools could not be listed."
-        },
-        {
-          "name": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
-          "number": 8,
-          "description": "The unattended approval mode (RunStatus.approval_mode =\n APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:\n the lane the run came through (a schedule's fire, a messaging\n channel, a guest share) has no approver, so the platform skipped the\n tool and told the model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it\n records HOW the gate was resolved, overriding the gating-layer source on\n the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO\n approval_action / approved_by (those record human decisions only), and\n no approval-request event is ever authored for it."
-        },
-        {
-          "name": "APPROVAL_POLICY_SOURCE_HOOK",
-          "number": 9,
-          "description": "A hook decided this call: it refused it, asked a person first, or let it\n run without the approval it would otherwise need. The deciding plugin is\n named in approval_policy_hook beside this source."
-        }
-      ]
     }
   ],
   "resourceDescription": "Session represents a multi-turn conversation thread with an agent.",

@@ -112,22 +112,37 @@ public interface StigmerPermissionAskedEventOrBuilder extends
 
   /**
    * <pre>
-   * Which rule asked.
+   * Which rule asked or resolved the call, as one word, the run's
+   * ApprovalPolicySource without its prefix: builtin_category (a built-in
+   * tool that writes, deletes or runs a shell), annotation_destructive_tighten
+   * (an MCP tool its server marks destructive, or whose server's tools could
+   * not be listed), hook (a hook decided), approval_lease (an "approve all"
+   * for the call's class), auto_approve_all (the run approves every call) or
+   * unattended_skip (no one can answer, so the call was skipped). Empty when
+   * no rule is recorded.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.ApprovalPolicySource policy_source = 6 [json_name = "policySource"];</code>
-   * @return The enum numeric value on the wire for policySource.
-   */
-  int getPolicySourceValue();
-  /**
-   * <pre>
-   * Which rule asked.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.ApprovalPolicySource policy_source = 6 [json_name = "policySource"];</code>
+   * <code>string policy_source = 6 [json_name = "policySource", (.buf.validate.field) = { ... }</code>
    * @return The policySource.
    */
-  ai.stigmer.agentic.run.v1.ApprovalPolicySource getPolicySource();
+  java.lang.String getPolicySource();
+  /**
+   * <pre>
+   * Which rule asked or resolved the call, as one word, the run's
+   * ApprovalPolicySource without its prefix: builtin_category (a built-in
+   * tool that writes, deletes or runs a shell), annotation_destructive_tighten
+   * (an MCP tool its server marks destructive, or whose server's tools could
+   * not be listed), hook (a hook decided), approval_lease (an "approve all"
+   * for the call's class), auto_approve_all (the run approves every call) or
+   * unattended_skip (no one can answer, so the call was skipped). Empty when
+   * no rule is recorded.
+   * </pre>
+   *
+   * <code>string policy_source = 6 [json_name = "policySource", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for policySource.
+   */
+  com.google.protobuf.ByteString
+      getPolicySourceBytes();
 
   /**
    * <pre>

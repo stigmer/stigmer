@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.session.v1;
 
-import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/event_content.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
@@ -425,8 +424,27 @@ message StigmerPermissionAskedEvent {
   // A short preview of the tool's input, with secret values redacted.
   string args_preview = 5;
 
-  // Which rule asked.
-  ai.stigmer.agentic.run.v1.ApprovalPolicySource policy_source = 6;
+  // Which rule asked or resolved the call, as one word, the run's
+  // ApprovalPolicySource without its prefix: builtin_category (a built-in
+  // tool that writes, deletes or runs a shell), annotation_destructive_tighten
+  // (an MCP tool its server marks destructive, or whose server's tools could
+  // not be listed), hook (a hook decided), approval_lease (an "approve all"
+  // for the call's class), auto_approve_all (the run approves every call) or
+  // unattended_skip (no one can answer, so the call was skipped). Empty when
+  // no rule is recorded.
+  string policy_source = 6 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string = {
+      in: [
+        "builtin_category",
+        "annotation_destructive_tighten",
+        "hook",
+        "approval_lease",
+        "auto_approve_all",
+        "unattended_skip"
+      ]
+    }
+  ];
 
   // The plugin whose hook asked; empty for the agent's own hooks, or when no
   // hook asked.

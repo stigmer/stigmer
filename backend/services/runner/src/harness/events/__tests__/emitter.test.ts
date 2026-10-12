@@ -3,7 +3,8 @@
  * the sealed prefix per thread, the boundary rule of a harness whose
  * boundary rewrites rows (a hook-blocked call writes nothing until the
  * terminal write, and narration after it reaches neither the log nor a
- * preview), the rows that are not the runner's to write, the turn-start
+ * preview), the rows that are not the runner's to write, the ask's policy
+ * source words, the turn-start
  * read, the per-event bound, previews, and what a failed or refused append
  * does. The hermetic event goldens prove the same through the real
  * activity on both harnesses.
@@ -13,13 +14,13 @@ import { create, toBinary, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it, vi } from "vitest";
 import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType, SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApprovalPolicySource, ApprovalPolicySourceSchema, MessageType, SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
 import { ELISION_MARKER } from "../../../shared/status-offload.js";
-import { SESSION_EVENT_MAX_BYTES, SessionEventEmitter, type SessionEventEmitterDeps } from "../emitter.js";
+import { POLICY_SOURCE_WORDS, SESSION_EVENT_MAX_BYTES, SessionEventEmitter, type SessionEventEmitterDeps } from "../emitter.js";
 
 const RUN = "run_01jz8k3q9w4e5r6t7y8u9i0o1p";
 const AI = MessageType.MESSAGE_AI;
@@ -114,6 +115,14 @@ describe("the sealed prefix of a thread", () => {
     await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
     await e.flush(st, { final: true });
     expect(ids(log)).toEqual(["r", "root.m1"]);
+  });
+});
+
+describe("the ask's policy source", () => {
+  it("is each source's enum name, lowercased, and empty for none", () => {
+    for (const value of ApprovalPolicySourceSchema.values) {
+      expect(POLICY_SOURCE_WORDS[value.number as ApprovalPolicySource]).toBe(value.number === 0 ? "" : value.localName.toLowerCase());
+    }
   });
 });
 

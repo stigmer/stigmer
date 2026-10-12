@@ -1,4 +1,3 @@
-from ai.stigmer.agentic.run.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.session.v1 import event_content_pb2 as _event_content_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from buf.validate import validate_pb2 as _validate_pb2
@@ -291,9 +290,9 @@ class StigmerPermissionAskedEvent(_message.Message):
     tool_use_id: str
     message: str
     args_preview: str
-    policy_source: _enum_pb2.ApprovalPolicySource
+    policy_source: str
     policy_hook: str
-    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., tool_use_id: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., policy_source: _Optional[_Union[_enum_pb2.ApprovalPolicySource, str]] = ..., policy_hook: _Optional[str] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., tool_use_id: _Optional[str] = ..., message: _Optional[str] = ..., args_preview: _Optional[str] = ..., policy_source: _Optional[str] = ..., policy_hook: _Optional[str] = ...) -> None: ...
 
 class StigmerHarnessNoteEvent(_message.Message):
     __slots__ = ("id", "processed_at", "text")

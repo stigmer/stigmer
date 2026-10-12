@@ -34,7 +34,7 @@
 // The outsider contract (no view, no events) is Class A,
 // suites/session-events.conformance.test.ts, on the enforcing lane.
 import { Code, ConnectError } from "@connectrpc/connect";
-import { ApprovalAction, ApprovalPolicySource, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
@@ -448,7 +448,7 @@ describe("the runner writes what the agent did", () => {
     const asked = atGate[3]!.event;
     expect(asked.case === "stigmerPermissionAsked" && [asked.value.toolUseId, asked.value.policySource]).toEqual([
       idOf(atGate[2]!),
-      ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN,
+      "annotation_destructive_tighten",
     ]);
 
     await submitApprovalPerContract({

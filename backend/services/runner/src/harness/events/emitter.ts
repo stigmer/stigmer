@@ -59,7 +59,7 @@ import { create, toBinary } from "@bufbuild/protobuf";
 import type { JsonObject, MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { MessageType, SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApprovalPolicySource, MessageType, SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
@@ -146,6 +146,21 @@ type PendingPreview =
   | { readonly kind: "text"; readonly subAgentId?: string; readonly index: number; readonly text: string }
   | { readonly kind: "thinking"; readonly subAgentId?: string; readonly index: number }
   | { readonly kind: "tool-output"; readonly callId: string; readonly delta: string };
+
+/**
+ * The ask's policy source as the log's word, the enum value without its
+ * prefix. Typed over every value, so a new source fails the build until
+ * it has a word, and the event's validation lists the same words.
+ */
+export const POLICY_SOURCE_WORDS: Readonly<Record<ApprovalPolicySource, string>> = {
+  [ApprovalPolicySource.UNSPECIFIED]: "",
+  [ApprovalPolicySource.AUTO_APPROVE_ALL]: "auto_approve_all",
+  [ApprovalPolicySource.APPROVAL_LEASE]: "approval_lease",
+  [ApprovalPolicySource.BUILTIN_CATEGORY]: "builtin_category",
+  [ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN]: "annotation_destructive_tighten",
+  [ApprovalPolicySource.UNATTENDED_SKIP]: "unattended_skip",
+  [ApprovalPolicySource.HOOK]: "hook",
+};
 
 export class SessionEventEmitter {
   private began = false;
@@ -381,7 +396,7 @@ export class SessionEventEmitter {
           toolUseId: id,
           message: row.approvalMessage,
           argsPreview: row.argsPreview,
-          policySource: row.approvalPolicySource,
+          policySource: POLICY_SOURCE_WORDS[row.approvalPolicySource],
           policyHook: row.approvalPolicyHook,
         },
       });

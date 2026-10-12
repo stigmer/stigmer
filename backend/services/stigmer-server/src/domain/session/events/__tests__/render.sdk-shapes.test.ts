@@ -34,7 +34,6 @@ import type {
 } from "@anthropic-ai/sdk/resources/beta/sessions/sessions";
 import { describe, expect, it } from "vitest";
 
-import { ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { StreamSessionEventsResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
@@ -344,7 +343,7 @@ describe("Stigmer's own events render by the same three rules, under their stigm
     {
       proto: {
         case: "stigmerPermissionAsked",
-        value: { id: "s2", processedAt: AT, toolUseId: "u1", message: "Run npm test", argsPreview: "{}", policySource: ApprovalPolicySource.BUILTIN_CATEGORY },
+        value: { id: "s2", processedAt: AT, toolUseId: "u1", message: "Run npm test", argsPreview: "{}", policySource: "builtin_category" },
       },
       json: {
         id: "s2",
@@ -353,7 +352,7 @@ describe("Stigmer's own events render by the same three rules, under their stigm
         tool_use_id: "u1",
         message: "Run npm test",
         args_preview: "{}",
-        policy_source: "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+        policy_source: "builtin_category",
       },
     },
     {

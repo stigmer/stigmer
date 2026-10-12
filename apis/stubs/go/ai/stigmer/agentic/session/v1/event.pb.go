@@ -8,7 +8,6 @@ package sessionv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/run/v1"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -1783,8 +1782,15 @@ type StigmerPermissionAskedEvent struct {
 	Message string `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
 	// A short preview of the tool's input, with secret values redacted.
 	ArgsPreview string `protobuf:"bytes,5,opt,name=args_preview,json=argsPreview,proto3" json:"args_preview,omitempty"`
-	// Which rule asked.
-	PolicySource v1.ApprovalPolicySource `protobuf:"varint,6,opt,name=policy_source,json=policySource,proto3,enum=ai.stigmer.agentic.run.v1.ApprovalPolicySource" json:"policy_source,omitempty"`
+	// Which rule asked or resolved the call, as one word, the run's
+	// ApprovalPolicySource without its prefix: builtin_category (a built-in
+	// tool that writes, deletes or runs a shell), annotation_destructive_tighten
+	// (an MCP tool its server marks destructive, or whose server's tools could
+	// not be listed), hook (a hook decided), approval_lease (an "approve all"
+	// for the call's class), auto_approve_all (the run approves every call) or
+	// unattended_skip (no one can answer, so the call was skipped). Empty when
+	// no rule is recorded.
+	PolicySource string `protobuf:"bytes,6,opt,name=policy_source,json=policySource,proto3" json:"policy_source,omitempty"`
 	// The plugin whose hook asked; empty for the agent's own hooks, or when no
 	// hook asked.
 	PolicyHook    string `protobuf:"bytes,7,opt,name=policy_hook,json=policyHook,proto3" json:"policy_hook,omitempty"`
@@ -1857,11 +1863,11 @@ func (x *StigmerPermissionAskedEvent) GetArgsPreview() string {
 	return ""
 }
 
-func (x *StigmerPermissionAskedEvent) GetPolicySource() v1.ApprovalPolicySource {
+func (x *StigmerPermissionAskedEvent) GetPolicySource() string {
 	if x != nil {
 		return x.PolicySource
 	}
-	return v1.ApprovalPolicySource(0)
+	return ""
 }
 
 func (x *StigmerPermissionAskedEvent) GetPolicyHook() string {
@@ -2369,7 +2375,7 @@ var File_ai_stigmer_agentic_session_v1_event_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/session/v1/event.proto\x12\x1dai.stigmer.agentic.session.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a1ai/stigmer/agentic/session/v1/event_content.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x8f\x18\n" +
+	")ai/stigmer/agentic/session/v1/event.proto\x12\x1dai.stigmer.agentic.session.v1\x1a1ai/stigmer/agentic/session/v1/event_content.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x8f\x18\n" +
 	"\fSessionEvent\x12\x10\n" +
 	"\x03seq\x18\x01 \x01(\x03R\x03seq\x12\x1d\n" +
 	"\n" +
@@ -2499,14 +2505,14 @@ const file_ai_stigmer_agentic_session_v1_event_proto_rawDesc = "" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12(\n" +
 	"\vthinking_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"thinkingId\x12\x12\n" +
-	"\x04text\x18\x04 \x01(\tR\x04text\"\xd9\x02\n" +
+	"\x04text\x18\x04 \x01(\tR\x04text\"\x9e\x03\n" +
 	"\x1bStigmerPermissionAskedEvent\x12:\n" +
 	"\x02id\x18\x01 \x01(\tB*\xbaH'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\x02id\x12!\n" +
 	"\fprocessed_at\x18\x02 \x01(\tR\vprocessedAt\x12'\n" +
 	"\vtool_use_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\ttoolUseId\x12\x18\n" +
 	"\amessage\x18\x04 \x01(\tR\amessage\x12!\n" +
-	"\fargs_preview\x18\x05 \x01(\tR\vargsPreview\x12T\n" +
-	"\rpolicy_source\x18\x06 \x01(\x0e2/.ai.stigmer.agentic.run.v1.ApprovalPolicySourceR\fpolicySource\x12\x1f\n" +
+	"\fargs_preview\x18\x05 \x01(\tR\vargsPreview\x12\x98\x01\n" +
+	"\rpolicy_source\x18\x06 \x01(\tBs\xbaHp\xd8\x01\x01rkR\x10builtin_categoryR\x1eannotation_destructive_tightenR\x04hookR\x0eapproval_leaseR\x10auto_approve_allR\x0funattended_skipR\fpolicySource\x12\x1f\n" +
 	"\vpolicy_hook\x18\a \x01(\tR\n" +
 	"policyHook\"\x8c\x01\n" +
 	"\x17StigmerHarnessNoteEvent\x12:\n" +
@@ -2590,7 +2596,6 @@ var file_ai_stigmer_agentic_session_v1_event_proto_goTypes = []any{
 	(*SessionError)(nil),                      // 30: ai.stigmer.agentic.session.v1.SessionError
 	(*structpb.Struct)(nil),                   // 31: google.protobuf.Struct
 	(*ToolEvaluation)(nil),                    // 32: ai.stigmer.agentic.session.v1.ToolEvaluation
-	(v1.ApprovalPolicySource)(0),              // 33: ai.stigmer.agentic.run.v1.ApprovalPolicySource
 }
 var file_ai_stigmer_agentic_session_v1_event_proto_depIdxs = []int32{
 	1,  // 0: ai.stigmer.agentic.session.v1.SessionEvent.user_message:type_name -> ai.stigmer.agentic.session.v1.UserMessageEvent
@@ -2629,16 +2634,15 @@ var file_ai_stigmer_agentic_session_v1_event_proto_depIdxs = []int32{
 	29, // 33: ai.stigmer.agentic.session.v1.SessionThreadStatusIdleEvent.stop_details:type_name -> ai.stigmer.agentic.session.v1.StopDetails
 	27, // 34: ai.stigmer.agentic.session.v1.AgentThreadMessageSentEvent.content:type_name -> ai.stigmer.agentic.session.v1.ContentBlock
 	27, // 35: ai.stigmer.agentic.session.v1.AgentThreadMessageReceivedEvent.content:type_name -> ai.stigmer.agentic.session.v1.ContentBlock
-	33, // 36: ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent.policy_source:type_name -> ai.stigmer.agentic.run.v1.ApprovalPolicySource
-	31, // 37: ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.output:type_name -> google.protobuf.Struct
-	24, // 38: ai.stigmer.agentic.session.v1.EventStart.event:type_name -> ai.stigmer.agentic.session.v1.EventPreview
-	26, // 39: ai.stigmer.agentic.session.v1.EventDelta.delta:type_name -> ai.stigmer.agentic.session.v1.DeltaContent
-	27, // 40: ai.stigmer.agentic.session.v1.DeltaContent.content:type_name -> ai.stigmer.agentic.session.v1.ContentBlock
-	41, // [41:41] is the sub-list for method output_type
-	41, // [41:41] is the sub-list for method input_type
-	41, // [41:41] is the sub-list for extension type_name
-	41, // [41:41] is the sub-list for extension extendee
-	0,  // [0:41] is the sub-list for field type_name
+	31, // 36: ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent.output:type_name -> google.protobuf.Struct
+	24, // 37: ai.stigmer.agentic.session.v1.EventStart.event:type_name -> ai.stigmer.agentic.session.v1.EventPreview
+	26, // 38: ai.stigmer.agentic.session.v1.EventDelta.delta:type_name -> ai.stigmer.agentic.session.v1.DeltaContent
+	27, // 39: ai.stigmer.agentic.session.v1.DeltaContent.content:type_name -> ai.stigmer.agentic.session.v1.ContentBlock
+	40, // [40:40] is the sub-list for method output_type
+	40, // [40:40] is the sub-list for method input_type
+	40, // [40:40] is the sub-list for extension type_name
+	40, // [40:40] is the sub-list for extension extendee
+	0,  // [0:40] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_event_proto_init() }

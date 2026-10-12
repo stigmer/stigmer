@@ -102,7 +102,7 @@
       "tool_use_id": "aex_hermetic_0001.call-publish",
       "message": "publishing needs a person",
       "args_preview": "{\"command\":\"echo publish\",\"cwd\":\"\",\"timeout\":30000}",
-      "policy_source": "APPROVAL_POLICY_SOURCE_HOOK",
+      "policy_source": "hook",
       "policy_hook": "safety"
     }
   },

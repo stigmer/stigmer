@@ -39,7 +39,7 @@ private static final long serialVersionUID = 0L;
     toolUseId_ = "";
     message_ = "";
     argsPreview_ = "";
-    policySource_ = 0;
+    policySource_ = "";
     policyHook_ = "";
   }
 
@@ -297,29 +297,64 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int POLICY_SOURCE_FIELD_NUMBER = 6;
-  private int policySource_ = 0;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object policySource_ = "";
   /**
    * <pre>
-   * Which rule asked.
+   * Which rule asked or resolved the call, as one word, the run's
+   * ApprovalPolicySource without its prefix: builtin_category (a built-in
+   * tool that writes, deletes or runs a shell), annotation_destructive_tighten
+   * (an MCP tool its server marks destructive, or whose server's tools could
+   * not be listed), hook (a hook decided), approval_lease (an "approve all"
+   * for the call's class), auto_approve_all (the run approves every call) or
+   * unattended_skip (no one can answer, so the call was skipped). Empty when
+   * no rule is recorded.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.ApprovalPolicySource policy_source = 6 [json_name = "policySource"];</code>
-   * @return The enum numeric value on the wire for policySource.
+   * <code>string policy_source = 6 [json_name = "policySource", (.buf.validate.field) = { ... }</code>
+   * @return The policySource.
    */
-  @java.lang.Override public int getPolicySourceValue() {
-    return policySource_;
+  @java.lang.Override
+  public java.lang.String getPolicySource() {
+    java.lang.Object ref = policySource_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      policySource_ = s;
+      return s;
+    }
   }
   /**
    * <pre>
-   * Which rule asked.
+   * Which rule asked or resolved the call, as one word, the run's
+   * ApprovalPolicySource without its prefix: builtin_category (a built-in
+   * tool that writes, deletes or runs a shell), annotation_destructive_tighten
+   * (an MCP tool its server marks destructive, or whose server's tools could
+   * not be listed), hook (a hook decided), approval_lease (an "approve all"
+   * for the call's class), auto_approve_all (the run approves every call) or
+   * unattended_skip (no one can answer, so the call was skipped). Empty when
+   * no rule is recorded.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.run.v1.ApprovalPolicySource policy_source = 6 [json_name = "policySource"];</code>
-   * @return The policySource.
+   * <code>string policy_source = 6 [json_name = "policySource", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for policySource.
    */
-  @java.lang.Override public ai.stigmer.agentic.run.v1.ApprovalPolicySource getPolicySource() {
-    ai.stigmer.agentic.run.v1.ApprovalPolicySource result = ai.stigmer.agentic.run.v1.ApprovalPolicySource.forNumber(policySource_);
-    return result == null ? ai.stigmer.agentic.run.v1.ApprovalPolicySource.UNRECOGNIZED : result;
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPolicySourceBytes() {
+    java.lang.Object ref = policySource_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      policySource_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   public static final int POLICY_HOOK_FIELD_NUMBER = 7;
@@ -400,8 +435,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(argsPreview_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 5, argsPreview_);
     }
-    if (policySource_ != ai.stigmer.agentic.run.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
-      output.writeEnum(6, policySource_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(policySource_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 6, policySource_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(policyHook_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, policyHook_);
@@ -430,9 +465,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(argsPreview_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(5, argsPreview_);
     }
-    if (policySource_ != ai.stigmer.agentic.run.v1.ApprovalPolicySource.APPROVAL_POLICY_SOURCE_UNSPECIFIED.getNumber()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeEnumSize(6, policySource_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(policySource_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(6, policySource_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(policyHook_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, policyHook_);
@@ -462,7 +496,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getMessage())) return false;
     if (!getArgsPreview()
         .equals(other.getArgsPreview())) return false;
-    if (policySource_ != other.policySource_) return false;
+    if (!getPolicySource()
+        .equals(other.getPolicySource())) return false;
     if (!getPolicyHook()
         .equals(other.getPolicyHook())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -487,7 +522,7 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + ARGS_PREVIEW_FIELD_NUMBER;
     hash = (53 * hash) + getArgsPreview().hashCode();
     hash = (37 * hash) + POLICY_SOURCE_FIELD_NUMBER;
-    hash = (53 * hash) + policySource_;
+    hash = (53 * hash) + getPolicySource().hashCode();
     hash = (37 * hash) + POLICY_HOOK_FIELD_NUMBER;
     hash = (53 * hash) + getPolicyHook().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -632,7 +667,7 @@ private static final long serialVersionUID = 0L;
       toolUseId_ = "";
       message_ = "";
       argsPreview_ = "";
-      policySource_ = 0;
+      policySource_ = "";
       policyHook_ = "";
       return this;
     }
@@ -727,8 +762,10 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000010;
         onChanged();
       }
-      if (other.policySource_ != 0) {
-        setPolicySourceValue(other.getPolicySourceValue());
+      if (!other.getPolicySource().isEmpty()) {
+        policySource_ = other.policySource_;
+        bitField0_ |= 0x00000020;
+        onChanged();
       }
       if (!other.getPolicyHook().isEmpty()) {
         policyHook_ = other.policyHook_;
@@ -786,11 +823,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
-            case 48: {
-              policySource_ = input.readEnum();
+            case 50: {
+              policySource_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000020;
               break;
-            } // case 48
+            } // case 50
             case 58: {
               policyHook_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000040;
@@ -1273,29 +1310,81 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int policySource_ = 0;
+    private java.lang.Object policySource_ = "";
     /**
      * <pre>
-     * Which rule asked.
+     * Which rule asked or resolved the call, as one word, the run's
+     * ApprovalPolicySource without its prefix: builtin_category (a built-in
+     * tool that writes, deletes or runs a shell), annotation_destructive_tighten
+     * (an MCP tool its server marks destructive, or whose server's tools could
+     * not be listed), hook (a hook decided), approval_lease (an "approve all"
+     * for the call's class), auto_approve_all (the run approves every call) or
+     * unattended_skip (no one can answer, so the call was skipped). Empty when
+     * no rule is recorded.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalPolicySource policy_source = 6 [json_name = "policySource"];</code>
-     * @return The enum numeric value on the wire for policySource.
+     * <code>string policy_source = 6 [json_name = "policySource", (.buf.validate.field) = { ... }</code>
+     * @return The policySource.
      */
-    @java.lang.Override public int getPolicySourceValue() {
-      return policySource_;
+    public java.lang.String getPolicySource() {
+      java.lang.Object ref = policySource_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        policySource_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
     }
     /**
      * <pre>
-     * Which rule asked.
+     * Which rule asked or resolved the call, as one word, the run's
+     * ApprovalPolicySource without its prefix: builtin_category (a built-in
+     * tool that writes, deletes or runs a shell), annotation_destructive_tighten
+     * (an MCP tool its server marks destructive, or whose server's tools could
+     * not be listed), hook (a hook decided), approval_lease (an "approve all"
+     * for the call's class), auto_approve_all (the run approves every call) or
+     * unattended_skip (no one can answer, so the call was skipped). Empty when
+     * no rule is recorded.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalPolicySource policy_source = 6 [json_name = "policySource"];</code>
-     * @param value The enum numeric value on the wire for policySource to set.
-     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * <code>string policy_source = 6 [json_name = "policySource", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for policySource.
+     */
+    public com.google.protobuf.ByteString
+        getPolicySourceBytes() {
+      java.lang.Object ref = policySource_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        policySource_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Which rule asked or resolved the call, as one word, the run's
+     * ApprovalPolicySource without its prefix: builtin_category (a built-in
+     * tool that writes, deletes or runs a shell), annotation_destructive_tighten
+     * (an MCP tool its server marks destructive, or whose server's tools could
+     * not be listed), hook (a hook decided), approval_lease (an "approve all"
+     * for the call's class), auto_approve_all (the run approves every call) or
+     * unattended_skip (no one can answer, so the call was skipped). Empty when
+     * no rule is recorded.
+     * </pre>
+     *
+     * <code>string policy_source = 6 [json_name = "policySource", (.buf.validate.field) = { ... }</code>
+     * @param value The policySource to set.
      * @return This builder for chaining.
      */
-    public Builder setPolicySourceValue(int value) {
+    public Builder setPolicySource(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
       policySource_ = value;
       bitField0_ |= 0x00000020;
       onChanged();
@@ -1303,44 +1392,47 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Which rule asked.
+     * Which rule asked or resolved the call, as one word, the run's
+     * ApprovalPolicySource without its prefix: builtin_category (a built-in
+     * tool that writes, deletes or runs a shell), annotation_destructive_tighten
+     * (an MCP tool its server marks destructive, or whose server's tools could
+     * not be listed), hook (a hook decided), approval_lease (an "approve all"
+     * for the call's class), auto_approve_all (the run approves every call) or
+     * unattended_skip (no one can answer, so the call was skipped). Empty when
+     * no rule is recorded.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalPolicySource policy_source = 6 [json_name = "policySource"];</code>
-     * @return The policySource.
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.run.v1.ApprovalPolicySource getPolicySource() {
-      ai.stigmer.agentic.run.v1.ApprovalPolicySource result = ai.stigmer.agentic.run.v1.ApprovalPolicySource.forNumber(policySource_);
-      return result == null ? ai.stigmer.agentic.run.v1.ApprovalPolicySource.UNRECOGNIZED : result;
-    }
-    /**
-     * <pre>
-     * Which rule asked.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalPolicySource policy_source = 6 [json_name = "policySource"];</code>
-     * @param value The policySource to set.
+     * <code>string policy_source = 6 [json_name = "policySource", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder setPolicySource(ai.stigmer.agentic.run.v1.ApprovalPolicySource value) {
-      if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000020;
-      policySource_ = value.getNumber();
+    public Builder clearPolicySource() {
+      policySource_ = getDefaultInstance().getPolicySource();
+      bitField0_ = (bitField0_ & ~0x00000020);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Which rule asked.
+     * Which rule asked or resolved the call, as one word, the run's
+     * ApprovalPolicySource without its prefix: builtin_category (a built-in
+     * tool that writes, deletes or runs a shell), annotation_destructive_tighten
+     * (an MCP tool its server marks destructive, or whose server's tools could
+     * not be listed), hook (a hook decided), approval_lease (an "approve all"
+     * for the call's class), auto_approve_all (the run approves every call) or
+     * unattended_skip (no one can answer, so the call was skipped). Empty when
+     * no rule is recorded.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.run.v1.ApprovalPolicySource policy_source = 6 [json_name = "policySource"];</code>
+     * <code>string policy_source = 6 [json_name = "policySource", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for policySource to set.
      * @return This builder for chaining.
      */
-    public Builder clearPolicySource() {
-      bitField0_ = (bitField0_ & ~0x00000020);
-      policySource_ = 0;
+    public Builder setPolicySourceBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      policySource_ = value;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
