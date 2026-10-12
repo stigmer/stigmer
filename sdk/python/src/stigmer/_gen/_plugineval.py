@@ -15,6 +15,7 @@ from ai.stigmer.commons.apiresource import metadata_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
+from ._agenteval import PluginEvalTargetInput
 
 
 class PluginEvalClient:
@@ -126,19 +127,4 @@ class PluginEvalInput:
             metadata=metadata,
             spec=spec,
         )
-
-
-@dataclass
-class PluginEvalTargetInput:
-    """SDK input type for PluginEvalTarget."""
-
-    harness: int = 0
-    model_name: str = ""
-
-    def _to_proto(self) -> spec_pb2.PluginEvalTarget:
-        msg = spec_pb2.PluginEvalTarget(
-            harness=self.harness,
-            model_name=self.model_name,
-        )
-        return msg
 

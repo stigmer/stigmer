@@ -6,6 +6,10 @@
  * cancellation, which the workflow turns into a partial "cancelled" eval
  * with the results of the tries that finished.
  *
+ * An agent eval's workflow is started and stopped the same way, under its
+ * own type and id (temporal/evals/names.ts RUN_AGENT_EVAL_WORKFLOW_TYPE),
+ * through the same port.
+ *
  * Bounded as the grading observer's start is (domain/score/grading-observer.ts):
  * every call carries the connection's deadline, so an unreachable engine
  * costs a create or a cancel at most that.
@@ -66,12 +70,18 @@ export interface TemporalPluginEvalWorkflowsDeps {
   readonly taskQueue: string;
   /** Defaults to PLUGIN_EVAL_WORKFLOW_DEADLINE_MS; tests shorten it. */
   readonly deadlineMs?: number;
+  /** The suite workflow's type and id; a plugin eval's when absent. */
+  readonly workflow?: {
+    readonly type: string;
+    readonly idOf: (evalId: string) => string;
+  };
 }
 
 export function newTemporalPluginEvalWorkflows(
   deps: TemporalPluginEvalWorkflowsDeps,
 ): PluginEvalWorkflows {
   const deadlineMs = deps.deadlineMs ?? PLUGIN_EVAL_WORKFLOW_DEADLINE_MS;
+  const workflow = deps.workflow ?? { type: RUN_PLUGIN_EVAL_WORKFLOW_TYPE, idOf: runPluginEvalWorkflowId };
   const connected = (): Client => {
     const client = deps.client();
     if (client === undefined) {
@@ -85,8 +95,8 @@ export function newTemporalPluginEvalWorkflows(
       const input: RunPluginEvalInput = { evalId };
       try {
         await client.connection.withDeadline(Date.now() + deadlineMs, () =>
-          client.workflow.start(RUN_PLUGIN_EVAL_WORKFLOW_TYPE, {
-            workflowId: runPluginEvalWorkflowId(evalId),
+          client.workflow.start(workflow.type, {
+            workflowId: workflow.idOf(evalId),
             taskQueue: deps.taskQueue,
             workflowIdReusePolicy: "REJECT_DUPLICATE",
             workflowExecutionTimeout: PLUGIN_EVAL_EXECUTION_TIMEOUT_MS,
@@ -104,7 +114,7 @@ export function newTemporalPluginEvalWorkflows(
       const client = connected();
       try {
         await client.connection.withDeadline(Date.now() + deadlineMs, () =>
-          client.workflow.getHandle(runPluginEvalWorkflowId(evalId)).cancel(),
+          client.workflow.getHandle(workflow.idOf(evalId)).cancel(),
         );
         return "requested";
       } catch (error) {

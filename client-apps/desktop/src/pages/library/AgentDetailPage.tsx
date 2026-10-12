@@ -15,6 +15,7 @@ import {
   type AdditionalTab,
   type DetailAction,
   useOrgSlugForId,
+  useResolveRunSession,
 } from "@stigmer/react";
 import { buildChatUrl } from "@stigmer/sdk";
 import { CONSOLE_URL } from "../../config";
@@ -57,6 +58,17 @@ export default function AgentDetailPage() {
   const { copyYaml, copyJson, downloadYaml } = useExportResource({ resource: agent });
 
   const [editYamlOpen, setEditYamlOpen] = useState(false);
+
+  // An eval's try is a run (run_…); on desktop it is viewed through its
+  // parent session, the resolve-then-navigate pattern of the plugin page.
+  const [pendingRunId, setPendingRunId] = useState<string | null>(null);
+  const { sessionId } = useResolveRunSession(pendingRunId);
+
+  useEffect(() => {
+    if (sessionId) {
+      navigate(`/sessions/${sessionId}`);
+    }
+  }, [sessionId, navigate]);
 
   // Controlled tab state, wired identically to the web app.
   const [activeTab, setActiveTab] = useState<string>("overview");
@@ -225,6 +237,7 @@ export default function AgentDetailPage() {
         onAgentClick={(ref) =>
           navigate(`/library/agents/${slugForOrg(ref.org)}/${ref.slug}`)
         }
+        onNavigateToRun={setPendingRunId}
         primaryAction={primaryAction}
         actions={actions}
         buildShareUrl={buildShareUrl}

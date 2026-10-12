@@ -56,7 +56,7 @@ cd stigmer && make setup && npm install && make local
 Stigmer turns domain knowledge and tools into AI agents you can call from any application.
 
 - **Skills** — Teach agents your domain. Upload versioned knowledge and the agent answers with expertise instead of generic responses.
-- **MCP Servers** — Give agents tools. Connect to your systems via the [Model Context Protocol](https://modelcontextprotocol.io). Agents discover available tools and Stigmer handles execution sandboxing.
+- **Plugins** — Give agents tools. Install the Claude Code, Cursor or Codex plugins you already have: a plugin carries skills, hooks, subagents and the [MCP](https://modelcontextprotocol.io) servers that connect agents to your systems. Agents discover the tools and Stigmer handles execution sandboxing.
 - **Approval flows** — Set rules for human oversight. Define which actions need approval before the agent proceeds. Runs are durable — they wait without losing state.
 
 Every capability is exposed via gRPC with public protobuf contracts. Generate type-safe clients in Go, Python, Java, TypeScript, or Rust.
@@ -103,9 +103,19 @@ my-skill/
 stigmer push                          # push skill from current directory
 ```
 
-### MCP Servers
+### Plugins
 
-Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to give agents tool access. Remote (HTTP) MCP servers work everywhere, including the marketplace catalog and cloud-hosted sessions. STDIO-based servers — npm packages (npx), Python packages (uvx), Go modules (go run) — run on local runners only, where the machine executing the subprocess is your own.
+A plugin is one package of skills, MCP servers, hooks and subagents, in the format Claude Code, Cursor and Codex already use. Installing it stores the plugin alone; an agent or a chat that lists it under `plugins` gets all of it, each part named after the plugin (`<plugin>:<skill>`). See [Plugins](https://stigmer.ai/docs/concepts/plugins).
+
+```bash
+stigmer install github                # from the marketplace
+stigmer push plugin ./my-plugin       # from a folder
+stigmer mcp add orders https://orders.example.com/mcp   # one MCP server, as a plugin of its own
+```
+
+Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to give agents tool access, and an MCP server lives only in a plugin. Remote (HTTP) MCP servers work everywhere, including the marketplace catalog and cloud-hosted sessions. STDIO-based servers — npm packages (npx), Python packages (uvx), Go modules (go run) — run on local runners only, where the machine executing the subprocess is your own.
+
+### Stigmer's own MCP server
 
 Stigmer also ships its own MCP server that exposes platform resources to AI-powered IDEs:
 

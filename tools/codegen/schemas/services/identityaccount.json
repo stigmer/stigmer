@@ -844,6 +844,11 @@
           "description": "One run of a plugin's own evals/ cases: every case tried with and\n without the plugin, on the models the eval names."
         },
         {
+          "name": "agent_eval",
+          "number": 64,
+          "description": "One run of the eval cases of the plugins an agent attaches, on the\n agent itself: each plugin's cases at the version the agent attaches,\n on the models the eval names, stamped with the agent's version."
+        },
+        {
           "name": "plan",
           "number": 70,
           "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."

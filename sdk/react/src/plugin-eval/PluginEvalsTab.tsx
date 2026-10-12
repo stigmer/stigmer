@@ -37,21 +37,14 @@ import { cn } from "@stigmer/theme";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
-import { HARNESS_OPTIONS, type HarnessOption } from "../models/harness.js";
-import { ModelSelector } from "../models/ModelSelector.js";
 import { Section } from "../resource-detail/Section.js";
 import { Switch } from "../switch/Switch.js";
-import {
-  INPUT_CLASS,
-  PRIMARY_BUTTON_CLASS,
-  QUIET_BUTTON_CLASS,
-} from "../vault/styles.js";
+import { INPUT_CLASS, PRIMARY_BUTTON_CLASS } from "../vault/styles.js";
 import {
   DEFAULT_EVAL_FORM,
   MAX_EVAL_CONCURRENCY,
   MAX_EVAL_COST_USD,
   MAX_EVAL_RUNS,
-  MAX_EVAL_TARGETS,
   compareEvals,
   evalFormProblem,
   evalLabelOf,
@@ -62,6 +55,7 @@ import {
   pluginEvalInputOf,
   type EvalFormSettings,
 } from "./eval-view.js";
+import { EvalModelsField, LABEL_CLASS, NumberField } from "./EvalFormFields.js";
 import { PluginEvalResults } from "./PluginEvalResults.js";
 import { usePluginEval } from "./usePluginEval.js";
 import { usePluginEvals } from "./usePluginEvals.js";
@@ -261,23 +255,6 @@ function RunEvalsForm({
   };
   const problem = evalFormProblem(draft);
 
-  const setTarget = (
-    index: number,
-    patch: { harness?: HarnessOption; modelName?: string },
-  ): void => {
-    setSettings({
-      ...settings,
-      targets: settings.targets.map((target, i) =>
-        i === index
-          ? {
-              harness: patch.harness ?? target.harness,
-              modelName: patch.modelName ?? target.modelName,
-            }
-          : target,
-      ),
-    });
-  };
-
   const onRun = async (): Promise<void> => {
     try {
       onStarted(await start(pluginEvalInputOf(plugin, draft)));
@@ -294,77 +271,13 @@ function RunEvalsForm({
           plugin and without it. Every try is a real conversation, charged to
           this organization; the cost limit stops new tries once it is reached.
         </p>
-        <div className="stg:flex stg:items-center stg:gap-2">
-          <Switch
-            id={`${baseId}-case-models`}
-            checked={settings.caseModels}
-            onCheckedChange={(caseModels) =>
-              setSettings({ ...settings, caseModels })
-            }
-            disabled={isStarting}
-          />
-          <label
-            htmlFor={`${baseId}-case-models`}
-            className="stg:text-xs stg:font-medium stg:text-foreground"
-          >
-            Use each case&apos;s own model
-          </label>
-        </div>
-        {!settings.caseModels && (
-          <fieldset className="stg:flex stg:flex-col stg:gap-2">
-            <legend className={LABEL_CLASS}>Models</legend>
-            {settings.targets.map((target, index) => (
-              <div key={index} className="stg:flex stg:items-center stg:gap-2">
-                <ModelSelector
-                  value={target.modelName === "" ? undefined : target.modelName}
-                  onValueChange={(modelName) => setTarget(index, { modelName })}
-                  initialHarness={target.harness}
-                  availableHarnesses={HARNESS_OPTIONS}
-                  onHarnessChange={(harness) =>
-                    setTarget(index, { harness, modelName: "" })
-                  }
-                  compact
-                  disabled={isStarting}
-                  placeholderLabel="Default model"
-                />
-                {settings.targets.length > 1 && (
-                  <button
-                    type="button"
-                    aria-label={`Remove model ${index + 1}`}
-                    onClick={() =>
-                      setSettings({
-                        ...settings,
-                        targets: settings.targets.filter((_, i) => i !== index),
-                      })
-                    }
-                    className={QUIET_BUTTON_CLASS}
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            ))}
-            {settings.targets.length < MAX_EVAL_TARGETS && (
-              <div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSettings({
-                      ...settings,
-                      targets: [
-                        ...settings.targets,
-                        { harness: "native", modelName: "" },
-                      ],
-                    })
-                  }
-                  className={QUIET_BUTTON_CLASS}
-                >
-                  Add a model
-                </button>
-              </div>
-            )}
-          </fieldset>
-        )}
+        <EvalModelsField
+          id={`${baseId}-case-models`}
+          switchLabel="Use each case's own model"
+          settings={settings}
+          disabled={isStarting}
+          onChange={setSettings}
+        />
         <div className="stg:grid stg:grid-cols-1 stg:gap-4 stg:sm:grid-cols-3">
           <NumberField
             id={`${baseId}-runs`}
@@ -434,46 +347,6 @@ function RunEvalsForm({
         )}
       </div>
     </Section>
-  );
-}
-
-function NumberField({
-  id,
-  label,
-  hint,
-  value,
-  min,
-  max,
-  disabled,
-  onChange,
-}: {
-  readonly id: string;
-  readonly label: string;
-  readonly hint: string;
-  readonly value: string;
-  readonly min: number;
-  readonly max: number;
-  readonly disabled: boolean;
-  readonly onChange: (text: string) => void;
-}) {
-  return (
-    <div className="stg:flex stg:flex-col stg:gap-1">
-      <label htmlFor={id} className={LABEL_CLASS}>
-        {label}
-      </label>
-      <input
-        id={id}
-        type="number"
-        min={min}
-        max={max}
-        step="any"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        disabled={disabled}
-        className={INPUT_CLASS}
-      />
-      <p className={HINT_CLASS}>{hint}</p>
-    </div>
   );
 }
 
@@ -701,6 +574,4 @@ function CompareEvals({
   );
 }
 
-const LABEL_CLASS = "stg:block stg:text-xs stg:font-medium stg:text-foreground";
-const HINT_CLASS = "stg:text-[0.65rem] stg:text-muted-foreground";
 const CELL_CLASS = "stg:px-2 stg:py-1.5";

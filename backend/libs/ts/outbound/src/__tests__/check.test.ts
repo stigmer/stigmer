@@ -4,12 +4,13 @@
  * signal bounding a resolver that never answers. Pins the sentences too:
  * under strict a name that does not resolve and one that resolves to a
  * refused address read alike and name no address, while relaxed keeps the
- * detail its operator's own network warrants.
+ * detail its operator's own network warrants. Last, `refusedAddress`, the
+ * judgement the check and the dialer's connect lookup share, on its own.
  */
 import { describe, expect, it } from "vitest";
 
 import { egressPolicyForPosture } from "../egress/address.js";
-import { checkEgress, describeRefusal, EgressError, refusalWithholdsResolution, type LookupFn } from "../egress/check.js";
+import { checkEgress, describeRefusal, EgressError, refusalWithholdsResolution, refusedAddress, type LookupFn } from "../egress/check.js";
 
 const strict = egressPolicyForPosture("strict");
 const relaxed = egressPolicyForPosture("relaxed");
@@ -134,5 +135,13 @@ describe("describeRefusal and EgressError", () => {
       "Refusing to reach metadata.internal: it resolves to 169.254.169.254, a link-local (cloud metadata) address the relaxed egress policy does not dial.",
     );
     expect(describeRefusal(unresolvable.refusal)).toBe("Could not resolve hostname: nowhere.internal");
+  });
+});
+
+describe("refusedAddress", () => {
+  it("answers the first refused address with its range, or null when the policy refuses none", () => {
+    expect(refusedAddress(["203.0.113.10", "10.0.0.5", "127.0.0.1"], strict)).toEqual({ address: "10.0.0.5", reason: "private (RFC 1918)" });
+    expect(refusedAddress(["203.0.113.10", "10.0.0.5"], relaxed)).toBeNull();
+    expect(refusedAddress([], strict)).toBeNull();
   });
 });

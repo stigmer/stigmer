@@ -36,6 +36,7 @@ import type { Store } from "../../store/interface.js";
 import { pluginEvalActiveOnPluginDeleteMessage } from "./constants.js";
 import { listPluginEvals } from "./queries.js";
 import { isActivePluginEval } from "./steps.js";
+import type { EvalPhaseRow } from "./steps.js";
 import { deletePluginEvalTries } from "./tries.js";
 import type { TrySessionDeleter } from "./tries.js";
 import type { PluginEvalWorkflows } from "./workflows.js";
@@ -171,7 +172,7 @@ export function newSweepPluginEvalsAfterDeleteStep<Desc extends DescMessage>(
 export async function askPluginEvalToStop(
   workflows: PluginEvalWorkflows | undefined,
   logger: Logger,
-  pluginEval: PluginEval,
+  pluginEval: EvalPhaseRow & { readonly metadata?: { readonly id: string } },
   failedMessage: string,
 ): Promise<boolean> {
   if (workflows === undefined || !isActivePluginEval(pluginEval)) {

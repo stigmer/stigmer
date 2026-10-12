@@ -67,8 +67,8 @@ describe("a catalogue of hooks-only plugins", () => {
     expect(report).toContain("nothing (hooks)");
     expect(report).not.toContain("hooks, which Stigmer does not install");
     expect(verdicts.entries.map((judged) => (judged.verdict.kind === "exclude" ? judged.verdict.failures.map((f) => f.detail) : []))).toEqual([
-      ["it carries no skill, sub-agent or MCP server, only hooks Stigmer does not run; and rules, which Stigmer does not install"],
-      ["it carries no skill, sub-agent or MCP server, only hooks"],
+      ["it carries no skill, subagent or MCP server, only hooks Stigmer does not run; and rules, which Stigmer does not install"],
+      ["it carries no skill, subagent or MCP server, only hooks"],
     ]);
   });
 });

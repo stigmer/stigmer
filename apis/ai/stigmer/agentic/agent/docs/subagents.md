@@ -219,14 +219,14 @@ instructions: |
   everything else yourself.
 ```
 
-## Sub-Agents Written Inside an Agent
+## Subagents Written Inside an Agent
 
-An agent once carried sub-agents written inside it, under `sub_agents`, each
+An agent once carried subagents written inside it, under `sub_agents`, each
 narrowing the agent's own tools. That field is gone. `stigmer apply` and
 `stigmer validate` refuse a manifest that still uses it:
 
 ```text
-A subagent is now a saved agent: write each sub-agent as an Agent of its own, then list it under the agent's `subagents` (`- kind: agent` with `slug: <its slug>`).
+A subagent is now a saved agent: write each subagent as an Agent of its own, then list it under the agent's `subagents` (`- kind: agent` with `slug: <its slug>`).
 ```
 
 To move one, write it as an Agent: its `name` as `metadata.name`, its
@@ -236,6 +236,6 @@ parent's, and its tool lists over the parent's. A `model_override` becomes
 `run_config.model_name` with `harness: HARNESS_NATIVE`. Apply it, then list it
 in the parent's `subagents`.
 
-A local install that held such sub-agents removes them when it upgrades. Each
+A local install that held such subagents removes them when it upgrades. Each
 one is written to the server's log as a ready-to-apply Agent manifest that runs
-as the sub-agent ran, together with the `subagents` entry to add to its parent.
+as the subagent ran, together with the `subagents` entry to add to its parent.

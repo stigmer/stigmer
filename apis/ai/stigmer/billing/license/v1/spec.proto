@@ -44,8 +44,9 @@ message LicenseSpec {
   // When the term ends.
   google.protobuf.Timestamp expires_at = 5 [(buf.validate.field).required = true];
 
-  // The end of the grace period after expiry, during which the licensed
-  // server keeps serving and reports the license as expired.
+  // The end of the grace period that follows `expires_at`, during which the
+  // licensed server keeps serving and reports the license as `grace`. After
+  // this instant it reports the license as `expired`.
   google.protobuf.Timestamp grace_until = 6 [(buf.validate.field).required = true];
 
   // Operator notes about this issuance (the order, the contact, the reason

@@ -1,13 +1,15 @@
-// The real world behind `plugin eval`'s injected effects: the process's
-// streams, the file system for `--json <path>`, a timer that a Ctrl+C cuts
-// short (the pace of the reads and each call's deadline alike), and SIGINT. Kept apart from the dispatch so the dispatch is tested
-// with fakes; nothing here holds a rule of its own.
+// The real world behind the eval commands' injected effects (`plugin eval`
+// and `agent eval`, which share follow.ts): the process's streams, the
+// file system for `--json <path>`, a timer that a Ctrl+C cuts short (the
+// pace of the reads and each call's deadline alike), and SIGINT. Kept apart
+// from the dispatch so the dispatch is tested with fakes; nothing here
+// holds a rule of its own.
 
 import { writeFile } from "node:fs/promises";
-import type { PluginEvalIo } from "./run.js";
+import type { EvalIo } from "./follow.js";
 
 /** The process's own effects. */
-export function nodePluginEvalIo(): PluginEvalIo {
+export function nodePluginEvalIo(): EvalIo {
   return {
     stdout: process.stdout,
     stderr: process.stderr,

@@ -42,9 +42,11 @@ import {
   PluginEvalPartialReason,
   PluginEvalPhase,
   PluginEvalTryState,
+  type PluginEvalAggregates,
   type PluginEvalArm,
   type PluginEvalCase,
   type PluginEvalCaseTarget,
+  type PluginEvalStatus,
   type PluginEvalTry,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -149,14 +151,44 @@ export function toResultDocument(
   opts: ResultDocumentOptions = {},
 ): PluginEvalResultDocument {
   const status = pluginEval.status;
-  const cases = status?.cases ?? [];
-  const targets = targetsOf(pluginEval, cases);
-  const partialReason = partialReasonOf(pluginEval, opts.interrupted === true);
-  const aggregates = status?.aggregates;
+  const block = resultBlockOf(status?.cases ?? [], pluginEval.spec?.targets ?? [], status?.aggregates);
+  const partialReason = partialReasonOf(status, opts.interrupted === true);
   return {
     schemaVersion: 1,
     partial: partialReason !== null,
     partialReason,
+    aggregates: block.aggregates,
+    cases: block.cases,
+    costUsd: status?.costUsd ?? 0,
+    durationSeconds: opts.durationSeconds ?? durationOf(status, opts.nowMs ?? Date.now()),
+    evalId: pluginEval.metadata?.id ?? "",
+    provisionalDelta: status?.provisionalDelta ?? false,
+    targets: block.targets,
+    notRun: block.notRun,
+  };
+}
+
+/** What the format's fields hold for one list of cases: a plugin eval's suite, or one plugin's cases in an agent eval. */
+export interface ResultBlock {
+  readonly aggregates: PluginEvalResultDocument["aggregates"];
+  readonly cases: readonly ResultCase[];
+  readonly targets: readonly ResultTarget[];
+  readonly notRun: readonly ResultNotRun[];
+}
+
+/**
+ * The format's fields for `cases`: their aggregates as the server summed
+ * them, the first target's cases, every target's, and the cases not run.
+ * `specTargets` orders the targets; with none, they are read from the cases
+ * in the order they first appear.
+ */
+export function resultBlockOf(
+  cases: readonly PluginEvalCase[],
+  specTargets: readonly PluginEvalTarget[],
+  aggregates: PluginEvalAggregates | undefined,
+): ResultBlock {
+  const targets = targetsOf(specTargets, cases);
+  return {
     aggregates: {
       overallScore: aggregates?.overallScore ?? 0,
       casesPassed: aggregates?.casesPassed ?? 0,
@@ -164,10 +196,6 @@ export function toResultDocument(
       ...(aggregates?.meanDelta !== undefined && { meanDelta: aggregates.meanDelta }),
     },
     cases: targets[0]?.cases ?? [],
-    costUsd: status?.costUsd ?? 0,
-    durationSeconds: opts.durationSeconds ?? durationOf(pluginEval, opts.nowMs ?? Date.now()),
-    evalId: pluginEval.metadata?.id ?? "",
-    provisionalDelta: status?.provisionalDelta ?? false,
     targets,
     notRun: notRunOf(cases),
   };
@@ -193,8 +221,11 @@ function harnessName(harness: Harness): string {
   }
 }
 
-function partialReasonOf(pluginEval: PluginEval, interrupted: boolean): ResultPartialReason | null {
-  const status = pluginEval.status;
+/** Why an eval did not finish, in the format's words; `null` when it did, or still runs. */
+export function partialReasonOf(
+  status: Pick<PluginEvalStatus, "phase" | "partialReason"> | undefined,
+  interrupted: boolean,
+): ResultPartialReason | null {
   const reason = status?.partialReason ?? PluginEvalPartialReason.unspecified;
   switch (reason) {
     case PluginEvalPartialReason.cost_ceiling:
@@ -224,7 +255,7 @@ function partialReasonOf(pluginEval: PluginEval, interrupted: boolean): ResultPa
  * eval created with none ran each case on its own model, so the targets
  * are read from the cases in the order they first appear.
  */
-function targetsOf(pluginEval: PluginEval, cases: readonly PluginEvalCase[]): ResultTarget[] {
+function targetsOf(specTargets: readonly PluginEvalTarget[], cases: readonly PluginEvalCase[]): ResultTarget[] {
   const labels: string[] = [];
   const byLabel = new Map<string, PluginEvalTarget | undefined>();
   const note = (target: PluginEvalTarget | undefined): void => {
@@ -234,7 +265,7 @@ function targetsOf(pluginEval: PluginEval, cases: readonly PluginEvalCase[]): Re
       byLabel.set(label, target);
     }
   };
-  for (const target of pluginEval.spec?.targets ?? []) note(target);
+  for (const target of specTargets) note(target);
   for (const evalCase of cases) {
     for (const caseTarget of evalCase.targets) note(caseTarget.target);
   }
@@ -303,10 +334,14 @@ function notRunOf(cases: readonly PluginEvalCase[]): ResultNotRun[] {
   });
 }
 
-function durationOf(pluginEval: PluginEval, nowMs: number): number {
-  const startedAt = pluginEval.status?.startedAt;
+/** Seconds from the eval's start to its finish, or to `nowMs` while it runs. */
+export function durationOf(
+  status: Pick<PluginEvalStatus, "startedAt" | "finishedAt"> | undefined,
+  nowMs: number,
+): number {
+  const startedAt = status?.startedAt;
   if (startedAt === undefined) return 0;
-  const finishedAt = pluginEval.status?.finishedAt;
+  const finishedAt = status?.finishedAt;
   const endMs = finishedAt === undefined ? nowMs : timestampMs(finishedAt);
   return Math.max(0, Math.round((endMs - timestampMs(startedAt)) / 1000));
 }

@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agenteval.v1;
+
+import "ai/stigmer/agentic/agenteval/v1/api.proto";
+import "ai/stigmer/agentic/agenteval/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// AgentEvalQueryController handles read operations for agent evals.
+//
+// @internal
+// An eval's visibility is the agent's viewers in the agent's own
+// organization (org_viewer from agent): a try spends that organization's
+// money and may act with its connections, so a child organization's viewer
+// of a shared agent does not read it.
+service AgentEvalQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_eval;
+
+  // Get a single eval by ID.
+  rpc get(AgentEvalId) returns (AgentEval) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_eval;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get agent eval";
+  }
+
+  // List an agent's evals, newest first.
+  //
+  // Each eval comes with its scores, aggregates, per-target results and
+  // notes, but with every arm's `tries` list empty, so a list stays small
+  // however many tries its evals ran. Get an eval by its id for its tries.
+  //
+  // @internal
+  // Authorized on the agent, then each eval is filtered by its own
+  // can_view, so a child organization's viewer of the agent gets an empty
+  // list rather than a refusal.
+  rpc listByAgent(ListAgentEvalsByAgentRequest) returns (AgentEvalList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "agent_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list evals of agent";
+  }
+}

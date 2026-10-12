@@ -37,6 +37,7 @@ import { useManagingPlugin } from "../plugin/useManagingPlugin.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useOrgIdForRef, useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { AgentQualityTab } from "./AgentQualityTab.js";
+import { AgentEvalsTab } from "../agent-eval/AgentEvalsTab.js";
 import { AgentVersionsTab } from "./AgentVersionsTab.js";
 import { useAgentVersionCount } from "./useAgentVersions.js";
 
@@ -45,6 +46,7 @@ const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
 const SHARES_TAB: TabItem = { id: "shares", label: "Shares" };
 const QUALITY_TAB: TabItem = { id: "quality", label: "Quality" };
+const EVALS_TAB: TabItem = { id: "evals", label: "Evals" };
 const DEPENDENCIES_TAB: TabItem = { id: "dependencies", label: "Dependencies" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
 
@@ -149,6 +151,12 @@ export interface AgentDetailViewProps {
    * `/chat/<share id>` path.
    */
   readonly buildShareUrl?: (shareId: string) => string;
+  /**
+   * Called with a run id when the user opens one of an eval's tries from
+   * the Evals tab; the host owns the route. Tries are listed without links
+   * when omitted.
+   */
+  readonly onNavigateToRun?: (runId: string) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -162,6 +170,8 @@ export interface AgentDetailViewProps {
  * sections (instructions, plugins, tool lists, hooks, skills,
  * subagents, and environment variables). Sections with no data are
  * omitted entirely — reducing visual noise per Nielsen heuristic #8.
+ * The Evals tab runs the eval cases of the agent's plugins on the agent
+ * and compares its versions ({@link AgentEvalsTab}).
  *
  * The action bar transforms this from a read-only view into an
  * operational hub. Actions are provided by the consumer via
@@ -209,6 +219,7 @@ export function AgentDetailView({
   buildShareUrl,
   onPluginClick,
   onAgentClick,
+  onNavigateToRun,
   className,
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
@@ -287,6 +298,7 @@ export function AgentDetailView({
       OVERVIEW_TAB,
       SHARES_TAB,
       QUALITY_TAB,
+      EVALS_TAB,
       ...(noDeps ? [] : [DEPENDENCIES_TAB]),
       { ...VERSIONS_TAB, ...(versionCount > 0 && { badge: versionCount }) },
     ],
@@ -429,6 +441,16 @@ export function AgentDetailView({
     // Grading is the agent's setting, not its definition: a plugin-managed
     // agent offers it too, so the host's edit flag applies unfiltered.
     tabContent = <AgentQualityTab agent={agent} editable={editableProp} />;
+  } else if (effectiveActiveTab === "evals") {
+    // Running the agent's plugins' cases is not an edit of its definition:
+    // the tab gates its own form on can_edit, a plugin-managed agent included.
+    tabContent = (
+      <AgentEvalsTab
+        agent={agent}
+        onNavigateToRun={onNavigateToRun}
+        onOpenPlugins={() => effectiveOnTabChange(OVERVIEW_TAB.id)}
+      />
+    );
   } else if (effectiveActiveTab === "dependencies" && tree) {
     tabContent = (
       <DependencyGraph

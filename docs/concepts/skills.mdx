@@ -159,6 +159,15 @@ Session-level Skills are merged with the Agent's Skills — this lets you
 customize what an Agent knows for a specific conversation without changing the
 Agent definition.
 
+## Skills that come from a plugin
+
+The Skills you push yourself are versioned on their own and appear in your Skill
+list. A [plugin's](/docs/concepts/plugins) Skills are different: they ride in
+the plugin and are not in the Skill list. A turn names each one
+`<plugin>:<skill>`, as in `thermos:code-review`, so two plugins may both ship a
+Skill called `review`. They change when the plugin is pushed again, and an Agent
+gets them by listing the plugin in `plugins`, not in `skill_refs`.
+
 ## How Skills differ from RAG
 
 If you've used retrieval-augmented generation (RAG), Skills might look familiar
@@ -180,5 +189,6 @@ product details, escalation rules — Skills are simpler and more predictable.
 ## What's next
 
 Your Agent knows your business through Skills. But knowledge alone doesn't let
-it _act_. The next page explains [Tools](/docs/concepts/tools) — how Agents
-interact with your external systems through the Model Context Protocol.
+it _act_. The next page explains [Plugins](/docs/concepts/plugins) — the
+packages that bring an Agent its tools, beside their own Skills, hooks and
+subagents.

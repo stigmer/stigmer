@@ -190,7 +190,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
       neverUsed,
     );
     expect(phase).toBe("RUN_FAILED");
-    expect(final.error).toMatch(/^.+ lists Agent\(explore\), which the Cursor engine cannot enforce: it cannot limit which sub-agents an agent starts\./);
+    expect(final.error).toMatch(/^.+ lists Agent\(explore\), which the Cursor engine cannot enforce: it cannot limit which subagents an agent starts\./);
     expect(systemRows(final)).toEqual([`Execution failed: ${final.error}`]);
     expect(scenario.sdk.resolutions, "the SDK was never reached").toHaveLength(0);
   });

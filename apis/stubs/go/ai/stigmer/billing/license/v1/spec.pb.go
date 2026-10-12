@@ -45,8 +45,9 @@ type LicenseSpec struct {
 	Term v1.LicenseTerm `protobuf:"varint,4,opt,name=term,proto3,enum=ai.stigmer.platform.v1.LicenseTerm" json:"term,omitempty"`
 	// When the term ends.
 	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	// The end of the grace period after expiry, during which the licensed
-	// server keeps serving and reports the license as expired.
+	// The end of the grace period that follows `expires_at`, during which the
+	// licensed server keeps serving and reports the license as `grace`. After
+	// this instant it reports the license as `expired`.
 	GraceUntil *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=grace_until,json=graceUntil,proto3" json:"grace_until,omitempty"`
 	// Operator notes about this issuance (the order, the contact, the reason
 	// for a bespoke entitlement). Never signed, never shown to the customer.

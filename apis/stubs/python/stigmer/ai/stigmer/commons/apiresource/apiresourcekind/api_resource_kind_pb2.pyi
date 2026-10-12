@@ -55,6 +55,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     score: _ClassVar[ApiResourceKind]
     evaluator: _ClassVar[ApiResourceKind]
     plugin_eval: _ClassVar[ApiResourceKind]
+    agent_eval: _ClassVar[ApiResourceKind]
     plan: _ClassVar[ApiResourceKind]
     subscription: _ClassVar[ApiResourceKind]
     license: _ClassVar[ApiResourceKind]
@@ -92,6 +93,7 @@ vault: ApiResourceKind
 score: ApiResourceKind
 evaluator: ApiResourceKind
 plugin_eval: ApiResourceKind
+agent_eval: ApiResourceKind
 plan: ApiResourceKind
 subscription: ApiResourceKind
 license: ApiResourceKind

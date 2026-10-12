@@ -1,7 +1,8 @@
 /**
  * Shared doubles for the eval activities' tests: a temp store seeded with
  * a plugin (one row, its status listing a skill and an MCP server, as
- * install writes it) and an eval; an in-memory
+ * install writes it) and an eval, or an agent attaching that plugin and an
+ * agent eval stamping it; an in-memory
  * suite source over real `evals/` files read by `readEvalSuite`; a
  * catalog that knows one model; a try lane that records what it is asked
  * and creates rows in the store as the real chains would; a score
@@ -12,9 +13,12 @@ import { Code, ConnectError } from "@connectrpc/connect";
 
 import type { PluginFiles } from "@stigmer/plugin-package";
 import { inMemoryPluginFiles } from "@stigmer/plugin-package";
+import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
+import { AgentEvalPluginSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/status_pb";
 import { PluginSchema } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
-import { PluginEvalSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import { PluginEvalSpecSchema, PluginEvalTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import type { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import { PluginEvalPhase } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import {
@@ -23,6 +27,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreState } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/status_pb";
@@ -155,6 +160,71 @@ export async function readEval(store: Store) {
     EVAL_ID,
     PluginEvalSchema,
   );
+}
+
+export const AGENT_ID = "agt_1";
+export const AGENT_HASH = "a".repeat(64);
+export const AGENT_EVAL_ID = "aev_1";
+
+/** The agent under eval at AGENT_HASH, attaching the seeded plugin and running MODEL. */
+export async function seedAgent(store: Store): Promise<void> {
+  await store.saveResource(
+    ApiResourceKind.agent,
+    AGENT_ID,
+    AgentSchema,
+    create(AgentSchema, {
+      metadata: { id: AGENT_ID, org: ORG, slug: "support-desk", name: "support-desk" },
+      spec: {
+        instructions: "You answer support tickets politely.",
+        runConfig: { modelName: MODEL },
+        plugins: [{ kind: ApiResourceKind.plugin, slug: "thermos" }],
+      },
+      status: { versionHash: AGENT_HASH },
+    }),
+  );
+}
+
+/** An agent eval of the seeded agent stamping the seeded plugin at `pluginDigest`. */
+export async function seedAgentEval(
+  store: Store,
+  options: {
+    readonly targets?: ReadonlyArray<{ readonly harness: Harness; readonly modelName: string }>;
+    readonly pluginDigest?: string;
+    readonly threshold?: number;
+    readonly phase?: PluginEvalPhase;
+  } = {},
+): Promise<void> {
+  await store.saveResource(
+    ApiResourceKind.agent_eval,
+    AGENT_EVAL_ID,
+    AgentEvalSchema,
+    create(AgentEvalSchema, {
+      metadata: { id: AGENT_EVAL_ID, org: ORG, name: AGENT_EVAL_ID },
+      spec: {
+        agentId: AGENT_ID,
+        agentVersion: AGENT_HASH,
+        runs: 1,
+        maxCostUsd: 5,
+        ...(options.threshold !== undefined && { threshold: options.threshold }),
+        targets: (options.targets ?? []).map((target) => create(PluginEvalTargetSchema, target)),
+      },
+      status: {
+        phase: options.phase ?? PluginEvalPhase.pending,
+        agentVersionHash: AGENT_HASH,
+        plugins: [
+          create(AgentEvalPluginSchema, {
+            pluginId: PLUGIN_ID,
+            pluginSlug: "thermos",
+            pluginDigest: options.pluginDigest ?? DIGEST,
+          }),
+        ],
+      },
+    }),
+  );
+}
+
+export async function readAgentEval(store: Store) {
+  return store.getResource(ApiResourceKind.agent_eval, AGENT_EVAL_ID, AgentEvalSchema);
 }
 
 /** What the lane was asked, and how it answers. */

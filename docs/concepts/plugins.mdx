@@ -1,0 +1,135 @@
+---
+title: Plugins
+description:
+  A plugin is one package of skills, MCP servers, hooks and subagents, in the
+  format Claude Code, Cursor and Codex already use. Learn what Stigmer reads
+  from it, how its parts are named, how a chat or an Agent uses it, and where
+  Stigmer differs.
+---
+
+A plugin is one package that adds capabilities to your Organization: its Skills,
+its MCP servers, its hooks and its agents, which join a conversation as
+subagents. It is the folder the Claude Code, Cursor and Codex communities
+already publish, and Stigmer reads it unchanged. Installing it stores the plugin
+alone, as one resource; nothing else appears beside it.
+
+If you want to install one now,
+[Install a plugin](/docs/guides/plugins/install-a-plugin) walks through it. This
+page explains what a plugin is on Stigmer and why it is shaped this way.
+
+## What a plugin looks like
+
+A plugin is a directory with a manifest and the parts it carries:
+
+```text
+thermos/
+├── .cursor-plugin/plugin.json   # or plugin.json, .claude-plugin/, .codex-plugin/
+├── skills/
+│   ├── code-review/SKILL.md
+│   └── triage/SKILL.md
+├── agents/
+│   └── reviewer.md
+├── hooks/
+│   └── hooks.json
+└── mcp.json
+```
+
+The manifest names the plugin and its version. `skills/` holds
+[Skills](/docs/concepts/skills) in the `SKILL.md` format, `agents/` holds
+subagent prompts in Claude Code's format, `hooks/` holds hooks in Claude Code's
+or Cursor's format, and `mcp.json` (or `.mcp.json`) names each MCP server and
+how to reach it.
+
+## What Stigmer reads from it
+
+Stigmer reads four kinds of part. A turn names each Skill, subagent and server
+tool after the plugin that carries it:
+
+| Part       | How a turn names it                    | Read about it                                          |
+| ---------- | -------------------------------------- | ------------------------------------------------------ |
+| Skill      | `thermos:code-review`                  | [Skills](/docs/concepts/skills)                        |
+| Subagent   | `thermos:reviewer`                     | [Subagents](/docs/concepts/agents#subagents)           |
+| MCP server | `mcp__plugin_thermos_<server>__<tool>` | [Tools](/docs/concepts/tools)                          |
+| Hook       | runs on every tool call in the turn    | [Use a plugin's hooks](/docs/guides/plugins/use-hooks) |
+
+Because every part carries its plugin's name, two plugins that both ship a
+`review` Skill both install, and a turn tells them apart as `thermos:review` and
+`other:review`. The names are the ones an Agent's `tools` and `disallowed_tools`
+lists use.
+
+A plugin can carry parts Stigmer does not install: rules, commands, workflows,
+output styles, LSP servers, channels, themes, monitors and a few others. Stigmer
+reports each one and skips it; the plugin still installs with what it can use.
+To see a given plugin's list before you install it, run
+`stigmer validate -f <dir>`: its summary says what would install and what is not
+installed.
+
+## Using a plugin
+
+Turn a plugin on in two ways:
+
+- **For one conversation.** `stigmer run --plugin thermos`, the chat's plugin
+  picker in the console, or **Start a chat** on the plugin's page. With no Agent
+  named, the built-in assistant runs with everything the plugin carries; name an
+  Agent and the plugin joins the Agent's own.
+- **For good, on an Agent.** List it in the Agent's `plugins`, or use **Add to
+  an agent** on the plugin's page:
+
+```yaml validate-as="Agent"
+spec:
+  plugins:
+    - kind: plugin
+      slug: thermos
+```
+
+A plugin attached this way is attached whole: the Agent gets its Skills, its
+subagents, its hooks and its servers' tools. A reference that names no version
+takes the plugin's latest version when a turn starts, so pushing a new version
+reaches every Agent and conversation that lists the plugin from its next turn.
+
+## Who installs a plugin
+
+Your Organization's admins install plugins: from a folder
+(`stigmer push plugin`), from a
+[marketplace](/docs/guides/plugins/install-from-a-marketplace), or from the
+console. People in the Organization then use them in their chats and Agents. An
+admin who needs one MCP server at an address runs
+`stigmer mcp add <name> <url>`, which installs a plugin holding just that
+server, the way `claude mcp add` adds a server to Claude Code.
+
+## How it compares
+
+| On Stigmer                                                     | What you already know                                                     |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| A plugin, its parts named `plugin:name`, installed by an admin | Claude Code, Cursor and Codex plugins; claude.ai's admin-added connectors |
+| An MCP server: an entry in a plugin's `mcp.json`               | `.mcp.json` in a Claude Code plugin                                       |
+| A plugin's agents, joining as subagents                        | A Claude Code plugin's `agents/` folder                                   |
+| A plugin's hooks                                               | A Claude Code or Cursor plugin's `hooks.json`                             |
+| The built-in assistant with plugins turned on                  | Claude on claude.ai with connectors and plugins                           |
+
+## Where Stigmer differs, and why
+
+Three choices are Stigmer's own:
+
+- **An MCP server lives only in a plugin.** Claude Managed Agents lets an agent
+  name servers of its own. On Stigmer an Organization is shared, and its admins
+  decide which tools exist, as claude.ai's Team plan does with connectors. A
+  server reaches an Agent only through a plugin an admin installed, and a
+  one-off server is a plugin of one server.
+- **An Agent can carry hooks written in it.** A one-off rule for one Agent does
+  not need a plugin of its own, and a Claude Code subagent file carries `hooks`
+  the same way. A policy that must hold against the Agent still belongs in a
+  plugin, whose files Stigmer restores before every hook run
+  ([Write your own hooks](/docs/guides/plugins/use-hooks#write-your-own-hooks)).
+- **An Agent names its engine (`harness`).** Stigmer can run a turn on its own
+  engine or on Cursor's, a real choice no Claude product offers, so the Agent's
+  run settings say which one ([Harnesses](/docs/concepts/harnesses)).
+
+Where a plugin's servers find their keys is the conversation's
+[vaults](/docs/concepts/vaults).
+
+## What's next
+
+A plugin gives an Agent its tools. The next page explains
+[Tools](/docs/concepts/tools): how an Agent calls a plugin's MCP servers, and
+how Stigmer keeps those calls safe.

@@ -97,7 +97,8 @@ export const PACKAGES = [
   // lockstep version at stamp time), and the server links it once the plugin
   // install pipeline lands.
   "backend/libs/ts/plugin-package",
-  // @stigmer/outbound has no deps at all, so its position is order-free. It
+  // @stigmer/outbound has no workspace deps (undici is its one, from the
+  // registry), so its position is order-free. It
   // MUST publish: the server and the runner both link it (the egress policy
   // and the MCP OAuth rules they share) and pin the exact release version at
   // stamp time.

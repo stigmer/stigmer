@@ -5,9 +5,10 @@
  * suite's CI line written for `claude plugin eval --allow-tools` works
  * unchanged here and is stored as written.
  *
- * An entry naming a plugin server must name one of the eval's own plugin's
- * servers: a try attaches no other plugin, so an entry naming another one
- * could never grant anything and is refused rather than silently kept. The
+ * An entry naming a plugin server must name a server of a plugin the try
+ * attaches (the plugin eval's own; each plugin an agent eval's agent
+ * attaches): an entry naming another one could never grant anything and is
+ * refused rather than silently kept. The
  * segment is compared whole, never split back into a plugin and a server,
  * since either name may hold `_`.
  *
@@ -29,12 +30,14 @@ function serverPartOf(entry: string): string {
   return end === -1 ? rest : rest.slice(0, end);
 }
 
-/** Checks that every plugin MCP entry names one of `plugin`'s servers. */
+/** Checks that every plugin MCP entry names a server of one of `plugins`. */
 export function checkAllowTools(
   tools: readonly string[],
-  plugin: { readonly name: string; readonly servers: readonly string[] },
+  plugins: ReadonlyArray<{ readonly name: string; readonly servers: readonly string[] }>,
 ): AllowToolsOutcome {
-  const own = new Set(plugin.servers.map((server) => toolServerSegment(plugin.name, server)));
+  const own = new Set(
+    plugins.flatMap((plugin) => plugin.servers.map((server) => toolServerSegment(plugin.name, server))),
+  );
   for (const entry of tools) {
     if (!entry.startsWith(PLUGIN_MCP_PREFIX)) {
       continue;

@@ -174,11 +174,12 @@ type LicenseClaims struct {
 	Entitlements *Entitlements `protobuf:"bytes,4,opt,name=entitlements,proto3" json:"entitlements,omitempty"`
 	// When the ticket was signed.
 	IssuedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`
-	// When the term ends. After this instant the license is expired, and the
-	// server it unlocks enters its grace period.
+	// When the term ends. After this instant the server it unlocks is in its
+	// grace period and reports the license as `grace`.
 	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	// The end of the grace period after expiry, during which the server keeps
-	// serving and reports the license as expired. The issuer decides the
+	// The end of the grace period that follows `expires_at`, during which the
+	// server keeps serving and reports the license as `grace`. After this
+	// instant it reports the license as `expired`. The issuer decides the
 	// grace; the verifier reads it.
 	GraceUntil    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=grace_until,json=graceUntil,proto3" json:"grace_until,omitempty"`
 	unknownFields protoimpl.UnknownFields

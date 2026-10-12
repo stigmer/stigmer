@@ -1,6 +1,9 @@
 /**
  * One plugin eval, run whole: plan the suite, run every try as a child
- * workflow, fold each result into the eval's status, end.
+ * workflow, fold each result into the eval's status, end. An agent eval
+ * runs the same function under its own type (workflows/index.ts): the
+ * activities find which eval an id names, and the plan names the prefix of
+ * the tries' workflow ids, `plugin-eval` when it names none.
  *
  *   - Plan: the load reads the eval and its suite at the stamped digest,
  *     plans the matrix and writes the status skeleton (every case, target
@@ -86,6 +89,7 @@ import {
   FINISH_EVAL_ACTIVITY_NAME,
   LOAD_SUITE_ACTIVITY_NAME,
   PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
+  PLUGIN_EVAL_CASE_WORKFLOW_PREFIX,
   PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE,
   RECORD_TRY_ACTIVITY_NAME,
   RUN_CASE_WORKFLOW_TYPE,
@@ -177,6 +181,7 @@ export async function runPluginEval(input: RunPluginEvalInput): Promise<void> {
       plan.cells,
       plan.maxCostUsd,
       Math.max(1, plan.concurrency),
+      plan.caseWorkflowPrefix ?? PLUGIN_EVAL_CASE_WORKFLOW_PREFIX,
     );
     await finishing[FINISH_EVAL_ACTIVITY_NAME](
       evalId,
@@ -235,6 +240,7 @@ async function runCells(
   cells: ReadonlyArray<SuiteCell>,
   maxCostUsd: number,
   concurrency: number,
+  prefix: string,
 ): Promise<SuiteStop | undefined> {
   let spent = 0;
   let stop: SuiteStop | undefined;
@@ -278,7 +284,7 @@ async function runCells(
       const index = next++;
       const cell = cells[index]!;
       caps.set(index, budgetUsd);
-      const settled = runCell(evalId, org, cell, budgetUsd).then(
+      const settled = runCell(evalId, org, cell, budgetUsd, prefix).then(
         (result) => {
           inFlight.delete(index);
           if (result.notGradedReason === TRY_NOT_STOPPED_REASON) {
@@ -326,6 +332,7 @@ async function runCell(
   org: string,
   cell: SuiteCell,
   budgetUsd: number,
+  prefix: string,
 ): Promise<TryResult> {
   const caseInput: CaseInput = { ...cell, evalId, org, budgetUsd };
   let result: TryResult;
@@ -338,6 +345,7 @@ async function runCell(
         cell.targetIndex,
         cell.arm,
         cell.tryIndex,
+        prefix,
       ),
       args: [caseInput],
       parentClosePolicy: ParentClosePolicy.TERMINATE,

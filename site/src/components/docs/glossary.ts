@@ -19,6 +19,8 @@ export const glossary: Record<string, string> = {
     "One grade of a finished run: a person's thumbs up or down on the final answer, the free run-health checks Stigmer runs on every completed run, an AI judge's verdict, or a plugin eval's checks on one try.",
   Evaluator:
     "AI grading switched on for one Agent: how many of its runs an AI judge grades, the monthly spending limit, and the judge's model.",
+  "Agent Eval":
+    "One run of an Agent on the test cases of the plugins it uses: each plugin's cases, at the version the Agent uses, are tried several times on the Agent itself, on its own model or on the models the eval names. The eval is stamped with the Agent's version, so two versions of the Agent compare side by side.",
   "Plugin Eval":
     "One run of a plugin's own test cases: every case in the plugin's evals folder is tried several times with the plugin and several times without it, on each model the eval names. The eval records both scores and the difference the plugin makes.",
   Session:

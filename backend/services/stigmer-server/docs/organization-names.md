@@ -50,6 +50,12 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ChannelMessageCommandController.sendMessage | `org` |
 | ChannelMessageQueryController.listTemplates | `org` |
 
+## `ai.stigmer.agentic.agenteval.v1`
+
+| Method | Organization fields |
+|---|---|
+| AgentEvalCommandController.create | `metadata.org`, `spec.vaults.org` |
+
 ## `ai.stigmer.agentic.run.v1`
 
 | Method | Organization fields |

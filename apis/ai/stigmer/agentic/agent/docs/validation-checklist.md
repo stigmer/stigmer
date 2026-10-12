@@ -133,7 +133,7 @@ spec:
   tools: [Read, mcp__plugin_github_github__search_code]
 ```
 
-### Writing sub-agents inside an agent
+### Writing subagents inside an agent
 
 The `sub_agents` field is gone, and apply refuses a manifest that uses it. Save each one as an Agent and list it.
 

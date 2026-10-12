@@ -259,12 +259,13 @@ export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentM
     (sa) => inScope.has(sa.name) && (sa.tools.length > 0 || sa.disallowedTools.length > 0),
   );
   if (narrowed.length > 0) {
-    const names = narrowed.map((sa) => `"${sa.name}"`).join(", ");
+    const names = narrowed.map((sa) => `'${sa.name}'`).join(", ");
+    const one = narrowed.length === 1;
     throw new CursorToolListRefusal(
-      `Sub-agent ${names} ${narrowed.length === 1 ? "carries its" : "carry their"} own tool lists ` +
+      `${one ? "Subagent" : "Subagents"} ${names} ${one ? "carries its" : "carry their"} own tool lists ` +
         "(tools / disallowed_tools), which the Cursor engine cannot enforce: it cannot tell a " +
-        "sub-agent's tool call from the main agent's. Run this agent on the native engine, or " +
-        "remove the sub-agent's lists.",
+        "subagent's tool call from the main agent's. Run this agent on the native engine, or " +
+        `remove the ${one ? "subagent's" : "subagents'"} lists.`,
     );
   }
   if (!scope.restricted) return;
@@ -287,7 +288,7 @@ export function checkToolScope(input: TurnInput, mode: { agentMode: CursorAgentM
       .join("; ");
     throw new CursorToolListRefusal(
       `${named}, which the Cursor engine cannot enforce: ` +
-        "it cannot limit which sub-agents an agent starts. Run this agent on the native engine, or list Agent without types.",
+        "it cannot limit which subagents an agent starts. Run this agent on the native engine, or list Agent without types.",
     );
   }
   checkMainToolListResolution(scope, cursorToolInventory(input.mcp.servers, input.mcp.platformServerSlugs, input.mcp.listing), (line) =>

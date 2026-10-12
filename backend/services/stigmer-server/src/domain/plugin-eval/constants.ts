@@ -9,9 +9,11 @@
 
 /**
  * The reserved label on a try's session and run, and on each vote of an
- * AI-graded check: `stigmer.ai/plugin-eval = <eval id>`. Stamped only by
- * the eval's workflow through server-composed requests; the guard refuses
- * it from clients (pipeline/steps/guard-reserved-labels.ts).
+ * AI-graded check: `stigmer.ai/plugin-eval = <eval id>`, the id of the eval
+ * that ran the case, a plugin eval's or an agent eval's (every agent eval
+ * try runs a plugin's eval case; plugin-eval-run.ts evalOfRun reads which).
+ * Stamped only by the eval's workflow through server-composed requests;
+ * the guard refuses it from clients (pipeline/steps/guard-reserved-labels.ts).
  */
 export const PLUGIN_EVAL_LABEL = "stigmer.ai/plugin-eval";
 

@@ -104,7 +104,7 @@ import { newResourceIdentityAccountStore } from "../domain/identityaccount/resou
 import type { AccountsByCaller } from "../domain/identityaccount/resolve.js";
 import { registerIamPolicyServices } from "../domain/iampolicy/controller.js";
 import { newIamPolicyGrantPath } from "../domain/iampolicy/grant-path.js";
-import { asFetch, guardedFetch, nodeLookup } from "@stigmer/outbound/egress";
+import { nodeGuardedFetch } from "@stigmer/outbound/dial";
 import { isReleaseVersion } from "@stigmer/plugin-package/client";
 import { temporalConnectionEnv } from "@stigmer/temporal-codecs";
 import { newOrganizationOnlyGrantScope } from "../domain/iampolicy/grant-scope.js";
@@ -137,6 +137,8 @@ import { registerMemoryServices } from "../domain/memory/controller.js";
 import { newRunScoreCascade } from "../domain/score/cascade.js";
 import { registerEvaluatorServices } from "../domain/evaluator/controller.js";
 import { registerPluginEvalServices } from "../domain/plugin-eval/controller.js";
+import { registerAgentEvalServices } from "../domain/agent-eval/controller.js";
+import { RUN_AGENT_EVAL_WORKFLOW_TYPE, runAgentEvalWorkflowId } from "../temporal/evals/names.js";
 import { newPluginArchiveReader } from "../domain/plugin-eval/suite.js";
 import { newTemporalPluginEvalWorkflows } from "../domain/plugin-eval/workflows.js";
 import { registerScoreServices } from "../domain/score/controller.js";
@@ -1118,6 +1120,13 @@ export async function composeServer(
   });
   /* v8 ignore next -- @preserve: called only by an eval's delete, after boot */
   const pluginEvalTrySessions = () => requireInProcess().judgeSessionDeleter;
+  // Agent evals run the same suite workflow under their own type and id,
+  // on the same queue and worker.
+  const agentEvalWorkflows = newTemporalPluginEvalWorkflows({
+    client: () => temporalManager.getClient(),
+    taskQueue: evalsTemporalConfig.stigmerQueue,
+    workflow: { type: RUN_AGENT_EVAL_WORKFLOW_TYPE, idOf: runAgentEvalWorkflowId },
+  });
   const scheduleSyncer = new ScheduleSyncer(
     scheduleClientProvider,
     store,
@@ -1539,11 +1548,13 @@ export async function composeServer(
   // probed at save time, and every login server a sign-in, a renewal or a
   // Connect link reaches. Every hop is judged under the edition's egress policy
   // (`drivers.outboundEgress`; the default is open source's relaxed
-  // posture, installed at this `??` site like the permissive Authorizer).
+  // posture, installed at this `??` site like the permissive Authorizer),
+  // and every socket opens to an address that policy judged, so a name
+  // cannot answer one address to the check and another to the connect.
   // `options.fetchImpl` is the test seam under the guard.
-  const outboundFetch = guardedFetch(
+  const outboundFetch = nodeGuardedFetch(
     extensions.drivers.outboundEgress ?? relaxedEgressPolicy(),
-    { fetchImpl: options.fetchImpl ?? fetch, lookup: nodeLookup() },
+    { fetchImpl: options.fetchImpl },
   );
   // The run's credential resolver (domain/vault/resolve.ts): the one rule
   // for which login or secret fills each key, used by run create and
@@ -1602,6 +1613,7 @@ export async function composeServer(
     accountLifecycle: roleLifecycle,
     runScores,
     pluginEvalWorkflows,
+    agentEvalWorkflows,
   });
   const purgeQuiesce = newQuiesceStage({
     store,
@@ -1824,6 +1836,12 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       modelRegistry: modelCatalog,
+      agentEvals: {
+        store,
+        logger,
+        authorizationLifecycle,
+        sessions: pluginEvalTrySessions,
+      },
     });
     registerSessionServices(router, {
       store,
@@ -1923,6 +1941,16 @@ export async function composeServer(
       modelCatalog,
       suites: newPluginArchiveReader({ store, archives: pluginArtifactStorage }),
       workflows: pluginEvalWorkflows,
+      sessions: pluginEvalTrySessions,
+    });
+    registerAgentEvalServices(router, {
+      store,
+      logger,
+      authorizer,
+      authorizationLifecycle,
+      modelCatalog,
+      suites: newPluginArchiveReader({ store, archives: pluginArtifactStorage }),
+      workflows: agentEvalWorkflows,
       sessions: pluginEvalTrySessions,
     });
     registerAgentExecutionServices(router, {
