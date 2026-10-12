@@ -242,8 +242,8 @@
       "slug": "resource-detail",
       "title": "Resource Detail",
       "description": "Hooks and components for resource detail views, header chrome, and tab navigation.",
-      "hooks": 3,
-      "components": 4
+      "hooks": 4,
+      "components": 6
     },
     {
       "slug": "resource-workbench",

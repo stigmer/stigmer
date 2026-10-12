@@ -64,6 +64,7 @@ OAuthApp oAuthApp = client.oauthapps().get("oapp_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`create`](#create) | Create an OAuth app. |
 | [`update`](#update) | Update an existing OAuth app. |
 | [`delete`](#delete) | Delete an OAuth app. |
+| [`rename`](#rename) | Rename an OAuth app: change its slug, the name people type. |
 
 ### get
 
@@ -204,6 +205,10 @@ Create or update an OAuth app.
 
 If the resource does not exist, creates a new OAuth app. If the resource exists, updates the existing OAuth app.
 
+A request that carries metadata.id of an OAuth app in its organization updates that OAuth app, and its slug changes only through rename. A slug the OAuth app was renamed away from, named without the OAuth app's id, is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a write by a name that stops resolving after 30 days would later make a second OAuth app:
+
+- SLUG_RENAMED — the slug was renamed: it still leads to the same OAuth app for reading, but a write names its current slug. Metadata: slug (the one the request named).
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -305,6 +310,10 @@ Create an OAuth app.
 
 The creator's organization owns the OAuth app, and the organization's current admins manage it.
 
+A slug another OAuth app of the organization holds is refused with ALREADY_EXISTS. A slug another OAuth app was renamed away from, which still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- SLUG_RESERVED — another OAuth app held the slug until a recent rename, and it still leads there. Metadata: slug.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -403,6 +412,8 @@ OAuthApp oAuthApp = client.oauthapps().create(OAuthAppInput.builder()
 ### update
 
 Update an existing OAuth app.
+
+The slug changes only through rename. An update that names the OAuth app by a slug it was renamed away from, without its id, is refused with SLUG_RENAMED (see apply).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -542,6 +553,53 @@ OAuthApp oAuthApp = client.oauthapps().delete(DeleteResourceInput.builder()
 
 **Returns**: [`OAuthApp`](#oauthapp)
 
+### rename
+
+Rename an OAuth app: change its slug, the name people type.
+
+The OAuth app keeps its id, so everything that names it keeps working, and every answer names it by the new slug. The old slug keeps leading to the OAuth app for reading for 30 days, during which no other OAuth app of the organization can take it and this one can take it back; then it is released. A write that names the old slug is refused with SLUG_RENAMED (see apply). A slug another OAuth app holds is refused with ALREADY_EXISTS, and one another OAuth app was recently renamed away from with SLUG_RESERVED (see create).
+
+Its addresses and its redirect URI do not name its slug, so sign-ins through it are unchanged.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const oAuthApp = await stigmer.oauthapp.rename({
+  resourceId: "...",
+  slug: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+oAuthApp, err := client.OAuthApp.Rename(ctx, &stigmer.RenameInput{
+  ResourceId: "...",
+  Slug:       "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+o_auth_app = client.oauthapps.rename(RenameInput(
+    resource_id="...",
+    slug="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+OAuthApp oAuthApp = client.oauthapps().rename(RenameInput.builder()
+    .resourceId("...")
+    .slug("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RenameInput`](#renameinput)
+
+**Returns**: [`OAuthApp`](#oauthapp)
+
 ## Types
 
 ### OAuthAppInput
@@ -566,6 +624,17 @@ Input for creating or updating an OAuth App.
     vendorApprovalDocsUrl: { type: "string", description: "Documentation URL explaining how users can bring their own OAuth app credentials or personal access tokens for this vendor while the platform's OAuth app is pending approval." },
     tokenEndpointAuthMethod: { type: "TokenEndpointAuthMethod", description: "How the client secret is presented to the vendor's token endpoint during authorization-code exchange and refresh.", typeDescriptionLink: "#tokenendpointauthmethod" },
     addresses: { type: "string[]", description: "The addresses this app signs in to: a tool's URL (Slack's MCP endpoint at mcp.slack.com/mcp, over https) or a Git host (github.com), normalized as a vault connection's address is." },
+  }}
+/>
+
+### RenameInput
+
+Input for renaming any API resource: changing its slug.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the resource being renamed.", required: true },
+    slug: { type: "string", description: "The new slug.", required: true },
   }}
 />
 

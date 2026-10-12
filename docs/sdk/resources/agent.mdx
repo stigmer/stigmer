@@ -80,6 +80,7 @@ Agent agent = client.agents().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`update`](#update) | Update an existing agent. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing agent. |
 | [`delete`](#delete) | Delete an agent. |
+| [`rename`](#rename) | Rename an agent: change its slug, the name people type. |
 | [`tagVersion`](#tagversion) | Assign or move a tag to a specific agent version. |
 
 ### get
@@ -276,6 +277,10 @@ ListAgentVersionsResponse listAgentVersionsResponse = client.agents().listVersio
 
 Create or update an agent.
 
+A request that carries metadata.id of an agent in its organization updates that agent, and its slug changes only through rename. A slug the agent was renamed away from, named without the agent's id, is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a write by a name that stops resolving after 30 days would later make a second agent:
+
+- SLUG_RENAMED — the slug was renamed: it still leads to the same agent for reading, but a write names its current slug. Metadata: slug (the one the request named).
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -375,6 +380,10 @@ Agent agent = client.agents().apply(AgentInput.builder()
 
 Create an agent.
 
+A slug another agent of the organization holds is refused with ALREADY_EXISTS. A slug another agent was renamed away from, which still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+- SLUG_RESERVED — another agent held the slug until a recent rename, and it still leads there. Metadata: slug.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -473,6 +482,8 @@ Agent agent = client.agents().create(AgentInput.builder()
 ### update
 
 Update an existing agent.
+
+The slug changes only through rename. An update that names the agent by a slug it was renamed away from, without its id, is refused with SLUG_RENAMED (see apply).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -653,6 +664,53 @@ Agent agent = client.agents().delete(id);
 
 **Returns**: [`Agent`](#agent)
 
+### rename
+
+Rename an agent: change its slug, the name people type.
+
+The agent keeps its id, so everything that names it keeps working, and every answer names it by the new slug. The old slug keeps leading to the agent for reading for 30 days, during which no other agent of the organization can take it and this one can take it back; then it is released. A write that names the old slug is refused with SLUG_RENAMED (see apply). A slug another agent holds is refused with ALREADY_EXISTS, and one another agent was recently renamed away from with SLUG_RESERVED (see create).
+
+Its schedules, channels, conversations and the agents that hand work to it name it by id; a parent agent's turns call it by its new slug.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const agent = await stigmer.agent.rename({
+  resourceId: "...",
+  slug: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.Rename(ctx, &stigmer.RenameInput{
+  ResourceId: "...",
+  Slug:       "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+agent = client.agents.rename(RenameInput(
+    resource_id="...",
+    slug="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Agent agent = client.agents().rename(RenameInput.builder()
+    .resourceId("...")
+    .slug("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RenameInput`](#renameinput)
+
+**Returns**: [`Agent`](#agent)
+
 ### tagVersion
 
 Assign or move a tag to a specific agent version.
@@ -826,6 +884,17 @@ Input for updating the visibility of any API resource.
   type={{
     resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
     visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
+  }}
+/>
+
+### RenameInput
+
+Input for renaming any API resource: changing its slug.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the resource being renamed.", required: true },
+    slug: { type: "string", description: "The new slug.", required: true },
   }}
 />
 
