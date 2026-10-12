@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
+import { cleanup, render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { clone, create } from "@bufbuild/protobuf";
 import {
   ChannelAppSchema,
   type ChannelApp,
@@ -116,5 +116,31 @@ describe("ChannelAppDetailPanel credentials and delete gates", () => {
     expect(
       await screen.findByRole("button", { name: "Delete channel app" }),
     ).toBeTruthy();
+  });
+});
+
+describe("ChannelAppDetailPanel rename", () => {
+  it("renames through the kind's rename for whoever may delete it, and hands the renamed resource to onUpdated", async () => {
+    const renamed = clone(ChannelAppSchema, SLACK_APP);
+    if (renamed.metadata !== undefined) {
+      renamed.metadata.slug = "renamed-slug";
+    }
+    const rename = vi.fn(async () => renamed);
+    const onUpdated = vi.fn();
+    const client = {
+      channelapp: { rename },
+      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <ChannelAppDetailPanel channelApp={SLACK_APP} onUpdated={onUpdated} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.change(await screen.findByLabelText("Slug"), { target: { value: "renamed-slug" } });
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed));
+    expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: SLACK_APP.metadata?.id, slug: "renamed-slug" })]);
   });
 });

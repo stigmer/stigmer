@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import {
   IdentityProviderSchema,
   type IdentityProvider,
@@ -178,5 +178,31 @@ describe("IdentityProviderDetailPanel SSO sign-in settings", () => {
     expect(input.isSsoProvider).toBe(true);
     expect(input.createAccountsOnSignIn).toBe(true);
     expect(input.signInRole).toBe(IamRole.viewer);
+  });
+});
+
+describe("IdentityProviderDetailPanel rename", () => {
+  it("renames through the kind's rename for whoever may delete it, and hands the renamed resource to onUpdated", async () => {
+    const renamed = clone(IdentityProviderSchema, IDP);
+    if (renamed.metadata !== undefined) {
+      renamed.metadata.slug = "renamed-slug";
+    }
+    const rename = vi.fn(async () => renamed);
+    const onUpdated = vi.fn();
+    const client = {
+      identityProvider: { rename },
+      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <IdentityProviderDetailPanel identityProvider={IDP} onUpdated={onUpdated} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.change(await screen.findByLabelText("Slug"), { target: { value: "renamed-slug" } });
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed));
+    expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: IDP.metadata?.id, slug: "renamed-slug" })]);
   });
 });

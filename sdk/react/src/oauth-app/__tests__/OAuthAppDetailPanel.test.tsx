@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import {
   OAuthAppSchema,
   type OAuthApp,
@@ -147,5 +147,31 @@ describe("OAuthAppDetailPanel edit and delete gates", () => {
       expect(screen.queryByRole("button", { name: "Edit" })).toBeNull(),
     );
     expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+  });
+});
+
+describe("OAuthAppDetailPanel rename", () => {
+  it("renames through the kind's rename for whoever may delete it, and hands the renamed resource to onUpdated", async () => {
+    const renamed = clone(OAuthAppSchema, APP);
+    if (renamed.metadata !== undefined) {
+      renamed.metadata.slug = "renamed-slug";
+    }
+    const rename = vi.fn(async () => renamed);
+    const onUpdated = vi.fn();
+    const client = {
+      oauthapp: { rename },
+      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <OAuthAppDetailPanel oauthApp={APP} onUpdated={onUpdated} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.change(await screen.findByLabelText("Slug"), { target: { value: "renamed-slug" } });
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed));
+    expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: APP.metadata?.id, slug: "renamed-slug" })]);
   });
 });

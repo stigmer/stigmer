@@ -257,3 +257,29 @@ describe("PlatformClientDetailPanel last use", () => {
     );
   });
 });
+
+describe("PlatformClientDetailPanel rename", () => {
+  it("renames through the kind's rename for whoever may delete it, and hands the renamed resource to onUpdated", async () => {
+    const renamed = clone(PlatformClientSchema, PLATFORM_CLIENT);
+    if (renamed.metadata !== undefined) {
+      renamed.metadata.slug = "renamed-slug";
+    }
+    const rename = vi.fn(async () => renamed);
+    const onUpdated = vi.fn();
+    const client = {
+      platformclient: { rename },
+      iamPolicy: { checkMyPermission: async () => ({ isAuthorized: true }) },
+    } as never;
+    render(
+      <StigmerContext.Provider value={client}>
+        <PlatformClientDetailPanel platformClient={PLATFORM_CLIENT} onUpdated={onUpdated} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.change(await screen.findByLabelText("Slug"), { target: { value: "renamed-slug" } });
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed));
+    expect(rename.mock.calls[0]).toEqual([expect.objectContaining({ resourceId: PLATFORM_CLIENT.metadata?.id, slug: "renamed-slug" })]);
+  });
+});
