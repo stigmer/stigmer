@@ -1,12 +1,15 @@
 // `stigmer agent eval <agent>[@version]` — run the eval cases of the
 // plugins an agent attaches, on the agent itself, and score them; and
-// `stigmer agent eval cancel <eval-id>` — stop one.
+// `stigmer agent eval cancel <eval-id>` — stop one; and `stigmer agent
+// quality <agent>` — how the agent's runs were graded, in total and per
+// version, or with `--flagged` the failed grades behind the numbers.
 //
 // `agent` is a group for the act of evaluating an agent, as `plugin` is for
 // evaluating a plugin, not a noun group for the kind: an agent is still
 // applied with `apply`, read with `get` and run with `run`. The eval itself
 // is an AgentEval read and deleted through the generic verbs (`get
-// agent-eval`, `delete agent-eval`).
+// agent-eval`, `delete agent-eval`). Reading how an agent is measured
+// belongs with evaluating it, so `quality` is in the group too.
 //
 // Each plugin's cases run at the version the agent attaches, one arm (the
 // agent as it is; no run without its plugins to compare against), k tries
@@ -24,7 +27,9 @@
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import type { AgentEvalFlags } from "../resources/agent-eval/options.js";
-import { globalOrg } from "./shared.js";
+import type { AgentQualityFlags } from "../resources/agent/quality.js";
+import type { OutputFlags } from "../output/index.js";
+import { globalOrg, readFormat } from "./shared.js";
 
 /** `agent eval`'s help after the options: the model and tools a try runs with, and the exit codes (`plugin eval`'s, and the CLI's 3 and 4). */
 const EVAL_HELP = `
@@ -49,7 +54,9 @@ function collect(value: string, previous: readonly string[] | undefined): string
 }
 
 export function registerAgent(program: Command): void {
-  const agent = program.command("agent").description("evaluate an agent with its plugins' evals/ test cases");
+  const agent = program
+    .command("agent")
+    .description("evaluate an agent with its plugins' evals/ test cases, and read how its runs are graded");
 
   const evalCommand = agent
     .command("eval")
@@ -93,6 +100,20 @@ export function registerAgent(program: Command): void {
     .command("cancel <eval-id>")
     .description("cancel a running agent eval; the tries that finished keep their results")
     .action((id: string) => runCancel(id));
+
+  agent
+    .command("quality")
+    .description(
+      "show how an agent's runs in your organization were graded (run health, the AI judge, people's thumbs), in total and per version",
+    )
+    .argument("<agent>", "the agent (name, org/name or id)")
+    .option("--days <n>", "days to count, ending today (UTC), 1 to 90 (default 30)")
+    .option("--flagged", "list the failed grades of the runs you can open, newest first, instead of the totals")
+    .option("--limit <n>", "with --flagged, the most failed grades to list (default 20; 0 lists them all)")
+    .option("-o, --output <format>", "output format: table, json, or yaml")
+    .action((target: string, options: AgentQualityFlags & OutputFlags, command: Command) =>
+      runQuality(target, options, command),
+    );
 }
 
 async function runAgentEvalCommand(target: string, flags: AgentEvalFlags, command: Command): Promise<void> {
@@ -115,6 +136,22 @@ async function runAgentEvalCommand(target: string, flags: AgentEvalFlags, comman
   if (code !== 0) {
     throw new CliExitError("", code);
   }
+}
+
+async function runQuality(target: string, flags: AgentQualityFlags & OutputFlags, command: Command): Promise<void> {
+  const [{ readAgentQualityOptions, showAgentQuality }, { connectBackend }] = await Promise.all([
+    import("../resources/agent/quality.js"),
+    import("../backend.js"),
+  ]);
+  const options = readAgentQualityOptions(flags, readFormat(flags));
+
+  const client = connectBackend();
+  ensureAuthenticated(client.config);
+  // The report is organization-scoped (the agent's runs within one
+  // organization), so the organization resolves as `usage agent`'s does:
+  // the global --org flag, else the active context.
+  const org = resolveOrganization(client.config, globalOrg(command));
+  process.stdout.write(await showAgentQuality(client.stigmer, org, target, options));
 }
 
 async function runCancel(id: string): Promise<void> {
