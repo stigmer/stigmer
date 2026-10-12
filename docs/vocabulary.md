@@ -1249,6 +1249,33 @@ verdict, or a plugin eval's checks on one try.
 
 ---
 
+#### Quality report
+
+How one Agent's live runs in one Organization were graded over the last 7 to 90
+days (runs, run-health, AI grading, thumbs), counted in total, per UTC day, and
+per Agent version. The top of the Agent's Quality tab.
+
+- **Capitalize**: Lower case in prose ("the Agent's quality report"); "Quality"
+  only as the tab's name.
+- **API surface**: not a resource. `ScoreQueryController.getAgentQualityReport`
+  and `listFlaggedByAgent` (proto: `agentic/score/v1/query.proto`). CLI:
+
+  ```bash
+  stigmer agent quality <agent>
+  stigmer agent quality <agent> --flagged
+  ```
+
+- **Key fields**: `total`, `days` and `versions`, each a summary of distinct
+  `runs` and one tally per metric and evaluator version (`passed`, `failed`,
+  `not_graded`, `pending`, and per criterion).
+- **Boundaries**: counts only, never a reason, a comment or an answer, so it
+  counts conversations its reader cannot open. The flagged list returns whole
+  scores and shows only runs the reader can open. Eval tries are not counted.
+- **Note**: two versions of the same checks or rubrics are never added together;
+  each is its own tally.
+
+---
+
 #### Evaluator
 
 AI grading switched on for one Agent: how many of its runs an AI judge grades,

@@ -3,8 +3,8 @@ title: Scores
 description:
   A Score records how good a finished run was. Learn about a person's thumbs on
   the final answer, the free run-health checks Stigmer runs on every completed
-  run, AI grading switched on per Agent, a plugin eval's checks on each try, and
-  who can see them.
+  run, AI grading switched on per Agent, a plugin eval's checks on each try, who
+  can see them, and how an Agent's Quality tab counts them over time.
 ---
 
 Reading a whole conversation is the only way to know whether an Agent did a good
@@ -133,12 +133,62 @@ Scores follow the run. Whoever can see the run sees all of its scores:
 - the reviewers of a channel conversation, such as an Agent connected to Slack.
 
 Nobody else does. An Organization's admins do not see the scores of a personal
-conversation, just as they do not see the conversation itself. The owner of the
-conversation can delete any score on it. Scores are deleted with their run, with
-the conversation, and with the Organization.
+conversation, just as they do not see the conversation itself. An Agent's
+quality report counts every run's scores without showing any of them (next
+section). The owner of the conversation can delete any score on it. Scores are
+deleted with their run, with the conversation, and with the Organization.
 
 The console shows scores to people working in it. Pages built for someone else's
 product, such as an embedded chat or a share link, show none.
+
+## How an Agent's runs are going
+
+An Agent's **Quality** tab opens with how its runs went over the last 7, 30 or
+90 days. For example, the `support-desk` Agent's tab says that over the last 30
+days 412 runs were graded, 97% passed the run-health checks, the AI judge passed
+`did-the-task` on 81% of the 120 runs it graded, and people gave 18 thumbs up
+and 5 down. Below the totals:
+
+- **A chart per measure**, day by day. A dot marks the day the Agent's version
+  changed. The line breaks where the judge's rubrics or the run-health checks
+  changed, because results from two versions of them are never added together.
+- **A table per Agent version**, with the same numbers and that version's latest
+  finished
+  [Agent eval](/docs/guides/plugins/test-an-agent-with-its-plugins-evals) beside
+  them, so you can see whether live runs got better after an instruction change.
+- **Flagged runs**: recent runs with a failed check, a failed judge verdict or a
+  thumbs down, each naming what failed and linking to the run.
+
+Every rate shows how many runs it counts, so a rate over three runs reads as
+three runs. A day is a UTC day, and a score counts on the day it was given: a
+thumbs given a day after the run counts on that later day. A report counts at
+most 50,000 scores: for an Agent busier than that, about 1,300 runs a day over
+30 days, pick a shorter window.
+
+What it counts and who sees it:
+
+- **Live runs of the Agent in your Organization.** A plugin eval's or an Agent
+  eval's tries are tests, not live runs, and are left out. Runs of the same
+  Agent in another Organization are counted only there.
+- **Everyone's runs**, including conversations you cannot open, as counts only.
+  The report never shows a word anyone typed: no reasons, no comments, no
+  answers.
+- **Anyone who can see both the Organization and the Agent** can read it.
+- **The flagged list shows only runs you can open**, the same rule as every
+  score.
+
+The grading settings follow the report on the same tab. From the CLI:
+
+```bash
+# The last 30 days of an Agent's runs, in total and per version
+stigmer agent quality support-desk
+
+# The last 7 days, as JSON for a script
+stigmer agent quality support-desk --days 7 -o json
+
+# The flagged runs you can open
+stigmer agent quality support-desk --flagged
+```
 
 ## Reading scores from the CLI
 
@@ -165,4 +215,6 @@ stigmer get plugin-eval pev_01abc123
 - [Sessions](/docs/concepts/sessions): the conversation a run belongs to.
 - [Test a plugin with evals](/docs/guides/plugins/test-a-plugin-with-evals): run
   a plugin's own test cases and read their scores.
+- [`stigmer agent`](/docs/cli/commands/agent): evaluate an Agent and read how
+  its runs are going.
 - [`stigmer runs`](/docs/cli/commands/runs): the commands that inspect a run.

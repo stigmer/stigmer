@@ -77,6 +77,7 @@ import {
   SCORE_COMMENT_HUMAN_ONLY_MESSAGE,
   SCORE_CRITERIA_NOT_HUMAN_MESSAGE,
   SCORE_CREATE_DENIED_MESSAGE,
+  SCORE_EVALUATOR_VERSION_NOT_HUMAN_MESSAGE,
   SCORE_JUDGE_MODEL_JUDGE_ONLY_MESSAGE,
   SCORE_METRIC_SOURCE_MISMATCH_MESSAGE,
   SCORE_UPDATE_FIELDS_MESSAGE,
@@ -88,6 +89,7 @@ import {
   runNotCompletedMessage,
   scoreOrgMismatchMessage,
 } from "./constants.js";
+import { PLUGIN_EVAL_LABEL } from "../plugin-eval/constants.js";
 import { isTerminalExecutionPhase } from "../run/phases.js";
 import { sessionIdOf } from "../run/target.js";
 import { listRunScores, listSessionScores } from "./queries.js";
@@ -267,7 +269,8 @@ function scoredRunOf(ctx: RequestContext<typeof ScoreSchema>): Run {
  *  3. The metric must agree with the source (SOURCE_METRICS): `feedback`
  *     from a person, `run-health` from the checks, `judge` from the AI
  *     judge, `eval` from a plugin eval. A comment is a person's only, a judge model a judge's only,
- *     and a person's feedback always carries thumbs and never criteria.
+ *     and a person's feedback always carries thumbs and never criteria or
+ *     an evaluator version (an agent's quality report tallies per version).
  *  4. spec.session_id is the run's, whatever the request carried.
  *  5. The id is minted here so an unnamed score is named by its id.
  *  6. A not-graded reason, or a pending state, carried by the server's
@@ -325,6 +328,9 @@ export function newResolveScoreDefaultsStep(): PipelineStep<
       }
       if (human && spec.criteria.length > 0) {
         throw invalidArgumentError(SCORE_CRITERIA_NOT_HUMAN_MESSAGE);
+      }
+      if (human && spec.evaluatorVersion !== "") {
+        throw invalidArgumentError(SCORE_EVALUATOR_VERSION_NOT_HUMAN_MESSAGE);
       }
 
       spec.sessionId = sessionIdOf(run.spec);
@@ -431,6 +437,40 @@ export function newCheckScoreUniqueStep(
 /** The creator stamp of a stored score. */
 function creatorOf(score: Score): string {
   return score.status?.audit?.specAudit?.createdBy?.id ?? "";
+}
+
+/**
+ * StampScoredRun: copies onto the score what its run says it ran: the
+ * agent and the agent version (status.agent_id and
+ * status.agent_version_hash, empty for the built-in assistant), and the
+ * reserved plugin eval label when the run is an eval's try. The score list
+ * index keys an agent's scores and leaves tries out by these facts, so an
+ * agent's quality report never reads a run.
+ *
+ * Runs after GuardReservedLabels, as the agent share's StampAgentPin does:
+ * the label is the server's, never the caller's, and a person's thumbs on
+ * a try (allowed: create asks only can_view on the run) is labelled rather
+ * than refused for introducing it. After BuildNewState, whose status wipe
+ * would otherwise undo the stamp; InitializeScoreState, which follows,
+ * keeps an existing status. An update keeps both: BuildUpdateState keeps
+ * the stored status, and ValidateScoreUpdate keeps the labels.
+ */
+export function newStampScoredRunStep(): PipelineStep<typeof ScoreSchema> {
+  return {
+    name: "StampScoredRun",
+    execute(ctx: RequestContext<typeof ScoreSchema>): void {
+      const run = scoredRunOf(ctx);
+      const score = ctx.newState;
+      const status = score.status ?? create(ScoreStatusSchema, {});
+      status.agentId = run.status?.agentId ?? "";
+      status.agentVersionHash = run.status?.agentVersionHash ?? "";
+      score.status = status;
+      const evalLabel = run.metadata?.labels[PLUGIN_EVAL_LABEL];
+      if (evalLabel !== undefined && score.metadata !== undefined) {
+        score.metadata.labels[PLUGIN_EVAL_LABEL] = evalLabel;
+      }
+    },
+  };
 }
 
 /**

@@ -19,7 +19,10 @@
 //   - deleting a run removes its scores, and deleting a session removes its
 //     runs' scores;
 //   - under an enforcing authorizer, a member who cannot see a colleague's
-//     run can neither rate it nor read its scores.
+//     run can neither rate it nor read its scores;
+//   - an agent's quality report counts every person's runs of the agent in
+//     the organization, and each person's flagged list holds only the runs
+//     they can open.
 import { Code } from "@connectrpc/connect";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -372,5 +375,60 @@ describe("Run scores", () => {
       Code.PermissionDenied,
       "a member reading a colleague's rating",
     );
+  });
+  it("[rpc:ScoreQueryController.getAgentQualityReport] [rpc:ScoreQueryController.listFlaggedByAgent] an agent's quality counts everyone's runs and flags only the reader's own", async (ctx) => {
+    // A member's own run needs a runner that acts as each run's creator;
+    // the cloud targets' embedded runner acts as the primary user, so
+    // there the composition's own local-stack proof stands in.
+    if (!target.capabilities.runnerActsAsRunCreator) {
+      return ctx.skip("the target's runner does not act as each run's creator");
+    }
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const laneMock = lane.llmProxy?.() ?? mock;
+    const tenancy = await lane.provisionTenancy();
+    fixtures.defer(() => lane.cleanupTenancy(tenancy));
+    await target.keyTenancy?.(tenancy.org);
+    const member = await lane.provisionMember(tenancy);
+
+    const agent = await lane.clients.agentCommand.create(
+      makeAgent({ org: tenancy.org, name: uniqueName("agent-quality-lane") }),
+    );
+    fixtures.defer(() => lane.clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const agentId = agent.metadata!.id;
+
+    const runAs = async (who: ConformanceClients, text: string): Promise<Run> => {
+      laneMock.enqueue(anthropicText(text));
+      const created = await who.agentExecutionCommand.create(
+        makeAgentExecution({
+          org: tenancy.org,
+          name: uniqueName("run-quality-lane"),
+          agentRef: agentRefOf(agent),
+          autoApproveAll: true,
+        }),
+      );
+      const run = await awaitTerminal(who, created.metadata!.id);
+      expectCompleted(run);
+      await awaitRunHealth(who, run.metadata!.id);
+      return run;
+    };
+    const foundersRun = await runAs(lane.clients, "The founder's answer.");
+    const membersRun = await runAs(member, "The member's answer.");
+    await member.scoreCommand.create(makeFeedback(tenancy.org, membersRun.metadata!.id, false));
+
+    const report = await lane.clients.scoreQuery.getAgentQualityReport({ org: tenancy.org, agentId });
+    expect(report.total?.runs).toBe(2);
+    const thumbs = report.total?.metrics.find((m) => m.metric === FEEDBACK);
+    expect([thumbs?.passed, thumbs?.failed]).toEqual([0, 1]);
+    const health = report.total?.metrics.find((m) => m.metric === RUN_HEALTH);
+    expect((health?.passed ?? 0) + (health?.failed ?? 0)).toBe(2);
+    expect(JSON.stringify(report)).not.toContain(TYPED_TEXT);
+
+    const founders = await lane.clients.scoreQuery.listFlaggedByAgent({ org: tenancy.org, agentId });
+    expect(founders.items.map((s) => s.spec?.runId)).not.toContain(membersRun.metadata!.id);
+    const members = await member.scoreQuery.listFlaggedByAgent({ org: tenancy.org, agentId });
+    expect(members.items.map((s) => s.spec?.runId)).toContain(membersRun.metadata!.id);
+    expect(members.items.map((s) => s.spec?.runId)).not.toContain(foundersRun.metadata!.id);
   });
 });

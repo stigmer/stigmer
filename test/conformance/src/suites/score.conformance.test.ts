@@ -13,12 +13,20 @@
 //     own `get` does;
 //   - a score id nothing holds answers NOT_FOUND on get, update and delete;
 //   - under an enforcing authorizer an outsider naming a run gets the same
-//     NOT_FOUND the run's `get` gives them, and reads no list.
+//     NOT_FOUND the run's `get` gives them, and reads no list;
+//   - an agent's quality report over no runs is a complete zero shape and
+//     its flagged list is empty; an empty agent id and a window past 90 days
+//     are refused; under an enforcing authorizer an outsider reads neither
+//     for an organization they are not in, and a member reads neither for
+//     an agent they cannot view.
 import { Code } from "@connectrpc/connect";
 import { ScoreSource } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
+import { makeAgent } from "../support/agents";
+import { uniqueName } from "../support/naming";
 import {
   CHECK_SOURCE_REFUSED_MESSAGE,
   FEEDBACK,
@@ -145,5 +153,93 @@ describe("Score conformance (no finished run)", () => {
       "an outsider rating a missing run",
     );
     await lane.cleanupTenancy(tenancy);
+  });
+  it("[rpc:ScoreQueryController.getAgentQualityReport] [rpc:ScoreQueryController.listFlaggedByAgent] an agent with no graded runs reports a zero shape and lists nothing", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent-quality") }));
+    const agentId = agent.metadata!.id;
+    try {
+      const report = await clients.scoreQuery.getAgentQualityReport({ org, agentId });
+      expect(report.fromDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(report.toDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(report.total?.runs ?? 0).toBe(0);
+      expect(report.total?.metrics ?? []).toEqual([]);
+      expect(report.days).toEqual([]);
+      expect(report.versions).toEqual([]);
+      const week = await clients.scoreQuery.getAgentQualityReport({ org, agentId, days: 7 });
+      expect(Date.parse(week.toDate) - Date.parse(week.fromDate)).toBe(6 * 86_400_000);
+      const flagged = await clients.scoreQuery.listFlaggedByAgent({ org, agentId });
+      expect(flagged.items).toEqual([]);
+      expect(flagged.nextPageToken).toBe("");
+    } finally {
+      await clients.agentCommand.delete({ value: agentId });
+    }
+  });
+
+  it("[rpc:ScoreQueryController.getAgentQualityReport] [rpc:ScoreQueryController.listFlaggedByAgent] an empty agent id and a window past 90 days are refused", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectGrpcCode(
+      () => clients.scoreQuery.getAgentQualityReport({ org, agentId: "" }),
+      Code.InvalidArgument,
+      "a quality report naming no agent",
+    );
+    await expectGrpcCode(
+      () => clients.scoreQuery.getAgentQualityReport({ org, agentId: "agt_01conformancemissing", days: 91 }),
+      Code.InvalidArgument,
+      "a quality report over 91 days",
+    );
+    await expectGrpcCode(
+      () => clients.scoreQuery.listFlaggedByAgent({ org, agentId: "" }),
+      Code.InvalidArgument,
+      "a flagged list naming no agent",
+    );
+  });
+
+  it("[rpc:ScoreQueryController.getAgentQualityReport] [rpc:ScoreQueryController.listFlaggedByAgent] an outsider reads no organization's agent quality, and a member none of an agent they cannot view", async (ctx) => {
+    const enforcing = await enforcingLaneOf(target);
+    if (enforcing.lane === undefined) return ctx.skip(enforcing.reason);
+    const lane = enforcing.lane;
+    const tenancy = await lane.provisionTenancy();
+    try {
+      const shared = await lane.clients.agentCommand.create(
+        makeAgent({ org: tenancy.org, name: uniqueName("agent-quality-shared") }),
+      );
+      const privateDraft = makeAgent({ org: tenancy.org, name: uniqueName("agent-quality-private") });
+      const hidden = await lane.clients.agentCommand.create({
+        ...privateDraft,
+        metadata: { ...privateDraft.metadata, visibility: ApiResourceVisibility.visibility_private },
+      });
+
+      const outsider = await lane.provisionIdentity();
+      await expectGrpcCode(
+        () => outsider.scoreQuery.getAgentQualityReport({ org: tenancy.org, agentId: shared.metadata!.id }),
+        Code.PermissionDenied,
+        "an outsider reading an organization's agent quality",
+      );
+      await expectGrpcCode(
+        () => outsider.scoreQuery.listFlaggedByAgent({ org: tenancy.org, agentId: shared.metadata!.id }),
+        Code.PermissionDenied,
+        "an outsider listing an organization's flagged scores",
+      );
+
+      const member = await lane.provisionMember(tenancy);
+      const visible = await member.scoreQuery.getAgentQualityReport({
+        org: tenancy.org,
+        agentId: shared.metadata!.id,
+      });
+      expect(visible.total?.runs ?? 0).toBe(0);
+      await expectGrpcCode(
+        () => member.scoreQuery.getAgentQualityReport({ org: tenancy.org, agentId: hidden.metadata!.id }),
+        Code.PermissionDenied,
+        "a member reading the quality of an agent they cannot view",
+      );
+      await expectGrpcCode(
+        () => member.scoreQuery.listFlaggedByAgent({ org: tenancy.org, agentId: hidden.metadata!.id }),
+        Code.PermissionDenied,
+        "a member listing the flagged scores of an agent they cannot view",
+      );
+    } finally {
+      await lane.cleanupTenancy(tenancy);
+    }
   });
 });

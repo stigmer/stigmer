@@ -26,7 +26,7 @@ from ai.stigmer.agentic.score.v1 import enum_pb2 as ai_dot_stigmer_dot_agentic_d
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/score/v1/status.proto\x12\x1b\x61i.stigmer.agentic.score.v1\x1a&ai/stigmer/agentic/score/v1/enum.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\xc0\x01\n\x0bScoreStatus\x12=\n\x05state\x18\x01 \x01(\x0e\x32\'.ai.stigmer.agentic.score.v1.ScoreStateR\x05state\x12*\n\x11not_graded_reason\x18\x02 \x01(\tR\x0fnotGradedReason\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61uditB\xbf\x01\n\x1f\x63om.ai.stigmer.agentic.score.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Score.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Score\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Score::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/score/v1/status.proto\x12\x1b\x61i.stigmer.agentic.score.v1\x1a&ai/stigmer/agentic/score/v1/enum.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\x89\x02\n\x0bScoreStatus\x12=\n\x05state\x18\x01 \x01(\x0e\x32\'.ai.stigmer.agentic.score.v1.ScoreStateR\x05state\x12*\n\x11not_graded_reason\x18\x02 \x01(\tR\x0fnotGradedReason\x12\x19\n\x08\x61gent_id\x18\x03 \x01(\tR\x07\x61gentId\x12,\n\x12\x61gent_version_hash\x18\x04 \x01(\tR\x10\x61gentVersionHash\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61uditB\xbf\x01\n\x1f\x63om.ai.stigmer.agentic.score.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Score.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Score\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Score::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,5 +35,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\037com.ai.stigmer.agentic.score.v1B\013StatusProtoP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Score.V1\312\002\033Ai\\Stigmer\\Agentic\\Score\\V1\342\002\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Score::V1'
   _globals['_SCORESTATUS']._serialized_start=159
-  _globals['_SCORESTATUS']._serialized_end=351
+  _globals['_SCORESTATUS']._serialized_end=424
 # @@protoc_insertion_point(module_scope)

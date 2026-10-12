@@ -108,6 +108,68 @@ public final class ScoreQueryControllerGrpc {
     return getListBySessionMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest,
+      ai.stigmer.agentic.score.v1.AgentQualityReport> getGetAgentQualityReportMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getAgentQualityReport",
+      requestType = ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest.class,
+      responseType = ai.stigmer.agentic.score.v1.AgentQualityReport.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest,
+      ai.stigmer.agentic.score.v1.AgentQualityReport> getGetAgentQualityReportMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest, ai.stigmer.agentic.score.v1.AgentQualityReport> getGetAgentQualityReportMethod;
+    if ((getGetAgentQualityReportMethod = ScoreQueryControllerGrpc.getGetAgentQualityReportMethod) == null) {
+      synchronized (ScoreQueryControllerGrpc.class) {
+        if ((getGetAgentQualityReportMethod = ScoreQueryControllerGrpc.getGetAgentQualityReportMethod) == null) {
+          ScoreQueryControllerGrpc.getGetAgentQualityReportMethod = getGetAgentQualityReportMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest, ai.stigmer.agentic.score.v1.AgentQualityReport>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getAgentQualityReport"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.score.v1.AgentQualityReport.getDefaultInstance()))
+              .setSchemaDescriptor(new ScoreQueryControllerMethodDescriptorSupplier("getAgentQualityReport"))
+              .build();
+        }
+      }
+    }
+    return getGetAgentQualityReportMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest,
+      ai.stigmer.agentic.score.v1.ScoreList> getListFlaggedByAgentMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listFlaggedByAgent",
+      requestType = ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest.class,
+      responseType = ai.stigmer.agentic.score.v1.ScoreList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest,
+      ai.stigmer.agentic.score.v1.ScoreList> getListFlaggedByAgentMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest, ai.stigmer.agentic.score.v1.ScoreList> getListFlaggedByAgentMethod;
+    if ((getListFlaggedByAgentMethod = ScoreQueryControllerGrpc.getListFlaggedByAgentMethod) == null) {
+      synchronized (ScoreQueryControllerGrpc.class) {
+        if ((getListFlaggedByAgentMethod = ScoreQueryControllerGrpc.getListFlaggedByAgentMethod) == null) {
+          ScoreQueryControllerGrpc.getListFlaggedByAgentMethod = getListFlaggedByAgentMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest, ai.stigmer.agentic.score.v1.ScoreList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listFlaggedByAgent"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.score.v1.ScoreList.getDefaultInstance()))
+              .setSchemaDescriptor(new ScoreQueryControllerMethodDescriptorSupplier("listFlaggedByAgent"))
+              .build();
+        }
+      }
+    }
+    return getListFlaggedByAgentMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -203,6 +265,33 @@ public final class ScoreQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.score.v1.ScoreList> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListBySessionMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Get how one agent's runs in an organization went: grades counted in
+     * total, per day and per agent version.
+     * Counts every run of the agent in the organization, including runs the
+     * caller cannot open, and returns no text from any of them. Requires
+     * can_view on the organization named in org and on the agent.
+     * </pre>
+     */
+    default void getAgentQualityReport(ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.score.v1.AgentQualityReport> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetAgentQualityReportMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List the failed grades of one agent's runs in an organization, newest
+     * first: a failed health check, a failed judge verdict or a thumbs down.
+     * Lists only the runs the caller can open. Requires can_view on the
+     * organization named in org and on the agent.
+     * </pre>
+     */
+    default void listFlaggedByAgent(ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.score.v1.ScoreList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListFlaggedByAgentMethod(), responseObserver);
+    }
   }
 
   /**
@@ -270,6 +359,35 @@ public final class ScoreQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getListBySessionMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Get how one agent's runs in an organization went: grades counted in
+     * total, per day and per agent version.
+     * Counts every run of the agent in the organization, including runs the
+     * caller cannot open, and returns no text from any of them. Requires
+     * can_view on the organization named in org and on the agent.
+     * </pre>
+     */
+    public void getAgentQualityReport(ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.score.v1.AgentQualityReport> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetAgentQualityReportMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List the failed grades of one agent's runs in an organization, newest
+     * first: a failed health check, a failed judge verdict or a thumbs down.
+     * Lists only the runs the caller can open. Requires can_view on the
+     * organization named in org and on the agent.
+     * </pre>
+     */
+    public void listFlaggedByAgent(ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.score.v1.ScoreList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListFlaggedByAgentMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -320,6 +438,33 @@ public final class ScoreQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getListBySessionMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Get how one agent's runs in an organization went: grades counted in
+     * total, per day and per agent version.
+     * Counts every run of the agent in the organization, including runs the
+     * caller cannot open, and returns no text from any of them. Requires
+     * can_view on the organization named in org and on the agent.
+     * </pre>
+     */
+    public ai.stigmer.agentic.score.v1.AgentQualityReport getAgentQualityReport(ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetAgentQualityReportMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List the failed grades of one agent's runs in an organization, newest
+     * first: a failed health check, a failed judge verdict or a thumbs down.
+     * Lists only the runs the caller can open. Requires can_view on the
+     * organization named in org and on the agent.
+     * </pre>
+     */
+    public ai.stigmer.agentic.score.v1.ScoreList listFlaggedByAgent(ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListFlaggedByAgentMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -369,6 +514,33 @@ public final class ScoreQueryControllerGrpc {
     public ai.stigmer.agentic.score.v1.ScoreList listBySession(ai.stigmer.agentic.score.v1.ListScoresBySessionRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getListBySessionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get how one agent's runs in an organization went: grades counted in
+     * total, per day and per agent version.
+     * Counts every run of the agent in the organization, including runs the
+     * caller cannot open, and returns no text from any of them. Requires
+     * can_view on the organization named in org and on the agent.
+     * </pre>
+     */
+    public ai.stigmer.agentic.score.v1.AgentQualityReport getAgentQualityReport(ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetAgentQualityReportMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List the failed grades of one agent's runs in an organization, newest
+     * first: a failed health check, a failed judge verdict or a thumbs down.
+     * Lists only the runs the caller can open. Requires can_view on the
+     * organization named in org and on the agent.
+     * </pre>
+     */
+    public ai.stigmer.agentic.score.v1.ScoreList listFlaggedByAgent(ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListFlaggedByAgentMethod(), getCallOptions(), request);
     }
   }
 
@@ -423,11 +595,42 @@ public final class ScoreQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getListBySessionMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Get how one agent's runs in an organization went: grades counted in
+     * total, per day and per agent version.
+     * Counts every run of the agent in the organization, including runs the
+     * caller cannot open, and returns no text from any of them. Requires
+     * can_view on the organization named in org and on the agent.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.score.v1.AgentQualityReport> getAgentQualityReport(
+        ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetAgentQualityReportMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * List the failed grades of one agent's runs in an organization, newest
+     * first: a failed health check, a failed judge verdict or a thumbs down.
+     * Lists only the runs the caller can open. Requires can_view on the
+     * organization named in org and on the agent.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.score.v1.ScoreList> listFlaggedByAgent(
+        ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListFlaggedByAgentMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_LIST_BY_RUN = 1;
   private static final int METHODID_LIST_BY_SESSION = 2;
+  private static final int METHODID_GET_AGENT_QUALITY_REPORT = 3;
+  private static final int METHODID_LIST_FLAGGED_BY_AGENT = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -456,6 +659,14 @@ public final class ScoreQueryControllerGrpc {
           break;
         case METHODID_LIST_BY_SESSION:
           serviceImpl.listBySession((ai.stigmer.agentic.score.v1.ListScoresBySessionRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.score.v1.ScoreList>) responseObserver);
+          break;
+        case METHODID_GET_AGENT_QUALITY_REPORT:
+          serviceImpl.getAgentQualityReport((ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.score.v1.AgentQualityReport>) responseObserver);
+          break;
+        case METHODID_LIST_FLAGGED_BY_AGENT:
+          serviceImpl.listFlaggedByAgent((ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.score.v1.ScoreList>) responseObserver);
           break;
         default:
@@ -497,6 +708,20 @@ public final class ScoreQueryControllerGrpc {
               ai.stigmer.agentic.score.v1.ListScoresBySessionRequest,
               ai.stigmer.agentic.score.v1.ScoreList>(
                 service, METHODID_LIST_BY_SESSION)))
+        .addMethod(
+          getGetAgentQualityReportMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest,
+              ai.stigmer.agentic.score.v1.AgentQualityReport>(
+                service, METHODID_GET_AGENT_QUALITY_REPORT)))
+        .addMethod(
+          getListFlaggedByAgentMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest,
+              ai.stigmer.agentic.score.v1.ScoreList>(
+                service, METHODID_LIST_FLAGGED_BY_AGENT)))
         .build();
   }
 
@@ -548,6 +773,8 @@ public final class ScoreQueryControllerGrpc {
               .addMethod(getGetMethod())
               .addMethod(getListByRunMethod())
               .addMethod(getListBySessionMethod())
+              .addMethod(getGetAgentQualityReportMethod())
+              .addMethod(getListFlaggedByAgentMethod())
               .build();
         }
       }
