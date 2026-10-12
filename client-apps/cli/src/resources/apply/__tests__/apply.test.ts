@@ -25,7 +25,9 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { RenameInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import type { RenameInput, UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -329,6 +331,16 @@ describe("applyMessage on a write naming a renamed-away slug", () => {
     expect((err as ConnectError).rawMessage).toBe(SERVER_WORDS);
   });
 
+  it("gives the server's words when the read finds the slug the file names, or no slug", async () => {
+    for (const slug of ["reviewer", ""]) {
+      const { handler } = renamedAgentHandler(() => Promise.resolve(create(AgentSchema, { metadata: { id: "agent-1", slug, org: "acme" } })));
+
+      const err = await applyMessage(controller, handler, manifest(), "acme", false).catch((e: unknown) => e);
+
+      expect((err as ConnectError).rawMessage, `read answered '${slug}'`).toBe(SERVER_WORDS);
+    }
+  });
+
   it("leaves every other refusal as it is, reading nothing", async () => {
     const { handler, asked } = renamedAgentHandler(() => Promise.reject(new Error("must not be called")));
     const refusing: ApplyHandler = { ...handler, apply: () => Promise.reject(new ConnectError("the slug is taken", Code.AlreadyExists)) };
@@ -530,6 +542,27 @@ describe("the Organization apply handler", () => {
     expect(services).toEqual([OrganizationCommandController]);
     expect(renames).toEqual([input]);
     expect((renamed as { metadata?: { slug?: string } } | undefined)?.metadata?.slug).toBe("acme-corp");
+  });
+
+  it("reads an organization by reference through the Organization service's get, by its slug", async () => {
+    const handler = APPLY_HANDLERS.get(ApiResourceKind.organization);
+    const services: unknown[] = [];
+    const asked: string[] = [];
+    const recording = ((service: unknown) => {
+      services.push(service);
+      return {
+        get: ({ value }: { value: string }) => {
+          asked.push(value);
+          return Promise.resolve(organization("acme-corp"));
+        },
+      };
+    }) as unknown as ControllerFn;
+
+    const found = await handler?.getByReference?.(recording, create(ApiResourceReferenceSchema, { slug: "acme" }));
+
+    expect(services).toEqual([OrganizationQueryController]);
+    expect(asked).toEqual(["acme"]);
+    expect((found as { metadata?: { slug?: string } } | undefined)?.metadata?.slug).toBe("acme-corp");
   });
 });
 
