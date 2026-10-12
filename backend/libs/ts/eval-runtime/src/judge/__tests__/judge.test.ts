@@ -91,7 +91,7 @@ describe("readVerdict", () => {
 describe("rubrics", () => {
   it("pins the version every judge score carries", () => {
     expect(JUDGE_EVALUATOR_VERSION).toBe(
-      "e6b2728dfc4b352a7bc30bd450fe6112dd914ffe5cb15ac34c9ff0a2616872e7",
+      "6f72a46d287fb688930cd5b02c536bd0ddae7847aee1b9cfe1248bb7b135fa82",
     );
   });
 
