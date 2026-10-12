@@ -293,4 +293,35 @@ describe("interrupt's faults", () => {
     expect((await refusal(stop(d))).code).toBe(Code.FailedPrecondition);
     expect((await phaseOf("run_queued")).status?.phase).toBe(RunPhase.RUN_PENDING);
   });
+
+  it("a turn removed before the interrupt reaches it is left out; a fault re-reading it fails the interrupt", async () => {
+    await seedTurn("run_a", RunPhase.RUN_IN_PROGRESS);
+    await seedTurn("run_b", RunPhase.RUN_IN_PROGRESS);
+    const removed = await stop(
+      deps({
+        engine: {
+          cancelWorkflow: async (runId) => {
+            cancelled.push(runId);
+            await temp.store.deleteResource(ApiResourceKind.run, runId === "run_a" ? "run_b" : "run_a");
+          },
+        },
+      }),
+    );
+    expect(removed.stoppedRunIds).toHaveLength(1);
+
+    await seedTurn("run_c", RunPhase.RUN_PENDING);
+    let checks = 0;
+    let reads = 0;
+    const faultOnReread: InterruptDeps = {
+      ...deps(),
+      engineState: () => (++checks === 1 ? { connected: true, engine: stubConnectedEngine() } : ENGINE_DISCONNECTED),
+      store: faulty({
+        // The session, then the run's load, then the re-read after its refusal.
+        getResource: ((...args: Parameters<Store["getResource"]>) =>
+          ++reads === 3 ? Promise.reject(new Error("disk")) : temp.store.getResource(...args)) as Store["getResource"],
+      }),
+    };
+    expect((await refusal(stop(faultOnReread))).code).toBe(Code.Internal);
+  });
 });
+
