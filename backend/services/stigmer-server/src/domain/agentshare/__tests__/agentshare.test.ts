@@ -56,6 +56,7 @@ import {
   seedOrganizations,
 } from "../../organization/__tests__/support.js";
 import type { OrganizationIds } from "../../organization/__tests__/support.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -172,7 +173,7 @@ async function saveSkill(
     kind: "Skill",
     metadata: { id, name: slug, slug, org, visibility },
   });
-  await server.store.saveResource(
+  await namingSaves(server.store).saveResource(
     ApiResourceKind.skill,
     id,
     SkillSchema,
@@ -414,7 +415,7 @@ describe("launch-gate config", () => {
       ORG,
     );
     // The vault must exist when the share is written (the reference rule).
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.vault,
       "vlt_shared_credentials",
       VaultSchema,
@@ -466,7 +467,7 @@ describe("launch-gate config", () => {
 
   it("a My vault cannot be attached to a share", async () => {
     const agent = await createTestAgent(uniqueName("My Vault Share Agent"), ORG);
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.vault,
       "vlt_someones_own",
       VaultSchema,
@@ -611,7 +612,7 @@ describe("the same-organization invariant", () => {
       },
       status: { agentId: agent.metadata!.id },
     });
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.agent_share,
       legacy.metadata!.id,
       AgentShareSchema,
@@ -717,7 +718,7 @@ describe("getSharedProfile (anonymous lane)", () => {
         },
         status: { agentId: row.pin },
       });
-      await server.store.saveResource(
+      await namingSaves(server.store).saveResource(
         ApiResourceKind.agent_share,
         row.id,
         AgentShareSchema,
@@ -728,7 +729,7 @@ describe("getSharedProfile (anonymous lane)", () => {
       );
       expect(err.code, row.id).toBe(Code.NotFound);
       expect(err.rawMessage, row.id).toBe(`Agent not found: ${row.id}`);
-      await server.store.deleteResource(ApiResourceKind.agent_share, row.id);
+      await namingSaves(server.store).deleteResource(ApiResourceKind.agent_share, row.id);
     }
   });
 
@@ -764,7 +765,7 @@ describe("getSharedProfile (anonymous lane)", () => {
       org,
       OrganizationSchema,
     );
-    await server.store.deleteResource(ApiResourceKind.organization, org);
+    await namingSaves(server.store).deleteResource(ApiResourceKind.organization, org);
     try {
       const anonymous = await grpcError(() => query.getSharedProfile(ref));
       expect(anonymous.code).toBe(Code.NotFound);
@@ -777,7 +778,7 @@ describe("getSharedProfile (anonymous lane)", () => {
       expect(member.code).toBe(Code.NotFound);
       expect(member.rawMessage).toBe(anonymous.rawMessage);
     } finally {
-      await server.store.saveResource(
+      await namingSaves(server.store).saveResource(
         ApiResourceKind.organization,
         org,
         OrganizationSchema,
@@ -891,7 +892,7 @@ describe("audience and the member resolution lane", () => {
     );
     const created = await shares.create(shareFor(agent, true));
     created.spec!.audience = AgentShareAudience.unspecified;
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.agent_share,
       created.metadata!.id,
       AgentShareSchema,

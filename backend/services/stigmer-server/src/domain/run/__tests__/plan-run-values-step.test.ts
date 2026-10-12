@@ -75,6 +75,7 @@ import {
 } from "../plan-run-values-step.js";
 import { STORED_SESSION_KEY } from "../session-binding.js";
 import { applyUpdateStatusMerge } from "../update-status.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -119,7 +120,7 @@ async function savePlugin(
 
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "run-planner-test-"));
-  store = SqliteStore.open(path.join(dir, "stigmer.db"));
+  store = namingSaves(SqliteStore.open(path.join(dir, "stigmer.db")));
   await savePlugin("plg_linear", ORG, "linear", [httpServer("linear")]);
   await store.saveAudit(
     ApiResourceKind.plugin,
@@ -264,7 +265,7 @@ describe("the builder hands the resolver the run's whole picture", () => {
   it("fails the plan on a store fault reading a plugin the run lists, rather than running without it", async () => {
     const faulty = new Proxy(store, {
       get(target, prop, receiver) {
-        if (prop === "listResources") {
+        if (prop === "getResource") {
           return async () => {
             throw new Error("disk gone");
           };

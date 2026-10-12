@@ -103,10 +103,15 @@ import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import {
+  newReleaseNamesStep,
+  releaseNameOnFailure,
+} from "../../pipeline/steps/names.js";
+import {
   newRefuseServiceAccountCallerStep,
   refuseServiceAccountCaller,
 } from "../../pipeline/steps/refuse-service-account.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import type { Store } from "../../store/interface.js";
 import { ownerNamesOf } from "../apikey/queries.js";
 import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
 import { accountDisplayName } from "./actor.js";
@@ -148,13 +153,17 @@ import {
   newPersistNewAccountStep,
   newPersistUpdatedAccountStep,
   newPreserveBackendFieldsStep,
+  newClaimServiceAccountNameStep,
   newRenameServiceAccountStep,
+  revertServiceAccountRenameOnFailure,
 } from "./steps.js";
 import type { IdentityAccountStore } from "./store.js";
 
 /** What the create path needs — the subset every caller of it composes. */
 export interface CreateAccountPathDeps {
   readonly accounts: IdentityAccountStore;
+  /** The store whose name table holds service accounts' slugs (pipeline/steps/names.ts). */
+  readonly store: Store;
   readonly logger: Logger;
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
@@ -277,6 +286,7 @@ function serviceAccountDepsOf(
 ): ServiceAccountDeps {
   return {
     accounts: deps.accounts,
+    store: deps.store,
     logger: deps.logger,
     authorizer: deps.authorizer,
     authorizationLifecycle: deps.authorizationLifecycle,
@@ -343,6 +353,7 @@ async function runCreateChain(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newAssignBackendFieldsStep(provisioning))
+    .addStep(newClaimServiceAccountNameStep(deps.store, deps.accounts))
     .addStep(newPersistNewAccountStep(deps.accounts))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -351,7 +362,8 @@ async function runCreateChain(
       ),
     )
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
   return reqCtx.newState;
 }
 
@@ -450,10 +462,11 @@ async function update(
     .addStep(newGuardImmutableSubjectStep())
     .addStep(newBuildUpdateStateStep())
     .addStep(newPreserveBackendFieldsStep())
-    .addStep(newRenameServiceAccountStep(deps.accounts))
+    .addStep(newRenameServiceAccountStep(deps.store, deps.accounts))
     .addStep(newPersistUpdatedAccountStep(deps.accounts))
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(revertServiceAccountRenameOnFailure(deps.store, deps.logger, reqCtx));
   return reqCtx.newState;
 }
 
@@ -531,6 +544,13 @@ async function deleteAccount(
       },
     })
     .addStep(newDeleteAccountStep(deps.accounts))
+    .addStep(
+      newReleaseNamesStep<typeof IdentityAccountCommandController.method.delete.input>(
+        deps.store,
+        deps.logger,
+        ApiResourceKind.identity_account,
+      ),
+    )
     // The backstop the organization's delete keeps too: whatever a
     // concurrent write named the account with in between.
     .addStep(

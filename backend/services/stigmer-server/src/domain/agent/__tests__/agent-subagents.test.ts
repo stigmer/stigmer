@@ -86,6 +86,7 @@ import {
   subagentUnversionedMessage,
   subagentVersionNotFoundMessage,
 } from "../subagents.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -283,7 +284,7 @@ describe("saving an agent pins each subagent it lists", () => {
   it("refuses an agent saved before agents were versioned, naming it", async () => {
     const slug = uniqueName("legacy");
     const id = `agt_${slug.replace("-", "_")}`;
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.agent,
       id,
       AgentSchema,
@@ -665,10 +666,10 @@ describe("the two steps' own faults", () => {
   }
 
   /** The store with its listing failing, as a database fault would. */
-  function listingFails(): typeof server.store {
+  function readingFails(): typeof server.store {
     return new Proxy(server.store, {
       get(target, property, receiver) {
-        if (property === "listResources") {
+        if (property === "getResource") {
           return async () => {
             throw new Error("database offline");
           };
@@ -699,7 +700,7 @@ describe("the two steps' own faults", () => {
     const helper = await command.create(agentInput(uniqueName("unreadable")));
     const ctx = context([helper.metadata!.slug]);
     await newValidateReferencesStep<typeof AgentSchema>(server.store, admits).execute(ctx);
-    const error = await grpcError(pin(listingFails(), ctx));
+    const error = await grpcError(pin(readingFails(), ctx));
     expect(error.code).toBe(Code.Internal);
   });
 

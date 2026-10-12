@@ -42,6 +42,7 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
+import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 type AgentDesc = typeof AgentSchema;
 
 // ---------------------------------------------------------------------------
@@ -257,6 +258,7 @@ export function newCascadeDeleteSharesStep<Desc extends DescMessage>(
             `failed to cascade-delete share ${shareId} of agent ${agentOrg}/${agentSlug}`,
           );
         }
+        await releaseNamesOfDeleted(store, logger, ApiResourceKind.agent_share, agentOrg, shareId);
         await cleanUpDeletedResource(lifecycle, logger, {
           kind: ApiResourceKind.agent_share,
           resourceId: shareId,

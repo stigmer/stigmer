@@ -89,6 +89,7 @@ import {
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
+import { newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newDeleteSearchIndexStep } from "../../pipeline/steps/index-search.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
@@ -144,6 +145,7 @@ import {
   newProbeServerSignInsStep,
   newReadPluginPackageStep,
   newResolveConvergenceStep,
+  newClaimPluginNameStep,
   newStorePluginStep,
 } from "./push.js";
 import { pluginVersionBinding } from "./versions.js";
@@ -264,6 +266,7 @@ async function push(
     .addStep(newCheckAndStoreArtifactStep(deps.artifactStorage))
     .addStep(newPopulatePluginFieldsStep())
     .addStep(newArchiveCurrentPluginStep(deps.store, deps.logger))
+    .addStep(newClaimPluginNameStep(deps.store))
     .addStep(newStorePluginStep(deps.store, "StorePlugin"))
     .addStep(
       newPluginPushAuthorizationTuplesStep(
@@ -273,7 +276,8 @@ async function push(
     )
     .addStep(newIndexPluginSearchStep(deps.store, deps.logger))
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
   return reqCtx.get(PLUGIN_KEY) as Plugin;
 }
 
@@ -475,6 +479,7 @@ async function deletePlugin(
       }),
     )
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.plugin))
     .addStep(newSweepPluginEvalsAfterDeleteStep<DeleteDesc>(deps.pluginEvals))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),

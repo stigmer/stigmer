@@ -11,6 +11,8 @@
  * a session with no agent and the runner resolves an agent-less blueprint.
  * Nothing here resolves a stored default agent into that shape.
  */
+import { randomBytes } from "node:crypto";
+
 import { create } from "@bufbuild/protobuf";
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -140,6 +142,11 @@ export function buildAutoCreateSessionSpec(
   return spec;
 }
 
+/** The name an auto-created session takes: the millisecond stamp, then 8 random hex digits. */
+export function autoCreatedSessionName(): string {
+  return `session-${Date.now()}-${randomBytes(4).toString("hex")}`;
+}
+
 /**
  * Auto-creates the session when session_id is absent: forwards the
  * caller's session_spec (its agent_ref included; none is the built-in
@@ -197,8 +204,11 @@ export function newCreateSessionIfNeededStep(deps: {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "Session",
         metadata: {
-          // Auto-generated name (Go's session-%d millisecond stamp).
-          name: `session-${Date.now()}`,
+          // Auto-generated name: Go's session-%d millisecond stamp, then
+          // random hex. A session's slug is a claimed name
+          // (pipeline/steps/names.ts), and two runs can start in one
+          // millisecond (a batch, schedules firing on one cron second).
+          name: autoCreatedSessionName(),
           org: orgId,
         },
         spec: buildAutoCreateSessionSpec(callerSpec),

@@ -8,8 +8,8 @@
  *     nothing created;
  *   - a name with no ASCII letter or digit fits to no slug and is refused
  *     INVALID_ARGUMENT with the domain's copy, before any read;
- *   - an organization whose accounts cannot be read answers INTERNAL with
- *     the lane's copy, never a name check that passed.
+ *   - a name table that cannot be read answers INTERNAL with the lane's
+ *     copy, never a name check that passed.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createContextValues } from "@connectrpc/connect";
@@ -27,6 +27,7 @@ import type { CreateAccount } from "../provisioning.js";
 import { SERVICE_ACCOUNT_NAME_UNUSABLE_MESSAGE, createServiceAccount } from "../service-accounts.js";
 import type { ServiceAccountDeps } from "../service-accounts.js";
 import type { IdentityAccountStore } from "../store.js";
+import type { Store } from "../../../store/interface.js";
 
 const ALLOW_ALL: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) };
 
@@ -36,7 +37,18 @@ function handlerContext(): HandlerContext {
   return { signal: new AbortController().signal, values } as HandlerContext;
 }
 
-function deps(accounts: Pick<IdentityAccountStore, "findByOrg" | "findById">, created: string[]): ServiceAccountDeps {
+/** A store whose name table answers `resolve` as given; nothing else is reached. */
+function namesResolving(resolve: () => Promise<undefined>): Store {
+  return { resourceNames: { resolve } } as unknown as Store;
+}
+
+const noNames = namesResolving(() => Promise.resolve(undefined));
+
+function deps(
+  accounts: Pick<IdentityAccountStore, "findByOrg" | "findById">,
+  created: string[],
+  store: Store = noNames,
+): ServiceAccountDeps {
   const createAccount: CreateAccount = (input) => {
     created.push(input.name);
     return Promise.reject(new Error("the create path must not be reached"));
@@ -46,6 +58,7 @@ function deps(accounts: Pick<IdentityAccountStore, "findByOrg" | "findById">, cr
       get: (target, member) =>
         member in target ? Reflect.get(target, member) : Reflect.get(untouchable<IdentityAccountStore>("accounts"), member),
     }),
+    store,
     logger: silentLogger,
     authorizer: ALLOW_ALL,
     authorizationLifecycle: undefined,
@@ -92,7 +105,11 @@ describe("createServiceAccount, past the wire's validator", () => {
     const created: string[] = [];
     const error = await refusal(
       createServiceAccount(
-        deps({ findByOrg: () => Promise.reject(new Error("must not be read")), findById }, created),
+        deps(
+          { ...noAccounts, findById },
+          created,
+          namesResolving(() => Promise.reject(new Error("must not be read"))),
+        ),
         create(CreateServiceAccountInputSchema, { org: "org_acme", name: "部署", role: IamRole.member }),
         handlerContext(),
       ),
@@ -102,17 +119,21 @@ describe("createServiceAccount, past the wire's validator", () => {
     expect(created).toEqual([]);
   });
 
-  it("answers INTERNAL with the lane's copy when the organization's accounts cannot be read", async () => {
+  it("answers INTERNAL with the lane's copy when the name table cannot be read", async () => {
     const created: string[] = [];
     const error = await refusal(
       createServiceAccount(
-        deps({ findByOrg: () => Promise.reject(new Error("account store down")), findById }, created),
+        deps(
+          { ...noAccounts, findById },
+          created,
+          namesResolving(() => Promise.reject(new Error("name table down"))),
+        ),
         create(CreateServiceAccountInputSchema, { org: "org_acme", name: "ci", role: IamRole.member }),
         handlerContext(),
       ),
     );
     expect(error.code).toBe(Code.Internal);
-    expect(error.rawMessage).toContain("failed to list the organization's accounts");
+    expect(error.rawMessage).toContain("failed to check the service account's name");
     expect(created).toEqual([]);
   });
 });

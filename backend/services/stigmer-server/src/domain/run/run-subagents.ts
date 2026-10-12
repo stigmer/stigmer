@@ -19,7 +19,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import { failedPreconditionError, internalError } from "../../pipeline/errors.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
+import { findResourceByName } from "../../pipeline/steps/names.js";
 import { loadVersion } from "../../pipeline/steps/version-history.js";
 import type { Store } from "../../store/interface.js";
 import { agentVersionBinding } from "../agent/versions.js";
@@ -53,7 +53,7 @@ export async function runSubagents(
     const org = ref.org || executionOrg;
     let head;
     try {
-      head = await findResourceBySlug(store, ApiResourceKind.agent, AgentSchema, ref.slug, org);
+      head = await findResourceByName(store, ApiResourceKind.agent, AgentSchema, org, ref.slug);
     } catch (error) {
       throw internalError(error, "failed to read a subagent");
     }

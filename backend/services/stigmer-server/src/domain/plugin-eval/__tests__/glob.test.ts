@@ -5,7 +5,7 @@
  * included; that a malformed glob is an error value, never a throw; that
  * a class is capped and weighed by its ranges; and that the hostile globs
  * a backtracking matcher stalls on, a glob far past the length cap and a
- * large class behind every alternative finish in well under 50 ms.
+ * large class behind every alternative finish at once (`AT_ONCE_MS`).
  */
 import { describe, expect, it } from "vitest";
 
@@ -123,6 +123,14 @@ describe("validity", () => {
 });
 
 describe("hostile globs", () => {
+  /**
+   * The ceiling for "at once". Each case takes a few tens of milliseconds
+   * at most, and a backtracking matcher takes seconds to hours on them, so
+   * the ceiling sits far above the noise of a loaded shared runner, where
+   * 50 ms failed a matcher that is linear, and far below a blow-up.
+   */
+  const AT_ONCE_MS = 500;
+
   /** Runs `fn`, answering how long it took in milliseconds. */
   function timed(fn: () => void): number {
     const started = performance.now();
@@ -137,7 +145,7 @@ describe("hostile globs", () => {
       expect(matches(glob, path, "path")).toBe(false);
       expect(matches(glob, `${path}/x`, "path")).toBe(true);
     });
-    expect(elapsed).toBeLessThan(50);
+    expect(elapsed).toBeLessThan(AT_ONCE_MS);
   });
 
   it("matches the star-heavy case_glob a backtracking matcher stalls on", () => {
@@ -145,7 +153,7 @@ describe("hostile globs", () => {
       expect(matches("*a*a*a*a*a*a*a*a*a*a*b", "a".repeat(30), "name")).toBe(false);
       expect(matches("*a".repeat(60) + "*b", "a".repeat(200), "name")).toBe(false);
     });
-    expect(elapsed).toBeLessThan(50);
+    expect(elapsed).toBeLessThan(AT_ONCE_MS);
   });
 
   it("matches a 256-character glob of stars at once", () => {
@@ -156,7 +164,7 @@ describe("hostile globs", () => {
       expect(matches("*?".repeat(128), "a".repeat(256), "name")).toBe(true);
       expect(matches("*?".repeat(128), "a".repeat(127), "name")).toBe(false);
     });
-    expect(elapsed).toBeLessThan(50);
+    expect(elapsed).toBeLessThan(AT_ONCE_MS);
   });
 
   it("matches the most alternatives against long inputs at once", () => {
@@ -166,7 +174,7 @@ describe("hostile globs", () => {
         expect(matches(glob, "c".repeat(200), "name")).toBe(false);
       }
     });
-    expect(elapsed).toBeLessThan(50);
+    expect(elapsed).toBeLessThan(AT_ONCE_MS);
   });
 
   it("refuses a 900 KB glob of ** segments behind six brace groups at once", () => {
@@ -176,7 +184,7 @@ describe("hostile globs", () => {
         expect(compileGlob(glob, mode)).toEqual({ ok: false, error: "it is longer than 1024 characters" });
       }
     });
-    expect(elapsed).toBeLessThan(50);
+    expect(elapsed).toBeLessThan(AT_ONCE_MS);
   });
 
   it("matches the largest glob the caps allow against a long path at once", () => {
@@ -186,7 +194,7 @@ describe("hostile globs", () => {
       expect(matches(glob, `${path}/`, "path")).toBe(true);
       expect(matches(glob, "c", "path")).toBe(false);
     });
-    expect(elapsed).toBeLessThan(50);
+    expect(elapsed).toBeLessThan(AT_ONCE_MS);
   });
 
   it("refuses an 829-character class behind 64 alternatives, and matches the largest class allowed there, at once", () => {
@@ -197,7 +205,7 @@ describe("hostile globs", () => {
       expect(matches(`${stars}[${"0-1".repeat(31)}a-a]`, `${path}b`, "path")).toBe(false);
       expect(matches(`${stars}[${"0-1".repeat(31)}a-a]`, `${path}a`, "path")).toBe(true);
     });
-    expect(elapsed).toBeLessThan(50);
+    expect(elapsed).toBeLessThan(AT_ONCE_MS);
   });
 
   it("answers a malformed glob as an error value, never a throw", () => {

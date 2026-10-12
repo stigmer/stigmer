@@ -61,6 +61,7 @@ function domainOver(store: TempStore["store"]): OperatorAccountDeps {
     createAccount: newCreateAccountPath(
       {
         accounts,
+        store,
         logger: createLogger({
           level: "error",
           pretty: false,

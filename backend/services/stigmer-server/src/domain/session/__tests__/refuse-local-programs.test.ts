@@ -40,6 +40,7 @@ import type { Store } from "../../../store/interface.js";
 import type { LocalProgramPolicy } from "../../run/local-programs.js";
 
 import { newRefuseLocalProgramsStep } from "../refuse-local-programs.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const ORG = "acme";
 const HEAD = "a".repeat(64);
@@ -79,7 +80,7 @@ async function savePlugin(slug: string, stdio: boolean): Promise<void> {
 
 beforeEach(async () => {
   dir = mkdtempSync(path.join(tmpdir(), "refuse-local-programs-test-"));
-  store = SqliteStore.open(path.join(dir, "stigmer.db"));
+  store = namingSaves(SqliteStore.open(path.join(dir, "stigmer.db")));
   await savePlugin("files", true);
   await savePlugin("linear", false);
   // The agent's head lists the local program; its older version lists only URLs.

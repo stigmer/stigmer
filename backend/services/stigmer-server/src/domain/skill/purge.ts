@@ -13,6 +13,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
 import { newDeleteResourceStep } from "../../pipeline/steps/delete.js";
+import { newReleaseNamesStep } from "../../pipeline/steps/names.js";
 import { newDeleteSearchIndexStep } from "../../pipeline/steps/index-search.js";
 import { newDeleteVersionArchivesStep } from "../../pipeline/steps/version-archive.js";
 import { newKindPurge } from "../organization/purge/kind-purge.js";
@@ -38,6 +39,7 @@ export function newSkillPurge(deps: SkillPurgeDeps): KindPurge {
         noun: "skill",
       }),
       newDeleteResourceStep(deps.store),
+      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.skill),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
       newDeleteSearchIndexStep(deps.store, deps.logger),
     ],

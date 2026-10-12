@@ -92,6 +92,7 @@ import {
   newCleanupIamPoliciesStep,
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
+import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -175,6 +176,7 @@ async function createChannelApp(
     )
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newClaimNameStep(deps.store, ApiResourceKind.channel_app))
     .addStep(newPersistStep(deps.store))
     .addStep(
       newCreateAuthorizationTuplesStep(
@@ -183,7 +185,8 @@ async function createChannelApp(
       ),
     )
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
   redactChannelApp(reqCtx.newState);
   return reqCtx.newState;
 }
@@ -309,6 +312,7 @@ async function deleteChannelApp(
     .addStep(newLoadExistingForDeleteStep(deps.store, ChannelAppSchema))
     .addStep(newCheckNoReferencingChannelsStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.channel_app))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

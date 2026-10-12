@@ -39,6 +39,11 @@
  */
 import type { PoolClient } from "pg";
 
+import {
+  KindNameBackfill,
+  NAMED_KINDS_AT_BACKFILL,
+  RESOURCE_NAMES_BACKFILL_PAGE_SIZE,
+} from "../resource-names-backfill.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
 import type { StoreLogger } from "../logger.js";
 import {
@@ -193,8 +198,11 @@ export const SCHEMA_VERSION_22 = 22;
 /** v23: the sub-agents written inside agents removed, each logged as an agent manifest. */
 export const SCHEMA_VERSION_23 = 23;
 
+/** v24: every named kind's slug recorded as its current name in the name table. */
+export const SCHEMA_VERSION_24 = 24;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_23;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_24;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -258,6 +266,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_21, (migrating) => migrateToV21(migrating, logger)],
       [SCHEMA_VERSION_22, migrateToV22],
       [SCHEMA_VERSION_23, (migrating) => migrateToV23(migrating, logger)],
+      [SCHEMA_VERSION_24, (migrating) => migrateToV24(migrating, logger)],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1611,6 +1620,44 @@ async function migrateToV23(client: PoolClient, logger: StoreLogger): Promise<vo
       await update(SUB_AGENT_RETIREMENT_SESSION_KIND, row.id, migrated);
     }
   });
+}
+
+/**
+ * v24: every named kind's slug is its current name in the name table
+ * (../resource-names-backfill.ts says which kinds, which row keeps a slug
+ * two rows share, and why an unreadable row fails the step). Each kind is
+ * read in keyset pages and its names inserted; a name the table already
+ * holds is left as it is. The SQLite driver's v29 in this engine's terms.
+ * Runs inside applyInTransaction's BEGIN.
+ */
+async function migrateToV24(client: PoolClient, logger: StoreLogger): Promise<void> {
+  const now = new Date().toISOString();
+  for (const named of NAMED_KINDS_AT_BACKFILL) {
+    const backfill = new KindNameBackfill(named, now);
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources WHERE kind = $1 AND id > $2 ORDER BY id LIMIT $3`,
+          [named.kind, after, RESOURCE_NAMES_BACKFILL_PAGE_SIZE],
+        )
+      ).rows;
+      for (const row of rows) {
+        backfill.add(row.id, new Uint8Array(row.data));
+      }
+      if (rows.length < RESOURCE_NAMES_BACKFILL_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+    for (const name of backfill.names(logger)) {
+      await client.query(
+        `INSERT INTO resource_names (kind, org, name, id, state, claimed_at)
+         VALUES ($1, $2, $3, $4, 'current', $5)
+         ON CONFLICT (kind, org, name) DO NOTHING`,
+        [name.kind, name.org, name.name, name.id, name.claimedAt],
+      );
+    }
+  }
 }
 
 /**

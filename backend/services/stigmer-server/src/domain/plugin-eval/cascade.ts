@@ -40,6 +40,7 @@ import type { EvalPhaseRow } from "./steps.js";
 import { deletePluginEvalTries } from "./tries.js";
 import type { TrySessionDeleter } from "./tries.js";
 import type { PluginEvalWorkflows } from "./workflows.js";
+import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 
 export interface PluginEvalCascadeDeps {
   readonly store: Store;
@@ -233,6 +234,7 @@ async function deleteEval<Desc extends DescMessage>(
       `failed to cascade-delete plugin eval ${evalId} of plugin ${pluginId}`,
     );
   }
+  await releaseNamesOfDeleted(deps.store, deps.logger, ApiResourceKind.plugin_eval, pluginEval.metadata?.org ?? "", evalId);
   await cleanUpDeletedResource(deps.authorizationLifecycle, deps.logger, {
     kind: ApiResourceKind.plugin_eval,
     resourceId: evalId,

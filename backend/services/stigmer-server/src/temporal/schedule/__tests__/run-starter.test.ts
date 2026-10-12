@@ -3,7 +3,9 @@
  * execution name (THE idempotency key, byte-pinned on both editions), the
  * fire-context message rendering (the model's only "today"), the schedule's
  * saved settings written as the turn's own (the server's one resolution
- * caps and places them), the find-before-create idempotency, the
+ * caps and places them), the find-before-create idempotency (the run a
+ * fire made is found by its schedule's label and its name, never by a name
+ * alone), the
  * refusal-code partition, and the execution-request shape: a new
  * conversation on the schedule's agent, its session_spec naming the agent
  * at the version the schedule names.
@@ -13,7 +15,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { Code, ConnectError } from "@connectrpc/connect";
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -37,6 +39,8 @@ import {
   composeMessage,
   scheduledExecutionName,
 } from "../run-starter.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
+import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -158,7 +162,11 @@ describe("RunStarter.startRun — against a real store", () => {
 
   beforeAll(async () => {
     dir = mkdtempSync(path.join(tmpdir(), "run-starter-test-"));
-    store = SqliteStore.open(path.join(dir, "test.db"));
+    store = namingSaves(
+      SqliteStore.open(path.join(dir, "test.db"), undefined, {
+        listIndexes: LIST_INDEXES,
+      }),
+    );
     await store.saveResource(
       ApiResourceKind.agent,
       "agt_01helper",
@@ -263,6 +271,36 @@ describe("RunStarter.startRun — against a real store", () => {
     expect(sessionSpec?.agentRef?.version).toBe("stable");
   });
 
+  it("takes a run of the fire's name only when it carries this schedule's label: another run of that name is not the fire's", async () => {
+    await store.saveResource(
+      ApiResourceKind.run,
+      "aex_01stranger",
+      RunSchema,
+      create(RunSchema, {
+        metadata: {
+          id: "aex_01stranger",
+          org: "acme",
+          slug: scheduledExecutionName("sch_01test", NOMINAL),
+          labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_01other" },
+        },
+      }),
+    );
+    let creates = 0;
+    const runStarter = starter(async (request) => {
+      creates++;
+      const created = clone(RunSchema, request);
+      created.metadata!.id = "aex_01fresh";
+      return created;
+    });
+    const outcome = await runStarter.startRun(scheduleWith(), NOMINAL);
+    expect(creates).toBe(1);
+    expect(outcome).toEqual({
+      kind: "started",
+      executionId: "aex_01fresh",
+      alreadyExisted: false,
+    });
+  });
+
   it("finds an existing execution by the deterministic name instead of creating (idempotent retry)", async () => {
     await store.saveResource(
       ApiResourceKind.run,
@@ -273,6 +311,7 @@ describe("RunStarter.startRun — against a real store", () => {
           id: "aex_01prior",
           org: "acme",
           slug: scheduledExecutionName("sch_01test", NOMINAL),
+          labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_01test" },
         },
       }),
     );
@@ -415,6 +454,7 @@ describe("RunStarter.startRun — against a real store", () => {
             id: "aex_01winner",
             org: "acme",
             slug: scheduledExecutionName("sch_01test", NOMINAL),
+            labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_01test" },
           },
         }),
       );
@@ -520,6 +560,7 @@ describe("RunStarter.startRun — against a real store", () => {
             id: "aex_01winner",
             org: "acme",
             slug: scheduledExecutionName("sch_01test", raceNominal),
+            labels: { [SCHEDULE_ID_LABEL_KEY]: "sch_01test" },
           },
         }),
       );

@@ -61,6 +61,13 @@ import type { OrganizationNameResolver } from "../../pipeline/interceptors/organ
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import {
+  ABANDONED_NAME_AFTER_MS,
+  claimName,
+  holderIsGone,
+  storedRowHolder,
+} from "../../pipeline/steps/names.js";
+import type { NameHolder } from "../../pipeline/steps/names.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -80,10 +87,9 @@ export const RENAMED_SLUG_HOLD_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
  * How old a name must be before a holder with no organization row counts as
- * gone: a create claims its name a step before its row is stored, so a
- * younger claim may be a create in flight.
+ * gone (the generic rule's constant, pipeline/steps/names.ts).
  */
-export const ABANDONED_NAME_AFTER_MS = 60 * 1000;
+export { ABANDONED_NAME_AFTER_MS };
 
 /** The `kind` an organization's names are filed under (the resources table's kind column). */
 export const ORGANIZATION_NAME_KIND = ApiResourceKind[ApiResourceKind.organization];
@@ -132,25 +138,12 @@ export async function nameHolderIsGone(
   entry: ResourceNameEntry,
   now: Date,
 ): Promise<boolean> {
-  if (entry.name === entry.id) {
-    return false;
-  }
-  if (now.getTime() - Date.parse(entry.claimedAt) < ABANDONED_NAME_AFTER_MS) {
-    return false;
-  }
-  try {
-    await store.getResource(
-      ApiResourceKind.organization,
-      entry.id,
-      OrganizationSchema,
-    );
-    return false;
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      return true;
-    }
-    throw error;
-  }
+  return holderIsGone(entry, now, organizationHolder(store));
+}
+
+/** An organization holds its names while its row exists. */
+function organizationHolder(store: Store): NameHolder {
+  return storedRowHolder(store, ApiResourceKind.organization, OrganizationSchema);
 }
 
 /**
@@ -218,13 +211,7 @@ async function claimFreeingGoneHolder(
   id: string,
   now: Date,
 ) {
-  const key = organizationNameKey(slug);
-  const claim = await store.resourceNames.claim(key, id, now.toISOString());
-  if (claim.claimed || !(await nameHolderIsGone(store, claim.entry, now))) {
-    return claim;
-  }
-  await store.resourceNames.release(key.kind, key.org, claim.entry.id);
-  return store.resourceNames.claim(key, id, now.toISOString());
+  return claimName(store, organizationNameKey(slug), id, now, organizationHolder(store));
 }
 
 /**

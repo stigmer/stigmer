@@ -395,13 +395,6 @@ const consumerPlatformClientStore: PlatformClientStore = {
         (client) => client.spec?.clientId === clientId,
       ),
     ),
-  findByOrgAndSlug: (org, slug) =>
-    Promise.resolve(
-      [...consumerPlatformClients.values()].find(
-        (client) =>
-          client.metadata?.org === org && client.metadata?.slug === slug,
-      ),
-    ),
   findByOrg: (org) =>
     Promise.resolve(
       [...consumerPlatformClients.values()].filter(
@@ -476,9 +469,12 @@ export async function mintConsumerGuestToken(
 async function ensureConsumerSystemShareClient(
   org: string,
 ): Promise<PlatformClient> {
-  const existing = await consumerPlatformClientStore.findByOrgAndSlug(
-    org,
-    SYSTEM_SHARE_CLIENT_SLUG,
+  // The consumer keeps its own rows, so it reads its own system client;
+  // the port carries no lookup by slug (slugs are the name table's).
+  const existing = [...consumerPlatformClients.values()].find(
+    (client) =>
+      client.metadata?.org === org &&
+      client.metadata?.slug === SYSTEM_SHARE_CLIENT_SLUG,
   );
   if (existing !== undefined) {
     return existing;

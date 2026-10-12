@@ -93,6 +93,7 @@ import {
   seedOrganizations,
   type OrganizationIds,
 } from "../../organization/__tests__/support.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -211,7 +212,7 @@ async function markSessionUsed(
     SessionSchema,
   );
   stored.spec!.harnessStateId = harnessStateId;
-  await server.store.saveResource(
+  await namingSaves(server.store).saveResource(
     ApiResourceKind.session,
     sessionId,
     SessionSchema,
@@ -233,7 +234,7 @@ async function seedExecution(
     spec: { target: { case: "sessionId", value: sessionId } },
     status: { phase },
   });
-  await server.store.saveResource(
+  await namingSaves(server.store).saveResource(
     ApiResourceKind.run,
     id,
     RunSchema,
@@ -427,7 +428,7 @@ describe("session update — the reference rule", () => {
 describe("session update — references the stored row already carries", () => {
   it("passes an echo of a skill deleted since the session named it", async () => {
     const orgId = orgIds.get(ORG)!;
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.skill,
       "skl_session_echo",
       SkillSchema,
@@ -449,7 +450,7 @@ describe("session update — references the stored row already carries", () => {
       slug: "echoed-skill",
     });
     const session = await createSession({ skillRefs: [skillRef] });
-    await server.store.deleteResource(
+    await namingSaves(server.store).deleteResource(
       ApiResourceKind.skill,
       "skl_session_echo",
     );
@@ -491,7 +492,7 @@ describe("session list — a plugin eval's tries", () => {
       SessionSchema,
     );
     stored.metadata!.labels[PLUGIN_EVAL_LABEL] = "pev_sessiontest";
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.session,
       evalTry.metadata!.id,
       SessionSchema,
@@ -533,7 +534,7 @@ describe("session listByAgent", () => {
       SessionSchema,
     );
     stored.metadata!.labels[PLUGIN_EVAL_LABEL] = "pev_sessiontest";
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.session,
       evalTry.metadata!.id,
       SessionSchema,
@@ -881,7 +882,7 @@ describe("session delete — active-execution guard and cascade", () => {
       ).resolves.toBeDefined();
 
       // Unblock and converge: the retried delete succeeds and cascades.
-      await server.store.deleteResource(
+      await namingSaves(server.store).deleteResource(
         ApiResourceKind.run,
         executionId,
       );

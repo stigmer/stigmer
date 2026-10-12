@@ -50,6 +50,7 @@ import {
   organizationId,
   seedOrganizations,
 } from "../../organization/__tests__/support.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -186,7 +187,7 @@ async function seedPlugin(opts: {
       env: opts.env ?? {},
     },
   });
-  await server.store.saveResource(
+  await namingSaves(server.store).saveResource(
     ApiResourceKind.plugin,
     opts.id,
     PluginSchema,
@@ -379,7 +380,7 @@ describe("agent cascade delete (oss#611)", () => {
         agentRef: { kind: ApiResourceKind.agent, org: ORG_ID, slug: agentSlug },
       },
     });
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.agent_share,
       "ash_same_org",
       AgentShareSchema,
@@ -399,7 +400,7 @@ describe("agent cascade delete (oss#611)", () => {
         agentRef: { kind: ApiResourceKind.agent, org: ORG_ID, slug: agentSlug },
       },
     });
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.agent_share,
       "ash_cross_org",
       AgentShareSchema,
@@ -416,7 +417,7 @@ describe("agent cascade delete (oss#611)", () => {
         },
       },
     });
-    await server.store.saveResource(
+    await namingSaves(server.store).saveResource(
       ApiResourceKind.agent_share,
       "ash_bystander",
       AgentShareSchema,

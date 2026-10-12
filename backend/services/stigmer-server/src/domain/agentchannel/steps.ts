@@ -34,7 +34,7 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
+import { findResourceByName } from "../../pipeline/steps/names.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import { unknownModelPinRefusal } from "../../modelcatalog/pin-validation.js";
@@ -154,13 +154,7 @@ export function newResolveChannelDefaultsStep(
 
       let agent;
       try {
-        agent = await findResourceBySlug(
-          store,
-          ApiResourceKind.agent,
-          AgentSchema,
-          agentRef!.slug,
-          refOrg,
-        );
+        agent = await findResourceByName(store, ApiResourceKind.agent, AgentSchema, refOrg, agentRef!.slug);
       } catch (error) {
         throw internalError(error, "failed to list agent resources");
       }

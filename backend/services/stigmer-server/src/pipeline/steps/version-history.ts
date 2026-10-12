@@ -53,7 +53,8 @@ import {
   ResourceNotFoundError,
 } from "../../store/interface.js";
 import type { AuditRecord, Store } from "../../store/interface.js";
-import { findResourceBySlug, requireOrgForReference } from "./helpers.js";
+import { requireOrgForReference } from "./helpers.js";
+import { findResourceByName } from "./names.js";
 import type { ResolvedTargetResolver } from "./authorize-resolved-target.js";
 import { TARGET_RESOURCE_KEY } from "./load-target.js";
 import { metadataOf } from "./shapes.js";
@@ -145,13 +146,7 @@ export async function loadByReferenceWithVersion<Desc extends DescMessage>(
 
   let head: MessageShape<Desc> | undefined;
   try {
-    head = await findResourceBySlug(
-      store,
-      binding.kind,
-      binding.schema,
-      ref.slug,
-      ref.org,
-    );
+    head = await findResourceByName(store, binding.kind, binding.schema, ref.org, ref.slug);
   } catch (error) {
     throw internalError(error, `failed to list ${binding.noun}s`);
   }
@@ -367,13 +362,7 @@ export function newResolveBySlugForVersionsStep<
       const req = binding.input(ctx.input);
       let head: MessageShape<Desc> | undefined;
       try {
-        head = await findResourceBySlug(
-          store,
-          ctx.apiResourceKind,
-          binding.schema,
-          req.slug,
-          req.org,
-        );
+        head = await findResourceByName(store, ctx.apiResourceKind, binding.schema, req.org, req.slug);
       } catch (error) {
         throw internalError(error, `failed to search for ${binding.noun}`);
       }

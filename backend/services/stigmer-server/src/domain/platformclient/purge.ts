@@ -20,6 +20,7 @@ import type {
   KindPurge,
   KindPurgeDeps,
 } from "../organization/purge/kind-purge.js";
+import { newReleaseNamesStep } from "../../pipeline/steps/names.js";
 import { newDeleteClientStep } from "./steps.js";
 import type { PlatformClientStore } from "./store.js";
 
@@ -42,6 +43,11 @@ export function newPlatformClientPurge(
       (await deps.platformClients.findByOrg(org.id)).slice(0, limit),
     steps: [
       newDeleteClientStep<DeleteInput>(deps.platformClients),
+      newReleaseNamesStep<DeleteInput>(
+        deps.store,
+        deps.logger,
+        ApiResourceKind.platform_client,
+      ),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     ],
   });

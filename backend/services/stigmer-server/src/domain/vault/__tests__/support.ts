@@ -26,6 +26,7 @@ import type { Store } from "../../../store/interface.js";
 import { myVaultSlugOf } from "../constants.js";
 import { newVaultService } from "../service.js";
 import type { VaultService } from "../service.js";
+import { namingSaves } from "../../../store/__tests__/named-saves.js";
 
 export const silentLogger = createLogger({
   level: "error",
@@ -59,9 +60,11 @@ export interface VaultRig {
 /** A fresh store, facade and vault service; `close` removes the store. */
 export function openVaultRig(): VaultRig {
   const dir = mkdtempSync(path.join(tmpdir(), "vault-test-"));
-  const store = SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
-    listIndexes: LIST_INDEXES,
-  });
+  const store = namingSaves(
+    SqliteStore.open(path.join(dir, "stigmer.db"), undefined, {
+      listIndexes: LIST_INDEXES,
+    }),
+  );
   const codec = new RecordingCodec();
   const secrets = SecretService.withCodecs({
     codecs: new Map<string, SecretCodec>([["v9", codec]]),

@@ -94,6 +94,7 @@ import {
   newExtractResourceIdStep,
   newLoadExistingForDeleteStep,
 } from "../../pipeline/steps/delete.js";
+import { newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
 import { newDeleteSearchIndexStep } from "../../pipeline/steps/index-search.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
@@ -124,6 +125,7 @@ import {
   newResolveArtifactSourceStep,
   newResolveSlugForPushStep,
   newSkillPushAuthorizationTuplesStep,
+  newClaimSkillNameStep,
   newStoreSkillStep,
 } from "./push.js";
 import { skillSearchExtractor } from "./search-extractor.js";
@@ -250,6 +252,7 @@ async function push(
       ),
     )
     .addStep(newArchiveCurrentSkillStep(deps.store, deps.logger))
+    .addStep(newClaimSkillNameStep(deps.store))
     .addStep(newStoreSkillStep(deps.store))
     .addStep(
       newSkillPushAuthorizationTuplesStep(
@@ -259,7 +262,8 @@ async function push(
     )
     .addStep(newIndexSkillSearchStep(deps.store, deps.logger))
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
   return reqCtx.get(SKILL_KEY) as Skill;
 }
 
@@ -589,6 +593,7 @@ async function deleteSkill(
     .addStep(newLoadExistingForDeleteStep(deps.store, SkillSchema))
     .addStep(newDeleteSkillArchivesStep(deps.store, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.skill))
     .addStep(
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
     )

@@ -165,7 +165,6 @@ function harness(
       findById: async () => stored.client,
       findByClientId: async (clientId) =>
         clientId === stored.client.spec?.clientId ? stored.client : undefined,
-      findByOrgAndSlug: async () => undefined,
       findByOrg: async () => [],
     },
     accounts: { findByIdpId: async (idpId) => accounts.get(idpId) },

@@ -98,6 +98,7 @@ import {
   PluginEvalEngineUnavailableError,
 } from "./workflows.js";
 import type { PluginEvalWorkflows } from "./workflows.js";
+import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 
 /** Context key for the plugin a create evaluates, stashed by LoadEvaluatedPlugin. */
 export const EVALUATED_PLUGIN_KEY = "evaluatedPlugin";
@@ -434,6 +435,7 @@ export function newEnsureEvaluatedPluginStillExistsStep(
       } catch (error) {
         throw internalError(error, "failed to remove the plugin eval of a deleted plugin");
       }
+      await releaseNamesOfDeleted(store, logger, ApiResourceKind.plugin_eval, ctx.newState.metadata?.org ?? "", evalId);
       await cleanUpDeletedResource(authorizationLifecycle, logger, {
         kind: ApiResourceKind.plugin_eval,
         resourceId: evalId,

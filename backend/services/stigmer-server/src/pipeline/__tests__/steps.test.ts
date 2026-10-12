@@ -23,6 +23,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -76,6 +77,7 @@ import { newPermissiveSingleTeamAuthorizer } from "../steps/authorize.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { namingSaves } from "../../store/__tests__/named-saves.js";
 
 const silentLogger: Logger = { debug() {}, info() {}, warn() {}, error() {} };
 
@@ -96,7 +98,7 @@ let store: SqliteStore;
 
 beforeEach(() => {
   dir = mkdtempSync(path.join(tmpdir(), "stigmer-steps-test-"));
-  store = SqliteStore.open(path.join(dir, "stigmer.db"));
+  store = namingSaves(SqliteStore.open(path.join(dir, "stigmer.db")));
 });
 
 afterEach(async () => {
@@ -122,6 +124,39 @@ function org(overrides?: {
     },
     spec: { description: "a test organization" },
   });
+}
+
+/**
+ * An agent: the generic chains' steps read a named kind's slug through the
+ * name table, scoped to its organization, which a real kind shows (an
+ * organization's own names have their own protocol).
+ */
+function agent(overrides?: {
+  id?: string;
+  name?: string;
+  slug?: string;
+  org?: string;
+}) {
+  return create(AgentSchema, {
+    apiVersion: "agentic.stigmer.ai/v1",
+    kind: "Agent",
+    metadata: {
+      id: overrides?.id ?? "",
+      name: overrides?.name ?? "Support",
+      slug: overrides?.slug ?? "",
+      org: overrides?.org ?? "",
+    },
+    spec: { instructions: "Answer the customer's questions." },
+  });
+}
+
+function agentCtx(input = agent()): RequestContext<typeof AgentSchema> {
+  return new RequestContext(
+    AgentSchema,
+    input,
+    testCallerIdentity(),
+    ApiResourceKind.agent,
+  );
 }
 
 function orgCtx(input = org()): RequestContext<typeof OrganizationSchema> {
@@ -226,21 +261,21 @@ describe("ResolveSlug", () => {
 
 describe("CheckDuplicate (org-scoped)", () => {
   it("rejects a same-org duplicate with Go's exact copy and allows other orgs", async () => {
-    const existing = org({ id: "org_1", slug: "acme", org: "tenant-a" });
-    await store.saveResource(ORG, "org_1", OrganizationSchema, existing);
+    const existing = agent({ id: "agt_1", slug: "support", org: "tenant-a" });
+    await store.saveResource(ApiResourceKind.agent, "agt_1", AgentSchema, existing);
 
-    const dup = orgCtx(org({ slug: "acme", org: "tenant-a" }));
+    const dup = agentCtx(agent({ slug: "support", org: "tenant-a" }));
     const error = await captureError(() =>
-      newCheckDuplicateStep<typeof OrganizationSchema>(store).execute(dup),
+      newCheckDuplicateStep<typeof AgentSchema>(store).execute(dup),
     );
     expect((error as ConnectError).code).toBe(Code.AlreadyExists);
     expect((error as ConnectError).rawMessage).toBe(
-      "Organization already exists: slug 'acme' in org 'tenant-a' (id: org_1)",
+      "Agent already exists: slug 'support' in org 'tenant-a' (id: agt_1)",
     );
 
-    const otherOrg = orgCtx(org({ slug: "acme", org: "tenant-b" }));
+    const otherOrg = agentCtx(agent({ slug: "support", org: "tenant-b" }));
     await expect(
-      newCheckDuplicateStep<typeof OrganizationSchema>(store).execute(otherOrg),
+      newCheckDuplicateStep<typeof AgentSchema>(store).execute(otherOrg),
     ).resolves.toBeUndefined();
   });
 });
@@ -440,29 +475,50 @@ describe("BuildUpdateState", () => {
 
 describe("loaders", () => {
   it("LoadExisting loads by id, falls back to slug (backfilling the id), and pins the NotFound copy", async () => {
-    const existing = org({ id: "acme", slug: "acme" });
-    await store.saveResource(ORG, "acme", OrganizationSchema, existing);
+    const existing = agent({ id: "agt_1", slug: "support", org: "acme" });
+    await store.saveResource(ApiResourceKind.agent, "agt_1", AgentSchema, existing);
 
-    const byId = orgCtx(org({ id: "acme" }));
-    await newLoadExistingStep<typeof OrganizationSchema>(store).execute(byId);
+    const byId = agentCtx(agent({ id: "agt_1", org: "acme" }));
+    await newLoadExistingStep<typeof AgentSchema>(store).execute(byId);
     expect(byId.get(EXISTING_RESOURCE_KEY)).toBeDefined();
 
-    const bySlug = orgCtx(org({ slug: "acme" }));
-    await newLoadExistingStep<typeof OrganizationSchema>(store).execute(bySlug);
-    expect(bySlug.newState.metadata?.id).toBe("acme");
+    const bySlug = agentCtx(agent({ slug: "support", org: "acme" }));
+    await newLoadExistingStep<typeof AgentSchema>(store).execute(bySlug);
+    expect(bySlug.newState.metadata?.id).toBe("agt_1");
 
-    const missing = orgCtx(org({ id: "ghost" }));
+    const otherOrg = agentCtx(agent({ slug: "support", org: "globex" }));
+    const otherError = await captureError(() =>
+      newLoadExistingStep<typeof AgentSchema>(store).execute(otherOrg),
+    );
+    expect(
+      (otherError as ConnectError).rawMessage,
+      "a slug names its own organization's agent only",
+    ).toBe("Agent not found: support");
+
+    const missing = agentCtx(agent({ id: "ghost" }));
     const error = await captureError(() =>
-      newLoadExistingStep<typeof OrganizationSchema>(store).execute(missing),
+      newLoadExistingStep<typeof AgentSchema>(store).execute(missing),
     );
     expect((error as ConnectError).code).toBe(Code.NotFound);
-    expect((error as ConnectError).rawMessage).toBe(
-      "Organization not found: ghost",
-    );
+    expect((error as ConnectError).rawMessage).toBe("Agent not found: ghost");
 
-    const neither = orgCtx(org({ name: "" }));
+    const run = new RequestContext(
+      RunSchema,
+      create(RunSchema, { metadata: { slug: "run-1", org: "acme" } }),
+      testCallerIdentity(),
+      ApiResourceKind.run,
+    );
+    const runError = await captureError(() =>
+      newLoadExistingStep<typeof RunSchema>(store).execute(run),
+    );
+    expect(
+      (runError as ConnectError).rawMessage,
+      "a kind whose slugs are not names is updated by id",
+    ).toBe("resource id is required to update a Run");
+
+    const neither = agentCtx(agent({ name: "" }));
     const iaError = await captureError(() =>
-      newLoadExistingStep<typeof OrganizationSchema>(store).execute(neither),
+      newLoadExistingStep<typeof AgentSchema>(store).execute(neither),
     );
     expect((iaError as ConnectError).rawMessage).toBe(
       "resource id or slug is required for update",
@@ -470,21 +526,21 @@ describe("loaders", () => {
   });
 
   it("LoadForApply sets the create/update flags and never fails on not-found", async () => {
-    const fresh = orgCtx(org({ slug: "new-org" }));
-    await newLoadForApplyStep<typeof OrganizationSchema>(store).execute(fresh);
+    const fresh = agentCtx(agent({ slug: "new-agent", org: "acme" }));
+    await newLoadForApplyStep<typeof AgentSchema>(store).execute(fresh);
     expect(fresh.get(SHOULD_CREATE_KEY)).toBe(true);
     expect(fresh.get(EXISTS_IN_DATABASE_KEY)).toBe(false);
 
     await store.saveResource(
-      ORG,
-      "acme",
-      OrganizationSchema,
-      org({ id: "acme", slug: "acme" }),
+      ApiResourceKind.agent,
+      "agt_1",
+      AgentSchema,
+      agent({ id: "agt_1", slug: "support", org: "acme" }),
     );
-    const found = orgCtx(org({ slug: "acme" }));
-    await newLoadForApplyStep<typeof OrganizationSchema>(store).execute(found);
+    const found = agentCtx(agent({ slug: "support", org: "acme" }));
+    await newLoadForApplyStep<typeof AgentSchema>(store).execute(found);
     expect(found.get(SHOULD_CREATE_KEY)).toBe(false);
-    expect(found.newState.metadata?.id).toBe("acme");
+    expect(found.newState.metadata?.id).toBe("agt_1");
   });
 
   it("LoadTarget loads by id-wrapper and rejects empty/unknown ids", async () => {

@@ -26,6 +26,7 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { listAgentEvaluators } from "./queries.js";
+import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 
 export function newCascadeDeleteEvaluatorsStep<Desc extends DescMessage>(
   store: Store,
@@ -66,6 +67,7 @@ export function newCascadeDeleteEvaluatorsStep<Desc extends DescMessage>(
             );
           }
         }
+        await releaseNamesOfDeleted(store, logger, ApiResourceKind.evaluator, evaluator.metadata?.org ?? "", evaluatorId);
         await cleanUpDeletedResource(lifecycle, logger, {
           kind: ApiResourceKind.evaluator,
           resourceId: evaluatorId,

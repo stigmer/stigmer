@@ -18,6 +18,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { newCleanupIamPoliciesStep } from "../../pipeline/steps/authorization-tuples.js";
 import { newDeleteResourceStep } from "../../pipeline/steps/delete.js";
+import { newReleaseNamesStep } from "../../pipeline/steps/names.js";
 import { newKindPurge } from "../organization/purge/kind-purge.js";
 import type {
   KindPurge,
@@ -42,6 +43,7 @@ export function newSchedulePurge(deps: SchedulePurgeDeps): KindPurge {
     input: ScheduleCommandController.method.delete.input,
     steps: [
       newDeleteResourceStep(deps.store),
+      newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.schedule),
       newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger),
       newTeardownScheduleArtifactStep(deps.scheduleClock, deps.logger),
       newDeleteScheduleRunsStep(deps.store, deps.logger),

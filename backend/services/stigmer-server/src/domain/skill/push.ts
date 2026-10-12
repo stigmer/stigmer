@@ -34,6 +34,8 @@
  */
 import { create } from "@bufbuild/protobuf";
 
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { PushSkillRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
@@ -67,7 +69,7 @@ import {
   setAuditFieldsForCreate,
   setAuditFieldsForUpdate,
 } from "../../pipeline/steps/defaults.js";
-import { findResourceBySlug } from "../../pipeline/steps/helpers.js";
+import { claimNameOf, findResourceByName } from "../../pipeline/steps/names.js";
 import { checkDerivedSlug, generateSlug } from "../../pipeline/steps/slug.js";
 import {
   ARTIFACT_BYTES_KEY,
@@ -200,13 +202,7 @@ export function newFindExistingBySlugStep(
       const skill = ctx.get(SKILL_KEY) as Skill;
       let existing: Skill | undefined;
       try {
-        existing = await findResourceBySlug(
-          store,
-          ctx.apiResourceKind,
-          SkillSchema,
-          skill.metadata!.slug,
-          skill.metadata!.org,
-        );
+        existing = await findResourceByName(store, ctx.apiResourceKind, SkillSchema, skill.metadata!.org, skill.metadata!.slug);
       } catch (error) {
         throw internalError(error, "failed to search for existing skill");
       }
@@ -395,6 +391,31 @@ export function newArchiveCurrentSkillStep(
       },
     },
   );
+}
+
+/**
+ * ClaimName — a pushed skill that is new claims its slug in the name
+ * table immediately before StoreSkill (pipeline/steps/names.ts), so two
+ * first pushes of one slug cannot both store a row; the loser is refused
+ * AlreadyExists, and its retry finds the winner and updates it. A re-push
+ * keeps the name its skill holds.
+ */
+export function newClaimSkillNameStep(store: Store): PipelineStep<PushDesc> {
+  return {
+    name: "ClaimName",
+    async execute(ctx: RequestContext<PushDesc>): Promise<void> {
+      if (ctx.get(SHOULD_CREATE_SKILL_KEY) !== true) {
+        return;
+      }
+      await claimNameOf(
+        ctx,
+        store,
+        ApiResourceKind.skill,
+        ctx.get(SKILL_KEY) as Skill,
+        SkillSchema,
+      );
+    },
+  };
 }
 
 /** StoreSkill — persists the fully populated head. */

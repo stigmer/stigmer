@@ -68,6 +68,8 @@ import type { RequestContext } from "../../pipeline/request-context.js";
 import { updateAuditFields } from "../../pipeline/steps/build-update-state.js";
 import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { requireOrgForReference } from "../../pipeline/steps/helpers.js";
+import { portHolder, resolveName } from "../../pipeline/steps/names.js";
+import type { NameHolder } from "../../pipeline/steps/names.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { idValueOf, metadataOf } from "../../pipeline/steps/shapes.js";
@@ -88,6 +90,7 @@ import {
 } from "./credentials.js";
 import { DuplicatePlatformClientError } from "./store.js";
 import type { PlatformClientStore } from "./store.js";
+import type { Store } from "../../store/interface.js";
 
 type ClientStep = PipelineStep<typeof PlatformClientSchema>;
 type ClientContext = RequestContext<typeof PlatformClientSchema>;
@@ -158,15 +161,38 @@ export function newRefuseReservedSlugStep(): ClientStep {
   };
 }
 
-/** Rejects a create whose slug the organization already holds. */
+/**
+ * The client a slug names in the organization: a read of the name table
+ * (pipeline/steps/names.ts), then a read by id through the port, so the
+ * lookup is the same in every edition whatever table keeps the rows.
+ */
+export async function findClientByName(
+  store: Store,
+  clients: PlatformClientStore,
+  org: string,
+  slug: string,
+): Promise<PlatformClient | undefined> {
+  const id = await resolveName(store, ApiResourceKind.platform_client, org, slug);
+  return id === undefined ? undefined : clients.findById(id);
+}
+
+/** The name holder for a platform client: its row through the port. */
+export function platformClientNameHolder(clients: PlatformClientStore): NameHolder {
+  return portHolder((id) => clients.findById(id));
+}
+
+/** Rejects a create whose slug the organization already holds (the early read; ClaimName is the guarantee). */
 export function newCheckDuplicateStep(
+  store: Store,
   clients: PlatformClientStore,
 ): ClientStep {
   return {
     name: "CheckDuplicate",
     async execute(ctx: ClientContext): Promise<void> {
       const metadata = requireMetadata(ctx, "duplicate check");
-      const existing = await clients.findByOrgAndSlug(
+      const existing = await findClientByName(
+        store,
+        clients,
         metadata.org,
         metadata.slug,
       );
@@ -225,6 +251,7 @@ export function newPersistNewClientStep(
 
 /** Loads the client by id, else by org-scoped slug (the id written back), into EXISTING_RESOURCE_KEY. */
 export function newLoadExistingClientStep(
+  store: Store,
   clients: PlatformClientStore,
 ): ClientStep {
   return {
@@ -238,7 +265,7 @@ export function newLoadExistingClientStep(
           throw notFoundError(PLATFORM_CLIENT_KIND_NAME, metadata.id);
         }
       } else if (metadata.slug !== "") {
-        existing = await clients.findByOrgAndSlug(metadata.org, metadata.slug);
+        existing = await findClientByName(store, clients, metadata.org, metadata.slug);
         if (existing === undefined) {
           throw notFoundError(PLATFORM_CLIENT_KIND_NAME, metadata.slug);
         }
@@ -327,6 +354,7 @@ export function newLoadTargetClientStep<InputDesc extends DescMessage>(
 
 /** Loads the client an org/slug reference names into TARGET_RESOURCE_KEY, with the cloud's copy. */
 export function newLoadClientByReferenceStep(
+  store: Store,
   clients: PlatformClientStore,
 ): PipelineStep<typeof ApiResourceReferenceSchema> {
   return {
@@ -347,7 +375,7 @@ export function newLoadClientByReferenceStep(
         );
       }
       requireOrgForReference(ApiResourceKind.platform_client, ref.org);
-      const client = await clients.findByOrgAndSlug(ref.org, ref.slug);
+      const client = await findClientByName(store, clients, ref.org, ref.slug);
       if (client === undefined) {
         throw new ConnectError(
           referenceNotFoundMessage(ref.org, ref.slug),

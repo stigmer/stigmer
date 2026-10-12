@@ -115,6 +115,7 @@ import {
   TARGET_RESOURCE_KEY,
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
+import { newClaimNameStep, releaseNameAfterFailure } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -261,6 +262,7 @@ async function createVault(
       .addStep(newBuildNewStateStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newStampSharedOwnerStep())
+      .addStep(newClaimNameStep(deps.store, ApiResourceKind.vault))
       .addStep(newClaimExternalIdStep(deps.store))
       .addStep(newPersistStep(deps.store))
       .addStep(
@@ -270,6 +272,7 @@ async function createVault(
       .execute(reqCtx);
   } catch (error) {
     await undoExternalIdMoveAfterFailure(deps.store, deps.logger, reqCtx);
+    await releaseNameAfterFailure(deps.store, deps.logger, reqCtx);
     throw error;
   }
   return respond(reqCtx.newState);

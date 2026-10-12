@@ -29,7 +29,7 @@ import type {
   ListAgentEvalsByAgentRequest,
 } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/io_pb";
 import { AgentEvalQueryController } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/query_pb";
-import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -55,6 +55,11 @@ import { newCheckDuplicateStep } from "../../pipeline/steps/duplicate.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import { TARGET_RESOURCE_KEY, newLoadTargetStep } from "../../pipeline/steps/load-target.js";
+import {
+  newClaimNameStep,
+  newReleaseNamesStep,
+  releaseNameOnFailure,
+} from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
 import { newNormalizeReferencesStep, newValidateReferencesStep } from "../../pipeline/steps/references.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
@@ -141,12 +146,14 @@ async function createAgentEval(
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, AGENT_EVAL_VAULT_ATTACHMENTS))
     .addStep(newPlanAgentEvalStep(deps.suites, deps.modelCatalog))
+    .addStep(newClaimNameStep(deps.store, ApiResourceKind.agent_eval))
     .addStep(newPersistStep(deps.store))
     .addStep(newCreateAuthorizationTuplesStep(deps.authorizationLifecycle, deps.logger))
     .addStep(newEnsureEvaluatedAgentStillExistsStep(deps.store, deps.authorizationLifecycle, deps.logger))
     .addStep(newStartAgentEvalWorkflowStep(deps.store, deps.workflows, deps.logger))
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
   return reqCtx.newState;
 }
 
@@ -187,6 +194,7 @@ async function deleteAgentEval(
     .addStep(newRefuseActiveAgentEvalDeleteStep())
     .addStep(newDeleteAgentEvalTriesStep(deps.store, deps.sessions, deps.logger))
     .addStep(newDeleteResourceStep(deps.store))
+    .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.agent_eval))
     .addStep(newCleanupIamPoliciesStep(deps.authorizationLifecycle, deps.logger))
     .build()
     .execute(reqCtx);
