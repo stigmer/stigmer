@@ -35,7 +35,8 @@
  * every row stamped with another revision, so a log written before the
  * columns existed gains its gates. A writer that asks (`scope.waitingKey`)
  * is handed the open gates of the session's waiting rows and of the
- * written row, read from the columns without decoding an event. What waits
+ * written row, read from the columns without decoding an event. A gate is
+ * closed only by an event of the run that opened it. What waits
  * is computed from the log on every read; nothing about it is stored
  * beside the log.
  *
@@ -143,14 +144,20 @@ export interface OpenSessionEventGate {
 }
 
 /**
- * The open gates among `opened` (in log order): those no event of `closed`
- * closes. The one rule both drivers apply to the rows they read.
+ * The open gates among `opened` (in log order): those no event of the same
+ * run closes. `closed` holds each closing event's run and the gate it
+ * closes; an event of another run never closes a run's gate, so one turn's
+ * writer cannot answer or settle another turn's ask. The one rule both
+ * drivers apply to the rows they read.
  */
 export function openGatesOf(
   opened: ReadonlyArray<OpenSessionEventGate>,
-  closed: ReadonlySet<string>,
+  closed: ReadonlyArray<{ readonly runId: string; readonly toolUseId: string }>,
 ): OpenSessionEventGate[] {
-  return opened.filter((gate) => !closed.has(gate.toolUseId)).sort((a, b) => a.seq - b.seq);
+  const closedKeys = new Set(closed.map((c) => `${c.runId}\u0000${c.toolUseId}`));
+  return opened
+    .filter((gate) => !closedKeys.has(`${gate.runId}\u0000${gate.toolUseId}`))
+    .sort((a, b) => a.seq - b.seq);
 }
 
 /** A resent event id whose bytes differ from the stored event's. */

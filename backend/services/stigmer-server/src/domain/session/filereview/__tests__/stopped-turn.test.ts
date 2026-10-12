@@ -4,6 +4,8 @@
  * sets carry an undo starts its reconcile turn, as the person who decided
  * the newest undo; any other transition, a turn with no undo, a decider
  * nobody stands for, and a refused start start nothing and throw nothing.
+ * The decider stands for the account its id names under sign-in, and for
+ * the one operator on a laptop with no sign-in.
  */
 import { clone, create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -19,7 +21,9 @@ import {
 import { createLogger } from "../../../../boot/logger.js";
 import type { CallerIdentity } from "../../../../extensions/identity.js";
 import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";
-import { newStoppedTurnObserver, newestUndoDecider } from "../stopped-turn.js";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
+
+import { newStoppedTurnObserver, newestUndoDecider, undoDeciderCaller } from "../stopped-turn.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -93,5 +97,25 @@ describe("the stopped-turn observer", () => {
     await expect(
       refused.observer({ run: run([decided(FileDecisionAction.REJECT, "usr_a")]), oldPhase: RunPhase.RUN_PAUSED, newPhase: RunPhase.RUN_CANCELLED }),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("who an undo's decider stands for", () => {
+  const operator = testCallerIdentity({ identityId: "usr_operator" });
+
+  it("is the one operator when there is no sign-in", async () => {
+    expect(await undoDeciderCaller(undefined, () => operator)("anyone")).toBe(operator);
+  });
+
+  it("is the account the decider's id names under sign-in, and nobody when it names none", async () => {
+    const accounts = {
+      findById: async (id: string) =>
+        id === "acc_alice" ? create(IdentityAccountSchema, { metadata: { id: "acc_alice" } }) : undefined,
+      findDirectByIdpId: async () => undefined,
+    };
+    const callerOf = undoDeciderCaller(accounts, () => operator);
+    expect((await callerOf("acc_alice"))?.identityId).toBe("acc_alice");
+    expect((await callerOf("acc_alice"))?.callerClass).toBe("user");
+    expect(await callerOf("acc_gone")).toBeUndefined();
   });
 });

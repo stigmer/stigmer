@@ -2560,7 +2560,7 @@ async function latestOfTypes(
 
 /**
  * The open gates of `runIds` in a session, in log order: the gates their
- * events open (the opens_gate partial index) that no event of the session
+ * events open (the opens_gate partial index) that no event of the same run
  * closes (the closes_gate partial index). Nothing is decoded.
  */
 async function openGatesOfRuns(
@@ -2580,14 +2580,14 @@ async function openGatesOfRuns(
   }
   const closed = (
     await client.query(
-      `SELECT closes_gate FROM session_events
+      `SELECT run_id, closes_gate FROM session_events
        WHERE session_id = $1 AND closes_gate <> '' AND closes_gate = ANY($2::text[])`,
       [sessionId, opened.map((row) => row.opens_gate)],
     )
-  ).rows as Array<{ closes_gate: string }>;
+  ).rows as Array<{ run_id: string; closes_gate: string }>;
   return openGatesOf(
     opened.map((row) => ({ runId: row.run_id, toolUseId: row.opens_gate, seq: Number(row.seq) })),
-    new Set(closed.map((row) => row.closes_gate)),
+    closed.map((row) => ({ runId: row.run_id, toolUseId: row.closes_gate })),
   );
 }
 

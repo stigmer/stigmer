@@ -6,7 +6,9 @@
  * progress, waiting for an answer, paused) is cancelled through the cancel
  * chain's steps, each with stop cause `user` and its workflow cancelled,
  * the session ending idle with end_turn; a finished turn is left alone,
- * and one that finishes before the interrupt reaches it is skipped.
+ * and one that finishes before the interrupt reaches it is skipped. A store
+ * fault is an Internal; a session removed under the interrupt is not found;
+ * any other failure to stop a turn is the interrupt's failure.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -37,6 +39,7 @@ import { eventOf } from "../../events/codec.js";
 import { createRunAppendingEvents, updateRunAppendingEvents } from "../../events/run-writes.js";
 import { interrupt } from "../interrupt.js";
 import type { InterruptDeps } from "../interrupt.js";
+import type { Store } from "../../../../store/interface.js";
 import { appendAsks } from "./asks.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
@@ -236,3 +239,47 @@ describe("interrupt", () => {
     ).toBe(Code.NotFound);
   });
 });
+
+describe("interrupt's faults", () => {
+  function faulty(overrides: Partial<Store>): Store {
+    return new Proxy(temp.store, {
+      get(target, key, receiver) {
+        return key in overrides ? (overrides as Record<string | symbol, unknown>)[key] : Reflect.get(target, key, receiver);
+      },
+    });
+  }
+
+  it("a store fault loading the session, recording the event or listing the runs is Internal", async () => {
+    await seedTurn("run_queued", RunPhase.RUN_PENDING);
+    const appendFault = (error: Error) => ({
+      ...temp.store.sessionEvents,
+      append: () => Promise.reject(error),
+      list: temp.store.sessionEvents.list.bind(temp.store.sessionEvents),
+    });
+    for (const store of [
+      faulty({ getResource: () => Promise.reject(new Error("disk")) }),
+      faulty({ sessionEvents: appendFault(new Error("disk")) }),
+      faulty({ queryResources: () => Promise.reject(new Error("disk")) }),
+    ]) {
+      expect((await refusal(stop({ ...deps(), store }))).code).toBe(Code.Internal);
+    }
+  });
+
+  it("a session removed between its load and the event's append is not found", async () => {
+    const { ResourceNotFoundError } = await import("../../../../store/interface.js");
+    const store = faulty({
+      sessionEvents: {
+        ...temp.store.sessionEvents,
+        append: () => Promise.reject(new ResourceNotFoundError(`session/${SESSION}`)),
+      },
+    });
+    expect((await refusal(stop({ ...deps(), store }))).code).toBe(Code.NotFound);
+  });
+
+  it("any other failure to stop a turn is the interrupt's failure", async () => {
+    await seedTurn("run_queued", RunPhase.RUN_PENDING);
+    const error = await refusal(stop(deps({ engine: { cancelWorkflow: () => Promise.reject(new Error("engine down")) } })));
+    expect(error.code).toBe(Code.Internal);
+  });
+});
+

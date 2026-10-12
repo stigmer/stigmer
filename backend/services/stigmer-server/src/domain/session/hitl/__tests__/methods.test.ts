@@ -10,11 +10,13 @@
  * gate slot, a contrary answer refused; a tool use that is not one of the
  * session's asks not found; a grant answering every waiting call of its
  * class with one grant event, and a call with no class allowed alone; the
- * gate slot reading the answer whichever method carried it.
+ * gate slot reading the answer whichever method carried it. A store fault
+ * is an Internal that names no detail; a workflow that cannot be signalled
+ * is Unavailable, and one that no longer runs fails the run.
  */
 import { create } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
-import { Code, ConnectError } from "@connectrpc/connect";
+import { Code, ConnectError, createClient, createRouterTransport } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -41,10 +43,14 @@ import { servedMethods } from "../../../../extensions/__tests__/composed-support
 import type { ResolvedGateSteps } from "../../../../extensions/gate-slots.js";
 import { testCallerIdentity, untouchable } from "../../../../pipeline/__tests__/support.js";
 import type { PipelineStep } from "../../../../pipeline/pipeline.js";
+import { createApiResourceInterceptor } from "../../../../pipeline/interceptors/apiresource.js";
+import { createVerifierChainInterceptor } from "../../../../pipeline/interceptors/auth.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../../pipeline/steps/authorize.js";
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { stubConnectedEngine } from "../../../run/__tests__/engine-stub.js";
+import { EngineWorkflowNotFoundError } from "../../../run/engine.js";
+import type { Store } from "../../../../store/interface.js";
 import type { ExecutionEngineState } from "../../../run/engine.js";
 import { StreamBroker } from "../../../run/stream-broker.js";
 import { registerSessionServices } from "../../controller.js";
@@ -417,3 +423,95 @@ describe("grantPermission", () => {
     expect((await confirm(use("tc-read"), "allow")).event.case).toBe("userToolConfirmation");
   });
 });
+
+/** The store with one of its methods replaced. */
+function faulty(overrides: Partial<Store>): Store {
+  return new Proxy(temp.store, {
+    get(target, key, receiver) {
+      return key in overrides ? (overrides as Record<string | symbol, unknown>)[key] : Reflect.get(target, key, receiver);
+    },
+  });
+}
+
+describe("the answer core's edges", () => {
+  it("each method is answered through the session's served router", async () => {
+    await seedWaiting([
+      { id: "tc-1", name: "shell" },
+      { id: "tc-2", name: "write" },
+    ]);
+    const d = deps();
+    const client = createClient(
+      SessionCommandController,
+      createRouterTransport((router) => registerSessionServices(router, d as unknown as SessionControllerDeps), {
+        router: {
+          interceptors: [createVerifierChainInterceptor([], [], silentLogger), createApiResourceInterceptor()],
+        },
+      }),
+    );
+    expect((await client.confirmToolUse({ sessionId: SESSION, toolUseId: use("tc-1"), result: "allow" })).event.case).toBe(
+      "userToolConfirmation",
+    );
+    expect((await client.grantPermission({ sessionId: SESSION, toolUseId: use("tc-2") })).confirmations).toHaveLength(1);
+    expect((await refusal(client.interrupt({ sessionId: SESSION, sessionThreadId: "x" }))).code).toBe(Code.InvalidArgument);
+  });
+
+  it("a store fault loading the run, or recording the answer, is Internal", async () => {
+    await seedWaiting([{ id: "tc-1", name: "write" }]);
+    const loadFault = { ...deps(), store: faulty({ getResource: () => Promise.reject(new Error("disk")) }) };
+    expect((await refusal(confirm(use("tc-1"), "allow", "", loadFault))).code).toBe(Code.Internal);
+    const writeFault = { ...deps(), store: faulty({ writeResourceAppendingEvents: () => Promise.reject(new Error("disk")) }) };
+    expect((await refusal(confirm(use("tc-1"), "allow", "", writeFault))).code).toBe(Code.Internal);
+  });
+
+  it("a row stamped with a decision the log does not hold, or no longer waiting, is not answered again", async () => {
+    await seedWaiting([
+      { id: "tc-1", name: "write" },
+      { id: "tc-2", name: "write" },
+    ]);
+    await temp.store.updateResource(ApiResourceKind.run, RUN, RunSchema, (r) => {
+      r.status!.messages[0]!.toolCalls[0]!.approvalAction = ApprovalAction.APPROVE;
+      r.status!.messages[0]!.toolCalls[1]!.status = ToolCallStatus.TOOL_CALL_COMPLETED;
+    });
+    expect((await refusal(confirm(use("tc-1"), "allow"))).code).toBe(Code.FailedPrecondition);
+    expect((await refusal(confirm(use("tc-2"), "allow"))).code).toBe(Code.FailedPrecondition);
+  });
+
+  it("an engine that cannot be signalled is Unavailable; the answer stands", async () => {
+    await seedWaiting([{ id: "tc-1", name: "write" }]);
+    const d: SessionAnswerDeps = {
+      ...deps(),
+      engineState: () =>
+        ({
+          connected: true,
+          engine: stubConnectedEngine({ signalApprovalGateResolved: () => Promise.reject(new Error("timeout")) }),
+        }) as ExecutionEngineState,
+    };
+    expect((await refusal(confirm(use("tc-1"), "allow", "", d))).code).toBe(Code.Unavailable);
+    expect(callOf(await stored(), "tc-1")?.approvalAction).toBe(ApprovalAction.APPROVE);
+  });
+
+  it("a workflow that no longer runs fails the run; a fault saving that is logged and the refusal stands", async () => {
+    await seedWaiting([{ id: "tc-1", name: "write" }]);
+    const gone = stubConnectedEngine({
+      signalApprovalGateResolved: (runId) => Promise.reject(new EngineWorkflowNotFoundError(runId)),
+    });
+    const lines: string[] = [];
+    let writes = 0;
+    const d: SessionAnswerDeps = {
+      ...deps(),
+      logger: createLogger({ level: "error", pretty: false, write: (line) => void lines.push(line) }),
+      engineState: () => ({ connected: true, engine: gone }) as ExecutionEngineState,
+      store: faulty({
+        writeResourceAppendingEvents: ((...args: Parameters<Store["writeResourceAppendingEvents"]>) =>
+          // The answer's write lands; the reconcile's overwrite fails.
+          ++writes === 1
+            ? temp.store.writeResourceAppendingEvents(...args)
+            : Promise.reject(new Error("disk"))) as Store["writeResourceAppendingEvents"],
+      }),
+    };
+    expect((await refusal(confirm(use("tc-1"), "allow", "", d))).code).toBe(Code.FailedPrecondition);
+    expect(lines.join("")).toContain("Failed to reconcile stale execution status");
+    expect((await stored()).status?.phase).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
+  });
+});
+

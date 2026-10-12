@@ -370,7 +370,7 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
     },
   ],
   [
-    "the writer is handed the session's other waiting rows, and the open gates of those rows and of the written row, in log order",
+    "the writer is handed the session's other waiting rows, and the open gates of those rows and of the written row, in log order; another run's event never closes a gate",
     async ({ store }) => {
       const s = `ses_${unique()}`;
       const waiting = `run_a${unique()}`;
@@ -383,16 +383,22 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
       await store.sessionEvents.append(
         s,
         "org-kit",
-        [gate("w1", waiting, "opens", "use-w1"), gate("w2", waiting, "opens", "use-w2"), draft("plain", waiting)],
+        [
+          gate("w1", waiting, "opens", "use-w1"),
+          gate("w2", waiting, "opens", "use-w2"),
+          draft("plain", waiting),
+          draft("gated-but-says-nothing", waiting, GATED, "neither"),
+        ],
         runGuard(waiting),
       );
       await store.sessionEvents.append(s, "org-kit", [gate("f1", finished, "opens", "use-f1")], runGuard(finished));
       await store.sessionEvents.append(
         s,
         "org-kit",
-        [gate("r1", r, "opens", "use-r1"), gate("w1-closed", r, "closes", "use-w1")],
+        [gate("r1", r, "opens", "use-r1"), gate("w2-not-mine", r, "closes", "use-w2")],
         runGuard(r),
       );
+      await store.sessionEvents.append(s, "org-kit", [gate("w1-closed", waiting, "closes", "use-w1")], runGuard(waiting));
       const seen: Seen = {};
       await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [], seen);
       assert.deepEqual(seen.waiting, [waiting], "the other waiting rows, not a finished one nor another session's");
@@ -402,7 +408,7 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
           [waiting, "use-w2"],
           [r, "use-r1"],
         ],
-        "open gates of the waiting rows and of the written row, whatever its phase; a gate closed by any run's event is closed",
+        "open gates of the waiting rows and of the written row, whatever its phase; a gate is closed only by its own run's event",
       );
       assert.ok(seen.gates!.every((g, i, all) => i === 0 || all[i - 1]!.seq < g.seq), "in log order");
       await put(store, run(r, s, RunPhase.RUN_COMPLETED), [gate("r1-done", r, "closes", "use-r1")], seen);

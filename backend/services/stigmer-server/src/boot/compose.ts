@@ -233,8 +233,7 @@ import {
 import { createOrganizationNameInterceptor } from "../pipeline/interceptors/organization-names.js";
 import { newOrganizationNameResolver } from "../domain/organization/names.js";
 import { accountAsCaller } from "../domain/identityaccount/actor.js";
-import { accountForStamp } from "../domain/identityaccount/resolve.js";
-import { newStoppedTurnObserver } from "../domain/session/filereview/stopped-turn.js";
+import { newStoppedTurnObserver, undoDeciderCaller } from "../domain/session/filereview/stopped-turn.js";
 import { ensureSingleOrganization } from "./single-organization.js";
 import { operatorIdentitySnapshot } from "../pipeline/steps/defaults.js";
 import { createErrorBoundaryInterceptor } from "../pipeline/interceptors/error-boundary.js";
@@ -1116,13 +1115,7 @@ export async function composeServer(
   const stoppedTurnObserver = newStoppedTurnObserver({
     logger,
     reconcileTurns: () => requireInProcess().reconcileTurnCreator,
-    callerOf: async (deciderId) => {
-      if (personAccounts === undefined) {
-        return singleOrganizationCaller;
-      }
-      const account = await accountForStamp(personAccounts, deciderId);
-      return account === undefined ? undefined : accountAsCaller(account);
-    },
+    callerOf: undoDeciderCaller(personAccounts, () => singleOrganizationCaller),
   });
   const runStatusObservers = [...extensions.statusObservers, gradingObserver, stoppedTurnObserver];
   const runScores = newRunScoreCascade({

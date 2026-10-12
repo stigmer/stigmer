@@ -52,7 +52,7 @@ const CONTRACT_CASE_NAMES = [
   "a resource write commits the row with its events and hands the writer the committed row",
   "a resource write that throws commits neither the row nor its events",
   "the working count is the session's other working rows: not the row itself, not another session's, not a stopped one",
-  "the writer is handed the session's other waiting rows, and the open gates of those rows and of the written row, in log order",
+  "the writer is handed the session's other waiting rows, and the open gates of those rows and of the written row, in log order; another run's event never closes a gate",
   "a writer whose scope names no waiting key is handed no waiting rows and no gates",
   "the writer is handed the session's newest state event and its type, read under the lock",
   "the writer is handed the run of the session's newest event of a type only when its scope asks, and none when the session has no such event",

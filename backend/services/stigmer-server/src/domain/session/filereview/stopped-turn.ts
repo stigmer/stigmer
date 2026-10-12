@@ -28,6 +28,9 @@ import {
 
 import type { Logger } from "../../../boot/logger.js";
 import type { CallerIdentity } from "../../../extensions/identity.js";
+import { accountAsCaller } from "../../identityaccount/actor.js";
+import { accountForStamp } from "../../identityaccount/resolve.js";
+import type { AccountsByCaller } from "../../identityaccount/resolve.js";
 import type { RunStatusObserver } from "../../../extensions/status-hooks.js";
 import { isTerminalExecutionPhase } from "../../run/phases.js";
 import { startReconcileTurn } from "./decide.js";
@@ -38,6 +41,24 @@ export interface StoppedTurnObserverDeps
   readonly logger: Logger;
   /** The caller an undo's decider stands for; undefined when it names nobody this server knows. */
   readonly callerOf: (deciderId: string) => Promise<CallerIdentity | undefined>;
+}
+
+/**
+ * Who an undo's decider stands for: under sign-in, the account the decider's
+ * id names (undefined when it names none); on a laptop with no sign-in, the
+ * one operator every decision there was made by.
+ */
+export function undoDeciderCaller(
+  personAccounts: AccountsByCaller | undefined,
+  operator: () => CallerIdentity,
+): (deciderId: string) => Promise<CallerIdentity | undefined> {
+  return async (deciderId) => {
+    if (personAccounts === undefined) {
+      return operator();
+    }
+    const account = await accountForStamp(personAccounts, deciderId);
+    return account === undefined ? undefined : accountAsCaller(account);
+  };
 }
 
 /** The decider of the run's newest undo; undefined when its turn holds none. */

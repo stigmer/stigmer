@@ -16,7 +16,7 @@ import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { eventTypeOf } from "../catalog.js";
-import { sessionEventsForTransition, sessionIdOfRun } from "../transitions.js";
+import { sessionEventsForTransition, sessionIdOfRun, sessionStatusOf } from "../transitions.js";
 import type { RunTransition, SessionNow, SessionStatusNow } from "../transitions.js";
 
 const P = RunPhase;
@@ -295,6 +295,10 @@ describe("the events' identity", () => {
     expect(ids.every((id) => /^sevt_[0-9a-z]{26}$/.test(id))).toBe(true);
     expect(new Set(ids).size).toBe(ids.length);
     expect(events.every((e) => e.runId === "run_1" && e.threadId === "")).toBe(true);
+  });
+
+  it("only a status event states a status", () => {
+    expect(sessionStatusOf(eventsFor({ kind: "create", run: run(P.RUN_PENDING) })[0]!)).toBeUndefined();
   });
 
   it("a run's session is its session_id target; a run in none has none", () => {

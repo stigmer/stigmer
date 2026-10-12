@@ -115,14 +115,20 @@ function phaseOf(run: Run): RunPhase {
 
 /**
  * The session's open asks once `appending` is in the log: the context's
- * gates less those the write's own events close.
+ * gates less those the write's own events close (an event closes only its
+ * own run's ask).
  */
 export function gatesAfter(
   session: SessionEventContext,
   appending: ReadonlyArray<SessionEvent> = [],
 ): OpenSessionEventGate[] {
-  const closing = new Set(appending.map((event) => gatesOfEvent(event).closes).filter((id) => id !== ""));
-  return session.gates.filter((gate) => !closing.has(gate.toolUseId));
+  const closing = new Set(
+    appending
+      .map((event) => ({ runId: event.runId, closes: gatesOfEvent(event).closes }))
+      .filter((c) => c.closes !== "")
+      .map((c) => `${c.runId}\u0000${c.closes}`),
+  );
+  return session.gates.filter((gate) => !closing.has(`${gate.runId}\u0000${gate.toolUseId}`));
 }
 
 /** The open asks of one run, by tool use id, once `appending` is in the log. */

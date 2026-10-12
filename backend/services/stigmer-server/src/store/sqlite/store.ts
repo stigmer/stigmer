@@ -2501,9 +2501,6 @@ function openGatesOfRuns(
   sessionId: string,
   runIds: ReadonlyArray<string>,
 ): OpenSessionEventGate[] {
-  if (runIds.length === 0) {
-    return [];
-  }
   const opened = db
     .prepare(
       `SELECT run_id, opens_gate, seq FROM session_events
@@ -2514,13 +2511,12 @@ function openGatesOfRuns(
     return [];
   }
   const closedBy = db.prepare(
-    `SELECT 1 AS one FROM session_events WHERE session_id = ? AND closes_gate = ? LIMIT 1`,
+    `SELECT 1 AS one FROM session_events
+     WHERE session_id = ? AND closes_gate = ? AND run_id = ? LIMIT 1`,
   );
-  const closed = new Set(
-    opened
-      .map((row) => row.opens_gate)
-      .filter((toolUseId) => closedBy.get(sessionId, toolUseId) !== undefined),
-  );
+  const closed = opened
+    .filter((row) => closedBy.get(sessionId, row.opens_gate, row.run_id) !== undefined)
+    .map((row) => ({ runId: row.run_id, toolUseId: row.opens_gate }));
   return openGatesOf(
     opened.map((row) => ({ runId: row.run_id, toolUseId: row.opens_gate, seq: Number(row.seq) })),
     closed,
