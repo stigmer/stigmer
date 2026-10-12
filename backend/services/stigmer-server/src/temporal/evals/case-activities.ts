@@ -19,10 +19,14 @@
  *     edition's billing gate, every denial FAILED_PRECONDITION naming
  *     credits) is "out-of-credit"; any other refusal is its own message;
  *     a session left by a refused run is deleted. A caller the seam refuses is "cannot-act", with the
- *     refusal's own not-graded reason when it names one. A try
- *     whose plugin has moved past the eval's digest is not started: the
+ *     refusal's own not-graded reason when it names one. A plugin eval's
+ *     try whose plugin has moved past the eval's digest is not started: the
  *     with-plugin arm runs the plugin as installed now, so it would grade
- *     a newer plugin against the eval's suite (PLUGIN_UPDATED_REASON).
+ *     a newer plugin against the eval's suite (PLUGIN_UPDATED_REASON). An
+ *     agent eval's try runs the agent at its stamped version with every
+ *     plugin at its stamped digest, the case's own plugin and the others
+ *     (context.ts attachmentOf), whatever moved since; the other plugins'
+ *     servers are off (otherServersOf). Its default target names no model.
  *   - poll-run, stop-run: whether a run is still waiting for a runner,
  *     running (with its start stamp), or ended; stop one, a run already
  *     ended or gone being fine. A stop the run's lifecycle refuses is
@@ -80,10 +84,6 @@ import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
-import {
-  armAttachment,
-  pluginAttachmentFacts,
-} from "../../domain/plugin-eval/arm.js";
 import { gradeChecks } from "../../domain/plugin-eval/graders/grade.js";
 import {
   describeVoteAnswer,
@@ -140,8 +140,17 @@ import type { PluginEvalCallerMint } from "../../extensions/plugin-eval-caller.j
 import { PluginEvalCallerRefusedError } from "../../extensions/plugin-eval-caller.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import type { Store } from "../../store/interface.js";
-import type { EvalContext, EvalContextLoader } from "./context.js";
-import { cellOf, loadRun, pluginNameOf, wantedFilesOf } from "./context.js";
+import type { EvalCaseSource, EvalContextLoader } from "./context.js";
+import {
+  attachmentOf,
+  cellOf,
+  loadRun,
+  otherServersOf,
+  pluginNameOf,
+  sourceOf,
+  specOf,
+  wantedFilesOf,
+} from "./context.js";
 import {
   CANNOT_ACT_REASON,
   DELETE_VOTE_ACTIVITY_NAME,
@@ -243,16 +252,16 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
 
   /** The try's trace, in Claude Code's names. */
   const traceOf = async (
-    context: EvalContext,
+    source: EvalCaseSource,
     run: Run,
     graders: ReadonlyArray<EvalGrader>,
     harness: Harness,
   ): Promise<EvalTrace> =>
     evalTraceOf(run, {
-      pluginName: pluginNameOf(context.plugin),
+      pluginName: pluginNameOf(source.plugin),
       harness,
       wantedFiles: wantedFilesOf(graders),
-      skillNames: new Map((context.plugin.status?.skills ?? []).map((skill) => [skill.path, skill.name])),
+      skillNames: new Map((source.plugin.status?.skills ?? []).map((skill) => [skill.path, skill.name])),
       readArtifact:
         deps.readArtifact ??
         (() => Promise.reject(new Error(NO_ARTIFACT_STORAGE))),
@@ -265,7 +274,8 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         context === undefined
           ? undefined
           : cellOf(context, input.caseIndex, input.targetIndex);
-      if (context === undefined || cell === undefined) {
+      const source = context === undefined ? undefined : sourceOf(context, input.caseIndex);
+      if (context === undefined || cell === undefined || source === undefined) {
         return {
           kind: "refused",
           failure: "not-started",
@@ -296,7 +306,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           reason: caller.cannotAct,
         };
       }
-      const spec = context.pluginEval.spec;
+      const spec = specOf(context);
       if (spec === undefined) {
         return {
           kind: "refused",
@@ -304,14 +314,13 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           reason: TRY_UNPLANNED_REASON,
         };
       }
-      if ((context.plugin.status?.digest ?? "") !== context.digest) {
+      if (context.kind === "plugin" && (context.plugin.status?.digest ?? "") !== context.digest) {
         return {
           kind: "refused",
           failure: "not-started",
           reason: PLUGIN_UPDATED_REASON,
         };
       }
-      const facts = pluginAttachmentFacts(context.plugin, context.digest);
       let session;
       try {
         session = await deps.tries().createSession(
@@ -322,7 +331,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
             attempt: attempt(),
             caseName: cell.evalCase.name,
             harness: cell.target.target.harness,
-            attachment: armAttachment(input.arm, facts),
+            attachment: attachmentOf(context, input.arm, source),
           }),
           caller,
         );
@@ -340,15 +349,16 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         sessionId,
         evalCase: cell.evalCase,
         spec,
-        modelName: cell.target.target.modelName,
+        modelName: cell.target.runsAgentModel === true ? "" : cell.target.target.modelName,
         budgetUsd: input.budgetUsd,
-        pluginServers: pluginServersOf(context.plugin),
+        pluginServers: pluginServersOf(source.plugin),
+        otherServers: otherServersOf(context, input.caseIndex),
         arm: input.arm,
         source: {
-          pluginId: spec.pluginId,
-          pluginName: context.plugin.metadata?.name ?? "",
-          digest: context.digest,
-          suiteDir: context.suite.dir,
+          pluginId: source.plugin.metadata?.id ?? "",
+          pluginName: source.plugin.metadata?.name ?? "",
+          digest: source.digest,
+          suiteDir: source.suite.dir,
         },
       });
       try {
@@ -384,8 +394,9 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         context === undefined
           ? undefined
           : cellOf(context, input.caseIndex, input.targetIndex);
+      const source = context === undefined ? undefined : sourceOf(context, input.caseIndex);
       const run = await loadRun(deps.store, runId);
-      if (context === undefined || cell === undefined || run === undefined) {
+      if (context === undefined || cell === undefined || source === undefined || run === undefined) {
         return {
           outcomes: [{ notGraded: TRY_GONE_REASON }],
           error: "",
@@ -413,7 +424,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         };
       }
       const trace = await traceOf(
-        context,
+        source,
         run,
         graders,
         cell.target.target.harness,
@@ -442,7 +453,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         }
         if (grader.check.type === "baseline") {
           const reference = referenceTranscript(
-            context.files,
+            source.files,
             cell.evalCase.dir,
             grader.check.baselineFile,
           );
@@ -472,10 +483,12 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           ? undefined
           : cellOf(context, input.caseIndex, input.targetIndex);
       const grader = cell?.evalCase.graders[graderIndex];
+      const source = context === undefined ? undefined : sourceOf(context, input.caseIndex);
       const run = await loadRun(deps.store, runId);
       if (
         context === undefined ||
         cell === undefined ||
+        source === undefined ||
         grader === undefined ||
         run === undefined ||
         !isJudgedGrader(grader)
@@ -493,7 +506,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         return { kind: "started", voteRunId: existing };
       }
       const trace = await traceOf(
-        context,
+        source,
         run,
         cell.evalCase.graders,
         cell.target.target.harness,
@@ -509,7 +522,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
       let reference: string | undefined;
       if (grader.check.type === "baseline") {
         const rendered = referenceTranscript(
-          context.files,
+          source.files,
           cell.evalCase.dir,
           grader.check.baselineFile,
         );
@@ -550,7 +563,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         sessionId,
         graderIndex,
         voteIndex,
-        judgeModel: context.pluginEval.spec?.judgeModel ?? "",
+        judgeModel: specOf(context)?.judgeModel ?? "",
         message: voteMessage({
           rubric,
           check: grader.check,
@@ -645,6 +658,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         context === undefined
           ? undefined
           : cellOf(context, input.caseIndex, input.targetIndex);
+      const source = context === undefined ? undefined : sourceOf(context, input.caseIndex);
       const base = {
         sessionId: started.sessionId,
         runId: started.runId,
@@ -652,7 +666,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         costUsd: grade.costUsd,
         durationSeconds: grade.durationSeconds,
       };
-      if (context === undefined || cell === undefined) {
+      if (context === undefined || cell === undefined || source === undefined) {
         return {
           ...base,
           state: "not-graded",
@@ -667,7 +681,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         const { stopped } = grade;
         if (run !== undefined) {
           await writeScore(deps, run, () =>
-            stoppedEvalScore(run, context.digest, graders, stoppedWhy(stopped)),
+            stoppedEvalScore(run, source.digest, graders, stoppedWhy(stopped)),
           );
         }
         return {
@@ -698,7 +712,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
       if (failed !== undefined) {
         if (run !== undefined) {
           await writeScore(deps, run, () =>
-            notGradedEvalScore(run, context.digest, failed.notGraded),
+            notGradedEvalScore(run, source.digest, failed.notGraded),
           );
         }
         return {
@@ -715,7 +729,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
       );
       if (run !== undefined) {
         await writeScore(deps, run, () =>
-          gradedEvalScore(run, context.digest, {
+          gradedEvalScore(run, source.digest, {
             graders,
             scoring,
             verdicts,

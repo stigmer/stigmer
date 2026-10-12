@@ -3,6 +3,7 @@
   "pages": [
     "agent",
     "agent-channel",
+    "agent-eval",
     "agent-share",
     "api-key",
     "channel-app",

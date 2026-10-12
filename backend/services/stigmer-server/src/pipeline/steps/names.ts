@@ -131,6 +131,7 @@ export const NAMED_KINDS: Readonly<Record<ApiResourceKind, NamedKind>> = {
   [ApiResourceKind.score]: CLAIMS,
   [ApiResourceKind.evaluator]: CLAIMS,
   [ApiResourceKind.plugin_eval]: CLAIMS,
+  [ApiResourceKind.agent_eval]: CLAIMS,
   [ApiResourceKind.plan]: {
     claims: false,
     reason:
@@ -428,24 +429,38 @@ export function newReleaseNamesStep<Desc extends DescMessage>(
           "failed to release the resource's names",
         );
       }
-      try {
-        await store.resourceNames.release(
-          kindEnumName(kind),
-          metadata?.org ?? "",
-          id,
-        );
-      } catch (error) {
-        logger.error(
-          "resource deleted but its names could not be released; a later claim frees them",
-          {
-            kind: kindEnumName(kind),
-            id,
-            error: error instanceof Error ? error.message : String(error),
-          },
-        );
-      }
+      await releaseNamesOfDeleted(store, logger, kind, metadata?.org ?? "", id);
     },
   };
+}
+
+/**
+ * Lets go of every name a deleted resource held in its kind and
+ * organization, after its row is gone: what ReleaseNames does, for the
+ * cascades that delete a resource's rows outside its delete chain (an
+ * agent's shares and evaluators, a plugin's or an agent's evals).
+ * Best-effort: the resource is gone, so a fault is logged and the next
+ * claim of the name frees it.
+ */
+export async function releaseNamesOfDeleted(
+  store: NameTable,
+  logger: Logger,
+  kind: ApiResourceKind,
+  org: string,
+  id: string,
+): Promise<void> {
+  try {
+    await store.resourceNames.release(kindEnumName(kind), org, id);
+  } catch (error) {
+    logger.error(
+      "resource deleted but its names could not be released; a later claim frees them",
+      {
+        kind: kindEnumName(kind),
+        id,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
+  }
 }
 
 /** The id `slug` names in the kind and organization at `now`, or undefined when nothing holds it. */

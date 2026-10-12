@@ -11,6 +11,7 @@
     "composer",
     "---Agents---",
     "agent",
+    "agent-eval",
     "sharing",
     "channel",
     "channel-app",

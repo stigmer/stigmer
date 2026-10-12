@@ -1,0 +1,36 @@
+{
+  "name": "PluginEvalTarget",
+  "description": "PluginEvalTarget is one engine and model a case runs on.",
+  "protoType": "ai.stigmer.agentic.plugineval.v1.PluginEvalTarget",
+  "protoFile": "apis/ai/stigmer/agentic/plugineval/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Harness",
+      "jsonName": "harness",
+      "protoField": "harness",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.Harness",
+        "enumValues": [
+          "HARNESS_NATIVE",
+          "HARNESS_CURSOR"
+        ]
+      },
+      "description": "The engine. Unspecified is the native engine.",
+      "required": false
+    },
+    {
+      "name": "ModelName",
+      "jsonName": "modelName",
+      "protoField": "model_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "A model id from the model catalog for that engine, as in\n \"claude-sonnet-4-6\". Empty uses the engine's default model.",
+      "required": false,
+      "validation": {
+        "maxLength": 128
+      }
+    }
+  ]
+}

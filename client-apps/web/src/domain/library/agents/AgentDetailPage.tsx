@@ -21,6 +21,7 @@ import {
   useRouteDetailYieldsToOverlay,
 } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
+import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { getAgentSessionUrl } from "@/domain/session/session-url";
 import { shareUrlFor } from "@/domain/sharing/share-url";
 import { AGENT_DELETE_DESCRIPTION } from "@/domain/library/agents/agent-delete-confirmation";
@@ -48,6 +49,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const router = useRouter();
   const { setLabel } = useBreadcrumbOverride();
   const { navigateToDetail } = useLibraryNavigation();
+  const { navigateToRun } = useRunNavigation();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Agent");
   const { copyId, copyQualifiedSlug } = useCopyResource();
@@ -195,6 +197,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         onAgentClick={({ org: o, slug: s }) =>
           navigateToDetail("agents", o, s)
         }
+        onNavigateToRun={navigateToRun}
         editable
         primaryAction={primaryAction}
         actions={actions}

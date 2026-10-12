@@ -1380,6 +1380,7 @@
               }
             ]
           },
+          "org_viewer": {},
           "organization": {
             "directly_related_user_types": [
               {
@@ -1483,6 +1484,27 @@
             ]
           }
         },
+        "org_viewer": {
+          "intersection": {
+            "child": [
+              {
+                "computedUserset": {
+                  "relation": "viewer"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "affiliated"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
         "organization": {
           "this": {}
         },
@@ -1563,6 +1585,68 @@
         }
       },
       "type": "agent"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "agent": {
+            "directly_related_user_types": [
+              {
+                "type": "agent"
+              }
+            ]
+          },
+          "can_delete": {},
+          "can_edit": {},
+          "can_view": {},
+          "viewer": {}
+        },
+        "source_info": {
+          "file": "agentic/agent_eval.fga"
+        }
+      },
+      "relations": {
+        "agent": {
+          "this": {}
+        },
+        "can_delete": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "can_edit"
+            },
+            "tupleset": {
+              "relation": "agent"
+            }
+          }
+        },
+        "can_edit": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "can_edit"
+            },
+            "tupleset": {
+              "relation": "agent"
+            }
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "viewer": {
+          "tupleToUserset": {
+            "computedUserset": {
+              "relation": "org_viewer"
+            },
+            "tupleset": {
+              "relation": "agent"
+            }
+          }
+        }
+      },
+      "type": "agent_eval"
     },
     {
       "metadata": {
@@ -2673,6 +2757,13 @@
       "metadata": {
         "module": "agentic",
         "relations": {
+          "agent_eval": {
+            "directly_related_user_types": [
+              {
+                "type": "agent_eval"
+              }
+            ]
+          },
           "can_create_run_in": {},
           "can_delete": {},
           "can_edit": {},
@@ -2734,6 +2825,9 @@
         }
       },
       "relations": {
+        "agent_eval": {
+          "this": {}
+        },
         "can_create_run_in": {
           "computedUserset": {
             "relation": "participant"
@@ -2789,6 +2883,16 @@
                   },
                   "tupleset": {
                     "relation": "plugin_eval"
+                  }
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "viewer"
+                  },
+                  "tupleset": {
+                    "relation": "agent_eval"
                   }
                 }
               }

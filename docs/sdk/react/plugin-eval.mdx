@@ -185,6 +185,49 @@ evals with their results, and Compare.
 
 ## Types
 
+### ALLOW_TOOL_PATTERN
+
+An entry an eval's `allow_tools` accepts.
+
+
+### allowToolsProblem
+
+Why a list of allowed tools would be refused, in a sentence; `null` when it would not.
+
+```tsx
+function allowToolsProblem(tools: readonly string[]): string | null
+```
+
+
+### caseSourceRowsOf
+
+A case list's results, one row per case, one cell per target column.
+
+```tsx
+function caseSourceRowsOf(source: EvalCaseSource): readonly EvalCaseRow[]
+```
+
+
+### caseSourceTargetLabelsOf
+
+The targets a case list's table has a column for: the spec's, then any a case adds, in order.
+
+```tsx
+function caseSourceTargetLabelsOf(source: EvalCaseSource): readonly string[]
+```
+
+
+### compareCaseSources
+
+Two case lists, case by case and target by target, `before` first, by
+[`compareEvals`](#compareevals)'s rules: one plugin's cases in two agent evals, or
+two plugin evals' cases.
+
+```tsx
+function compareCaseSources(before: EvalCaseSource, after: EvalCaseSource): readonly EvalCompareRow[]
+```
+
+
 ### compareEvals
 
 Two evals of a plugin, case by case and target by target, `before`
@@ -245,6 +288,31 @@ function evalCaseRowsOf(pluginEval: PluginEval): readonly EvalCaseRow[]
 ```
 
 
+### EvalCaseSource
+
+A list of cases with their results, as a results table reads it: a
+plugin eval's cases, or one plugin's block of an agent eval, with the
+targets the eval's spec names and the eval's phase (which says what a
+try not finished is).
+
+<TypeTable
+  type={{
+    cases: { type: "readonly PluginEvalCase[]", description: "", required: true },
+    phase: { type: "PluginEvalPhase", description: "", required: true },
+    targets: { type: "readonly PluginEvalTarget[]", description: "", required: true },
+  }}
+/>
+
+
+### evalCaseSourceOf
+
+A plugin eval's cases as a [`EvalCaseSource`](#evalcasesource).
+
+```tsx
+function evalCaseSourceOf(pluginEval: PluginEval): EvalCaseSource
+```
+
+
 ### EvalCompareRow
 
 One case on one target, in two evals.
@@ -277,7 +345,7 @@ One side of a comparison: a case's score and difference on one target.
 Why the settings cannot start an eval, in a sentence; `null` when they can.
 
 ```tsx
-function evalFormProblem(settings: EvalFormSettings): string | null
+function evalFormProblem(settings: EvalRunSettings): string | null
 ```
 
 
@@ -287,7 +355,7 @@ The Run evals form's settings.
 
 <TypeTable
   type={{
-    caseModels: { type: "boolean", description: "Run each case on its own `model`, sending no targets; `targets` is kept for when this is off.", required: true },
+    caseModels: { type: "boolean", description: "Send no targets; `targets` is kept for when this is off. A plugin eval then runs each case on its own `model`, an agent eval runs the agent as it runs (its own engine and model).", required: true },
     compare: { type: "boolean", description: "Also run every case without the plugin, for the difference it makes.", required: true },
     concurrency: { type: "number", description: "", required: true },
     maxCostUsd: { type: "number", description: "", required: true },
@@ -317,7 +385,7 @@ id when it carries no start. `formatTime` defaults to the reader's
 locale.
 
 ```tsx
-function evalLabelOf(pluginEval: PluginEval, pluginName: string, formatTime: (at: Date) => string): string
+function evalLabelOf(pluginEval: EvalResourceLike, pluginName: string, formatTime: (at: Date) => string): string
 ```
 
 
@@ -333,12 +401,50 @@ The plugin an eval is started for.
 />
 
 
+### EvalResourceLike
+
+The parts of an eval resource the list and its label read: a plugin eval or an agent eval.
+
+<TypeTable
+  type={{
+    metadata: { type: "{ id: string }", description: "" },
+    status: { type: "{ audit?: ApiResourceAudit; phase: PluginEvalPhase }", description: "" },
+  }}
+/>
+
+
+### EvalRunSettings
+
+The settings every eval form has: which models, how many tries, the
+cost limit and tries at once. A plugin eval's form adds the comparison
+([`EvalFormSettings`](#evalformsettings)); an agent eval's adds its plugins and tools.
+
+<TypeTable
+  type={{
+    caseModels: { type: "boolean", description: "Send no targets; `targets` is kept for when this is off. A plugin eval then runs each case on its own `model`, an agent eval runs the agent as it runs (its own engine and model).", required: true },
+    concurrency: { type: "number", description: "", required: true },
+    maxCostUsd: { type: "number", description: "", required: true },
+    runs: { type: "number", description: "Tries per case, arm and target; 0 is each case's own `runs`.", required: true },
+    targets: { type: "readonly EvalFormTarget[]", description: "", required: true },
+  }}
+/>
+
+
 ### evalTargetLabelsOf
 
 The targets an eval's table has a column for, in order.
 
 ```tsx
 function evalTargetLabelsOf(pluginEval: PluginEval): readonly string[]
+```
+
+
+### evalTargetsOf
+
+The targets the settings send: none while `caseModels` is on, else each model picked.
+
+```tsx
+function evalTargetsOf(settings: EvalRunSettings): PluginEvalTargetInput[]
 ```
 
 
@@ -354,6 +460,11 @@ One try, as a cell's link lists it.
     summary: { type: "string", description: "\"1.00\", \"0.00 · aborted by tracker.create_issue: …\", \"not graded: platform busy\", \"waiting or running\", \"waiting\", \"not run\".", required: true },
   }}
 />
+
+
+### MAX_ALLOW_TOOLS
+
+The most tools an eval's allowed list names.
 
 
 ### MAX_EVAL_CONCURRENCY
@@ -374,6 +485,17 @@ The most tries per case, arm and target.
 ### MAX_EVAL_TARGETS
 
 The most targets an eval runs on.
+
+
+### parseAllowTools
+
+The allowed tools a person typed, one per line or comma-separated; a
+comma inside a specifier's parentheses, as in `Bash(git log, *)`, stays
+part of the name. Blank entries are dropped.
+
+```tsx
+function parseAllowTools(text: string): string[]
+```
 
 
 ### PLUGIN_EVAL_POLL_MS

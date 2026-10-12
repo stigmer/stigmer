@@ -7,6 +7,7 @@ import "github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 // Resource clients -- one per API resource.
 type AgentClient = gen.AgentClient
 type AgentChannelClient = gen.AgentChannelClient
+type AgentEvalClient = gen.AgentEvalClient
 type AgentShareClient = gen.AgentShareClient
 type ApiKeyClient = gen.ApiKeyClient
 type ChannelAppClient = gen.ChannelAppClient
@@ -47,6 +48,8 @@ type RunConfigInput = gen.RunConfigInput
 type AgentChannelInput = gen.AgentChannelInput
 type SlackChannelConfigInput = gen.SlackChannelConfigInput
 type WhatsAppChannelConfigInput = gen.WhatsAppChannelConfigInput
+type AgentEvalInput = gen.AgentEvalInput
+type PluginEvalTargetInput = gen.PluginEvalTargetInput
 type AgentShareInput = gen.AgentShareInput
 type AgentShareMessagesInput = gen.AgentShareMessagesInput
 type ApiKeyInput = gen.ApiKeyInput
@@ -76,7 +79,6 @@ type PlatformClientInput = gen.PlatformClientInput
 type PluginInput = gen.PluginInput
 type PluginAuthorInput = gen.PluginAuthorInput
 type PluginEvalInput = gen.PluginEvalInput
-type PluginEvalTargetInput = gen.PluginEvalTargetInput
 type RunInput = gen.RunInput
 type SessionSpecInput = gen.SessionSpecInput
 type WorkspaceEntryInput = gen.WorkspaceEntryInput

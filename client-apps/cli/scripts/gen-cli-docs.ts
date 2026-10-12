@@ -90,6 +90,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   mcp: "artifact",
   download: "artifact",
   plugin: "artifact",
+  agent: "artifact",
   // Server
   "mcp-server": "server",
   // Configuration

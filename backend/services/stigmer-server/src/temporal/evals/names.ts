@@ -1,7 +1,9 @@
 /**
- * Plugin evals' Temporal wire identifiers. Every value is a byte-pinned
- * wire constant from its first commit: a workflow in flight across a
- * release is addressed by these exact strings, and a rename strands it.
+ * Evals' Temporal wire identifiers, a plugin eval's and an agent eval's,
+ * which share every activity and the case workflow. Every value is a
+ * byte-pinned wire constant from its first commit: a workflow in flight
+ * across a release is addressed by these exact strings, and a rename
+ * strands it.
  *
  * Imported by BOTH the workflow bundle and host code: no node built-ins,
  * no framework imports (the workflow-bundle import discipline,
@@ -24,12 +26,31 @@ export interface RunPluginEvalInput {
   readonly evalId: string;
 }
 
+/**
+ * An agent eval's suite workflow's registered type: one AgentEval, run
+ * whole. The same workflow function as a plugin eval's, registered under a
+ * second type (workflows/index.ts) so the engine's history says what runs.
+ */
+export const RUN_AGENT_EVAL_WORKFLOW_TYPE = "stigmer/evals/run-agent-eval";
+
+/** An agent eval's suite workflow id, `agent-eval/<eval id>`. */
+export function runAgentEvalWorkflowId(evalId: string): string {
+  return `${AGENT_EVAL_CASE_WORKFLOW_PREFIX}/${evalId}`;
+}
+
+/** The prefix of a plugin eval's workflow ids, its suite's and its tries'. */
+export const PLUGIN_EVAL_CASE_WORKFLOW_PREFIX = "plugin-eval";
+
+/** The prefix of an agent eval's workflow ids, its suite's and its tries'. */
+export const AGENT_EVAL_CASE_WORKFLOW_PREFIX = "agent-eval";
+
 /** The case workflow's registered type: one try, started, polled, graded. */
 export const RUN_CASE_WORKFLOW_TYPE = "stigmer/evals/run-case";
 
 /**
  * A try's workflow id, unique per eval and cell:
- * `plugin-eval/<eval id>/<case index>/<target index>/<arm>/<try index>`.
+ * `<prefix>/<eval id>/<case index>/<target index>/<arm>/<try index>`, the
+ * prefix `plugin-eval` or `agent-eval` (the suite's plan names it).
  */
 export function runCaseWorkflowId(
   evalId: string,
@@ -37,8 +58,9 @@ export function runCaseWorkflowId(
   targetIndex: number,
   arm: "with" | "without",
   tryIndex: number,
+  prefix: string = PLUGIN_EVAL_CASE_WORKFLOW_PREFIX,
 ): string {
-  return `plugin-eval/${evalId}/${caseIndex}/${targetIndex}/${arm}/${tryIndex}`;
+  return `${prefix}/${evalId}/${caseIndex}/${targetIndex}/${arm}/${tryIndex}`;
 }
 
 /**
@@ -178,6 +200,12 @@ export type SuitePlan =
       readonly cells: ReadonlyArray<SuiteCell>;
       readonly maxCostUsd: number;
       readonly concurrency: number;
+      /**
+       * The prefix of the tries' workflow ids (runCaseWorkflowId). Absent in
+       * a plan recorded before agent evals, which the workflow reads as a
+       * plugin eval's, so a replayed history computes the same ids.
+       */
+      readonly caseWorkflowPrefix?: string;
     }
   | { readonly kind: "stop" };
 

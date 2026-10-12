@@ -1321,6 +1321,48 @@ makes.
 
 ---
 
+#### Agent Eval
+
+One run of an Agent on the test cases of the plugins it uses: each plugin's
+cases, at the version the Agent uses, are tried several times on the Agent
+itself, on its own model or on the models the eval names. The eval is stamped
+with the Agent's version, so two versions of the Agent compare side by side.
+
+- **User-facing alternative**: "eval" in prose ("run the Agent's evals", "an
+  eval of the support Agent"). The cases stay the plugins' "test cases".
+- **Capitalize**: As the resource name in labels and reference pages
+  (`kind: AgentEval`, display name "Agent Eval"). In prose say "eval" or "Agent
+  eval" in lower case.
+- **API surface**: `kind: AgentEval`, prefix `aev`. proto:
+  `agentic/agenteval/v1/spec.proto`. Started from the Agent's Evals tab in the
+  console or with `stigmer agent eval`; there is no `apply`, no update and no
+  manifest. CLI:
+
+  ```bash
+  stigmer agent eval <agent>[@version]
+  stigmer agent eval cancel <id>
+  stigmer get agent-eval <id>
+  stigmer delete agent-eval <id>
+  ```
+
+- **Key fields**: `agent_id`, `agent_version` (the version evaluated, stamped as
+  its hash), `plugins` (to run only some of the Agent's plugins), `targets`,
+  `runs`, `threshold`, `allow_tools`, `max_cost_usd`, and the status's `phase`,
+  `agent_version_hash`, one block per plugin with the version its tries ran and
+  its cases' results, `aggregates` and `cost_usd`.
+- **Boundaries**: a Plugin Eval measures a plugin on the built-in assistant,
+  with and without it; an Agent Eval measures an Agent on its plugins' cases,
+  with one arm and no comparison. An Agent has no test cases of its own: the
+  criteria stay in the plugins' `evals/` folders.
+- **Note**: the Agent's editors start, cancel and delete its evals; its viewers
+  in its own Organization read them. The Agent's Organization pays for every
+  try.
+- **Editions**: in Stigmer Cloud every viewer of the Agent in its Organization
+  opens each try's conversation, read-only. In open source the tries belong to
+  the eval's creator.
+
+---
+
 #### Try
 
 One run of one test case in a plugin eval, in a fresh conversation of its own:

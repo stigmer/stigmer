@@ -1,0 +1,118 @@
+/**
+ * Pins an agent eval's context (agent-context.ts), over a real store and a
+ * real suite read by `readEvalSuite`:
+ *
+ *   - a stamped eval reads the agent at its version and the plugin at its
+ *     stamped digest, with the agent as it runs for its default target;
+ *   - the loader answers undefined for an eval stored with no spec, and
+ *     for an eval one of whose stamped plugin versions is gone, reading no
+ *     suite, so a try has nothing it may run as stamped;
+ *   - a store fault reading the agent's version is thrown, never taken for
+ *     a version gone, so the activity is retried.
+ */
+import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+
+import type { Store } from "../../../store/interface.js";
+import { tempStore } from "../../../store/sqlite/__tests__/support.js";
+import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
+import { newEvalContextLoader } from "../context.js";
+import {
+  AGENT_EVAL_ID,
+  AGENT_HASH,
+  DIGEST,
+  MODEL,
+  ORG,
+  catalog,
+  seedAgent,
+  seedAgentEval,
+  seedPlugin,
+  suiteSource,
+} from "./support.js";
+
+let temp: TempStore;
+
+beforeEach(() => {
+  temp = tempStore();
+});
+
+afterEach(async () => {
+  await temp.cleanup();
+});
+
+function loader(source: ReturnType<typeof suiteSource> = suiteSource(), store: Store = temp.store) {
+  return newEvalContextLoader({ store, suites: source, catalog });
+}
+
+/** A store whose reads of `kind` fail with a fault that is not "not found". */
+function faultyReadsOf(kind: ApiResourceKind): Store {
+  return new Proxy(temp.store, {
+    get(target, property, receiver) {
+      if (property === "getResource") {
+        const read: Store["getResource"] = (readKind, id, schema) =>
+          readKind === kind
+            ? Promise.reject(new Error("the database is unreachable"))
+            : target.getResource(readKind, id, schema);
+        return read;
+      }
+      const value: unknown = Reflect.get(target, property, receiver);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+describe("an agent eval's context", () => {
+  it("reads the agent at its version and each plugin at its stamped digest", async () => {
+    await seedAgent(temp.store);
+    await seedPlugin(temp.store);
+    await seedAgentEval(temp.store);
+    const source = suiteSource();
+    const context = await loader(source)(AGENT_EVAL_ID);
+    expect(context?.kind).toBe("agent");
+    if (context?.kind !== "agent") return;
+    expect(context.agent).toEqual({ org: ORG, slug: "support-desk", versionHash: AGENT_HASH });
+    expect(context.sources.map((entry) => [entry.digest, entry.pluginIndex])).toEqual([[DIGEST, 0]]);
+    expect(context.matrix.cases[0]?.targets[0]?.target).toMatchObject({ harness: Harness.NATIVE, modelName: MODEL });
+    expect(source.reads).toBe(1);
+  });
+
+  it("is undefined for an eval stored with no spec, reading no suite", async () => {
+    await seedAgent(temp.store);
+    await seedPlugin(temp.store);
+    await temp.store.saveResource(
+      ApiResourceKind.agent_eval,
+      AGENT_EVAL_ID,
+      AgentEvalSchema,
+      create(AgentEvalSchema, { metadata: { id: AGENT_EVAL_ID, org: ORG, name: AGENT_EVAL_ID } }),
+    );
+    const source = suiteSource();
+    expect(await loader(source)(AGENT_EVAL_ID)).toBeUndefined();
+    expect(source.reads).toBe(0);
+  });
+
+  it("is undefined when a stamped plugin version is gone, reading no suite", async () => {
+    await seedAgent(temp.store);
+    await seedPlugin(temp.store);
+    await seedAgentEval(temp.store, { pluginDigest: "9".repeat(64) });
+    const source = suiteSource();
+    expect(await loader(source)(AGENT_EVAL_ID)).toBeUndefined();
+    expect(source.reads).toBe(0);
+  });
+
+  it("throws a store fault reading the agent's version rather than answering it gone", async () => {
+    await seedAgent(temp.store);
+    await seedPlugin(temp.store);
+    await seedAgentEval(temp.store);
+    const thrown = await loader(suiteSource(), faultyReadsOf(ApiResourceKind.agent))(AGENT_EVAL_ID).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(thrown).toBeInstanceOf(ConnectError);
+    expect(ConnectError.from(thrown).code).toBe(Code.Internal);
+  });
+});

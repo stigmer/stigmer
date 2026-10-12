@@ -6,7 +6,6 @@ import (
 	"context"
 
 	pluginevalv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/plugineval/v1"
-	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
@@ -87,12 +86,6 @@ type PluginEvalInput struct {
 	AllowRealServers bool
 }
 
-// PluginEvalTargetInput is the SDK input type for PluginEvalTarget.
-type PluginEvalTargetInput struct {
-	Harness   sessionv1.Harness
-	ModelName string
-}
-
 func (i *PluginEvalInput) toProto() (*pluginevalv1.PluginEval, error) {
 	resource := &pluginevalv1.PluginEval{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -139,13 +132,6 @@ func (i *PluginEvalInput) toProto() (*pluginevalv1.PluginEval, error) {
 	return resource, nil
 }
 
-func (i *PluginEvalTargetInput) toProto() (*pluginevalv1.PluginEvalTarget, error) {
-	return &pluginevalv1.PluginEvalTarget{
-		Harness:   i.Harness,
-		ModelName: i.ModelName,
-	}, nil
-}
-
 // PluginEvalInputFromProto creates a PluginEvalInput from a proto PluginEval resource.
 func PluginEvalInputFromProto(p *pluginevalv1.PluginEval) *PluginEvalInput {
 	if p == nil {
@@ -182,15 +168,5 @@ func PluginEvalInputFromProto(p *pluginevalv1.PluginEval) *PluginEvalInput {
 		input.AllowRealServers = s.GetAllowRealServers()
 		input.Threshold = s.GetThreshold()
 	}
-	return input
-}
-
-func pluginEvalTargetInputFromProto(p *pluginevalv1.PluginEvalTarget) *PluginEvalTargetInput {
-	if p == nil {
-		return nil
-	}
-	input := &PluginEvalTargetInput{}
-	input.Harness = p.GetHarness()
-	input.ModelName = p.GetModelName()
 	return input
 }

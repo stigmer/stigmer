@@ -8,6 +8,7 @@
 
 import { Command } from "commander";
 import { registerApiKey } from "./commands/apikey/index.js";
+import { registerAgent } from "./commands/agent.js";
 import { registerApply } from "./commands/apply.js";
 import { registerAuth } from "./commands/auth/index.js";
 import { registerCompletion } from "./commands/completion.js";
@@ -160,6 +161,7 @@ export function buildProgram(): Command {
   registerInstall(program);
   registerMarketplace(program);
   registerPlugin(program);
+  registerAgent(program);
   registerDownload(program);
   registerApply(program);
   registerRun(program);

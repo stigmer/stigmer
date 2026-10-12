@@ -409,7 +409,7 @@ describe("start-try beside its main path", () => {
     const { cases, record } = build({
       wrap: (real) => async (evalId) => {
         const context = await real(evalId);
-        if (context === undefined) return undefined;
+        if (context?.kind !== "plugin") return context;
         const pluginEval = { ...context.pluginEval, spec: undefined };
         return { ...context, pluginEval };
       },
@@ -427,7 +427,7 @@ describe("start-try beside its main path", () => {
     const { cases, record } = build({
       wrap: (real) => async (evalId) => {
         const context = await real(evalId);
-        if (context === undefined) return undefined;
+        if (context?.kind !== "plugin") return context;
         const status = { ...context.plugin.status!, digest: "b".repeat(64) };
         return { ...context, plugin: { ...context.plugin, status } };
       },

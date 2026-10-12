@@ -3,6 +3,7 @@
 import type { Transport } from "@connectrpc/connect";
 import { AgentClient } from "./agent.js";
 import { AgentChannelClient } from "./agentchannel.js";
+import { AgentEvalClient } from "./agenteval.js";
 import { AgentShareClient } from "./agentshare.js";
 import { ApiKeyClient } from "./apikey.js";
 import { ChannelAppClient } from "./channelapp.js";
@@ -33,6 +34,7 @@ import { VaultClient } from "./vault.js";
 export class GeneratedClient {
   readonly agent: AgentClient;
   readonly agentChannel: AgentChannelClient;
+  readonly agenteval: AgentEvalClient;
   readonly agentShare: AgentShareClient;
   readonly apiKey: ApiKeyClient;
   readonly channelapp: ChannelAppClient;
@@ -62,6 +64,7 @@ export class GeneratedClient {
   constructor(transport: Transport) {
     this.agent = new AgentClient(transport);
     this.agentChannel = new AgentChannelClient(transport);
+    this.agenteval = new AgentEvalClient(transport);
     this.agentShare = new AgentShareClient(transport);
     this.apiKey = new ApiKeyClient(transport);
     this.channelapp = new ChannelAppClient(transport);
@@ -95,6 +98,8 @@ export { AgentClient } from "./agent.js";
 export { type AgentInput, type EnvVarDeclarationInput, type HookSourceInput, type HookConfigInput, type HookGroupInput, type HookHandlerInput, type RunConfigInput } from "./agent.js";
 export { AgentChannelClient } from "./agentchannel.js";
 export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput } from "./agentchannel.js";
+export { AgentEvalClient } from "./agenteval.js";
+export { type AgentEvalInput, type PluginEvalTargetInput } from "./agenteval.js";
 export { AgentShareClient } from "./agentshare.js";
 export { type AgentShareInput, type AgentShareMessagesInput } from "./agentshare.js";
 export { ApiKeyClient } from "./apikey.js";
@@ -126,7 +131,7 @@ export { type PlatformClientInput } from "./platformclient.js";
 export { PluginClient } from "./plugin.js";
 export { type PluginInput, type PluginAuthorInput } from "./plugin.js";
 export { PluginEvalClient } from "./plugineval.js";
-export { type PluginEvalInput, type PluginEvalTargetInput } from "./plugineval.js";
+export { type PluginEvalInput } from "./plugineval.js";
 export { ProviderKeyClient } from "./providerkey.js";
 export { RunClient } from "./run.js";
 export { type RunInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type AttachmentInput, type ConversationCatchupInput, type PluginEvalCaseContextInput, type PluginEvalMockServerInput, type PluginEvalMockToolInput } from "./run.js";

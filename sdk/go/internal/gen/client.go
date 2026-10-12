@@ -8,6 +8,7 @@ import "google.golang.org/grpc"
 type Client struct {
 	Agent            *AgentClient
 	AgentChannel     *AgentChannelClient
+	AgentEval        *AgentEvalClient
 	AgentShare       *AgentShareClient
 	ApiKey           *ApiKeyClient
 	ChannelApp       *ChannelAppClient
@@ -40,6 +41,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 	return &Client{
 		Agent:            NewAgentClient(conn),
 		AgentChannel:     NewAgentChannelClient(conn),
+		AgentEval:        NewAgentEvalClient(conn),
 		AgentShare:       NewAgentShareClient(conn),
 		ApiKey:           NewApiKeyClient(conn),
 		ChannelApp:       NewChannelAppClient(conn),

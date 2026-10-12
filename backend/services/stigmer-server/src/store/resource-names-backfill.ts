@@ -39,6 +39,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentEvalSchema } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
@@ -74,6 +75,7 @@ export interface NamedKindAtBackfill {
 /** The kinds whose slugs became names at this step, frozen. */
 export const NAMED_KINDS_AT_BACKFILL: ReadonlyArray<NamedKindAtBackfill> = [
   { kind: "agent", schema: AgentSchema },
+  { kind: "agent_eval", schema: AgentEvalSchema },
   { kind: "agent_channel", schema: AgentChannelSchema },
   { kind: "agent_share", schema: AgentShareSchema },
   { kind: "channel_app", schema: ChannelAppSchema },

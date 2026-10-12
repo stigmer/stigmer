@@ -14,7 +14,8 @@
  *     refused AlreadyExists (stigmer#2153), and so of two platform clients,
  *     whose rows sit behind a port; the same slug in another
  *     organization lands; a lookup by slug reads the winner; a delete
- *     frees the slug for a new agent, which gets a new id;
+ *     frees the slug for a new agent, which gets a new id, and frees the
+ *     names its cascade deletes (its share's slug) at once;
  *   - findResourceByName reads an empty organization as the platform's own
  *     scope, never every organization, and refuses a kind whose slugs are
  *     not names;
@@ -39,6 +40,8 @@ import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { PlatformClientCommandController } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/command_pb";
+import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
+import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import {
   ApiResourceKind,
   ApiResourceKindSchema,
@@ -104,6 +107,7 @@ const CLAIMING_KINDS = [
   ApiResourceKind.score,
   ApiResourceKind.evaluator,
   ApiResourceKind.plugin_eval,
+  ApiResourceKind.agent_eval,
 ];
 
 describe("NAMED_KINDS", () => {
@@ -475,6 +479,27 @@ describe.each(COMPOSED_DRIVERS)("one agent slug per organization, raced on a com
       (outcome): outcome is PromiseRejectedResult => outcome.status === "rejected",
     );
     expect(ConnectError.from(refused?.reason).code).toBe(Code.AlreadyExists);
+  });
+
+  it.skipIf(driver.skip)("frees the names an agent's delete cascades to: its share's slug is free at once", async () => {
+    const shares = createClient(AgentShareCommandController, transport);
+    const shareInput = (agentSlug: string) => ({
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "AgentShare",
+      metadata: { name: "cascade-share", org: "acme" },
+      spec: {
+        agentRef: { kind: ApiResourceKind.agent, slug: agentSlug },
+        enabled: true,
+        audience: AgentShareAudience.public,
+      },
+    });
+    const first = await command.create(agentInput("acme", "cascading"));
+    await shares.create(shareInput("cascading"));
+    await command.delete({ value: first.metadata?.id ?? "" });
+
+    await command.create(agentInput("acme", "cascaded-again"));
+    const again = await shares.create(shareInput("cascaded-again"));
+    expect(again.metadata?.slug).toBe("cascade-share");
   });
 
   it.skipIf(driver.skip)("lets another organization take the same slug", async () => {

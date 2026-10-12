@@ -36,9 +36,11 @@ import type { Store } from "../../store/interface.js";
 import { pluginEvalActiveOnPluginDeleteMessage } from "./constants.js";
 import { listPluginEvals } from "./queries.js";
 import { isActivePluginEval } from "./steps.js";
+import type { EvalPhaseRow } from "./steps.js";
 import { deletePluginEvalTries } from "./tries.js";
 import type { TrySessionDeleter } from "./tries.js";
 import type { PluginEvalWorkflows } from "./workflows.js";
+import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 
 export interface PluginEvalCascadeDeps {
   readonly store: Store;
@@ -171,7 +173,7 @@ export function newSweepPluginEvalsAfterDeleteStep<Desc extends DescMessage>(
 export async function askPluginEvalToStop(
   workflows: PluginEvalWorkflows | undefined,
   logger: Logger,
-  pluginEval: PluginEval,
+  pluginEval: EvalPhaseRow & { readonly metadata?: { readonly id: string } },
   failedMessage: string,
 ): Promise<boolean> {
   if (workflows === undefined || !isActivePluginEval(pluginEval)) {
@@ -232,6 +234,7 @@ async function deleteEval<Desc extends DescMessage>(
       `failed to cascade-delete plugin eval ${evalId} of plugin ${pluginId}`,
     );
   }
+  await releaseNamesOfDeleted(deps.store, deps.logger, ApiResourceKind.plugin_eval, pluginEval.metadata?.org ?? "", evalId);
   await cleanUpDeletedResource(deps.authorizationLifecycle, deps.logger, {
     kind: ApiResourceKind.plugin_eval,
     resourceId: evalId,

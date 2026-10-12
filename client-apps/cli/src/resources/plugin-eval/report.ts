@@ -31,14 +31,23 @@
 // target's model name as the suite's case.yaml wrote it, a reason, an
 // error) goes through `oneLine`, so a suite cannot write a newline or an
 // escape sequence there.
+//
+// An agent eval carries these same case messages, one plugin's cases at a
+// time, so the case-level views (`finishedTriesOf`, `renderCaseBlocks`,
+// `notRunLinesOf`, `exitCodeOf`) take a list of cases, and the eval-level
+// reads (`isSettled`, `partialLine`, `renderSummaryLine`) take any eval
+// whose status has the fields they read; resources/agent-eval/report.ts
+// builds its views from them.
 
 import { pluginEvalTargetLabel } from "@stigmer/sdk";
 import type { PluginEval } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/api_pb";
 import { PluginEvalAblation } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
+import type { PluginEvalTarget } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/spec_pb";
 import {
   PluginEvalPartialReason,
   PluginEvalPhase,
   PluginEvalTryState,
+  type PluginEvalAggregates,
   type PluginEvalArm,
   type PluginEvalCase,
   type PluginEvalCaseTarget,
@@ -65,11 +74,42 @@ export interface FinishedTry {
   readonly line: string;
 }
 
+/** The status fields that say where an eval is, which both eval kinds carry. */
+export interface EvalProgress {
+  readonly phase: PluginEvalPhase;
+  readonly partialReason: PluginEvalPartialReason;
+  readonly triesFinished: number;
+  readonly triesTotal: number;
+}
+
+/** The status fields the summary line reads. */
+interface EvalTotals {
+  readonly aggregates?: PluginEvalAggregates;
+  readonly costUsd: number;
+  readonly provisionalDelta?: boolean;
+}
+
+/** How a set of cases is named in progress lines and keyed apart from another set's. */
+export interface CaseScope {
+  /** Prefixes every key, so two sets' cases never share one. */
+  readonly key: string;
+  /** Prefixes every case name printed, as in `thermos/`. */
+  readonly name: string;
+}
+
+const NO_SCOPE: CaseScope = { key: "", name: "" };
+
 /** Every try that has finished, with its progress line, in the eval's order. */
 export function finishedTries(pluginEval: PluginEval): FinishedTry[] {
+  return finishedTriesOf(pluginEval.status?.cases ?? [], NO_SCOPE);
+}
+
+/** Every finished try of `cases`, with its progress line, in their order. */
+export function finishedTriesOf(cases: readonly PluginEvalCase[], scope: CaseScope): FinishedTry[] {
   const finished: FinishedTry[] = [];
-  for (const evalCase of pluginEval.status?.cases ?? []) {
+  for (const evalCase of cases) {
     let mockedShown = evalCase.mockedServers.length === 0;
+    const caseName = `${scope.name}${oneLine(evalCase.caseName)}`;
     for (const result of evalCase.targets) {
       const target = targetLabel(result.target);
       for (const [arm, tries] of armsOf(result)) {
@@ -77,11 +117,11 @@ export function finishedTries(pluginEval: PluginEval): FinishedTry[] {
           if (!isFinished(attempt)) continue;
           if (!mockedShown) {
             mockedShown = true;
-            finished.push({ key: `${evalCase.path}|mocked`, line: mockedLine(evalCase) });
+            finished.push({ key: `${scope.key}${evalCase.path}|mocked`, line: mockedLine(caseName, evalCase) });
           }
           finished.push({
-            key: `${evalCase.path}|${target}|${arm}|${attempt.index}`,
-            line: progressLine(oneLine(evalCase.caseName), target, arm, attempt, tries.length),
+            key: `${scope.key}${evalCase.path}|${target}|${arm}|${attempt.index}`,
+            line: progressLine(caseName, target, arm, attempt, tries.length),
           });
         }
       }
@@ -92,10 +132,26 @@ export function finishedTries(pluginEval: PluginEval): FinishedTry[] {
 
 /** The summary table, one block per target, each headed by its target. */
 export function renderEvalTables(pluginEval: PluginEval): string {
-  const cases = (pluginEval.status?.cases ?? []).filter((evalCase) => evalCase.notRunReason === "");
   const oneArm = pluginEval.spec?.ablation === PluginEvalAblation.none;
+  return renderCaseBlocks(pluginEval.status?.cases ?? [], pluginEval.spec?.targets ?? [], oneArm, (label) => label).join(
+    "\n",
+  );
+}
+
+/**
+ * The table blocks of `cases`, one per target any of them ran on (the
+ * spec's targets first), each under `heading(target)`; cases not run are
+ * left out, and a target nothing ran on has no block.
+ */
+export function renderCaseBlocks(
+  allCases: readonly PluginEvalCase[],
+  specTargets: readonly PluginEvalTarget[],
+  oneArm: boolean,
+  heading: (target: string) => string,
+): string[] {
+  const cases = allCases.filter((evalCase) => evalCase.notRunReason === "");
   const blocks: string[] = [];
-  for (const label of targetLabels(pluginEval)) {
+  for (const label of targetLabels(specTargets, allCases)) {
     const rows = cases.flatMap((evalCase) => {
       const result = evalCase.targets.find((candidate) => targetLabel(candidate.target) === label);
       if (result === undefined || result.notRunReason !== "") return [];
@@ -105,14 +161,14 @@ export function renderEvalTables(pluginEval: PluginEval): string {
     const headers = oneArm
       ? ["CASE", "SCORE", "PASS%", "PASS^k", "RUNS", "COST", "NOTES"]
       : ["CASE", "WITH", "W/OUT", "Δ", "PASS^k", "RUNS", "COST", "NOTES"];
-    blocks.push(`${label}\n${renderTable(headers, rows)}`);
+    blocks.push(`${heading(label)}\n${renderTable(headers, rows)}`);
   }
-  return blocks.join("\n");
+  return blocks;
 }
 
 /** `N case(s) · mean Δ +0.67 · 74s · $0.41`, with "Δ provisional" when the eval says so. */
-export function renderSummaryLine(pluginEval: PluginEval, durationSeconds: number): string {
-  const status = pluginEval.status;
+export function renderSummaryLine(evaluation: { readonly status?: EvalTotals }, durationSeconds: number): string {
+  const status = evaluation.status;
   const parts = [`${status?.aggregates?.casesTotal ?? 0} case(s)`];
   const meanDelta = status?.aggregates?.meanDelta;
   if (meanDelta !== undefined) {
@@ -136,24 +192,35 @@ export const PROVISIONAL_NOTE =
 
 /** The cases, or cases on one target, the eval listed and did not run, one line each. */
 export function renderNotRun(pluginEval: PluginEval): string {
+  return notRunSection(notRunLinesOf(pluginEval.status?.cases ?? [], NO_SCOPE));
+}
+
+/** The `Not run:` section for `lines`; empty when there are none. */
+export function notRunSection(lines: readonly string[]): string {
+  return lines.length === 0 ? "" : `Not run:\n${lines.join("\n")}\n`;
+}
+
+/** One indented line per case of `cases`, or case on one target, listed and not run. */
+export function notRunLinesOf(cases: readonly PluginEvalCase[], scope: CaseScope): string[] {
   const lines: string[] = [];
-  for (const evalCase of pluginEval.status?.cases ?? []) {
+  for (const evalCase of cases) {
+    const caseName = `${scope.name}${oneLine(evalCase.caseName)}`;
     if (evalCase.notRunReason !== "") {
-      lines.push(`  ${oneLine(evalCase.caseName)}: ${oneLine(evalCase.notRunReason)}`);
+      lines.push(`  ${caseName}: ${oneLine(evalCase.notRunReason)}`);
       continue;
     }
     for (const result of evalCase.targets) {
       if (result.notRunReason !== "") {
-        lines.push(`  ${oneLine(evalCase.caseName)} on ${targetLabel(result.target)}: ${oneLine(result.notRunReason)}`);
+        lines.push(`  ${caseName} on ${targetLabel(result.target)}: ${oneLine(result.notRunReason)}`);
       }
     }
   }
-  return lines.length === 0 ? "" : `Not run:\n${lines.join("\n")}\n`;
+  return lines;
 }
 
 /** Why the eval stopped early, in words; empty when it did not. */
-export function partialLine(pluginEval: PluginEval, interrupted: boolean): string {
-  const status = pluginEval.status;
+export function partialLine(evaluation: { readonly status?: EvalProgress }, interrupted: boolean): string {
+  const status = evaluation.status;
   const reason = status?.partialReason ?? PluginEvalPartialReason.unspecified;
   const ran = `${status?.triesFinished ?? 0} of ${status?.triesTotal ?? 0} tries ran`;
   switch (reason) {
@@ -178,7 +245,18 @@ export function evalExitCode(
   pluginEval: PluginEval,
   opts: { readonly interrupted: boolean; readonly loadFindings: number },
 ): EvalExit {
-  const status = pluginEval.status;
+  return exitCodeOf(pluginEval.status, pluginEval.status?.cases ?? [], opts);
+}
+
+/**
+ * The exit code an eval with `status` earns over all of its `cases`: the
+ * rules {@link evalExitCode} states, for either eval kind.
+ */
+export function exitCodeOf(
+  status: (EvalProgress & { readonly aggregates?: PluginEvalAggregates }) | undefined,
+  cases: readonly PluginEvalCase[],
+  opts: { readonly interrupted: boolean; readonly loadFindings: number },
+): EvalExit {
   const reason = status?.partialReason ?? PluginEvalPartialReason.unspecified;
   if (opts.interrupted || reason === PluginEvalPartialReason.cancelled) {
     return EvalExit.Interrupted;
@@ -212,7 +290,7 @@ export function evalExitCode(
     total === 0 ||
     opts.loadFindings > 0 ||
     (aggregates?.casesPassed ?? 0) < total ||
-    (status?.cases ?? []).some(neverGradedWithPlugin)
+    cases.some(neverGradedWithPlugin)
   ) {
     return EvalExit.Failed;
   }
@@ -237,8 +315,8 @@ function neverGradedWithPlugin(evalCase: PluginEvalCase): boolean {
 }
 
 /** Whether the eval has stopped changing. */
-export function isSettled(pluginEval: PluginEval): boolean {
-  const phase = pluginEval.status?.phase ?? PluginEvalPhase.unspecified;
+export function isSettled(evaluation: { readonly status?: Pick<EvalProgress, "phase"> }): boolean {
+  const phase = evaluation.status?.phase ?? PluginEvalPhase.unspecified;
   switch (phase) {
     case PluginEvalPhase.completed:
     case PluginEvalPhase.partial:
@@ -261,13 +339,13 @@ function targetLabel(target: Parameters<typeof pluginEvalTargetLabel>[0]): strin
   return oneLine(pluginEvalTargetLabel(target));
 }
 
-function targetLabels(pluginEval: PluginEval): string[] {
+function targetLabels(specTargets: readonly PluginEvalTarget[], cases: readonly PluginEvalCase[]): string[] {
   const labels: string[] = [];
   const add = (label: string): void => {
     if (!labels.includes(label)) labels.push(label);
   };
-  for (const target of pluginEval.spec?.targets ?? []) add(targetLabel(target));
-  for (const evalCase of pluginEval.status?.cases ?? []) {
+  for (const target of specTargets) add(targetLabel(target));
+  for (const evalCase of cases) {
     for (const result of evalCase.targets) add(targetLabel(result.target));
   }
   return labels;
@@ -301,13 +379,13 @@ function oneArmRow(evalCase: PluginEvalCase, result: PluginEvalCaseTarget): stri
 }
 
 /** `<case> · mocked: plugin_kit_tracker(create_issue, close_issue), plugin_kit_wiki[not started: no mock]`. */
-function mockedLine(evalCase: PluginEvalCase): string {
+function mockedLine(caseName: string, evalCase: PluginEvalCase): string {
   const servers = evalCase.mockedServers.map((server) =>
     server.notStartedReason !== ""
       ? `${oneLine(server.name)}[${oneLine(server.notStartedReason)}]`
       : `${oneLine(server.name)}(${server.tools.map(oneLine).join(", ")})`,
   );
-  return `${oneLine(evalCase.caseName)} · mocked: ${servers.join(", ")}`;
+  return `${caseName} · mocked: ${servers.join(", ")}`;
 }
 
 /** How a mock stopped a try, as the format reports it. */
@@ -384,6 +462,6 @@ function usd(amount: number): string {
  * run's error can quote a model's output, so a newline or an escape
  * sequence never reaches the terminal.
  */
-function oneLine(text: string): string {
+export function oneLine(text: string): string {
   return text.replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ").trim();
 }

@@ -27,6 +27,7 @@
     "validate",
     "vault",
     "---Artifact Commands---",
+    "agent",
     "download",
     "install",
     "mcp",

@@ -38,6 +38,7 @@ import {
   PluginEvalPhase,
   PluginEvalStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
+import type { PluginEvalStatus } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -97,6 +98,7 @@ import {
   PluginEvalEngineUnavailableError,
 } from "./workflows.js";
 import type { PluginEvalWorkflows } from "./workflows.js";
+import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
 
 /** Context key for the plugin a create evaluates, stashed by LoadEvaluatedPlugin. */
 export const EVALUATED_PLUGIN_KEY = "evaluatedPlugin";
@@ -104,8 +106,17 @@ export const EVALUATED_PLUGIN_KEY = "evaluatedPlugin";
 /** Context key for cancel's and listByPlugin's answers. */
 export const PLUGIN_EVAL_RESULT_KEY = "pluginEvalResult";
 
+/** An eval row as the phase rules read it, a plugin eval's or an agent eval's. */
+export interface EvalPhaseRow {
+  readonly status?: {
+    readonly phase: PluginEvalPhase;
+    readonly startedAt?: PluginEvalStatus["startedAt"];
+    readonly audit?: PluginEvalStatus["audit"];
+  };
+}
+
 /** Whether an eval may still start tries: pending or running. */
-export function isActivePluginEval(pluginEval: PluginEval): boolean {
+export function isActivePluginEval(pluginEval: EvalPhaseRow): boolean {
   const phase = pluginEval.status?.phase ?? PluginEvalPhase.unspecified;
   return phase === PluginEvalPhase.pending || phase === PluginEvalPhase.running;
 }
@@ -125,7 +136,7 @@ const WORKFLOW_ENDED_MARGIN_MS = 60 * 60 * 1000;
  * stamp, since the eval started running). Answered from the row alone, so
  * a read needs no engine.
  */
-export function pluginEvalOutlivedItsWorkflow(pluginEval: PluginEval, nowMs: number): boolean {
+export function pluginEvalOutlivedItsWorkflow(pluginEval: EvalPhaseRow, nowMs: number): boolean {
   if (!isActivePluginEval(pluginEval)) {
     return false;
   }
@@ -285,10 +296,12 @@ export function newResolvePluginEvalDefaultsStep(
         throw failedPreconditionError(pluginEvalNotCurrentVersionMessage(current));
       }
       spec.pluginDigest = digest;
-      const allowed = checkAllowTools(spec.allowTools, {
-        name: plugin.metadata?.name ?? "",
-        servers: (plugin.status?.mcpServers ?? []).map((server) => server.name),
-      });
+      const allowed = checkAllowTools(spec.allowTools, [
+        {
+          name: plugin.metadata?.name ?? "",
+          servers: (plugin.status?.mcpServers ?? []).map((server) => server.name),
+        },
+      ]);
       if (!allowed.ok) {
         throw invalidArgumentError(
           pluginEvalOtherPluginToolMessage(allowed.entry, allowed.server, plugin.metadata?.slug ?? ""),
@@ -422,6 +435,7 @@ export function newEnsureEvaluatedPluginStillExistsStep(
       } catch (error) {
         throw internalError(error, "failed to remove the plugin eval of a deleted plugin");
       }
+      await releaseNamesOfDeleted(store, logger, ApiResourceKind.plugin_eval, ctx.newState.metadata?.org ?? "", evalId);
       await cleanUpDeletedResource(authorizationLifecycle, logger, {
         kind: ApiResourceKind.plugin_eval,
         resourceId: evalId,

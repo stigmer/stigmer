@@ -137,6 +137,8 @@ import { registerMemoryServices } from "../domain/memory/controller.js";
 import { newRunScoreCascade } from "../domain/score/cascade.js";
 import { registerEvaluatorServices } from "../domain/evaluator/controller.js";
 import { registerPluginEvalServices } from "../domain/plugin-eval/controller.js";
+import { registerAgentEvalServices } from "../domain/agent-eval/controller.js";
+import { RUN_AGENT_EVAL_WORKFLOW_TYPE, runAgentEvalWorkflowId } from "../temporal/evals/names.js";
 import { newPluginArchiveReader } from "../domain/plugin-eval/suite.js";
 import { newTemporalPluginEvalWorkflows } from "../domain/plugin-eval/workflows.js";
 import { registerScoreServices } from "../domain/score/controller.js";
@@ -1119,6 +1121,13 @@ export async function composeServer(
   });
   /* v8 ignore next -- @preserve: called only by an eval's delete, after boot */
   const pluginEvalTrySessions = () => requireInProcess().judgeSessionDeleter;
+  // Agent evals run the same suite workflow under their own type and id,
+  // on the same queue and worker.
+  const agentEvalWorkflows = newTemporalPluginEvalWorkflows({
+    client: () => temporalManager.getClient(),
+    taskQueue: evalsTemporalConfig.stigmerQueue,
+    workflow: { type: RUN_AGENT_EVAL_WORKFLOW_TYPE, idOf: runAgentEvalWorkflowId },
+  });
   const scheduleSyncer = new ScheduleSyncer(
     scheduleClientProvider,
     store,
@@ -1605,6 +1614,7 @@ export async function composeServer(
     accountLifecycle: roleLifecycle,
     runScores,
     pluginEvalWorkflows,
+    agentEvalWorkflows,
   });
   const purgeQuiesce = newQuiesceStage({
     store,
@@ -1827,6 +1837,12 @@ export async function composeServer(
       authorizer,
       authorizationLifecycle,
       modelRegistry: modelCatalog,
+      agentEvals: {
+        store,
+        logger,
+        authorizationLifecycle,
+        sessions: pluginEvalTrySessions,
+      },
     });
     registerSessionServices(router, {
       store,
@@ -1926,6 +1942,16 @@ export async function composeServer(
       modelCatalog,
       suites: newPluginArchiveReader({ store, archives: pluginArtifactStorage }),
       workflows: pluginEvalWorkflows,
+      sessions: pluginEvalTrySessions,
+    });
+    registerAgentEvalServices(router, {
+      store,
+      logger,
+      authorizer,
+      authorizationLifecycle,
+      modelCatalog,
+      suites: newPluginArchiveReader({ store, archives: pluginArtifactStorage }),
+      workflows: agentEvalWorkflows,
       sessions: pluginEvalTrySessions,
     });
     registerAgentExecutionServices(router, {
