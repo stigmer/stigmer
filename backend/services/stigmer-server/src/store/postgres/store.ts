@@ -53,6 +53,7 @@ import type {
   OAuthClientRegistrationStore,
   ResourceNameClaim,
   ResourceNameEntry,
+  ResourceNameHolder,
   ResourceNameKey,
   ResourceNameRename,
   ResourceNameRenamed,
@@ -1554,6 +1555,27 @@ class PostgresResourceNameStore implements ResourceNameStore {
     );
     const row = result.rows[0];
     return row === undefined ? undefined : resourceNameEntryOf(row);
+  }
+
+  async currentMany(
+    holders: ReadonlyArray<ResourceNameHolder>,
+  ): Promise<ReadonlyArray<ResourceNameEntry>> {
+    if (holders.length === 0) {
+      return [];
+    }
+    const result = await this.open().query<ResourceNameRow>(
+      `SELECT ${RESOURCE_NAME_COLUMNS} FROM resource_names
+       WHERE state = 'current'
+         AND (kind, org, id) IN (
+           SELECT * FROM unnest($1::text[], $2::text[], $3::text[])
+         )`,
+      [
+        holders.map((h) => h.kind),
+        holders.map((h) => h.org),
+        holders.map((h) => h.id),
+      ],
+    );
+    return result.rows.map(resourceNameEntryOf);
   }
 
   async claim(
