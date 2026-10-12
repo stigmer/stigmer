@@ -1,0 +1,47 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "content": "Appending the review line.",
+      "timestamp": "2026-01-01T00:00:12.000Z",
+      "toolCalls": [
+        {
+          "id": "call-hermetic-edit-0001",
+          "name": "edit",
+          "args": {
+            "path": "notes.md",
+            "content": "# Notes\n\nA fixture file.\n\nReviewed by the hermetic run.\n"
+          },
+          "result": "ok",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:15.000Z",
+          "completedAt": "2026-01-01T00:00:16.000Z",
+          "argsPreview": "{\"path\":\"notes.md\",\"content\":\"# Notes\\n\\nA fixture file.\\n\\nReviewed by the hermetic run.\\n\"}",
+          "toolKind": "TOOL_KIND_FILE_EDIT",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "hooks-2"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Done.",
+      "timestamp": "2026-01-01T00:00:17.000Z"
+    }
+  ],
+  "phase": "RUN_COMPLETED",
+  "startedAt": "2026-01-01T00:00:10.000Z",
+  "completedAt": "2026-01-01T00:00:19.000Z",
+  "streamingUsage": {
+    "inputTokens": "2400",
+    "outputTokens": "70",
+    "totalTokens": "2470",
+    "turnCount": 1,
+    "estimatedCostUsd": 0.00268,
+    "model": "composer-2.5",
+    "observedAt": "2026-01-01T00:00:18.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedModelParams": "[{\"id\":\"fast\",\"value\":\"false\"},{\"id\":\"thinking\",\"value\":\"false\"}]",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  }
+}

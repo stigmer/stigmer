@@ -72,6 +72,32 @@ class UpdateSessionSubjectRequest(_message.Message):
     subject: str
     def __init__(self, id: _Optional[str] = ..., subject: _Optional[str] = ...) -> None: ...
 
+class ReviewFileChangesInput(_message.Message):
+    __slots__ = ("session_id", "change_set_id", "scope", "file_change_id", "action", "expected_digest", "reason", "acknowledge_unreviewable")
+    SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    CHANGE_SET_ID_FIELD_NUMBER: _ClassVar[int]
+    SCOPE_FIELD_NUMBER: _ClassVar[int]
+    FILE_CHANGE_ID_FIELD_NUMBER: _ClassVar[int]
+    ACTION_FIELD_NUMBER: _ClassVar[int]
+    EXPECTED_DIGEST_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    ACKNOWLEDGE_UNREVIEWABLE_FIELD_NUMBER: _ClassVar[int]
+    session_id: str
+    change_set_id: str
+    scope: str
+    file_change_id: str
+    action: str
+    expected_digest: str
+    reason: str
+    acknowledge_unreviewable: bool
+    def __init__(self, session_id: _Optional[str] = ..., change_set_id: _Optional[str] = ..., scope: _Optional[str] = ..., file_change_id: _Optional[str] = ..., action: _Optional[str] = ..., expected_digest: _Optional[str] = ..., reason: _Optional[str] = ..., acknowledge_unreviewable: bool = ...) -> None: ...
+
+class ReviewFileChangesResponse(_message.Message):
+    __slots__ = ("reconcile_run_id",)
+    RECONCILE_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    reconcile_run_id: str
+    def __init__(self, reconcile_run_id: _Optional[str] = ...) -> None: ...
+
 class ListSessionEventsRequest(_message.Message):
     __slots__ = ("session_id", "page_size", "page_token", "order", "types", "created_at_gt", "created_at_gte", "created_at_lt", "created_at_lte", "run_id")
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]

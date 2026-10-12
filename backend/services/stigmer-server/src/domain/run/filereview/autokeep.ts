@@ -22,6 +22,12 @@
  * aggregate) — not a projection shortcut — so the fold keeps one
  * semantics, the audit trail shows who decided, and the runner reconciles
  * it exactly like a human keep-all.
+ *
+ * Beside it, the two other policy keeps: a plugin eval's try keeps its
+ * edits (autoKeepPluginEvalTrySets), and a turn's still-undecided edits
+ * are kept once a later message is sent (keepOutdatedSets). Every policy
+ * decision reaches the session's log as a `stigmer.file_review.decided`
+ * event through the run write that records it (session/events/run-writes.ts).
  */
 import { create } from "@bufbuild/protobuf";
 
@@ -85,7 +91,7 @@ export function autoKeepApprovedCommandSets(
   if (stream === undefined || stream.events.length === 0) {
     return 0;
   }
-  const changeSets = projectFileChangeSets(status.phase, stream);
+  const changeSets = projectFileChangeSets(stream);
   if (changeSets.length === 0) {
     return 0;
   }
@@ -274,7 +280,7 @@ export function autoKeepPluginEvalTrySets(
     return 0;
   }
   let kept = 0;
-  for (const cs of projectFileChangeSets(status.phase, stream)) {
+  for (const cs of projectFileChangeSets(stream)) {
     if (cs.status !== FileChangeSetStatus.AWAITING_REVIEW || cs.decisions.length > 0) {
       continue;
     }
@@ -304,3 +310,69 @@ export function autoKeepPluginEvalTrySets(
   return kept;
 }
 
+/** The audit-trail text on a decision the next message made. */
+const NEXT_TURN_KEEP_REASON =
+  "Kept automatically: the next message was sent before these edits were decided";
+
+/**
+ * The close of a turn's file review: once a later message is sent, every
+ * still-undecided file of this run's change sets is kept, origin
+ * POLICY_NEXT_TURN, actor "policy". A set nobody decided gets one
+ * CHANGE_SET keep; a set decided in part gets one FILE keep per file not
+ * yet decided, so a person's decisions stand. A set still capturing (no
+ * candidate yet) is left for the write that folds its candidate, which
+ * closes it then (update-status.ts).
+ *
+ * No completeness gate: the files are already on disk, and keeping them
+ * is what the conversation did by moving on, so an unreviewable or binary
+ * file is kept as it is. Idempotent by the deterministic decision ids, and
+ * first-append-wins against a person's decision, as the other keeps are.
+ * Must run inside the run's write lock, before the projection. Returns how
+ * many decisions it recorded.
+ */
+export function keepOutdatedSets(status: RunStatus, executionId: string): number {
+  const stream = status.fileReviewEventStream;
+  if (stream === undefined || stream.events.length === 0) {
+    return 0;
+  }
+  const decidedAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+  let kept = 0;
+  for (const cs of projectFileChangeSets(stream)) {
+    if (cs.status !== FileChangeSetStatus.AWAITING_REVIEW) {
+      continue;
+    }
+    for (const decision of nextTurnKeeps(cs, decidedAt)) {
+      recordFileDecisionEventWithActor(status, executionId, decision, ACTOR_POLICY);
+      kept++;
+    }
+  }
+  return kept;
+}
+
+/** The keeps that close one undecided or partly decided set. */
+function nextTurnKeeps(cs: FileChangeSet, decidedAt: string): FileDecision[] {
+  const keep = (scope: FileDecisionScope, fileChangeId: string, expectedDigest: string): FileDecision => {
+    const decision = create(FileDecisionSchema, {
+      changeSetId: cs.id,
+      fileChangeId,
+      scope,
+      action: FileDecisionAction.APPROVE,
+      expectedDigest,
+      decidedAt,
+      reason: NEXT_TURN_KEEP_REASON,
+      origin: FileDecisionOrigin.POLICY_NEXT_TURN,
+      acknowledgeUnreviewable: true,
+    });
+    decision.id = `${cs.id}:${decisionScopeId(decision)}`;
+    return decision;
+  };
+  if (cs.decisions.length === 0) {
+    return [keep(FileDecisionScope.CHANGE_SET, "", cs.aggregateDigest)];
+  }
+  const decided = new Set(
+    cs.decisions.filter((d) => d.scope === FileDecisionScope.FILE).map((d) => d.fileChangeId),
+  );
+  return cs.changes
+    .filter((change) => !decided.has(change.id))
+    .map((change) => keep(FileDecisionScope.FILE, change.id, change.fileDigest));
+}

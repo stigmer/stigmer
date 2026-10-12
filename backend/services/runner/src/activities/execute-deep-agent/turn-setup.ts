@@ -516,7 +516,9 @@ export async function buildEngine(
   // it is installed there too and runs only them (`approval-gate.ts`).
   // Capture mode: file edits flow (tracked to the git diff, ignored into CAS
   // on THIS gate); secret-like paths are hard-blocked; shell/MCP stay gated.
-  // The CAS arm additionally requires storage to persist its blobs.
+  // The CAS arm additionally requires storage to persist its blobs. With the
+  // turn's file review off, file edits flow uncaptured; the secret-like block
+  // stays, keyed on the workspace's substrate.
   const captureMode = input.workspace.captureMode;
   const gateConfigFor = (evaluator: typeof hooks): ApprovalGateConfig | null => !gate.globalBypass || evaluator !== null
     ? {
@@ -526,6 +528,8 @@ export async function buildEngine(
         fingerprintKey: executionFingerprintKey(executionId),
         executionId,
         fileCaptureMode: captureMode,
+        fileReviewOff: !input.workspace.fileReview,
+        fileCaptureSubstrate: input.workspace.captureSubstrate,
         isCapturablePath: workspace.isCapturablePath,
         captureIgnored: captureMode && !!artifactStorage,
         recordBlockedSecret: (rawPath: string) => workspace.casObserver.recordBlockedSecret(rawPath),

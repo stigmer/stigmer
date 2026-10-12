@@ -2258,6 +2258,10 @@ const (
 	// try's edits apply as they do in Claude Code's evals, and nobody reviews
 	// a try. The decision's actor is "policy".
 	FileDecisionOrigin_FILE_DECISION_ORIGIN_POLICY_EVAL_TRY FileDecisionOrigin = 3
+	// Platform policy kept what was still undecided in the set because the
+	// conversation's next message was sent: review lasts until then, and the
+	// next turn built on the kept files. The decision's actor is "policy".
+	FileDecisionOrigin_FILE_DECISION_ORIGIN_POLICY_NEXT_TURN FileDecisionOrigin = 4
 )
 
 // Enum value maps for FileDecisionOrigin.
@@ -2267,12 +2271,14 @@ var (
 		1: "FILE_DECISION_ORIGIN_USER",
 		2: "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND",
 		3: "FILE_DECISION_ORIGIN_POLICY_EVAL_TRY",
+		4: "FILE_DECISION_ORIGIN_POLICY_NEXT_TURN",
 	}
 	FileDecisionOrigin_value = map[string]int32{
 		"FILE_DECISION_ORIGIN_UNSPECIFIED":             0,
 		"FILE_DECISION_ORIGIN_USER":                    1,
 		"FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND": 2,
 		"FILE_DECISION_ORIGIN_POLICY_EVAL_TRY":         3,
+		"FILE_DECISION_ORIGIN_POLICY_NEXT_TURN":        4,
 	}
 )
 
@@ -2801,12 +2807,13 @@ const file_ai_stigmer_agentic_run_v1_enum_proto_rawDesc = "" +
 	"\x12FileDecisionAction\x12$\n" +
 	" FILE_DECISION_ACTION_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cFILE_DECISION_ACTION_APPROVE\x10\x01\x12\x1f\n" +
-	"\x1bFILE_DECISION_ACTION_REJECT\x10\x02*\xb5\x01\n" +
+	"\x1bFILE_DECISION_ACTION_REJECT\x10\x02*\xe0\x01\n" +
 	"\x12FileDecisionOrigin\x12$\n" +
 	" FILE_DECISION_ORIGIN_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19FILE_DECISION_ORIGIN_USER\x10\x01\x120\n" +
 	",FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND\x10\x02\x12(\n" +
-	"$FILE_DECISION_ORIGIN_POLICY_EVAL_TRY\x10\x03*\x8d\x02\n" +
+	"$FILE_DECISION_ORIGIN_POLICY_EVAL_TRY\x10\x03\x12)\n" +
+	"%FILE_DECISION_ORIGIN_POLICY_NEXT_TURN\x10\x04*\x8d\x02\n" +
 	"\x13FileReviewEventType\x12&\n" +
 	"\"FILE_REVIEW_EVENT_TYPE_UNSPECIFIED\x10\x00\x12,\n" +
 	"(FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED\x10\x01\x12-\n" +

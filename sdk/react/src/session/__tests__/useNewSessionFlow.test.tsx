@@ -386,6 +386,19 @@ describe("useNewSessionFlow", () => {
       expect(execInput.sessionId).toBeUndefined();
     });
 
+    it("turns file review on for the conversation it starts", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      // The console shows each turn's edits with Keep and Undo after the
+      // turn, so every conversation it starts asks for review.
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.fileReview).toBe(true);
+    });
+
     it("passes harness in the sessionSpec", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });

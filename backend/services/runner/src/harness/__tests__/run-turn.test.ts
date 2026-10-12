@@ -163,25 +163,20 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(systemMessages(final), "no terminal copy: the run ended normally").toEqual([]);
     });
 
-    it("structured output on a file-review-pending turn is resolved before the pause and rides the reconcile's completion", async () => {
+    it("structured output on a turn with captured edits is resolved at its completion: review never holds the answer back", async () => {
       clock.reset();
       const driver = new RuntimeExecutionDriver(harness, "fake-review-structured", {
+        fileReview: true,
         structuredOutputSchema: { type: "object", properties: { answer: { type: "number" } }, required: ["answer"] },
       });
       initGitWorkspace(driver.workspaceDir, { "README.md": "# kit\n" });
 
       // The engine edits a file and answers in JSON (tier 1 extracts it; no
-      // LLM is asked), then the runtime pauses for the review.
+      // LLM is asked); the edit is captured and the turn completes with it.
       const first = await driver.turn([scenario.flowingWrite("fake-review-structured-w", "answer.md"), scenario.say('{"answer": 42}')]);
-      expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
-      expect(driver.record.lastFullStatus?.structuredOutput, "resolved before the WAITING persist").toEqual({ answer: 42 });
-
-      clock.tick();
-      driver.record.decideCapturedFileChanges({ approve: ["answer.md"] }, new Date().toISOString());
-      const second = await driver.turn([]);
-      const slim = slimOf(subject, second);
-      expect(slim.phase).toBe("RUN_COMPLETED");
-      expect(driver.record.lastFullStatus?.structuredOutput, "the pure-reconcile completion keeps the answer").toEqual({ answer: 42 });
+      expect(slimOf(subject, first).phase).toBe("RUN_COMPLETED");
+      expect(driver.record.lastFullStatus?.structuredOutput, "resolved on the completion write").toEqual({ answer: 42 });
+      expect(driver.record.lastFullStatus?.fileReviewEventStream?.events.map((e) => e.payload.case)).toEqual(["baselineCaptured", "candidateCaptured"]);
     });
   });
 
@@ -330,9 +325,9 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
   describe("the runtime's write-back rule", () => {
     // `run-turn.ts` calls `frame.writeback.finalize()` in exactly two places:
-    // once when a completed turn reaches its epilogue, and once when a resumed
-    // file review reconciles cleanly — never when the reconcile failed, since
-    // diverged bytes must not reach a remote. These arms pin the CALL and its
+    // once when a completed turn reaches its epilogue, and once when a
+    // reconcile turn puts undone files back cleanly — never when the undo
+    // failed, since diverged bytes must not reach a remote. These arms pin the CALL and its
     // guards, not the coordinator's own behaviour (`writeback-coordinator.test.ts`
     // does that): the session mounts a local path so a coordinator exists
     // (`provisionWorkspace` builds one whenever the session has an entry; with
@@ -346,10 +341,10 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       finalize.mockRestore();
     });
 
-    function driverWithLocalWorkspace(label: string): { driver: RuntimeExecutionDriver; repo: string } {
+    function driverWithLocalWorkspace(label: string, fileReview = false): { driver: RuntimeExecutionDriver; repo: string } {
       const repo = join(env.workspaceRootDir, "repos", label);
       initGitWorkspace(repo, { "README.md": "# write-back\n" });
-      const driver = new RuntimeExecutionDriver(harness, label, { workspaceEntries: [localPathEntry("notes", repo)] });
+      const driver = new RuntimeExecutionDriver(harness, label, { workspaceEntries: [localPathEntry("notes", repo)], fileReview });
       return { driver, repo };
     }
 
@@ -364,52 +359,51 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(finalize, "the completion epilogue's one call").toHaveBeenCalledTimes(1);
     });
 
-    it("a resumed file review that reconciles cleanly finalizes exactly once, on the resume", async () => {
+    it("a turn with review on finalizes at its completion, and a reconcile turn that puts an undo back finalizes once more", async () => {
       clock.reset();
       finalize.mockClear();
-      const { driver } = driverWithLocalWorkspace("fake-writeback-review");
+      const { driver } = driverWithLocalWorkspace("fake-writeback-review", true);
 
       const first = await driver.turn([scenario.flowingWrite("fake-writeback-review-w", "answer.md"), scenario.say("Written.")]);
-      expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
-      expect(finalize, "a turn paused for review has pushed nothing").toHaveBeenCalledTimes(0);
+      expect(slimOf(subject, first).phase).toBe("RUN_COMPLETED");
+      expect(finalize, "the completion epilogue's one call: review never holds the push").toHaveBeenCalledTimes(1);
 
       clock.tick();
-      driver.record.decideCapturedFileChanges({ approve: ["answer.md"] }, new Date().toISOString());
-      const second = await driver.turn([]);
+      driver.record.decideCapturedFileChanges({ reject: ["answer.md"] }, new Date().toISOString());
+      const { invocation: second } = await driver.reconcileTurn();
 
       expect(slimOf(subject, second).phase).toBe("RUN_COMPLETED");
-      expect(finalize, "the resolved review's one call; the completion path does not run again").toHaveBeenCalledTimes(1);
+      expect(finalize, "the reconcile turn's one call pushes the tree with the file put back").toHaveBeenCalledTimes(2);
     });
 
-    it("a resumed file review whose reconcile fails never finalizes", async () => {
+    it("a reconcile turn whose undo fails never finalizes", async () => {
       clock.reset();
       finalize.mockClear();
-      const { driver } = driverWithLocalWorkspace("fake-writeback-diverged");
+      const { driver } = driverWithLocalWorkspace("fake-writeback-diverged", true);
 
       const first = await driver.turn([scenario.flowingWrite("fake-writeback-diverged-w", "answer.md"), scenario.say("Written.")]);
-      expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
+      expect(slimOf(subject, first).phase).toBe("RUN_COMPLETED");
+      expect(finalize).toHaveBeenCalledTimes(1);
 
-      // What the reviewer approved must be what applies. On the git substrate
-      // the reconcile re-asserts the approved bytes from the pinned capture
-      // ref (a working-tree edit after the pause is simply overwritten), so
-      // the failure path is the ledger's digest disagreeing with the captured
-      // bytes — the same divergence `capture.test.ts` drives at unit level.
-      // The reconcile then refuses to apply anything, the review completes
-      // with the refusal on the transcript, the tree is left for diagnosis —
-      // and nothing may be pushed from it.
+      // What is undone must be what was reviewed. On the git substrate the
+      // undo restores from the pinned refs, so the failure path is the
+      // ledger's digest disagreeing with the captured bytes — the same
+      // divergence `capture.test.ts` drives at unit level. The undo then
+      // restores nothing, the reconcile turn completes with the refusal on
+      // its transcript — and nothing may be pushed from the tree.
       clock.tick();
-      driver.record.decideCapturedFileChanges({ approve: ["answer.md"] }, new Date().toISOString());
+      driver.record.decideCapturedFileChanges({ reject: ["answer.md"] }, new Date().toISOString());
       const decided = driver.record.status!.fileChangeSets.at(-1)!.changes.find((c) => c.pathAfter === "answer.md")!;
       decided.afterSha256 = "deadbeef".repeat(8);
-      const second = await driver.turn([]);
+      const { invocation: second } = await driver.reconcileTurn();
 
       expect(slimOf(subject, second).phase).toBe("RUN_COMPLETED");
-      const final = driver.record.lastFullStatus!;
+      const final = driver.record.reconcileFinalStatus!;
       expect(
         final.messages.some((m) => m.content.startsWith(TERMINAL_COPY.fileReview.applyFailedPrefix)),
-        "the reconcile reported its refusal",
+        "the reconcile turn reported its refusal",
       ).toBe(true);
-      expect(finalize, "diverged bytes never reach a remote").toHaveBeenCalledTimes(0);
+      expect(finalize, "diverged bytes never reach a remote").toHaveBeenCalledTimes(1);
     });
   });
 });

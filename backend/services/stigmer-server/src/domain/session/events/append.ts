@@ -16,8 +16,9 @@
  * refusal of the credential is the same PERMISSION_DENIED.
  *
  * What it accepts. Only what a runner produces (catalog.ts
- * `RUNNER_EVENT_TYPES`): agent.*, session.thread_* and session.error. The
- * session's status and the user's turn have one writer, the server. The
+ * `RUNNER_EVENT_TYPES`): agent.*, session.thread_*, session.error and
+ * Stigmer's own events about the turn. The session's status, the user's
+ * turn and a file-review decision have one writer, the server. The
  * session comes from the run, never from the request. Each event carries
  * its own id, unique in the session: a resent id with the same event is
  * accepted again without a second entry, the same id with another event is

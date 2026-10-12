@@ -1,12 +1,20 @@
 /**
  * The approval default — harness-agnostic.
  *
- * Stigmer asks before a shell command, a file write or delete, and an MCP
- * tool whose server marks it destructive (`DiscoveredTool.destructive_hint`,
- * recorded at connect from the tool's own MCP annotation). Nothing else asks
- * by default. An agent's hooks (`shared/hooks/`) answer before the default:
- * a hook that decides a call replaces the default for it, so a hook decides
- * which tools ask too. Two runtime layers then clear an approval that would
+ * Stigmer asks before a shell command and an MCP tool whose server marks it
+ * destructive (`DiscoveredTool.destructive_hint`, recorded at connect from
+ * the tool's own MCP annotation). A built-in file write or delete asks only
+ * in a turn whose file review is on and whose workspace cannot capture it
+ * (no git tree, no storage for CAS): with review off (the default; the
+ * session's `file_review` switch) the edit simply flows, and with review on
+ * a capturable edit flows and is offered for Keep or Undo after the turn
+ * (`shared/filereview/capture.ts` `deriveCaptureMode`). Either way a
+ * secret-like path the git substrate would not hold is refused outright
+ * (`filereview/secret-paths.ts`). Nothing else asks by default. An agent's
+ * hooks (`shared/hooks/`) answer before the default: a hook that decides a
+ * call replaces the default for it, so a hook decides which tools ask too,
+ * and an agent that wants "ask before every edit" writes a PreToolUse hook
+ * that asks on a write. Two runtime layers then clear an approval that would
  * be asked:
  *  - Active approval leases, SCOPED: the pre-armed spec.auto_approve_all is a
  *    whole-run global bypass, while an interactive APPROVE_ALL ("approve all
@@ -242,6 +250,7 @@ export type PolicySource =
   | "approval_lease"                 // a run-lifetime scoped lease cleared this action
   | "builtin_category"               // the default asked: a built-in of an approval category
   | "file_capture"                   // Capture mode: a git-tracked built-in file edit flows, reviewed post-hoc via the file_review ledger (not gated; audit-only on the shadow receipt)
+  | "file_review_off"                // File review is off for the turn: a built-in file edit flows and is not reviewed (not gated; audit-only on the shadow receipt)
   | "annotation_destructive_tighten" // the default asked: an MCP tool its server marks destructive
   | "unattended_skip"                // unattended approval mode auto-skipped this gated call (no approver on the creating surface)
   | "hook";                          // a hook decided this call: it refused it, asked first, or let it run
@@ -253,9 +262,11 @@ export type PolicySource =
  * distinguishable in audits. "default-1" was the first engine with no per-tool
  * policies: the default alone decided, from the tool's category or its
  * server's destructive annotation. "hooks-1" is the first in which an
- * agent's hooks answer before the default.
+ * agent's hooks answer before the default. "hooks-2" is the first in which a
+ * built-in file write or delete flows unasked when the turn's file review is
+ * off (stigmer#1471).
  */
-export const POLICY_ENGINE_VERSION = "hooks-1";
+export const POLICY_ENGINE_VERSION = "hooks-2";
 
 /**
  * Map the runner-internal {@link PolicySource} to the persisted proto
@@ -280,9 +291,10 @@ export function toProtoPolicySource(source: PolicySource | undefined): ApprovalP
     case "hook":
       return ApprovalPolicySource.HOOK;
     case "file_capture":
-      // Capture-mode flow is never persisted on a gated tool call (the file tool
-      // is not gated — it has no WAITING_APPROVAL row); it exists only on the
-      // audit receipt. Map to UNSPECIFIED for the proto-persisted field.
+    case "file_review_off":
+      // A flowing file edit is never persisted on a gated tool call (the file
+      // tool is not gated — it has no WAITING_APPROVAL row); its source exists
+      // only on the audit receipt. Map to UNSPECIFIED for the proto-persisted field.
       return ApprovalPolicySource.UNSPECIFIED;
     case undefined:
       return ApprovalPolicySource.UNSPECIFIED;

@@ -1,9 +1,11 @@
 // File-review card UX, end-to-end against the CAPTURE-substrate stack
 // (deterministic via the mock LLM proxy). Apply-then-review is where the
-// file DIFF surface lives now: a flowed write is captured, the run pauses at
-// the review boundary, and the review card presents the before/after diff
-// with the Keep-all / Reject decisions. These are the visual pins for that
-// card — the successor of the pre-capture "gate renders the diff" screenshots
+// file DIFF surface lives now: in a session with file review on (the console
+// turns it on for every conversation it starts), a flowed write is captured,
+// the turn ends, and the dock presents the before/after diff with the
+// Keep-all / Undo decisions. These are the visual pins for that card, plus
+// the two decisions working on a finished turn — the successor of the
+// pre-capture "gate renders the diff" screenshots
 // (tool-card-ux.spec.ts pins the gate's proposed-content card on the
 // file-gate stack; the review flow's FUNCTIONAL coverage rides
 // tool-call-disclosure.spec.ts, which resolves reviews to settle its runs).
@@ -19,6 +21,7 @@ import {
   writeFileBlock,
   awaitRunPhase,
   fileReviewApproveButton,
+  fileReviewRejectButton,
   toolCallRow,
   fileDiff,
   type SeededGatedRun,
@@ -63,19 +66,20 @@ test.describe("file-review card (deterministic mock LLM)", () => {
           [writeFileBlock("call_review_1", "/tmp/e2e-review.txt", "alpha\nbeta\n")],
         ],
       });
-      // The write flows (apply-then-review) and the run pauses at the review
-      // boundary — the surface under test.
+      // The write flows (apply-then-review) and the turn ends; review never
+      // holds it. The dock offering the finished turn's edit is the surface
+      // under test.
       await awaitRunPhase(
         stigmerClient,
         seeded.runId,
-        RunPhase.RUN_WAITING_FOR_APPROVAL,
+        RunPhase.RUN_COMPLETED,
       );
 
       await page.emulateMedia({ colorScheme: scheme });
       await page.goto(`/sessions/${seeded.sessionId}`);
 
-      // The review card is up with its bulk decision; the captured change's
-      // added lines render as the reviewable diff.
+      // The review card is up with its bulk decision after the turn ended;
+      // the captured change's added lines render as the reviewable diff.
       await expect(fileReviewApproveButton(page)).toBeVisible({ timeout: 30_000 });
       await expect(page.getByText("alpha")).toBeVisible();
 
@@ -89,10 +93,29 @@ test.describe("file-review card (deterministic mock LLM)", () => {
     });
   }
 
+  // Undo on a finished turn: the console's one other decision. The server
+  // starts a turn that puts the file back; the dock leaves and the edit's row
+  // reads the verdict. (That the undo's own turn never shows in the thread is
+  // pinned by useSessionConversation's unit tests.)
+  test("undo on a finished turn settles the review and the row reads Discarded", async ({
+    page,
+    stigmerClient,
+  }) => {
+    seeded = await seedToolRunSession(stigmerClient, control, {
+      toolTurns: [[writeFileBlock("call_undo", "/tmp/e2e-undo.txt", "undo me\n")]],
+    });
+    await awaitRunPhase(stigmerClient, seeded.runId, RunPhase.RUN_COMPLETED);
+    await page.goto(`/sessions/${seeded.sessionId}`);
+
+    await fileReviewRejectButton(page).click({ timeout: 30_000 });
+    await expect(fileReviewApproveButton(page)).toHaveCount(0, { timeout: 30_000 });
+    await expect(toolCallRow(page).first().getByText("Discarded")).toBeVisible({ timeout: 30_000 });
+  });
+
   // --- Visual regression: the settled (kept) write's inline additive diff ---
   // Moved here from tool-card-ux.spec.ts: the settled row's diff is
-  // capture-fed, so it exists only on this stack shape. The run settles
-  // through the real review ("Keep all"), then the kept row must present the
+  // capture-fed, so it exists only on this stack shape. The finished turn's
+  // review settles through the real dock ("Keep all"), then the kept row must present the
   // additive diff with de-duplicated stats and the neutral card border.
   for (const scheme of COLOR_SCHEMES) {
     test(`completed write shows an inline additive diff (${scheme})`, async ({
@@ -121,11 +144,17 @@ test.describe("file-review card (deterministic mock LLM)", () => {
       // A settled (non-gate) tool card carries the same neutral border with no
       // accent — guard its computed width so the layer fix covers plain cards
       // too, in both color schemes (a screenshot cannot see a 1px line).
-      const neutralBorder = await settledRow.evaluate((el) => {
-        const s = getComputedStyle(el);
-        return { top: s.borderTopWidth, color: s.borderTopColor };
-      });
-      expect(parseFloat(neutralBorder.top)).toBeGreaterThanOrEqual(1);
+      // Polled: the row re-renders as the kept review settles, and a style read
+      // from a row detached mid-render comes back empty.
+      const readBorder = () =>
+        settledRow.evaluate((el) => {
+          const s = getComputedStyle(el);
+          return { top: s.borderTopWidth, color: s.borderTopColor };
+        });
+      await expect
+        .poll(async () => parseFloat((await readBorder()).top), { timeout: 10_000 })
+        .toBeGreaterThanOrEqual(1);
+      const neutralBorder = await readBorder();
       expect(neutralBorder.color).not.toBe("transparent");
       expect(neutralBorder.color).not.toMatch(/,\s*0\)\s*$/);
 

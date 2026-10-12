@@ -14,6 +14,12 @@ import "google/protobuf/timestamp.proto";
 // All run results and state live in RunStatus (in api.proto).
 message RunSpec {
   option (buf.validate.message).cel = {
+    id: "run.message_required"
+    message: "message is required"
+    expression: "this.reconcile_file_review || size(this.message) > 0"
+  };
+
+  option (buf.validate.message).cel = {
     id: "run.session_spec_harness_state"
     message: "session_spec.harness_state_id must be empty — harness state is created by the runner after the first run"
     expression: "!has(this.session_spec) || this.session_spec.harness_state_id == ''"
@@ -96,7 +102,8 @@ message RunSpec {
 
   // User input message that triggers this run.
   // Each run represents one user message and the agent's response.
-  string message = 3 [(buf.validate.field).string.min_len = 1];
+  // Required unless reconcile_file_review is set.
+  string message = 3;
 
   // The settings this message asks for (optional): a model, a speed tier,
   // thinking, and run bounds. Zero or empty fields are not set here.
@@ -355,6 +362,17 @@ message RunSpec {
   // step). Top-level rather than inside run_config for the reason
   // conversation_catchup gives: platform-composed content, not a setting.
   PluginEvalCaseContext plugin_eval_case = 25;
+
+  // Set on a turn that only puts back the files a person undid after an
+  // earlier turn ended: it runs no model and carries no message. The
+  // server starts one when an undo is decided on a finished turn.
+  //
+  // @internal
+  // Set only by the server's file-review decision; run create refuses it
+  // on a request that is not server-composed, as it refuses
+  // plugin_eval_case. Its creation writes no user.message, so the
+  // conversation's newest turn stays the one whose files are reviewed.
+  bool reconcile_file_review = 26;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -35,6 +35,15 @@
  * and keeps streaming IN_PROGRESS until then, and without the latch its
  * stragglers un-pause the execution and Resume finds nothing to resume.
  *
+ * A turn's file review closes when a later message is sent
+ * (filereview/autokeep.ts keepOutdatedSets). The next turn's workflow
+ * closes a turn that already captured; a turn that captures after the
+ * later message was sent is closed here, as its candidate is folded: a
+ * write carrying a CANDIDATE_CAPTURED asks the store for the run of the
+ * session's newest `user.message`, read under the session's lock, and
+ * keeps the run's undecided sets in the same write when that run is
+ * another. No other write pays the read.
+ *
  * Broadcast rides in-memory channels.
  */
 import { create } from "@bufbuild/protobuf";
@@ -46,6 +55,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import {
+  FileReviewEventType,
   RunControlSignal,
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -80,7 +90,11 @@ import { ensureApprovalRequests } from "./approval/author.js";
 import { preserveApprovalFields } from "./approval/preserve.js";
 import { projectPendingApprovals } from "./approval/project.js";
 import { appendRunnerEvents } from "./filereview/author.js";
-import { autoKeepApprovedCommandSets, autoKeepPluginEvalTrySets } from "./filereview/autokeep.js";
+import {
+  autoKeepApprovedCommandSets,
+  autoKeepPluginEvalTrySets,
+  keepOutdatedSets,
+} from "./filereview/autokeep.js";
 import { isPluginEvalRun } from "../plugin-eval/plugin-eval-run.js";
 import { projectFileChangeSets } from "./filereview/project.js";
 import { reconcileFileChangeProgress } from "./filereview/progress.js";
@@ -165,17 +179,23 @@ export async function updateStatus(
         try {
           // The merge commits with the session's status events when it
           // changes whether the run is working (session/events/run-writes.ts).
+          // A write folding a candidate asks for the conversation's newest
+          // turn, so a late capture of an outdated turn is kept as it
+          // lands (module header).
+          const foldsCandidate = carriesCandidate(ctx.input);
           ({ run: updated, previousPhase: oldPhase } = await updateRunAppendingEvents(
             deps,
             ctx.input.runId,
-            (execution) => {
+            (execution, session) => {
               applyUpdateStatusMerge(
                 execution,
                 ctx.input,
                 deps.logger,
                 isServerComposedRequest(identity) ? "platform" : "wire",
+                foldsCandidate && isOutdatedTurn(ctx.input.runId, session.runOfNewestType),
               );
             },
+            foldsCandidate ? { runOfNewestType: NEWEST_TURN_EVENT_TYPE } : {},
           ));
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
@@ -233,6 +253,25 @@ export async function updateStatus(
       signal: RunControlSignal.UNSPECIFIED,
     }),
   );
+}
+
+/** The event that names the conversation's newest turn: the user message its run was created with. */
+const NEWEST_TURN_EVENT_TYPE = "user.message";
+
+/** Whether the incoming status folds a captured candidate into the ledger. */
+function carriesCandidate(input: RunUpdateStatusInput): boolean {
+  return (input.status?.fileReviewEventStream?.events ?? []).some(
+    (ev) => ev.eventType === FileReviewEventType.CANDIDATE_CAPTURED,
+  );
+}
+
+/**
+ * Whether a later message was sent after this run's: the session's newest
+ * `user.message` belongs to another run. A session with none (a run in no
+ * session) has no later turn.
+ */
+function isOutdatedTurn(runId: string, newestTurnRunId: string | undefined): boolean {
+  return newestTurnRunId !== undefined && newestTurnRunId !== runId;
 }
 
 /**
@@ -342,13 +381,16 @@ export type StatusWriter = "platform" | "wire";
  * (synchronous by store contract), so the merge, the approval event
  * authoring, and the pending_approvals projection all see the same
  * snapshot that will be persisted. `writer` defaults to the wire, the
- * side that grants nothing extra.
+ * side that grants nothing extra. `outdatedTurn` says a later message was
+ * sent after this run's, so its file review is closed in this write (the
+ * caller reads it under the session's lock; module header).
  */
 export function applyUpdateStatusMerge(
   execution: Run,
   input: RunUpdateStatusInput,
   logger: Logger,
   writer: StatusWriter = "wire",
+  outdatedTurn = false,
 ): void {
   if (execution.status === undefined) {
     execution.status = create(RunStatusSchema);
@@ -554,8 +596,8 @@ export function applyUpdateStatusMerge(
 
   // Fold the runner-authored capture/reconcile events (carried on the
   // request payload) into the server-owned ledger: append-only,
-  // idempotent by event_id, FILE_DECIDED dropped (server-authored by
-  // SubmitFileDecision).
+  // idempotent by event_id, FILE_DECIDED dropped (server-authored: a
+  // person's decision or a policy keep, never the runner's).
   appendRunnerEvents(status, input.runId, requestStatus);
 
   // Approved-command auto-keep: a candidate whose provenance
@@ -570,14 +612,22 @@ export function applyUpdateStatusMerge(
   );
   // A plugin eval's try keeps its edits by policy: nobody reviews a try.
   autoKeepPluginEvalTrySets(status, input.runId, isPluginEvalRun(execution), logger);
+  // A turn that captured after a later message was sent is closed as it
+  // lands: its undecided edits are kept, as the next turn keeps them.
+  if (outdatedTurn) {
+    const kept = keepOutdatedSets(status, input.runId);
+    if (kept > 0) {
+      logger.info("Kept a turn's undecided file changes: a later message was sent", {
+        executionId: input.runId,
+        decisions: kept,
+      });
+    }
+  }
 
   // Recompute file_change_sets from the append-only ledger via its single
   // projection seam — always derived, never merged, so it cannot go
   // stale.
-  status.fileChangeSets = projectFileChangeSets(
-    status.phase,
-    status.fileReviewEventStream,
-  );
+  status.fileChangeSets = projectFileChangeSets(status.fileReviewEventStream);
 
   // Mid-run live capture: merge the runner-owned transient
   // progress snapshot (presence-guarded replace, like streaming_usage

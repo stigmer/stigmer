@@ -288,7 +288,7 @@ describe("ApprovalGateMiddleware", () => {
       // Provenance: a built-in mutating tool is decided by the taxonomy, and the
       // engine version is stamped for audit correlation.
       expect(r[0].policySource).toBe("builtin_category");
-      expect(r[0].policyEngineVersion).toBe("hooks-1");
+      expect(r[0].policyEngineVersion).toBe("hooks-2");
     });
 
     it("emits an auto_approve receipt for an auto-approved MCP side effect", async () => {
@@ -307,7 +307,7 @@ describe("ApprovalGateMiddleware", () => {
       // Not marked destructive by its server: the default does not ask, and
       // the receipt carries no policy source.
       expect(r[0].policySource).toBe("");
-      expect(r[0].policyEngineVersion).toBe("hooks-1");
+      expect(r[0].policyEngineVersion).toBe("hooks-2");
     });
 
     it("stamps the destructive-annotation source on a user-approved MCP gate", async () => {
@@ -325,7 +325,7 @@ describe("ApprovalGateMiddleware", () => {
       const r = receipts();
       expect(r).toHaveLength(1);
       expect(r[0].policySource).toBe("annotation_destructive_tighten");
-      expect(r[0].policyEngineVersion).toBe("hooks-1");
+      expect(r[0].policyEngineVersion).toBe("hooks-2");
     });
 
     it("does NOT emit a receipt for read-only built-ins (not a side effect)", async () => {
@@ -491,6 +491,108 @@ describe("ApprovalGateMiddleware", () => {
       } finally {
         logSpy.mockRestore();
       }
+    });
+  });
+
+  describe("file review off (stigmer#1471)", () => {
+    function receiptsOf(logSpy: { mock: { calls: unknown[][] } }): Record<string, unknown>[] {
+      return logSpy.mock.calls
+        .map((c) => String(c[0] ?? ""))
+        .filter((line) => line.startsWith("[hitl-gateway] receipt "))
+        .map((line) => JSON.parse(line.slice("[hitl-gateway] receipt ".length)) as Record<string, unknown>);
+    }
+
+    it("a write and a delete flow unasked, with no capture bookkeeping, and the receipt names file_review_off", async () => {
+      const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      try {
+        const captureDeleteBefore = vi.fn(async () => {});
+        const handler = vi.fn(passthrough);
+        const mw = createApprovalGateMiddleware(makeConfig({
+          fileReviewOff: true,
+          fileCaptureSubstrate: true,
+          isCapturablePath: async () => false,
+          captureDeleteBefore,
+          fingerprintKey: "test-key",
+          executionId: "exec-off",
+        }));
+
+        await mw.wrapToolCall!(makeRequest({ name: "write", args: { path: "notes/plan.md" } }), handler);
+        await mw.wrapToolCall!(makeRequest({ name: "delete", args: { path: "scratch/tmp.txt" } }), handler);
+
+        expect(mockedInterrupt).not.toHaveBeenCalled();
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(captureDeleteBefore, "nothing is captured with review off").not.toHaveBeenCalled();
+        expect(receiptsOf(logSpy).map((r) => [r.policySource, r.authorization])).toEqual([
+          ["file_review_off", "auto_approve"],
+          ["file_review_off", "auto_approve"],
+        ]);
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+
+    it("flows on an unattended surface too: the write is applied, not skipped", async () => {
+      const handler = vi.fn(passthrough);
+      const unattendedSkips = new Map<string, string | null>();
+      const mw = createApprovalGateMiddleware(makeConfig({ fileReviewOff: true, unattended: true, unattendedSkips }));
+
+      await mw.wrapToolCall!(makeRequest({ name: "write", args: { path: "reply.md" } }), handler);
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(unattendedSkips.size).toBe(0);
+    });
+
+    it("shell and a destructive MCP tool still ask", async () => {
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileReviewOff: true,
+        mcpDefault: destructive("srv/mutate"),
+        toolServerMap: new Map([["mutate", "srv"]]),
+      }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(makeRequest({ name: "shell", args: { command: "ls" } }), passthrough);
+      await mw.wrapToolCall!(makeRequest({ name: "mutate", args: {} }), passthrough);
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(2);
+    });
+
+    it("the secret rule is keyed on the substrate: a tracked .env.example in a git workspace flows", async () => {
+      const handler = vi.fn(passthrough);
+      const recordBlockedSecret = vi.fn();
+      const mw = createApprovalGateMiddleware(makeConfig({
+        fileReviewOff: true,
+        fileCaptureSubstrate: true,
+        isCapturablePath: async () => true,
+        recordBlockedSecret,
+      }));
+
+      await mw.wrapToolCall!(makeRequest({ name: "write", args: { path: "config/.env.example" } }), handler);
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(recordBlockedSecret).not.toHaveBeenCalled();
+    });
+
+    it("a gitignored secret-like write is still refused, and so is one in a workspace with no substrate", async () => {
+      for (const config of [
+        { fileReviewOff: true, fileCaptureSubstrate: true, isCapturablePath: async () => false },
+        { fileReviewOff: true, fileCaptureSubstrate: false, isCapturablePath: async () => false },
+      ]) {
+        const handler = vi.fn(passthrough);
+        const mw = createApprovalGateMiddleware(makeConfig(config));
+        const result = await mw.wrapToolCall!(makeRequest({ name: "write", args: { path: ".env" } }), handler);
+        expect(handler).not.toHaveBeenCalled();
+        expect(String((result as { content: unknown }).content)).toContain("blocked for security");
+      }
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+    });
+
+    it("review on with no substrate: a write asks (the deny-gate)", async () => {
+      const mw = createApprovalGateMiddleware(makeConfig({ fileReviewOff: false, fileCaptureMode: false, fileCaptureSubstrate: false }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(makeRequest({ name: "write", args: { path: "src/app.ts" } }), passthrough);
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -50,6 +50,12 @@ export interface BootstrapSessionSpec {
    */
   readonly includeMyVault?: boolean;
   /**
+   * Whether each turn's file edits are offered for review, Keep or Undo,
+   * after the turn. Off unless set. Review never makes a turn wait: the
+   * edits are applied, and an Undo puts a file back.
+   */
+  readonly fileReview?: boolean;
+  /**
    * Custom key-value pairs stored on the created session's
    * `SessionSpec.metadata`.
    *
@@ -353,6 +359,7 @@ export function useCreateRun(): UseCreateRunReturn {
               skillRefs: input.sessionSpec.skillRefs,
               vaults: input.sessionSpec.vaults,
               includeMyVault: input.sessionSpec.includeMyVault,
+              fileReview: input.sessionSpec.fileReview,
               metadata: mergeSessionContext(
                 input.sessionSpec.metadata,
                 input.sessionSpec.sessionContext,

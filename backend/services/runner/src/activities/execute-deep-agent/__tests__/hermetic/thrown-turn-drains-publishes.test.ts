@@ -9,12 +9,10 @@
  * (the scripted model's `fail` ending: a provider error), so the turn never
  * reaches its settle — the one place that used to drain the publishes. The
  * adapter classifies the throw as `failed`, and the runtime writes the
- * turn's terminal status as soon as the adapter returns. The report is an
- * edit on the tree, and the hermetic environment runs in capture mode (it
- * carries artifact storage, as every hosted runner does), so that status is
- * the file review's WAITING_FOR_APPROVAL with the failure's rows riding it
- * and its phase deferred (`terminal-table.ts` `awaitingReviewArm`): the
- * production shape of this fault.
+ * turn's terminal status as soon as the adapter returns: FAILED, with the
+ * failure's rows. The report is an edit on the tree that flowed (the
+ * session's file review is off, the default), so nothing holds the
+ * terminal: the production shape of this fault.
  *
  * The order is made deterministic, not left to I/O timing: the upload is
  * held until the turn asks for its publishes to drain, or until the
@@ -105,8 +103,7 @@ describe("ExecuteDeepAgent hermetic — a thrown turn drains its inline publishe
 
     // The artifact's upload waits on `held`; the first of "the turn drains"
     // and "the activity returned" releases it (the header's deterministic
-    // order). Capture mode's own blobs share the store and are never held:
-    // the runtime writes them after the adapter returns.
+    // order).
     const artifactKey = `artifacts/${FIXTURE.executionId}/${REPORT}`;
     let release = (): void => undefined;
     const held = new Promise<void>((resolve) => {
@@ -132,14 +129,12 @@ describe("ExecuteDeepAgent hermetic — a thrown turn drains its inline publishe
     const invocation = await runDeepAgentTurn(scenario);
     release();
 
-    // ── Assert: the turn failed, deferred behind the review, and returned ────
+    // ── Assert: the turn failed and returned ─────────────────────────────────
     expect(invocation.outcome.kind, "a provider failure RETURNS the status").toBe("returned");
     const final = record.lastFullStatus!;
-    expect(final.phase, "the edit reaches review before the failure settles").toBe(
-      RunPhase.RUN_WAITING_FOR_APPROVAL,
-    );
-    expect(final.error, "a deferred terminal writes no error yet").toBe("");
-    expect(systemMessages(final), "the failure's rows ride the review").toEqual([
+    expect(final.phase, "nothing holds the failure: review is off").toBe(RunPhase.RUN_FAILED);
+    expect(final.error).toContain(PROVIDER_FAULT);
+    expect(systemMessages(final), "the failure's rows").toEqual([
       TERMINAL_COPY.internalFailure.row,
       `Error details: [Error] ${PROVIDER_FAULT}`,
     ]);

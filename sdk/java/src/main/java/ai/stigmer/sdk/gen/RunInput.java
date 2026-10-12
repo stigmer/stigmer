@@ -53,6 +53,7 @@ public final class RunInput {
     private final String supersedesRunId;
     private final ConversationCatchupInput conversationCatchup;
     private final PluginEvalCaseContextInput pluginEvalCase;
+    private final boolean reconcileFileReview;
 
     private RunInput(Builder builder) {
         this.id = builder.id;
@@ -77,6 +78,7 @@ public final class RunInput {
         this.supersedesRunId = builder.supersedesRunId;
         this.conversationCatchup = builder.conversationCatchup;
         this.pluginEvalCase = builder.pluginEvalCase;
+        this.reconcileFileReview = builder.reconcileFileReview;
     }
 
     Run toProto() {
@@ -127,6 +129,7 @@ public final class RunInput {
         if (this.pluginEvalCase != null) {
             spec.setPluginEvalCase(this.pluginEvalCase.toProto());
         }
+        spec.setReconcileFileReview(this.reconcileFileReview);
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
         if (this.org != null) {
@@ -177,6 +180,7 @@ public final class RunInput {
         private String supersedesRunId;
         private ConversationCatchupInput conversationCatchup;
         private PluginEvalCaseContextInput pluginEvalCase;
+        private boolean reconcileFileReview;
 
         private Builder() {}
 
@@ -207,6 +211,7 @@ public final class RunInput {
         public Builder supersedesRunId(String supersedesRunId) { this.supersedesRunId = supersedesRunId; return this; }
         public Builder conversationCatchup(ConversationCatchupInput conversationCatchup) { this.conversationCatchup = conversationCatchup; return this; }
         public Builder pluginEvalCase(PluginEvalCaseContextInput pluginEvalCase) { this.pluginEvalCase = pluginEvalCase; return this; }
+        public Builder reconcileFileReview(boolean reconcileFileReview) { this.reconcileFileReview = reconcileFileReview; return this; }
 
         public RunInput build() { return new RunInput(this); }
     }
@@ -226,6 +231,7 @@ public final class RunInput {
         private final java.util.List<ResourceRef> vaults;
         private final boolean includeMyVault;
         private final java.util.List<ResourceRef> plugins;
+        private final boolean fileReview;
 
         private SessionSpecInput(Builder builder) {
             this.agentRef = builder.agentRef;
@@ -241,6 +247,7 @@ public final class RunInput {
             this.vaults = builder.vaults;
             this.includeMyVault = builder.includeMyVault;
             this.plugins = builder.plugins;
+            this.fileReview = builder.fileReview;
         }
 
         SessionSpec toProto() {
@@ -294,6 +301,7 @@ public final class RunInput {
                         .setKind(ApiResourceKind.plugin).build());
                 }
             }
+            builder.setFileReview(this.fileReview);
             return builder.build();
         }
 
@@ -313,6 +321,7 @@ public final class RunInput {
             private java.util.List<ResourceRef> vaults;
             private boolean includeMyVault;
             private java.util.List<ResourceRef> plugins;
+            private boolean fileReview;
 
             private Builder() {}
 
@@ -329,6 +338,7 @@ public final class RunInput {
             public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
             public Builder includeMyVault(boolean includeMyVault) { this.includeMyVault = includeMyVault; return this; }
             public Builder plugins(java.util.List<ResourceRef> plugins) { this.plugins = plugins; return this; }
+            public Builder fileReview(boolean fileReview) { this.fileReview = fileReview; return this; }
 
             public SessionSpecInput build() { return new SessionSpecInput(this); }
         }

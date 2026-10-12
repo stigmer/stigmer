@@ -1,7 +1,8 @@
 /**
  * Pins the stop cause of every way a turn ends (`../terminal-table.ts`):
  * each arm that stops a turn names the one structured cause the session's
- * status reads (`RunStatus.stop_cause`), the two waiting arms name none,
+ * status reads (`RunStatus.stop_cause`), the waiting arm names none (a
+ * turn waits only on an approval; file review never holds one),
  * and applying an arm writes the cause and reports where its rows landed,
  * so the session event emitter never writes them as harness notes.
  *
@@ -29,7 +30,6 @@ const ARMS: ReadonlyArray<{ readonly name: string; readonly arm: TerminalArm; re
   { name: "orchestratorStopArm", arm: table.orchestratorStopArm(), cause: "user" },
   { name: "infrastructureCancelArm", arm: table.infrastructureCancelArm(), cause: "infrastructure" },
   { name: "awaitingApprovalArm", arm: table.awaitingApprovalArm(), cause: null },
-  { name: "awaitingReviewArm", arm: table.awaitingReviewArm(table.toolCallLimitArm()), cause: null },
   { name: "platformStopArm", arm: table.platformStopArm(), cause: "platform_stop" },
   {
     name: "workspaceLockTimeoutArm",

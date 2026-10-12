@@ -1,7 +1,8 @@
 /**
  * Server-side activity implementations for the agent-execution worker —
  * ports pkg/domain/agentexecution/temporal/activities (update_status_impl,
- * load_execution, read_harness_state_id) and
+ * load_execution, read_harness_state_id), closes the previous turn's file
+ * review (CloseFileReview), and
  * registers the retired DeleteExecutionContext name with a body that does
  * nothing, for the runs whose history still calls it (names.ts).
  *
@@ -33,6 +34,19 @@
  *
  * The reads (LoadAgentExecution, ReadHarnessStateId) stay store-direct:
  * pure reads with Java `findById` parity — no chain to bypass.
+ *
+ * CloseFileReview is the server's own policy write, as the auto-keeps
+ * inside the status merge are: once this turn's message is in the log,
+ * the previous turn's still-undecided edits are kept
+ * (domain/run/filereview/autokeep.ts keepOutdatedSets), in one run write
+ * that commits the ledger decisions with their `decided` events
+ * (domain/session/events/run-writes.ts). The previous turn is the run of
+ * the `user.message` before this run's own: one read for this run's
+ * message, one for the message before it. A run whose message is not in
+ * the log (no session, or a reconcile turn, whose workflow never calls
+ * it), a first turn and a previous turn since deleted close nothing, and
+ * a previous turn with nothing undecided is not written. Idempotent, so a retry or a replay that runs
+ * it again records nothing new.
  */
 import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
@@ -46,12 +60,20 @@ import type {
   UpdateStatusResponse,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import { keepOutdatedSets } from "../../domain/run/filereview/autokeep.js";
+import { projectFileChangeSets } from "../../domain/run/filereview/project.js";
+import type { SessionEventBroker } from "../../domain/session/events/broker.js";
+import { updateRunAppendingEvents } from "../../domain/session/events/run-writes.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
+  CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
@@ -82,7 +104,12 @@ export interface AgentExecutionActivityDeps {
    * lazily like the RunStarter's create edge).
    */
   readonly statusWriter: () => ExecutionStatusWriter;
+  /** The fan-out of each session's event log: CloseFileReview's write appends `decided` events. */
+  readonly sessionEventBroker: SessionEventBroker;
 }
+
+/** The event that opens a message turn: the user message its run was created with. */
+const TURN_MESSAGE_TYPE = "user.message";
 
 /**
  * Builds the activity record the worker registers. Keys are the
@@ -178,7 +205,83 @@ export function createAgentExecutionActivities(
       return session.spec?.harnessStateId ?? "";
     },
 
+    /**
+     * Keeps the previous turn's still-undecided edits (module header).
+     * The session is the run's own, from the workflow input.
+     */
+    [CLOSE_FILE_REVIEW_ACTIVITY_NAME]: async (
+      executionId: string,
+      sessionId: string,
+    ): Promise<void> => {
+      const previousRunId = await previousTurnRunId(store, sessionId, executionId);
+      if (previousRunId === undefined) {
+        return;
+      }
+      let kept = 0;
+      try {
+        const previous = await store.getResource(ApiResourceKind.run, previousRunId, RunSchema);
+        if (!hasUndecidedSet(previous)) {
+          return;
+        }
+        await updateRunAppendingEvents(deps, previousRunId, (run) => {
+          if (run.status !== undefined) {
+            kept = keepOutdatedSets(run.status, previousRunId);
+            run.status.fileChangeSets = projectFileChangeSets(run.status.fileReviewEventStream);
+          }
+        });
+      } catch (error) {
+        // A previous turn deleted since its message was read has nothing
+        // left to close.
+        if (error instanceof ResourceNotFoundError) {
+          return;
+        }
+        throw error;
+      }
+      logger.info("Closed the previous turn's file review: its undecided edits are kept", {
+        executionId,
+        previousExecutionId: previousRunId,
+        decisions: kept,
+      });
+    },
+
     /** The retired run-end cleanup: nothing is stored to delete (names.ts). */
     [RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: async (): Promise<void> => {},
   };
+}
+
+/**
+ * The run of the session's `user.message` before `executionId`'s own;
+ * undefined when the run's message is not in the log or it is the first.
+ */
+async function previousTurnRunId(
+  store: Store,
+  sessionId: string,
+  executionId: string,
+): Promise<string | undefined> {
+  if (sessionId === "") {
+    return undefined;
+  }
+  const [own] = await store.sessionEvents.list(sessionId, {
+    order: "desc",
+    types: [TURN_MESSAGE_TYPE],
+    runId: executionId,
+    limit: 1,
+  });
+  if (own === undefined) {
+    return undefined;
+  }
+  const [before] = await store.sessionEvents.list(sessionId, {
+    order: "desc",
+    types: [TURN_MESSAGE_TYPE],
+    afterSeq: own.seq,
+    limit: 1,
+  });
+  return before === undefined || before.runId === "" ? undefined : before.runId;
+}
+
+/** Whether a run holds a change set still awaiting a decision. */
+function hasUndecidedSet(run: Run): boolean {
+  return projectFileChangeSets(run.status?.fileReviewEventStream).some(
+    (cs) => cs.status === FileChangeSetStatus.AWAITING_REVIEW,
+  );
 }

@@ -167,6 +167,8 @@ export interface WireTurnInput {
     readonly dirs: readonly string[];
     readonly primaryDir: string;
     readonly gitWorkspace: boolean;
+    readonly captureSubstrate: boolean;
+    readonly fileReview: boolean;
     readonly captureMode: boolean;
     readonly changeSetId: string;
     readonly provision: {
@@ -264,6 +266,8 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
       dirs: workspace.dirs,
       primaryDir: workspace.primaryDir,
       gitWorkspace: workspace.gitWorkspace,
+      captureSubstrate: workspace.captureSubstrate,
+      fileReview: workspace.fileReview,
       captureMode: workspace.captureMode,
       changeSetId: workspace.changeSetId,
       provision: {
@@ -381,6 +385,8 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       dirs: wire.workspace.dirs,
       primaryDir: wire.workspace.primaryDir,
       gitWorkspace: wire.workspace.gitWorkspace,
+      captureSubstrate: wire.workspace.captureSubstrate,
+      fileReview: wire.workspace.fileReview,
       captureMode: wire.workspace.captureMode,
       changeSetId: wire.workspace.changeSetId,
       provision: {

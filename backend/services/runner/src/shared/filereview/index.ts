@@ -20,6 +20,7 @@ export {
   buildCapturedFileChange,
   buildFailedEvent,
   buildReconciledEvent,
+  changeSetIdParts,
   eventId,
   hasCandidateCaptured,
   type CapturedChangeInput,
@@ -27,10 +28,11 @@ export {
 } from "./events.js";
 
 export {
-  applyCaptureDecisions,
   captureBaselineToLedger,
   captureCandidateToLedger,
-  type CaptureResumeResult,
+  undoChangeSet,
+  type UndoFailure,
+  type UndoOutcome,
 } from "./capture.js";
 
 export {

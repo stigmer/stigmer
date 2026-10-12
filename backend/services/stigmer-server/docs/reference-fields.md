@@ -164,6 +164,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.session.v1.ListSessionEventsRequest.run_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ListSessionEventsRequest.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.agent_id` | stamped id |
+| `ai.stigmer.agentic.session.v1.ReviewFileChangesInput.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.SessionEvent.run_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.SessionEvent.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.SessionSpec.agent_ref` | manifest reference |

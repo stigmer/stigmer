@@ -1,9 +1,10 @@
 /**
  * @regression file-hitl-gate — pins three rules of git capture mode: a
  * no-commit tree-ref snapshot and restore with one card per changed file;
- * edits stay applied through the WAITING-to-resume boundary and the resume
- * reconciles to the pinned refs; a reject is a DISCARD that COMPLETES, snaps
- * the tree back byte for byte, and partial decisions land only approved files.
+ * edits stay applied after the turn and an undo restores from the pinned
+ * refs; an undo snaps only the files decided REJECT back byte for byte,
+ * leaves kept and undecided files as they are, and restores nothing when
+ * what it would restore no longer matches what was reviewed.
  *
  * Tests the harness-agnostic capture orchestration directly, under one
  * harness id (since #1096 the runtime is the ONE caller for every harness,
@@ -44,12 +45,14 @@ import {
 import type { ArtifactStorage } from "../../artifact-storage.js";
 import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import {
-  applyCaptureDecisions,
   captureBaselineToLedger,
   captureCandidateToLedger,
   deriveCaptureMode,
+  deriveCaptureSubstrate,
   partitionGitChangesBySecret,
+  undoChangeSet,
 } from "../capture.js";
+import { dropCaptureRefs } from "../git-substrate.js";
 import type { GitSubstrateChange } from "../git-substrate.js";
 import { casBlobReader } from "../cas-substrate.js";
 
@@ -59,29 +62,34 @@ const CHANGE_SET_ID = `${EXEC_ID}:0`;
 const HARNESS = "deep-agent";
 
 // ── deriveCaptureMode: the shared capture-vs-deny-gate decision (both harnesses) ──
-// A non-git workspace with NO artifact storage (or no workspace) has no capture
-// substrate, so it falls back to the deny-gate — the branch this pins for BOTH the
-// Cursor (exact-apply) and deep-agent (LangGraph-replay) harnesses.
+// Capture needs both facts: the turn's review is on, and the workspace has a
+// substrate. A non-git workspace with NO artifact storage (or no workspace) has
+// no capture substrate, so a turn with review on falls back to the deny-gate —
+// the branch this pins for BOTH the Cursor (exact-apply) and deep-agent
+// (LangGraph-replay) harnesses. With review off nothing is captured whatever
+// the workspace can do.
 describe("deriveCaptureMode", () => {
-  it("engages CAPTURE for a git work tree — with or without artifact storage (git needs none)", () => {
-    expect(deriveCaptureMode("/ws", true, true)).toBe(true);
-    expect(deriveCaptureMode("/ws", true, false)).toBe(true);
+  // primary dir, git, storage → substrate; then review on / off → capture.
+  const TABLE: ReadonlyArray<readonly [string | undefined, boolean, boolean, boolean]> = [
+    ["/ws", true, true, true],
+    ["/ws", true, false, true],
+    ["/ws", false, true, true],
+    ["/ws", false, false, false],
+    [undefined, true, true, false],
+    [undefined, false, false, false],
+    ["", true, true, false],
+  ];
+
+  it.each(TABLE)("dir=%s git=%s storage=%s: substrate=%s", (dir, git, storage, substrate) => {
+    expect(deriveCaptureSubstrate(dir, git, storage)).toBe(substrate);
   });
 
-  it("engages CAPTURE for a non-git workspace only WITH artifact storage (CAS needs it)", () => {
-    expect(deriveCaptureMode("/ws", false, true)).toBe(true);
+  it.each(TABLE)("dir=%s git=%s storage=%s: review on captures iff the substrate holds (%s)", (dir, git, storage, substrate) => {
+    expect(deriveCaptureMode(dir, git, storage, true)).toBe(substrate);
   });
 
-  it("falls back to the DENY-GATE for a non-git workspace with NO storage", () => {
-    // No git snapshot, no CAS blob store: no capture substrate, so file writes
-    // gate pre-execution (Cursor arms exact-apply; deep-agent replays on approve).
-    expect(deriveCaptureMode("/ws", false, false)).toBe(false);
-  });
-
-  it("falls back to the DENY-GATE when there is no primary workspace at all", () => {
-    expect(deriveCaptureMode(undefined, true, true)).toBe(false);
-    expect(deriveCaptureMode(undefined, false, false)).toBe(false);
-    expect(deriveCaptureMode("", true, true)).toBe(false);
+  it.each(TABLE)("dir=%s git=%s storage=%s: review off never captures", (dir, git, storage) => {
+    expect(deriveCaptureMode(dir, git, storage, false)).toBe(false);
   });
 });
 
@@ -126,9 +134,9 @@ function decidedChangeSet(
         expectedDigest: c.fileDigest,
       }),
     );
-  // Carry the candidate snapshot too (as the server projection does), so a CAS-only
-  // reconcile can point RECONCILED back at the durable manifest. Git tests reconcile
-  // from git refs and ignore it.
+  // Carry the candidate snapshot too (as the server projection does), so an undo
+  // finds the CAS manifest the candidate recorded. Git tests undo from git refs
+  // and ignore it.
   const candEv = eventsOfType(status, FileReviewEventType.CANDIDATE_CAPTURED)[0];
   const candidateSnapshot =
     candEv?.payload.case === "candidateCaptured" ? candEv.payload.value.candidateSnapshot : undefined;
@@ -197,53 +205,62 @@ describe("capture orchestration — deep-agent harness", () => {
     expect(cand.find((c) => c.pathAfter === "notes.md")!.id).toBe(`${CHANGE_SET_ID}:notes.md`);
   });
 
-  it("reconciles approve/reject on resume and authors RECONCILED with harness parity", async () => {
+  it("undoes only the files decided REJECT, from the refs; kept and undecided files stay; nothing reaches the ledger", async () => {
     const status = newStatus();
     const baseline = await captureBaselineToLedger({
       status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
     });
     await write("notes.md", "planton notes\n");
     await write("src/main.ts", "export const x = 99;\n");
+    await write("src/new.ts", "export const y = 2;\n");
     await captureCandidateToLedger({
       status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
       baselineTree: baseline, harnessId: HARNESS,
     });
+    const ledgerBefore = status.fileReviewEventStream?.events.length ?? 0;
 
+    // notes.md kept, src/main.ts undone, src/new.ts undecided.
     const changeSet = decidedChangeSet(status, {
       "notes.md": FileDecisionAction.APPROVE,
       "src/main.ts": FileDecisionAction.REJECT,
     });
 
-    const result = await applyCaptureDecisions({
-      status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-    });
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true });
 
-    expect(result.isCaptureTurn).toBe(true);
-    expect(result.failed).toBe(false);
-    expect(result.approvedPaths).toEqual(["notes.md"]);
-    expect(result.rejectedPaths).toEqual(["src/main.ts"]);
-
-    // Approved kept; rejected snapped back to baseline; nothing committed.
-    expect(await read("notes.md")).toBe("planton notes\n");
+    expect(outcome).toEqual({ changeSetId: CHANGE_SET_ID, undonePaths: ["src/main.ts"], failure: "", failureDetail: "" });
+    // The undone file is back at its baseline; the kept and the undecided stay applied; nothing committed.
     expect(await read("src/main.ts")).toBe("export const x = 1;\n");
+    expect(await read("notes.md")).toBe("planton notes\n");
+    expect(await read("src/new.ts")).toBe("export const y = 2;\n");
     expect((await git(["log", "--oneline"])).trim().split("\n")).toHaveLength(1);
-
-    const reconciled = eventsOfType(status, FileReviewEventType.RECONCILED);
-    expect(reconciled).toHaveLength(1);
-    expect(reconciled[0].actor).toBe("runner");
-    expect((await git(["for-each-ref", "refs/stigmer/"])).trim()).toBe("");
+    // The outcome is the caller's to record: no ledger event, and the refs stay for the next message turn to drop.
+    expect(status.fileReviewEventStream?.events.length ?? 0).toBe(ledgerBefore);
+    expect((await git(["for-each-ref", "refs/stigmer/"])).trim()).not.toBe("");
   });
 
-  it("git-only reconcile never probes storage for a CAS manifest, even when exists() lies (regression: proxy 404 crash)", async () => {
+  it("a set with nothing decided REJECT puts nothing back and reads no ref", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS });
+    await write("notes.md", "planton notes\n");
+    await captureCandidateToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, baselineTree: baseline, harnessId: HARNESS });
+    const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.APPROVE });
+
+    expect(await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true })).toEqual({
+      changeSetId: CHANGE_SET_ID, undonePaths: [], failure: "", failureDetail: "",
+    });
+    expect(await read("notes.md")).toBe("planton notes\n");
+  });
+
+  it("a git-only undo never probes storage for a CAS manifest, even when exists() lies (regression: proxy 404 crash)", async () => {
     // Regression for the file-review reconcile crash in cloud/desktop (proxy)
     // artifact mode. `ProxyArtifactStorage.exists()` reports true for ANY key
     // (the presign endpoint mints a URL regardless of object existence), so the
     // old reconcile "found" a CAS manifest that a git-only turn never wrote,
     // downloaded it, and died on the R2 `NoSuchKey` 404 (the ExecuteCursor
-    // crash `proxy-reconcile.test.ts` reproduces). The reconcile must decide "is this a CAS turn?"
+    // crash `proxy-reconcile.test.ts` reproduces). The undo decides "is this a CAS turn?"
     // from the change set's CANDIDATE snapshot — a git-only turn carries no cas
-    // ref — so a lying `exists()` can no longer turn a git reconcile into a
-    // doomed download.
+    // ref — so a lying `exists()` can never turn a git undo into a doomed
+    // download.
     const status = newStatus();
     const baseline = await captureBaselineToLedger({
       status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
@@ -254,7 +271,7 @@ describe("capture orchestration — deep-agent harness", () => {
       baselineTree: baseline, harnessId: HARNESS,
     });
 
-    const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.APPROVE });
+    const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.REJECT });
     // Precondition: this is a git-only turn — its candidate snapshot has no CAS ref.
     expect(changeSet.candidateSnapshot?.kind).toBe(SnapshotKind.GIT_TREE_REF);
     expect(changeSet.candidateSnapshot?.cas).toBeUndefined();
@@ -264,34 +281,33 @@ describe("capture orchestration — deep-agent harness", () => {
     const { storage } = makeInMemoryArtifactStorage();
     storage.exists.mockResolvedValue(true);
 
-    const result = await applyCaptureDecisions({
-      status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-      storage, readBlob: casBlobReader(storage),
-    });
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true, readBlob: casBlobReader(storage) });
 
-    // Reconciles via git; the approved edit is kept and nothing crashed.
-    expect(result.isCaptureTurn).toBe(true);
-    expect(result.failed).toBe(false);
-    expect(result.approvedPaths).toEqual(["notes.md"]);
-    expect(await read("notes.md")).toBe("planton notes\n");
-    // The proof: the git-only reconcile never asked storage for the CAS manifest.
+    // Undone via git; nothing crashed.
+    expect(outcome.failure).toBe("");
+    expect(outcome.undonePaths).toEqual(["notes.md"]);
+    expect(await read("notes.md")).toBe("platon notes\n");
+    // The proof: the git-only undo never asked storage for the CAS manifest.
     const manifestKey =
       `artifacts/${EXEC_ID}/filereview/cas/${CHANGE_SET_ID.replace(/[^A-Za-z0-9._-]/g, "_")}.manifest.json`;
     expect(storage.download).not.toHaveBeenCalledWith(manifestKey);
   });
 
-  it("reconciles an APPROVED binary byte-exact — the digest gate accepts a byte-true binary", async () => {
-    // A binary is captured incomplete (no text diff); a user may
-    // acknowledge-APPROVE it. This proves the runner half: the reconcile's digest
-    // gate must ACCEPT the byte-true binary (never spuriously HASH_MISMATCH on a
-    // body-less side) and re-apply the exact bytes from the git ref.
-    const BIN = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe, 0x80, 0x01]);
+  it("undoes a binary byte-exact — the digest gate accepts a byte-true binary", async () => {
+    // A binary is captured incomplete (no text diff). The undo's digest gate
+    // must ACCEPT the byte-true binary (never spuriously hash_mismatch on a
+    // body-less side) and restore the exact baseline bytes from the git ref.
+    const BIN_BEFORE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0xfe, 0x80, 0x01]);
+    const BIN_AFTER = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01, 0x02, 0x80, 0xff]);
+    await mkdir(join(repo, "assets"), { recursive: true });
+    await writeFile(join(repo, "assets/logo.png"), BIN_BEFORE);
+    await git(["add", "-A"]);
+    await git(["commit", "-q", "-m", "logo"]);
     const status = newStatus();
     const baseline = await captureBaselineToLedger({
       status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS,
     });
-    await mkdir(join(repo, "assets"), { recursive: true });
-    await writeFile(join(repo, "assets/logo.png"), BIN); // binary create
+    await writeFile(join(repo, "assets/logo.png"), BIN_AFTER); // binary modify
 
     await captureCandidateToLedger({
       status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
@@ -304,19 +320,12 @@ describe("capture orchestration — deep-agent harness", () => {
     expect(bin.after?.isBinary).toBe(true);
     expect(bin.after?.body.case).toBeUndefined(); // body-less
 
-    const changeSet = decidedChangeSet(status, {
-      "assets/logo.png": FileDecisionAction.APPROVE,
-    });
-    // Remove from disk first to prove reconcile re-applies from the ref, not disk.
-    await rm(join(repo, "assets/logo.png"), { force: true });
+    const changeSet = decidedChangeSet(status, { "assets/logo.png": FileDecisionAction.REJECT });
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true });
 
-    const result = await applyCaptureDecisions({
-      status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-    });
-
-    expect(result.failed).toBe(false);
-    expect(result.approvedPaths).toEqual(["assets/logo.png"]);
-    expect((await readFile(join(repo, "assets/logo.png"))).equals(BIN)).toBe(true);
+    expect(outcome.failure).toBe("");
+    expect(outcome.undonePaths).toEqual(["assets/logo.png"]);
+    expect((await readFile(join(repo, "assets/logo.png"))).equals(BIN_BEFORE)).toBe(true);
   });
 });
 
@@ -339,7 +348,7 @@ function candidateCompleteness(status: RunStatus): DiffCompleteness | undefined 
     : undefined;
 }
 
-describe("capture reconcile — the decision rules the resume enforces (moved from execute-cursor/capture-flow.test in #1096)", () => {
+describe("undo after the turn — the decision rules it enforces", () => {
   async function captureTwoFileTurn(status: RunStatus): Promise<void> {
     const baseline = await captureBaselineToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS });
     await write("notes.md", "planton notes\n");
@@ -347,75 +356,111 @@ describe("capture reconcile — the decision rules the resume enforces (moved fr
     await captureCandidateToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, baselineTree: baseline, harnessId: HARNESS });
   }
 
-  it("reconstructs an approved file from the ref even if the tree was reset (retry-safe)", async () => {
+  it("restores an undone file from the ref whatever the tree holds now (retry-safe)", async () => {
     const status = newStatus();
     const baseline = await captureBaselineToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS });
     await write("notes.md", "planton notes\n");
     await captureCandidateToLedger({ status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, baselineTree: baseline, harnessId: HARNESS });
-    const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.APPROVE });
+    const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.REJECT });
 
-    // A tree reset before the resume (a Temporal retry, a sandbox recycle):
-    // the approved bytes are gone from disk, the pinned refs survive.
-    await write("notes.md", "platon notes\n");
+    // The tree moved on before the undo (a retry, a recycle): the pinned refs survive.
+    await write("notes.md", "something else entirely\n");
 
-    const result = await applyCaptureDecisions({ status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS });
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true });
 
-    expect(result.approvedPaths).toEqual(["notes.md"]);
-    // Reconcile-from-refs re-asserts the approved "after" bytes whatever the tree holds.
-    expect(await read("notes.md")).toBe("planton notes\n");
+    expect(outcome.undonePaths).toEqual(["notes.md"]);
+    // Restore-from-refs puts back the baseline bytes whatever the tree holds.
+    expect(await read("notes.md")).toBe("platon notes\n");
+    // A second run converges on the same bytes (idempotent).
+    expect((await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true })).failure).toBe("");
+    expect(await read("notes.md")).toBe("platon notes\n");
   });
 
-  it("CHANGE_SET-scoped approval covers all files; a FILE decision overrides it (most-specific-wins)", async () => {
+  it("CHANGE_SET-scoped undo covers all files; a FILE keep overrides it (most-specific-wins)", async () => {
     const status = newStatus();
     await captureTwoFileTurn(status);
     const changes = candidateChanges(status);
-    const mainChange = changes.find((c) => c.pathAfter === "src/main.ts")!;
+    const notesChange = changes.find((c) => c.pathAfter === "notes.md")!;
     const changeSet = create(FileChangeSetSchema, {
       id: CHANGE_SET_ID,
       changes,
       status: FileChangeSetStatus.DECIDED,
       decisions: [
-        // CHANGE_SET: approve everything…
-        create(FileDecisionSchema, { id: "d-cs", changeSetId: CHANGE_SET_ID, scope: FileDecisionScope.CHANGE_SET, action: FileDecisionAction.APPROVE }),
-        // …but a FILE decision rejects src/main.ts (more specific wins).
+        // A FILE decision keeps notes.md…
         create(FileDecisionSchema, {
           id: "d-file",
           changeSetId: CHANGE_SET_ID,
           scope: FileDecisionScope.FILE,
-          fileChangeId: mainChange.id,
-          action: FileDecisionAction.REJECT,
-          expectedDigest: mainChange.fileDigest,
+          fileChangeId: notesChange.id,
+          action: FileDecisionAction.APPROVE,
+          expectedDigest: notesChange.fileDigest,
         }),
+        // …and a CHANGE_SET decision undoes the rest (more specific wins whatever the order).
+        create(FileDecisionSchema, { id: "d-cs", changeSetId: CHANGE_SET_ID, scope: FileDecisionScope.CHANGE_SET, action: FileDecisionAction.REJECT }),
       ],
     });
 
-    const result = await applyCaptureDecisions({ status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS });
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true });
 
-    expect(result.approvedPaths).toEqual(["notes.md"]);
-    expect(result.rejectedPaths).toEqual(["src/main.ts"]);
+    expect(outcome.undonePaths).toEqual(["src/main.ts"]);
     expect(await read("notes.md")).toBe("planton notes\n");
     expect(await read("src/main.ts")).toBe("export const x = 1;\n");
   });
 
-  it("refuses to apply and authors FAILED(HASH_MISMATCH) when on-disk bytes diverge from the approved digest", async () => {
+  it("answers hash_mismatch and restores NOTHING when an undone file's capture no longer matches what was reviewed", async () => {
     const status = newStatus();
     await captureTwoFileTurn(status);
-    // The reviewer approved both, but the recorded after_sha256 for notes.md no
-    // longer matches the captured bytes (what-you-approve-is-what-applies fails).
-    const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.APPROVE, "src/main.ts": FileDecisionAction.APPROVE });
-    changeSet.changes.find((c) => c.pathAfter === "notes.md")!.afterSha256 = "deadbeef".repeat(8);
+    // Both undone, but the recorded before_sha256 for notes.md no longer matches
+    // the captured bytes (what-you-reviewed-is-what-is-undone fails).
+    const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.REJECT, "src/main.ts": FileDecisionAction.REJECT });
+    changeSet.changes.find((c) => c.pathAfter === "notes.md")!.beforeSha256 = "deadbeef".repeat(8);
+    const ledgerBefore = status.fileReviewEventStream?.events.length ?? 0;
 
-    const result = await applyCaptureDecisions({ status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS });
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true });
 
-    expect(result.failed).toBe(true);
-    expect(result.failureDetail).toContain("notes.md");
-    // NOTHING was applied (a partial apply under a verification failure is
-    // worse than none): src/main.ts still holds its un-reconciled (after) bytes.
+    expect(outcome.failure).toBe("hash_mismatch");
+    expect(outcome.failureDetail).toContain("notes.md");
+    expect(outcome.undonePaths).toEqual([]);
+    // NOTHING was restored (a partial undo under a verification failure is worse than none).
     expect(await read("src/main.ts")).toBe("export const x = 99;\n");
-    const failed = eventsOfType(status, FileReviewEventType.FAILED);
-    expect(failed).toHaveLength(1);
-    if (failed[0]!.payload.case === "failed") expect(failed[0]!.payload.value.detail).toContain("notes.md");
-    expect(eventsOfType(status, FileReviewEventType.RECONCILED)).toHaveLength(0);
+    expect(await read("notes.md")).toBe("planton notes\n");
+    expect(status.fileReviewEventStream?.events.length ?? 0).toBe(ledgerBefore);
+  });
+
+  it("answers hash_mismatch and restores NOTHING when an undone file is one the turn's refs never captured", async () => {
+    const status = newStatus();
+    await captureTwoFileTurn(status);
+    const changeSet = decidedChangeSet(status, { "src/main.ts": FileDecisionAction.REJECT });
+    // A reviewed file the pinned refs do not hold: captured differently from what was reviewed.
+    const ghost = clone(CapturedFileChangeSchema, changeSet.changes.find((c) => c.pathAfter === "src/main.ts")!);
+    ghost.id = `${CHANGE_SET_ID}:ghost.md`;
+    ghost.pathAfter = "ghost.md";
+    ghost.pathBefore = "ghost.md";
+    changeSet.changes.push(ghost);
+    changeSet.decisions.push(
+      create(FileDecisionSchema, { id: "d-ghost", changeSetId: CHANGE_SET_ID, scope: FileDecisionScope.FILE, fileChangeId: ghost.id, action: FileDecisionAction.REJECT }),
+    );
+
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true });
+
+    expect(outcome.failure).toBe("hash_mismatch");
+    expect(outcome.failureDetail).toContain("ghost.md");
+    expect(outcome.failureDetail).not.toContain("src/main.ts");
+    expect(outcome.undonePaths).toEqual([]);
+    expect(await read("src/main.ts"), "the file that does match is not put back either").toBe("export const x = 99;\n");
+  });
+
+  it("answers reconcile_failed when the turn's refs are gone (the window closed and a later turn dropped them)", async () => {
+    const status = newStatus();
+    await captureTwoFileTurn(status);
+    const changeSet = decidedChangeSet(status, { "src/main.ts": FileDecisionAction.REJECT });
+    await dropCaptureRefs(repo, EXEC_ID);
+
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true });
+
+    expect(outcome.failure).toBe("reconcile_failed");
+    expect(outcome.failureDetail).toContain("src/main.ts");
+    expect(await read("src/main.ts")).toBe("export const x = 99;\n");
   });
 });
 
@@ -502,7 +547,7 @@ describe("capture orchestration — hybrid git + CAS", () => {
     expect(candidateCompleteness(status)).toBe(DiffCompleteness.BINARY_SUMMARY_ONLY);
   });
 
-  it("reconciles hybrid decisions on resume: approved CAS kept, rejected CAS reverted", async () => {
+  it("undoes hybrid decisions after the turn: the undone CAS file reverted, the kept ones untouched", async () => {
     const status = newStatus();
     const storage = makeStorage();
     const readBlob = async (key: string): Promise<Buffer> => {
@@ -541,24 +586,19 @@ describe("capture orchestration — hybrid git + CAS", () => {
       "build/cache.txt": FileDecisionAction.REJECT,
     });
 
-    const result = await applyCaptureDecisions({
-      status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-      storage, readBlob,
-    });
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true, readBlob });
 
-    expect(result.failed).toBe(false);
-    expect([...result.approvedPaths].sort()).toEqual(["dist/out.txt", "notes.md"]);
-    expect(result.rejectedPaths).toEqual(["build/cache.txt"]);
-
-    // Approved git + approved CAS kept; rejected CAS reverted to baseline bytes.
+    expect(outcome.failure).toBe("");
+    expect(outcome.undonePaths).toEqual(["build/cache.txt"]);
+    // Kept git + kept CAS untouched; the undone CAS file reverted to its baseline bytes.
     expect(await read("notes.md")).toBe("planton\n");
     expect(await read("dist/out.txt")).toBe("X");
     expect(await read("build/cache.txt")).toBe("OLD");
   });
 
-  it("fails closed when the candidate snapshot records CAS files but no blob reader is provided", async () => {
+  it("answers reconcile_failed when the candidate records CAS files but no blob reader is provided", async () => {
     // The ledger says CAS files were captured; a caller that cannot read blobs
-    // back must not silently skip them (their decisions would go unenforced).
+    // back must not silently skip them (the undo would go unenforced).
     const status = newStatus();
     const storage = makeStorage();
     await write(".gitignore", "dist/\n");
@@ -575,17 +615,17 @@ describe("capture orchestration — hybrid git + CAS", () => {
         { path: "dist/out.txt", before: null, after: new TextEncoder().encode("X"), captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED },
       ],
     });
-    const changeSet = decidedChangeSet(status, { "dist/out.txt": FileDecisionAction.APPROVE });
+    const changeSet = decidedChangeSet(status, { "dist/out.txt": FileDecisionAction.REJECT });
 
-    await expect(
-      applyCaptureDecisions({
-        status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-      }),
-    ).rejects.toThrow(/captured CAS files .* but no blob reader was provided/);
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true });
+
+    expect(outcome.failure).toBe("reconcile_failed");
+    expect(outcome.failureDetail).toContain("dist/out.txt");
+    expect(await read("dist/out.txt")).toBe("X");
   });
 
-  it("fails closed on resume when the stored manifest no longer hashes to the ledger's manifestDigest", async () => {
-    // The reconcile must verify the manifest it downloads against the digest the
+  it("answers reconcile_failed when the stored manifest no longer hashes to the ledger's manifestDigest", async () => {
+    // The undo must verify the manifest it downloads against the digest the
     // CANDIDATE event pinned — per-blob content addresses protect blob bodies,
     // but only this check protects the path→blob mapping itself.
     const status = newStatus();
@@ -609,19 +649,18 @@ describe("capture orchestration — hybrid git + CAS", () => {
         { path: "dist/out.txt", before: null, after: new TextEncoder().encode("X"), captureClass: FileCaptureClass.GIT_IGNORED_CAPTURED },
       ],
     });
-    const changeSet = decidedChangeSet(status, { "dist/out.txt": FileDecisionAction.APPROVE });
+    const changeSet = decidedChangeSet(status, { "dist/out.txt": FileDecisionAction.REJECT });
 
-    // Tamper with the stored manifest between review and resume.
+    // Tamper with the stored manifest between review and undo.
     const manifestUri = changeSet.candidateSnapshot!.cas!.artifactUri;
     const stored = storage.blobs.get(manifestUri)!;
     storage.blobs.set(manifestUri, Buffer.from(stored.toString("utf8").replace("dist/out.txt", "dist/evil.txt"), "utf8"));
 
-    await expect(
-      applyCaptureDecisions({
-        status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-        storage, readBlob,
-      }),
-    ).rejects.toThrow(/CAS manifest integrity check failed/);
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true, readBlob });
+
+    expect(outcome.failure).toBe("reconcile_failed");
+    expect(outcome.failureDetail).toMatch(/CAS manifest integrity check failed/);
+    expect(await read("dist/out.txt")).toBe("X");
   });
 
   it("throws if CAS captures are supplied without a storage backend", async () => {
@@ -827,22 +866,21 @@ describe("capture orchestration — git-tracked secret withheld", () => {
     expect(candidateCompleteness(status)).toBe(DiffCompleteness.PARTIAL_BLOCKED);
     assertNoSecretBytes(status);
 
-    // Keep the reviewable file; discard the secret. The git substrate reverts the
-    // secret to its committed baseline BYTE-EXACT (not deleted) and keeps notes.md.
+    // Keep the reviewable file; undo the secret. The git substrate reverts the
+    // secret to its committed baseline BYTE-EXACT (not deleted) and leaves notes.md.
+    // The secret's entry carries no digest (its bytes were never recorded), so
+    // the undo restores it from the refs alone.
     const changeSet = decidedChangeSet(status, {
       "notes.md": FileDecisionAction.APPROVE,
       [SECRET_PATH]: FileDecisionAction.REJECT,
     });
-    const result = await applyCaptureDecisions({
-      status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-    });
+    const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true });
 
-    expect(result.failed).toBe(false);
-    expect(result.approvedPaths).toEqual(["notes.md"]);
-    expect(result.rejectedPaths).toEqual([SECRET_PATH]);
+    expect(outcome.failure).toBe("");
+    expect(outcome.undonePaths).toEqual([SECRET_PATH]);
     expect(await read("notes.md")).toBe("planton notes\n");
     expect(await read(SECRET_PATH)).toBe(BASELINE_SECRET); // reverted byte-exact
-    // Even after reconcile, no secret bytes are anywhere in the persisted status.
+    // Even after the undo, no secret bytes are anywhere in the persisted status.
     assertNoSecretBytes(status);
   });
 });
@@ -938,7 +976,7 @@ describe("capture orchestration — CAS-only non-git workspace", () => {
     }
   });
 
-  it("reconciles approve/reject from the manifest and authors a CAS_MANIFEST RECONCILED", async () => {
+  it("undoes from the manifest: the undone file back to its before bytes, the kept one untouched", async () => {
     const status = newStatus();
     const storage = makeStorage();
     const readBlob = reconcilerReadBlob(storage);
@@ -965,33 +1003,17 @@ describe("capture orchestration — CAS-only non-git workspace", () => {
       "created.txt": FileDecisionAction.APPROVE,
       "edited.txt": FileDecisionAction.REJECT,
     });
+    const ledgerBefore = status.fileReviewEventStream?.events.length ?? 0;
 
-    const result = await applyCaptureDecisions({
-      status, gitRoot: ws, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-      gitWorkspace: false, storage, readBlob,
-    });
+    const outcome = await undoChangeSet({ gitRoot: ws, changeSet, gitWorkspace: false, readBlob });
 
-    expect(result.isCaptureTurn).toBe(true);
-    expect(result.failed).toBe(false);
-    expect(result.approvedPaths).toEqual(["created.txt"]);
-    expect(result.rejectedPaths).toEqual(["edited.txt"]);
-
-    // Approved kept at its "after" bytes; rejected snapped back to "before".
+    expect(outcome).toEqual({ changeSetId: CHANGE_SET_ID, undonePaths: ["edited.txt"], failure: "", failureDetail: "" });
     expect(await readFile(join(ws, "created.txt"), "utf-8")).toBe("X");
     expect(await readFile(join(ws, "edited.txt"), "utf-8")).toBe("OLD");
-
-    const reconciled = eventsOfType(status, FileReviewEventType.RECONCILED);
-    expect(reconciled).toHaveLength(1);
-    if (reconciled[0].payload.case === "reconciled") {
-      const snap = reconciled[0].payload.value.approvedSnapshot;
-      expect(snap?.kind).toBe(SnapshotKind.CAS_MANIFEST);
-      // Points back at the durable candidate manifest (the reconciled state is
-      // manifest + decisions; there is no tree to re-pin).
-      expect(snap?.cas?.artifactUri).not.toBe("");
-    }
+    expect(status.fileReviewEventStream?.events.length ?? 0, "nothing reaches the ledger").toBe(ledgerBefore);
   });
 
-  it("a rejected ADD is removed; enforcement re-applies an approved file from the blob", async () => {
+  it("an undone ADD is removed; a kept file is left exactly as the tree holds it", async () => {
     const status = newStatus();
     const storage = makeStorage();
     const readBlob = reconcilerReadBlob(storage);
@@ -1017,26 +1039,22 @@ describe("capture orchestration — CAS-only non-git workspace", () => {
       "drop.txt": FileDecisionAction.REJECT,
     });
 
-    // Delete the approved file from disk first to prove reconcile re-applies it
-    // from the durable blob, not the live tree.
+    // A later edit removed the kept file: an undo of another file never touches it.
     await rm(join(ws, "keep.txt"), { force: true });
 
-    const result = await applyCaptureDecisions({
-      status, gitRoot: ws, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-      gitWorkspace: false, storage, readBlob,
-    });
+    const outcome = await undoChangeSet({ gitRoot: ws, changeSet, gitWorkspace: false, readBlob });
 
-    expect(result.failed).toBe(false);
-    expect(await readFile(join(ws, "keep.txt"), "utf-8")).toBe("KEEP");
-    // A rejected create is removed (it did not exist at baseline).
+    expect(outcome.failure).toBe("");
+    await expect(readFile(join(ws, "keep.txt"), "utf-8")).rejects.toThrow();
+    // An undone create is removed (it did not exist at baseline).
     await expect(readFile(join(ws, "drop.txt"), "utf-8")).rejects.toThrow();
   });
 
-  it("authors a DELETE from {before, after:null} and reconciles it both ways (issue #303)", async () => {
+  it("authors a DELETE from {before, after:null}; an undone DELETE is restored, a kept one stays gone (issue #303)", async () => {
     // The delete flow end-to-end at this seam: the harness captured the
     // pre-delete bytes and the file is gone from disk (the tool ran). The
-    // candidate must carry a DELETE with the before blob; an approved DELETE
-    // stays deleted, a rejected DELETE is restored byte-exact from the blob.
+    // candidate must carry a DELETE with the before blob; a kept DELETE stays
+    // deleted, an undone DELETE is restored byte-exact from the blob.
     const status = newStatus();
     const storage = makeStorage();
     const readBlob = reconcilerReadBlob(storage);
@@ -1067,38 +1085,52 @@ describe("capture orchestration — CAS-only non-git workspace", () => {
       "gone-approved.txt": FileDecisionAction.APPROVE,
       "gone-rejected.txt": FileDecisionAction.REJECT,
     });
-    const result = await applyCaptureDecisions({
-      status, gitRoot: ws, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-      gitWorkspace: false, storage, readBlob,
-    });
+    const outcome = await undoChangeSet({ gitRoot: ws, changeSet, gitWorkspace: false, readBlob });
 
-    expect(result.failed).toBe(false);
-    expect(result.approvedPaths).toEqual(["gone-approved.txt"]);
-    expect(result.rejectedPaths).toEqual(["gone-rejected.txt"]);
-    // Approved DELETE: the file stays gone. Rejected DELETE: restored byte-exact.
+    expect(outcome.failure).toBe("");
+    expect(outcome.undonePaths).toEqual(["gone-rejected.txt"]);
     await expect(readFile(join(ws, "gone-approved.txt"), "utf-8")).rejects.toThrow();
     expect(await readFile(join(ws, "gone-rejected.txt"), "utf-8")).toBe("B");
   });
 
-  it("is not a capture turn when neither a git ref nor a CAS manifest exists", async () => {
+  it("answers hash_mismatch and restores nothing when a CAS file's blobs differ from what was reviewed", async () => {
     const status = newStatus();
+    const storage = makeStorage();
+    const readBlob = reconcilerReadBlob(storage);
+    const enc = (s: string) => new TextEncoder().encode(s);
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID, harnessId: HARNESS, gitWorkspace: false,
+    });
+    await writeFile(join(ws, "edited.txt"), "NEW");
+    await captureCandidateToLedger({
+      status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+      baselineTree: baseline, harnessId: HARNESS, gitWorkspace: false, storage,
+      casCaptures: [{ path: "edited.txt", before: enc("OLD"), after: enc("NEW"), captureClass: FileCaptureClass.NON_GIT_CAS }],
+    });
+    const changeSet = decidedChangeSet(status, { "edited.txt": FileDecisionAction.REJECT });
+    changeSet.changes[0]!.afterSha256 = "deadbeef".repeat(8);
+
+    const outcome = await undoChangeSet({ gitRoot: ws, changeSet, gitWorkspace: false, readBlob });
+
+    expect(outcome.failure).toBe("hash_mismatch");
+    expect(outcome.failureDetail).toContain("edited.txt");
+    expect(await readFile(join(ws, "edited.txt"), "utf-8")).toBe("NEW");
+  });
+
+  it("a change set with no files undoes nothing", async () => {
     const storage = makeStorage();
     const readBlob = reconcilerReadBlob(storage);
     const changeSet = create(FileChangeSetSchema, { id: CHANGE_SET_ID, status: FileChangeSetStatus.DECIDED });
 
-    const result = await applyCaptureDecisions({
-      status, gitRoot: ws, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-      gitWorkspace: false, storage, readBlob,
+    expect(await undoChangeSet({ gitRoot: ws, changeSet, gitWorkspace: false, readBlob })).toEqual({
+      changeSetId: CHANGE_SET_ID, undonePaths: [], failure: "", failureDetail: "",
     });
-
-    expect(result.isCaptureTurn).toBe(false);
-    expect(eventsOfType(status, FileReviewEventType.RECONCILED)).toHaveLength(0);
   });
 
-  // Durable across a sandbox recycle — the reconcile sources approved
-  // bytes ENTIRELY from the CAS manifest + blobs (a different durability domain
-  // than the workspace), so it converges even after the whole tree is wiped.
-  it("is durable across a sandbox recycle: reconciles from the manifest after the tree is wiped", async () => {
+  // Durable across a sandbox recycle — the undo sources its bytes ENTIRELY
+  // from the CAS manifest + blobs (a different durability domain than the
+  // workspace), so it converges even after the whole tree is wiped.
+  it("is durable across a sandbox recycle: undoes from the manifest after the tree is wiped", async () => {
     const status = newStatus();
     const storage = makeStorage();
     const readBlob = reconcilerReadBlob(storage);
@@ -1108,30 +1140,26 @@ describe("capture orchestration — CAS-only non-git workspace", () => {
       status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
       harnessId: HARNESS, gitWorkspace: false,
     });
-    await writeFile(join(ws, "keep.txt"), "NEW");
+    await writeFile(join(ws, "edited.txt"), "NEW");
     await captureCandidateToLedger({
       status, gitRoot: ws, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
       baselineTree: baseline, harnessId: HARNESS, gitWorkspace: false, storage,
       casCaptures: [
-        { path: "keep.txt", before: enc("OLD"), after: enc("NEW"), captureClass: FileCaptureClass.NON_GIT_CAS },
+        { path: "edited.txt", before: enc("OLD"), after: enc("NEW"), captureClass: FileCaptureClass.NON_GIT_CAS },
       ],
     });
 
-    const changeSet = decidedChangeSet(status, { "keep.txt": FileDecisionAction.APPROVE });
+    const changeSet = decidedChangeSet(status, { "edited.txt": FileDecisionAction.REJECT });
 
     // Wipe the whole tree (sandbox recycle / Temporal retry on a fresh host).
     await rm(ws, { recursive: true, force: true });
     await mkdir(ws, { recursive: true });
 
-    const result = await applyCaptureDecisions({
-      status, gitRoot: ws, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-      gitWorkspace: false, storage, readBlob,
-    });
+    const outcome = await undoChangeSet({ gitRoot: ws, changeSet, gitWorkspace: false, readBlob });
 
-    expect(result.isCaptureTurn).toBe(true);
-    expect(result.failed).toBe(false);
-    expect(result.approvedPaths).toEqual(["keep.txt"]);
-    expect(await readFile(join(ws, "keep.txt"), "utf-8")).toBe("NEW");
+    expect(outcome.failure).toBe("");
+    expect(outcome.undonePaths).toEqual(["edited.txt"]);
+    expect(await readFile(join(ws, "edited.txt"), "utf-8")).toBe("OLD");
   });
 
   // A non-git secret-blocked path must be labeled NON_GIT_CAS (not

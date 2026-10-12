@@ -80,6 +80,11 @@ export interface StartInvokeWorkflowInput {
   readonly sessionId: string;
   readonly agentId: string;
   readonly autoApproveAll: boolean;
+  /**
+   * The run is a reconcile turn (`spec.reconcile_file_review`): its
+   * workflow titles no session and closes no earlier turn's review.
+   */
+  readonly reconcileFileReview?: boolean;
 }
 
 /**

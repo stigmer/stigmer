@@ -1188,6 +1188,9 @@ export async function composeServer(
         // hooks, and the broadcast reach the run's terminal writes
         // by construction — the worker composes none of them itself.
         statusWriter: () => requireInProcess().executionStatusWriter,
+        // The worker's CloseFileReview write appends `decided` events to
+        // the session's log; the one fan-out, as for every other writer.
+        sessionEventBroker,
         temporalConfig,
       }),
       newScheduleWorkerFactory({
@@ -1858,6 +1861,10 @@ export async function composeServer(
       runScores,
       sessionEventBroker,
       runnerAuth: runnerCredentials,
+      // A file decision's run broadcast and the reconcile turn an undo on
+      // an ended turn starts (domain/session/filereview/decide.ts).
+      broker: agentExecutionStreamBroker,
+      reconcileTurns: () => requireInProcess().reconcileTurnCreator,
     });
     // The sharing/channel family registers after the agent family, as in
     // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
@@ -1980,6 +1987,7 @@ export async function composeServer(
       sandboxLane,
       temporalConfig,
       sessionCreator: () => requireInProcess().executionSessionCreator,
+      reconcileTurns: () => requireInProcess().reconcileTurnCreator,
       runValuePlanner: {
         store,
         logger,

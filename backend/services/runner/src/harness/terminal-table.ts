@@ -64,8 +64,8 @@ import { formatTryStop } from "@stigmer/eval-runtime";
  * Why a turn stopped, as `RunStatus.stop_cause` names it: the one
  * structured cause the session's status reads (`budget_reached`, a typed
  * error), so no reader matches an error's text. Every arm that stops the
- * turn names one; the two waiting arms name none (`null`), because a turn
- * that waits has not stopped.
+ * turn names one; the waiting arm names none (`null`), because a turn that
+ * waits has not stopped.
  */
 export type StopCause =
   | "budget_reached"
@@ -269,33 +269,6 @@ export function awaitingApprovalArm(): TerminalArm {
   return { phase: RunPhase.RUN_WAITING_FOR_APPROVAL, rows: [], completes: false, stopCause: null, disposition: RETURN };
 }
 
-/**
- * The engine's turn left a reviewable change on the tree (the runtime
- * captured a candidate, `harness/capture.ts`): the same WAITING pause as an
- * approval, because a file review is the other thing the workflow waits on
- * and reinvokes for. A review WINS over the terminal the engine reported:
- * edits on the user's disk must reach review whatever else happened, and a
- * FAILED or TERMINATED execution never reinvokes, so the terminal is
- * DEFERRED — its ROWS ride the transcript now (the failure copy, the
- * tool-call-limit copy; an `engine`-surface failure has none), never its
- * phase, its `error` or its completion stamp, and the resume's reconcile
- * settles the execution COMPLETED as every pure file-review resume does
- * (`fileReviewResolvedArm`). Until #1096 only the Cursor harness behaved so,
- * and only because its boundary ran before it consulted its engine's
- * result; the deep-agent wrote FAILED with the edits applied and unreviewed.
- * Stated cost: the cloud's `status.error` prefix match for a tool-call limit
- * does not fire when that limit left edits.
- */
-export function awaitingReviewArm(deferred?: TerminalArm): TerminalArm {
-  return {
-    phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
-    rows: deferred?.rows ?? [],
-    completes: false,
-    stopCause: null,
-    disposition: RETURN,
-  };
-}
-
 /** The control plane answered STOP. A clean COMPLETED early exit. */
 export function platformStopArm(): TerminalArm {
   return {
@@ -320,14 +293,15 @@ export function workspaceLockTimeoutArm(error: WorkspaceLockTimeoutError): Termi
 }
 
 /**
- * A pure file-review resume: the agent already finished its turn during
- * capture, so keeping or discarding a change never re-prompts it
- * (Cursor-like); the reconcile is the whole act and the execution is
- * complete. A failed reconcile (what-you-approve-is-what-applies could not
- * be honored) tells the human; a discard tells the human which files were
- * reverted — the agent's native context still believes those edits stuck,
- * and any edit it makes from that belief is re-surfaced next turn (the
- * structural safety net).
+ * A reconcile turn: the run a person's Undo on an ended turn starts. The
+ * agent finished that turn long ago, so undoing a change never re-prompts it
+ * (Cursor-like); putting the files back is the whole act and the execution
+ * is complete. A failed undo (the captured content no longer matched what
+ * was reviewed, or the files could not be restored) tells the human; a
+ * successful one names the files put back — the agent's native context
+ * still believes those edits stuck, and any edit it makes from that belief
+ * is offered for review again next turn (the structural safety net). The
+ * copy is the table's pinned wire and keeps its bytes.
  */
 export function fileReviewResolvedArm(settlement: {
   readonly failed: boolean;

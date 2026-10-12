@@ -2,14 +2,16 @@
  * Hermetic golden: a FILE-REVIEW CAPTURE turn on a git workspace through the
  * whole `ExecuteCursor` activity.
  *
- * Invariant pinned (apply-then-review, the universal file-review model): on a
- * git work tree the file edit FLOWS — the hook the activity installed ALLOWS
- * the write (capture mode gates only gitignored paths, shell and MCP) — and the
+ * Invariant pinned (apply-then-review, in a session whose `file_review` is
+ * on): on a git work tree the file edit FLOWS — the hook the activity
+ * installed ALLOWS the write (capture mode gates only gitignored paths,
+ * shell and MCP) — and the
  * turn boundary captures the net change from the git diff against the baseline
  * tree pinned before the agent ran, authors CANDIDATE_CAPTURED to the
  * file_review ledger with one card for the edited file, stamps the flowed edit
- * row with the change-set id, and the activity persists WAITING_FOR_APPROVAL
- * and RETURNS without consulting `run.wait()`. The change-set id is the
+ * row with the change-set id, writes `stigmer.file_review.changes`, and the
+ * activity persists COMPLETED and RETURNS: review never holds a turn
+ * (stigmer#1471). The change-set id is the
  * deterministic `executionId:turnSeq`. The golden
  * (`goldens/file-review-capture.status.json`) pins the ledger shape the runtime must
  * reproduce.
@@ -18,7 +20,10 @@
  * workspace entry (mounted as-is in local mode); capture-mode derivation on a
  * git tree; the baseline pin (`captureBaselineToLedger`, git snapshot); the
  * turn boundary's candidate capture (`captureTurnToLedger`) and row stamping;
- * the pause for review with file cards.
+ * the completion with the edit applied. Two more arms, with goldens of their
+ * own: an Undo after the turn is put back by a reconcile turn that never
+ * starts a Cursor run; and with review off (the default) the hook lets the
+ * same write flow and nothing is captured.
  *
  * Determinism: the fixture repo's commit and tree ids are byte-stable because
  * `initGitWorkspace` pins author, committer and both dates. The stream's edit
@@ -93,7 +98,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
     env.dispose();
   });
 
-  it("lets the edit flow, captures it at the boundary, and pauses for review", async () => {
+  it("lets the edit flow, captures it at the boundary, and completes with the edit applied", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
     const repo = join(env.workspaceRootDir, "repos", "notes");
     initGitWorkspace(repo, { [FILE]: BEFORE });
@@ -127,6 +132,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
     const record = cursorExecutionRecord({
       message: USER_MESSAGE,
       workspaceEntries: [localPathEntry("notes", repo)],
+      fileReview: true,
     });
     const scenario = beginCursorScenario({
       env,
@@ -138,16 +144,19 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
     // ── Act ──────────────────────────────────────────────────────────────────
     const invocation = await runCursorTurn(scenario);
 
-    // ── Assert: the edit flowed and the turn paused for review ───────────────
+    // ── Assert: the edit flowed and the turn completed with it ───────────────
     expect(hookDecisions, "capture mode lets the write flow").toEqual(["allow"]);
     expect(readFileSync(absFile, "utf-8"), "the working tree holds the candidate").toBe(AFTER);
-    expect(invocation.outcome.kind, "a review pause RETURNS to the workflow").toBe("returned");
-    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe(
-      "RUN_WAITING_FOR_APPROVAL",
+    expect(invocation.outcome.kind).toBe("returned");
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase, "review never holds the turn").toBe(
+      "RUN_COMPLETED",
     );
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
-      RunPhase.RUN_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_COMPLETED,
+    ]);
+    expect(record.sessionEvents.filter((e) => e.event.case === "stigmerFileReviewChanges").map((e) => e.event.value?.id)).toEqual([
+      `${FIXTURE.executionId}.fr0`,
     ]);
     expect(agent.runs[0].cancelCalls, "a flowed edit is not a denial; nothing is cancelled").toHaveLength(0);
 
@@ -179,5 +188,69 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
     expect(json, "no temp path may reach the golden").not.toContain(env.workspaceRootDir);
     await expect(json).toMatchFileSnapshot("./goldens/file-review-capture.status.json");
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-capture.events.json");
+
+    // ── An Undo after the turn: a reconcile turn puts the file back ──────────
+    clock.tick();
+    expect(record.decideCapturedFileChanges({ reject: [FILE] }, new Date().toISOString())).toBe(1);
+    const reconcileRunId = record.startReconcileTurn();
+    const reconcile = await runCursorTurn(scenario, { executionId: reconcileRunId });
+
+    expect(reconcile.outcome.kind).toBe("returned");
+    expect((reconcile.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
+    expect(agent.runs, "a reconcile turn starts no Cursor run").toHaveLength(1);
+    expect(readFileSync(absFile, "utf-8"), "the undone file is back at its baseline").toBe(BEFORE);
+    const reconciled = record.reconcileFinalStatus!;
+    expect(reconciled.stopCause).toBe("review_resolved");
+    expect(
+      record.sessionEvents.filter((e) => e.event.case === "stigmerFileReviewReconciled").map((e) => [e.runId, e.event.value?.id]),
+      "one reconciled event, written by the reconcile turn, answering the undo by its decided event",
+    ).toEqual([[reconcileRunId, `${FIXTURE.executionId}.fr0.r.${record.sessionEvents.find((e) => e.event.case === "stigmerFileReviewDecided")?.event.value?.id}`]]);
+    const reconcileJson = JSON.stringify(toJson(RunStatusSchema, reconciled), null, 2) + "\n";
+    expect(reconcileJson).not.toContain(env.workspaceRootDir);
+    await expect(reconcileJson).toMatchFileSnapshot("./goldens/file-review-reconcile.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-reconcile.events.json");
+  });
+
+  it("with review off (the default) the hook lets the write flow and nothing is captured", async () => {
+    const repo = join(env.workspaceRootDir, "repos", "notes-review-off");
+    initGitWorkspace(repo, { [FILE]: BEFORE });
+    const absFile = join(repo, FILE);
+    const hookDecisions: string[] = [];
+    const ev = sdkEvents("agent-hermetic-review-off-0001", "run-hermetic-review-off-0001");
+    const agent = new ScriptedCursorAgent({
+      agentId: "agent-hermetic-review-off-0001",
+      runIds: ["run-hermetic-review-off-0001"],
+      observeStep: () => clock.tick(),
+      turns: [
+        [
+          step.event(ev.init()),
+          step.event(ev.assistant("Appending the review line.")),
+          step.effect("hook: Write (expect allow with review off)", () => {
+            hookDecisions.push(runWorkspaceHook(repo, hookWrite(absFile, AFTER)).permission);
+          }),
+          step.effect("write notes.md", () => writeFileSync(absFile, AFTER, "utf-8")),
+          step.event(ev.toolCall(CALL_ID, "edit", "running", { path: FILE, content: AFTER })),
+          step.event(ev.toolCall(CALL_ID, "edit", "completed", { path: FILE, content: AFTER }, "ok")),
+          step.event(ev.assistant("Done.")),
+          step.turnEnded({ inputTokens: 2_400, outputTokens: 70, cacheReadTokens: 0, cacheWriteTokens: 0 }),
+          step.finished({ result: "Done", model: { id: FIXTURE.model, params: [] } }),
+        ],
+      ],
+    });
+    const record = cursorExecutionRecord({ message: USER_MESSAGE, workspaceEntries: [localPathEntry("notes", repo)] });
+    const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG } });
+
+    const invocation = await runCursorTurn(scenario);
+
+    expect(hookDecisions, "review off lets the write flow").toEqual(["allow"]);
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
+    expect(readFileSync(absFile, "utf-8")).toBe(AFTER);
+    const final = record.lastFullStatus!;
+    expect(final.fileReviewEventStream?.events ?? [], "nothing is captured with review off").toHaveLength(0);
+    expect(record.sessionEvents.some((e) => e.event.case === "stigmerFileReviewChanges")).toBe(false);
+    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
+    expect(json).not.toContain(env.workspaceRootDir);
+    await expect(json).toMatchFileSnapshot("./goldens/file-review-off.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-off.events.json");
   });
 });

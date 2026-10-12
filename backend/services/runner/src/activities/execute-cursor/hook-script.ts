@@ -142,6 +142,9 @@
  *    (every other MCP tool falls through → allow; a server lease leaves its
  *     server out of both, so its tools fall through)
  * 3. preToolUse event → gated built-in (category non-empty):
+ *    0. a git-tracked write or delete in capture mode, or with file review
+ *       off → allow; a secret-like write left → record kind "secret", deny;
+ *       any other write or delete with file review off → allow
  *    a. identity token in approvedGrantTokens → allow (reinvocation grant)
  *    b. category in leasedCategories → allow (run-lifetime scoped lease)
  *    c. otherwise → record denial, deny
@@ -854,6 +857,15 @@ CAPTURE_MODE=false
 if echo "$STATE" | grep -q '"captureMode":true'; then
   CAPTURE_MODE=true
 fi
+# File review off: a built-in write or delete flows unreviewed (no capture, no
+# ask); the secret-like write block still applies, keyed on the substrate (a
+# git-tracked path flows, a gitignored or non-git one is refused). Default on
+# when the key is absent, which keeps review's rules (capture or the
+# deny-gate). Consulted in the hook-allow arm (1i) and the gated-built-in arm.
+FILE_REVIEW=true
+if echo "$STATE" | grep -q '"fileReview":false'; then
+  FILE_REVIEW=false
+fi
 # CAS capture of gitignored writes (the deep-agent parity switch). Set only when
 # capture mode is on AND an artifact storage is configured (to persist blobs). It
 # governs whether a non-secret gitignored write is staged+flowed for review vs.
@@ -1068,10 +1080,11 @@ fi
 
 # --- 1i. A hook's allow ---
 # Capture (above) has reviewed what it reviews; nothing below may ask. A
-# write takes the deny-gate's own rule (3): a git-tracked one flows to the
-# turn's review in capture mode, and any other secret-like one is blocked.
+# write takes the deny-gate's own rule (3): a git-tracked one flows (to the
+# turn's review in capture mode, unreviewed with review off), and any other
+# secret-like one is blocked.
 if [ "$HOOK_ALLOW" = "true" ]; then
-  if ! { [ "$CAPTURE_MODE" = "true" ] && [ "$GIT_WORKSPACE" = "true" ] && [ "$CATEGORY" = "write" ] && ! __stigmer_is_gitignored "$SALIENT"; } && __stigmer_secret_write; then
+  if ! { { [ "$CAPTURE_MODE" = "true" ] || [ "$FILE_REVIEW" = "false" ]; } && [ "$GIT_WORKSPACE" = "true" ] && [ "$CATEGORY" = "write" ] && ! __stigmer_is_gitignored "$SALIENT"; } && __stigmer_secret_write; then
     record_denial "$PRIMARY_TOKEN" "secret"
     echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written."}'
     exit 0
@@ -1142,7 +1155,10 @@ if [ -n "$CATEGORY" ]; then
   # never staged — issue #303). shell (category "shell") never takes this branch
   # and stays gated as always. In a NON-GIT workspace this arm is skipped
   # entirely (there is no git diff): writes and deletes were CAS-staged above.
-  if [ "$CAPTURE_MODE" = "true" ] && [ "$GIT_WORKSPACE" = "true" ] && { [ "$CATEGORY" = "write" ] || [ "$CATEGORY" = "delete" ]; }; then
+  # With file review off the same git-tracked mutation flows unreviewed: the
+  # secret rule is keyed on the git substrate, not on review, so a committed
+  # .env.example flows as before.
+  if { [ "$CAPTURE_MODE" = "true" ] || [ "$FILE_REVIEW" = "false" ]; } && [ "$GIT_WORKSPACE" = "true" ] && { [ "$CATEGORY" = "write" ] || [ "$CATEGORY" = "delete" ]; }; then
     if ! __stigmer_is_gitignored "$SALIENT"; then
       echo '{"permission":"allow"}'
       exit 0
@@ -1167,6 +1183,14 @@ if [ -n "$CATEGORY" ]; then
       echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written."}'
       exit 0
     fi
+  fi
+  # File review off: any other built-in write or delete flows unreviewed
+  # (stigmer#1471). The secret-like write block above has already refused a
+  # gitignored or non-git secret-like path; shell (category "shell") never
+  # takes this branch and stays gated.
+  if [ "$FILE_REVIEW" = "false" ] && { [ "$CATEGORY" = "write" ] || [ "$CATEGORY" = "delete" ]; }; then
+    echo '{"permission":"allow"}'
+    exit 0
   fi
   # Reinvocation grant: allow when the CONTENT-exact token (a file edit approved
   # earlier with this exact content) OR the COARSE token (a shell/delete, or the

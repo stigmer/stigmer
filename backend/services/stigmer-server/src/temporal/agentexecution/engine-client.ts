@@ -112,6 +112,9 @@ export class TemporalExecutionEngine implements ConnectedExecutionEngine {
       ...(runCredential !== ""
         ? { execution_context_token: runCredential }
         : {}),
+      ...(input.reconcileFileReview === true
+        ? { reconcile_file_review: true }
+        : {}),
     };
 
     // NOTE deliberately NO workflowRunTimeout: HITL approval can block for

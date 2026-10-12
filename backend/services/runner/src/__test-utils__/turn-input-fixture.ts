@@ -125,6 +125,10 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
       dirs: [workspaceDir],
       primaryDir: workspaceDir,
       gitWorkspace: false,
+      // Review on with nothing to capture into: the classic deny-gate, the
+      // posture the adapter-side kit's gating arms are written against.
+      captureSubstrate: false,
+      fileReview: true,
       captureMode: false,
       changeSetId: `${executionId}:${overrides.turnSeq ?? 0}`,
       provision: { workspaceDirs: [workspaceDir], provisionResults: [], workspaceBackend: mockWorkspaceBackend() },

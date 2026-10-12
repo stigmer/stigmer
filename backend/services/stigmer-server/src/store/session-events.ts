@@ -19,7 +19,9 @@
  * commit for that reason, and cannot keep a log). So the one atomic method
  * reads the committed row and the count of the session's OTHER working
  * rows under the session's lock, hands both to a synchronous `write`, and
- * commits the row (or its removal) with the events it returned. The count
+ * commits the row (or its removal) with the events it returned (a writer
+ * that must know which run holds the session's newest event of a type asks
+ * for it in its scope, and only then is it read). The count
  * comes from one list key of the kind (`scope.workingKey`, a key a row
  * holds while it works), read from the key table without decoding a row:
  * runs are the fattest rows in the store.
@@ -145,6 +147,13 @@ export interface SessionEventScope {
    */
   readonly stateEventTypes: ReadonlyArray<string>;
   /**
+   * An event type whose newest event's run the writer needs
+   * (`SessionEventContext.runOfNewestType`): "is this run still the
+   * conversation's newest turn" is the run of the newest `user.message`.
+   * Opt-in, so a write that does not ask pays no read.
+   */
+  readonly runOfNewestType?: string;
+  /**
    * The session of a row not yet stored (a create), which has no key to
    * read it from. A written row whose session differs is refused.
    */
@@ -183,6 +192,11 @@ export interface SessionEventContext {
   readonly othersWorking: number;
   /** The type of the session's newest event among `scope.stateEventTypes`; undefined when it has none. */
   readonly latestStateType: string | undefined;
+  /**
+   * The run of the session's newest event of `scope.runOfNewestType`;
+   * undefined when the scope does not ask, or the session has no such event.
+   */
+  readonly runOfNewestType: string | undefined;
 }
 
 /**

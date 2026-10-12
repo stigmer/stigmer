@@ -1108,10 +1108,11 @@ const ConversationColumn = memo(function ConversationColumn({
           />
         )}
         {/* Pending file reviews dock here — pinned above the composer so the
-            decision the agent is blocked on can never scroll out of view. The
-            thread renders only observational rows (badges) and read-only
-            settled records; this is the one decision surface. Observers get
-            the read-only progress strip but never the decision dock. */}
+            newest turn's Keep and Undo stay in view after the turn ends,
+            however long the thread. The thread renders only observational
+            rows (badges) and read-only settled records; this is the one
+            decision surface. Observers get the read-only progress strip but
+            never the decision dock. */}
         <FilePathContext.Provider value={dockFilePathCtx}>
           {/* Mid-run live capture: the "N files changed so far" strip for
               a still-running turn. Mutually exclusive with the dock below —
@@ -1127,10 +1128,11 @@ const ConversationColumn = memo(function ConversationColumn({
             />
           )}
         </FilePathContext.Provider>
-        {isParticipant &&
-          (conv.pendingApprovals.length > 0 || conv.fileChangeSets.length > 0) && (
-            <WaitingOnOwnerNotice name={creatorName} />
-          )}
+        {/* Only an approval holds a turn for the owner; file review never
+            does, and the next message keeps what is still undecided. */}
+        {isParticipant && conv.pendingApprovals.length > 0 && (
+          <WaitingOnOwnerNotice name={creatorName} />
+        )}
         {/* Observers and viewers never get a composer: the server denies
             them can_create_run_in, so the send surface simply is not
             offered — read-only by construction, not by a disabled state. */}

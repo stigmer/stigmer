@@ -198,6 +198,7 @@ type RunInput struct {
 	SupersedesRunId        string
 	ConversationCatchup    *ConversationCatchupInput
 	PluginEvalCase         *PluginEvalCaseContextInput
+	ReconcileFileReview    bool
 }
 
 // SessionSpecInput is the SDK input type for SessionSpec.
@@ -215,6 +216,7 @@ type SessionSpecInput struct {
 	Vaults                []ResourceRef
 	IncludeMyVault        bool
 	Plugins               []ResourceRef
+	FileReview            bool
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -349,6 +351,7 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 			ref.Kind = apiresourcekind.ApiResourceKind_plugin
 			m.Plugins = append(m.Plugins, ref)
 		}
+		m.FileReview = i.SessionSpec.FileReview
 		resource.Spec.Target = &runv1.RunSpec_SessionSpec{SessionSpec: m}
 	}
 	if i.SessionId != "" {
@@ -398,6 +401,7 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 		}
 		resource.Spec.PluginEvalCase = v
 	}
+	resource.Spec.ReconcileFileReview = i.ReconcileFileReview
 	return resource, nil
 }
 
@@ -544,6 +548,7 @@ func RunInputFromProto(p *runv1.Run) *RunInput {
 		input.SupersedesRunId = s.GetSupersedesRunId()
 		input.ConversationCatchup = conversationCatchupInputFromProto(s.GetConversationCatchup())
 		input.PluginEvalCase = pluginEvalCaseContextInputFromProto(s.GetPluginEvalCase())
+		input.ReconcileFileReview = s.GetReconcileFileReview()
 		input.SessionId = s.GetSessionId()
 		if ov := s.GetSessionSpec(); ov != nil {
 			input.SessionSpec = sessionSpecInputFromProto(ov)
@@ -578,6 +583,7 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 	for _, r := range p.GetPlugins() {
 		input.Plugins = append(input.Plugins, resourceRefFromProto(r))
 	}
+	input.FileReview = p.GetFileReview()
 	return input
 }
 

@@ -173,6 +173,55 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     });
   });
 
+  // File review off (stigmer#1471): a built-in write or delete flows
+  // unreviewed and unasked; the secret-like write block stays, keyed on the
+  // git substrate; shell and destructive MCP still ask.
+  describe("file review off", () => {
+    it("allows a write and a delete with no ledger entry, in a git workspace and in a non-git one", () => {
+      for (const gitWorkspace of [true, false]) {
+        const h = setup({ fileReview: false, gitWorkspace });
+        expect(h.decide(hookWrite(join(h.root, "notes.md"))).permission).toBe("allow");
+        expect(h.decide(hookDelete(join(h.root, "old.md"))).permission).toBe("allow");
+        expect(h.ledger()).toEqual([]);
+      }
+    });
+
+    it("allows a write on an unattended surface: it is applied, not skipped", () => {
+      const h = setup({ fileReview: false, unattendedSkip: true });
+      expect(h.decide(hookWrite(join(h.root, "reply.md"))).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("shell and a destructive MCP tool still ask", () => {
+      const h = setup({ fileReview: false, destructiveMcpTools: ["drop_table"] });
+      expect(h.decide(hookShell("rm -rf build")).permission).toBe("deny");
+      expect(h.decide(hookMcp("drop_table", { table: "users" })).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["approval", "approval"]);
+    });
+
+    it("a tracked .env.example in a git workspace flows: the secret rule is keyed on the substrate", () => {
+      const h = setup({ fileReview: false, gitignored: [] });
+      expect(h.decide(hookWrite(join(h.root, "config/.env.example"), "KEY=")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("a gitignored or non-git secret-like write is still refused, kind 'secret'", () => {
+      const ignored = setup({ fileReview: false, gitignored: [".env"] });
+      expect(ignored.decide(hookWrite(join(ignored.root, ".env"), "API_KEY=abc")).permission).toBe("deny");
+      expect(ignored.ledger().map((e) => e.kind)).toEqual(["secret"]);
+
+      const nonGit = setup({ fileReview: false, gitWorkspace: false });
+      expect(nonGit.decide(hookWrite(join(nonGit.root, ".env"), "API_KEY=abc")).permission).toBe("deny");
+      expect(nonGit.ledger().map((e) => e.kind)).toEqual(["secret"]);
+    });
+
+    it("review on with no substrate still asks before a write (the deny-gate)", () => {
+      const h = setup({ fileReview: true, captureMode: false, gitWorkspace: false });
+      expect(h.decide(hookWrite(join(h.root, "notes.md"))).permission).toBe("deny");
+      expect(h.ledger().map((e) => e.kind)).toEqual(["approval"]);
+    });
+  });
+
   // MCP gating runs ONLY on the beforeMCPExecution event (preToolUse does not
   // enforce MCP), so a denial is recorded in exactly one place. The identity is
   // server and tool (base64("<server>/<tool>\n")): both are identical on the

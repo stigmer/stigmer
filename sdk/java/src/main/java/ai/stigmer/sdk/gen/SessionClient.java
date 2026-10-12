@@ -8,6 +8,8 @@ import ai.stigmer.agentic.session.v1.ListSessionEventsRequest;
 import ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest;
 import ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest;
 import ai.stigmer.agentic.session.v1.ListSessionsRequest;
+import ai.stigmer.agentic.session.v1.ReviewFileChangesInput;
+import ai.stigmer.agentic.session.v1.ReviewFileChangesResponse;
 import ai.stigmer.agentic.session.v1.Session;
 import ai.stigmer.agentic.session.v1.SessionCommandControllerGrpc;
 import ai.stigmer.agentic.session.v1.SessionEventList;
@@ -51,6 +53,12 @@ public final class SessionClient {
     public Session updateSubject(UpdateSessionSubjectRequest input) {
         try {
             return command.updateSubject(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ReviewFileChangesResponse reviewFileChanges(ReviewFileChangesInput input) {
+        try {
+            return command.reviewFileChanges(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

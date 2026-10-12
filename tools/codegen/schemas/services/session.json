@@ -41,6 +41,14 @@
           "description": "Set the session subject.\n\n This is a targeted update that modifies only the subject field,\n leaving other session fields untouched. Use this instead of the full\n update RPC when you only need to change the session subject."
         },
         {
+          "name": "ReviewFileChanges",
+          "inputType": "ReviewFileChangesInput",
+          "inputFullType": "ai.stigmer.agentic.session.v1.ReviewFileChangesInput",
+          "outputType": "ReviewFileChangesResponse",
+          "outputFullType": "ai.stigmer.agentic.session.v1.ReviewFileChangesResponse",
+          "description": "Keep or undo the file changes a turn made, or one of its files.\n\n In a conversation with file review on (SessionSpec.file_review), each\n turn's file edits are applied as the agent makes them and listed in a\n stigmer.file_review.changes event. They can be decided until the\n conversation's next message is sent; then whatever is undecided is\n kept. Keep records the choice. Undo puts the file back as it was\n before the turn: at once when the turn has ended (the reply names the\n turn that does it), else when the turn's next step starts. The\n decision is appended as a stigmer.file_review.decided event.\n\n ## Error Conditions\n\n - NOT_FOUND: the change set is not one of this conversation's\n - FAILED_PRECONDITION: the conversation has moved on (a later message\n   was sent), the change was already decided the other way (a decision\n   is final), the file is not in the change set, or a keep of a change\n   that cannot be shown whole without acknowledge_unreviewable\n - INVALID_ARGUMENT: expected_digest does not match the change\n\n ## Idempotency\n\n The same decision sent again records nothing new and starts no second\n turn."
+        },
+        {
           "name": "Delete",
           "inputType": "SessionId",
           "inputFullType": "ai.stigmer.agentic.session.v1.SessionId",
@@ -143,6 +151,136 @@
             "kind": "string"
           },
           "description": "New subject value. Empty string clears the subject.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ReviewFileChangesInput",
+      "description": "ReviewFileChangesInput keeps or undoes a turn's file changes, or one of\n its files.",
+      "protoType": "ai.stigmer.agentic.session.v1.ReviewFileChangesInput",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The conversation.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ChangeSetId",
+          "jsonName": "changeSetId",
+          "protoField": "change_set_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The change set, as its stigmer.file_review.changes event names it.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Scope",
+          "jsonName": "scope",
+          "protoField": "scope",
+          "type": {
+            "kind": "string"
+          },
+          "description": "change_set (every file of the set) or file (the one file_change_id).",
+          "required": false,
+          "validation": {
+            "enum": [
+              "change_set",
+              "file"
+            ]
+          }
+        },
+        {
+          "name": "FileChangeId",
+          "jsonName": "fileChangeId",
+          "protoField": "file_change_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The file to decide, when scope is file.",
+          "required": false
+        },
+        {
+          "name": "Action",
+          "jsonName": "action",
+          "protoField": "action",
+          "type": {
+            "kind": "string"
+          },
+          "description": "keep or undo.",
+          "required": false,
+          "validation": {
+            "enum": [
+              "keep",
+              "undo"
+            ]
+          }
+        },
+        {
+          "name": "ExpectedDigest",
+          "jsonName": "expectedDigest",
+          "protoField": "expected_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The digest of what the person saw: the file's digest for scope file,\n the set's aggregate_digest for scope change_set. A decision against a\n change that differs is refused.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "An optional reason, kept with the decision.",
+          "required": false,
+          "validation": {
+            "maxLength": 2000
+          }
+        },
+        {
+          "name": "AcknowledgeUnreviewable",
+          "jsonName": "acknowledgeUnreviewable",
+          "protoField": "acknowledge_unreviewable",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Set on a keep to keep a binary change consciously: its bytes can be\n put back, but it has no text diff to show. Ignored on an undo, and\n never relaxes expected_digest.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ReviewFileChangesResponse",
+      "description": "ReviewFileChangesResponse answers a recorded decision.",
+      "protoType": "ai.stigmer.agentic.session.v1.ReviewFileChangesResponse",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "ReconcileRunId",
+          "jsonName": "reconcileRunId",
+          "protoField": "reconcile_run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The turn started to put undone files back now, when the decision was\n an undo on a turn that had ended; empty otherwise, or when no turn\n could be started then (the next turn puts them back before its agent\n runs).",
           "required": false
         }
       ]

@@ -51,4 +51,10 @@ export interface InvokeAgentExecutionWorkflowInput {
    * workflow ignores it (kept for cross-edition input parity).
    */
   readonly execution_target?: number;
+  /**
+   * The run is a reconcile turn (`RunSpec.reconcile_file_review`): it puts
+   * back undone files and sends no message, so its workflow titles no
+   * session and closes no earlier turn's file review. Omitted when false.
+   */
+  readonly reconcile_file_review?: boolean;
 }
