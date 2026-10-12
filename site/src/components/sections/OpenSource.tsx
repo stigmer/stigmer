@@ -29,7 +29,7 @@ function OpenSource({ className, ...props }: OpenSourceProps) {
             Inspect every line of code
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-            Stigmer's core is Apache 2.0. Public protobuf contracts. Self-host if you need to.
+            Stigmer&apos;s core is Apache 2.0. Public protobuf contracts. Self-host if you need to.
             No vendor lock-in. The fastest path is cloud, but you always have the option
             to run everything yourself.
           </p>
