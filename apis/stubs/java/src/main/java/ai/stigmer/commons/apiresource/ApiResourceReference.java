@@ -323,10 +323,11 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The referenced resource's id: what a stored reference holds. Optional
    * on write, where the slug may name the resource instead; an id no
-   * resource of the kind holds answers as a missing resource.
+   * resource of the kind holds answers as a missing resource. At most 64
+   * characters.
    * </pre>
    *
-   * <code>string id = 5 [json_name = "id"];</code>
+   * <code>string id = 5 [json_name = "id", (.buf.validate.field) = { ... }</code>
    * @return The id.
    */
   @java.lang.Override
@@ -346,10 +347,11 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The referenced resource's id: what a stored reference holds. Optional
    * on write, where the slug may name the resource instead; an id no
-   * resource of the kind holds answers as a missing resource.
+   * resource of the kind holds answers as a missing resource. At most 64
+   * characters.
    * </pre>
    *
-   * <code>string id = 5 [json_name = "id"];</code>
+   * <code>string id = 5 [json_name = "id", (.buf.validate.field) = { ... }</code>
    * @return The bytes for id.
    */
   @java.lang.Override
@@ -1306,10 +1308,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The referenced resource's id: what a stored reference holds. Optional
      * on write, where the slug may name the resource instead; an id no
-     * resource of the kind holds answers as a missing resource.
+     * resource of the kind holds answers as a missing resource. At most 64
+     * characters.
      * </pre>
      *
-     * <code>string id = 5 [json_name = "id"];</code>
+     * <code>string id = 5 [json_name = "id", (.buf.validate.field) = { ... }</code>
      * @return The id.
      */
     public java.lang.String getId() {
@@ -1328,10 +1331,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The referenced resource's id: what a stored reference holds. Optional
      * on write, where the slug may name the resource instead; an id no
-     * resource of the kind holds answers as a missing resource.
+     * resource of the kind holds answers as a missing resource. At most 64
+     * characters.
      * </pre>
      *
-     * <code>string id = 5 [json_name = "id"];</code>
+     * <code>string id = 5 [json_name = "id", (.buf.validate.field) = { ... }</code>
      * @return The bytes for id.
      */
     public com.google.protobuf.ByteString
@@ -1351,10 +1355,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The referenced resource's id: what a stored reference holds. Optional
      * on write, where the slug may name the resource instead; an id no
-     * resource of the kind holds answers as a missing resource.
+     * resource of the kind holds answers as a missing resource. At most 64
+     * characters.
      * </pre>
      *
-     * <code>string id = 5 [json_name = "id"];</code>
+     * <code>string id = 5 [json_name = "id", (.buf.validate.field) = { ... }</code>
      * @param value The id to set.
      * @return This builder for chaining.
      */
@@ -1370,10 +1375,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The referenced resource's id: what a stored reference holds. Optional
      * on write, where the slug may name the resource instead; an id no
-     * resource of the kind holds answers as a missing resource.
+     * resource of the kind holds answers as a missing resource. At most 64
+     * characters.
      * </pre>
      *
-     * <code>string id = 5 [json_name = "id"];</code>
+     * <code>string id = 5 [json_name = "id", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearId() {
@@ -1386,10 +1392,11 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The referenced resource's id: what a stored reference holds. Optional
      * on write, where the slug may name the resource instead; an id no
-     * resource of the kind holds answers as a missing resource.
+     * resource of the kind holds answers as a missing resource. At most 64
+     * characters.
      * </pre>
      *
-     * <code>string id = 5 [json_name = "id"];</code>
+     * <code>string id = 5 [json_name = "id", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for id to set.
      * @return This builder for chaining.
      */
