@@ -92,7 +92,8 @@ export type RefusalReason =
   | "excluded by --cells"
   | "model not in registry for harness"
   | "missing stigmer CLI"
-  | "thinking needs a pinned model";
+  | "thinking needs a pinned model"
+  | "runs only when --cells names it";
 
 /** Where an attempt failed: creating it, running it, or grading it. */
 export type FailureStage = "create" | "execution";

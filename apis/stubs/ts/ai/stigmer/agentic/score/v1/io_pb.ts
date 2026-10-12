@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/score/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_score_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MSIgCgdTY29yZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiMQoWTGlzdFNjb3Jlc0J5UnVuUmVxdWVzdBIXCgZydW5faWQYASABKAlCB7pIBHICEAEiOQoaTGlzdFNjb3Jlc0J5U2Vzc2lvblJlcXVlc3QSGwoKc2Vzc2lvbl9pZBgBIAEoCUIHukgEcgIQASJsCglTY29yZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSMQoFaXRlbXMYAiADKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuU2NvcmUSFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJImgKHEdldEFnZW50UXVhbGl0eVJlcG9ydFJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhkKCGFnZW50X2lkGAIgASgJQge6SARyAhABEhcKBGRheXMYAyABKAVCCbpIBhoEGFooACLqAQoSQWdlbnRRdWFsaXR5UmVwb3J0EhEKCWZyb21fZGF0ZRgBIAEoCRIPCgd0b19kYXRlGAIgASgJEjoKBXRvdGFsGAMgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlF1YWxpdHlTdW1tYXJ5EjUKBGRheXMYBCADKAsyJy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuUXVhbGl0eURheRI9Cgh2ZXJzaW9ucxgFIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5RdWFsaXR5VmVyc2lvbiJZCg5RdWFsaXR5U3VtbWFyeRIMCgRydW5zGAEgASgFEjkKB21ldHJpY3MYAiADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuTWV0cmljVGFsbHkivAEKC01ldHJpY1RhbGx5Eg4KBm1ldHJpYxgBIAEoCRIZChFldmFsdWF0b3JfdmVyc2lvbhgCIAEoCRIOCgZwYXNzZWQYAyABKAUSDgoGZmFpbGVkGAQgASgFEhIKCm5vdF9ncmFkZWQYBSABKAUSDwoHcGVuZGluZxgGIAEoBRI9Cghjcml0ZXJpYRgHIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5Dcml0ZXJpb25UYWxseSJWCg5Dcml0ZXJpb25UYWxseRIMCgRuYW1lGAEgASgJEg4KBnBhc3NlZBgCIAEoBRIOCgZmYWlsZWQYAyABKAUSFgoObm90X2FwcGxpY2FibGUYBCABKAUiWAoKUXVhbGl0eURheRIMCgRkYXRlGAEgASgJEjwKB3N1bW1hcnkYAiABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuUXVhbGl0eVN1bW1hcnkikQEKDlF1YWxpdHlWZXJzaW9uEhoKEmFnZW50X3ZlcnNpb25faGFzaBgBIAEoCRISCgpmaXJzdF9kYXRlGAIgASgJEhEKCWxhc3RfZGF0ZRgDIAEoCRI8CgdzdW1tYXJ5GAQgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlF1YWxpdHlTdW1tYXJ5IpsBCh9MaXN0RmxhZ2dlZFNjb3Jlc0J5QWdlbnRSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARIZCghhZ2VudF9pZBgCIAEoCUIHukgEcgIQARIXCgRkYXlzGAMgASgFQgm6SAYaBBhaKAASGgoJcGFnZV9zaXplGAQgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YBSABKAliBnByb3RvMw", [file_ai_stigmer_agentic_score_v1_api, file_buf_validate_validate]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MSIgCgdTY29yZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiMQoWTGlzdFNjb3Jlc0J5UnVuUmVxdWVzdBIXCgZydW5faWQYASABKAlCB7pIBHICEAEiOQoaTGlzdFNjb3Jlc0J5U2Vzc2lvblJlcXVlc3QSGwoKc2Vzc2lvbl9pZBgBIAEoCUIHukgEcgIQASJsCglTY29yZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSMQoFaXRlbXMYAiADKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuU2NvcmUSFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJImgKHEdldEFnZW50UXVhbGl0eVJlcG9ydFJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhkKCGFnZW50X2lkGAIgASgJQge6SARyAhABEhcKBGRheXMYAyABKAVCCbpIBhoEGFooACKqAgoSQWdlbnRRdWFsaXR5UmVwb3J0EhEKCWZyb21fZGF0ZRgBIAEoCRIPCgd0b19kYXRlGAIgASgJEjoKBXRvdGFsGAMgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlF1YWxpdHlTdW1tYXJ5EjUKBGRheXMYBCADKAsyJy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuUXVhbGl0eURheRI9Cgh2ZXJzaW9ucxgFIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5RdWFsaXR5VmVyc2lvbhI+CglhZ3JlZW1lbnQYBiADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuSnVkZ2VBZ3JlZW1lbnQilQEKDkp1ZGdlQWdyZWVtZW50EhkKEWV2YWx1YXRvcl92ZXJzaW9uGAEgASgJEgwKBHJ1bnMYAiABKAUSHwoXdGh1bWJzX2Rvd25fbm9uZV9mYWlsZWQYAyABKAUSOQoFcnVsZXMYBCADKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuUnVsZUFncmVlbWVudCKJAQoNUnVsZUFncmVlbWVudBIMCgRuYW1lGAEgASgJEhoKEmZhaWxlZF90aHVtYnNfZG93bhgCIAEoBRIYChBmYWlsZWRfdGh1bWJzX3VwGAMgASgFEhoKEnBhc3NlZF90aHVtYnNfZG93bhgEIAEoBRIYChBwYXNzZWRfdGh1bWJzX3VwGAUgASgFIlkKDlF1YWxpdHlTdW1tYXJ5EgwKBHJ1bnMYASABKAUSOQoHbWV0cmljcxgCIAMoCzIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5NZXRyaWNUYWxseSK8AQoLTWV0cmljVGFsbHkSDgoGbWV0cmljGAEgASgJEhkKEWV2YWx1YXRvcl92ZXJzaW9uGAIgASgJEg4KBnBhc3NlZBgDIAEoBRIOCgZmYWlsZWQYBCABKAUSEgoKbm90X2dyYWRlZBgFIAEoBRIPCgdwZW5kaW5nGAYgASgFEj0KCGNyaXRlcmlhGAcgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLkNyaXRlcmlvblRhbGx5IlYKDkNyaXRlcmlvblRhbGx5EgwKBG5hbWUYASABKAkSDgoGcGFzc2VkGAIgASgFEg4KBmZhaWxlZBgDIAEoBRIWCg5ub3RfYXBwbGljYWJsZRgEIAEoBSJYCgpRdWFsaXR5RGF5EgwKBGRhdGUYASABKAkSPAoHc3VtbWFyeRgCIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5RdWFsaXR5U3VtbWFyeSKRAQoOUXVhbGl0eVZlcnNpb24SGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAEgASgJEhIKCmZpcnN0X2RhdGUYAiABKAkSEQoJbGFzdF9kYXRlGAMgASgJEjwKB3N1bW1hcnkYBCABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuUXVhbGl0eVN1bW1hcnkimwEKH0xpc3RGbGFnZ2VkU2NvcmVzQnlBZ2VudFJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhkKCGFnZW50X2lkGAIgASgJQge6SARyAhABEhcKBGRheXMYAyABKAVCCbpIBhoEGFooABIaCglwYWdlX3NpemUYBCABKAVCB7pIBBoCKAASEgoKcGFnZV90b2tlbhgFIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_score_v1_api, file_buf_validate_validate]);
 
 /**
  * ScoreId wraps a score identifier.
@@ -204,6 +204,15 @@ export type AgentQualityReport = Message<"ai.stigmer.agentic.score.v1.AgentQuali
    * @generated from field: repeated ai.stigmer.agentic.score.v1.QualityVersion versions = 5;
    */
   versions: QualityVersion[];
+
+  /**
+   * Where people's thumbs and the AI judge disagree, one entry per judge
+   * rubric version, most recently seen first. Only runs with both a judge
+   * grade and at least one thumbs in the window are counted.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6;
+   */
+  agreement: JudgeAgreement[];
 };
 
 /**
@@ -212,6 +221,101 @@ export type AgentQualityReport = Message<"ai.stigmer.agentic.score.v1.AgentQuali
  */
 export const AgentQualityReportSchema: GenMessage<AgentQualityReport> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_score_v1_io, 5);
+
+/**
+ * JudgeAgreement sets people's thumbs against one version of the AI
+ * judge's rubrics: for each run that has both, each thumbs is counted
+ * against each rubric that passed or failed on that run.
+ *
+ * @generated from message ai.stigmer.agentic.score.v1.JudgeAgreement
+ */
+export type JudgeAgreement = Message<"ai.stigmer.agentic.score.v1.JudgeAgreement"> & {
+  /**
+   * The version of the rubrics these counts are for.
+   *
+   * @generated from field: string evaluator_version = 1;
+   */
+  evaluatorVersion: string;
+
+  /**
+   * Runs with both a judge grade of this version and at least one thumbs.
+   *
+   * @generated from field: int32 runs = 2;
+   */
+  runs: number;
+
+  /**
+   * Runs people gave a thumbs down where no rubric failed: the sign of a
+   * failure no rubric catches.
+   *
+   * @generated from field: int32 thumbs_down_none_failed = 3;
+   */
+  thumbsDownNoneFailed: number;
+
+  /**
+   * One entry per rubric, in name order.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.score.v1.RuleAgreement rules = 4;
+   */
+  rules: RuleAgreement[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.score.v1.JudgeAgreement.
+ * Use `create(JudgeAgreementSchema)` to create a new message.
+ */
+export const JudgeAgreementSchema: GenMessage<JudgeAgreement> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 6);
+
+/**
+ * RuleAgreement counts one rubric's outcomes against people's thumbs on the
+ * same runs. A rubric that did not apply to a run counts nothing.
+ *
+ * @generated from message ai.stigmer.agentic.score.v1.RuleAgreement
+ */
+export type RuleAgreement = Message<"ai.stigmer.agentic.score.v1.RuleAgreement"> & {
+  /**
+   * The rubric's name, for example `did-the-task`.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Thumbs down on runs the rubric failed: people and the judge agree.
+   *
+   * @generated from field: int32 failed_thumbs_down = 2;
+   */
+  failedThumbsDown: number;
+
+  /**
+   * Thumbs up on runs the rubric failed: the rubric may be too strict.
+   *
+   * @generated from field: int32 failed_thumbs_up = 3;
+   */
+  failedThumbsUp: number;
+
+  /**
+   * Thumbs down on runs the rubric passed: the rubric may be too lenient.
+   *
+   * @generated from field: int32 passed_thumbs_down = 4;
+   */
+  passedThumbsDown: number;
+
+  /**
+   * Thumbs up on runs the rubric passed: people and the judge agree.
+   *
+   * @generated from field: int32 passed_thumbs_up = 5;
+   */
+  passedThumbsUp: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.score.v1.RuleAgreement.
+ * Use `create(RuleAgreementSchema)` to create a new message.
+ */
+export const RuleAgreementSchema: GenMessage<RuleAgreement> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 7);
 
 /**
  * QualitySummary counts the runs graded and their grades, by metric.
@@ -240,7 +344,7 @@ export type QualitySummary = Message<"ai.stigmer.agentic.score.v1.QualitySummary
  * Use `create(QualitySummarySchema)` to create a new message.
  */
 export const QualitySummarySchema: GenMessage<QualitySummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_score_v1_io, 6);
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 8);
 
 /**
  * MetricTally counts the grades of one metric at one evaluator version.
@@ -305,7 +409,7 @@ export type MetricTally = Message<"ai.stigmer.agentic.score.v1.MetricTally"> & {
  * Use `create(MetricTallySchema)` to create a new message.
  */
 export const MetricTallySchema: GenMessage<MetricTally> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_score_v1_io, 7);
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 9);
 
 /**
  * CriterionTally counts one check's or rubric item's outcomes.
@@ -347,7 +451,7 @@ export type CriterionTally = Message<"ai.stigmer.agentic.score.v1.CriterionTally
  * Use `create(CriterionTallySchema)` to create a new message.
  */
 export const CriterionTallySchema: GenMessage<CriterionTally> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_score_v1_io, 8);
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 10);
 
 /**
  * QualityDay is one UTC day's grades.
@@ -375,7 +479,7 @@ export type QualityDay = Message<"ai.stigmer.agentic.score.v1.QualityDay"> & {
  * Use `create(QualityDaySchema)` to create a new message.
  */
 export const QualityDaySchema: GenMessage<QualityDay> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_score_v1_io, 9);
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 11);
 
 /**
  * QualityVersion is the grades of the runs of one agent version.
@@ -420,7 +524,7 @@ export type QualityVersion = Message<"ai.stigmer.agentic.score.v1.QualityVersion
  * Use `create(QualityVersionSchema)` to create a new message.
  */
 export const QualityVersionSchema: GenMessage<QualityVersion> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_score_v1_io, 10);
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 12);
 
 /**
  * ListFlaggedScoresByAgentRequest lists the failed grades of one agent's
@@ -474,5 +578,5 @@ export type ListFlaggedScoresByAgentRequest = Message<"ai.stigmer.agentic.score.
  * Use `create(ListFlaggedScoresByAgentRequestSchema)` to create a new message.
  */
 export const ListFlaggedScoresByAgentRequestSchema: GenMessage<ListFlaggedScoresByAgentRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_score_v1_io, 11);
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 13);
 

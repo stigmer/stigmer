@@ -316,7 +316,11 @@ type AgentQualityReport struct {
 	Days []*QualityDay `protobuf:"bytes,4,rep,name=days,proto3" json:"days,omitempty"`
 	// One entry per agent version that has a grade in the window, most
 	// recently seen first.
-	Versions      []*QualityVersion `protobuf:"bytes,5,rep,name=versions,proto3" json:"versions,omitempty"`
+	Versions []*QualityVersion `protobuf:"bytes,5,rep,name=versions,proto3" json:"versions,omitempty"`
+	// Where people's thumbs and the AI judge disagree, one entry per judge
+	// rubric version, most recently seen first. Only runs with both a judge
+	// grade and at least one thumbs in the window are counted.
+	Agreement     []*JudgeAgreement `protobuf:"bytes,6,rep,name=agreement,proto3" json:"agreement,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -386,6 +390,172 @@ func (x *AgentQualityReport) GetVersions() []*QualityVersion {
 	return nil
 }
 
+func (x *AgentQualityReport) GetAgreement() []*JudgeAgreement {
+	if x != nil {
+		return x.Agreement
+	}
+	return nil
+}
+
+// JudgeAgreement sets people's thumbs against one version of the AI
+// judge's rubrics: for each run that has both, each thumbs is counted
+// against each rubric that passed or failed on that run.
+type JudgeAgreement struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The version of the rubrics these counts are for.
+	EvaluatorVersion string `protobuf:"bytes,1,opt,name=evaluator_version,json=evaluatorVersion,proto3" json:"evaluator_version,omitempty"`
+	// Runs with both a judge grade of this version and at least one thumbs.
+	Runs int32 `protobuf:"varint,2,opt,name=runs,proto3" json:"runs,omitempty"`
+	// Runs people gave a thumbs down where no rubric failed: the sign of a
+	// failure no rubric catches.
+	ThumbsDownNoneFailed int32 `protobuf:"varint,3,opt,name=thumbs_down_none_failed,json=thumbsDownNoneFailed,proto3" json:"thumbs_down_none_failed,omitempty"`
+	// One entry per rubric, in name order.
+	Rules         []*RuleAgreement `protobuf:"bytes,4,rep,name=rules,proto3" json:"rules,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JudgeAgreement) Reset() {
+	*x = JudgeAgreement{}
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JudgeAgreement) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JudgeAgreement) ProtoMessage() {}
+
+func (x *JudgeAgreement) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JudgeAgreement.ProtoReflect.Descriptor instead.
+func (*JudgeAgreement) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *JudgeAgreement) GetEvaluatorVersion() string {
+	if x != nil {
+		return x.EvaluatorVersion
+	}
+	return ""
+}
+
+func (x *JudgeAgreement) GetRuns() int32 {
+	if x != nil {
+		return x.Runs
+	}
+	return 0
+}
+
+func (x *JudgeAgreement) GetThumbsDownNoneFailed() int32 {
+	if x != nil {
+		return x.ThumbsDownNoneFailed
+	}
+	return 0
+}
+
+func (x *JudgeAgreement) GetRules() []*RuleAgreement {
+	if x != nil {
+		return x.Rules
+	}
+	return nil
+}
+
+// RuleAgreement counts one rubric's outcomes against people's thumbs on the
+// same runs. A rubric that did not apply to a run counts nothing.
+type RuleAgreement struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The rubric's name, for example `did-the-task`.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Thumbs down on runs the rubric failed: people and the judge agree.
+	FailedThumbsDown int32 `protobuf:"varint,2,opt,name=failed_thumbs_down,json=failedThumbsDown,proto3" json:"failed_thumbs_down,omitempty"`
+	// Thumbs up on runs the rubric failed: the rubric may be too strict.
+	FailedThumbsUp int32 `protobuf:"varint,3,opt,name=failed_thumbs_up,json=failedThumbsUp,proto3" json:"failed_thumbs_up,omitempty"`
+	// Thumbs down on runs the rubric passed: the rubric may be too lenient.
+	PassedThumbsDown int32 `protobuf:"varint,4,opt,name=passed_thumbs_down,json=passedThumbsDown,proto3" json:"passed_thumbs_down,omitempty"`
+	// Thumbs up on runs the rubric passed: people and the judge agree.
+	PassedThumbsUp int32 `protobuf:"varint,5,opt,name=passed_thumbs_up,json=passedThumbsUp,proto3" json:"passed_thumbs_up,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RuleAgreement) Reset() {
+	*x = RuleAgreement{}
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RuleAgreement) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RuleAgreement) ProtoMessage() {}
+
+func (x *RuleAgreement) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RuleAgreement.ProtoReflect.Descriptor instead.
+func (*RuleAgreement) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RuleAgreement) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RuleAgreement) GetFailedThumbsDown() int32 {
+	if x != nil {
+		return x.FailedThumbsDown
+	}
+	return 0
+}
+
+func (x *RuleAgreement) GetFailedThumbsUp() int32 {
+	if x != nil {
+		return x.FailedThumbsUp
+	}
+	return 0
+}
+
+func (x *RuleAgreement) GetPassedThumbsDown() int32 {
+	if x != nil {
+		return x.PassedThumbsDown
+	}
+	return 0
+}
+
+func (x *RuleAgreement) GetPassedThumbsUp() int32 {
+	if x != nil {
+		return x.PassedThumbsUp
+	}
+	return 0
+}
+
 // QualitySummary counts the runs graded and their grades, by metric.
 type QualitySummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -400,7 +570,7 @@ type QualitySummary struct {
 
 func (x *QualitySummary) Reset() {
 	*x = QualitySummary{}
-	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -412,7 +582,7 @@ func (x *QualitySummary) String() string {
 func (*QualitySummary) ProtoMessage() {}
 
 func (x *QualitySummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -425,7 +595,7 @@ func (x *QualitySummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QualitySummary.ProtoReflect.Descriptor instead.
 func (*QualitySummary) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *QualitySummary) GetRuns() int32 {
@@ -467,7 +637,7 @@ type MetricTally struct {
 
 func (x *MetricTally) Reset() {
 	*x = MetricTally{}
-	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -479,7 +649,7 @@ func (x *MetricTally) String() string {
 func (*MetricTally) ProtoMessage() {}
 
 func (x *MetricTally) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -492,7 +662,7 @@ func (x *MetricTally) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricTally.ProtoReflect.Descriptor instead.
 func (*MetricTally) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *MetricTally) GetMetric() string {
@@ -561,7 +731,7 @@ type CriterionTally struct {
 
 func (x *CriterionTally) Reset() {
 	*x = CriterionTally{}
-	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -573,7 +743,7 @@ func (x *CriterionTally) String() string {
 func (*CriterionTally) ProtoMessage() {}
 
 func (x *CriterionTally) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -586,7 +756,7 @@ func (x *CriterionTally) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CriterionTally.ProtoReflect.Descriptor instead.
 func (*CriterionTally) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CriterionTally) GetName() string {
@@ -630,7 +800,7 @@ type QualityDay struct {
 
 func (x *QualityDay) Reset() {
 	*x = QualityDay{}
-	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -642,7 +812,7 @@ func (x *QualityDay) String() string {
 func (*QualityDay) ProtoMessage() {}
 
 func (x *QualityDay) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -655,7 +825,7 @@ func (x *QualityDay) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QualityDay.ProtoReflect.Descriptor instead.
 func (*QualityDay) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *QualityDay) GetDate() string {
@@ -692,7 +862,7 @@ type QualityVersion struct {
 
 func (x *QualityVersion) Reset() {
 	*x = QualityVersion{}
-	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -704,7 +874,7 @@ func (x *QualityVersion) String() string {
 func (*QualityVersion) ProtoMessage() {}
 
 func (x *QualityVersion) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -717,7 +887,7 @@ func (x *QualityVersion) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QualityVersion.ProtoReflect.Descriptor instead.
 func (*QualityVersion) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *QualityVersion) GetAgentVersionHash() string {
@@ -772,7 +942,7 @@ type ListFlaggedScoresByAgentRequest struct {
 
 func (x *ListFlaggedScoresByAgentRequest) Reset() {
 	*x = ListFlaggedScoresByAgentRequest{}
-	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -784,7 +954,7 @@ func (x *ListFlaggedScoresByAgentRequest) String() string {
 func (*ListFlaggedScoresByAgentRequest) ProtoMessage() {}
 
 func (x *ListFlaggedScoresByAgentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -797,7 +967,7 @@ func (x *ListFlaggedScoresByAgentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFlaggedScoresByAgentRequest.ProtoReflect.Descriptor instead.
 func (*ListFlaggedScoresByAgentRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{11}
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListFlaggedScoresByAgentRequest) GetOrg() string {
@@ -855,13 +1025,25 @@ const file_ai_stigmer_agentic_score_v1_io_proto_rawDesc = "" +
 	"\x1cGetAgentQualityReportRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\"\n" +
 	"\bagent_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1d\n" +
-	"\x04days\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18Z(\x00R\x04days\"\x93\x02\n" +
+	"\x04days\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18Z(\x00R\x04days\"\xde\x02\n" +
 	"\x12AgentQualityReport\x12\x1b\n" +
 	"\tfrom_date\x18\x01 \x01(\tR\bfromDate\x12\x17\n" +
 	"\ato_date\x18\x02 \x01(\tR\x06toDate\x12A\n" +
 	"\x05total\x18\x03 \x01(\v2+.ai.stigmer.agentic.score.v1.QualitySummaryR\x05total\x12;\n" +
 	"\x04days\x18\x04 \x03(\v2'.ai.stigmer.agentic.score.v1.QualityDayR\x04days\x12G\n" +
-	"\bversions\x18\x05 \x03(\v2+.ai.stigmer.agentic.score.v1.QualityVersionR\bversions\"h\n" +
+	"\bversions\x18\x05 \x03(\v2+.ai.stigmer.agentic.score.v1.QualityVersionR\bversions\x12I\n" +
+	"\tagreement\x18\x06 \x03(\v2+.ai.stigmer.agentic.score.v1.JudgeAgreementR\tagreement\"\xca\x01\n" +
+	"\x0eJudgeAgreement\x12+\n" +
+	"\x11evaluator_version\x18\x01 \x01(\tR\x10evaluatorVersion\x12\x12\n" +
+	"\x04runs\x18\x02 \x01(\x05R\x04runs\x125\n" +
+	"\x17thumbs_down_none_failed\x18\x03 \x01(\x05R\x14thumbsDownNoneFailed\x12@\n" +
+	"\x05rules\x18\x04 \x03(\v2*.ai.stigmer.agentic.score.v1.RuleAgreementR\x05rules\"\xd3\x01\n" +
+	"\rRuleAgreement\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12,\n" +
+	"\x12failed_thumbs_down\x18\x02 \x01(\x05R\x10failedThumbsDown\x12(\n" +
+	"\x10failed_thumbs_up\x18\x03 \x01(\x05R\x0efailedThumbsUp\x12,\n" +
+	"\x12passed_thumbs_down\x18\x04 \x01(\x05R\x10passedThumbsDown\x12(\n" +
+	"\x10passed_thumbs_up\x18\x05 \x01(\x05R\x0epassedThumbsUp\"h\n" +
 	"\x0eQualitySummary\x12\x12\n" +
 	"\x04runs\x18\x01 \x01(\x05R\x04runs\x12B\n" +
 	"\ametrics\x18\x02 \x03(\v2(.ai.stigmer.agentic.score.v1.MetricTallyR\ametrics\"\x84\x02\n" +
@@ -910,7 +1092,7 @@ func file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_score_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_ai_stigmer_agentic_score_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_ai_stigmer_agentic_score_v1_io_proto_goTypes = []any{
 	(*ScoreId)(nil),                         // 0: ai.stigmer.agentic.score.v1.ScoreId
 	(*ListScoresByRunRequest)(nil),          // 1: ai.stigmer.agentic.score.v1.ListScoresByRunRequest
@@ -918,28 +1100,32 @@ var file_ai_stigmer_agentic_score_v1_io_proto_goTypes = []any{
 	(*ScoreList)(nil),                       // 3: ai.stigmer.agentic.score.v1.ScoreList
 	(*GetAgentQualityReportRequest)(nil),    // 4: ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest
 	(*AgentQualityReport)(nil),              // 5: ai.stigmer.agentic.score.v1.AgentQualityReport
-	(*QualitySummary)(nil),                  // 6: ai.stigmer.agentic.score.v1.QualitySummary
-	(*MetricTally)(nil),                     // 7: ai.stigmer.agentic.score.v1.MetricTally
-	(*CriterionTally)(nil),                  // 8: ai.stigmer.agentic.score.v1.CriterionTally
-	(*QualityDay)(nil),                      // 9: ai.stigmer.agentic.score.v1.QualityDay
-	(*QualityVersion)(nil),                  // 10: ai.stigmer.agentic.score.v1.QualityVersion
-	(*ListFlaggedScoresByAgentRequest)(nil), // 11: ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest
-	(*Score)(nil),                           // 12: ai.stigmer.agentic.score.v1.Score
+	(*JudgeAgreement)(nil),                  // 6: ai.stigmer.agentic.score.v1.JudgeAgreement
+	(*RuleAgreement)(nil),                   // 7: ai.stigmer.agentic.score.v1.RuleAgreement
+	(*QualitySummary)(nil),                  // 8: ai.stigmer.agentic.score.v1.QualitySummary
+	(*MetricTally)(nil),                     // 9: ai.stigmer.agentic.score.v1.MetricTally
+	(*CriterionTally)(nil),                  // 10: ai.stigmer.agentic.score.v1.CriterionTally
+	(*QualityDay)(nil),                      // 11: ai.stigmer.agentic.score.v1.QualityDay
+	(*QualityVersion)(nil),                  // 12: ai.stigmer.agentic.score.v1.QualityVersion
+	(*ListFlaggedScoresByAgentRequest)(nil), // 13: ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest
+	(*Score)(nil),                           // 14: ai.stigmer.agentic.score.v1.Score
 }
 var file_ai_stigmer_agentic_score_v1_io_proto_depIdxs = []int32{
-	12, // 0: ai.stigmer.agentic.score.v1.ScoreList.items:type_name -> ai.stigmer.agentic.score.v1.Score
-	6,  // 1: ai.stigmer.agentic.score.v1.AgentQualityReport.total:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
-	9,  // 2: ai.stigmer.agentic.score.v1.AgentQualityReport.days:type_name -> ai.stigmer.agentic.score.v1.QualityDay
-	10, // 3: ai.stigmer.agentic.score.v1.AgentQualityReport.versions:type_name -> ai.stigmer.agentic.score.v1.QualityVersion
-	7,  // 4: ai.stigmer.agentic.score.v1.QualitySummary.metrics:type_name -> ai.stigmer.agentic.score.v1.MetricTally
-	8,  // 5: ai.stigmer.agentic.score.v1.MetricTally.criteria:type_name -> ai.stigmer.agentic.score.v1.CriterionTally
-	6,  // 6: ai.stigmer.agentic.score.v1.QualityDay.summary:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
-	6,  // 7: ai.stigmer.agentic.score.v1.QualityVersion.summary:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	14, // 0: ai.stigmer.agentic.score.v1.ScoreList.items:type_name -> ai.stigmer.agentic.score.v1.Score
+	8,  // 1: ai.stigmer.agentic.score.v1.AgentQualityReport.total:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
+	11, // 2: ai.stigmer.agentic.score.v1.AgentQualityReport.days:type_name -> ai.stigmer.agentic.score.v1.QualityDay
+	12, // 3: ai.stigmer.agentic.score.v1.AgentQualityReport.versions:type_name -> ai.stigmer.agentic.score.v1.QualityVersion
+	6,  // 4: ai.stigmer.agentic.score.v1.AgentQualityReport.agreement:type_name -> ai.stigmer.agentic.score.v1.JudgeAgreement
+	7,  // 5: ai.stigmer.agentic.score.v1.JudgeAgreement.rules:type_name -> ai.stigmer.agentic.score.v1.RuleAgreement
+	9,  // 6: ai.stigmer.agentic.score.v1.QualitySummary.metrics:type_name -> ai.stigmer.agentic.score.v1.MetricTally
+	10, // 7: ai.stigmer.agentic.score.v1.MetricTally.criteria:type_name -> ai.stigmer.agentic.score.v1.CriterionTally
+	8,  // 8: ai.stigmer.agentic.score.v1.QualityDay.summary:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
+	8,  // 9: ai.stigmer.agentic.score.v1.QualityVersion.summary:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_score_v1_io_proto_init() }
@@ -954,7 +1140,7 @@ func file_ai_stigmer_agentic_score_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_score_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_score_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

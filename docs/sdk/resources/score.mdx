@@ -602,6 +602,7 @@ AgentQualityReport counts one agent's grades in one organization, in total, per 
     total: { type: "QualitySummaryInput", description: "Every grade in the window." },
     days: { type: "QualityDayInput[]", description: "One entry per UTC day that has a grade, oldest first." },
     versions: { type: "QualityVersionInput[]", description: "One entry per agent version that has a grade in the window, most recently seen first." },
+    agreement: { type: "JudgeAgreementInput[]", description: "Where people's thumbs and the AI judge disagree, one entry per judge rubric version, most recently seen first." },
   }}
 />
 

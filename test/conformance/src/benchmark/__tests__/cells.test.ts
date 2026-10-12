@@ -11,7 +11,7 @@
 // memory); --only and --cells refuse with their own reasons; parity and
 // working cells carry their harness's registry id and default cells none.
 import { describe, expect, it } from "vitest";
-import { benchmarkCells, globMatches, planCells } from "../cells";
+import { JUDGE_CALIBRATION_CELL, benchmarkCells, globMatches, planCells } from "../cells";
 
 const ALL = { anthropicKey: true, cursorKey: true, stigmerCli: true };
 
@@ -43,7 +43,27 @@ describe("planCells", () => {
       { id: "quality/deep-agent", harness: "deep-agent", modelRequested: "claude-sonnet-4.6" },
       { id: "quality/cursor", harness: "cursor", modelRequested: "claude-sonnet-4-6" },
     ]);
-    expect(plan.refused).toEqual([]);
+    expect(plan.judge).toBe(false);
+    expect(plan.refused).toEqual([{ cell: JUDGE_CALIBRATION_CELL, reason: "runs only when --cells names it" }]);
+  });
+
+  it("runs the judge cell alone when --cells names it, and refuses it without the Anthropic key or under --only cursor", () => {
+    const plan = planCells(ALL, { cells: "judge/*" });
+    expect(plan.judge).toBe(true);
+    expect(plan.cells).toEqual([]);
+    expect(plan.quality).toEqual([]);
+    expect(planCells({ ...ALL, anthropicKey: false }, { cells: "judge/*" }).refused).toContainEqual({
+      cell: JUDGE_CALIBRATION_CELL,
+      reason: "missing ANTHROPIC_API_KEY",
+    });
+    expect(planCells(ALL, { cells: "judge/*", only: "cursor" }).refused).toContainEqual({
+      cell: JUDGE_CALIBRATION_CELL,
+      reason: "excluded by --only",
+    });
+    expect(planCells(ALL, { cells: "quality/*" }).refused).toContainEqual({
+      cell: JUDGE_CALIBRATION_CELL,
+      reason: "excluded by --cells",
+    });
   });
 
   it("without the Anthropic key refuses every native cell and every quality cell by name", () => {
@@ -84,8 +104,9 @@ describe("planCells", () => {
     const plan = planCells({ ...ALL, cursorKey: false }, {});
     expect(plan.cells.every((cell) => cell.harness === "deep-agent")).toBe(true);
     expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/deep-agent"]);
-    expect(plan.refused.every((r) => r.reason === "missing CURSOR_API_KEY")).toBe(true);
-    expect(plan.refused).toHaveLength(10);
+    const keyed = plan.refused.filter((r) => r.cell !== JUDGE_CALIBRATION_CELL);
+    expect(keyed.every((r) => r.reason === "missing CURSOR_API_KEY")).toBe(true);
+    expect(keyed).toHaveLength(10);
   });
 
   it("without the stigmer CLI refuses the working-agent timing cells alone, and keeps the quality targets", () => {
@@ -93,7 +114,7 @@ describe("planCells", () => {
     expect(plan.cells).toHaveLength(14);
     expect(plan.cells.every((cell) => cell.scenario.agent === "bare")).toBe(true);
     expect(plan.quality.map((cell) => cell.id)).toEqual(["quality/deep-agent", "quality/cursor"]);
-    expect(plan.refused).toEqual([
+    expect(plan.refused.filter((r) => r.cell !== JUDGE_CALIBRATION_CELL)).toEqual([
       { cell: "working-read-edit/deep-agent", reason: "missing stigmer CLI" },
       { cell: "working-read-edit/cursor", reason: "missing stigmer CLI" },
       { cell: "working-cross-turn/deep-agent", reason: "missing stigmer CLI" },

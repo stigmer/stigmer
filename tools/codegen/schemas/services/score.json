@@ -278,6 +278,20 @@
           },
           "description": "One entry per agent version that has a grade in the window, most\n recently seen first.",
           "required": false
+        },
+        {
+          "name": "Agreement",
+          "jsonName": "agreement",
+          "protoField": "agreement",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "JudgeAgreement"
+            }
+          },
+          "description": "Where people's thumbs and the AI judge disagree, one entry per judge\n rubric version, most recently seen first. Only runs with both a judge\n grade and at least one thumbs in the window are counted.",
+          "required": false
         }
       ]
     },

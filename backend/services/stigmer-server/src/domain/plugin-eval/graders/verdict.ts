@@ -22,16 +22,6 @@ export type GraderVerdict =
   | { readonly passed: boolean; readonly reason: string }
   | { readonly notGraded: string };
 
-/** The longest reason a grader gives: a Score criterion's reason (score/v1/spec.proto). */
-export const GRADER_REASON_MAX_LENGTH = 500;
-
-/** `reason` cut to GRADER_REASON_MAX_LENGTH, marked where it was cut. */
-export function cutReason(reason: string): string {
-  return reason.length <= GRADER_REASON_MAX_LENGTH
-    ? reason
-    : `${reason.slice(0, GRADER_REASON_MAX_LENGTH - 6)} [cut]`;
-}
-
 /** Whether `verdict` left its grader not graded. */
 export function isNotGraded(
   verdict: GraderVerdict,

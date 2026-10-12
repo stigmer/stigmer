@@ -27,7 +27,8 @@ const (
 //
 // While an evaluator is enabled, Stigmer sends a sample of the agent's
 // completed runs to an AI judge with its standard rubrics ("did the task",
-// "made nothing up") and records the verdict as a score on each graded run.
+// "made nothing up", "did only what was asked", "asked when unclear") and
+// records the verdict as a score on each graded run.
 // The sample rate and a monthly spending limit bound how many runs are
 // graded and what grading costs; the organization the run belongs to pays.
 type Evaluator struct {

@@ -13,6 +13,7 @@
  *
  * Proven by __tests__/graders.test.ts.
  */
+import { cutReason } from "@stigmer/eval-runtime/judge";
 import type { EvalGrader } from "@stigmer/plugin-package";
 
 import type { EvalTrace } from "../../score/eval/trace.js";
@@ -25,7 +26,7 @@ import type { PatternRunner } from "./patterns.js";
 import { gradeRegex } from "./regex.js";
 import { gradeToolOrder, gradeToolUsed } from "./tools.js";
 import type { GraderVerdict } from "./verdict.js";
-import { TOO_MANY_CREATED_FILES_REASON, cutReason } from "./verdict.js";
+import { TOO_MANY_CREATED_FILES_REASON } from "./verdict.js";
 
 /** A code grader's verdict, or "votes" for a grader the judge decides. */
 export type CheckOutcome = GraderVerdict | "votes";

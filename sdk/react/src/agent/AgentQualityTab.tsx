@@ -169,8 +169,9 @@ function QualityForm({
       <Section title="AI grading">
         <div className="stg:flex stg:flex-col stg:gap-4">
           <p className="stg:text-xs stg:text-muted-foreground">
-            An AI judge grades a sample of this agent&apos;s finished runs with two
-            standard questions: did it do the task, and did it make anything up.
+            An AI judge grades a sample of this agent&apos;s finished runs with four
+            standard questions: did it do the task, did it make anything up, did it
+            do only what was asked, and did it ask when the request was unclear.
             Everyone who can see a run sees its grade. The judge&apos;s cost is
             charged to the run&apos;s organization, never to the run.
           </p>

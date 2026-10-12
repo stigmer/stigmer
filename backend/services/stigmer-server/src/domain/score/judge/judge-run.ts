@@ -78,9 +78,9 @@ export interface JudgeRunRequest {
   readonly judged: Run;
   /** The judge's model; empty for the platform's default. */
   readonly modelName: string;
-  /** The rubrics and the fenced subject (rubrics.ts, judgeMessage). */
+  /** The rubrics and the fenced subject (`judgeMessage`, @stigmer/eval-runtime). */
   readonly message: string;
-  /** The verdict's shape (rubrics.ts, VERDICT_SCHEMA). */
+  /** The verdict's shape (`VERDICT_SCHEMA`, @stigmer/eval-runtime). */
   readonly verdictSchema: JsonObject;
 }
 

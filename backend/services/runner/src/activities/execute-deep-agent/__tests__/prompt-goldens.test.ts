@@ -50,7 +50,7 @@
  *   names its branch and no commit.
  * - 2026-10-09 (the AI judge): the built-in judge's prompt is its own
  *   golden, the minimal shape with the judge's instruction
- *   (shared/builtin-judge.ts); it moves only with BUILT_IN_JUDGE_VERSION.
+ *   (@stigmer/eval-runtime); it moves only with JUDGE_INSTRUCTION_VERSION.
  * - 2026-10-10 (a turn's appended system prompt): a new golden, the minimal
  *   shape with `append_system_prompt`, which closes the prompt after every
  *   platform section; no existing golden moved.
@@ -75,7 +75,7 @@ import type { ProvisionResult } from "../../../shared/workspace/types.js";
 import { buildEnhancedSystemPrompt } from "../prompt-builder.js";
 import { composeSystemPrompt, composeTurnMessage } from "../turn-setup.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
-import { BUILT_IN_JUDGE_INSTRUCTIONS } from "../../../shared/builtin-judge.js";
+import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime/judge";
 
 // ---------------------------------------------------------------------------
 // Fixtures — every value is a plain fact a golden can name.
@@ -274,7 +274,7 @@ describe("native system prompt goldens", () => {
 
   it("the built-in judge: its instruction in the minimal shape", async () => {
     const prompt = buildEnhancedSystemPrompt({
-      instructions: BUILT_IN_JUDGE_INSTRUCTIONS,
+      instructions: JUDGE_INSTRUCTIONS,
       provisionResults: [],
       containerRoot: "",
       skillsPromptSection: "",

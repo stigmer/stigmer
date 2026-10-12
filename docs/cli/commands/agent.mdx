@@ -130,12 +130,13 @@ judge, people's thumbs), in total and per version
 stigmer agent quality <agent> [flags]
 ```
 
-| Flag             | Type     | Default | Description                                                                          |
-| ---------------- | -------- | ------- | ------------------------------------------------------------------------------------ |
-| `--days`         | `string` |         | days to count, ending today (UTC), 1 to 90 (default 30)                              |
-| `--flagged`      | `bool`   |         | list the failed grades of the runs you can open, newest first, instead of the totals |
-| `--limit`        | `string` |         | with --flagged, the most failed grades to list (default 20; 0 lists them all)        |
-| `--output`, `-o` | `string` |         | output format: table, json, or yaml                                                  |
+| Flag             | Type     | Default | Description                                                                                                      |
+| ---------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
+| `--agreement`    | `bool`   |         | show, per AI judge rubric, how its verdicts compare with people's thumbs on the same runs, instead of the totals |
+| `--days`         | `string` |         | days to count, ending today (UTC), 1 to 90 (default 30)                                                          |
+| `--flagged`      | `bool`   |         | list the failed grades of the runs you can open, newest first, instead of the totals                             |
+| `--limit`        | `string` |         | with --flagged, the most failed grades to list (default 20; 0 lists them all)                                    |
+| `--output`, `-o` | `string` |         | output format: table, json, or yaml                                                                              |
 
 ## Global Flags
 

@@ -38,6 +38,7 @@ import { createHash } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
 
+import { JUDGE_INSTRUCTION_VERSION, cutReason } from "@stigmer/eval-runtime/judge";
 import type { EvalGrader } from "@stigmer/plugin-package";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
@@ -51,10 +52,6 @@ import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/s
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { EVAL_METRIC } from "../score/constants.js";
-import {
-  JUDGE_INSTRUCTION_VERSION,
-  REASON_MAX_LENGTH,
-} from "../score/judge/rubrics.js";
 import { replaceUnlessGraded } from "../score/record.js";
 import type { ScoreWrite, ScoreWriteDeps } from "../score/record.js";
 import type { GraderVerdict } from "./graders/verdict.js";
@@ -124,7 +121,7 @@ export function gradedEvalScore(
         return create(ScoreCriterionSchema, {
           name,
           result: CriterionResult.not_applicable,
-          reason: cut(`${INDICATOR_ONLY_REASON}; not graded: ${verdict.notGraded}`),
+          reason: cutReason(`${INDICATOR_ONLY_REASON}; not graded: ${verdict.notGraded}`),
         });
       }
       const scored = graded.scoring[index]?.scored ?? true;
@@ -135,7 +132,7 @@ export function gradedEvalScore(
           : verdict.passed
             ? CriterionResult.passed
             : CriterionResult.failed,
-        reason: cut(
+        reason: cutReason(
           scored
             ? verdict.reason
             : `${INDICATOR_ONLY_REASON}; ${verdict.passed ? "passed" : "failed"}: ${verdict.reason}`,
@@ -160,7 +157,7 @@ export function stoppedEvalScore(
       create(ScoreCriterionSchema, {
         name,
         result: CriterionResult.not_applicable,
-        reason: cut(`not checked: ${why}`),
+        reason: cutReason(`not checked: ${why}`),
       }),
     );
   }
@@ -174,7 +171,7 @@ export function notGradedEvalScore(
   reason: string,
 ): Score {
   const score = baseScore(run, digest);
-  score.status = create(ScoreStatusSchema, { notGradedReason: cut(reason) });
+  score.status = create(ScoreStatusSchema, { notGradedReason: cutReason(reason) });
   return score;
 }
 
@@ -200,10 +197,4 @@ function baseScore(run: Run, digest: string): Score {
       evaluatorVersion: evalEvaluatorVersion(digest),
     },
   });
-}
-
-function cut(text: string): string {
-  return text.length <= REASON_MAX_LENGTH
-    ? text
-    : `${text.slice(0, REASON_MAX_LENGTH - 6)} [cut]`;
 }
