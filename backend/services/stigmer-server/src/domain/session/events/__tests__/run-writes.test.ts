@@ -4,14 +4,24 @@
  * turn works and idle only when the last one stops, a working run's
  * removal ends the turn, a stale in-memory copy never decides the events,
  * and a run in no session writes none. Each committed event also reaches
- * the session's live streams.
+ * the session's live streams. An update is handed the run of the
+ * session's newest event of a type only when it asks, and every file
+ * decision an update adds to the run's ledger is mirrored as one
+ * `stigmer.file_review.decided` event in the event's words, once.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import {
+  FileDecisionAction,
+  FileDecisionOrigin,
+  FileDecisionScope,
+  FileReviewEventType,
+  RunPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileDecisionSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../../boot/logger.js";
@@ -24,6 +34,7 @@ import { eventTypeOf } from "../catalog.js";
 import { eventOf } from "../codec.js";
 import {
   createRunAppendingEvents,
+  fileReviewDecidedEventId,
   overwriteRunAppendingEvents,
   removeRunAppendingEvents,
   runCreateWriter,
@@ -32,6 +43,10 @@ import {
 } from "../run-writes.js";
 import type { RunEventWriteDeps } from "../run-writes.js";
 import { readSessionState } from "../state.js";
+import {
+  eventId,
+  recordFileDecisionEventWithActor,
+} from "../../../run/filereview/author.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -208,7 +223,7 @@ describe("the chain writers and store faults", () => {
       ...deps,
       store: {
         writeResourceAppendingEvents: async (...args: Parameters<Store["writeResourceAppendingEvents"]>) => {
-          args[3](undefined, { othersWorking: 0, latestStateType: undefined });
+          args[3](undefined, { othersWorking: 0, latestStateType: undefined, runOfNewestType: undefined });
           throw new Error("unreachable");
         },
       } as unknown as Store,
@@ -237,5 +252,136 @@ describe("a log that drifted from its runs", () => {
     expect(await readSessionState(temp.store, "s1")).toBe("running");
     await updateRunAppendingEvents(deps, "old", setPhase(RunPhase.RUN_COMPLETED));
     expect(await log("s1")).toEqual(["new:user.message", "new:session.status_running", "old:session.status_idle"]);
+  });
+});
+
+describe("the session's newest turn", () => {
+  it("an update that asks is handed the run of the newest user.message; one that does not is handed none", async () => {
+    await createRunAppendingEvents(deps, run("a", "s1"));
+    await createRunAppendingEvents(deps, run("b", "s1"));
+    const seen: Array<string | undefined> = [];
+    await updateRunAppendingEvents(deps, "a", (_r, session) => seen.push(session.runOfNewestType), {
+      runOfNewestType: "user.message",
+    });
+    await updateRunAppendingEvents(deps, "a", (_r, session) => seen.push(session.runOfNewestType));
+    expect(seen).toEqual(["b", undefined]);
+  });
+});
+
+/** Records a decision on `r`'s ledger as its writers do, under the update's lock. */
+function decide(
+  changeSetId: string,
+  scope: FileDecisionScope,
+  action: FileDecisionAction,
+  origin: FileDecisionOrigin,
+  fileChangeId = "",
+): (r: Run) => void {
+  return (r) => {
+    const decision = create(FileDecisionSchema, {
+      changeSetId,
+      fileChangeId,
+      scope,
+      action,
+      origin,
+      expectedDigest: `digest-${fileChangeId || changeSetId}`,
+      reason: "because",
+      decidedAt: "2026-10-12T09:00:00Z",
+    });
+    decision.id = `${changeSetId}:${scope === FileDecisionScope.FILE ? fileChangeId : changeSetId}`;
+    recordFileDecisionEventWithActor(r.status!, r.metadata!.id, decision, "user");
+  };
+}
+
+async function decidedEvents(sessionId: string) {
+  const records = await temp.store.sessionEvents.list(sessionId, {
+    order: "asc",
+    types: ["stigmer.file_review.decided"],
+    limit: 100,
+  });
+  return records.map((record) => {
+    const event = eventOf(record);
+    if (event.event.case !== "stigmerFileReviewDecided") {
+      throw new Error(`not a decided event: ${event.event.case ?? "none"}`);
+    }
+    return { runId: event.runId, ...event.event.value, processedAt: "" };
+  });
+}
+
+describe("the decided mirror", () => {
+  it("one decided event per decision the update added, after the transition's events, in the event's words", async () => {
+    await createRunAppendingEvents(deps, run("a", "s1"));
+    await updateRunAppendingEvents(deps, "a", (r) => {
+      setPhase(RunPhase.RUN_COMPLETED)(r);
+      decide("a:0", FileDecisionScope.FILE, FileDecisionAction.REJECT, FileDecisionOrigin.USER, "fc1")(r);
+    });
+    expect(await log("s1")).toEqual([
+      "a:user.message",
+      "a:session.status_running",
+      "a:session.status_idle",
+      "a:stigmer.file_review.decided",
+    ]);
+    const ledgerId = eventId("a:0", "fc1", FileReviewEventType.FILE_DECIDED);
+    const [decided] = await decidedEvents("s1");
+    expect(decided).toMatchObject({
+      runId: "a",
+      id: fileReviewDecidedEventId(ledgerId),
+      changeSetId: "a:0",
+      scope: "file",
+      fileChangeId: "fc1",
+      action: "undo",
+      expectedDigest: "digest-fc1",
+      origin: "person",
+      reason: "because",
+    });
+  });
+
+  it("the id is sevt_fd_ and the first 40 hex of the sha256 of the ledger event's id", () => {
+    // sha256("x") = 2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881
+    expect(fileReviewDecidedEventId("x")).toBe("sevt_fd_2d711642b726b04401627ca9fbac32f5c8530fb1");
+  });
+
+  it("a repeated decision adds no ledger event and appends nothing", async () => {
+    await createRunAppendingEvents(deps, run("a", "s1"));
+    const keep = decide("a:0", FileDecisionScope.CHANGE_SET, FileDecisionAction.APPROVE, FileDecisionOrigin.USER);
+    await updateRunAppendingEvents(deps, "a", keep);
+    await updateRunAppendingEvents(deps, "a", keep);
+    await updateRunAppendingEvents(deps, "a", decide("a:0", FileDecisionScope.CHANGE_SET, FileDecisionAction.REJECT, FileDecisionOrigin.USER));
+    expect((await decidedEvents("s1")).map((d) => d.action)).toEqual(["keep"]);
+  });
+
+  it("every decision of one update is mirrored, in ledger order, each origin in its word; a change-set decision names no file", async () => {
+    await createRunAppendingEvents(deps, run("a", "s1"));
+    await updateRunAppendingEvents(deps, "a", (r) => {
+      decide("a:0", FileDecisionScope.CHANGE_SET, FileDecisionAction.APPROVE, FileDecisionOrigin.POLICY_APPROVED_COMMAND)(r);
+      decide("a:1", FileDecisionScope.CHANGE_SET, FileDecisionAction.APPROVE, FileDecisionOrigin.POLICY_EVAL_TRY)(r);
+      decide("a:2", FileDecisionScope.FILE, FileDecisionAction.APPROVE, FileDecisionOrigin.POLICY_NEXT_TURN, "fc9")(r);
+      decide("a:3", FileDecisionScope.CHANGE_SET, FileDecisionAction.REJECT, FileDecisionOrigin.UNSPECIFIED)(r);
+    });
+    const decided = await decidedEvents("s1");
+    expect(decided.map((d) => [d.changeSetId, d.scope, d.fileChangeId, d.action, d.origin])).toEqual([
+      ["a:0", "change_set", "", "keep", "approved_command"],
+      ["a:1", "change_set", "", "keep", "eval_try"],
+      ["a:2", "file", "fc9", "keep", "next_turn"],
+      ["a:3", "change_set", "", "undo", "person"],
+    ]);
+  });
+
+  it("a decision with no scope or no action has no word, so no event", async () => {
+    await createRunAppendingEvents(deps, run("a", "s1"));
+    await updateRunAppendingEvents(deps, "a", (r) => {
+      decide("a:0", FileDecisionScope.UNSPECIFIED, FileDecisionAction.APPROVE, FileDecisionOrigin.USER)(r);
+      decide("a:1", FileDecisionScope.CHANGE_SET, FileDecisionAction.UNSPECIFIED, FileDecisionOrigin.USER)(r);
+    });
+    expect(await decidedEvents("s1")).toEqual([]);
+  });
+
+  it("a run in no session records its decision and writes no event", async () => {
+    await createRunAppendingEvents(deps, run("a", ""));
+    const { run: updated } = await updateRunAppendingEvents(
+      deps,
+      "a",
+      decide("a:0", FileDecisionScope.CHANGE_SET, FileDecisionAction.APPROVE, FileDecisionOrigin.USER),
+    );
+    expect(updated.status?.fileReviewEventStream?.events).toHaveLength(1);
   });
 });

@@ -20,6 +20,7 @@
  * workflow-source.ts).
  */
 import type { Logger } from "../../boot/logger.js";
+import type { SessionEventBroker } from "../../domain/session/events/broker.js";
 import type { AgentExecutionTemporalConfig } from "../../domain/run/temporal/config.js";
 import type { Store } from "../../store/interface.js";
 import type { WorkerFactory } from "../manager.js";
@@ -37,6 +38,8 @@ export interface AgentExecutionWorkerDeps {
    * composes none of them itself.
    */
   readonly statusWriter: () => ExecutionStatusWriter;
+  /** The session event fan-out the CloseFileReview activity's write publishes to. */
+  readonly sessionEventBroker: SessionEventBroker;
   readonly temporalConfig: AgentExecutionTemporalConfig;
 }
 
@@ -48,6 +51,7 @@ export function newAgentExecutionWorkerFactory(
       store: deps.store,
       logger: deps.logger,
       statusWriter: deps.statusWriter,
+      sessionEventBroker: deps.sessionEventBroker,
     });
 
     const workflowSource = resolveWorkflowSource({

@@ -1187,6 +1187,9 @@ export async function composeServer(
         // hooks, and the broadcast reach the run's terminal writes
         // by construction — the worker composes none of them itself.
         statusWriter: () => requireInProcess().executionStatusWriter,
+        // The worker's CloseFileReview write appends `decided` events to
+        // the session's log; the one fan-out, as for every other writer.
+        sessionEventBroker,
         temporalConfig,
       }),
       newScheduleWorkerFactory({

@@ -85,23 +85,34 @@ function runGuard(id: string, admit: (row: Run) => void = () => undefined): Sess
   };
 }
 
-/** Writes `row` with `events`, recording what the writer was handed. */
+/** What a writer was handed, as `put` records it. */
+interface Seen {
+  previous?: Run | undefined;
+  others?: number;
+  state?: string | undefined;
+  newestRun?: string | undefined;
+}
+
+/** Writes `row` with `events`, recording what the writer was handed; `runOfNewestType` asks for that run. */
 async function put(
   store: Store,
   row: Run,
   events: ReadonlyArray<SessionEventDraft> = [],
-  seen: { previous?: Run | undefined; others?: number; state?: string | undefined } = {},
+  seen: Seen = {},
+  runOfNewestType?: string,
 ): Promise<void> {
   const writer: ResourceEventWriter<typeof RunSchema> = (previous, session) => {
     seen.previous = previous;
     seen.others = session.othersWorking;
     seen.state = session.latestStateType;
+    seen.newestRun = session.runOfNewestType;
     return { put: row, events };
   };
   const sessionId = row.spec?.target.case === "sessionId" ? row.spec.target.value : "";
   await store.writeResourceAppendingEvents(ApiResourceKind.run, row.metadata?.id ?? "", RunSchema, writer, {
     ...RUN_SCOPE,
     sessionId,
+    ...(runOfNewestType === undefined ? {} : { runOfNewestType }),
   });
 }
 
@@ -334,6 +345,37 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
       await put(store, run(r, s, RunPhase.RUN_COMPLETED), [draft("off", r, "session.status_idle")], seen);
       await put(store, run(r, s, RunPhase.RUN_COMPLETED), [], seen);
       assert.equal(seen.state, "session.status_idle");
+    },
+  ],
+  [
+    "the writer is handed the run of the session's newest event of a type only when its scope asks, and none when the session has no such event",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const r = `run_${unique()}`;
+      const seen: Seen = {};
+      await put(store, run(r, s, RunPhase.RUN_PENDING), [draft("m", r, "user.message")], seen, "user.message");
+      assert.equal(seen.newestRun, undefined, "the write's own event is not yet committed");
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [], seen, "user.message");
+      assert.equal(seen.newestRun, r, "asked: the run of the newest user.message");
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [], seen);
+      assert.equal(seen.newestRun, undefined, "not asked: nothing is read");
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [], seen, "agent.message");
+      assert.equal(seen.newestRun, undefined, "asked for a type the session has none of");
+    },
+  ],
+  [
+    "the run handed is the newest of several events of the type, not the newest event's",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const first = `run_${unique()}`;
+      const second = `run_${unique()}`;
+      const seen: Seen = {};
+      await put(store, run(first, s, RunPhase.RUN_COMPLETED), [draft("m1", first, "user.message")]);
+      await put(store, run(second, s, RunPhase.RUN_IN_PROGRESS), [draft("m2", second, "user.message")]);
+      await put(store, run(first, s, RunPhase.RUN_COMPLETED), [draft("late", first, "agent.message")], seen, "user.message");
+      assert.equal(seen.newestRun, second);
+      await put(store, run(first, s, RunPhase.RUN_COMPLETED), [], seen, "user.message");
+      assert.equal(seen.newestRun, second, "a later event of another type does not move it");
     },
   ],
   [

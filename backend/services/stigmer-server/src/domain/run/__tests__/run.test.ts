@@ -54,6 +54,7 @@ import {
   ServiceTier,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   SubmitApprovalInputSchema,
   SubmitFileDecisionInputSchema,
@@ -1344,7 +1345,7 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
     };
   }
 
-  it("signals approvalGateResolved exactly once, only when the unified gate clears", async () => {
+  it("signals approvalGateResolved exactly once, only when the gate clears", async () => {
     const id = await seed(
       gatedSeed({
         toolCalls: [
@@ -1381,6 +1382,36 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
         runId: id,
         toolCallId: "tc-write",
         action: ApprovalAction.REJECT,
+      }),
+      testCallerIdentity(),
+    );
+    expect(signalled).toEqual([id]);
+  });
+
+  it("a change set awaiting review never holds the signal: the gate is approvals alone (stigmer#1471)", async () => {
+    const init = gatedSeed();
+    init.status = {
+      ...init.status,
+      fileChangeSets: [
+        create(FileChangeSetSchema, { id: `${init.metadata.id}:0`, status: FileChangeSetStatus.AWAITING_REVIEW }),
+      ],
+    };
+    const id = await seed(init);
+    const signalled: string[] = [];
+    const deps = stubDeps(
+      stubConnectedEngine({
+        signalApprovalGateResolved: async (executionId) => {
+          signalled.push(executionId);
+        },
+      }),
+    );
+
+    await submitApproval(
+      deps,
+      create(SubmitApprovalInputSchema, {
+        runId: id,
+        toolCallId: "tc-1",
+        action: ApprovalAction.APPROVE,
       }),
       testCallerIdentity(),
     );

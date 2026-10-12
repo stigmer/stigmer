@@ -47,6 +47,8 @@ const CONTRACT_CASE_NAMES = [
   "a resource write that throws commits neither the row nor its events",
   "the working count is the session's other working rows: not the row itself, not another session's, not a stopped one",
   "the writer is handed the type of the session's newest state event, read under the lock",
+  "the writer is handed the run of the session's newest event of a type only when its scope asks, and none when the session has no such event",
+  "the run handed is the newest of several events of the type, not the newest event's",
   "writers of one session run one after the other, each counting what the other committed",
   "removing a row removes its own events except the kept types, and its list keys",
   "a session's numbers only grow: removing a row's newest events never gives their numbers to a later event",

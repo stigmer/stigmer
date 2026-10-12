@@ -503,10 +503,14 @@ export class SqliteStore implements Store {
       const outcome = write(
         previous,
         sessionId === ""
-          ? { othersWorking: 0, latestStateType: undefined }
+          ? { othersWorking: 0, latestStateType: undefined, runOfNewestType: undefined }
           : {
               othersWorking: countOthersWorking(db, declaration, id, scope.workingKey, sessionId),
               latestStateType: latestOfTypes(db, sessionId, scope.stateEventTypes),
+              runOfNewestType:
+                scope.runOfNewestType === undefined
+                  ? undefined
+                  : runOfNewestOfType(db, sessionId, scope.runOfNewestType),
             },
       );
       if (sessionId === "" && outcome.events.length > 0) {
@@ -2384,6 +2388,16 @@ function latestOfTypes(
     }
   }
   return newest?.type;
+}
+
+/** The run of the session's newest event of `type`; undefined when it has none. */
+function runOfNewestOfType(db: DatabaseSync, sessionId: string, type: string): string | undefined {
+  const row = db
+    .prepare(
+      `SELECT run_id FROM session_events WHERE session_id = ? AND type = ? ORDER BY seq DESC LIMIT 1`,
+    )
+    .get(sessionId, type) as { run_id: string } | undefined;
+  return row?.run_id;
 }
 
 /** Appends drafts after the session's newest event, on the caller's open write transaction. */

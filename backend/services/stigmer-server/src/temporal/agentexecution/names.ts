@@ -72,6 +72,14 @@ export const GENERATE_SESSION_SUBJECT_ACTIVITY_NAME = "GenerateSessionSubject";
 export const UPDATE_EXECUTION_STATUS_ACTIVITY_NAME = "UpdateExecutionStatus";
 
 export const LOAD_AGENT_EXECUTION_ACTIVITY_NAME = "LoadAgentExecution";
+
+/**
+ * The close of the previous turn's file review, run first in every
+ * message turn's workflow: the previous turn's still-undecided edits are
+ * kept now that a later message was sent (domain/run/filereview/autokeep.ts
+ * keepOutdatedSets). Byte-pinned.
+ */
+export const CLOSE_FILE_REVIEW_ACTIVITY_NAME = "CloseFileReview";
 export const READ_HARNESS_STATE_ID_ACTIVITY_NAME = "ReadHarnessStateId";
 
 /**

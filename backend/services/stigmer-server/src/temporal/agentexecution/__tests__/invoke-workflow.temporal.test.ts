@@ -14,8 +14,13 @@
  *   - the HITL loop (WAITING persist → gate re-read → approvalGateResolved
  *     → re-invoke with TurnSeq = approvalCycle — the deterministic
  *     change-set id input);
- *   - the decided-awaiting-reconcile immediate re-invoke;
- *   - the zero-gate fail-fast bound (MAX_ZERO_GATE_CYCLES);
+ *   - the zero-gate fail-fast bound (MAX_ZERO_GATE_CYCLES): file review
+ *     never holds a turn, so a gate with no pending approval is empty
+ *     whatever its change sets say (stigmer#1471);
+ *   - a message turn closes the previous turn's file review first
+ *     (CloseFileReview, with the run and its session, before the runner),
+ *     and a failing close never fails the turn; a reconcile turn
+ *     (`reconcile_file_review`) closes nothing and titles no session;
  *   - pause/resume (activity cancelled, PAUSED persisted, resume
  *     re-invokes) — Go's CancellationScope pattern;
  *   - bounded auto-recovery on worker-shutdown shapes (#776: IN_PROGRESS
@@ -117,6 +122,12 @@ interface ActivityScript {
     }) => Promise<Record<string, unknown>>
   >;
   executeCalls: Array<{ thread_id: string; turn_seq: number }>;
+  /** Each CloseFileReview call's (execution id, session id), in order. */
+  closeCalls: Array<[string, string]>;
+  /** What ran, in order: "close" per CloseFileReview, "execute" per Execute* invocation. */
+  order: string[];
+  /** When set, CloseFileReview fails with it (non-retryable). */
+  closeFault: string | undefined;
   /**
    * The `execution_context_token` each Execute* invocation carried, in
    * order — `undefined` when the key was absent. Recorded beside
@@ -163,6 +174,9 @@ function resetScript(): void {
   script = {
     executeBehaviors: [],
     executeCalls: [],
+    closeCalls: [],
+    order: [],
+    closeFault: undefined,
     executeCredentials: [],
     subjectArguments: [],
     loadResults: [],
@@ -219,14 +233,14 @@ function statusWithEmptyGate(): RunStatus {
   });
 }
 
-/** A change set already DECIDED (verdicts in) but not yet reconciled. */
-function statusDecidedAwaitingReconcile(): RunStatus {
+/** An empty gate beside a change set awaiting review: the set holds nothing. */
+function statusAwaitingReviewOnly(): RunStatus {
   return create(RunStatusSchema, {
     phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
     fileChangeSets: [
       {
-        id: `${currentExecutionId}:1`,
-        status: FileChangeSetStatus.DECIDED,
+        id: `${currentExecutionId}:0`,
+        status: FileChangeSetStatus.AWAITING_REVIEW,
       },
     ],
   });
@@ -243,6 +257,7 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
       thread_id: input.thread_id,
       turn_seq: input.turn_seq,
     });
+    script.order.push("execute");
     script.executeCredentials.push(
       "execution_context_token" in input
         ? input.execution_context_token
@@ -270,6 +285,14 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
         executionId,
         status: fromJson(RunStatusSchema, statusJson),
       });
+    },
+    CloseFileReview: async (executionId: string, sessionId: string): Promise<void> => {
+      script.closeCalls.push([executionId, sessionId]);
+      script.order.push("close");
+      if (script.closeFault !== undefined) {
+        const { ApplicationFailure } = await import("@temporalio/common");
+        throw ApplicationFailure.create({ message: script.closeFault, nonRetryable: true });
+      }
     },
     LoadAgentExecution: async (): Promise<JsonValue> => {
       const result =
@@ -514,23 +537,9 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expectRetiredCleanupSkipped();
   }, 30_000);
 
-  it("re-invokes immediately without a signal when the gate is decided-awaiting-reconcile", async (testCtx) => {    if (!envReady) return testCtx.skip();
-    script.executeBehaviors = [
-      async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
-      async () => slimResult(RunPhase.RUN_COMPLETED),
-    ];
-    script.loadResults = [executionJson(statusDecidedAwaitingReconcile())];
-
-    const handle = await startWorkflow(workflowInput());
-    // No signal is ever sent — the reconcile re-invoke must happen alone.
-    await handle.result();
-
-    expect(script.executeCalls.map((call) => call.turn_seq)).toEqual([0, 1]);
-  }, 30_000);
-
   it("fails fast after MAX_ZERO_GATE_CYCLES consecutive empty-gate WAITING cycles", async (testCtx) => {    if (!envReady) return testCtx.skip();
     // Every invocation reports WAITING; every load shows an empty gate
-    // with nothing awaiting reconcile → 3 tolerated cycles, then fail.
+    // → 3 tolerated cycles, then fail.
     script.executeBehaviors = Array.from({ length: 8 }, () => async () =>
       slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
     );
@@ -549,6 +558,61 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
       "gate propagation is broken",
     );
   }, 60_000);
+
+  it("never waits on a change set awaiting review: a gate with no pending approval is empty (stigmer#1471)", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = Array.from({ length: 8 }, () => async () =>
+      slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+    );
+    script.loadResults = [executionJson(statusAwaitingReviewOnly())];
+
+    const handle = await startWorkflow(workflowInput());
+    // No signal is ever sent: a review-held gate would wait forever here.
+    await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
+
+    expect(script.executeCalls).toHaveLength(4);
+  }, 60_000);
+
+  it("closes the previous turn's file review first, with the run and its session, before the runner", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(RunPhase.RUN_COMPLETED),
+    ];
+
+    const handle = await startWorkflow(workflowInput());
+    await handle.result();
+
+    expect(script.closeCalls).toEqual([[currentExecutionId, "ses-1"]]);
+    expect(script.order).toEqual(["close", "execute"]);
+    expect(script.subjectArguments).toEqual([currentExecutionId]);
+  }, 30_000);
+
+  it("runs the turn when the close fails: the close only records what the window already says", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.closeFault = "store unavailable";
+    script.executeBehaviors = [
+      async () => slimResult(RunPhase.RUN_COMPLETED),
+    ];
+
+    const handle = await startWorkflow(workflowInput());
+    await handle.result();
+
+    expect(script.order).toEqual(["close", "execute"]);
+  }, 30_000);
+
+  it("a reconcile turn closes no file review and titles no session, on either harness", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [
+      async () => slimResult(RunPhase.RUN_COMPLETED),
+      async () => slimResult(RunPhase.RUN_COMPLETED),
+    ];
+    script.harnessStateIds = [""];
+
+    await (await startWorkflow(workflowInput({ reconcile_file_review: true }))).result();
+    await (
+      await startWorkflow(workflowInput({ reconcile_file_review: true, harness: Harness.CURSOR }))
+    ).result();
+
+    expect(script.executeCalls).toHaveLength(2);
+    expect(script.closeCalls).toEqual([]);
+    expect(script.subjectArguments).toEqual([]);
+  }, 30_000);
 
   it("pauses on the pause signal, persists PAUSED, and re-invokes on resume", async (testCtx) => {    if (!envReady) return testCtx.skip();
     const firstStarted = new Promise<void>((resolve) => {
