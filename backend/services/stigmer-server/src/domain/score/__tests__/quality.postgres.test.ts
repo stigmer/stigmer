@@ -234,8 +234,14 @@ describe.each(fixtures)("an agent's quality on $name", (fixture) => {
       const opened = await fixture.open();
       try {
         const { store } = opened;
-        for (let i = 0; i < 2_050; i++) {
-          await seedScore(store, {});
+        // Seeded in parallel batches: one row at a time takes most of a
+        // minute on a loaded Postgres.
+        for (let i = 0; i < 2_050; i += 50) {
+          await Promise.all(
+            Array.from({ length: Math.min(50, 2_050 - i) }, () =>
+              seedScore(store, {}),
+            ),
+          );
         }
         const report = await reportOf(store, 1);
         expect(report.total?.runs).toBe(2_050);
@@ -244,6 +250,7 @@ describe.each(fixtures)("an agent's quality on $name", (fixture) => {
         await opened.close();
       }
     },
+    120_000,
   );
 
   it.skipIf(fixture.skip)(
