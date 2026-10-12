@@ -141,5 +141,6 @@ describe("ExecuteCursor hermetic — thinking on both sides of a tool call", () 
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/thinking-turn.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/thinking-turn.events.json");
   });
 });

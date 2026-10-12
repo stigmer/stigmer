@@ -16,7 +16,9 @@
  * and only to streams that asked for the previewed type in event_deltas.
  * A delta streams part of an agent.message (Managed Agents previews
  * agent.thinking with a start only), so a delta reaches the streams that
- * asked for agent.message.
+ * asked for agent.message. A running tool's output fragment
+ * (stigmer.tool_output_delta, Stigmer's own) reaches the streams that asked
+ * for that type.
  *
  * One instance serves both routers (serving and in-process), as the run
  * broker does; the composition root owns it. A stream across server
@@ -130,6 +132,12 @@ export class SessionEventBroker {
             frame: { case: "eventDelta", value: preview.preview.value },
           });
           type = "agent.message";
+          break;
+        case "stigmerToolOutputDelta":
+          frame = create(StreamSessionEventsResponseSchema, {
+            frame: { case: "stigmerToolOutputDelta", value: preview.preview.value },
+          });
+          type = "stigmer.tool_output_delta";
           break;
         case undefined:
           continue;

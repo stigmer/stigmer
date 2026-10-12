@@ -123,5 +123,6 @@ describe("ExecuteDeepAgent hermetic — platform STOP", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/platform-stop.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/platform-stop.events.json");
   });
 });

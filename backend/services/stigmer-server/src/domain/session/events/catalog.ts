@@ -11,8 +11,8 @@
  *
  * Who writes what. The server writes the turn's user message and the
  * session's status (domain/session/events/transitions.ts); a runner writes
- * what the agent did, its threads, and the errors it sees first
- * (`RUNNER_EVENT_TYPES`, append.ts). The session's status has one writer,
+ * what the agent did, its threads, the errors it sees first, and Stigmer's
+ * own events about the turn (`RUNNER_EVENT_TYPES`, append.ts). The session's status has one writer,
  * the server, so a runner may never send a status event.
  *
  * Proven by __tests__/catalog.test.ts.
@@ -38,7 +38,11 @@ export const SESSION_STATUS_TYPES: ReadonlyArray<string> = [
   "session.status_idle",
 ];
 
-/** The types a runner may append: what the agent did, its threads, and errors. */
+/**
+ * The types a runner may append: what the agent did, its threads, errors,
+ * and Stigmer's own events about the turn (the stigmer.* types, which no
+ * Managed Agents client needs).
+ */
 export const RUNNER_EVENT_TYPES: ReadonlySet<string> = new Set([
   "agent.message",
   "agent.thinking",
@@ -53,6 +57,11 @@ export const RUNNER_EVENT_TYPES: ReadonlySet<string> = new Set([
   "session.thread_status_running",
   "session.thread_status_idle",
   "session.error",
+  "stigmer.agent.thinking",
+  "stigmer.permission.asked",
+  "stigmer.harness.note",
+  "stigmer.agent.structured_output",
+  "stigmer.memory.recalled",
 ]);
 
 const typeByCase = new Map<string, string>();
@@ -74,6 +83,14 @@ function typeOfMember(member: DescField): string {
 
 /** Every event type the contract lands, in declaration order. */
 export const SESSION_EVENT_TYPES: ReadonlyArray<string> = [...caseByType.keys()];
+
+/** The prefix of Stigmer's own event types, which are not Managed Agents types. */
+export const STIGMER_EVENT_TYPE_PREFIX = "stigmer.";
+
+/** Whether a type is Stigmer's own (stigmer.*) rather than a Managed Agents type. */
+export function isStigmerEventType(type: string): boolean {
+  return type.startsWith(STIGMER_EVENT_TYPE_PREFIX);
+}
 
 /** An event's Managed Agents type string; throws for an event that holds none. */
 export function eventTypeOf(event: SessionEvent): string {

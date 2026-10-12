@@ -168,6 +168,7 @@ describe("ExecuteCursor hermetic — orchestrator stop vs worker shutdown", () =
 
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/pause.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/pause.events.json");
   });
 
   it("a worker shutdown persists FAILED with the shutdown copy and throws CancelledFailure", async () => {
@@ -212,5 +213,6 @@ describe("ExecuteCursor hermetic — orchestrator stop vs worker shutdown", () =
 
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/worker-shutdown.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/worker-shutdown.events.json");
   });
 });

@@ -61,6 +61,7 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
     EVENT_START(1),
     EVENT_DELTA(2),
+    STIGMER_TOOL_OUTPUT_DELTA(3),
     PREVIEW_NOT_SET(0);
     private final int value;
     private PreviewCase(int value) {
@@ -80,6 +81,7 @@ private static final long serialVersionUID = 0L;
       switch (value) {
         case 1: return EVENT_START;
         case 2: return EVENT_DELTA;
+        case 3: return STIGMER_TOOL_OUTPUT_DELTA;
         case 0: return PREVIEW_NOT_SET;
         default: return null;
       }
@@ -181,6 +183,49 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.session.v1.EventDelta.getDefaultInstance();
   }
 
+  public static final int STIGMER_TOOL_OUTPUT_DELTA_FIELD_NUMBER = 3;
+  /**
+   * <pre>
+   * A fragment of a running tool's output.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+   * @return Whether the stigmerToolOutputDelta field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerToolOutputDelta() {
+    return previewCase_ == 3;
+  }
+  /**
+   * <pre>
+   * A fragment of a running tool's output.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+   * @return The stigmerToolOutputDelta.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.ToolOutputDelta getStigmerToolOutputDelta() {
+    if (previewCase_ == 3) {
+       return (ai.stigmer.agentic.session.v1.ToolOutputDelta) preview_;
+    }
+    return ai.stigmer.agentic.session.v1.ToolOutputDelta.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * A fragment of a running tool's output.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.ToolOutputDeltaOrBuilder getStigmerToolOutputDeltaOrBuilder() {
+    if (previewCase_ == 3) {
+       return (ai.stigmer.agentic.session.v1.ToolOutputDelta) preview_;
+    }
+    return ai.stigmer.agentic.session.v1.ToolOutputDelta.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -201,6 +246,9 @@ private static final long serialVersionUID = 0L;
     if (previewCase_ == 2) {
       output.writeMessage(2, (ai.stigmer.agentic.session.v1.EventDelta) preview_);
     }
+    if (previewCase_ == 3) {
+      output.writeMessage(3, (ai.stigmer.agentic.session.v1.ToolOutputDelta) preview_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -217,6 +265,10 @@ private static final long serialVersionUID = 0L;
     if (previewCase_ == 2) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, (ai.stigmer.agentic.session.v1.EventDelta) preview_);
+    }
+    if (previewCase_ == 3) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(3, (ai.stigmer.agentic.session.v1.ToolOutputDelta) preview_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -243,6 +295,10 @@ private static final long serialVersionUID = 0L;
         if (!getEventDelta()
             .equals(other.getEventDelta())) return false;
         break;
+      case 3:
+        if (!getStigmerToolOutputDelta()
+            .equals(other.getStigmerToolOutputDelta())) return false;
+        break;
       case 0:
       default:
     }
@@ -265,6 +321,10 @@ private static final long serialVersionUID = 0L;
       case 2:
         hash = (37 * hash) + EVENT_DELTA_FIELD_NUMBER;
         hash = (53 * hash) + getEventDelta().hashCode();
+        break;
+      case 3:
+        hash = (37 * hash) + STIGMER_TOOL_OUTPUT_DELTA_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerToolOutputDelta().hashCode();
         break;
       case 0:
       default:
@@ -411,6 +471,9 @@ private static final long serialVersionUID = 0L;
       if (eventDeltaBuilder_ != null) {
         eventDeltaBuilder_.clear();
       }
+      if (stigmerToolOutputDeltaBuilder_ != null) {
+        stigmerToolOutputDeltaBuilder_.clear();
+      }
       previewCase_ = 0;
       preview_ = null;
       return this;
@@ -460,6 +523,10 @@ private static final long serialVersionUID = 0L;
           eventDeltaBuilder_ != null) {
         result.preview_ = eventDeltaBuilder_.build();
       }
+      if (previewCase_ == 3 &&
+          stigmerToolOutputDeltaBuilder_ != null) {
+        result.preview_ = stigmerToolOutputDeltaBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -481,6 +548,10 @@ private static final long serialVersionUID = 0L;
         }
         case EVENT_DELTA: {
           mergeEventDelta(other.getEventDelta());
+          break;
+        }
+        case STIGMER_TOOL_OUTPUT_DELTA: {
+          mergeStigmerToolOutputDelta(other.getStigmerToolOutputDelta());
           break;
         }
         case PREVIEW_NOT_SET: {
@@ -527,6 +598,13 @@ private static final long serialVersionUID = 0L;
               previewCase_ = 2;
               break;
             } // case 18
+            case 26: {
+              input.readMessage(
+                  internalGetStigmerToolOutputDeltaFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              previewCase_ = 3;
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -913,6 +991,184 @@ private static final long serialVersionUID = 0L;
       previewCase_ = 2;
       onChanged();
       return eventDeltaBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.ToolOutputDelta, ai.stigmer.agentic.session.v1.ToolOutputDelta.Builder, ai.stigmer.agentic.session.v1.ToolOutputDeltaOrBuilder> stigmerToolOutputDeltaBuilder_;
+    /**
+     * <pre>
+     * A fragment of a running tool's output.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+     * @return Whether the stigmerToolOutputDelta field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerToolOutputDelta() {
+      return previewCase_ == 3;
+    }
+    /**
+     * <pre>
+     * A fragment of a running tool's output.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+     * @return The stigmerToolOutputDelta.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.ToolOutputDelta getStigmerToolOutputDelta() {
+      if (stigmerToolOutputDeltaBuilder_ == null) {
+        if (previewCase_ == 3) {
+          return (ai.stigmer.agentic.session.v1.ToolOutputDelta) preview_;
+        }
+        return ai.stigmer.agentic.session.v1.ToolOutputDelta.getDefaultInstance();
+      } else {
+        if (previewCase_ == 3) {
+          return stigmerToolOutputDeltaBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.ToolOutputDelta.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A fragment of a running tool's output.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+     */
+    public Builder setStigmerToolOutputDelta(ai.stigmer.agentic.session.v1.ToolOutputDelta value) {
+      if (stigmerToolOutputDeltaBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        preview_ = value;
+        onChanged();
+      } else {
+        stigmerToolOutputDeltaBuilder_.setMessage(value);
+      }
+      previewCase_ = 3;
+      return this;
+    }
+    /**
+     * <pre>
+     * A fragment of a running tool's output.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+     */
+    public Builder setStigmerToolOutputDelta(
+        ai.stigmer.agentic.session.v1.ToolOutputDelta.Builder builderForValue) {
+      if (stigmerToolOutputDeltaBuilder_ == null) {
+        preview_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerToolOutputDeltaBuilder_.setMessage(builderForValue.build());
+      }
+      previewCase_ = 3;
+      return this;
+    }
+    /**
+     * <pre>
+     * A fragment of a running tool's output.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+     */
+    public Builder mergeStigmerToolOutputDelta(ai.stigmer.agentic.session.v1.ToolOutputDelta value) {
+      if (stigmerToolOutputDeltaBuilder_ == null) {
+        if (previewCase_ == 3 &&
+            preview_ != ai.stigmer.agentic.session.v1.ToolOutputDelta.getDefaultInstance()) {
+          preview_ = ai.stigmer.agentic.session.v1.ToolOutputDelta.newBuilder((ai.stigmer.agentic.session.v1.ToolOutputDelta) preview_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          preview_ = value;
+        }
+        onChanged();
+      } else {
+        if (previewCase_ == 3) {
+          stigmerToolOutputDeltaBuilder_.mergeFrom(value);
+        } else {
+          stigmerToolOutputDeltaBuilder_.setMessage(value);
+        }
+      }
+      previewCase_ = 3;
+      return this;
+    }
+    /**
+     * <pre>
+     * A fragment of a running tool's output.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+     */
+    public Builder clearStigmerToolOutputDelta() {
+      if (stigmerToolOutputDeltaBuilder_ == null) {
+        if (previewCase_ == 3) {
+          previewCase_ = 0;
+          preview_ = null;
+          onChanged();
+        }
+      } else {
+        if (previewCase_ == 3) {
+          previewCase_ = 0;
+          preview_ = null;
+        }
+        stigmerToolOutputDeltaBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * A fragment of a running tool's output.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.ToolOutputDelta.Builder getStigmerToolOutputDeltaBuilder() {
+      return internalGetStigmerToolOutputDeltaFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * A fragment of a running tool's output.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.ToolOutputDeltaOrBuilder getStigmerToolOutputDeltaOrBuilder() {
+      if ((previewCase_ == 3) && (stigmerToolOutputDeltaBuilder_ != null)) {
+        return stigmerToolOutputDeltaBuilder_.getMessageOrBuilder();
+      } else {
+        if (previewCase_ == 3) {
+          return (ai.stigmer.agentic.session.v1.ToolOutputDelta) preview_;
+        }
+        return ai.stigmer.agentic.session.v1.ToolOutputDelta.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A fragment of a running tool's output.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.ToolOutputDelta stigmer_tool_output_delta = 3 [json_name = "stigmerToolOutputDelta", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.ToolOutputDelta, ai.stigmer.agentic.session.v1.ToolOutputDelta.Builder, ai.stigmer.agentic.session.v1.ToolOutputDeltaOrBuilder> 
+        internalGetStigmerToolOutputDeltaFieldBuilder() {
+      if (stigmerToolOutputDeltaBuilder_ == null) {
+        if (!(previewCase_ == 3)) {
+          preview_ = ai.stigmer.agentic.session.v1.ToolOutputDelta.getDefaultInstance();
+        }
+        stigmerToolOutputDeltaBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.ToolOutputDelta, ai.stigmer.agentic.session.v1.ToolOutputDelta.Builder, ai.stigmer.agentic.session.v1.ToolOutputDeltaOrBuilder>(
+                (ai.stigmer.agentic.session.v1.ToolOutputDelta) preview_,
+                getParentForChildren(),
+                isClean());
+        preview_ = null;
+      }
+      previewCase_ = 3;
+      onChanged();
+      return stigmerToolOutputDeltaBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionEventPreview)

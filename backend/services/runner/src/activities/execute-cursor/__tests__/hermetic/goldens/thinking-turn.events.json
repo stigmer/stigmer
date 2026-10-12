@@ -1,0 +1,77 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_thinking": {
+      "id": "aex_hermetic_0001.root.t0"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "stigmer_agent_thinking": {
+      "id": "aex_hermetic_0001.root.t0.text",
+      "thinking_id": "aex_hermetic_0001.root.t0",
+      "text": "The user wants a summary; I should read the file first."
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Reading the file."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-hermetic-thinking-read-0001",
+      "input": {
+        "path": "README.md"
+      },
+      "name": "read"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-hermetic-thinking-read-0001.r",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-thinking-read-0001",
+      "content": [
+        {
+          "type": "text",
+          "text": "# Hermetic\n\nA fixture readme.\n"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_thinking": {
+      "id": "aex_hermetic_0001.root.t2"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "stigmer_agent_thinking": {
+      "id": "aex_hermetic_0001.root.t2.text",
+      "thinking_id": "aex_hermetic_0001.root.t2",
+      "text": "One line of content; a one-sentence summary will do."
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m3",
+      "content": [
+        {
+          "type": "text",
+          "text": "README.md is a one-line fixture description."
+        }
+      ]
+    }
+  }
+]

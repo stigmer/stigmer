@@ -138,6 +138,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
 
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/structured-output.tool-strategy.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/structured-output.tool-strategy.events.json");
   });
 
   it("text fallback: a fenced JSON block in the final text", async () => {
@@ -172,6 +173,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/structured-output.text-fallback.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/structured-output.text-fallback.events.json");
   });
 
   it("LLM fallback (tier 2): prose with no JSON is extracted by a second model call the transcript never sees", async () => {
@@ -228,6 +230,7 @@ describe("ExecuteDeepAgent hermetic — structured output", () => {
 
       const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
       await expect(json).toMatchFileSnapshot("./goldens/structured-output.tier2.status.json");
+      await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/structured-output.tier2.events.json");
     } finally {
       vi.unstubAllEnvs();
     }

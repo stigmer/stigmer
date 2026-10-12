@@ -1157,4 +1157,36 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue);
    * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
    */
   ai.stigmer.agentic.run.v1.PluginEvalFilesOrBuilder getPluginEvalFilesOrBuilder();
+
+  /**
+   * <pre>
+   * Why the turn stopped, as one word: budget_reached (the cost cap or the
+   * tool-call limit), timeout (a stall or the workspace lock), infrastructure
+   * (the worker shut down or stopped answering), platform_stop, user (a pause
+   * or a cancel), model_error (the model provider failed the turn), failed
+   * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+   * stopped the try) or review_resolved (a file review was settled). Empty
+   * while the turn works, and when it ended on its own.
+   * </pre>
+   *
+   * <code>string stop_cause = 35 [json_name = "stopCause", (.buf.validate.field) = { ... }</code>
+   * @return The stopCause.
+   */
+  java.lang.String getStopCause();
+  /**
+   * <pre>
+   * Why the turn stopped, as one word: budget_reached (the cost cap or the
+   * tool-call limit), timeout (a stall or the workspace lock), infrastructure
+   * (the worker shut down or stopped answering), platform_stop, user (a pause
+   * or a cancel), model_error (the model provider failed the turn), failed
+   * (any other failure), eval_stopped (a plugin eval's mock or scaffold
+   * stopped the try) or review_resolved (a file review was settled). Empty
+   * while the turn works, and when it ended on its own.
+   * </pre>
+   *
+   * <code>string stop_cause = 35 [json_name = "stopCause", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for stopCause.
+   */
+  com.google.protobuf.ByteString
+      getStopCauseBytes();
 }

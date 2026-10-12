@@ -171,5 +171,6 @@ describe("ExecuteCursor hermetic — plain turn", () => {
     expect(finalStatus).toBeDefined();
     const json = JSON.stringify(toJson(RunStatusSchema, finalStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/plain-turn.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/plain-turn.events.json");
   });
 });

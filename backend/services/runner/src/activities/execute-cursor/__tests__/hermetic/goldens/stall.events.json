@@ -1,0 +1,24 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Running the suite."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-hermetic-stall-0001",
+      "input": {
+        "command": "npm test"
+      },
+      "name": "shell"
+    }
+  }
+]

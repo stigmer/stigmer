@@ -675,6 +675,7 @@ async function runWithPauseAndRecovery(
         executionId,
         create(RunStatusSchema, {
           phase: RunPhase.RUN_PAUSED,
+          stopCause: "user",
           messages: [{ type: MessageType.MESSAGE_SYSTEM, content: PAUSE_STOP_ROW }],
         }),
         "Failed to persist PAUSED status (non-fatal)",
@@ -991,9 +992,18 @@ async function updateStatusOnFailure(
     ? WORKER_SHUTDOWN_STATUS_ERROR
     : errorMessage(originalError);
 
+  // The runner's own failure already carries its cause (its terminal
+  // table's stop_cause); every other failure is the workflow's to name.
+  const stopCause =
+    originalError instanceof RunnerReportedFailure
+      ? ""
+      : isWorkerShutdown(originalError)
+        ? "infrastructure"
+        : "failed";
   const failedStatus = create(RunStatusSchema, {
     phase: RunPhase.RUN_FAILED,
     error: statusError,
+    stopCause,
     messages:
       originalError instanceof RunnerReportedFailure
         ? []
@@ -1042,6 +1052,7 @@ async function handleCancellation(executionId: string): Promise<void> {
 async function updateStatusOnCancellation(executionId: string): Promise<void> {
   const cancelledStatus = create(RunStatusSchema, {
     phase: RunPhase.RUN_CANCELLED,
+    stopCause: "user",
     messages: [
       {
         type: MessageType.MESSAGE_SYSTEM,

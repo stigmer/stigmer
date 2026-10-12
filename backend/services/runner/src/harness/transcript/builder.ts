@@ -149,9 +149,18 @@ import type {
   TranscriptEvent,
 } from "./events.js";
 
-/** Sees every event the builder folded, in order, after the fold. Creates nothing. */
-/** Told every folded event; `atMs` is the fold's instant (`performance.now()` scale) when it is not now. */
-export type TranscriptObserver = (event: TranscriptEvent, atMs?: number) => void;
+/** Where a fold left a token delta's row: its place in its scope's message array. */
+export interface FoldPlace {
+  readonly messageIndex: number;
+}
+
+/**
+ * Told every folded event, in order, after the fold; creates nothing.
+ * `atMs` is the fold's instant (`performance.now()` scale) when it is not
+ * now; `place` is where a text or reasoning delta's row sits, which names
+ * the session event the delta previews (`harness/events/ids.ts`).
+ */
+export type TranscriptObserver = (event: TranscriptEvent, atMs?: number, place?: FoldPlace) => void;
 
 export class TranscriptBuilder {
   readonly executionId: string;
@@ -240,7 +249,7 @@ export class TranscriptBuilder {
     this.fold(event);
     if (!this.observer) return;
     try {
-      this.observer(event);
+      this.observer(event, undefined, this.placeOf(event));
     } catch (err) {
       console.error(
         `[TranscriptBuilder] Observer error: execution=${this.executionId} kind=${event.kind}: ${err}`,
@@ -254,12 +263,14 @@ export class TranscriptBuilder {
    * this one is the runtime's, and the runtime's timeline observes through
    * this one. Nothing is folded here; the host's rows reach this status
    * with its next persist. `atMs` is the host's fold instant on this
-   * process's `performance.now()` scale. Never throws.
+   * process's `performance.now()` scale, `place` where the host's fold left
+   * a delta's row (the host's status is this one's, row for row). Never
+   * throws.
    */
-  relayObserved(event: TranscriptEvent, atMs: number): void {
+  relayObserved(event: TranscriptEvent, atMs: number, place?: FoldPlace): void {
     if (!this.observer) return;
     try {
-      this.observer(event, atMs);
+      this.observer(event, atMs, place);
     } catch (err) {
       console.error(
         `[TranscriptBuilder] Observer error: execution=${this.executionId} kind=${event.kind}: ${err}`,
@@ -286,6 +297,16 @@ export class TranscriptBuilder {
     } finally {
       this.observationInstant = outer;
     }
+  }
+
+  /** Where the fold left a text or reasoning delta's row; absent for every other fact. */
+  private placeOf(event: TranscriptEvent): FoldPlace | undefined {
+    if (event.kind !== "text_delta" && event.kind !== "reasoning_delta") return undefined;
+    const scope = this.state.scope(event.subAgentId);
+    const row = scope?.messagesByRun.get(event.kind === "text_delta" ? event.runId : thinkingKeyOf(event.runId));
+    if (scope === undefined || row === undefined) return undefined;
+    const messageIndex = scope.messages.lastIndexOf(row);
+    return messageIndex < 0 ? undefined : { messageIndex };
   }
 
   /** The instant a stamp records: the observation's, while one is being folded, else now. */

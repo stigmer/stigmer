@@ -32,6 +32,7 @@ import {
   EventDeltaSchema,
   EventStartSchema,
   SessionEventSchema,
+  ToolOutputDeltaSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
@@ -46,7 +47,10 @@ export function toManagedAgentsJson(event: SessionEvent): JsonObject {
   return { ...messageJson(schema, event.event.value), type: eventTypeOf(event) };
 }
 
-/** A stream frame's Managed Agents JSON: the event, or an event_start / event_delta preview. */
+/**
+ * A stream frame's Managed Agents JSON: the event, or an event_start /
+ * event_delta preview, or Stigmer's stigmer.tool_output_delta preview.
+ */
 export function toManagedAgentsStreamJson(frame: StreamSessionEventsResponse): JsonObject {
   switch (frame.frame.case) {
     case "event":
@@ -55,6 +59,11 @@ export function toManagedAgentsStreamJson(frame: StreamSessionEventsResponse): J
       return { ...messageJson(EventStartSchema, frame.frame.value), type: "event_start" };
     case "eventDelta":
       return { ...messageJson(EventDeltaSchema, frame.frame.value), type: "event_delta" };
+    case "stigmerToolOutputDelta":
+      return {
+        ...messageJson(ToolOutputDeltaSchema, frame.frame.value),
+        type: "stigmer.tool_output_delta",
+      };
     case undefined:
       throw new Error("a stream frame must hold a frame");
     /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */

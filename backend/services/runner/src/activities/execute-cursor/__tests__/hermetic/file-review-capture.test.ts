@@ -178,5 +178,6 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
     const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     expect(json, "no temp path may reach the golden").not.toContain(env.workspaceRootDir);
     await expect(json).toMatchFileSnapshot("./goldens/file-review-capture.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-capture.events.json");
   });
 });

@@ -184,6 +184,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
 
     const turn1Json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(turn1Json).toMatchFileSnapshot("./goldens/deny-and-retry.turn1.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/deny-and-retry.turn1.events.json");
 
     // ── The user approves (the server's SubmitApproval effect on the row) ────
     clock.tick();
@@ -228,5 +229,6 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — deny-and-retry approval ro
 
     const turn2Json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(turn2Json).toMatchFileSnapshot("./goldens/deny-and-retry.turn2.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/deny-and-retry.turn2.events.json");
   });
 });

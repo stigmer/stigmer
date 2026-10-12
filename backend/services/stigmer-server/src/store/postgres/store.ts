@@ -2520,6 +2520,9 @@ class PostgresSessionEventStore implements SessionEventStore {
     if (query.types !== undefined && query.types.length > 0) {
       where.push(`type = ANY(${param([...query.types])}::text[])`);
     }
+    if (query.runId !== undefined) {
+      where.push(`run_id = ${param(query.runId)}`);
+    }
     if (query.processedAtGt !== undefined) {
       where.push(`processed_at > ${param(query.processedAtGt)}`);
     }

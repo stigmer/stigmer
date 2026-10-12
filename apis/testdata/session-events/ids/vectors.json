@@ -1,0 +1,65 @@
+{
+  "description": "Cross-reader session event id vectors. A tool use event id is <runId>.<callId> when that id matches the contract pattern ^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$ with 16 characters to spare for suffixes and the call id is neither empty nor root; otherwise <runId>.h<the first 32 hex digits of SHA-256 of the call id>. Run ids hold no dot, so the first dot ends the run part. The runner derives these ids (backend/services/runner/src/harness/events/ids.ts); a reader that answers a tool use derives the same id from the call id it holds.",
+  "vectors": [
+    {
+      "name": "anthropic-call-id",
+      "runId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p",
+      "callId": "toolu_01ABCdef234",
+      "toolUseId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.toolu_01ABCdef234"
+    },
+    {
+      "name": "openai-call-id",
+      "runId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p",
+      "callId": "call_abc123",
+      "toolUseId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.call_abc123"
+    },
+    {
+      "name": "cursor-sub-agent-fallback",
+      "runId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p",
+      "callId": "sub-explorer-3",
+      "toolUseId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.sub-explorer-3"
+    },
+    {
+      "name": "slash-is-hashed",
+      "runId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p",
+      "callId": "tc/1",
+      "toolUseId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.h1cfb232345dad4c549fc7e060dc72934"
+    },
+    {
+      "name": "space-is-hashed",
+      "runId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p",
+      "callId": "tool call 7",
+      "toolUseId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.h54769ee4c9103f014f8657dd9f442b50"
+    },
+    {
+      "name": "leading-punctuation-kept-after-the-run",
+      "runId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p",
+      "callId": "_x",
+      "toolUseId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p._x"
+    },
+    {
+      "name": "too-long-is-hashed",
+      "runId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p",
+      "callId": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "toolUseId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.h09ecb6ebc8bcefc733f6f2ec44f791ab"
+    },
+    {
+      "name": "root-is-hashed",
+      "runId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p",
+      "callId": "root",
+      "toolUseId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.h4813494d137e1631bba301d5acab6e7b"
+    },
+    {
+      "name": "longest-kept",
+      "runId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p",
+      "callId": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+      "toolUseId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+    },
+    {
+      "name": "one-past-longest-is-hashed",
+      "runId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p",
+      "callId": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+      "toolUseId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.hc1f054b54f64f14ad48acc290dd72d07"
+    }
+  ]
+}

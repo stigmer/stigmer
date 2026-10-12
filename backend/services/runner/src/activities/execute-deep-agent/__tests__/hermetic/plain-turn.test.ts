@@ -135,6 +135,7 @@ describe("ExecuteDeepAgent hermetic — plain turn", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot(GOLDEN);
+    await expect(record.eventsGolden()).toMatchFileSnapshot(GOLDEN.replace(".status.json", ".events.json"));
   });
 
   it("produces the same status from the legacy positional wire shape", async () => {
@@ -142,6 +143,7 @@ describe("ExecuteDeepAgent hermetic — plain turn", () => {
     expect(invocation.outcome.kind).toBe("returned");
     const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot(GOLDEN);
+    await expect(record.eventsGolden()).toMatchFileSnapshot(GOLDEN.replace(".status.json", ".events.json"));
   });
 
   it("builds the model the resolved settings name, never the one the request asked for", async () => {

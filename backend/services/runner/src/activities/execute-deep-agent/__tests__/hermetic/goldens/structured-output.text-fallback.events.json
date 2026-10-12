@@ -1,0 +1,24 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Here you go:\n```json\n{\"answer\":\"forty-two\",\"score\":42}\n```"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "stigmer_agent_structured_output": {
+      "id": "aex_hermetic_0001.output",
+      "output": {
+        "answer": "forty-two",
+        "score": 42
+      }
+    }
+  }
+]

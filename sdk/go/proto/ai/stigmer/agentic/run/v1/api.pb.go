@@ -264,8 +264,16 @@ type RunStatus struct {
 	Credentials *RunCredentials `protobuf:"bytes,33,opt,name=credentials,proto3" json:"credentials,omitempty"`
 	// The files a plugin eval's graders read, as the try's turn left them.
 	PluginEvalFiles *PluginEvalFiles `protobuf:"bytes,34,opt,name=plugin_eval_files,json=pluginEvalFiles,proto3" json:"plugin_eval_files,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Why the turn stopped, as one word: budget_reached (the cost cap or the
+	// tool-call limit), timeout (a stall or the workspace lock), infrastructure
+	// (the worker shut down or stopped answering), platform_stop, user (a pause
+	// or a cancel), model_error (the model provider failed the turn), failed
+	// (any other failure), eval_stopped (a plugin eval's mock or scaffold
+	// stopped the try) or review_resolved (a file review was settled). Empty
+	// while the turn works, and when it ended on its own.
+	StopCause     string `protobuf:"bytes,35,opt,name=stop_cause,json=stopCause,proto3" json:"stop_cause,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RunStatus) Reset() {
@@ -492,6 +500,13 @@ func (x *RunStatus) GetPluginEvalFiles() *PluginEvalFiles {
 		return x.PluginEvalFiles
 	}
 	return nil
+}
+
+func (x *RunStatus) GetStopCause() string {
+	if x != nil {
+		return x.StopCause
+	}
+	return ""
 }
 
 // RunCredentials records whose logins and secrets a turn uses.
@@ -888,7 +903,7 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\x03RunR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x126\n" +
 	"\x04spec\x18\x04 \x01(\v2\".ai.stigmer.agentic.run.v1.RunSpecR\x04spec\x12<\n" +
-	"\x06status\x18\x05 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusR\x06status\"\xc5\x11\n" +
+	"\x06status\x18\x05 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusR\x06status\"\xe1\x12\n" +
 	"\tRunStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12C\n" +
 	"\bmessages\x18\x01 \x03(\v2'.ai.stigmer.agentic.run.v1.AgentMessageR\bmessages\x12C\n" +
@@ -919,7 +934,9 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"run_config\x18\x1f \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12L\n" +
 	"\rapproval_mode\x18  \x01(\x0e2'.ai.stigmer.agentic.run.v1.ApprovalModeR\fapprovalMode\x12K\n" +
 	"\vcredentials\x18! \x01(\v2).ai.stigmer.agentic.run.v1.RunCredentialsR\vcredentials\x12V\n" +
-	"\x11plugin_eval_files\x18\" \x01(\v2*.ai.stigmer.agentic.run.v1.PluginEvalFilesR\x0fpluginEvalFiles\x1a]\n" +
+	"\x11plugin_eval_files\x18\" \x01(\v2*.ai.stigmer.agentic.run.v1.PluginEvalFilesR\x0fpluginEvalFiles\x12\x99\x01\n" +
+	"\n" +
+	"stop_cause\x18# \x01(\tBz\xbaHw\xd8\x01\x01rrR\x0ebudget_reachedR\atimeoutR\x0einfrastructureR\rplatform_stopR\x04userR\vmodel_errorR\x06failedR\feval_stoppedR\x0freview_resolvedR\tstopCause\x1a]\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x129\n" +

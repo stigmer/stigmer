@@ -479,6 +479,9 @@ export function applyUpdateStatusMerge(
   if (requestStatus.error !== "") {
     status.error = requestStatus.error;
   }
+  if (requestStatus.stopCause !== "") {
+    status.stopCause = requestStatus.stopCause;
+  }
   if (requestStatus.startedAt !== "") {
     status.startedAt = requestStatus.startedAt;
   }
@@ -497,6 +500,9 @@ export function applyUpdateStatusMerge(
     status.phase === RunPhase.RUN_PENDING
   ) {
     status.completedAt = "";
+    // A turn that works again has not stopped: a resumed pause drops its
+    // cause, so the turn's next stop is read alone.
+    status.stopCause = "";
   }
 
   // Terminal invariant (issue #207): a terminal execution carries zero

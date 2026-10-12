@@ -515,5 +515,140 @@ public interface SessionEventOrBuilder extends
    */
   ai.stigmer.agentic.session.v1.AgentThreadContextCompactedEventOrBuilder getAgentThreadContextCompactedOrBuilder();
 
+  /**
+   * <pre>
+   * The text of the agent's thinking.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+   * @return Whether the stigmerAgentThinking field is set.
+   */
+  boolean hasStigmerAgentThinking();
+  /**
+   * <pre>
+   * The text of the agent's thinking.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+   * @return The stigmerAgentThinking.
+   */
+  ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent getStigmerAgentThinking();
+  /**
+   * <pre>
+   * The text of the agent's thinking.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerAgentThinkingEvent stigmer_agent_thinking = 100 [json_name = "stigmerAgentThinking", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.thinking"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerAgentThinkingEventOrBuilder getStigmerAgentThinkingOrBuilder();
+
+  /**
+   * <pre>
+   * Why a tool use waits for a person's answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+   * @return Whether the stigmerPermissionAsked field is set.
+   */
+  boolean hasStigmerPermissionAsked();
+  /**
+   * <pre>
+   * Why a tool use waits for a person's answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+   * @return The stigmerPermissionAsked.
+   */
+  ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent getStigmerPermissionAsked();
+  /**
+   * <pre>
+   * Why a tool use waits for a person's answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionAskedEvent stigmer_permission_asked = 101 [json_name = "stigmerPermissionAsked", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.asked"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerPermissionAskedEventOrBuilder getStigmerPermissionAskedOrBuilder();
+
+  /**
+   * <pre>
+   * A line the platform added to the conversation in its own voice.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+   * @return Whether the stigmerHarnessNote field is set.
+   */
+  boolean hasStigmerHarnessNote();
+  /**
+   * <pre>
+   * A line the platform added to the conversation in its own voice.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+   * @return The stigmerHarnessNote.
+   */
+  ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent getStigmerHarnessNote();
+  /**
+   * <pre>
+   * A line the platform added to the conversation in its own voice.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerHarnessNoteEvent stigmer_harness_note = 102 [json_name = "stigmerHarnessNote", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.harness.note"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerHarnessNoteEventOrBuilder getStigmerHarnessNoteOrBuilder();
+
+  /**
+   * <pre>
+   * The structured output the turn produced.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+   * @return Whether the stigmerAgentStructuredOutput field is set.
+   */
+  boolean hasStigmerAgentStructuredOutput();
+  /**
+   * <pre>
+   * The structured output the turn produced.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+   * @return The stigmerAgentStructuredOutput.
+   */
+  ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent getStigmerAgentStructuredOutput();
+  /**
+   * <pre>
+   * The structured output the turn produced.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEvent stigmer_agent_structured_output = 103 [json_name = "stigmerAgentStructuredOutput", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.agent.structured_output"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerAgentStructuredOutputEventOrBuilder getStigmerAgentStructuredOutputOrBuilder();
+
+  /**
+   * <pre>
+   * Which of the agent's memories the turn recalled.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+   * @return Whether the stigmerMemoryRecalled field is set.
+   */
+  boolean hasStigmerMemoryRecalled();
+  /**
+   * <pre>
+   * Which of the agent's memories the turn recalled.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+   * @return The stigmerMemoryRecalled.
+   */
+  ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent getStigmerMemoryRecalled();
+  /**
+   * <pre>
+   * Which of the agent's memories the turn recalled.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [json_name = "stigmerMemoryRecalled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEventOrBuilder getStigmerMemoryRecalledOrBuilder();
+
   ai.stigmer.agentic.session.v1.SessionEvent.EventCase getEventCase();
 }

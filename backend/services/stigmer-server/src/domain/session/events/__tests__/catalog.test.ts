@@ -2,15 +2,29 @@
  * Pins the catalog (../catalog.ts) and the codec (../codec.ts): every event
  * the contract carries declares its Managed Agents type once, on its oneof
  * member; a runner's types are a subset that leaves the user's turn and
- * the session's status to the server; and a draft's bytes carry no seq,
- * session or accepted time, so a resent event encodes to the stored bytes.
+ * the session's status to the server; a draft's bytes carry no seq,
+ * session or accepted time, so a resent event encodes to the stored bytes;
+ * and an ask's policy source admits the word of every source a run records.
  */
 import { create, equals } from "@bufbuild/protobuf";
+import { createValidator } from "@bufbuild/protovalidate";
 import { describe, expect, it } from "vitest";
 
-import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { ApprovalPolicySourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import {
+  SessionEventSchema,
+  StigmerPermissionAskedEventSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
-import { RUNNER_EVENT_TYPES, SESSION_EVENT_TYPES, SESSION_STATUS_TYPES, eventCaseOf, eventIdOf, eventTypeOf } from "../catalog.js";
+import {
+  RUNNER_EVENT_TYPES,
+  SESSION_EVENT_TYPES,
+  SESSION_STATUS_TYPES,
+  eventCaseOf,
+  eventIdOf,
+  eventTypeOf,
+  isStigmerEventType,
+} from "../catalog.js";
 import { draftOf, eventOf } from "../codec.js";
 
 describe("the catalog", () => {
@@ -18,8 +32,22 @@ describe("the catalog", () => {
     expect(SESSION_EVENT_TYPES.length).toBe(SessionEventSchema.oneofs[0]!.fields.length);
     expect(new Set(SESSION_EVENT_TYPES).size).toBe(SESSION_EVENT_TYPES.length);
     for (const type of SESSION_EVENT_TYPES) {
-      expect(type).toMatch(/^[a-z_]+\.[a-z_]+$/);
+      expect(type).toMatch(isStigmerEventType(type) ? /^stigmer(\.[a-z_]+){2}$/ : /^[a-z_]+\.[a-z_]+$/);
       expect(eventCaseOf(type)).toBeDefined();
+    }
+  });
+
+  it("every Stigmer event is the runner's to append", () => {
+    const own = SESSION_EVENT_TYPES.filter(isStigmerEventType);
+    expect(own).toEqual([
+      "stigmer.agent.thinking",
+      "stigmer.permission.asked",
+      "stigmer.harness.note",
+      "stigmer.agent.structured_output",
+      "stigmer.memory.recalled",
+    ]);
+    for (const type of own) {
+      expect(RUNNER_EVENT_TYPES.has(type)).toBe(true);
     }
   });
 
@@ -58,5 +86,21 @@ describe("the codec", () => {
     expect(draftOf(bare).data).toEqual(draft.data);
     const read = eventOf({ ...draft, sessionId: "ses_1", seq: 9, processedAt: "2026-10-11T09:30:00.000Z" });
     expect(equals(SessionEventSchema, read, event)).toBe(true);
+  });
+});
+
+describe("an ask's policy source", () => {
+  const validator = createValidator();
+  const ask = (policySource: string) =>
+    validator.validate(StigmerPermissionAskedEventSchema, create(StigmerPermissionAskedEventSchema, { id: "a", toolUseId: "u", policySource })).kind;
+
+  it("admits the word of every source a run records, and none", () => {
+    for (const value of ApprovalPolicySourceSchema.values) {
+      expect(ask(value.number === 0 ? "" : value.localName.toLowerCase())).toBe("valid");
+    }
+  });
+
+  it("refuses any other word", () => {
+    expect(ask("APPROVAL_POLICY_SOURCE_HOOK")).toBe("invalid");
   });
 });

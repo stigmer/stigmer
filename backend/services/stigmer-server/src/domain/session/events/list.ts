@@ -8,6 +8,11 @@
  * divergence: page_size zero means the default of 100, never "all", because
  * a log grows without bound; at most 1000.
  *
+ * run_id narrows the page to one turn's events: a runner resuming its run
+ * reads what it already wrote (the run's runner may read its session's
+ * log, since it reads its session). Stigmer's own filter, beside Managed
+ * Agents' type and time filters.
+ *
  * The created_at bounds are Managed Agents' range filter and apply to the
  * time the server accepted each event. Any RFC 3339 instant is accepted
  * and compared at millisecond precision in the store's fixed-width form.
@@ -104,6 +109,7 @@ export async function readSessionEventPage(
     order,
     size,
     types: req.types,
+    run: req.runId,
     gt: req.createdAtGt,
     gte: req.createdAtGte,
     lt: req.createdAtLt,
@@ -114,6 +120,7 @@ export async function readSessionEventPage(
     limit: size + 1,
     ...(req.pageToken === "" ? {} : { afterSeq: seqOfToken(req.pageToken, fingerprint) }),
     ...(req.types.length === 0 ? {} : { types: req.types }),
+    ...(req.runId === "" ? {} : { runId: req.runId }),
     ...bound("processedAtGt", "created_at_gt", req.createdAtGt, "down"),
     ...bound("processedAtGte", "created_at_gte", req.createdAtGte, "up"),
     ...bound("processedAtLt", "created_at_lt", req.createdAtLt, "up"),

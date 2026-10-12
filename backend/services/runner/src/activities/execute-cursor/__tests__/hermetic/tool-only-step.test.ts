@@ -126,5 +126,6 @@ describe("ExecuteCursor hermetic — a tool call with no proposing text", () => 
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/tool-only-step.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/tool-only-step.events.json");
   });
 });

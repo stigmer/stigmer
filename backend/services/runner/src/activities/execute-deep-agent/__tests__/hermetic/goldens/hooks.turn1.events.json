@@ -1,0 +1,107 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Cleaning the build."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-hooks-delete",
+      "input": {
+        "command": "rm -rf build"
+      },
+      "name": "execute"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-hooks-delete.r",
+      "tool_use_id": "aex_hermetic_0001.call-hooks-delete",
+      "content": [
+        {
+          "type": "text",
+          "text": "The safety plugin's hook refused this call: recursive deletes are not allowed"
+        }
+      ],
+      "is_error": true
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Listing the files."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-hooks-list",
+      "input": {
+        "command": "ls"
+      },
+      "name": "execute"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-hooks-list.r",
+      "tool_use_id": "aex_hermetic_0001.call-hooks-list",
+      "content": [
+        {
+          "type": "text",
+          "text": "<no output>\n[Command succeeded with exit code 0]"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m2",
+      "content": [
+        {
+          "type": "text",
+          "text": "Publishing."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-hooks-publish",
+      "input": {
+        "command": "echo publish"
+      },
+      "name": "execute",
+      "evaluated_permission": "ask"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "stigmer_permission_asked": {
+      "id": "aex_hermetic_0001.call-hooks-publish.ask",
+      "tool_use_id": "aex_hermetic_0001.call-hooks-publish",
+      "message": "publishing needs a person",
+      "args_preview": "{\"command\":\"echo publish\"}",
+      "policy_source": "hook",
+      "policy_hook": "safety"
+    }
+  }
+]

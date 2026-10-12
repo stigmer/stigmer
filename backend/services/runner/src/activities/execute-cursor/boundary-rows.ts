@@ -542,6 +542,37 @@ function carriesOwnChange(tc: ToolCall): boolean {
 }
 
 /**
+ * Whether this turn's boundary may still rewrite a row: the fact the
+ * session event emitter reads (`harness/events/emitter.ts`, through this
+ * harness's `boundaryRewritesRow` capability) so it never writes into the
+ * log a row the boundary will reopen, hide or settle differently. Such a
+ * row, and everything after it in its thread, is written once the turn's
+ * terminal write proves the boundary ran.
+ *
+ * The rows each pass of the boundary can still touch, and no others:
+ *  - a call still PENDING or RUNNING: the interrupted-attempt finalize hides
+ *    it, the unresolved settle marks it, the refusal stamps settle it;
+ *  - a call FAILED by a hook block (`isHookBlockError`): the denial overlay
+ *    reopens it as the turn's gate, the one-gate collapse hides it, the
+ *    refusal and unattended stamps settle it;
+ *  - a gated call (a file write or delete, a shell, an MCP tool) that
+ *    carries no change of its own (`carriesOwnChange`): the twin collapse
+ *    hides it when a same-identity sibling turns up later in the turn.
+ *
+ * A row a person already decided is a keeper of every pass, so never
+ * rewritten; a read-only built-in that settled, or a shell or MCP call that
+ * returned output, is final the moment it settles.
+ */
+export function boundaryMayStillRewrite(tc: ToolCall): boolean {
+  if (isAdjudicatedRow(tc)) return false;
+  if (tc.status === ToolCallStatus.TOOL_CALL_PENDING || tc.status === ToolCallStatus.TOOL_CALL_RUNNING) return true;
+  if (tc.status === ToolCallStatus.TOOL_CALL_FAILED && isHookBlockError(tc.error)) return true;
+  const key = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc)).key;
+  const gated = tc.mcpServerSlug ? true : key === "write" || key === "delete" || key === "shell";
+  return gated && !carriesOwnChange(tc);
+}
+
+/**
  * Collapse redundant same-identity tool-call twins to a single visible row.
  *
  * The model frequently emits the SAME gated action twice in one turn (two

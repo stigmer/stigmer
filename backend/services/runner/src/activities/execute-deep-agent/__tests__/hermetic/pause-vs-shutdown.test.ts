@@ -165,6 +165,7 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
 
       const json = JSON.stringify(toJson(RunStatusSchema, paused), null, 2) + "\n";
       await expect(json).toMatchFileSnapshot(loopGolden);
+      await expect(record.eventsGolden()).toMatchFileSnapshot(loopGolden.replace(".status.json", ".events.json"));
     });
   });
 
@@ -207,5 +208,6 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/worker-shutdown.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/worker-shutdown.events.json");
   });
 });

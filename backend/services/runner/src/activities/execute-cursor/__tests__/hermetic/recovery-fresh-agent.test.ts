@@ -155,5 +155,6 @@ describe("ExecuteCursor hermetic — poisoned-handle recovery on a fresh agent",
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/recovery-fresh-agent.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/recovery-fresh-agent.events.json");
   });
 });

@@ -186,6 +186,7 @@ describe("ExecuteCursor hermetic — the delta channel on a shell row", () => {
 
     const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/shell-output-delta.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/shell-output-delta.events.json");
   });
 
   it("arm 2: an output delta that precedes the stream's running is held and lands once the row exists", async () => {
@@ -227,6 +228,7 @@ describe("ExecuteCursor hermetic — the delta channel on a shell row", () => {
 
     const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/shell-output-delta.output-first.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/shell-output-delta.output-first.events.json");
   });
 
   it("arm 3: an error-status completion delta, with a model event before the stream's error, fails the row from the instant it was observed", async () => {
@@ -274,5 +276,6 @@ describe("ExecuteCursor hermetic — the delta channel on a shell row", () => {
 
     const json = JSON.stringify(toJson(RunStatusSchema, record.lastFullStatus!), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/shell-output-delta.error-delta.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/shell-output-delta.error-delta.events.json");
   });
 });

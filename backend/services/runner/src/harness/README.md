@@ -32,9 +32,9 @@ pinned somewhere. Read a row across before searching for anything.
 - `harness/types.ts` — the contract: `HarnessAdapter`, `TurnInput`, `TurnSink`,
   `TurnOutcome`, and what was deliberately left off it.
 - `harness/capabilities.ts` — the flags the runtime branches on instead of
-  harness names (`HarnessCapabilities`, `PausePrimitive`, `StateIdSource`), the
-  harness matrix the contract was designed against, and which values a real
-  adapter stands behind.
+  harness names (`HarnessCapabilities`, `PausePrimitive`, `StateIdSource`,
+  `boundaryRewritesRow`), the harness matrix the contract was designed against,
+  and which values a real adapter stands behind.
 - `__test-utils__/harness-contract/scripted-adapter.ts` — the template: every
   rule of the contract as the smallest code that obeys it, with the reason
   beside it.
@@ -51,6 +51,11 @@ pinned somewhere. Read a row across before searching for anything.
   builder's events into the `turn_phases` timing line every harness gets for
   free: first visible token, model rounds, tool and sub-agent spans, the longest
   silence.
+- `harness/events/emitter.ts` — `SessionEventEmitter`, which writes what the
+  agent did into the session's event log from the rows every persist carries,
+  sealed facts only, each thread in order; `harness/events/ids.ts` derives every
+  event's id from its run and row. An adapter supplies one fact, which rows its
+  turn boundary may still rewrite (`boundaryRewritesRow`).
 - `harness/capture.ts` — the file-review capture. The runtime owns all of it; an
   adapter supplies one fact, which CAS-owned paths its engine touched.
 - `harness/turn-context.ts` — the resolution phases that build the `TurnInput`

@@ -141,6 +141,7 @@ describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", 
     expect(run1.messages[0].type, "and it leads the transcript").toBe(MessageType.MESSAGE_THINKING);
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
     await expect(statusJson(run1)).toMatchFileSnapshot("./goldens/approve-all-lease.turn1.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/approve-all-lease.turn1.events.json");
 
     // ── Between turns: APPROVE_ALL on A ──────────────────────────────────────
     expect(record.decideWaitingToolCalls(ApprovalAction.APPROVE_ALL, DECIDED_AT)).toBe(1);
@@ -184,5 +185,6 @@ describe("ExecuteDeepAgent hermetic — APPROVE_ALL leases the class (sqlite)", 
 
     // ── Assert: the golden ───────────────────────────────────────────────────
     await expect(statusJson(final)).toMatchFileSnapshot("./goldens/approve-all-lease.turn2.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/approve-all-lease.turn2.events.json");
   });
 });

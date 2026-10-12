@@ -33,7 +33,8 @@ public interface StreamSessionEventsRequestOrBuilder extends
   /**
    * <pre>
    * The event types to preview while they are produced: agent.message,
-   * agent.thinking. Empty streams no previews.
+   * agent.thinking, and Stigmer's stigmer.tool_output_delta (a running
+   * tool's output). Empty streams no previews.
    * </pre>
    *
    * <code>repeated string event_deltas = 2 [json_name = "eventDeltas", (.buf.validate.field) = { ... }</code>
@@ -44,7 +45,8 @@ public interface StreamSessionEventsRequestOrBuilder extends
   /**
    * <pre>
    * The event types to preview while they are produced: agent.message,
-   * agent.thinking. Empty streams no previews.
+   * agent.thinking, and Stigmer's stigmer.tool_output_delta (a running
+   * tool's output). Empty streams no previews.
    * </pre>
    *
    * <code>repeated string event_deltas = 2 [json_name = "eventDeltas", (.buf.validate.field) = { ... }</code>
@@ -54,7 +56,8 @@ public interface StreamSessionEventsRequestOrBuilder extends
   /**
    * <pre>
    * The event types to preview while they are produced: agent.message,
-   * agent.thinking. Empty streams no previews.
+   * agent.thinking, and Stigmer's stigmer.tool_output_delta (a running
+   * tool's output). Empty streams no previews.
    * </pre>
    *
    * <code>repeated string event_deltas = 2 [json_name = "eventDeltas", (.buf.validate.field) = { ... }</code>
@@ -65,7 +68,8 @@ public interface StreamSessionEventsRequestOrBuilder extends
   /**
    * <pre>
    * The event types to preview while they are produced: agent.message,
-   * agent.thinking. Empty streams no previews.
+   * agent.thinking, and Stigmer's stigmer.tool_output_delta (a running
+   * tool's output). Empty streams no previews.
    * </pre>
    *
    * <code>repeated string event_deltas = 2 [json_name = "eventDeltas", (.buf.validate.field) = { ... }</code>

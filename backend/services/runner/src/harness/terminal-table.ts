@@ -60,6 +60,24 @@ import type { FailureSurface } from "./types.js";
 import type { MockAbort } from "./stop-controller.js";
 import { formatTryStop } from "@stigmer/eval-runtime";
 
+/**
+ * Why a turn stopped, as `RunStatus.stop_cause` names it: the one
+ * structured cause the session's status reads (`budget_reached`, a typed
+ * error), so no reader matches an error's text. Every arm that stops the
+ * turn names one; the two waiting arms name none (`null`), because a turn
+ * that waits has not stopped.
+ */
+export type StopCause =
+  | "budget_reached"
+  | "timeout"
+  | "infrastructure"
+  | "platform_stop"
+  | "user"
+  | "model_error"
+  | "failed"
+  | "eval_stopped"
+  | "review_resolved";
+
 /** How the activity ends after the arm is written and persisted. */
 export type TerminalDisposition = { readonly kind: "return" } | { readonly kind: "throw"; readonly message: string };
 
@@ -73,6 +91,8 @@ export interface TerminalArm {
   readonly rows: readonly string[];
   /** Stamp `completedAt`; a paused turn is not complete. */
   readonly completes: boolean;
+  /** `status.stop_cause`; `null` for an arm whose turn waits rather than stops. */
+  readonly stopCause: StopCause | null;
   readonly disposition: TerminalDisposition;
 }
 
@@ -118,6 +138,7 @@ export function stallArm(error: StallTimeoutError): TerminalArm {
       `Execution failed: the agent made no progress for too long and was stopped (${error.message}). You can retry or resume.`,
     ],
     completes: true,
+    stopCause: "timeout",
     disposition: RETURN,
   };
 }
@@ -136,6 +157,7 @@ export function evalScaffoldFailedArm(message: string): TerminalArm {
     error: message,
     rows: [message],
     completes: true,
+    stopCause: "eval_stopped",
     disposition: RETURN,
   };
 }
@@ -154,6 +176,7 @@ export function mockAbortArm(abort: MockAbort): TerminalArm {
     error: formatTryStop({ kind: "mock-aborted", server: abort.server, tool: abort.tool, reason: abort.reason }),
     rows: [`A mock stopped this run: ${abort.server}.${abort.tool}: ${abort.reason}`],
     completes: true,
+    stopCause: "eval_stopped",
     disposition: RETURN,
   };
 }
@@ -171,6 +194,7 @@ export function costCapArm(maxCostUsd: number, estimatedCostUsd: number): Termin
     error: formatCostLimitError(maxCostUsd, estimatedCostUsd),
     rows: [COST_LIMIT_USER_COPY],
     completes: true,
+    stopCause: "budget_reached",
     disposition: RETURN,
   };
 }
@@ -188,6 +212,7 @@ export function toolCallLimitArm(): TerminalArm {
     error: formatToolCallLimitError(),
     rows: [TOOL_CALL_LIMIT_USER_COPY],
     completes: true,
+    stopCause: "budget_reached",
     disposition: RETURN,
   };
 }
@@ -199,6 +224,7 @@ export function workerShutdownArm(): TerminalArm {
     error: TERMINAL_COPY.workerShutdown.error,
     rows: [TERMINAL_COPY.workerShutdown.row],
     completes: true,
+    stopCause: "infrastructure",
     disposition: { kind: "throw", message: TERMINAL_COPY.workerShutdown.throwMessage },
   };
 }
@@ -214,6 +240,7 @@ export function orchestratorStopArm(): TerminalArm {
     phase: RunPhase.RUN_PHASE_UNSPECIFIED,
     rows: [],
     completes: false,
+    stopCause: "user",
     disposition: { kind: "throw", message: TERMINAL_COPY.orchestratorStop.throwMessage },
   };
 }
@@ -225,6 +252,7 @@ export function infrastructureCancelArm(): TerminalArm {
     error: TERMINAL_COPY.infrastructureCancel.error,
     rows: [TERMINAL_COPY.infrastructureCancel.row],
     completes: true,
+    stopCause: "infrastructure",
     disposition: { kind: "throw", message: TERMINAL_COPY.infrastructureCancel.throwMessage },
   };
 }
@@ -238,7 +266,7 @@ export function infrastructureCancelArm(): TerminalArm {
  * ends belongs in this one table.
  */
 export function awaitingApprovalArm(): TerminalArm {
-  return { phase: RunPhase.RUN_WAITING_FOR_APPROVAL, rows: [], completes: false, disposition: RETURN };
+  return { phase: RunPhase.RUN_WAITING_FOR_APPROVAL, rows: [], completes: false, stopCause: null, disposition: RETURN };
 }
 
 /**
@@ -263,6 +291,7 @@ export function awaitingReviewArm(deferred?: TerminalArm): TerminalArm {
     phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
     rows: deferred?.rows ?? [],
     completes: false,
+    stopCause: null,
     disposition: RETURN,
   };
 }
@@ -273,6 +302,7 @@ export function platformStopArm(): TerminalArm {
     phase: RunPhase.RUN_COMPLETED,
     rows: [TERMINAL_COPY.platformStop.row],
     completes: true,
+    stopCause: "platform_stop",
     disposition: RETURN,
   };
 }
@@ -284,6 +314,7 @@ export function workspaceLockTimeoutArm(error: WorkspaceLockTimeoutError): Termi
     error: error.message,
     rows: [`Execution failed: ${error.message}`],
     completes: true,
+    stopCause: "timeout",
     disposition: RETURN,
   };
 }
@@ -309,7 +340,7 @@ export function fileReviewResolvedArm(settlement: {
   } else if (settlement.discardedPaths.length > 0) {
     rows.push(`${TERMINAL_COPY.fileReview.discardedPrefix}${settlement.discardedPaths.join(", ")}.`);
   }
-  return { phase: RunPhase.RUN_COMPLETED, rows, completes: true, disposition: RETURN };
+  return { phase: RunPhase.RUN_COMPLETED, rows, completes: true, stopCause: "review_resolved", disposition: RETURN };
 }
 
 /**
@@ -332,7 +363,10 @@ export function failedArm(message: string, surface: FailureSurface): TerminalArm
       }
     }
   })();
-  return { phase: RunPhase.RUN_FAILED, error: message, rows, completes: true, disposition: RETURN };
+  // The engine's own failure is the model provider's (a refused or failed
+  // model request); every other surface is a failure of the turn.
+  const stopCause: StopCause = surface === "engine" ? "model_error" : "failed";
+  return { phase: RunPhase.RUN_FAILED, error: message, rows, completes: true, stopCause, disposition: RETURN };
 }
 
 /**
@@ -361,10 +395,19 @@ function appendSystemRows(status: RunStatus, rows: readonly string[]): void {
   }
 }
 
-/** Write an arm onto the status: phase, error, completion stamp, rows. The caller persists and disposes. */
-export function applyTerminalArm(status: RunStatus, arm: TerminalArm): void {
+/**
+ * Write an arm onto the status: phase, error, completion stamp, stop cause,
+ * rows. The caller persists and disposes. Returns the root positions of the
+ * rows it appended: they repeat the stop the session's status events and
+ * the stop cause already say, so the session event emitter is told never to
+ * write them as notes of the harness (`events/emitter.ts`).
+ */
+export function applyTerminalArm(status: RunStatus, arm: TerminalArm): readonly number[] {
   status.phase = arm.phase;
   if (arm.error !== undefined) status.error = arm.error;
   if (arm.completes) status.completedAt = utcTimestamp();
+  if (arm.stopCause !== null) status.stopCause = arm.stopCause;
+  const first = status.messages.length;
   appendSystemRows(status, arm.rows);
+  return arm.rows.map((_, index) => first + index);
 }

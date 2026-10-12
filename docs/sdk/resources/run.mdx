@@ -1908,6 +1908,7 @@ RunStatus contains all run results and state.
     approvalMode: { type: "ApprovalMode", description: "How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never UNSPECIFIED.", typeDescriptionLink: "#approvalmode" },
     credentials: { type: "RunCredentials", description: "Whose logins and secrets this turn uses: decided once when the turn is created, and kept when it is recovered.", typeDescriptionLink: "#runcredentials" },
     pluginEvalFiles: { type: "PluginEvalFiles", description: "The files a plugin eval's graders read, as the try's turn left them.", typeDescriptionLink: "#pluginevalfiles" },
+    stopCause: { type: "string", description: "Why the turn stopped, as one word: budget_reached (the cost cap or the tool-call limit), timeout (a stall or the workspace lock), infrastructure (the worker shut down or stopped answering), platform_stop, user (a pause or a cancel), model_error (the model provider failed the turn), failed (any other failure), eval_stopped (a plugin eval's mock or scaffold stopped the try) or review_resolved (a file review was settled)." },
   }}
 />
 

@@ -42,6 +42,9 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
     recordLlmCallUsage: vi.fn().mockResolvedValue({}),
     getAgentByReference: vi.fn().mockResolvedValue({}),
     createSession: vi.fn().mockResolvedValue({}),
+    // A session log that takes every append and holds nothing to read back.
+    appendSessionEvents: vi.fn().mockResolvedValue({ events: [] }),
+    listRunSessionEvents: vi.fn().mockResolvedValue([]),
     ...overrides,
   } as unknown as StigmerClient;
 }

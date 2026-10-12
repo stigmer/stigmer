@@ -42,7 +42,7 @@ const CONTRACT_CASE_NAMES = [
   "a resent id with other bytes is refused and appends nothing of its batch",
   "an event id is unique per session, not across sessions",
   "append appends nothing when its guard refuses or its row is absent",
-  "list reads by seq in either order, after a seq, by type, and within accepted-time bounds",
+  "list reads by seq in either order, after a seq, by type, by run, and within accepted-time bounds",
   "a resource write commits the row with its events and hands the writer the committed row",
   "a resource write that throws commits neither the row nor its events",
   "the working count is the session's other working rows: not the row itself, not another session's, not a stopped one",

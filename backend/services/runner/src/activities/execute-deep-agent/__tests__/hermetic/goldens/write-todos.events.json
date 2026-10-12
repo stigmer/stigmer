@@ -1,0 +1,58 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Planning the two steps."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-hermetic-todos-0001",
+      "input": {
+        "todos": [
+          {
+            "content": "Read the fixture",
+            "status": "pending"
+          },
+          {
+            "content": "Summarise it",
+            "status": "in_progress"
+          }
+        ]
+      },
+      "name": "write_todos"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-hermetic-todos-0001.r",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-todos-0001",
+      "content": [
+        {
+          "type": "text",
+          "text": "Updated todo list to [{\"content\":\"Read the fixture\",\"status\":\"pending\"},{\"content\":\"Summarise it\",\"status\":\"in_progress\"}]"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "The plan is written."
+        }
+      ]
+    }
+  }
+]

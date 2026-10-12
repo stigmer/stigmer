@@ -1,0 +1,37 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Starting the suite."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-hermetic-platformstop-0001",
+      "input": {
+        "path": "package.json"
+      },
+      "name": "read"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-hermetic-platformstop-0001.r",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-platformstop-0001",
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"name\":\"demo\"}"
+        }
+      ]
+    }
+  }
+]

@@ -122,5 +122,6 @@ describe("ExecuteDeepAgent hermetic — resolution error", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/resolution-error.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/resolution-error.events.json");
   });
 });

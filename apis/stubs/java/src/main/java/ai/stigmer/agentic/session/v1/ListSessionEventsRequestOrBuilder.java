@@ -206,4 +206,24 @@ public interface ListSessionEventsRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getCreatedAtLteBytes();
+
+  /**
+   * <pre>
+   * Only the events of this run (turn); empty lists every run's.
+   * </pre>
+   *
+   * <code>string run_id = 10 [json_name = "runId"];</code>
+   * @return The runId.
+   */
+  java.lang.String getRunId();
+  /**
+   * <pre>
+   * Only the events of this run (turn); empty lists every run's.
+   * </pre>
+   *
+   * <code>string run_id = 10 [json_name = "runId"];</code>
+   * @return The bytes for runId.
+   */
+  com.google.protobuf.ByteString
+      getRunIdBytes();
 }

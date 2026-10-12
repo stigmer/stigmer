@@ -194,5 +194,6 @@ describe("ExecuteCursor hermetic — unattributed hook block (#205)", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/unattributed-hook-block.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/unattributed-hook-block.events.json");
   });
 });

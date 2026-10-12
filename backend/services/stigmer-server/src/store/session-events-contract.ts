@@ -230,27 +230,33 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
     },
   ],
   [
-    "list reads by seq in either order, after a seq, by type, and within accepted-time bounds",
+    "list reads by seq in either order, after a seq, by type, by run, and within accepted-time bounds",
     async ({ store }) => {
       const s = `ses_${unique()}`;
       const r = `run_${unique()}`;
+      const other = `run_${unique()}`;
       await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS));
+      await put(store, run(other, s, RunPhase.RUN_IN_PROGRESS));
       await store.sessionEvents.append(
         s,
         "org-kit",
         [draft("a", r, "agent.message"), draft("b", r, "agent.thinking"), draft("c", r, "agent.message")],
         runGuard(r),
       );
+      await store.sessionEvents.append(s, "org-kit", [draft("d", other, "agent.message")], runGuard(other));
       const ids = async (query: Parameters<Store["sessionEvents"]["list"]>[1]): Promise<string[]> =>
         (await store.sessionEvents.list(s, query)).map((x) => x.eventId);
-      assert.deepEqual(await ids({ order: "desc", limit: 10 }), ["c", "b", "a"]);
+      assert.deepEqual(await ids({ order: "desc", limit: 10 }), ["d", "c", "b", "a"]);
       assert.deepEqual(await ids({ order: "asc", limit: 2 }), ["a", "b"]);
-      assert.deepEqual(await ids({ order: "asc", afterSeq: 1, limit: 10 }), ["b", "c"]);
+      assert.deepEqual(await ids({ order: "asc", afterSeq: 1, limit: 10 }), ["b", "c", "d"]);
       assert.deepEqual(await ids({ order: "desc", afterSeq: 3, limit: 10 }), ["b", "a"]);
-      assert.deepEqual(await ids({ order: "asc", types: ["agent.message"], limit: 10 }), ["a", "c"]);
+      assert.deepEqual(await ids({ order: "asc", types: ["agent.message"], limit: 10 }), ["a", "c", "d"]);
+      assert.deepEqual(await ids({ order: "asc", runId: r, limit: 10 }), ["a", "b", "c"]);
+      assert.deepEqual(await ids({ order: "asc", runId: other, types: ["agent.message"], limit: 10 }), ["d"]);
       const at = (await store.sessionEvents.list(s, { order: "asc", limit: 1 }))[0]!.processedAt;
-      assert.deepEqual(await ids({ order: "asc", processedAtGte: at, processedAtLte: at, limit: 10 }), ["a", "b", "c"]);
-      assert.deepEqual(await ids({ order: "asc", processedAtGt: at, limit: 10 }), []);
+      const last = (await store.sessionEvents.list(s, { order: "desc", limit: 1 }))[0]!.processedAt;
+      assert.deepEqual(await ids({ order: "asc", processedAtGte: at, processedAtLte: last, runId: r, limit: 10 }), ["a", "b", "c"]);
+      assert.deepEqual(await ids({ order: "asc", processedAtGt: at, runId: r, limit: 10 }), []);
       assert.deepEqual(await ids({ order: "asc", processedAtLt: at, limit: 10 }), []);
       await assert.rejects(store.sessionEvents.list(s, { order: "asc", limit: 0 }));
     },

@@ -76,6 +76,17 @@ describe("the broker", () => {
     expect(messages.queue.map((f) => f.frame.case)).toEqual(["eventDelta"]);
   });
 
+  it("a running tool's output fragment reaches only the streams that asked for stigmer.tool_output_delta", () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const messages = broker.subscribe("s1", ["agent.message"]);
+    const output = broker.subscribe("s1", ["stigmer.tool_output_delta"]);
+    broker.publishPreviews("s1", [
+      create(SessionEventPreviewSchema, { preview: { case: "stigmerToolOutputDelta", value: { toolUseId: "u", delta: "12 passing" } } }),
+    ]);
+    expect(messages.queue).toEqual([]);
+    expect(output.queue.map((f) => f.frame.case)).toEqual(["stigmerToolOutputDelta"]);
+  });
+
   it("ends a stream whose undelivered bytes pass the budget, before the frame cap", () => {
     const broker = new SessionEventBroker(silentLogger);
     const slow = broker.subscribe("s1", []);

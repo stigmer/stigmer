@@ -26,12 +26,17 @@
  *    ({@link CURSOR_RUNNER_OWNED_PATHS}). The capture itself is the runtime's
  *    (`harness/capture.ts`, since #1096); this adapter contributes only the hook
  *    sidecar it binds as the runtime's CAS observations (`turn-setup.ts`).
+ *  - Its turn boundary rewrites rows the stream already settled (the denial
+ *    overlay, the twin and one-gate collapses, the refusal stamps), so the
+ *    session's events hold every row it may still rewrite until the turn's
+ *    terminal write (`boundary-rows.ts` `boundaryMayStillRewrite`).
  */
 
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { FileReviewIdentity, HarnessCapabilities } from "../../harness/capabilities.js";
 import { CURSOR_VISION_PROFILE } from "../../shared/attachment-vision.js";
+import { boundaryMayStillRewrite } from "./boundary-rows.js";
 
 /**
  * Workspace-relative paths the Cursor gate writes into the repo for the
@@ -71,4 +76,5 @@ export const CURSOR_CAPABILITIES: HarnessCapabilities = {
   readsToolMarks: false,
   visionProfile: CURSOR_VISION_PROFILE,
   fileReview: CURSOR_FILE_REVIEW_IDENTITY,
+  boundaryRewritesRow: boundaryMayStillRewrite,
 };

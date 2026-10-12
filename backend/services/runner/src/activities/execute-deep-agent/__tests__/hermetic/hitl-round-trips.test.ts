@@ -158,6 +158,7 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
       await expect(statusJson(run1), "every decision's first turn is the same status").toMatchFileSnapshot(
         GATE_TURN1_GOLDEN,
       );
+      await expect(record.eventsGolden()).toMatchFileSnapshot(GATE_TURN1_GOLDEN.replace(".status.json", ".events.json"));
 
       // ── Between turns: what SubmitApproval does to the row ─────────────────
       expect(record.decideWaitingToolCalls(action, DECIDED_AT)).toBe(1);
@@ -198,6 +199,7 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
 
       // ── Assert: the golden ─────────────────────────────────────────────────
       await expect(statusJson(final)).toMatchFileSnapshot(`./goldens/${name}.turn2.status.json`);
+      await expect(record.eventsGolden()).toMatchFileSnapshot(`./goldens/${name}.turn2.events.json`);
     });
   });
 });

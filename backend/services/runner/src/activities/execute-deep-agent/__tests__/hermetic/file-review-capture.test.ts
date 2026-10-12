@@ -227,5 +227,6 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const pretty = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(pretty).toMatchFileSnapshot("./goldens/file-review-capture.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-capture.events.json");
   });
 });

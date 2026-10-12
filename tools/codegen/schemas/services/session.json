@@ -512,6 +512,16 @@
           },
           "description": "Only events appended at or before this RFC 3339 instant.",
           "required": false
+        },
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Only the events of this run (turn); empty lists every run's.",
+          "required": false
         }
       ]
     },
@@ -576,10 +586,10 @@
               "kind": "string"
             }
           },
-          "description": "The event types to preview while they are produced: agent.message,\n agent.thinking. Empty streams no previews.",
+          "description": "The event types to preview while they are produced: agent.message,\n agent.thinking, and Stigmer's stigmer.tool_output_delta (a running\n tool's output). Empty streams no previews.",
           "required": false,
           "validation": {
-            "maxItems": 2
+            "maxItems": 3
           }
         },
         {
@@ -634,6 +644,18 @@
             "messageType": "EventDelta"
           },
           "description": "A fragment of a previewed event.",
+          "required": false,
+          "oneofGroup": "frame"
+        },
+        {
+          "name": "StigmerToolOutputDelta",
+          "jsonName": "stigmerToolOutputDelta",
+          "protoField": "stigmer_tool_output_delta",
+          "type": {
+            "kind": "message",
+            "messageType": "ToolOutputDelta"
+          },
+          "description": "A fragment of a running tool's output.",
           "required": false,
           "oneofGroup": "frame"
         }

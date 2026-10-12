@@ -1,0 +1,81 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+/**
+ * Pins the session log calls the client composes: the append names the run
+ * and carries its events and previews, with the scoped credential as the
+ * Bearer header when one is given; the run's read pages to the end, a
+ * thousand at a time, filtered by run. The transport and the generated
+ * clients are replaced at their module seams.
+ */
+
+const appendEvents = vi.fn();
+const listEvents = vi.fn();
+
+vi.mock("@connectrpc/connect-node", () => ({
+  createGrpcTransport: () => ({}),
+}));
+
+vi.mock("@connectrpc/connect", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@connectrpc/connect")>();
+  return {
+    ...actual,
+    createClient: (service: { typeName: string }) => {
+      switch (service.typeName) {
+        case "ai.stigmer.agentic.session.v1.SessionCommandController":
+          return { appendEvents };
+        case "ai.stigmer.agentic.session.v1.SessionQueryController":
+          return { listEvents };
+        default:
+          return {};
+      }
+    },
+  };
+});
+
+import { create } from "@bufbuild/protobuf";
+import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+
+import { StigmerClient } from "../stigmer-client.js";
+
+function newClient(): StigmerClient {
+  return new StigmerClient({ endpoint: "localhost:7234", token: null });
+}
+
+function event(id: string) {
+  return create(SessionEventSchema, { event: { case: "agentThinking", value: { id } } });
+}
+
+beforeEach(() => {
+  appendEvents.mockReset();
+  listEvents.mockReset();
+});
+
+describe("StigmerClient.appendSessionEvents", () => {
+  it("names the run, carries the events and previews, and presents the scoped credential", async () => {
+    appendEvents.mockResolvedValue({ events: [] });
+    await newClient().appendSessionEvents("run_1", [event("e1")], [], "scoped-token");
+    const [input, options] = appendEvents.mock.calls[0]! as [{ runId: string; events: unknown[]; previews: unknown[] }, { headers: Record<string, string> }];
+    expect([input.runId, input.events.length, input.previews.length]).toEqual(["run_1", 1, 0]);
+    expect(options.headers.authorization).toBe("Bearer scoped-token");
+  });
+
+  it("leaves the credential to the interceptor when no scoped token is given", async () => {
+    appendEvents.mockResolvedValue({ events: [] });
+    await newClient().appendSessionEvents("run_1", [], []);
+    expect(appendEvents.mock.calls[0]![1]).toBeUndefined();
+  });
+});
+
+describe("StigmerClient.listRunSessionEvents", () => {
+  it("pages one run's events to the end", async () => {
+    listEvents
+      .mockResolvedValueOnce({ events: [event("a")], nextPageToken: "next" })
+      .mockResolvedValueOnce({ events: [event("b")], nextPageToken: "" });
+    const events = await newClient().listRunSessionEvents("ses_1", "run_1");
+    expect(events.map((e) => (e.event.case === undefined ? "" : e.event.value.id))).toEqual(["a", "b"]);
+    expect(listEvents.mock.calls.map((c) => c[0])).toEqual([
+      { sessionId: "ses_1", runId: "run_1", pageSize: 1000, pageToken: "" },
+      { sessionId: "ses_1", runId: "run_1", pageSize: 1000, pageToken: "next" },
+    ]);
+  });
+});

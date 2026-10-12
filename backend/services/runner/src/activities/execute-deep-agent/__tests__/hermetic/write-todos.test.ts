@@ -156,5 +156,6 @@ describe("ExecuteDeepAgent hermetic — write_todos", () => {
     // ── Assert: the golden ───────────────────────────────────────────────────
     const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(json).toMatchFileSnapshot("./goldens/write-todos.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/write-todos.events.json");
   });
 });
