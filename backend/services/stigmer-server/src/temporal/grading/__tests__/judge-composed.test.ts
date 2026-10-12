@@ -19,6 +19,7 @@
  *     delete removing its evaluator;
  *   - the activities: a sampled run is recorded pending and a cap set
  *     aside; the start creates one judge run, found again on a retry; a
+ *     judge is shown the turns before the graded one in its session; a
  *     verdict replaces the pending score, the session is deleted and the
  *     budget settled with the judge's spend; an unreadable answer, a cost
  *     cap and a refused start each leave the run not graded with its
@@ -44,7 +45,7 @@ import { EvaluatorCommandController } from "@stigmer/protos/ai/stigmer/agentic/e
 import { EvaluatorQueryController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/query_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { MessageType, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/command_pb";
@@ -156,8 +157,12 @@ async function seedRun(opts: {
   structuredOutput?: JsonObject;
   estimatedCostUsd?: number;
   error?: string;
+  sessionId?: string;
+  message?: string;
+  answer?: string;
+  createdAtSeconds?: number;
 } = {}): Promise<Run> {
-  const sessionId = generateId("ses");
+  const sessionId = opts.sessionId ?? generateId("ses");
   await server.store.saveResource(
     ApiResourceKind.session,
     sessionId,
@@ -173,9 +178,13 @@ async function seedRun(opts: {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Run",
     metadata: { id: runId, name: runId, slug: runId, org, labels: opts.labels ?? {} },
-    spec: { target: { case: "sessionId", value: sessionId }, message: "Summarize the release." },
+    spec: { target: { case: "sessionId", value: sessionId }, message: opts.message ?? "Summarize the release." },
     status: {
       phase: opts.phase ?? RunPhase.RUN_COMPLETED,
+      ...(opts.answer === undefined ? {} : { messages: [{ type: MessageType.MESSAGE_AI, content: opts.answer }] }),
+      ...(opts.createdAtSeconds === undefined
+        ? {}
+        : { audit: { specAudit: { createdAt: { seconds: BigInt(opts.createdAtSeconds), nanos: 0 } } } }),
       agentId: opts.agentId ?? "",
       error: opts.error ?? "",
       ...(opts.structuredOutput === undefined ? {} : { structuredOutput: opts.structuredOutput }),
@@ -410,9 +419,11 @@ describe("evaluators", () => {
 /** The judge run's create and its session's delete, played on the store. */
 function judgeLane(judgeOutcome: Partial<Parameters<typeof seedRun>[0]> | ConnectError) {
   const created: Run[] = [];
+  const requests: Run[] = [];
   const deletedSessions: string[] = [];
   const runs: JudgeRunCreator = {
     async create(request) {
+      requests.push(request);
       if (judgeOutcome instanceof ConnectError) throw judgeOutcome;
       const judge = await seedRun({ ...judgeOutcome, labels: request.metadata?.labels ?? {} });
       // The created run answers to the request's fixed name, as the create chain makes it.
@@ -426,6 +437,7 @@ function judgeLane(judgeOutcome: Partial<Parameters<typeof seedRun>[0]> | Connec
   };
   return {
     created,
+    requests,
     deletedSessions,
     activities: createJudgeActivities({
       store: server.store,
@@ -514,6 +526,27 @@ describe("the judge's activities", () => {
     expect(await lane.activities[PLAN_JUDGE_ACTIVITY_NAME](runId), "a graded run is not graded twice").toEqual({
       kind: "skip",
     });
+  });
+
+  it("show the judge the turns before the graded one in its session, oldest first", async () => {
+    const agentId = await newAgent();
+    await newEvaluator(agentId);
+    const sessionId = generateId("ses");
+    await seedRun({ agentId, sessionId, message: "Draft the note to the team.", answer: "Here is the draft.", createdAtSeconds: 1_000 });
+    const judged = await seedRun({ agentId, sessionId, message: "yes, go ahead", createdAtSeconds: 1_001 });
+    await seedRun({ agentId, sessionId, message: "a later turn", createdAtSeconds: 1_002 });
+    const runId = judged.metadata!.id;
+    const lane = judgeLane({ structuredOutput: VERDICT });
+    const plan = await lane.activities[PLAN_JUDGE_ACTIVITY_NAME](runId);
+    if (plan.kind !== "grade") throw new Error("expected a grade");
+    await lane.activities[START_JUDGE_ACTIVITY_NAME](runId, plan.ticket);
+    const message = lane.requests[0]?.spec?.message ?? "";
+    const document = JSON.parse(message.slice(message.indexOf("<conversation>\n") + 15, message.lastIndexOf("\n</conversation>"))) as {
+      earlier_turns: Array<{ request: string; final_answer: string }>;
+      request: string;
+    };
+    expect(document.earlier_turns).toEqual([{ request: "Draft the note to the team.", final_answer: "Here is the draft." }]);
+    expect(document.request).toBe("yes, go ahead");
   });
 
   for (const [what, outcome, reason] of [
