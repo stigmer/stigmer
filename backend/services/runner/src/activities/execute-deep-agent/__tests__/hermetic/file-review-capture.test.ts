@@ -2,15 +2,16 @@
  * Hermetic scenario: a FILE-REVIEW CAPTURE turn on a git workspace through
  * the whole `ExecuteDeepAgent` activity.
  *
- * Invariant pinned (apply-then-review, the universal file-review model): on a
- * git work tree the deepagents `edit_file` FLOWS — the approval gate lets a
- * git-capturable path through under capture mode — and the turn boundary
+ * Invariant pinned (apply-then-review, in a session whose `file_review` is
+ * on): on a git work tree the deepagents `edit_file` FLOWS — the approval
+ * gate lets a git-capturable path through under capture mode — and the turn boundary
  * captures the net change from the git diff against the baseline tree pinned
  * before the agent ran (`captureBaselineToLedger`, git snapshot), authors
  * CANDIDATE_CAPTURED to the file_review ledger with one card for the edited
  * file, stamps the flowed edit row with the change-set id
- * (`stampFlowedFileEditRows`), and the activity persists
- * WAITING_FOR_APPROVAL and RETURNS. The change-set id is the deterministic
+ * (`stampFlowedFileEditRows`), writes `stigmer.file_review.changes` into the
+ * session's log, and the activity persists COMPLETED and RETURNS: review
+ * never holds a turn (stigmer#1471). The change-set id is the deterministic
  * `executionId:turnSeq`. The ledger shape is what the runtime's capture must
  * reproduce, beside Cursor's `file-review-capture.status.json`.
  *
@@ -34,14 +35,14 @@
  * Parent phase rows exercised beyond the plain arms: a `local_path` workspace
  * entry (mounted as-is in local mode, the agent rooted at the entry per
  * `provisionWorkspace`); capture-mode derivation on a git tree; the baseline
- * pin; the turn boundary's candidate capture and row stamping; the pause for
- * review with file cards.
+ * pin; the turn boundary's candidate capture and row stamping; the completion
+ * with the edit applied.
  *
- * Scope, recorded: this arm records turn 1 to parity with Cursor's first golden.
- * The second invocation that reconciles a DECIDED change set needs the
- * server's `file_change_sets` projection staged on the record; staging that by
- * hand would pin a hand-built shape, so the reconcile arm rides the runtime's
- * own net with both harnesses in view.
+ * Three more arms, each with goldens of its own: an Undo after the turn is
+ * put back by a reconcile turn that never asks the model (the script holds
+ * no turn for it, so a model call would fail the run); with review off (the
+ * default) the same edit flows uncaptured and the turn completes; and a
+ * secret-like write to a gitignored path is refused whatever review says.
  *
  * Determinism: the fixture repo's commit and tree ids are byte-stable because
  * `initGitWorkspace` pins author, committer and both dates; the script's path
@@ -69,7 +70,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { toJson } from "@bufbuild/protobuf";
@@ -131,13 +132,14 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     env.dispose();
   });
 
-  it("lets the write flow, captures it at the boundary, and pauses for review", async () => {
+  it("lets the write flow, captures it at the boundary, and completes with the edit applied", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
     const repo = join(env.workspaceRootDir, "repos", "notes");
     initGitWorkspace(repo, { [FILE]: BEFORE });
     const record = deepAgentExecutionRecord({
       message: "Append a second line to notes.md.",
       workspaceEntries: [localPathEntry("notes", repo)],
+      fileReview: true,
     });
     const scenario = beginDeepAgentScenario({
       env,
@@ -160,15 +162,18 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     // ── Act ──────────────────────────────────────────────────────────────────
     const invocation = await runDeepAgentTurn(scenario);
 
-    // ── Assert: the edit flowed and the turn paused for review ───────────────
+    // ── Assert: the edit flowed and the turn completed with it ───────────────
     expect(readFileSync(join(repo, FILE), "utf-8"), "the working tree holds the candidate").toBe(AFTER);
-    expect(invocation.outcome.kind, "a review pause RETURNS to the workflow").toBe("returned");
-    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe(
-      "RUN_WAITING_FOR_APPROVAL",
+    expect(invocation.outcome.kind).toBe("returned");
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase, "review never holds the turn").toBe(
+      "RUN_COMPLETED",
     );
     expect(record.persistedPhases).toEqual([
       RunPhase.RUN_IN_PROGRESS,
-      RunPhase.RUN_WAITING_FOR_APPROVAL,
+      RunPhase.RUN_COMPLETED,
+    ]);
+    expect(record.sessionEvents.filter((e) => e.event.case === "stigmerFileReviewChanges").map((e) => e.event.value?.id)).toEqual([
+      `${FIXTURE.executionId}.fr0`,
     ]);
 
     // ── Assert: the file_review ledger, byte by byte where the host cannot reach ──
@@ -228,5 +233,67 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     const pretty = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
     await expect(pretty).toMatchFileSnapshot("./goldens/file-review-capture.status.json");
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-capture.events.json");
+
+    // ── An Undo after the turn: a reconcile turn puts the file back ──────────
+    clock.tick();
+    expect(record.decideCapturedFileChanges({ reject: [FILE] }, new Date().toISOString())).toBe(1);
+    const reconcileRunId = record.startReconcileTurn();
+    const reconcile = await runDeepAgentTurn(scenario, { executionId: reconcileRunId });
+
+    expect(reconcile.outcome.kind).toBe("returned");
+    expect((reconcile.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
+    expect(readFileSync(join(repo, FILE), "utf-8"), "the undone file is back at its baseline").toBe(BEFORE);
+    const reconciled = record.reconcileFinalStatus!;
+    expect(reconciled.stopCause).toBe("review_resolved");
+    expect(reconciled.fileReviewEventStream?.events ?? [], "nothing reaches any ledger").toHaveLength(0);
+    expect(
+      record.sessionEvents.filter((e) => e.event.case === "stigmerFileReviewReconciled").map((e) => [e.runId, e.event.value?.id]),
+      "one reconciled event, written by the reconcile turn",
+    ).toEqual([[reconcileRunId, `${FIXTURE.executionId}.fr0.r`]]);
+    const reconcileJson = JSON.stringify(toJson(RunStatusSchema, reconciled), null, 2) + "\n";
+    expect(reconcileJson).not.toContain(env.workspaceRootDir);
+    await expect(reconcileJson).toMatchFileSnapshot("./goldens/file-review-reconcile.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-reconcile.events.json");
+  });
+
+  it("with review off (the default) the same edit flows uncaptured, and a secret-like gitignored write is refused", async () => {
+    const repo = join(env.workspaceRootDir, "repos", "notes-review-off");
+    initGitWorkspace(repo, { [FILE]: BEFORE, ".gitignore": ".env\n" });
+    const record = deepAgentExecutionRecord({
+      message: "Append a second line to notes.md and store the key in .env.",
+      workspaceEntries: [localPathEntry("notes", repo)],
+    });
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      script: () => ({
+        turns: [
+          {
+            text: "Appending the line and storing the key.",
+            toolCalls: [
+              { id: CALL_ID, name: "edit_file", args: { file_path: `/${FILE}`, old_string: "first\n", new_string: "first\nsecond\n" } },
+              { id: "call-hermetic-secret-0001", name: "write_file", args: { file_path: "/.env", content: "API_KEY=abc\n" } },
+            ],
+            usage: { inputTokens: 1_300, outputTokens: 60 },
+          },
+          { text: "Appended; the key was refused.", usage: { inputTokens: 1_500, outputTokens: 10 } },
+        ],
+      }),
+    });
+
+    const invocation = await runDeepAgentTurn(scenario);
+
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
+    expect(readFileSync(join(repo, FILE), "utf-8"), "the edit is applied").toBe(AFTER);
+    expect(existsSync(join(repo, ".env")), "the secret-like write never lands").toBe(false);
+    expect(record.waitingToolCalls(), "nothing asked").toHaveLength(0);
+    const final = record.lastFullStatus!;
+    expect(final.fileReviewEventStream?.events ?? [], "nothing is captured with review off").toHaveLength(0);
+    expect(record.sessionEvents.some((e) => e.event.case === "stigmerFileReviewChanges")).toBe(false);
+    const json = JSON.stringify(toJson(RunStatusSchema, final), null, 2) + "\n";
+    expect(json).not.toContain(env.workspaceRootDir);
+    await expect(json).toMatchFileSnapshot("./goldens/file-review-off.status.json");
+    await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/file-review-off.events.json");
   });
 });

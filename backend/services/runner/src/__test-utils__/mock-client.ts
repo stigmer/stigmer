@@ -45,6 +45,8 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
     // A session log that takes every append and holds nothing to read back.
     appendSessionEvents: vi.fn().mockResolvedValue({ events: [] }),
     listRunSessionEvents: vi.fn().mockResolvedValue([]),
+    // An empty log to page back through: no undo is owed.
+    listSessionEvents: vi.fn().mockResolvedValue({ events: [], nextPageToken: "" }),
     ...overrides,
   } as unknown as StigmerClient;
 }

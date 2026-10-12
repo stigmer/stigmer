@@ -2,9 +2,15 @@
  * The runtime's file-review capture — apply-then-review for every harness,
  * written once: the baseline pinned before the engine runs, the mid-run
  * progress the chokepoint refreshes on every write, the candidate captured
- * after the engine's turn, the approved-command provenance, the flowed
- * transcript rows stamped with the change set, and the one question the
- * outcome table asks afterwards: is a review pending?
+ * after the engine's turn, the approved-command provenance, and the flowed
+ * transcript rows stamped with the change set.
+ *
+ * Capture runs only when the turn's review is on (the session's
+ * `file_review`, or a plugin-eval try) and the workspace has a substrate
+ * (`TurnWorkspace.captureMode`). It never holds the turn: the edits are
+ * applied, the turn takes its own terminal (`run-turn.ts`), and the change
+ * set is offered for Keep or Undo after it, on the run's ledger and as the
+ * session's `stigmer.file_review.changes` (`events/emitter.ts`).
  *
  * ONE CAPTURE, ONE MOMENT, ONE OWNER
  * ----------------------------------
@@ -13,11 +19,11 @@
  * the user reviews, whoever wrote it — the engine, a sub-agent, a recovery
  * retry, a stdio MCP server the engine spawned. So the runtime pins the
  * baseline as its LAST act before `adapter.runTurn` (after its own writes
- * into the tree — the reconcile, the skill and attachment mounts — so they
+ * into the tree — the owed undos, the skill and attachment mounts — so they
  * cancel out of the diff) and captures ONCE after `runTurn` returns, over
  * the whole turn. Anything written into the tree after the pin is the
  * turn's change. An adapter needs neither the baseline nor the change-set
- * id and never learns whether a review is pending; the one fact it holds
+ * id and never learns whether a change was captured; the one fact it holds
  * that the runtime cannot read is what its engine observed touching
  * CAS-owned paths (`TurnSink.bindCasObservations`).
  *
@@ -48,10 +54,9 @@
  * WHAT IS NOT HERE
  * ----------------
  * The substrate and the ledger authoring (`shared/filereview/capture.ts`,
- * `cas-touched.ts`, `progress.ts`); the resume-time reconcile
- * (`turn-context.ts` `reconcileReinvocation`, already the runtime's since
- * #1070); the outcome matrix that turns "a review is pending" into a phase
- * (`run-turn.ts`, through `terminal-table.ts` `awaitingReviewArm`).
+ * `cas-touched.ts`, `progress.ts`); the undo after the turn, done at every
+ * turn's start (`owed-undos.ts`); the log's `changes` event
+ * (`events/emitter.ts`).
  *
  * TWO GAPS THIS MODULE DOES NOT CLOSE (recorded as #1115)
  * ----------------------------------------------------------------------
@@ -130,7 +135,8 @@ const NOTHING_OBSERVED: CasTouchedSnapshot = { before: new Map(), blockedSecretP
  * ledger could not store its blobs anyway.
  *
  * Returns `undefined` outside capture mode: nothing to pin, nothing to
- * capture, the classic deny-gate governs writes.
+ * capture. With review off file writes flow uncaptured; with review on and
+ * no substrate the classic deny-gate governs them.
  */
 export async function pinCaptureBaseline(args: {
   readonly status: RunStatus;
@@ -238,8 +244,9 @@ function buildShapedProgressSubstrate(args: {
  * approved-command provenance, author CANDIDATE_CAPTURED (the seam authors
  * nothing for a turn that changed nothing), and — iff a candidate exists —
  * stamp the flowed rows. The working tree is LEFT applied: the user reviews
- * the real change, and a reject snaps files back on the resume
- * (`reconcileReinvocation`). Returns whether a review is now pending.
+ * the real change, and an Undo puts files back at a later turn's start
+ * (`owed-undos.ts`). Returns whether a change set was authored; it never
+ * decides how the turn ends.
  */
 export async function captureCandidate(args: {
   readonly status: RunStatus;
@@ -284,15 +291,15 @@ export async function captureCandidate(args: {
     commandProvenance,
   });
 
-  const pending = hasCandidateCaptured(status, changeSetId);
-  if (pending) {
+  const captured = hasCandidateCaptured(status, changeSetId);
+  if (captured) {
     // A row must never reference a change set that does not exist, so the
     // stamp is gated on the authored candidate.
     stampFlowedFileEditRows(status.messages, changeSetId, { flowed: isCompletedRow });
     stampFlowedSubAgentFileEditRows(status.subAgentRuns, changeSetId, capture.priorSubAgentToolCallIds, isCompletedRow);
     console.log(`capture: change set ${changeSetId} authored to the file_review ledger; working tree left applied for review (execution=${executionId})`);
   }
-  return pending;
+  return captured;
 }
 
 /** The row's own evidence that its effect landed on the tree. */

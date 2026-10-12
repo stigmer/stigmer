@@ -18,10 +18,20 @@ first 32 hex digits of the SHA-256 of the call id.
 Run ids are server-minted (`run_<ulid>`) and hold no `.`, so the first `.` of
 an event id ends its run part.
 
+## File review
+
+A file-review event's id is derived from its change set's id,
+`<runId>:<turnSeq>` (a run id holds no `:`, so the run is the text before the
+first one): `stigmer.file_review.changes` is `<runId>.fr<turnSeq>`, and
+`stigmer.file_review.reconciled` is `<runId>.fr<turnSeq>.r`. There is one of
+each per change set; the second begins with the change set's run even when a
+later run (the turn that put undone files back) writes it. The `fileReview`
+vectors pin both.
+
 ## Readers
 
 - The runner: `backend/services/runner/src/harness/events/ids.ts`, which
   derives the ids it writes; `src/harness/events/__tests__/ids-corpus.test.ts`
-  asserts every vector.
+  asserts every vector, the `fileReview` ones included.
 - A reader that answers a tool use derives the same id from the call id it
   holds, and loads this file in its own test.

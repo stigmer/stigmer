@@ -7,12 +7,14 @@
  * onto `status.file_review_event_stream`; the server folds the stream into
  * `status.file_change_sets` (`stigmer-server/src/domain/run/
  * filereview/project.ts` `applyEvent` and `deriveStatusAfterCandidate`);
- * `SubmitFileDecision` appends FILE_DECIDED events and re-folds; the runtime's
- * reinvocation reads the DECIDED sets back and reconciles the tree
- * (`harness/turn-context.ts` `reconcileReinvocation`). The hermetic
- * `ExecutionRecord` is the server here, so it must fold the same way — and
- * only for the fields the reconcile reads: `id`, `status`, `decisions`,
- * `changes` (their `id`, `beforeSha256`, `afterSha256`), `candidateSnapshot`.
+ * decision core appends FILE_DECIDED events, re-folds, and writes each
+ * decision into the session's log as `stigmer.file_review.decided`; a later
+ * turn's start reads the undone sets back from the change set's run and puts
+ * the files back (`harness/owed-undos.ts`). The hermetic `ExecutionRecord` is
+ * the server here, so it must fold the same way — and only for the fields the
+ * undo reads: `id`, `status`, `decisions`, `changes` (their `id`,
+ * `captureClass`, `blockedReason`, `beforeSha256`, `afterSha256`),
+ * `candidateSnapshot`.
  *
  * Mirrored, not imported: the runner is a standalone package and cannot
  * reach the server's source. If `project.ts` changes the fold, THIS file is
@@ -34,6 +36,7 @@ import {
   FileChangeSetSchema,
   FileDecisionSchema,
   type FileChangeSet,
+  type FileDecision,
   type FileReviewEvent,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 
@@ -112,45 +115,44 @@ export interface FileReviewVerdicts {
 }
 
 /**
- * What the server's `SubmitFileDecision` leaves on the status once every
- * change of every captured set has a per-file verdict: the sets projected
- * from the ledger the runner persisted, each DECIDED, with one FILE-scoped
- * decision per change. A path in neither list is a test bug and throws
- * (the reconcile treats an undecided change as rejected, which would hide
- * the mistake). Returns the number of decisions written.
+ * What the server's decision core leaves on the status once every change of
+ * every captured set has a per-file verdict: the sets projected from the
+ * ledger the runner persisted, each DECIDED, with one FILE-scoped decision
+ * per change. A path in neither list is a test bug and throws (an undecided
+ * change is left as it is, which would hide the mistake). Returns the
+ * decisions written, in order.
  */
 export function decideCapturedFileChanges(
   status: RunStatus,
   verdicts: FileReviewVerdicts,
   decidedAt: string,
-): number {
+): FileDecision[] {
   const approve = new Set(verdicts.approve ?? []);
   const reject = new Set(verdicts.reject ?? []);
   const sets = projectFileChangeSets(status.fileReviewEventStream?.events ?? []);
-  let decisions = 0;
+  const written: FileDecision[] = [];
   for (const cs of sets) {
     if (cs.status !== FileChangeSetStatus.AWAITING_REVIEW) continue;
     for (const change of cs.changes) {
       const path = change.pathAfter || change.pathBefore;
       const action = approve.has(path) ? FileDecisionAction.APPROVE : reject.has(path) ? FileDecisionAction.REJECT : undefined;
       if (action === undefined) throw new Error(`decideCapturedFileChanges: no verdict for '${path}' in change set '${cs.id}' (test bug)`);
-      cs.decisions.push(
-        create(FileDecisionSchema, {
-          id: `${cs.id}:decision:${decisions}`,
-          changeSetId: cs.id,
-          scope: FileDecisionScope.FILE,
-          fileChangeId: change.id,
-          action,
-          expectedDigest: change.fileDigest,
-          reviewerId: "kit-reviewer",
-          decidedAt,
-          origin: FileDecisionOrigin.USER,
-        }),
-      );
-      decisions += 1;
+      const decision = create(FileDecisionSchema, {
+        id: `${cs.id}:decision:${written.length}`,
+        changeSetId: cs.id,
+        scope: FileDecisionScope.FILE,
+        fileChangeId: change.id,
+        action,
+        expectedDigest: change.fileDigest,
+        reviewerId: "kit-reviewer",
+        decidedAt,
+        origin: FileDecisionOrigin.USER,
+      });
+      cs.decisions.push(decision);
+      written.push(decision);
     }
     cs.status = deriveStatusAfterCandidate(cs);
   }
   status.fileChangeSets = sets;
-  return decisions;
+  return written;
 }

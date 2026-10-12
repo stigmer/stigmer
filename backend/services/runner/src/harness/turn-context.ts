@@ -4,8 +4,9 @@
  *
  * A turn begins with a dozen reads and provisions that have nothing to do
  * with the engine that will run it: the execution and its session, the
- * agent blueprint, the run's values, the workspace and its lock, what the
- * previous turn left waiting for approval, the MCP servers with the
+ * agent blueprint, the run's values, the workspace and its lock, the undos
+ * still owed to earlier turns, what the previous turn left waiting for
+ * approval, the MCP servers with the
  * approval default and the agent's tool scope, the attachments, the standing context. Until #1070
  * that sequence lived inline in the Cursor orchestrator
  * (`activities/execute-cursor/index.ts` `executeCursorInner`, phases 1 to
@@ -30,7 +31,7 @@
  * Three rules every phase obeys:
  *
  *  - It never persists and never returns a slim status. A phase that can end
- *    the turn (the lock, the reinvocation reconcile) returns a
+ *    the turn (the lock, the reconcile turn's undo) returns a
  *    {@link TurnSettlement} naming WHAT was decided; the caller writes the
  *    status, persists once and returns. The lock golden pins that persist as
  *    the turn's one and only, which is why the rule is structural.
@@ -66,7 +67,7 @@ import { clone } from "@bufbuild/protobuf";
 import { RunStatusSchema, type Run, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunSpec } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import type { RunConfig } from "@stigmer/protos/ai/stigmer/agentic/run/v1/invocation_pb";
-import { ApprovalAction, FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
 import type { Config } from "../config.js";
@@ -86,8 +87,7 @@ import { prepareEvalCase, type PreparedEvalCase } from "../shared/plugin-eval/pr
 import { chatAgentMockModel } from "../shared/plugin-eval/agent-mock.js";
 import type { MockEndpoint } from "../shared/plugin-eval/mock-endpoint.js";
 import { formatTryStop } from "@stigmer/eval-runtime";
-import { applyCaptureDecisions, deriveCaptureMode } from "../shared/filereview/capture.js";
-import { casBlobReader } from "../shared/filereview/cas-substrate.js";
+import { deriveCaptureMode, deriveCaptureSubstrate, type UndoOutcome } from "../shared/filereview/capture.js";
 import {
   acquireWorkspaceLock,
   WorkspaceLockCancelledError,
@@ -134,7 +134,8 @@ import { sessionIdOf } from "../shared/execution-target.js";
 import { readConversationCatchup } from "../shared/conversation-catchup.js";
 import { selectRecalledFacts } from "../shared/memory-retrieval.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
-import type { FileReviewIdentity, HarnessCapabilities, PausePrimitive, StateIdSource } from "./capabilities.js";
+import type { HarnessCapabilities, PausePrimitive, StateIdSource } from "./capabilities.js";
+import { reconcileOwedUndos } from "./owed-undos.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
 import type {
   TurnAttachments,
@@ -203,6 +204,12 @@ export interface ResolutionDeps {
   readonly enterPhase: (step: string) => void;
   /** The user-visible setup label (`setupProgress`); the six strings are unchanged from the orchestrator. */
   readonly reportProgress: (label: string) => Promise<void>;
+  /**
+   * Writes what the turn's start put back for earlier turns into the
+   * session's log at once (`events/emitter.ts` `writeReconciled`), before the
+   * workspace lock is released (`owed-undos.ts`).
+   */
+  readonly recordReconciled: (outcomes: readonly UndoOutcome[]) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -242,10 +249,10 @@ export interface TurnReinvocation {
  *    longer use, a tool moved to another address, a sign-in that cannot be
  *    renewed). FAILED with the server's message, returned: a retry would
  *    read the same vaults.
- *  - `file-review-resolved`: a pure file-review resume; the agent already
- *    finished its turn during capture and the reconcile is the whole act.
- *    COMPLETED, returned, with the write-back finalized first when the
- *    reconcile held.
+ *  - `file-review-resolved`: a reconcile turn (`RunSpec.reconcile_file_review`),
+ *    the run a person's Undo on an ended turn starts: putting back the undos
+ *    still owed is the whole act, and no engine runs. COMPLETED, returned,
+ *    with the write-back finalized first when every undo held.
  *  - `eval-scaffold-failed`: a plugin-eval try's scaffold exited non-zero or
  *    ran past its limit. TERMINATED with the try stop's sentence, returned:
  *    the eval scores the try 0, and a retry would run the same script.
@@ -287,11 +294,6 @@ export type WorkspaceLockOutcome =
   | { readonly kind: "acquired"; readonly release: ReleaseWorkspaceLock | undefined }
   | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "workspace-lock-timeout" }> };
 
-/** The reinvocation phase's answer: what the previous invocation left, or one of the two settlements a reconcile can produce. */
-export type ReinvocationOutcome =
-  | { readonly kind: "ready"; readonly reinvocation: TurnReinvocation }
-  | { readonly kind: "settled"; readonly settlement: Extract<TurnSettlement, { kind: "file-review-resolved" }> };
-
 // ---------------------------------------------------------------------------
 // Pure helpers (exported for their tests and for the adapter kit)
 // ---------------------------------------------------------------------------
@@ -317,8 +319,8 @@ export type ReinvocationOutcome =
  *    orchestrator). A first run has no persisted messages and starts from
  *    empty, as it always did.
  *
- * This is the runtime's own reading, for its phases (the seed, the reconcile,
- * the exact-apply). An adapter that needs create-vs-resume for its ENGINE
+ * This is the runtime's own reading, for its phases (the seed, the
+ * exact-apply). An adapter that needs create-vs-resume for its ENGINE
  * reads `input.threadId` itself — for an engine-minted harness that is the
  * same bit, for a deterministic one the engine's checkpoint is the adapter's
  * to consult — so the contract carries no flag with two meanings.
@@ -338,46 +340,6 @@ export function isReinvocation(
       throw new Error(`isReinvocation: unknown state id source ${String(exhaustive)}`);
     }
   }
-}
-
-/** The facts the reinvocation decision reads; produced by {@link reconcileReinvocation}, exposed for the decision's own tests. */
-export interface ReinvocationFacts {
-  readonly approvalDecisions: ReadonlyMap<string, ApprovalAction>;
-  /** At least one DECIDED change set was reconciled this invocation. */
-  readonly reconciledFileReview: boolean;
-  /** A reconcile could not honor what-you-approve-is-what-applies (HASH_MISMATCH). */
-  readonly fileReviewFailed: boolean;
-  readonly fileReviewFailureDetail: string;
-  readonly discardedPaths: readonly string[];
-}
-
-/**
- * How a reinvocation proceeds, decided once from the facts: any adjudicated
- * decision runs the agent — an approved shell/MCP proceeds and may produce
- * further edits; a SKIP or REJECT denies its tool and the run continues
- * without it (the row is settled SKIPPED after the turn,
- * `approval-decisions.ts`); a resume that reconciled file review and decided
- * nothing else is complete, because keeping or discarding a file never
- * re-prompts the agent (Cursor-like). `undefined` means "run the agent".
- *
- * Until #1096 a REJECT failed the turn here with its own FAILED arm, Cursor's
- * legacy; the proto (`APPROVAL_ACTION_REJECT`: "does NOT fail the run"), the
- * conformance suite and the native harness said otherwise since stigmer#197,
- * and the runtime now agrees.
- */
-export function decideReinvocation(
-  facts: ReinvocationFacts,
-): Extract<TurnSettlement, { kind: "file-review-resolved" }> | undefined {
-  if (facts.approvalDecisions.size > 0) return undefined;
-  if (facts.reconciledFileReview) {
-    return {
-      kind: "file-review-resolved",
-      failed: facts.fileReviewFailed,
-      failureDetail: facts.fileReviewFailureDetail,
-      discardedPaths: facts.discardedPaths,
-    };
-  }
-  return undefined;
 }
 
 /**
@@ -517,28 +479,35 @@ export async function fetchValues(deps: ResolutionDeps): Promise<ValuesOutcome> 
  * repo, wire the git write-back coordinator, and decide the capture posture.
  *
  * Git provisioning is idempotent across multi-turn and HITL reinvocations.
- * The write-back coordinator pushes the session's APPROVED tree to the
- * session branch (stigmer/<session-id>) and keeps one PR open; finalize runs
- * at exactly two seams (the pure file-review resume and terminal
- * completion), never mid-turn, because the working tree is speculative until
- * reviewed. Non-eligible workspaces (local paths, no credentials) make it a
- * no-op coordinator, here `null`.
+ * The write-back coordinator pushes the session's tree to the session branch
+ * (stigmer/<session-id>) and keeps one PR open; finalize runs at exactly two
+ * seams (a reconcile turn, after it put undone files back, and terminal
+ * completion), never mid-turn. Non-eligible workspaces (local paths, no
+ * credentials) make it a no-op coordinator, here `null`.
  *
- * Apply-then-review is the universal file-review model: a git work
+ * File review is opt-in (`review`: the session's `file_review`, or a
+ * plugin-eval try). With it on, apply-then-review is the model: a git work
  * tree captures per-file from the git diff at the turn boundary; a NON-git
  * workspace captures every write via the path-scoped CAS substrate, which
  * needs artifact storage to persist blobs, and falls back to the classic
- * deny-gate without it. `gitWorkspace` selects the substrate; `captureMode`
- * says whether file edits flow at all.
+ * deny-gate without it. With it off, file edits flow and nothing is
+ * captured. `gitWorkspace` selects the substrate, `captureSubstrate` says
+ * whether one exists (the secret-path rule's input), `captureMode` whether
+ * capture runs.
  *
  * The change-set id is minted from the workflow-threaded turn index so it is
  * stable across a Temporal retry (idempotent ledger authoring) and unique per
- * turn; a "wasted" id on a pure-reconcile resume (which never authors a
- * baseline) is harmless.
+ * turn; a "wasted" id on a turn that captures nothing is harmless.
  */
 export async function provisionWorkspace(
   deps: ResolutionDeps,
-  args: { readonly session: Session; readonly sessionId: string; readonly repositories: readonly RepositoryToken[] },
+  args: {
+    readonly session: Session;
+    readonly sessionId: string;
+    readonly repositories: readonly RepositoryToken[];
+    /** Whether this turn's edits are offered for review ({@link fileReviewOn}). */
+    readonly review: boolean;
+  },
 ): Promise<{ readonly workspace: TurnWorkspace; readonly writeback: WriteBackCoordinator | null }> {
   deps.enterPhase("provision_workspace");
   await deps.reportProgress("Provisioning workspace");
@@ -559,13 +528,32 @@ export async function provisionWorkspace(
 
   const primaryDir = provision.workspaceDirs[0];
   const gitWorkspace = primaryDir ? await isGitWorkTree(primaryDir) : false;
-  const captureMode = deriveCaptureMode(primaryDir, gitWorkspace, !!deps.artifactStorage);
+  const captureSubstrate = deriveCaptureSubstrate(primaryDir, gitWorkspace, !!deps.artifactStorage);
+  const captureMode = deriveCaptureMode(primaryDir, gitWorkspace, !!deps.artifactStorage, args.review);
   const changeSetId = `${deps.input.executionId}:${deps.input.turnSeq}`;
 
   return {
-    workspace: { dirs: provision.workspaceDirs, primaryDir, gitWorkspace, captureMode, changeSetId, provision },
+    workspace: {
+      dirs: provision.workspaceDirs,
+      primaryDir,
+      gitWorkspace,
+      captureSubstrate,
+      fileReview: args.review,
+      captureMode,
+      changeSetId,
+      provision,
+    },
     writeback,
   };
+}
+
+/**
+ * Whether a turn's file edits are offered for review: the session asked
+ * (`SessionSpec.file_review`, off unless set), or the run is a plugin-eval
+ * try, whose file graders read the captured sets whatever the switch says.
+ */
+export function fileReviewOn(session: Session, spec: RunSpec): boolean {
+  return (session.spec?.fileReview ?? false) || spec.pluginEvalCase !== undefined;
 }
 
 /**
@@ -574,7 +562,7 @@ export async function provisionWorkspace(
  * the same localPath (or the shared runner root) resolve to ONE directory,
  * and an unserialized concurrent write lands inside this turn's
  * baseline→candidate window, misattributing another session's file to this
- * turn's review. Acquired before ANY tree mutation (decision reconcile, gate
+ * turn's review. Acquired before ANY tree mutation (the owed undos, gate
  * install, agent writes, capture); while another turn holds the lock this
  * surfaces a visible waiting state and heartbeats; a cancel aborts the wait
  * at once.
@@ -661,13 +649,19 @@ export async function prepareEvalCasePhase(
       settlement: { kind: "eval-scaffold-failed", message: formatTryStop({ kind: "scaffold-failed", detail: outcome.detail }) },
     };
   }
-  const { primaryDir } = args.workspace;
+  const { primaryDir, fileReview } = args.workspace;
   const gitWorkspace = primaryDir ? await isGitWorkTree(primaryDir) : false;
+  const hasStorage = !!deps.artifactStorage;
   return {
     kind: "ready",
     prepared: {
       case: outcome.prepared,
-      workspace: { ...args.workspace, gitWorkspace, captureMode: deriveCaptureMode(primaryDir, gitWorkspace, !!deps.artifactStorage) },
+      workspace: {
+        ...args.workspace,
+        gitWorkspace,
+        captureSubstrate: deriveCaptureSubstrate(primaryDir, gitWorkspace, hasStorage),
+        captureMode: deriveCaptureMode(primaryDir, gitWorkspace, hasStorage, fileReview),
+      },
       values: { ...args.values, agent: { ...args.values.agent, ...outcome.prepared.env } },
       archive,
     },
@@ -749,87 +743,71 @@ export async function bindTelemetryBaggage(
 }
 
 /**
- * Phase 3: what the previous invocation left, and
- * whether this one runs the agent at all.
+ * Phase 3: what the previous invocation left.
  *
- * On a reinvocation, first seed the in-progress status from the persisted
+ * On a reinvocation, seed the in-progress status from the persisted
  * execution ({@link seedFromPersistedStatus}), BEFORE the harness's
- * transcript builder wraps `status.messages`. Then the file-review reconcile (the
- * dual-source half): every change set the server projected as DECIDED is
- * reconciled from the ledger decisions and the pinned git refs (approved
- * kept at their "after" bytes, rejected snapped back to baseline, all
- * uncommitted, hash-verified) through the shared reconcile under the
- * harness's {@link FileReviewIdentity}. Independent of tool approvals: a
- * single turn can carry BOTH a DECIDED file change set AND an approved
- * shell/MCP action. Tool approvals (shell / MCP / gitignored writes) still
- * resolve from the message transcript, the deny-gate path, read here as
- * {@link approvalDecisionsOf} after the reconcile, at the same point the
- * orchestrator always read them.
+ * transcript builder wraps `status.messages`. Tool approvals (shell / MCP /
+ * a gated write) resolve from the message transcript, read here as
+ * {@link approvalDecisionsOf}. Any adjudicated decision runs the agent: an
+ * approved call proceeds; a SKIP or REJECT denies its tool and the run
+ * continues without it (the row is settled SKIPPED after the turn,
+ * `approval-decisions.ts`). Until #1096 a REJECT failed the turn here with
+ * its own FAILED arm, Cursor's legacy; the proto (`APPROVAL_ACTION_REJECT`:
+ * "does NOT fail the run"), the conformance suite and the native harness
+ * said otherwise since stigmer#197, and the runtime agrees.
  *
- * The outcome is {@link decideReinvocation}'s: a settlement the caller
- * writes and persists, or the facts the turn proceeds with.
+ * File review is not here: a turn never waits on it, and the undos a person
+ * made after a turn are done at every turn's start, under the lock
+ * (`owed-undos.ts`). The step name is the wire's and stays.
  */
 export async function reconcileReinvocation(
   deps: ResolutionDeps,
   args: {
     readonly stateIdSource: StateIdSource;
     readonly execution: Run;
-    readonly workspace: TurnWorkspace;
-    readonly fileReview: FileReviewIdentity;
   },
-): Promise<ReinvocationOutcome> {
+): Promise<TurnReinvocation> {
   deps.enterPhase("reconcile_reinvocation");
   const reinvoked = isReinvocation(args.stateIdSource, deps.input, args.execution);
-  let reconciledFileReview = false;
-  let fileReviewFailed = false;
-  let fileReviewFailureDetail = "";
-  const discardedPaths: string[] = [];
+  if (reinvoked) seedFromPersistedStatus(deps.status, deps.transcript, args.execution);
+  return { isReinvocation: reinvoked, approvalDecisions: approvalDecisionsOf(deps.status) };
+}
 
-  if (reinvoked) {
-    const existingStatus = args.execution.status;
-    seedFromPersistedStatus(deps.status, deps.transcript, args.execution);
-
-    if (args.workspace.captureMode && args.workspace.primaryDir) {
-      const decidedSets = (existingStatus?.fileChangeSets ?? []).filter(
-        (cs) => cs.status === FileChangeSetStatus.DECIDED,
-      );
-      for (const changeSet of decidedSets) {
-        const capResult = await applyCaptureDecisions({
-          status: deps.status,
-          gitRoot: args.workspace.primaryDir,
-          executionId: deps.input.executionId,
-          changeSet,
-          harnessId: args.fileReview.harnessId,
-          excludePaths: args.fileReview.excludePaths,
-          // Thread the CAS store so CAS-captured files in the change set
-          // reconcile from the durable manifest (approved after-blobs written,
-          // rejected snapped back). In a non-git workspace this is the ONLY
-          // reconcile; in a git tree it composes with the git-ref reconcile.
-          storage: deps.artifactStorage,
-          readBlob: deps.artifactStorage ? casBlobReader(deps.artifactStorage) : undefined,
-          gitWorkspace: args.workspace.gitWorkspace,
-        });
-        if (!capResult.isCaptureTurn) continue;
-        reconciledFileReview = true;
-        if (capResult.failed) {
-          fileReviewFailed = true;
-          fileReviewFailureDetail = capResult.failureDetail ?? "file review reconcile failed";
-        }
-        if (capResult.hadReject) discardedPaths.push(...capResult.rejectedPaths);
-      }
-    }
-  }
-
-  const approvalDecisions = approvalDecisionsOf(deps.status);
-  const settlement = decideReinvocation({
-    approvalDecisions,
-    reconciledFileReview,
-    fileReviewFailed,
-    fileReviewFailureDetail,
-    discardedPaths,
+/**
+ * Phase 2c, third half: the undos still owed to earlier turns, done under
+ * the lock before anything else touches the tree (`owed-undos.ts`), on every
+ * turn: a message turn, a reinvocation, a reconcile turn.
+ */
+export async function reconcileOwedUndosPhase(
+  deps: ResolutionDeps,
+  args: { readonly sessionId: string; readonly workspace: TurnWorkspace; readonly reconcileTurn: boolean },
+): Promise<readonly UndoOutcome[]> {
+  deps.enterPhase("reconcile_owed_undos");
+  const outcomes = await reconcileOwedUndos({
+    client: deps.client,
+    runId: deps.input.executionId,
+    sessionId: args.sessionId,
+    workspace: args.workspace,
+    artifactStorage: deps.artifactStorage,
+    reconcileTurn: args.reconcileTurn,
+    recordReconciled: deps.recordReconciled,
   });
-  if (settlement) return { kind: "settled", settlement };
-  return { kind: "ready", reinvocation: { isReinvocation: reinvoked, approvalDecisions } };
+  deps.timing.mark("reconcile_owed_undos");
+  return outcomes;
+}
+
+/** A reconcile turn's settlement from what its start put back: COMPLETED, its rows naming what was undone or what failed. */
+export function reconcileTurnSettlement(
+  outcomes: readonly UndoOutcome[],
+): Extract<TurnSettlement, { kind: "file-review-resolved" }> {
+  const failures = outcomes.filter((outcome) => outcome.failure !== "");
+  return {
+    kind: "file-review-resolved",
+    failed: failures.length > 0,
+    failureDetail: failures.map((outcome) => outcome.failureDetail).join("; "),
+    discardedPaths: outcomes.flatMap((outcome) => outcome.undonePaths),
+  };
 }
 
 /** The transcript row a turn without the platform's own MCP servers carries (#2062). */
@@ -1519,8 +1497,7 @@ export function regeneratesApprovedWrites(pausePrimitive: PausePrimitive): boole
  * (see `shared/exact-apply.ts`).
  *
  * Scoped to the harnesses that regenerate ({@link regeneratesApprovedWrites})
- * and OUT of capture mode, which does not reinvoke the model for file edits:
- * it applies the exact captured bytes itself in the reconcile.
+ * and OUT of capture mode, where a file edit flows and is never asked for.
  *
  * The caller persists when the returned set is non-empty (the applied state
  * must be durable before the continuation runs, and the UI reflects it at
@@ -1638,7 +1615,7 @@ export interface TurnFrame {
   primaryDir: string | undefined;
   /** Exclusive turn lock on the primary tree; released LAST, after the adapter's own teardown. */
   releaseWorkspaceLock: ReleaseWorkspaceLock | undefined;
-  /** Finalizes at exactly two seams: the pure file-review resume and terminal completion. `null` when nothing is eligible. */
+  /** Finalizes at exactly two seams: a reconcile turn and terminal completion. `null` when nothing is eligible. */
   writeback: WriteBackCoordinator | null;
   /** A plugin-eval try's mock endpoint, bound when the engine's turn starts and closed when the turn ends. */
   evalMocks: MockEndpoint | undefined;
@@ -1654,6 +1631,10 @@ export type TurnResolution =
 /**
  * Run the phases in order and compose the turn's `TurnInput`, or stop at
  * the first settlement.
+ *
+ * A reconcile turn (`RunSpec.reconcile_file_review`, no message) takes
+ * {@link resolveReconcileTurn} instead, right after the execution is read:
+ * it never reaches a phase that prepares an engine.
  *
  * The order is the orchestrator's, with its harness-specific steps gone
  * (they run inside `adapter.runTurn`, after this returns): the tool surface,
@@ -1671,13 +1652,19 @@ export async function resolveTurnContext(
   persist: () => Promise<void>,
 ): Promise<TurnResolution> {
   const { execution, spec, sessionId } = await fetchExecution(deps);
+  if (spec.reconcileFileReview) return resolveReconcileTurn(deps, frame, sessionId);
   const { session, blueprint } = await resolveAgentBlueprint(deps, execution, sessionId);
   const unrunnable = refuseUnrunnableHooks(blueprint, capabilities);
   if (unrunnable !== undefined) return { kind: "settled", settlement: unrunnable };
   const fetched = await fetchValues(deps);
   if (fetched.kind === "settled") return { kind: "settled", settlement: fetched.settlement };
   let { values } = fetched;
-  const provisioned = await provisionWorkspace(deps, { session, sessionId, repositories: values.repositories });
+  const provisioned = await provisionWorkspace(deps, {
+    session,
+    sessionId,
+    repositories: values.repositories,
+    review: fileReviewOn(session, spec),
+  });
   let { workspace } = provisioned;
   const { writeback } = provisioned;
   frame.primaryDir = workspace.primaryDir;
@@ -1686,6 +1673,7 @@ export async function resolveTurnContext(
   const lock = await acquireWorkspaceTurnLock(deps, workspace.primaryDir);
   if (lock.kind === "settled") return { kind: "settled", settlement: lock.settlement };
   frame.releaseWorkspaceLock = lock.release;
+  await reconcileOwedUndosPhase(deps, { sessionId, workspace, reconcileTurn: false });
 
   await bindTelemetryBaggage(deps, { session, sessionId });
 
@@ -1698,13 +1686,10 @@ export async function resolveTurnContext(
     frame.evalReadFiles = spec.pluginEvalCase?.readFiles;
   }
 
-  const reinvoked = await reconcileReinvocation(deps, {
+  const reinvocation = await reconcileReinvocation(deps, {
     stateIdSource: capabilities.stateIdSource,
     execution,
-    workspace,
-    fileReview: capabilities.fileReview,
   });
-  if (reinvoked.kind === "settled") return { kind: "settled", settlement: reinvoked.settlement };
 
   const resolvedMcp = await resolveMcpServersAndPolicies(deps, {
     execution,
@@ -1750,7 +1735,7 @@ export async function resolveTurnContext(
   const appliedToolCallIds = await applyApprovedWrites(deps, {
     pausePrimitive: capabilities.pausePrimitive,
     workspace,
-    reinvocation: reinvoked.reinvocation,
+    reinvocation,
   });
   if (appliedToolCallIds.size > 0) {
     // Persist the applied writes (tool calls now COMPLETED with the approved
@@ -1766,7 +1751,7 @@ export async function resolveTurnContext(
       threadId: deps.input.threadId,
       turnSeq: deps.input.turnSeq,
       sessionId,
-      approvalDecisions: reinvoked.reinvocation.approvalDecisions,
+      approvalDecisions: reinvocation.approvalDecisions,
       execution,
       session,
       blueprint,
@@ -1786,4 +1771,42 @@ export async function resolveTurnContext(
       ...(prepared?.case.history !== undefined && { resumedHistory: prepared.case.history }),
     },
   };
+}
+
+/**
+ * A reconcile turn's whole resolution: the run a person's Undo on an ended
+ * turn starts, with no message and nothing for an engine to do. Only what
+ * putting the files back needs: the session (its workspace entries; no
+ * blueprint is resolved), the run's values (the repository tokens the
+ * write-back pushes with), the workspace and its lock, then the undos owed
+ * (`owed-undos.ts`). No hook, eval case, MCP server, skill, attachment or
+ * engine is touched on any harness, and the session event emitter never
+ * begins; the outcome is written as `stigmer.file_review.reconciled` and the
+ * turn settles `file-review-resolved`, whose settle finalizes the write-back
+ * and completes with stop cause `review_resolved`.
+ */
+export async function resolveReconcileTurn(
+  deps: ResolutionDeps,
+  frame: TurnFrame,
+  sessionId: string,
+): Promise<TurnResolution> {
+  deps.enterPhase("load_session");
+  const session = await deps.client.getSession(sessionId);
+  deps.timing.mark("load_session");
+  const fetched = await fetchValues(deps);
+  if (fetched.kind === "settled") return { kind: "settled", settlement: fetched.settlement };
+  const { workspace, writeback } = await provisionWorkspace(deps, {
+    session,
+    sessionId,
+    repositories: fetched.values.repositories,
+    review: false,
+  });
+  frame.primaryDir = workspace.primaryDir;
+  frame.writeback = writeback;
+
+  const lock = await acquireWorkspaceTurnLock(deps, workspace.primaryDir);
+  if (lock.kind === "settled") return { kind: "settled", settlement: lock.settlement };
+  frame.releaseWorkspaceLock = lock.release;
+  const outcomes = await reconcileOwedUndosPhase(deps, { sessionId, workspace, reconcileTurn: true });
+  return { kind: "settled", settlement: reconcileTurnSettlement(outcomes) };
 }

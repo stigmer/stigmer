@@ -106,6 +106,7 @@ function deps(options: { readonly channels: boolean }): ResolutionDeps {
     heartbeat: () => undefined,
     enterPhase: () => undefined,
     reportProgress: async () => undefined,
+    recordReconciled: async () => undefined,
   };
 }
 

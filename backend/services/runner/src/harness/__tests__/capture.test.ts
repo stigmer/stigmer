@@ -46,6 +46,8 @@ function workspaceOver(root: string, turnSeq = 0): TurnWorkspace {
     dirs: [root],
     primaryDir: root,
     gitWorkspace: true,
+    captureSubstrate: true,
+    fileReview: true,
     captureMode: true,
     changeSetId: `${EXECUTION_ID}:${turnSeq}`,
     provision: { workspaceDirs: [root], provisionResults: [], workspaceBackend: mockWorkspaceBackend() },

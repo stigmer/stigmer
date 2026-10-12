@@ -18,11 +18,16 @@
  *   thread events ...... <thread>.created | .running | .sent | .received | .idle
  *   structured output .. <run>.output
  *   memory recall ...... <run>.memory
+ *   file changes ....... <run>.fr<turn seq>         (a change set, `<run>:<turn seq>`)
+ *   files put back ..... <run>.fr<turn seq>.r
  *
  * `scope` is `root`, or the sub-agent's row id, and `index` the row's place
  * in its scope's message array: a reinvocation seeds the array back in
  * order and nothing removes a message, so the place is stable for the
- * run's life. A thread's id equals its `task` call's tool use id (the
+ * run's life. The two file-review ids derive from the change set, so the
+ * second one begins with the change set's run even when another run (the
+ * turn that put the files back) writes it: one per change set, whichever
+ * turn reconciles it. A thread's id equals its `task` call's tool use id (the
  * sub-agent row's id is that call's id on both harnesses); thread ids and
  * event ids are separate namespaces, and the thread's own events take a
  * suffix.
@@ -38,6 +43,8 @@
  */
 
 import { createHash } from "node:crypto";
+
+import { changeSetIdParts } from "../../shared/filereview/events.js";
 
 /** The contract's event id pattern (`event.proto`): letters, digits, `_ . : -`, at most 128. */
 export const EVENT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/;
@@ -119,4 +126,15 @@ export function structuredOutputEventId(runId: string): string {
 /** The turn's `stigmer.memory.recalled`. */
 export function memoryRecalledEventId(runId: string): string {
   return `${runId}.memory`;
+}
+
+/** A change set's `stigmer.file_review.changes`: `<run>.fr<turn seq>`, from its id `<run>:<turn seq>`. */
+export function fileReviewChangesEventId(changeSetId: string): string {
+  const { runId, turnSeq } = changeSetIdParts(changeSetId);
+  return `${runId}.fr${turnSeq}`;
+}
+
+/** A change set's `stigmer.file_review.reconciled`: its changes event's id with `.r`. */
+export function fileReviewReconciledEventId(changeSetId: string): string {
+  return `${fileReviewChangesEventId(changeSetId)}.r`;
 }

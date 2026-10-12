@@ -6,7 +6,7 @@
  *
  * This exercises the REAL {@link ProxyArtifactStorage} end to end against a mock
  * proxy + object store, so the whole stack — presign, the ranged-GET existence
- * probe, blob upload/download, and the manifest reconcile — is proven over HTTP.
+ * probe, blob upload/download, and the manifest undo — is proven over HTTP.
  * That is precisely the coverage that was missing when the bug shipped: every
  * prior file-review proof used LocalArtifactStorage / in-memory fakes, whose
  * `exists()` is honest, so none of them could reproduce the proxy behavior where
@@ -40,9 +40,9 @@ import {
 import { ProxyArtifactStorage } from "../../artifact-storage.js";
 import { casBlobReader, casManifestKey } from "../cas-substrate.js";
 import {
-  applyCaptureDecisions,
   captureBaselineToLedger,
   captureCandidateToLedger,
+  undoChangeSet,
 } from "../capture.js";
 
 const execFileAsync = promisify(execFile);
@@ -192,7 +192,7 @@ describe("proxy-mode file-review reconcile (real ProxyArtifactStorage)", () => {
     await proxy.close();
   });
 
-  it("git-only turn reconciles without probing/downloading a nonexistent CAS manifest (error.md regression)", async () => {
+  it("a git-only turn's undo never probes or downloads a nonexistent CAS manifest (error.md regression)", async () => {
     const repo = await mkdtemp(join(tmpdir(), "stigmer-proxy-git-"));
     try {
       const git = (args: string[]) => execFileAsync("git", args, { cwd: repo });
@@ -213,18 +213,15 @@ describe("proxy-mode file-review reconcile (real ProxyArtifactStorage)", () => {
         baselineTree: baseline, harnessId: HARNESS,
       });
 
-      const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.APPROVE });
+      const changeSet = decidedChangeSet(status, { "notes.md": FileDecisionAction.REJECT });
 
       // The exact production call shape: a real ProxyArtifactStorage is threaded.
-      const result = await applyCaptureDecisions({
-        status, gitRoot: repo, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-        storage, readBlob: casBlobReader(storage),
-      });
+      const outcome = await undoChangeSet({ gitRoot: repo, changeSet, gitWorkspace: true, readBlob: casBlobReader(storage) });
 
-      expect(result.failed).toBe(false);
-      expect(result.approvedPaths).toEqual(["notes.md"]);
-      expect(await readFile(join(repo, "notes.md"), "utf8")).toBe("PLANTON notes edited\n");
-      // The regression proof: the reconcile never fetched the (nonexistent) CAS
+      expect(outcome.failure).toBe("");
+      expect(outcome.undonePaths).toEqual(["notes.md"]);
+      expect(await readFile(join(repo, "notes.md"), "utf8")).toBe("planton notes\n");
+      // The regression proof: the undo never fetched the (nonexistent) CAS
       // manifest from the object store. On the old code, exists() trusted the
       // presign, this GET returned 404, and the execution crashed.
       expect(proxy.objectGets).not.toContain(casManifestKey(EXEC_ID, CHANGE_SET_ID));
@@ -233,7 +230,7 @@ describe("proxy-mode file-review reconcile (real ProxyArtifactStorage)", () => {
     }
   });
 
-  it("non-git CAS turn round-trips blobs + manifest through the real proxy (approve byte-exact, reject reverted)", async () => {
+  it("a non-git CAS turn round-trips blobs + manifest through the real proxy (kept untouched, undone reverted)", async () => {
     const ws = await mkdtemp(join(tmpdir(), "stigmer-proxy-cas-"));
     try {
       const enc = (s: string) => new TextEncoder().encode(s);
@@ -266,15 +263,13 @@ describe("proxy-mode file-review reconcile (real ProxyArtifactStorage)", () => {
         "created.txt": FileDecisionAction.APPROVE,
         "edited.txt": FileDecisionAction.REJECT,
       });
-      const result = await applyCaptureDecisions({
-        status, gitRoot: ws, executionId: EXEC_ID, changeSet, harnessId: HARNESS,
-        storage, readBlob: casBlobReader(storage), gitWorkspace: false,
-      });
+      const outcome = await undoChangeSet({ gitRoot: ws, changeSet, gitWorkspace: false, readBlob: casBlobReader(storage) });
 
-      expect(result.failed).toBe(false);
-      // Approved create kept byte-exact from the downloaded after-blob.
+      expect(outcome.failure).toBe("");
+      expect(outcome.undonePaths).toEqual(["edited.txt"]);
+      // The kept create is left as the tree holds it.
       expect(await readFile(join(ws, "created.txt"), "utf8")).toBe("X");
-      // Rejected modify snapped back to its downloaded before-blob.
+      // The undone modify snapped back to its downloaded before-blob.
       expect(await readFile(join(ws, "edited.txt"), "utf8")).toBe("OLD");
       // The manifest WAS downloaded this time (a genuine CAS turn), unlike the
       // git-only case above.

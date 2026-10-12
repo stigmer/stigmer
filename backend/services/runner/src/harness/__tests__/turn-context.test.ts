@@ -1,5 +1,5 @@
 /**
- * Pins the turn context's pure decisions — the three places `turn-context.ts`
+ * Pins the turn context's pure decisions — the places `turn-context.ts`
  * decides something rather than fetching it:
  *
  *  - `isReinvocation`: the runtime's one reading of "does this invocation
@@ -13,10 +13,10 @@
  *    (`reconstructAdjudicatedApprovals`) is pinned from the adapter's side
  *    (`activities/execute-cursor/__tests__/approval-state.test.ts`), because
  *    `src/harness/` never imports `src/activities/`, tests included.
- *  - `decideReinvocation`: the three ways a resume proceeds (any decision
- *    runs the agent — REJECT included since #1096 —, a clean file-review
- *    resume completes, a failed or partially discarded one completes with
- *    its facts carried).
+ *  - `fileReviewOn`: a turn's file review is on when the session asks for
+ *    it or the run is a plugin-eval try, and off otherwise (the default).
+ *  - `reconcileTurnSettlement`: a reconcile turn completes, its rows naming
+ *    the files put back, or the failures when any undo failed.
  *  - `regeneratesApprovedWrites`: which pause primitives make the runner pin
  *    an approved whole-file write's bytes itself (the engine re-runs the
  *    model) and which never do (the engine applies the exact args it paused
@@ -36,7 +36,9 @@ import { SubAgentRunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/sub
 import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { approvalDecisionsOf } from "../approval-decisions.js";
-import { decideReinvocation, isReinvocation, regeneratesApprovedWrites, type ReinvocationFacts } from "../turn-context.js";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
+import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { fileReviewOn, isReinvocation, reconcileTurnSettlement, regeneratesApprovedWrites } from "../turn-context.js";
 
 const INPUT = { executionId: "aex_1", threadId: "", turnSeq: 0 } as const;
 
@@ -147,62 +149,44 @@ describe("approvalDecisionsOf", () => {
   });
 });
 
-function facts(overrides: Partial<ReinvocationFacts> = {}): ReinvocationFacts {
-  return {
-    approvalDecisions: new Map(),
-    reconciledFileReview: false,
-    fileReviewFailed: false,
-    fileReviewFailureDetail: "",
-    discardedPaths: [],
-    ...overrides,
-  };
-}
+describe("fileReviewOn", () => {
+  const session = (fileReview: boolean) => create(SessionSchema, { spec: { fileReview } });
+  const message = create(RunSpecSchema, { message: "Edit the notes." });
+  const evalTry = create(RunSpecSchema, { message: "Edit the notes.", pluginEvalCase: {} });
 
-describe("decideReinvocation", () => {
-  it("a first turn, or a resume that decided nothing and reconciled nothing, runs the agent", () => {
-    expect(decideReinvocation(facts())).toBeUndefined();
+  it("is off unless the session asks for it", () => {
+    expect(fileReviewOn(session(false), message)).toBe(false);
+    expect(fileReviewOn(create(SessionSchema, {}), message)).toBe(false);
+    expect(fileReviewOn(session(true), message)).toBe(true);
   });
 
-  it("a REJECT runs the agent like any other decision — the run continues without the tool (stigmer#197)", () => {
-    // Until #1096 this returned `{ kind: "rejected-by-user" }` and the runtime
-    // FAILED the execution before any engine ran, contradicting the proto, the
-    // conformance suite and the native harness.
-    const decisions = new Map([
-      ["tc-1", ApprovalAction.APPROVE],
-      ["tc-2", ApprovalAction.REJECT],
-    ]);
-    expect(decideReinvocation(facts({ approvalDecisions: decisions }))).toBeUndefined();
-    expect(decideReinvocation(facts({ approvalDecisions: new Map([["tc-2", ApprovalAction.REJECT]]) }))).toBeUndefined();
+  it("is on for a plugin-eval try whatever the switch says: its graders read the captured sets", () => {
+    expect(fileReviewOn(session(false), evalTry)).toBe(true);
+    expect(fileReviewOn(session(true), evalTry)).toBe(true);
+  });
+});
+
+describe("reconcileTurnSettlement", () => {
+  it("nothing owed: a reconcile turn completes with nothing to say", () => {
+    expect(reconcileTurnSettlement([])).toEqual({ kind: "file-review-resolved", failed: false, failureDetail: "", discardedPaths: [] });
   });
 
-  it("any adjudicated decision runs the agent, even when file review was also reconciled", () => {
-    const decisions = new Map([["tc-1", ApprovalAction.APPROVE]]);
-    expect(decideReinvocation(facts({ approvalDecisions: decisions, reconciledFileReview: true }))).toBeUndefined();
-    expect(decideReinvocation(facts({ approvalDecisions: new Map([["tc-1", ApprovalAction.SKIP]]) }))).toBeUndefined();
-  });
-
-  it("a pure file-review resume completes, carrying the reconcile's facts", () => {
-    expect(decideReinvocation(facts({ reconciledFileReview: true }))).toEqual({
-      kind: "file-review-resolved",
-      failed: false,
-      failureDetail: "",
-      discardedPaths: [],
-    });
+  it("names every file put back, across change sets", () => {
     expect(
-      decideReinvocation(
-        facts({
-          reconciledFileReview: true,
-          fileReviewFailed: true,
-          fileReviewFailureDetail: "src/a.ts changed after review",
-          discardedPaths: ["src/b.ts"],
-        }),
-      ),
-    ).toEqual({
-      kind: "file-review-resolved",
-      failed: true,
-      failureDetail: "src/a.ts changed after review",
-      discardedPaths: ["src/b.ts"],
-    });
+      reconcileTurnSettlement([
+        { changeSetId: "run_a:0", undonePaths: ["a.md"], failure: "", failureDetail: "" },
+        { changeSetId: "run_b:0", undonePaths: ["b.md", "c.md"], failure: "", failureDetail: "" },
+      ]),
+    ).toEqual({ kind: "file-review-resolved", failed: false, failureDetail: "", discardedPaths: ["a.md", "b.md", "c.md"] });
+  });
+
+  it("a failed undo fails the settlement's copy and carries its detail", () => {
+    expect(
+      reconcileTurnSettlement([
+        { changeSetId: "run_a:0", undonePaths: [], failure: "hash_mismatch", failureDetail: "a.md changed" },
+        { changeSetId: "run_b:0", undonePaths: ["b.md"], failure: "", failureDetail: "" },
+      ]),
+    ).toEqual({ kind: "file-review-resolved", failed: true, failureDetail: "a.md changed", discardedPaths: ["b.md"] });
   });
 });
 

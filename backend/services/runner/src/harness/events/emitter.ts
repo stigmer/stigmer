@@ -28,6 +28,15 @@
  * So narration a boundary later blanks sits behind an unsealed row and
  * reaches neither the log nor a preview.
  *
+ * File review. A change set the turn captured (a CANDIDATE_CAPTURED on the
+ * run's own ledger, `status.file_review_event_stream`) is written as one
+ * `stigmer.file_review.changes`, read from that ledger at the same
+ * chokepoint, once. The undo a turn's start does for an earlier turn
+ * (`harness/owed-undos.ts`) is written as `stigmer.file_review.reconciled`
+ * through {@link writeReconciled}, at once, before the engine's turn begins
+ * and before the workspace lock is released. A decision is never the
+ * runner's to write: `stigmer.file_review.decided` is the server's.
+ *
  * Which rows are its to write. Seeded SYSTEM rows never are (the server's
  * stop rows, or notes an earlier invocation wrote); the rows a terminal arm
  * appends are reported ({@link skipRootRows}) and skipped, because the
@@ -59,17 +68,28 @@ import { create, toBinary } from "@bufbuild/protobuf";
 import type { JsonObject, MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalPolicySource, MessageType, SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import {
+  ApprovalPolicySource,
+  FileChangeKind,
+  FileReviewBlockReason,
+  MessageType,
+  SubAgentStatus,
+  ToolCallStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import type { CapturedFileChange } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { SessionEventPreviewSchema, type SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
+import type { UndoOutcome } from "../../shared/filereview/capture.js";
 import { elideToEncodedSize } from "../../shared/status-offload.js";
 import { isToolCallRowHidden } from "../../shared/tool-row.js";
 import type { TranscriptEvent } from "../transcript/events.js";
 import {
+  fileReviewChangesEventId,
+  fileReviewReconciledEventId,
   harnessNoteEventId,
   memoryRecalledEventId,
   messageEventId,
@@ -161,6 +181,24 @@ export const POLICY_SOURCE_WORDS: Readonly<Record<ApprovalPolicySource, string>>
   [ApprovalPolicySource.UNATTENDED_SKIP]: "unattended_skip",
   [ApprovalPolicySource.HOOK]: "hook",
 };
+
+/** A ledger change kind as the log's word (`stigmer.file_review.changes`): a binary change is a modification. */
+export const FILE_CHANGE_WORDS: Readonly<Record<FileChangeKind, string>> = {
+  [FileChangeKind.UNSPECIFIED]: "modified",
+  [FileChangeKind.ADD]: "added",
+  [FileChangeKind.MODIFY]: "modified",
+  [FileChangeKind.DELETE]: "deleted",
+  [FileChangeKind.RENAME]: "renamed",
+  [FileChangeKind.BINARY_CHANGE]: "modified",
+};
+
+/** How much of a captured change can be shown, as the log's word. */
+export function reviewableWord(change: CapturedFileChange): string {
+  if (change.diffComplete) return "complete";
+  if (change.blockedReason === FileReviewBlockReason.SECRET_WITHHELD) return "secret";
+  if (change.before?.isBinary === true || change.after?.isBinary === true) return "binary";
+  return "partial";
+}
 
 export class SessionEventEmitter {
   private began = false;
@@ -291,12 +329,68 @@ export class SessionEventEmitter {
       if (this.queue.length === before) break;
     }
 
+    this.collectFileReviewChanges(status);
+
     if (status.structuredOutput !== undefined && this.frontiers.get("")?.kind === "end" && final) {
       this.push("", structuredOutputEventId(runId), {
         case: "stigmerAgentStructuredOutput",
         value: { id: structuredOutputEventId(runId), output: status.structuredOutput },
       });
     }
+  }
+
+  /** One `stigmer.file_review.changes` per change set the run's own ledger captured (the module header). */
+  private collectFileReviewChanges(status: RunStatus): void {
+    for (const event of status.fileReviewEventStream?.events ?? []) {
+      if (event.payload.case !== "candidateCaptured") continue;
+      const candidate = event.payload.value;
+      const id = fileReviewChangesEventId(candidate.changeSetId);
+      this.push("", id, {
+        case: "stigmerFileReviewChanges",
+        value: {
+          id,
+          changeSetId: candidate.changeSetId,
+          files: candidate.changes.map((change) => ({
+            fileChangeId: change.id,
+            path: change.pathAfter || change.pathBefore,
+            previousPath: change.kind === FileChangeKind.RENAME ? change.pathBefore : "",
+            change: FILE_CHANGE_WORDS[change.kind],
+            digest: change.fileDigest,
+            linesAdded: change.linesAdded,
+            linesRemoved: change.linesRemoved,
+            reviewable: reviewableWord(change),
+          })),
+          aggregateDigest: candidate.aggregateDigest,
+        },
+      });
+    }
+  }
+
+  /**
+   * Write what a turn's start put back for earlier turns, one
+   * `stigmer.file_review.reconciled` per change set, at once: whether or not
+   * the engine's turn has begun (a reconcile turn never begins one), and
+   * before the caller releases the workspace lock, so the next holder of the
+   * tree reads it and does not undo the same files again. Retried as a
+   * terminal write is; a loss is logged, never thrown. An outcome the log
+   * already holds is not sent again.
+   */
+  async writeReconciled(outcomes: readonly UndoOutcome[]): Promise<void> {
+    for (const outcome of outcomes) {
+      const id = fileReviewReconciledEventId(outcome.changeSetId);
+      this.push("", id, {
+        case: "stigmerFileReviewReconciled",
+        value: {
+          id,
+          changeSetId: outcome.changeSetId,
+          undonePaths: [...outcome.undonePaths],
+          failure: outcome.failure,
+          failureDetail: outcome.failureDetail,
+        },
+      });
+    }
+    if (this.queue.length === 0) return;
+    await this.append([], true);
   }
 
   /** One thread's sealed prefix, from its start, skipping what is already sent or queued. */

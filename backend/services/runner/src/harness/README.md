@@ -57,7 +57,14 @@ pinned somewhere. Read a row across before searching for anything.
   event's id from its run and row. An adapter supplies one fact, which rows its
   turn boundary may still rewrite (`boundaryRewritesRow`).
 - `harness/capture.ts` — the file-review capture. The runtime owns all of it; an
-  adapter supplies one fact, which CAS-owned paths its engine touched.
+  adapter supplies one fact, which CAS-owned paths its engine touched. Review is
+  opt-in (the session's `file_review`); with it off a built-in file write or
+  delete flows unasked and nothing is captured, and the secret-path refusal
+  still applies (`shared/approval-policy.ts`). A captured turn never waits on
+  review.
+- `harness/owed-undos.ts` — the undos a person made after a turn, put back at
+  every turn's start under the workspace lock, and the reconcile turn's whole
+  act (`reconcileOwedUndos`).
 - `harness/turn-context.ts` — the resolution phases that build the `TurnInput`
   (`resolveTurnContext`), and what is deliberately left to the adapter.
 - `harness/run-turn.ts` — the activity body (`runTurnActivity`) and

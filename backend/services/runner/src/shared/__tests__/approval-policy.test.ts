@@ -500,11 +500,15 @@ describe("toProtoPolicySource", () => {
   it("maps file_capture, an audit-only source, to UNSPECIFIED", () => {
     expect(toProtoPolicySource("file_capture")).toBe(ApprovalPolicySource.UNSPECIFIED);
   });
+
+  it("maps file_review_off, an audit-only source, to UNSPECIFIED", () => {
+    expect(toProtoPolicySource("file_review_off")).toBe(ApprovalPolicySource.UNSPECIFIED);
+  });
 });
 
 describe("POLICY_ENGINE_VERSION", () => {
-  it("is hooks-1: an agent's hooks answer before the default", () => {
-    expect(POLICY_ENGINE_VERSION).toBe("hooks-1");
+  it("is hooks-2: a file edit flows unasked when the turn's file review is off", () => {
+    expect(POLICY_ENGINE_VERSION).toBe("hooks-2");
   });
 });
 
