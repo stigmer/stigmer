@@ -203,8 +203,8 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
     expect(reconciled.stopCause).toBe("review_resolved");
     expect(
       record.sessionEvents.filter((e) => e.event.case === "stigmerFileReviewReconciled").map((e) => [e.runId, e.event.value?.id]),
-      "one reconciled event, written by the reconcile turn",
-    ).toEqual([[reconcileRunId, `${FIXTURE.executionId}.fr0.r`]]);
+      "one reconciled event, written by the reconcile turn, answering the undo by its decided event",
+    ).toEqual([[reconcileRunId, `${FIXTURE.executionId}.fr0.r.${record.sessionEvents.find((e) => e.event.case === "stigmerFileReviewDecided")?.event.value?.id}`]]);
     const reconcileJson = JSON.stringify(toJson(RunStatusSchema, reconciled), null, 2) + "\n";
     expect(reconcileJson).not.toContain(env.workspaceRootDir);
     await expect(reconcileJson).toMatchFileSnapshot("./goldens/file-review-reconcile.status.json");

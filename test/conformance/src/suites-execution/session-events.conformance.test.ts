@@ -676,7 +676,13 @@ describe("file review's events", () => {
 
     const reconcile = await idleLog(sessionId, reconcileRunId);
     expect(reconcile.map(typeOf)).toEqual(["session.status_running", "stigmer.file_review.reconciled", "session.status_idle"]);
-    expect(idOf(reconcile[1]!), "one per change set, whichever turn reconciles it").toBe(`${reviewEventId(set.id)}.r`);
+    const undoDecided = (await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000 })).events.find(
+      (event) => event.event.case === "stigmerFileReviewDecided" && event.event.value.changeSetId === set.id,
+    );
+    expect(
+      idOf(reconcile[1]!),
+      "one per undo, named by the change set and the undo's decided event, whichever turn reconciles it",
+    ).toBe(`${reviewEventId(set.id)}.r.${idOf(undoDecided!)}`);
     const reconciled = reconcile[1]!.event;
     expect(
       reconciled.case === "stigmerFileReviewReconciled" && [

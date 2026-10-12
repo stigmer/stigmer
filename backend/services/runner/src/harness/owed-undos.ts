@@ -14,6 +14,12 @@
  * turn takes the tree first does the work; the other reads its
  * `stigmer.file_review.reconciled` and skips.
  *
+ * What is owed is keyed per undo, never per change set: a set's files can be
+ * undone one at a time, each after the last was put back, and an undo can be
+ * decided while a reconcile turn that already read the log is still running.
+ * Each undo is answered by its own `reconciled`, whose id names the undo's
+ * `decided` event (`events/ids.ts` `fileReviewReconciledEventId`).
+ *
  * What is owed is read from the session's log, never from a run: the
  * reconcile result cannot land on the change set's run, which has finished
  * and which this runner may not write. One bounded read, newest first, of
@@ -21,15 +27,17 @@
  * `stigmer.file_review.reconciled`, back to and including the newest
  * `user.message` that is not this run's: a change set is decidable only
  * while its turn's message is the newest, so no undo older than that slice
- * can still be owed. An `undo` decided in the slice whose change set has no
- * `reconciled` in it is owed. The change set itself (its files, its
+ * can still be owed. An `undo` decided in the slice with no `reconciled`
+ * answering it is owed. The change set itself (its files, its
  * decisions) is read from its run (`getExecution`, `status.file_change_sets`),
  * which the run's credential may view as the person who created this run.
  *
- * The work is `shared/filereview/capture.ts` `undoChangeSet`, with its hash
- * guard; its outcome is written at once as one `reconciled` event per change
- * set (`events/emitter.ts` `writeReconciled`). Nothing is written to any
- * ledger.
+ * The work is `shared/filereview/capture.ts` `undoChangeSet`, once per
+ * change set with an undo owed, with its hash guard: it restores every file
+ * the set's decisions undo, so a file an earlier undo already put back is
+ * put back again, unchanged. Its outcome is written at once as one
+ * `reconciled` event per owed undo, naming the files that undo covers
+ * (`events/emitter.ts` `writeReconciled`). Nothing is written to any ledger.
  *
  * Then, in a message turn only, the capture refs of the previous message
  * turn's run are dropped (`git-substrate.ts` `dropCaptureRefs`): that turn's
@@ -48,6 +56,7 @@ import { undoChangeSet, type UndoOutcome } from "../shared/filereview/capture.js
 import { casBlobReader } from "../shared/filereview/cas-substrate.js";
 import { changeSetIdParts } from "../shared/filereview/events.js";
 import { dropCaptureRefs } from "../shared/filereview/git-substrate.js";
+import { fileReviewReconciledEventId } from "./events/ids.js";
 import type { TurnWorkspace } from "./types.js";
 
 /** The log types the owed read asks for. */
@@ -60,9 +69,24 @@ export const OWED_UNDO_EVENT_TYPES = [
 /** One page of the owed read: enough for an ordinary turn's decisions in one call. */
 const OWED_READ_PAGE_SIZE = 200;
 
-/** What the owed read found: the change sets to undo, oldest decision first, and the previous message turn's run. */
+/** One undo still owed: its `decided` event, and what it covers. */
+export interface OwedUndo {
+  readonly decidedEventId: string;
+  readonly changeSetId: string;
+  /** `change_set` (every file the set's decisions undo) or `file` (the one file). */
+  readonly scope: string;
+  /** The file decided, for scope `file`. */
+  readonly fileChangeId: string;
+}
+
+/** The answer to one undo, written as its `stigmer.file_review.reconciled`. */
+export interface ReconciledUndo extends UndoOutcome {
+  readonly decidedEventId: string;
+}
+
+/** What the owed read found: the undos owed, oldest first, and the previous message turn's run. */
 export interface OwedUndos {
-  readonly changeSetIds: readonly string[];
+  readonly undos: readonly OwedUndo[];
   /** The run of the newest `user.message` that is not this run's; `undefined` when there is none. */
   readonly previousMessageRunId: string | undefined;
 }
@@ -96,23 +120,24 @@ export async function readOwedUndos(
     }
     pageToken = page.nextPageToken;
   } while (pageToken !== "");
-  return { changeSetIds: owedChangeSets(slice), previousMessageRunId };
+  return { undos: owedUndos(slice), previousMessageRunId };
 }
 
 /**
- * The change sets an `undo` was decided on in `slice` (newest first, as
- * read) with no `reconciled` beside it, oldest decision first, each once.
+ * The undos decided in `slice` (newest first, as read) that no `reconciled`
+ * answers, oldest first, each once.
  */
-export function owedChangeSets(slice: readonly SessionEvent[]): string[] {
-  const reconciled = new Set<string>();
+export function owedUndos(slice: readonly SessionEvent[]): OwedUndo[] {
+  const answered = new Set<string>();
   for (const event of slice) {
-    if (event.event.case === "stigmerFileReviewReconciled") reconciled.add(event.event.value.changeSetId);
+    if (event.event.case === "stigmerFileReviewReconciled") answered.add(event.event.value.id);
   }
-  const owed: string[] = [];
+  const owed: OwedUndo[] = [];
   for (const event of [...slice].reverse()) {
     if (event.event.case !== "stigmerFileReviewDecided" || event.event.value.action !== "undo") continue;
-    const { changeSetId } = event.event.value;
-    if (!reconciled.has(changeSetId) && !owed.includes(changeSetId)) owed.push(changeSetId);
+    const { id, changeSetId, scope, fileChangeId } = event.event.value;
+    if (answered.has(fileReviewReconciledEventId(changeSetId, id)) || owed.some((undo) => undo.decidedEventId === id)) continue;
+    owed.push({ decidedEventId: id, changeSetId, scope, fileChangeId });
   }
   return owed;
 }
@@ -127,16 +152,16 @@ export interface OwedUndoDeps {
   readonly artifactStorage: ArtifactStorage | undefined;
   /** A reconcile turn (`RunSpec.reconcile_file_review`): it drops no refs. */
   readonly reconcileTurn: boolean;
-  /** Writes the outcomes as `stigmer.file_review.reconciled`, at once (`events/emitter.ts` `writeReconciled`). */
-  readonly recordReconciled: (outcomes: readonly UndoOutcome[]) => Promise<void>;
+  /** Writes the answers as `stigmer.file_review.reconciled`, at once (`events/emitter.ts` `writeReconciled`). */
+  readonly recordReconciled: (answers: readonly ReconciledUndo[]) => Promise<void>;
 }
 
 /**
- * Do every undo still owed (the module header) and return what each put
- * back. A turn with no primary tree has no files to put back and reads
- * nothing. A change set that cannot be read from its run answers
- * `reconcile_failed`, so it is recorded once and not tried again by every
- * later start of the same window.
+ * Do every undo still owed (the module header) and return what each change
+ * set put back. A turn with no primary tree has no files to put back and
+ * reads nothing. A change set that cannot be read from its run answers
+ * `reconcile_failed`, so its undos are recorded once and not tried again by
+ * every later start of the same window.
  */
 export async function reconcileOwedUndos(deps: OwedUndoDeps): Promise<readonly UndoOutcome[]> {
   const { client, runId, sessionId, workspace } = deps;
@@ -145,8 +170,13 @@ export async function reconcileOwedUndos(deps: OwedUndoDeps): Promise<readonly U
 
   const owed = await readOwedUndos(client, sessionId, runId);
   const outcomes: UndoOutcome[] = [];
-  for (const changeSetId of owed.changeSetIds) {
-    outcomes.push(await undoOne(deps, gitRoot, changeSetId));
+  const answers: ReconciledUndo[] = [];
+  for (const changeSetId of [...new Set(owed.undos.map((undo) => undo.changeSetId))]) {
+    const outcome = await undoOne(deps, gitRoot, changeSetId);
+    outcomes.push(outcome);
+    for (const undo of owed.undos.filter((owedUndo) => owedUndo.changeSetId === changeSetId)) {
+      answers.push(answerFor(undo, outcome));
+    }
   }
   if (outcomes.length > 0) {
     for (const outcome of outcomes) {
@@ -155,13 +185,26 @@ export async function reconcileOwedUndos(deps: OwedUndoDeps): Promise<readonly U
           (outcome.failure === "" ? `put back ${outcome.undonePaths.length} file(s)` : `${outcome.failure}: ${outcome.failureDetail}`),
       );
     }
-    await deps.recordReconciled(outcomes);
+    await deps.recordReconciled(answers);
   }
 
   if (!deps.reconcileTurn && workspace.gitWorkspace && owed.previousMessageRunId !== undefined) {
     await dropCaptureRefs(gitRoot, owed.previousMessageRunId);
   }
   return outcomes;
+}
+
+/**
+ * One undo's answer from its change set's outcome: the files it covers that
+ * were put back (every one for a change-set undo, its own file for a file
+ * undo), or the set's failure.
+ */
+function answerFor(undo: OwedUndo, outcome: UndoOutcome): ReconciledUndo {
+  const undonePaths =
+    outcome.failure !== "" || undo.scope !== "file"
+      ? outcome.undonePaths
+      : outcome.undonePaths.filter((path) => `${undo.changeSetId}:${path}` === undo.fileChangeId);
+  return { ...outcome, undonePaths, decidedEventId: undo.decidedEventId };
 }
 
 /** One owed change set: read it from its run, then undo it. */

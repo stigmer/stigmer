@@ -2636,9 +2636,10 @@ func (x *StigmerFileReviewDecidedEvent) GetReason() string {
 	return ""
 }
 
-// StigmerFileReviewReconciledEvent records that the files undone in a
-// change set were put back: stigmer.file_review.reconciled. Written once
-// per change set with an undo, by the turn that put the files back.
+// StigmerFileReviewReconciledEvent records that the files an undo covers
+// were put back: stigmer.file_review.reconciled. Written once per undo
+// (a change set's files can be undone one at a time), by the turn that put
+// them back; its id names the undo's stigmer.file_review.decided event.
 type StigmerFileReviewReconciledEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.

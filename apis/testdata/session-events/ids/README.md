@@ -22,11 +22,13 @@ an event id ends its run part.
 
 A file-review event's id is derived from its change set's id,
 `<runId>:<turnSeq>` (a run id holds no `:`, so the run is the text before the
-first one): `stigmer.file_review.changes` is `<runId>.fr<turnSeq>`, and
-`stigmer.file_review.reconciled` is `<runId>.fr<turnSeq>.r`. There is one of
-each per change set; the second begins with the change set's run even when a
-later run (the turn that put undone files back) writes it. The `fileReview`
-vectors pin both.
+first one): `stigmer.file_review.changes` is `<runId>.fr<turnSeq>`, one per
+change set, and `stigmer.file_review.reconciled` is
+`<runId>.fr<turnSeq>.r.<decided event id>`, one per undo decided on the set:
+a set's files can be undone one at a time, each after the last was put back,
+so the event that answers an undo names that undo's `stigmer.file_review.decided`
+event. It begins with the change set's run even when a later run (the turn
+that put the files back) writes it. The `fileReview` vectors pin both.
 
 ## Readers
 

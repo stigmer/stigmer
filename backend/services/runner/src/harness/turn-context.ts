@@ -135,7 +135,7 @@ import { readConversationCatchup } from "../shared/conversation-catchup.js";
 import { selectRecalledFacts } from "../shared/memory-retrieval.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { HarnessCapabilities, PausePrimitive, StateIdSource } from "./capabilities.js";
-import { reconcileOwedUndos } from "./owed-undos.js";
+import { reconcileOwedUndos, type ReconciledUndo } from "./owed-undos.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
 import type {
   TurnAttachments,
@@ -209,7 +209,7 @@ export interface ResolutionDeps {
    * session's log at once (`events/emitter.ts` `writeReconciled`), before the
    * workspace lock is released (`owed-undos.ts`).
    */
-  readonly recordReconciled: (outcomes: readonly UndoOutcome[]) => Promise<void>;
+  readonly recordReconciled: (answers: readonly ReconciledUndo[]) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------

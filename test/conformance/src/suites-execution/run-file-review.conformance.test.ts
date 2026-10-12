@@ -403,6 +403,40 @@ describe("Run file review — the session's choice", () => {
     expect(row?.fileChangeSetId).toBe(set.id);
   });
 
+  it("[rpc:SessionCommandController.reviewFileChanges] undoing two files one at a time puts each back, each undo answered by its own reconcile", async () => {
+    const workspace = await freshWorkspace();
+    const reviewed = await runToReview(workspace, [
+      writeFileTurn("toolu_w_first", "first.txt", "first\n"),
+      writeFileTurn("toolu_w_second", "second.txt", "second\n"),
+      anthropicText("Created both files."),
+    ]);
+    const { set } = reviewed;
+
+    const firstUndo = await reviewFileByPath(clients, reviewed.sessionId, set, "first.txt", "undo");
+    const first = await awaitUndone(reviewed, set.id, firstUndo.reconcileRunId);
+    expect(first.undonePaths).toEqual(["first.txt"]);
+    expect(await workspace.exists("first.txt"), "the first undo removes its ADD").toBe(false);
+    expect(await workspace.readFile("second.txt"), "the other file is still undecided and stays").toBe("second\n");
+
+    const secondUndo = await reviewFileByPath(clients, reviewed.sessionId, set, "second.txt", "undo");
+    expect(secondUndo.reconcileRunId, "the second undo starts its own reconcile turn").not.toBe("");
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: secondUndo.reconcileRunId }).then(() => undefined, () => undefined));
+    expect((await awaitTerminal(clients, secondUndo.reconcileRunId)).status?.phase).toBe(RunPhase.RUN_COMPLETED);
+    const log = await pollUntil(
+      () => readFileReviewLog(clients, reviewed.sessionId),
+      (got) => got.reconciled.filter((event) => event.changeSetId === set.id).length === 2,
+      (last, timeoutMs) => `session ${reviewed.sessionId}: two reconciles of ${set.id} not seen within ${timeoutMs}ms (${JSON.stringify(last?.reconciled.map((event) => event.id))})`,
+    );
+    expect(await workspace.exists("second.txt"), "the second undo lands too").toBe(false);
+    const answers = log.reconciled.filter((event) => event.changeSetId === set.id);
+    expect(answers.map((event) => event.undonePaths)).toEqual([["first.txt"], ["second.txt"]]);
+    expect(
+      answers.map((event) => event.id),
+      "each reconcile names the undo it answers",
+    ).toEqual(log.decided.filter((event) => event.changeSetId === set.id && event.action === "undo").map((event) => `${set.id.replace(":", ".fr")}.r.${event.id}`));
+    expectNoModelCallLeft();
+  });
+
   it("[rpc:RunCommandController.submitFileDecision] a per-file split through the adapter keeps one file and puts the other back", async () => {
     const workspace = await freshWorkspace();
     const reviewed = await runToReview(workspace, [

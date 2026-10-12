@@ -355,7 +355,8 @@ public final class SessionCommandControllerGrpc {
      * ## Error Conditions
      * - NOT_FOUND: the change set is not one of this conversation's
      * - FAILED_PRECONDITION: the conversation has moved on (a later message
-     *   was sent), the file is not in the change set, or a keep of a change
+     *   was sent), the change was already decided the other way (a decision
+     *   is final), the file is not in the change set, or a keep of a change
      *   that cannot be shown whole without acknowledge_unreviewable
      * - INVALID_ARGUMENT: expected_digest does not match the change
      * ## Idempotency
@@ -493,7 +494,8 @@ public final class SessionCommandControllerGrpc {
      * ## Error Conditions
      * - NOT_FOUND: the change set is not one of this conversation's
      * - FAILED_PRECONDITION: the conversation has moved on (a later message
-     *   was sent), the file is not in the change set, or a keep of a change
+     *   was sent), the change was already decided the other way (a decision
+     *   is final), the file is not in the change set, or a keep of a change
      *   that cannot be shown whole without acknowledge_unreviewable
      * - INVALID_ARGUMENT: expected_digest does not match the change
      * ## Idempotency
@@ -616,7 +618,8 @@ public final class SessionCommandControllerGrpc {
      * ## Error Conditions
      * - NOT_FOUND: the change set is not one of this conversation's
      * - FAILED_PRECONDITION: the conversation has moved on (a later message
-     *   was sent), the file is not in the change set, or a keep of a change
+     *   was sent), the change was already decided the other way (a decision
+     *   is final), the file is not in the change set, or a keep of a change
      *   that cannot be shown whole without acknowledge_unreviewable
      * - INVALID_ARGUMENT: expected_digest does not match the change
      * ## Idempotency
@@ -736,7 +739,8 @@ public final class SessionCommandControllerGrpc {
      * ## Error Conditions
      * - NOT_FOUND: the change set is not one of this conversation's
      * - FAILED_PRECONDITION: the conversation has moved on (a later message
-     *   was sent), the file is not in the change set, or a keep of a change
+     *   was sent), the change was already decided the other way (a decision
+     *   is final), the file is not in the change set, or a keep of a change
      *   that cannot be shown whole without acknowledge_unreviewable
      * - INVALID_ARGUMENT: expected_digest does not match the change
      * ## Idempotency
@@ -860,7 +864,8 @@ public final class SessionCommandControllerGrpc {
      * ## Error Conditions
      * - NOT_FOUND: the change set is not one of this conversation's
      * - FAILED_PRECONDITION: the conversation has moved on (a later message
-     *   was sent), the file is not in the change set, or a keep of a change
+     *   was sent), the change was already decided the other way (a decision
+     *   is final), the file is not in the change set, or a keep of a change
      *   that cannot be shown whole without acknowledge_unreviewable
      * - INVALID_ARGUMENT: expected_digest does not match the change
      * ## Idempotency

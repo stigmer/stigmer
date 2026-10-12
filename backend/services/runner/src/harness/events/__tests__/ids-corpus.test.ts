@@ -41,6 +41,7 @@ interface FileReviewIdVector {
   readonly name: string;
   readonly changeSetId: string;
   readonly changesId: string;
+  readonly decidedEventId: string;
   readonly reconciledId: string;
 }
 
@@ -76,9 +77,9 @@ describe("file-review event id vector corpus", () => {
     expect(corpus.fileReview.length).toBeGreaterThan(0);
   });
 
-  it.each(corpus.fileReview)("$name", ({ changeSetId, changesId, reconciledId }) => {
+  it.each(corpus.fileReview)("$name", ({ changeSetId, changesId, decidedEventId, reconciledId }) => {
     expect(fileReviewChangesEventId(changeSetId)).toBe(changesId);
-    expect(fileReviewReconciledEventId(changeSetId)).toBe(reconciledId);
+    expect(fileReviewReconciledEventId(changeSetId, decidedEventId)).toBe(reconciledId);
     expect(changesId).toMatch(EVENT_ID_PATTERN);
     expect(reconciledId).toMatch(EVENT_ID_PATTERN);
   });

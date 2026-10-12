@@ -1519,9 +1519,10 @@ export const StigmerFileReviewDecidedEventSchema: GenMessage<StigmerFileReviewDe
   messageDesc(file_ai_stigmer_agentic_session_v1_event, 27);
 
 /**
- * StigmerFileReviewReconciledEvent records that the files undone in a
- * change set were put back: stigmer.file_review.reconciled. Written once
- * per change set with an undo, by the turn that put the files back.
+ * StigmerFileReviewReconciledEvent records that the files an undo covers
+ * were put back: stigmer.file_review.reconciled. Written once per undo
+ * (a change set's files can be undone one at a time), by the turn that put
+ * them back; its id names the undo's stigmer.file_review.decided event.
  *
  * @generated from message ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent
  */

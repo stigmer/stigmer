@@ -26,16 +26,19 @@
  *      re-projected. The write appends its stigmer.file_review.decided
  *      event with it. A decision the ledger already holds on the target
  *      is final (its id is deterministic, author.ts): the same decision
- *      again answers success and writes nothing, and so does any other on
- *      a target already decided while the window is open; after the
- *      window closes only a repeat of the person's own decision answers
- *      success.
+ *      again answers success and writes nothing, even after the window
+ *      closes; a different one on a target already decided is refused
+ *      (CONFLICTING_DECISION_MESSAGE), so an Undo is never answered as if
+ *      it were recorded when it was not.
  *   4. An undo on a run that has ended starts the reconcile turn: a run
  *      with `reconcile_file_review` and no message, created through the
  *      run create chain as the person who decided (server-composed, so
- *      the chain's GuardReconcileFileReview admits it), unless one is
- *      already unfinished in the session (it, or the next turn, puts the
- *      file back). The decision is committed first: a refused create (a
+ *      the chain's GuardReconcileFileReview admits it). Every such undo
+ *      starts one, even while another is unfinished: that one may already
+ *      have read what is owed, the workspace lock serializes them, and a
+ *      turn that finds nothing owed simply completes (the runner keys what
+ *      is owed per decision, harness/owed-undos.ts). The decision is
+ *      committed first: a refused create (a
  *      capacity gate, say) leaves it standing, is logged, and the
  *      decision still succeeds with no reconcile turn named; the next
  *      turn restores what is owed before its agent runs. An undo on a run
@@ -51,7 +54,7 @@
  * Proven by __tests__/decide.test.ts and the run-file-review conformance
  * suite.
  */
-import { create, enumToJson, fromBinary } from "@bufbuild/protobuf";
+import { create, enumToJson } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -93,7 +96,6 @@ import {
   targetDigest,
 } from "../../run/filereview/author.js";
 import { projectFileChangeSets } from "../../run/filereview/project.js";
-import { agentExecutionListIndex } from "../../run/list-index.js";
 import { isTerminalExecutionPhase } from "../../run/phases.js";
 import type { StreamBroker } from "../../run/stream-broker.js";
 import { updateRunAppendingEvents } from "../events/run-writes.js";
@@ -150,6 +152,10 @@ export interface FileDecisionOutcome {
 /** The refusal of a decision once a later message was sent. */
 export const CONVERSATION_MOVED_ON_MESSAGE =
   "the conversation has moved on; these edits were kept";
+
+/** The refusal of a decision on a target another decision already settled. */
+export const CONFLICTING_DECISION_MESSAGE =
+  "this change was already decided, and a decision is final";
 
 /** The newest event of this type names the conversation's newest turn. */
 const TURN_EVENT_TYPE = "user.message";
@@ -212,7 +218,7 @@ export async function decideFileChanges(
           throw failedPreconditionError(CONVERSATION_MOVED_ON_MESSAGE);
         }
         if (recorded !== undefined) {
-          throw new DecisionAlreadyRecorded(run);
+          throw failedPreconditionError(CONFLICTING_DECISION_MESSAGE);
         }
         const decision = buildFileDecision(
           asked.changeSetId,
@@ -404,9 +410,8 @@ function isSameDecision(
 }
 
 /**
- * Starts the reconcile turn for an undo on an ended run, unless one is
- * already unfinished in the session. Never throws: the decision is
- * committed, and the next turn restores what is owed.
+ * Starts the reconcile turn for an undo on an ended run. Never throws: the
+ * decision is committed, and the next turn restores what is owed.
  */
 async function startReconcileTurn(
   deps: FileDecisionDeps,
@@ -419,16 +424,6 @@ async function startReconcileTurn(
   }
   const runId = run.metadata?.id ?? "";
   try {
-    if (await reconcileTurnUnfinished(deps, sessionId)) {
-      deps.logger.info(
-        "A reconcile turn is already unfinished in the session; it restores this undo",
-        {
-          executionId: runId,
-          sessionId,
-        },
-      );
-      return "";
-    }
     const created = await deps
       .reconcileTurns()
       .create(reconcileTurnRequest(run, sessionId), identity);
@@ -458,19 +453,6 @@ async function startReconcileTurn(
     }
     return "";
   }
-}
-
-/** Whether a reconcile turn is working in the session, read from the working runs' key alone. */
-async function reconcileTurnUnfinished(
-  deps: FileDecisionDeps,
-  sessionId: string,
-): Promise<boolean> {
-  const rows = await deps.store.queryResources(agentExecutionListIndex, {
-    anyKey: [{ name: "working_session", value: sessionId }],
-  });
-  return rows.some(
-    (row) => fromBinary(RunSchema, row.data).spec?.reconcileFileReview === true,
-  );
 }
 
 /**

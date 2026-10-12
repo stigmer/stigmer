@@ -134,7 +134,12 @@ export function fileReviewChangesEventId(changeSetId: string): string {
   return `${runId}.fr${turnSeq}`;
 }
 
-/** A change set's `stigmer.file_review.reconciled`: its changes event's id with `.r`. */
-export function fileReviewReconciledEventId(changeSetId: string): string {
-  return `${fileReviewChangesEventId(changeSetId)}.r`;
+/**
+ * The `stigmer.file_review.reconciled` that answers one undo decided on a
+ * change set: its changes event's id, `.r.`, then the undo's
+ * `stigmer.file_review.decided` event id. One per undo, not per set: a
+ * set's files can be undone one at a time, each after the last was put back.
+ */
+export function fileReviewReconciledEventId(changeSetId: string, decidedEventId: string): string {
+  return `${fileReviewChangesEventId(changeSetId)}.r.${decidedEventId}`;
 }

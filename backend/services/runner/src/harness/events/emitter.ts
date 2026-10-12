@@ -83,7 +83,7 @@ import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigme
 import { SessionEventPreviewSchema, type SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
-import type { UndoOutcome } from "../../shared/filereview/capture.js";
+import type { ReconciledUndo } from "../owed-undos.js";
 import { elideToEncodedSize } from "../../shared/status-offload.js";
 import { isToolCallRowHidden } from "../../shared/tool-row.js";
 import type { TranscriptEvent } from "../transcript/events.js";
@@ -375,9 +375,9 @@ export class SessionEventEmitter {
    * terminal write is; a loss is logged, never thrown. An outcome the log
    * already holds is not sent again.
    */
-  async writeReconciled(outcomes: readonly UndoOutcome[]): Promise<void> {
-    for (const outcome of outcomes) {
-      const id = fileReviewReconciledEventId(outcome.changeSetId);
+  async writeReconciled(answers: readonly ReconciledUndo[]): Promise<void> {
+    for (const outcome of answers) {
+      const id = fileReviewReconciledEventId(outcome.changeSetId, outcome.decidedEventId);
       this.push("", id, {
         case: "stigmerFileReviewReconciled",
         value: {

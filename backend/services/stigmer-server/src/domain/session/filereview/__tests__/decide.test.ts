@@ -4,9 +4,10 @@
  * while the set's turn is the conversation's newest (a reconcile turn
  * never moves it on), only for a set of the session asked in, for a file
  * the set holds, through the digest and completeness gates, once per
- * target, a store fault answering a bare Internal; and an undo on an ended
- * turn starts one reconcile turn, as the person, unless one is unfinished
- * in the session, the decision standing whatever the create answers.
+ * target (a different decision on a decided target refused), a store
+ * fault answering a bare Internal; and every undo on an ended turn starts
+ * a reconcile turn, as the person, the decision standing whatever the
+ * create answers.
  */
 import { clone, create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -42,6 +43,7 @@ import { eventTypeOf } from "../../events/catalog.js";
 import { eventOf } from "../../events/codec.js";
 import { createRunAppendingEvents } from "../../events/run-writes.js";
 import {
+  CONFLICTING_DECISION_MESSAGE,
   CONVERSATION_MOVED_ON_MESSAGE,
   decideFileChanges,
   runIdOfChangeSet,
@@ -266,17 +268,20 @@ describe("a keep", () => {
     expect(await log()).toEqual(before);
   });
 
-  it("a different decision on a target already decided writes nothing and starts no turn", async () => {
+  it("refuses a different decision on a target already decided, writes nothing and starts no turn", async () => {
     const [seed] = await seedTurn("run_1", RunPhase.RUN_COMPLETED);
     await decide(
       setDecision("run_1:1", FileDecisionAction.APPROVE, seed!.aggregate),
     );
     const before = await log();
 
-    const undo = await decide(
-      setDecision("run_1:1", FileDecisionAction.REJECT, seed!.aggregate),
+    const error = await refusal(
+      decide(setDecision("run_1:1", FileDecisionAction.REJECT, seed!.aggregate)),
     );
-    expect([undo.recorded, undo.reconcileRunId]).toEqual([false, ""]);
+    expect([error.code, error.rawMessage]).toEqual([
+      Code.FailedPrecondition,
+      CONFLICTING_DECISION_MESSAGE,
+    ]);
     expect(
       (await stored("run_1")).status?.fileChangeSets[0]?.decisions.map(
         (d) => d.action,
@@ -424,7 +429,7 @@ describe("an undo", () => {
     );
   });
 
-  it("starts none while a reconcile turn is unfinished in the session: that turn restores it", async () => {
+  it("starts one for every undo, even while another is unfinished: that one may have read what is owed already", async () => {
     const [first, second] = await seedTurn("run_1", RunPhase.RUN_COMPLETED, 2);
     await decide(
       setDecision("run_1:1", FileDecisionAction.REJECT, first!.aggregate),
@@ -433,8 +438,9 @@ describe("an undo", () => {
       setDecision("run_1:2", FileDecisionAction.REJECT, second!.aggregate),
     );
 
-    expect([outcome.recorded, outcome.reconcileRunId]).toEqual([true, ""]);
-    expect(created).toHaveLength(1);
+    expect(outcome.recorded).toBe(true);
+    expect(outcome.reconcileRunId).not.toBe("");
+    expect(created).toHaveLength(2);
   });
 
   it("repeated starts no second turn", async () => {

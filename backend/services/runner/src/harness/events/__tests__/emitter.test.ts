@@ -521,15 +521,15 @@ describe("file review", () => {
     expect(log.events.some((event) => event.event.case === "stigmerFileReviewChanges")).toBe(false);
   });
 
-  it("writes an undo's stigmer.file_review.reconciled at once, before the engine's turn begins, under the change set's id", async () => {
+  it("writes an undo's stigmer.file_review.reconciled at once, before the engine's turn begins, under the undo's own id", async () => {
     const log = logDouble();
     const e = emitter(log);
     await e.writeReconciled([
-      { changeSetId: "run_earlier:2", undonePaths: ["a.md"], failure: "", failureDetail: "" },
-      { changeSetId: "run_older:0", undonePaths: [], failure: "hash_mismatch", failureDetail: "a.md changed" },
+      { changeSetId: "run_earlier:2", undonePaths: ["a.md"], failure: "", failureDetail: "", decidedEventId: "sevt_fd_1" },
+      { changeSetId: "run_older:0", undonePaths: [], failure: "hash_mismatch", failureDetail: "a.md changed", decidedEventId: "sevt_fd_2" },
     ]);
     const reconciled = log.events.flatMap((event) => (event.event.case === "stigmerFileReviewReconciled" ? [event] : []));
-    expect(reconciled.map((event) => event.event.value?.id)).toEqual(["run_earlier.fr2.r", "run_older.fr0.r"]);
+    expect(reconciled.map((event) => event.event.value?.id)).toEqual(["run_earlier.fr2.r.sevt_fd_1", "run_older.fr0.r.sevt_fd_2"]);
     expect(reconciled.map((event) => event.runId), "written by this run").toEqual([RUN, RUN]);
     const [first, second] = reconciled.map((event) => (event.event.case === "stigmerFileReviewReconciled" ? event.event.value : undefined));
     expect([first?.undonePaths, first?.failure]).toEqual([["a.md"], ""]);
@@ -542,7 +542,7 @@ describe("file review", () => {
     await e.writeReconciled([]);
     expect(log.client.appendSessionEvents).not.toHaveBeenCalled();
     log.answers.push("fail");
-    await e.writeReconciled([{ changeSetId: "run_earlier:2", undonePaths: ["a.md"], failure: "", failureDetail: "" }]);
+    await e.writeReconciled([{ changeSetId: "run_earlier:2", undonePaths: ["a.md"], failure: "", failureDetail: "", decidedEventId: "sevt_fd_1" }]);
     expect(log.events.map((event) => event.event.case)).toEqual(["stigmerFileReviewReconciled"]);
   });
 });

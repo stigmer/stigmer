@@ -67,13 +67,15 @@
       "name": "first-turn",
       "changeSetId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p:0",
       "changesId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.fr0",
-      "reconciledId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.fr0.r"
+      "reconciledId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.fr0.r.sevt_fd_0f3c9a1b2d4e5f60718293a4b5c6d7e8f9012345",
+      "decidedEventId": "sevt_fd_0f3c9a1b2d4e5f60718293a4b5c6d7e8f9012345"
     },
     {
       "name": "later-turn",
       "changeSetId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p:17",
       "changesId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.fr17",
-      "reconciledId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.fr17.r"
+      "reconciledId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.fr17.r.sevt_fd_a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+      "decidedEventId": "sevt_fd_a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"
     }
   ]
 }
