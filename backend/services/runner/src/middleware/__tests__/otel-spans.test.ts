@@ -250,10 +250,12 @@ describe("OtelSpansMiddleware", () => {
         reply,
       );
       await mw.wrapModelCall!(makeModelRequest({ systemMessage: new SystemMessage({ content: [{ type: "image_url", image_url: "x" }] as never }) }), reply);
+      await mw.wrapModelCall!(makeModelRequest(), reply);
       const instructions = spans().map((span) => span.attributes["gen_ai.system_instructions"]);
       expect(instructions[0]).toContain("as a string");
       expect(instructions[1]).toContain("from blocks");
       expect(instructions[2], "no text, no instructions").toBeUndefined();
+      expect(instructions[3], "no system prompt at all").toBeUndefined();
     });
 
     it("names a model by its model_name when it carries no model field", async () => {

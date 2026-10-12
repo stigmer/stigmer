@@ -81,10 +81,11 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
   // The manager is the runner's own process (the CLI and the desktop app
   // start it), so it owns its telemetry as the other modes do; a setting
   // the standard does not name is the same fatal error as any other.
+  /* v8 ignore start -- @preserve: manager mode's process boundary, driven over IPC by test/conformance's runner-ipc harness; startRunnerTelemetry is otel.ts's, tested there */
   let flushTelemetry: (() => Promise<void>) | null = null;
   try {
-    /* v8 ignore next -- @preserve: manager mode's process boundary, driven over IPC by test/conformance's runner-ipc harness; startRunnerTelemetry is otel.ts's, tested there */
     flushTelemetry = await startRunnerTelemetry("stigmer-runner");
+    /* v8 ignore stop */
     manager = await createStigmerRunnerManager({
       temporalAddress: config.temporalAddress,
       temporalNamespace: config.temporalNamespace,
@@ -153,8 +154,9 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
         }
         case "shutdown": {
           await manager.shutdown();
-          /* v8 ignore next -- @preserve: manager mode's process boundary (above) */
+          /* v8 ignore start -- @preserve: manager mode's process boundary (above) */
           await flushTelemetry?.();
+          /* v8 ignore stop */
           sendIpc({ type: "shutdownComplete" });
           rl.close();
           return;

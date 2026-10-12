@@ -196,7 +196,7 @@ describe("the shapes a message's content can take", () => {
       null,
       "a bare string",
       { type: "function", content: "an unknown role" },
-      new HumanMessage({ content: [{ type: "text", text: "kept" }, "a raw string block", { type: "unknown" }] as never }),
+      new HumanMessage({ content: [{ type: "text", text: "kept" }, "a raw string block", { type: "unknown" }, null, 7] as never }),
       { type: "ai", content: undefined },
     ]);
     expect(rendered).toEqual([

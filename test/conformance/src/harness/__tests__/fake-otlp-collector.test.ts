@@ -96,7 +96,9 @@ describe("the fake OTLP collector", () => {
     expect(collector.spans()).toHaveLength(3);
   });
 
-  it("names its missing start when asked for its endpoint too early", () => {
-    expect(() => new FakeOtlpCollector().endpoint()).toThrow("start() must be called before endpoint()");
+  it("names its missing start when asked for its endpoint too early, and closes when never started", async () => {
+    const idle = new FakeOtlpCollector();
+    expect(() => idle.endpoint()).toThrow("start() must be called before endpoint()");
+    await expect(idle.close()).resolves.toBeUndefined();
   });
 });
