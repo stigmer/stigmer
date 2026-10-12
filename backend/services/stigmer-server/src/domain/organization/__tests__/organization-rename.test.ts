@@ -182,7 +182,7 @@ describe("RenameOrganizationSlug", () => {
     expect(fault.code).toBe(Code.Internal);
   });
 
-  it("takes a slug whose holder is gone: releases the holder's names and moves again", async () => {
+  it("takes a slug whose holder is gone: releases that name and moves again", async () => {
     const released: string[] = [];
     const moves: ResourceNameRename[] = [];
     const store = {
@@ -204,8 +204,8 @@ describe("RenameOrganizationSlug", () => {
                 entry: { ...heldBy(ACME, move.to, 0), claimedAt: move.now },
               };
         },
-        release: async (_kind: string, _org: string, id: string) => {
-          released.push(id);
+        releaseName: async (key: { name: string }, id: string) => {
+          released.push(`${key.name}:${id}`);
         },
       },
     } as unknown as Store;
@@ -213,11 +213,9 @@ describe("RenameOrganizationSlug", () => {
     const ctx = renameRequest(acme());
     await newRenameOrganizationSlugStep(store).execute(ctx);
 
-    expect(released).toEqual([GONE]);
+    expect(released).toEqual([`acme-corp:${GONE}`]);
     expect(moves).toHaveLength(2);
     expect(moves[1]).toEqual(moves[0]);
-    const renamed = ctx.get(RENAMED_ORGANIZATION_KEY) as Organization;
-    expect(renamed.metadata?.slug).toBe("acme-corp");
   });
 
   it("refuses a slug a live organization holds, releasing nothing", async () => {

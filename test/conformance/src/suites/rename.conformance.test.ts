@@ -1,0 +1,280 @@
+// Rename conformance — a resource keeps its id when its slug changes, and its
+// old slug keeps leading to it for reading for 30 days.
+// Domain: conformance suites.
+//
+// One table over the six open-source kinds a person may rename (agent,
+// vault, schedule, channel app, OAuth app, platform client), each pinned the
+// same way:
+//   - rename keeps the id, and a read by the old slug answers the resource
+//     by its new slug;
+//   - a create of the old slug is refused ALREADY_EXISTS with SLUG_RESERVED,
+//     and the resource takes the old slug back;
+//   - a write that names the old slug without the id is refused
+//     FAILED_PRECONDITION with SLUG_RENAMED, whose words never name the new
+//     slug, because the refusal is answered before the write authorizes its
+//     target.
+// Then the references that named a renamed resource (a session's, a
+// schedule's and a channel's agent, a parent's subagent, a channel's app)
+// come back with its new slug, and an apply carrying the id finds the
+// resource by it, while the same file in another organization makes its
+// own. The hold's end is the server's own test (its clock is a parameter,
+// backend/services/stigmer-server/src/pipeline/steps/__tests__/rename.test.ts).
+// Edition-unconditional: no Temporal, no runner.
+import { Code } from "@connectrpc/connect";
+import type { ConnectError } from "@connectrpc/connect";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { expectGrpcCode } from "../contract/errors";
+import type { ConformanceClients } from "../harness/clients";
+import { FixtureTracker } from "../harness/fixtures";
+import { makeSlackAgentChannel } from "../support/agentchannels";
+import { makeAgent } from "../support/agents";
+import { makeSlackChannelApp } from "../support/channelapps";
+import { uniqueName } from "../support/naming";
+import { makeOAuthApp } from "../support/oauthapps";
+import { makeSchedule } from "../support/schedules";
+import { makeSession } from "../support/sessions";
+import { makeSharedVault } from "../support/vaults";
+import { createTarget, type TargetProfile } from "../targets";
+
+let target: TargetProfile;
+let clients: ConformanceClients;
+const fixtures = new FixtureTracker();
+
+beforeAll(async () => {
+  target = createTarget();
+  await target.setup();
+  clients = target.clients();
+});
+
+afterEach(async () => {
+  await fixtures.cleanup();
+});
+
+afterAll(async () => {
+  await target?.teardown();
+});
+
+interface Named {
+  readonly id: string;
+  readonly slug: string;
+}
+
+function namedOf(resource: { metadata?: { id: string; slug: string } }): Named {
+  return { id: resource.metadata!.id, slug: resource.metadata!.slug };
+}
+
+function reasonOf(error: ConnectError) {
+  return error.findDetails(ErrorInfoSchema)[0];
+}
+
+// What the table needs of one renamable kind.
+interface RenamableKind {
+  // The arm's title; its tag is literal, as the RPC contract reads tags.
+  readonly title: string;
+  readonly writeTitle: string;
+  readonly noun: string;
+  // Makes one in `org` named `name`, deleted at the end of the arm.
+  create(org: string, name: string): Promise<Named>;
+  rename(id: string, slug: string): Promise<Named>;
+  readByReference(org: string, slug: string): Promise<Named>;
+  // A write naming `slug` and no id: apply where the kind has one, else update.
+  writeBySlug(org: string, slug: string): Promise<unknown>;
+}
+
+async function agentInOrg(org: string, name: string, subagents?: string[]): Promise<Named> {
+  const agent = await clients.agentCommand.create(makeAgent({ org, name, ...(subagents !== undefined ? { subagents } : {}) }));
+  const id = agent.metadata!.id;
+  fixtures.defer(() => clients.agentCommand.delete({ value: id }).catch(() => undefined));
+  return namedOf(agent);
+}
+
+const KINDS: readonly RenamableKind[] = [
+  {
+    title: "[rpc:AgentCommandController.rename] an agent",
+    writeTitle: "[rpc:AgentCommandController.rename] [rpc:AgentCommandController.apply] an agent's",
+    noun: "Agent",
+    create: (org, name) => agentInOrg(org, name),
+    rename: async (id, slug) => namedOf(await clients.agentCommand.rename({ resourceId: id, slug })),
+    readByReference: async (org, slug) => namedOf(await clients.agentQuery.getByReference({ org, slug })),
+    writeBySlug: (org, slug) => clients.agentCommand.apply({ ...makeAgent({ org, name: slug }), metadata: { name: slug, org, slug } }),
+  },
+  {
+    title: "[rpc:VaultCommandController.rename] a vault",
+    writeTitle: "[rpc:VaultCommandController.rename] [rpc:VaultCommandController.update] a vault's",
+    noun: "Vault",
+    create: async (org, name) => {
+      const vault = await clients.vaultCommand.create(makeSharedVault({ org, name }));
+      fixtures.defer(() => clients.vaultCommand.delete({ resourceId: vault.metadata!.id }).catch(() => undefined));
+      return namedOf(vault);
+    },
+    rename: async (id, slug) => namedOf(await clients.vaultCommand.rename({ resourceId: id, slug })),
+    readByReference: async (org, slug) => namedOf(await clients.vaultQuery.getByReference({ org, slug })),
+    writeBySlug: (org, slug) => clients.vaultCommand.update({ ...makeSharedVault({ org, name: slug }), metadata: { name: slug, org, slug } }),
+  },
+  {
+    title: "[rpc:ScheduleCommandController.rename] a schedule",
+    writeTitle: "[rpc:ScheduleCommandController.rename] [rpc:ScheduleCommandController.apply] a schedule's",
+    noun: "Schedule",
+    create: async (org, name) => {
+      const agent = await agentInOrg(org, uniqueName("sched-agent"));
+      const schedule = await clients.scheduleCommand.create(makeSchedule(org, name, agent.slug, { enabled: false }));
+      fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }).catch(() => undefined));
+      return namedOf(schedule);
+    },
+    rename: async (id, slug) => namedOf(await clients.scheduleCommand.rename({ resourceId: id, slug })),
+    readByReference: async (org, slug) => namedOf(await clients.scheduleQuery.getByReference({ org, slug })),
+    writeBySlug: (org, slug) =>
+      clients.scheduleCommand.apply({ ...makeSchedule(org, slug, "any-agent", { enabled: false }), metadata: { name: slug, org, slug } }),
+  },
+  {
+    title: "[rpc:ChannelAppCommandController.rename] a channel app",
+    writeTitle: "[rpc:ChannelAppCommandController.rename] [rpc:ChannelAppCommandController.apply] a channel app's",
+    noun: "Channel app",
+    create: async (org, name) => {
+      const app = await clients.channelAppCommand.create(makeSlackChannelApp(org, name));
+      fixtures.defer(() => clients.channelAppCommand.delete({ resourceId: app.metadata!.id }).catch(() => undefined));
+      return namedOf(app);
+    },
+    rename: async (id, slug) => namedOf(await clients.channelAppCommand.rename({ resourceId: id, slug })),
+    readByReference: async (org, slug) => namedOf(await clients.channelAppQuery.getByReference({ org, slug })),
+    writeBySlug: (org, slug) => clients.channelAppCommand.apply({ ...makeSlackChannelApp(org, slug), metadata: { name: slug, org, slug } }),
+  },
+  {
+    title: "[rpc:OAuthAppCommandController.rename] an OAuth app",
+    writeTitle: "[rpc:OAuthAppCommandController.rename] [rpc:OAuthAppCommandController.apply] an OAuth app's",
+    noun: "OAuth app",
+    create: async (org, name) => {
+      const app = await clients.oauthAppCommand.create(makeOAuthApp(org, name));
+      fixtures.defer(() => clients.oauthAppCommand.delete({ resourceId: app.metadata!.id }).catch(() => undefined));
+      return namedOf(app);
+    },
+    rename: async (id, slug) => namedOf(await clients.oauthAppCommand.rename({ resourceId: id, slug })),
+    readByReference: async (org, slug) => namedOf(await clients.oauthAppQuery.getByReference({ org, slug })),
+    writeBySlug: (org, slug) =>
+      clients.oauthAppCommand.apply({ ...makeOAuthApp(org, slug, { addresses: [] }), metadata: { name: slug, org, slug } }),
+  },
+  {
+    title: "[rpc:PlatformClientCommandController.rename] a platform client",
+    writeTitle: "[rpc:PlatformClientCommandController.rename] [rpc:PlatformClientCommandController.update] a platform client's",
+    noun: "Platform client",
+    create: async (org, name) => {
+      const created = await clients.platformClientCommand.create({
+        apiVersion: "iam.stigmer.ai/v1",
+        kind: "PlatformClient",
+        metadata: { name, org },
+        spec: {},
+      });
+      const client = created.platformClient!;
+      fixtures.defer(() => clients.platformClientCommand.delete({ resourceId: client.metadata!.id }).catch(() => undefined));
+      return namedOf(client);
+    },
+    rename: async (id, slug) => namedOf(await clients.platformClientCommand.rename({ resourceId: id, slug })),
+    readByReference: async (org, slug) => namedOf(await clients.platformClientQuery.getByReference({ org, slug })),
+    writeBySlug: (org, slug) =>
+      clients.platformClientCommand.update({ apiVersion: "iam.stigmer.ai/v1", kind: "PlatformClient", metadata: { name: slug, org, slug }, spec: {} }),
+  },
+];
+
+describe("a renamed resource keeps its id, and its old slug leads to it", () => {
+  for (const kind of KINDS) {
+    it(`${kind.title} keeps its id; its old slug leads to it, is refused to a create with SLUG_RESERVED, and is taken back by a rename`, async () => {
+      const { org } = await target.provisionTenancy();
+      const before = await kind.create(org, uniqueName("rename-old"));
+      const after = uniqueName("rename-new");
+
+      const renamed = await kind.rename(before.id, after);
+      expect(renamed).toEqual({ id: before.id, slug: after });
+      expect(await kind.readByReference(org, before.slug), "the old slug leads to the resource, named by its new slug").toEqual({
+        id: before.id,
+        slug: after,
+      });
+      expect(await kind.readByReference(org, after)).toEqual({ id: before.id, slug: after });
+
+      const refused = await expectGrpcCode(
+        () => kind.create(org, before.slug),
+        Code.AlreadyExists,
+        "a create of the slug another resource was just renamed from",
+      );
+      expect(reasonOf(refused)?.reason).toBe("SLUG_RESERVED");
+      expect(reasonOf(refused)?.domain).toBe("stigmer.ai");
+      expect(reasonOf(refused)?.metadata).toEqual({ slug: before.slug });
+
+      expect(await kind.rename(before.id, before.slug), "the resource takes its old slug back").toEqual(before);
+    });
+
+    it(`${kind.writeTitle} old slug, named by a write without the id, is refused with SLUG_RENAMED, whose words never name the new slug`, async () => {
+      const { org } = await target.provisionTenancy();
+      const before = await kind.create(org, uniqueName("stale-file"));
+      const after = uniqueName("fresh-name");
+      await kind.rename(before.id, after);
+
+      const refused = await expectGrpcCode(
+        () => kind.writeBySlug(org, before.slug),
+        Code.FailedPrecondition,
+        "a write by the renamed-away slug",
+      );
+      expect(reasonOf(refused)?.reason).toBe("SLUG_RENAMED");
+      expect(reasonOf(refused)?.metadata).toEqual({ slug: before.slug });
+      expect(refused.rawMessage).toBe(
+        `${kind.noun} '${before.slug}' was renamed; it still leads to the same ${kind.noun.toLowerCase().replace("oauth", "OAuth")} for reading. Write to it by its current slug or its id`,
+      );
+      expect(refused.rawMessage).not.toContain(after);
+    });
+  }
+});
+
+describe("a reference that named a renamed resource comes back with its new slug", () => {
+  it("[rpc:AgentCommandController.rename] [rpc:ChannelAppCommandController.rename] [rpc:SessionQueryController.get] [rpc:ScheduleQueryController.get] [rpc:AgentChannelQueryController.get] [rpc:AgentQueryController.get] a session's, a schedule's and a channel's agent, a parent's subagent and a channel's app", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await agentInOrg(org, uniqueName("renamed-agent"));
+    const parent = await agentInOrg(org, uniqueName("parent"), [agent.slug]);
+    const app = await clients.channelAppCommand.create(makeSlackChannelApp(org, uniqueName("renamed-app")));
+    fixtures.defer(() => clients.channelAppCommand.delete({ resourceId: app.metadata!.id }).catch(() => undefined));
+    const session = await clients.sessionCommand.create(makeSession({ org, name: uniqueName("chat"), agentRef: { org, slug: agent.slug } }));
+    fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }).catch(() => undefined));
+    const schedule = await clients.scheduleCommand.create(makeSchedule(org, uniqueName("sched"), agent.slug, { enabled: false }));
+    fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }).catch(() => undefined));
+    const channel = await clients.agentChannelCommand.create(
+      makeSlackAgentChannel(org, uniqueName("chan"), agent.slug, { appRefSlug: app.metadata!.slug }),
+    );
+    fixtures.defer(() => clients.agentChannelCommand.delete({ value: channel.metadata!.id }).catch(() => undefined));
+
+    const agentSlug = uniqueName("agent-renamed");
+    const appSlug = uniqueName("app-renamed");
+    await clients.agentCommand.rename({ resourceId: agent.id, slug: agentSlug });
+    await clients.channelAppCommand.rename({ resourceId: app.metadata!.id, slug: appSlug });
+
+    expect((await clients.sessionQuery.get({ value: session.metadata!.id })).spec?.agentRef).toMatchObject({ id: agent.id, slug: agentSlug });
+    const fired = await clients.scheduleQuery.get({ value: schedule.metadata!.id });
+    expect(fired.spec?.target.case === "agent" ? fired.spec.target.value.agentRef : undefined).toMatchObject({ id: agent.id, slug: agentSlug });
+    const read = await clients.agentChannelQuery.get({ value: channel.metadata!.id });
+    expect(read.spec?.agentRef).toMatchObject({ id: agent.id, slug: agentSlug });
+    expect(read.spec?.appRef).toMatchObject({ id: app.metadata!.id, slug: appSlug });
+    const parentRead = await clients.agentQuery.get({ value: parent.id });
+    expect(parentRead.spec?.subagents[0]).toMatchObject({ id: agent.id, slug: agentSlug });
+  });
+});
+
+describe("an apply carrying the id finds the resource by it", () => {
+  it("[rpc:AgentCommandController.apply] the agent is updated, not copied, and its slug changes only through rename; the same file in another organization makes its own", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await agentInOrg(org, uniqueName("exported"));
+    const editedSlug = uniqueName("edited");
+    const exported = {
+      ...makeAgent({ org, name: agent.slug, instructions: "Edited after the export, in the file." }),
+      metadata: { id: agent.id, name: agent.slug, org, slug: editedSlug },
+    };
+
+    const applied = await clients.agentCommand.apply(exported);
+    expect(applied.metadata?.id).toBe(agent.id);
+    expect(applied.metadata?.slug, "rename is the slug's one door").toBe(agent.slug);
+    expect(applied.spec?.instructions).toBe("Edited after the export, in the file.");
+
+    const elsewhere = await target.provisionTenancy();
+    const copied = await clients.agentCommand.apply({ ...exported, metadata: { ...exported.metadata, org: elsewhere.org } });
+    fixtures.defer(() => clients.agentCommand.delete({ value: copied.metadata!.id }).catch(() => undefined));
+    expect(copied.metadata?.id).not.toBe(agent.id);
+    expect(copied.metadata?.slug).toBe(editedSlug);
+  });
+});
