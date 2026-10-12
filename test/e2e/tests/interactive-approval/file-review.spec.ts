@@ -144,11 +144,17 @@ test.describe("file-review card (deterministic mock LLM)", () => {
       // A settled (non-gate) tool card carries the same neutral border with no
       // accent — guard its computed width so the layer fix covers plain cards
       // too, in both color schemes (a screenshot cannot see a 1px line).
-      const neutralBorder = await settledRow.evaluate((el) => {
-        const s = getComputedStyle(el);
-        return { top: s.borderTopWidth, color: s.borderTopColor };
-      });
-      expect(parseFloat(neutralBorder.top)).toBeGreaterThanOrEqual(1);
+      // Polled: the row re-renders as the kept review settles, and a style read
+      // from a row detached mid-render comes back empty.
+      const readBorder = () =>
+        settledRow.evaluate((el) => {
+          const s = getComputedStyle(el);
+          return { top: s.borderTopWidth, color: s.borderTopColor };
+        });
+      await expect
+        .poll(async () => parseFloat((await readBorder()).top), { timeout: 10_000 })
+        .toBeGreaterThanOrEqual(1);
+      const neutralBorder = await readBorder();
       expect(neutralBorder.color).not.toBe("transparent");
       expect(neutralBorder.color).not.toMatch(/,\s*0\)\s*$/);
 
