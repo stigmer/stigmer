@@ -538,6 +538,32 @@ export class StigmerClient {
   }
 
   /**
+   * One page of a session's log, filtered by event type, in the order asked
+   * for: the read a turn's start pages back through, newest first, to find
+   * the undos still owed (`harness/owed-undos.ts`). The caller pages and
+   * decides where to stop; the credential is the interceptor's, as for
+   * {@link listRunSessionEvents}.
+   */
+  async listSessionEvents(
+    sessionId: string,
+    query: {
+      readonly types: readonly string[];
+      readonly order: "asc" | "desc";
+      readonly pageSize: number;
+      readonly pageToken: string;
+    },
+  ): Promise<{ readonly events: readonly SessionEvent[]; readonly nextPageToken: string }> {
+    const page = await this.sessionQuery.listEvents({
+      sessionId,
+      types: [...query.types],
+      order: query.order,
+      pageSize: query.pageSize,
+      pageToken: query.pageToken,
+    });
+    return { events: page.events, nextPageToken: page.nextPageToken };
+  }
+
+  /**
    * Race-safe, field-level subject write. The dedicated updateSubject RPC
    * exists precisely so concurrent writers (title generation vs a user
    * rename) cannot lose each other's updates the way full-resource

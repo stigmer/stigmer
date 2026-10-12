@@ -15,6 +15,8 @@ import "ai/stigmer/agentic/run/v1/subagent.proto";
 import "ai/stigmer/agentic/run/v1/todo.proto";
 import "ai/stigmer/agentic/run/v1/usage.proto";
 import "ai/stigmer/agentic/run/v1/writeback.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
@@ -407,6 +409,32 @@ message RunStatus {
   // it is when the turn starts.
   string agent_version_hash = 28;
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // What This Run Loaded
+  //
+  // The skills and plugins this run's turns loaded, each at the exact
+  // version it ran. A skill or plugin listed without a version follows its
+  // latest push, so the agent version above does not name it; this does.
+  // A record, never a pin: it changes nothing a later run loads.
+  //
+  // Runner-written, unlike the agent stamp above.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Every skill and plugin a turn of this run loaded, for the agent and its
+  // subagents, at the version it loaded. A turn that resumes after a pause
+  // and loads a newer version adds an entry, so a run that ran two versions
+  // of one skill lists both. Empty for a run that loaded none, and for runs
+  // that predate this field.
+  //
+  // @internal
+  // Written by the runner once per turn attempt and merged by union over
+  // (id, version) in update-status.ts: an entry, once stored, is never
+  // removed or reordered. Stored by id; the response interceptor names each
+  // entry.
+  //
+  // Field 36: numbered after stop_cause (35), the prior maximum.
+  LoadedVersions loaded_versions = 36;
+
   // Standing preferences declared by the organization and the calling user,
   // snapshotted into this run at create time.
   //
@@ -510,6 +538,33 @@ message RunStatus {
         "eval_stopped",
         "review_resolved"
       ]
+    }
+  ];
+}
+
+// LoadedVersions lists what a run loaded besides its agent: one list per
+// kind, each entry a reference to the exact version that ran.
+message LoadedVersions {
+  // Skills, each at its version hash (SkillStatus.version_hash). The version
+  // is empty only for a skill whose last version failed to archive, which
+  // loads as it is.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference skills = 1 [
+    (ai.stigmer.commons.apiresource.reference_kind) = skill,
+    (buf.validate.field).repeated.items.cel = {
+      id: "loaded_versions.skill_id"
+      message: "a loaded skill is named by id"
+      expression: "this.id != ''"
+    }
+  ];
+
+  // Plugins, each at its archive's digest (PluginStatus.digest). A plugin's
+  // own skills, servers and hooks are named by its digest.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference plugins = 2 [
+    (ai.stigmer.commons.apiresource.reference_kind) = plugin,
+    (buf.validate.field).repeated.items.cel = {
+      id: "loaded_versions.plugin_id"
+      message: "a loaded plugin is named by id"
+      expression: "this.id != ''"
     }
   ];
 }

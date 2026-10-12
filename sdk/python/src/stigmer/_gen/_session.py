@@ -50,6 +50,12 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def review_file_changes(self, input: io_pb2.ReviewFileChangesInput) -> io_pb2.ReviewFileChangesResponse:
+        try:
+            return self._command.reviewFileChanges(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, id: str) -> api_pb2.Session:
         try:
             return self._command.delete(io_pb2.SessionId(value=id))
@@ -123,6 +129,7 @@ class SessionInput:
     vaults: list[ResourceRef] = field(default_factory=list)
     include_my_vault: bool = False
     plugins: list[ResourceRef] = field(default_factory=list)
+    file_review: bool = False
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
@@ -132,6 +139,7 @@ class SessionInput:
             cursor_mode=self.cursor_mode,
             execution_target=self.execution_target,
             include_my_vault=self.include_my_vault,
+            file_review=self.file_review,
         )
         if self.agent_ref is not None and (self.agent_ref.org or self.agent_ref.slug):
             _ref = self.agent_ref._to_proto()

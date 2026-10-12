@@ -28,7 +28,9 @@
  * (RefuseVisitorAppendedPrompt), the server's own requests excepted; and a
  * plugin-eval case's context, refused on any request the server did not
  * compose (GuardPluginEvalCase), and on update kept as the create stored
- * it, whatever the request carries (KeepPluginEvalCase).
+ * it, whatever the request carries (KeepPluginEvalCase); a reconcile turn's
+ * flag, held to the same two rules (GuardReconcileFileReview,
+ * KeepReconcileFileReview) and carried into the workflow's input.
  */
 import { PluginEvalCaseContextSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/plugin_eval_case_pb";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
@@ -85,7 +87,10 @@ import {
   newRefuseVisitorAppendedPromptStep,
   newGuardPluginEvalCaseStep,
   newKeepPluginEvalCaseStep,
+  newGuardReconcileFileReviewStep,
+  newKeepReconcileFileReviewStep,
   PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE,
+  RECONCILE_FILE_REVIEW_NOT_COMPOSED_MESSAGE,
   VISITOR_APPENDED_PROMPT_MESSAGE,
   autoCreatedSessionName,
   newComposeRecalledMemoriesStep,
@@ -382,7 +387,7 @@ describe("buildAutoCreateSessionSpec", () => {
       }),
     },
     {
-      name: "full bootstrap spec -> forwarded verbatim, no defaults applied",
+      name: "full bootstrap spec -> forwarded verbatim (file review included), no defaults applied",
       callerSpec: create(SessionSpecSchema, {
         agentRef: {
           kind: ApiResourceKind.agent,
@@ -394,6 +399,7 @@ describe("buildAutoCreateSessionSpec", () => {
         workspaceEntries,
         harness: Harness.NATIVE,
         executionTarget: ExecutionTarget.LOCAL,
+        fileReview: true,
       }),
       want: create(SessionSpecSchema, {
         agentRef: {
@@ -406,6 +412,7 @@ describe("buildAutoCreateSessionSpec", () => {
         workspaceEntries,
         harness: Harness.NATIVE,
         executionTarget: ExecutionTarget.LOCAL,
+        fileReview: true,
       }),
     },
     {
@@ -1295,7 +1302,7 @@ describe("the compose steps where callers are persons", () => {
 });
 
 // The StartWorkflow failure arm's
-// PENDING→FAILED stamp is notify site 3 of 5 — an execution that consumed
+// PENDING→FAILED stamp is notify site 3 of 4 — an execution that consumed
 // its create-gate side effects and then never started still reaches the
 // composed observers (a billing composition settles its reservation on
 // exactly this).
@@ -1410,6 +1417,11 @@ describe("newStartWorkflowStep — the workflow input", () => {
     expect(input?.executionId).toBe("aexec_input");
     expect(input?.sessionId).toBe("ses_turn");
     expect(input?.agentId).toBe("agt_called");
+    expect(input?.reconcileFileReview).toBe(false);
+
+    execution.spec!.reconcileFileReview = true;
+    await step.execute(newContext(execution));
+    expect(input?.reconcileFileReview, "a reconcile turn's workflow knows it is one").toBe(true);
   });
 });
 
@@ -1518,6 +1530,53 @@ describe("newKeepPluginEvalCaseStep", () => {
     const cleared = update(composed, undefined);
     await step.execute(cleared);
     expect(cleared.newState.spec?.pluginEvalCase?.scaffoldScript).toBe("setup.sh");
+  });
+});
+
+describe("newGuardReconcileFileReviewStep", () => {
+  const step = newGuardReconcileFileReviewStep();
+
+  function withFlag(caller: CallerIdentity, set: boolean) {
+    const execution = newExecution("ses_1");
+    execution.spec!.reconcileFileReview = set;
+    if (set) execution.spec!.message = "";
+    return newContext(execution, caller);
+  }
+
+  it("refuses a reconcile turn from any caller the server did not compose", async () => {
+    await expect(step.execute(withFlag(testCallerIdentity(), true))).rejects.toThrow(RECONCILE_FILE_REVIEW_NOT_COMPOSED_MESSAGE);
+    await expect(step.execute(withFlag(testCallerIdentity({ callerClass: "api_key" }), true))).rejects.toThrow(
+      RECONCILE_FILE_REVIEW_NOT_COMPOSED_MESSAGE,
+    );
+  });
+
+  it("passes the server's own request, as the person who decided, and any request without one", async () => {
+    await step.execute(withFlag(testCallerIdentity({ origin: "in-process" }), true));
+    await step.execute(withFlag(testCallerIdentity(), false));
+  });
+});
+
+describe("newKeepReconcileFileReviewStep", () => {
+  const step = newKeepReconcileFileReviewStep();
+
+  /** An update of a run whose create stored `stored`, asking for `requested`. */
+  function update(stored: boolean, requested: boolean) {
+    const existing = newExecution("ses_1");
+    existing.spec!.reconcileFileReview = stored;
+    const execution = newExecution("ses_1");
+    execution.spec!.reconcileFileReview = requested;
+    const ctx = newContext(execution, testCallerIdentity());
+    ctx.set(EXISTING_RESOURCE_KEY, existing);
+    return ctx;
+  }
+
+  it("never turns a message turn into a reconcile turn, nor one back", async () => {
+    const set = update(false, true);
+    await step.execute(set);
+    expect(set.newState.spec?.reconcileFileReview).toBe(false);
+    const cleared = update(true, false);
+    await step.execute(cleared);
+    expect(cleared.newState.spec?.reconcileFileReview).toBe(true);
   });
 });
 

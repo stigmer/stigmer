@@ -4,7 +4,8 @@
  * ({@link ./git-substrate.js}) and the file-review ledger ({@link ./events.js}):
  * it turns "the agent edited files freely this turn" into the append-only
  * `file_review` events the server folds into `file_change_sets` (the single
- * review surface), and on resume reconciles the tree to the user's decisions.
+ * review surface), and after the turn puts back the files a person undid
+ * ({@link undoChangeSet}).
  *
  * It is parameterized by `harnessId` (stamped onto the BASELINE payload, which is
  * the projection's source of truth for `turn_id`/`harness_id`) and `excludePaths`
@@ -15,7 +16,7 @@
  *
  * Identity: the change set id is `${executionId}:${turnSeq}` (one turn = one
  * change set), minted by the caller; each file's stable id is
- * `${changeSetId}:${pathAfter||pathBefore}` so the resume can map a per-file
+ * `${changeSetId}:${pathAfter||pathBefore}` so an undo can map a per-file
  * decision back to its path without depending on any other identity.
  */
 
@@ -27,7 +28,6 @@ import {
   FileDecisionAction,
   FileDecisionScope,
   FileReviewBlockReason,
-  FileReviewFailureKind,
   SnapshotKind,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -48,27 +48,22 @@ import {
   buildBaselineCapturedEvent,
   buildCandidateCapturedEvent,
   buildCapturedFileChange,
-  buildFailedEvent,
-  buildReconciledEvent,
+  changeSetIdParts,
   contentSha256,
   type CapturedChangeInput,
   type ChangeSetContext,
 } from "./events.js";
 import {
-  applyApprovedPaths,
   baselineRef,
   captureChangeSet,
   captureRef,
-  dropCaptureRefs,
   recomputeChangeSet,
   restoreToBaseline,
-  snapshotApproved,
   snapshotBaseline,
   type GitSubstrateChange as GitCapturedChange,
 } from "./git-substrate.js";
 import type { ArtifactStorage } from "../artifact-storage.js";
 import {
-  applyCasApproved,
   loadCasManifest,
   restoreCasToBaseline,
   snapshotCasChangeSet,
@@ -80,11 +75,11 @@ import {
 import { isSecretLikePath } from "./secret-paths.js";
 
 /**
- * Whether a turn runs in apply-then-review CAPTURE mode (file edits flow and are
- * reviewed post-hoc) rather than the classic pre-write DENY-GATE. Shared by BOTH
- * harnesses (Cursor and deep-agent) so the capture-vs-deny-gate decision is made
- * one way everywhere — the single point where a workspace's substrate availability
- * decides the HITL model.
+ * Whether a workspace CAN capture a turn's file edits: the substrate half of
+ * {@link deriveCaptureMode}, and on its own the input to the secret-path rule
+ * (a secret-like write flows only where the git substrate would hold it;
+ * `secret-paths.ts`). Shared by BOTH harnesses so the question is answered
+ * one way everywhere.
  *
  * Capture needs a primary workspace AND a substrate to capture into:
  *  - a git work tree captures tracked edits from the git diff (no storage needed);
@@ -92,20 +87,42 @@ import { isSecretLikePath } from "./secret-paths.js";
  *    which needs artifact storage to persist blobs.
  *
  * So a non-git workspace with NO artifact storage — or no workspace at all — has
- * no capture substrate and falls back to the deny-gate: the agent still runs, but
- * file writes gate pre-execution instead of flowing. In the Cursor harness that
- * fallback is also the ONLY branch that arms the resume-time exact-apply guarantee
- * (see shared/exact-apply.ts); the deep-agent harness re-applies an
- * approved write via LangGraph checkpoint replay and needs no exact-apply. Keeping
- * this the single, named, truth-table-tested decision pins exactly when the
- * no-storage deny-gate engages in either harness.
+ * no capture substrate.
  */
-export function deriveCaptureMode(
+export function deriveCaptureSubstrate(
   primaryWorkspaceDir: string | undefined,
   gitWorkspace: boolean,
   hasArtifactStorage: boolean,
 ): boolean {
   return !!primaryWorkspaceDir && (gitWorkspace || hasArtifactStorage);
+}
+
+/**
+ * Whether a turn runs in apply-then-review CAPTURE mode: its file edits flow
+ * and are offered for review after the turn, Keep or Undo. Two facts must
+ * both hold:
+ *
+ *  - `review`: the conversation asked for review (`SessionSpec.file_review`),
+ *    or the run is a plugin-eval try, whose graders read the captured sets
+ *    whatever the switch says. Off by default.
+ *  - the workspace has a capture substrate ({@link deriveCaptureSubstrate}).
+ *
+ * With review off a built-in write or delete simply flows and nothing is
+ * captured. With review on and no substrate, file writes ask before they run
+ * (the classic deny-gate): in the Cursor harness that fallback is also the
+ * ONLY branch that arms the resume-time exact-apply guarantee (see
+ * shared/exact-apply.ts); the deep-agent harness re-applies an approved write
+ * via LangGraph checkpoint replay and needs no exact-apply. Keeping this the
+ * single, named, truth-table-tested decision pins exactly when capture and
+ * the deny-gate engage in either harness.
+ */
+export function deriveCaptureMode(
+  primaryWorkspaceDir: string | undefined,
+  gitWorkspace: boolean,
+  hasArtifactStorage: boolean,
+  review: boolean,
+): boolean {
+  return review && deriveCaptureSubstrate(primaryWorkspaceDir, gitWorkspace, hasArtifactStorage);
 }
 
 /**
@@ -156,10 +173,10 @@ export async function captureBaselineToLedger(opts: {
 
 /**
  * Turn end: capture the change set, LEAVE the working tree in its applied
- * ("after") state (the user reviews the real change; nothing is committed and the
- * next turn is blocked until they decide), and author the CANDIDATE_CAPTURED
- * event. The pinned baseline/after refs are the authoritative source for the
- * resume-time reconcile ({@link applyCaptureDecisions}).
+ * ("after") state (the user reviews the real change; nothing is committed and
+ * the turn ends normally), and author the CANDIDATE_CAPTURED event. The pinned
+ * baseline/after refs are the authoritative source for an undo after the turn
+ * ({@link undoChangeSet}).
  *
  * Presentation (hiding the harness's flowed transcript rows so `file_change_sets`
  * is the single review surface) is the harness adapter's concern, not this seam's.
@@ -301,220 +318,144 @@ export async function captureCandidateToLedger(opts: {
   return gitChanges;
 }
 
-/** Outcome of reconciling a DECIDED change set's decisions on resume. */
-export interface CaptureResumeResult {
-  /** False when this resume is not a capture turn (no capture ref present). */
-  readonly isCaptureTurn: boolean;
-  /** Repo-relative paths applied (approved) to the working tree. */
-  readonly approvedPaths: readonly string[];
-  /** Repo-relative paths discarded (rejected / undecided-then-skipped). */
-  readonly rejectedPaths: readonly string[];
-  /** True when at least one file was rejected. */
-  readonly hadReject: boolean;
-  /**
-   * True when an approved file's on-disk bytes no longer hash to the digest the
-   * user approved: a FileReviewFailure(HASH_MISMATCH) was authored and NOTHING
-   * was applied (what-you-approve-is-what-applies is a hard gate).
-   */
-  readonly failed: boolean;
-  /** Human-readable detail when {@link failed} (the diverged paths). */
-  readonly failureDetail?: string;
+/** Why an undo put nothing back, as `stigmer.file_review.reconciled` names it. */
+export type UndoFailure = "hash_mismatch" | "reconcile_failed";
+
+/** The undo of one change set after its turn: the paths put back, or why none were. */
+export interface UndoOutcome {
+  readonly changeSetId: string;
+  /** Workspace-relative paths restored to their pre-turn bytes; empty on a failure. */
+  readonly undonePaths: readonly string[];
+  /** `""` when the files were put back. */
+  readonly failure: UndoFailure | "";
+  /** What failed, for a person; `""` when nothing did. */
+  readonly failureDetail: string;
 }
 
 /**
- * Resume: reconcile the working tree to the change set's DECIDED decisions
- * (projected server-side onto `FileChangeSet.decisions`), sourced entirely from
- * the pinned baseline/after refs — approved files are ensured at their "after"
- * bytes (uncommitted; normally already on disk from the review window, re-asserted
- * idempotently), rejected/undecided files are snapped back to baseline. Then
- * author RECONCILED with the post-reconcile approved snapshot and release the
- * refs. Because both sides are ref-sourced, the result is correct regardless of
- * the tree's current contents (idempotent under a Temporal retry or a tree reset).
+ * Put back the files a person undid in one change set, after its turn: every
+ * file whose effective decision is REJECT (the CHANGE_SET decision seeds every
+ * file, FILE decisions override it, most specific wins) returns to its pre-turn
+ * bytes. Kept and undecided files are left exactly as they are: review never
+ * holds a turn, so an undecided file is one nobody objected to.
  *
- * Scope precedence is runner-owned, most-specific-wins: the CHANGE_SET decision
- * (if any) seeds every file, then per-file FILE decisions override it.
+ * The sources are the ones capture pinned, never the live tree: a git-tracked
+ * file from the change set's run's baseline and capture refs
+ * ({@link recomputeChangeSet}, keyed by that run's id), a gitignored or non-git
+ * file from the CAS manifest the candidate recorded. So the restore is correct
+ * whatever the tree holds now, and idempotent under a retry.
  *
- * Enforcement ("what you approve is what applies"): before keeping an approved
- * file, the recomputed bytes must still hash to the reviewed digest. Any mismatch
- * authors a FileReviewFailure(HASH_MISMATCH) and applies NOTHING.
+ * The hash guard ("what you reviewed is what is undone"): before anything is
+ * written, each file being undone must still match, on both sides, the digests
+ * the person reviewed. A git file is checked as the keep path always was
+ * ({@link digestMatches}); a CAS file by its manifest's blob addresses. A
+ * secret-withheld entry carries no digests (its bytes were never recorded) and
+ * is undone from the refs alone. Any mismatch answers `hash_mismatch` and
+ * restores NOTHING; refs that are gone, a manifest that cannot be read, or a
+ * restore that throws answer `reconcile_failed`.
  *
- * Mutates `status.fileReviewEventStream` in place (authors RECONCILED / FAILED).
+ * Writes nothing to any ledger: the outcome is the caller's to record, as the
+ * session's `stigmer.file_review.reconciled` event. Leaves the refs in place:
+ * the next message turn drops them once the change set's window has closed
+ * (`git-substrate.ts` `dropCaptureRefs`).
  */
-export async function applyCaptureDecisions(opts: {
-  readonly status: RunStatus;
+export async function undoChangeSet(opts: {
   readonly gitRoot: string;
-  readonly executionId: string;
   readonly changeSet: FileChangeSet;
-  readonly harnessId: string;
-  readonly excludePaths?: readonly string[];
-  /**
-   * The CAS blob reader, used to reconcile ignored / non-git (CAS) files from the
-   * durable manifest — approved after-blobs re-written (hash-verified), rejected
-   * files snapped back to their before-blobs. Whether the CAS branch runs at all
-   * is decided by the change set's CANDIDATE snapshot (a git-only turn carries no
-   * CAS ref), NOT by probing storage. Omit for a harness with no artifact storage;
-   * a CAS/HYBRID change set then cannot be reconciled.
-   *
-   * `storage` is accepted so callers can pass the store they derived `readBlob`
-   * from (via {@link casBlobReader}); the reconcile itself reads only through
-   * `readBlob` and never probes `storage`.
-   */
-  readonly storage?: ArtifactStorage;
+  /** False for a CAS-only non-git workspace: git refs are never consulted. */
+  readonly gitWorkspace: boolean;
+  /** Reads a CAS blob back; absent when the runner has no artifact storage. */
   readonly readBlob?: BlobReader;
-  /**
-   * True (default) for a git work tree; false for a CAS-only non-git workspace
-   * When false, git refs are never consulted — the reconcile is driven
-   * entirely by the durable CAS manifest, and RECONCILED carries a `CAS_MANIFEST`
-   * snapshot instead of a re-pinned git tree.
-   */
-  readonly gitWorkspace?: boolean;
-}): Promise<CaptureResumeResult> {
-  const { status, gitRoot, executionId, changeSet, harnessId, excludePaths, readBlob } = opts;
-  const gitWorkspace = opts.gitWorkspace ?? true;
-
-  // The two substrates are resolved up front and reconciled independently below:
-  // git-tracked files from the pinned baseline/after refs, ignored/non-git files
-  // from the durable CAS manifest. A resume is a capture turn iff at least one is
-  // present; with neither this is an ordinary (non-capture) resume.
-  //
-  // Whether this turn captured any CAS (ignored / non-git) files is a fact the
-  // ledger already records: the change set's CANDIDATE snapshot carries a CAS
-  // manifest ref for a CAS/HYBRID turn and none for a git-only turn. We branch on
-  // that ledger fact — NOT on probing artifact storage. A git-only turn writes no
-  // manifest, and asking storage "does the manifest exist?" is both redundant and
-  // unsafe: a presigned/proxy backend answers true for any key, which turned a
-  // git-only reconcile into a doomed manifest download and a 404 crash. Single
-  // source of truth: derive the substrate from the ledger, never from storage.
-  const recomputed = gitWorkspace ? await recomputeChangeSet(gitRoot, executionId) : undefined;
-  const casRef = candidateCasRef(changeSet);
-  if (casRef && !readBlob) {
-    // The ledger says CAS files were captured, but this caller cannot read blobs
-    // back. Skipping would leave those files applied with their decisions
-    // unenforced — a silent partial reconcile — so refuse loudly instead.
-    throw new Error(
-      `applyCaptureDecisions: change set '${changeSet.id}' captured CAS files ` +
-      `(manifest '${casRef.artifactUri}') but no blob reader was provided`,
-    );
-  }
-  const manifest = casRef && readBlob ? await loadCasManifest({ readBlob, ref: casRef }) : undefined;
-  if (!recomputed && !manifest) {
-    return {
-      isCaptureTurn: false,
-      approvedPaths: [],
-      rejectedPaths: [],
-      hadReject: false,
-      failed: false,
-    };
-  }
+}): Promise<UndoOutcome> {
+  const { gitRoot, changeSet, gitWorkspace, readBlob } = opts;
+  const failed = (failure: UndoFailure, failureDetail: string): UndoOutcome => ({
+    changeSetId: changeSet.id,
+    undonePaths: [],
+    failure,
+    failureDetail,
+  });
 
   const actionByChangeId = resolveDecisions(changeSet);
+  const undone = changeSet.changes.filter((c) => actionByChangeId.get(c.id) === FileDecisionAction.REJECT);
+  if (undone.length === 0) return { changeSetId: changeSet.id, undonePaths: [], failure: "", failureDetail: "" };
+  const undoneById = new Map(undone.map((c) => [c.id, c]));
 
-  const approved: GitCapturedChange[] = [];
-  const rejected: GitCapturedChange[] = [];
-  const approvedPaths: string[] = [];
-  const rejectedPaths: string[] = [];
-  const mismatches: string[] = [];
-  let hadReject = false;
-
-  for (const change of recomputed?.changes ?? []) {
-    const protoChange = changeSet.changes.find(
-      (c) => c.id === `${changeSet.id}:${change.path}`,
-    );
-    const action = protoChange
-      ? actionByChangeId.get(protoChange.id) ?? FileDecisionAction.UNSPECIFIED
-      : FileDecisionAction.UNSPECIFIED;
-
-    if (action === FileDecisionAction.APPROVE) {
-      // Enforcement gate: the bytes we are about to keep must still match what
-      // the reviewer approved. A divergence is never silently applied.
-      if (protoChange && !digestMatches(change, protoChange)) {
+  try {
+    // Git-tracked files, from the change set's run's pinned refs.
+    const runId = changeSetIdParts(changeSet.id).runId;
+    const gitUndone = undone.filter((c) => c.captureClass === FileCaptureClass.GIT_TRACKED);
+    const recomputed = gitWorkspace && gitUndone.length > 0 ? await recomputeChangeSet(gitRoot, runId) : undefined;
+    if (gitUndone.length > 0 && recomputed === undefined) {
+      return failed("reconcile_failed", `the captured state of the turn is gone from the workspace, so ${gitUndone.map(pathOf).join(", ")} could not be put back`);
+    }
+    const gitRestore: GitCapturedChange[] = [];
+    const mismatches: string[] = [];
+    const seen = new Set<string>();
+    for (const change of recomputed?.changes ?? []) {
+      const proto = undoneById.get(`${changeSet.id}:${change.path}`);
+      if (proto === undefined) continue;
+      seen.add(proto.id);
+      if (!isSecretWithheld(proto) && !digestMatches(change, proto)) {
         mismatches.push(change.path);
         continue;
       }
-      approved.push(change);
-      approvedPaths.push(change.path);
-    } else {
-      if (action === FileDecisionAction.REJECT) hadReject = true;
-      rejected.push(change);
-      rejectedPaths.push(change.path);
+      gitRestore.push(change);
     }
-  }
 
-  if (mismatches.length > 0) {
-    const detail = `on-disk content diverged from the approved digest for: ${mismatches.join(", ")}`;
-    appendFileReviewEvents(status, executionId, [
-      buildFailedEvent(
-        changeSetContext(changeSet.id, harnessId),
-        FileReviewFailureKind.HASH_MISMATCH,
-        detail,
-      ),
-    ]);
-    // Refuse to apply anything: a partial apply under a verification failure is
-    // worse than none. The refs are left in place for diagnosis.
-    return {
-      isCaptureTurn: true,
-      approvedPaths: [],
-      rejectedPaths: [],
-      hadReject,
-      failed: true,
-      failureDetail: detail,
-    };
-  }
-
-  // Reconcile git-tracked files from the authoritative refs: approved files keep
-  // (re-assert) their "after" bytes; rejected/undecided files snap back to baseline.
-  if (recomputed) {
-    await applyApprovedPaths(gitRoot, recomputed.afterTree, approved);
-    await restoreToBaseline(gitRoot, recomputed.baselineTree, rejected);
-  }
-
-  // Reconcile CAS-captured (ignored / non-git) files from the durable manifest,
-  // sourced entirely from artifact storage (the CAS analogue of the git refs).
-  // Same decision map, keyed by the per-file change id, so the resolution rule is
-  // identical across substrates. For a non-git workspace this is the ONLY reconcile.
-  if (manifest) {
-    const casApproved: CasCapturedFile[] = [];
-    const casRejected: CasCapturedFile[] = [];
-    for (const file of manifest.files) {
-      const path = file.pathAfter || file.pathBefore;
-      const action = actionByChangeId.get(`${changeSet.id}:${path}`) ?? FileDecisionAction.UNSPECIFIED;
-      if (action === FileDecisionAction.APPROVE) {
-        casApproved.push(file);
-        approvedPaths.push(path);
-      } else {
-        if (action === FileDecisionAction.REJECT) hadReject = true;
-        casRejected.push(file);
-        rejectedPaths.push(path);
+    // CAS files (gitignored or non-git), from the manifest the candidate recorded.
+    const casRef = candidateCasRef(changeSet);
+    const casUndone = undone.filter((c) => c.captureClass !== FileCaptureClass.GIT_TRACKED && !isSecretWithheld(c));
+    const casRestore: CasCapturedFile[] = [];
+    if (casRef && casUndone.length > 0) {
+      if (!readBlob) {
+        return failed("reconcile_failed", `no artifact storage to read back ${casUndone.map(pathOf).join(", ")}`);
+      }
+      const manifest = await loadCasManifest({ readBlob, ref: casRef });
+      for (const file of manifest.files) {
+        const path = file.pathAfter || file.pathBefore;
+        const proto = undoneById.get(`${changeSet.id}:${path}`);
+        if (proto === undefined) continue;
+        seen.add(proto.id);
+        if ((file.before?.sha256 ?? "") !== proto.beforeSha256 || (file.after?.sha256 ?? "") !== proto.afterSha256) {
+          mismatches.push(path);
+          continue;
+        }
+        casRestore.push(file);
       }
     }
-    await applyCasApproved({ readBlob: readBlob!, workspaceRoot: gitRoot, files: casApproved });
-    await restoreCasToBaseline({ readBlob: readBlob!, workspaceRoot: gitRoot, files: casRejected });
+
+    // A file being undone that its source no longer holds was captured
+    // differently from what was reviewed.
+    for (const change of [...gitUndone, ...casUndone]) {
+      if (!seen.has(change.id)) mismatches.push(pathOf(change));
+    }
+    if (mismatches.length > 0) {
+      // Restore nothing: a partial undo under a verification failure is worse
+      // than none. The refs stay for diagnosis.
+      return failed("hash_mismatch", `the captured content no longer matches what was reviewed for: ${mismatches.join(", ")}`);
+    }
+
+    if (recomputed && gitRestore.length > 0) await restoreToBaseline(gitRoot, recomputed.baselineTree, gitRestore);
+    if (casRestore.length > 0) await restoreCasToBaseline({ readBlob: readBlob!, workspaceRoot: gitRoot, files: casRestore });
+    return {
+      changeSetId: changeSet.id,
+      undonePaths: [...gitRestore.map((c) => c.path), ...casRestore.map((f) => f.pathAfter || f.pathBefore)],
+      failure: "",
+      failureDetail: "",
+    };
+  } catch (err) {
+    return failed("reconcile_failed", err instanceof Error ? err.message : String(err));
   }
+}
 
-  // Author RECONCILED carrying the exact post-reconcile snapshot. A git turn
-  // re-pins the approved working tree; a CAS-only turn references the durable
-  // manifest (the reconciled state is fully derivable from manifest + decisions,
-  // and there is no tree to pin).
-  let approvedSnapshot: SnapshotRef;
-  if (recomputed) {
-    const snap = await snapshotApproved(gitRoot, executionId, excludePaths);
-    approvedSnapshot = gitTreeSnapshotRef(snap.treeOid, snap.ref);
-  } else {
-    approvedSnapshot = casManifestSnapshotRef(candidateCasRef(changeSet));
-  }
-  appendFileReviewEvents(status, executionId, [
-    buildReconciledEvent(changeSetContext(changeSet.id, harnessId), approvedSnapshot),
-  ]);
+/** A change's workspace path, as a person reads it. */
+function pathOf(change: CapturedFileChange): string {
+  return change.pathAfter || change.pathBefore;
+}
 
-  if (recomputed) await dropCaptureRefs(gitRoot, executionId);
-
-  return {
-    isCaptureTurn: true,
-    approvedPaths,
-    rejectedPaths,
-    hadReject,
-    failed: false,
-  };
+/** A content-less entry whose bytes were never recorded (a secret-like path): no digest to check. */
+function isSecretWithheld(change: CapturedFileChange): boolean {
+  return change.blockedReason === FileReviewBlockReason.SECRET_WITHHELD;
 }
 
 // ---------------------------------------------------------------------------
@@ -547,16 +488,16 @@ function resolveDecisions(
 }
 
 /**
- * Verify the recomputed content still hashes to the digests the reviewer
- * approved. The "after" side is checked for CREATE/MODIFY (the bytes we keep);
- * the "before" side for MODIFY/DELETE (the baseline we restore from / remove).
+ * Verify the recomputed content still hashes to the digests the reviewer saw.
+ * The "after" side is checked for CREATE/MODIFY (the bytes on the tree); the
+ * "before" side for MODIFY/DELETE (the baseline an undo restores).
  *
  * The sha is taken via the shared {@link contentSha256} over the recomputed
  * {@link CapturedContent} — the SAME function that produced the persisted
  * `before_sha256`/`after_sha256` at capture — so it is byte-true for binary and
  * text alike and matches by construction when the underlying bytes are unchanged.
  * (Re-hashing an inline body string here would be lossy for binaries and would
- * spuriously fail an approved binary, since a binary side carries no body.)
+ * spuriously fail a binary, since a binary side carries no body.)
  */
 function digestMatches(
   gitChange: GitCapturedChange,

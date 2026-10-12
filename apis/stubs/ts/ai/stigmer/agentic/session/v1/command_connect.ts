@@ -5,7 +5,7 @@
 
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { AppendSessionEventsInput, AppendSessionEventsResponse, SessionId, UpdateSessionSubjectRequest } from "./io_pbjs";
+import { AppendSessionEventsInput, AppendSessionEventsResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, UpdateSessionSubjectRequest } from "./io_pbjs";
 
 /**
  * SessionCommandController handles write operations for agent sessions.
@@ -61,6 +61,40 @@ export const SessionCommandController = {
       name: "updateSubject",
       I: UpdateSessionSubjectRequest,
       O: Session,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Keep or undo the file changes a turn made, or one of its files.
+     *
+     * In a conversation with file review on (SessionSpec.file_review), each
+     * turn's file edits are applied as the agent makes them and listed in a
+     * stigmer.file_review.changes event. They can be decided until the
+     * conversation's next message is sent; then whatever is undecided is
+     * kept. Keep records the choice. Undo puts the file back as it was
+     * before the turn: at once when the turn has ended (the reply names the
+     * turn that does it), else when the turn's next step starts. The
+     * decision is appended as a stigmer.file_review.decided event.
+     *
+     * ## Error Conditions
+     *
+     * - NOT_FOUND: the change set is not one of this conversation's
+     * - FAILED_PRECONDITION: the conversation has moved on (a later message
+     *   was sent), the change was already decided the other way (a decision
+     *   is final), the file is not in the change set, or a keep of a change
+     *   that cannot be shown whole without acknowledge_unreviewable
+     * - INVALID_ARGUMENT: expected_digest does not match the change
+     *
+     * ## Idempotency
+     *
+     * The same decision sent again records nothing new and starts no second
+     * turn.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.reviewFileChanges
+     */
+    reviewFileChanges: {
+      name: "reviewFileChanges",
+      I: ReviewFileChangesInput,
+      O: ReviewFileChangesResponse,
       kind: MethodKind.Unary,
     },
     /**

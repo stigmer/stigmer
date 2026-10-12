@@ -19,12 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SessionCommandController_Apply_FullMethodName         = "/ai.stigmer.agentic.session.v1.SessionCommandController/apply"
-	SessionCommandController_Create_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionCommandController/create"
-	SessionCommandController_Update_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionCommandController/update"
-	SessionCommandController_UpdateSubject_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject"
-	SessionCommandController_Delete_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
-	SessionCommandController_AppendEvents_FullMethodName  = "/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents"
+	SessionCommandController_Apply_FullMethodName             = "/ai.stigmer.agentic.session.v1.SessionCommandController/apply"
+	SessionCommandController_Create_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionCommandController/create"
+	SessionCommandController_Update_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionCommandController/update"
+	SessionCommandController_UpdateSubject_FullMethodName     = "/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject"
+	SessionCommandController_ReviewFileChanges_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/reviewFileChanges"
+	SessionCommandController_Delete_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
+	SessionCommandController_AppendEvents_FullMethodName      = "/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents"
 )
 
 // SessionCommandControllerClient is the client API for SessionCommandController service.
@@ -45,6 +46,31 @@ type SessionCommandControllerClient interface {
 	// leaving other session fields untouched. Use this instead of the full
 	// update RPC when you only need to change the session subject.
 	UpdateSubject(ctx context.Context, in *UpdateSessionSubjectRequest, opts ...grpc.CallOption) (*Session, error)
+	// Keep or undo the file changes a turn made, or one of its files.
+	//
+	// In a conversation with file review on (SessionSpec.file_review), each
+	// turn's file edits are applied as the agent makes them and listed in a
+	// stigmer.file_review.changes event. They can be decided until the
+	// conversation's next message is sent; then whatever is undecided is
+	// kept. Keep records the choice. Undo puts the file back as it was
+	// before the turn: at once when the turn has ended (the reply names the
+	// turn that does it), else when the turn's next step starts. The
+	// decision is appended as a stigmer.file_review.decided event.
+	//
+	// ## Error Conditions
+	//
+	//   - NOT_FOUND: the change set is not one of this conversation's
+	//   - FAILED_PRECONDITION: the conversation has moved on (a later message
+	//     was sent), the change was already decided the other way (a decision
+	//     is final), the file is not in the change set, or a keep of a change
+	//     that cannot be shown whole without acknowledge_unreviewable
+	//   - INVALID_ARGUMENT: expected_digest does not match the change
+	//
+	// ## Idempotency
+	//
+	// The same decision sent again records nothing new and starts no second
+	// turn.
+	ReviewFileChanges(ctx context.Context, in *ReviewFileChangesInput, opts ...grpc.CallOption) (*ReviewFileChangesResponse, error)
 	// Delete a session.
 	//
 	// Deletion cascades to the session's runs. Billing usage
@@ -112,6 +138,16 @@ func (c *sessionCommandControllerClient) UpdateSubject(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *sessionCommandControllerClient) ReviewFileChanges(ctx context.Context, in *ReviewFileChangesInput, opts ...grpc.CallOption) (*ReviewFileChangesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReviewFileChangesResponse)
+	err := c.cc.Invoke(ctx, SessionCommandController_ReviewFileChanges_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *sessionCommandControllerClient) Delete(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Session)
@@ -150,6 +186,31 @@ type SessionCommandControllerServer interface {
 	// leaving other session fields untouched. Use this instead of the full
 	// update RPC when you only need to change the session subject.
 	UpdateSubject(context.Context, *UpdateSessionSubjectRequest) (*Session, error)
+	// Keep or undo the file changes a turn made, or one of its files.
+	//
+	// In a conversation with file review on (SessionSpec.file_review), each
+	// turn's file edits are applied as the agent makes them and listed in a
+	// stigmer.file_review.changes event. They can be decided until the
+	// conversation's next message is sent; then whatever is undecided is
+	// kept. Keep records the choice. Undo puts the file back as it was
+	// before the turn: at once when the turn has ended (the reply names the
+	// turn that does it), else when the turn's next step starts. The
+	// decision is appended as a stigmer.file_review.decided event.
+	//
+	// ## Error Conditions
+	//
+	//   - NOT_FOUND: the change set is not one of this conversation's
+	//   - FAILED_PRECONDITION: the conversation has moved on (a later message
+	//     was sent), the change was already decided the other way (a decision
+	//     is final), the file is not in the change set, or a keep of a change
+	//     that cannot be shown whole without acknowledge_unreviewable
+	//   - INVALID_ARGUMENT: expected_digest does not match the change
+	//
+	// ## Idempotency
+	//
+	// The same decision sent again records nothing new and starts no second
+	// turn.
+	ReviewFileChanges(context.Context, *ReviewFileChangesInput) (*ReviewFileChangesResponse, error)
 	// Delete a session.
 	//
 	// Deletion cascades to the session's runs. Billing usage
@@ -187,6 +248,9 @@ func (UnimplementedSessionCommandControllerServer) Update(context.Context, *Sess
 }
 func (UnimplementedSessionCommandControllerServer) UpdateSubject(context.Context, *UpdateSessionSubjectRequest) (*Session, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateSubject not implemented")
+}
+func (UnimplementedSessionCommandControllerServer) ReviewFileChanges(context.Context, *ReviewFileChangesInput) (*ReviewFileChangesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReviewFileChanges not implemented")
 }
 func (UnimplementedSessionCommandControllerServer) Delete(context.Context, *SessionId) (*Session, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -286,6 +350,24 @@ func _SessionCommandController_UpdateSubject_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionCommandController_ReviewFileChanges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReviewFileChangesInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionCommandControllerServer).ReviewFileChanges(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionCommandController_ReviewFileChanges_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionCommandControllerServer).ReviewFileChanges(ctx, req.(*ReviewFileChangesInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SessionCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SessionId)
 	if err := dec(in); err != nil {
@@ -344,6 +426,10 @@ var SessionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "updateSubject",
 			Handler:    _SessionCommandController_UpdateSubject_Handler,
+		},
+		{
+			MethodName: "reviewFileChanges",
+			Handler:    _SessionCommandController_ReviewFileChanges_Handler,
 		},
 		{
 			MethodName: "delete",

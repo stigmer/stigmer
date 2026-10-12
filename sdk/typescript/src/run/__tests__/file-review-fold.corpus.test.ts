@@ -5,13 +5,10 @@
 // This test replays the SAME corpus against the TypeScript fold, so a drift
 // between the SDK and either backend fails here rather than shipping.
 //
-// The corpus `expected` is the server (actionable) projection, which is empty
-// for a terminal run. The SDK's display fold intentionally has no terminal
-// gate, so to reproduce the server contract exactly this test applies the phase
-// gate the accessor's callers apply: isTerminalPhase(phase) ? [] : fold(stream).
-// That both proves parity for non-terminal vectors AND pins the terminal-empty
-// vector — the one place the SDK deliberately differs is covered by the accessor
-// test in file-review-fold.test.ts, not here.
+// The corpus `expected` is the server projection, which does not depend on the
+// run's phase (a finished turn keeps its change sets: a turn never waits for
+// review). The SDK's fold has no phase gate either, so every vector, the
+// finished run's included, is the fold of its stream.
 
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -22,12 +19,8 @@ import {
   FileReviewEventSchema,
   FileReviewEventStreamSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
-import {
-  RunPhase,
-  FileChangeSetStatus,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeSetStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { foldFileReviewEventStream } from "../file-review-fold";
-import { isTerminalPhase } from "../run-phases";
 
 const here = dirname(fileURLToPath(import.meta.url));
 // sdk/typescript/src/execution/__tests__ -> repo root is five levels up.
@@ -64,14 +57,6 @@ function statusFromName(name: string): FileChangeSetStatus {
   return value;
 }
 
-function phaseFromName(name: string): RunPhase {
-  const value = RunPhase[name as keyof typeof RunPhase];
-  if (typeof value !== "number") {
-    throw new Error(`unknown ExecutionPhase in corpus: ${name}`);
-  }
-  return value;
-}
-
 const vectorFiles = readdirSync(corpusDir).filter(
   (f) => f.endsWith(".json") && f !== "schema.json",
 );
@@ -97,11 +82,7 @@ describe("file-review fold — cross-edition corpus parity", () => {
         events,
       });
 
-      const phase = phaseFromName(vector.phase);
-      // Reproduce the server's actionable projection: phase-gated fold.
-      const projected = isTerminalPhase(phase)
-        ? []
-        : foldFileReviewEventStream(stream);
+      const projected = foldFileReviewEventStream(stream);
 
       const actual = projected.map((set) => ({
         id: set.id,

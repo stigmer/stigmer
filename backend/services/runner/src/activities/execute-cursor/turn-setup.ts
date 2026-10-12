@@ -549,6 +549,9 @@ export async function installGate(
       platformRoot: mcp.toolScope.hidesSkills ? await platformRealRoot(getPlatformDir(sessionId)) : "",
       subAgentTypes: subagentNamesInScope(input),
     }),
+    // With the turn's file review off, a built-in write or delete flows
+    // unreviewed (the hook's review-off arm); the secret-like block stays.
+    workspace.fileReview,
   );
   // The agent's hooks run inside the runner; the gate's script reaches them
   // on a local socket the pointer names (`hook-server.ts`), which closes with

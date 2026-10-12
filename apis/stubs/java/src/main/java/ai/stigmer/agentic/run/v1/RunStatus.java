@@ -1419,6 +1419,56 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     }
   }
 
+  public static final int LOADED_VERSIONS_FIELD_NUMBER = 36;
+  private ai.stigmer.agentic.run.v1.LoadedVersions loadedVersions_;
+  /**
+   * <pre>
+   * Every skill and plugin a turn of this run loaded, for the agent and its
+   * subagents, at the version it loaded. A turn that resumes after a pause
+   * and loads a newer version adds an entry, so a run that ran two versions
+   * of one skill lists both. Empty for a run that loaded none, and for runs
+   * that predate this field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+   * @return Whether the loadedVersions field is set.
+   */
+  @java.lang.Override
+  public boolean hasLoadedVersions() {
+    return ((bitField0_ & 0x00000200) != 0);
+  }
+  /**
+   * <pre>
+   * Every skill and plugin a turn of this run loaded, for the agent and its
+   * subagents, at the version it loaded. A turn that resumes after a pause
+   * and loads a newer version adds an entry, so a run that ran two versions
+   * of one skill lists both. Empty for a run that loaded none, and for runs
+   * that predate this field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+   * @return The loadedVersions.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.LoadedVersions getLoadedVersions() {
+    return loadedVersions_ == null ? ai.stigmer.agentic.run.v1.LoadedVersions.getDefaultInstance() : loadedVersions_;
+  }
+  /**
+   * <pre>
+   * Every skill and plugin a turn of this run loaded, for the agent and its
+   * subagents, at the version it loaded. A turn that resumes after a pause
+   * and loads a newer version adds an entry, so a run that ran two versions
+   * of one skill lists both. Empty for a run that loaded none, and for runs
+   * that predate this field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.run.v1.LoadedVersionsOrBuilder getLoadedVersionsOrBuilder() {
+    return loadedVersions_ == null ? ai.stigmer.agentic.run.v1.LoadedVersions.getDefaultInstance() : loadedVersions_;
+  }
+
   public static final int DECLARED_PREFERENCES_FIELD_NUMBER = 29;
   private ai.stigmer.agentic.run.v1.DeclaredPreferences declaredPreferences_;
   /**
@@ -1432,7 +1482,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasDeclaredPreferences() {
-    return ((bitField0_ & 0x00000200) != 0);
+    return ((bitField0_ & 0x00000400) != 0);
   }
   /**
    * <pre>
@@ -1473,7 +1523,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasRecalledMemories() {
-    return ((bitField0_ & 0x00000400) != 0);
+    return ((bitField0_ & 0x00000800) != 0);
   }
   /**
    * <pre>
@@ -1518,7 +1568,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasRunConfig() {
-    return ((bitField0_ & 0x00000800) != 0);
+    return ((bitField0_ & 0x00001000) != 0);
   }
   /**
    * <pre>
@@ -1605,7 +1655,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasCredentials() {
-    return ((bitField0_ & 0x00001000) != 0);
+    return ((bitField0_ & 0x00002000) != 0);
   }
   /**
    * <pre>
@@ -1645,7 +1695,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
    */
   @java.lang.Override
   public boolean hasPluginEvalFiles() {
-    return ((bitField0_ & 0x00002000) != 0);
+    return ((bitField0_ & 0x00004000) != 0);
   }
   /**
    * <pre>
@@ -1810,26 +1860,29 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentVersionHash_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 28, agentVersionHash_);
     }
-    if (((bitField0_ & 0x00000200) != 0)) {
+    if (((bitField0_ & 0x00000400) != 0)) {
       output.writeMessage(29, getDeclaredPreferences());
     }
-    if (((bitField0_ & 0x00000400) != 0)) {
+    if (((bitField0_ & 0x00000800) != 0)) {
       output.writeMessage(30, getRecalledMemories());
     }
-    if (((bitField0_ & 0x00000800) != 0)) {
+    if (((bitField0_ & 0x00001000) != 0)) {
       output.writeMessage(31, getRunConfig());
     }
     if (approvalMode_ != ai.stigmer.agentic.run.v1.ApprovalMode.APPROVAL_MODE_UNSPECIFIED.getNumber()) {
       output.writeEnum(32, approvalMode_);
     }
-    if (((bitField0_ & 0x00001000) != 0)) {
+    if (((bitField0_ & 0x00002000) != 0)) {
       output.writeMessage(33, getCredentials());
     }
-    if (((bitField0_ & 0x00002000) != 0)) {
+    if (((bitField0_ & 0x00004000) != 0)) {
       output.writeMessage(34, getPluginEvalFiles());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(stopCause_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 35, stopCause_);
+    }
+    if (((bitField0_ & 0x00000200) != 0)) {
+      output.writeMessage(36, getLoadedVersions());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1958,15 +2011,15 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentVersionHash_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(28, agentVersionHash_);
     }
-    if (((bitField0_ & 0x00000200) != 0)) {
+    if (((bitField0_ & 0x00000400) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(29, getDeclaredPreferences());
     }
-    if (((bitField0_ & 0x00000400) != 0)) {
+    if (((bitField0_ & 0x00000800) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(30, getRecalledMemories());
     }
-    if (((bitField0_ & 0x00000800) != 0)) {
+    if (((bitField0_ & 0x00001000) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(31, getRunConfig());
     }
@@ -1974,16 +2027,20 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(32, approvalMode_);
     }
-    if (((bitField0_ & 0x00001000) != 0)) {
+    if (((bitField0_ & 0x00002000) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(33, getCredentials());
     }
-    if (((bitField0_ & 0x00002000) != 0)) {
+    if (((bitField0_ & 0x00004000) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(34, getPluginEvalFiles());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(stopCause_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(35, stopCause_);
+    }
+    if (((bitField0_ & 0x00000200) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(36, getLoadedVersions());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -2074,6 +2131,11 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         .equals(other.getAgentId())) return false;
     if (!getAgentVersionHash()
         .equals(other.getAgentVersionHash())) return false;
+    if (hasLoadedVersions() != other.hasLoadedVersions()) return false;
+    if (hasLoadedVersions()) {
+      if (!getLoadedVersions()
+          .equals(other.getLoadedVersions())) return false;
+    }
     if (hasDeclaredPreferences() != other.hasDeclaredPreferences()) return false;
     if (hasDeclaredPreferences()) {
       if (!getDeclaredPreferences()
@@ -2189,6 +2251,10 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
     hash = (53 * hash) + getAgentId().hashCode();
     hash = (37 * hash) + AGENT_VERSION_HASH_FIELD_NUMBER;
     hash = (53 * hash) + getAgentVersionHash().hashCode();
+    if (hasLoadedVersions()) {
+      hash = (37 * hash) + LOADED_VERSIONS_FIELD_NUMBER;
+      hash = (53 * hash) + getLoadedVersions().hashCode();
+    }
     if (hasDeclaredPreferences()) {
       hash = (37 * hash) + DECLARED_PREFERENCES_FIELD_NUMBER;
       hash = (53 * hash) + getDeclaredPreferences().hashCode();
@@ -2385,6 +2451,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         internalGetFileReviewEventStreamFieldBuilder();
         internalGetFileChangeProgressFieldBuilder();
         internalGetRecalledMemoriesReportFieldBuilder();
+        internalGetLoadedVersionsFieldBuilder();
         internalGetDeclaredPreferencesFieldBuilder();
         internalGetRecalledMemoriesFieldBuilder();
         internalGetRunConfigFieldBuilder();
@@ -2490,6 +2557,11 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       }
       agentId_ = "";
       agentVersionHash_ = "";
+      loadedVersions_ = null;
+      if (loadedVersionsBuilder_ != null) {
+        loadedVersionsBuilder_.dispose();
+        loadedVersionsBuilder_ = null;
+      }
       declaredPreferences_ = null;
       if (declaredPreferencesBuilder_ != null) {
         declaredPreferencesBuilder_.dispose();
@@ -2685,39 +2757,45 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         result.agentVersionHash_ = agentVersionHash_;
       }
       if (((from_bitField0_ & 0x00400000) != 0)) {
-        result.declaredPreferences_ = declaredPreferencesBuilder_ == null
-            ? declaredPreferences_
-            : declaredPreferencesBuilder_.build();
+        result.loadedVersions_ = loadedVersionsBuilder_ == null
+            ? loadedVersions_
+            : loadedVersionsBuilder_.build();
         to_bitField0_ |= 0x00000200;
       }
       if (((from_bitField0_ & 0x00800000) != 0)) {
-        result.recalledMemories_ = recalledMemoriesBuilder_ == null
-            ? recalledMemories_
-            : recalledMemoriesBuilder_.build();
+        result.declaredPreferences_ = declaredPreferencesBuilder_ == null
+            ? declaredPreferences_
+            : declaredPreferencesBuilder_.build();
         to_bitField0_ |= 0x00000400;
       }
       if (((from_bitField0_ & 0x01000000) != 0)) {
-        result.runConfig_ = runConfigBuilder_ == null
-            ? runConfig_
-            : runConfigBuilder_.build();
+        result.recalledMemories_ = recalledMemoriesBuilder_ == null
+            ? recalledMemories_
+            : recalledMemoriesBuilder_.build();
         to_bitField0_ |= 0x00000800;
       }
       if (((from_bitField0_ & 0x02000000) != 0)) {
-        result.approvalMode_ = approvalMode_;
+        result.runConfig_ = runConfigBuilder_ == null
+            ? runConfig_
+            : runConfigBuilder_.build();
+        to_bitField0_ |= 0x00001000;
       }
       if (((from_bitField0_ & 0x04000000) != 0)) {
+        result.approvalMode_ = approvalMode_;
+      }
+      if (((from_bitField0_ & 0x08000000) != 0)) {
         result.credentials_ = credentialsBuilder_ == null
             ? credentials_
             : credentialsBuilder_.build();
-        to_bitField0_ |= 0x00001000;
-      }
-      if (((from_bitField0_ & 0x08000000) != 0)) {
-        result.pluginEvalFiles_ = pluginEvalFilesBuilder_ == null
-            ? pluginEvalFiles_
-            : pluginEvalFilesBuilder_.build();
         to_bitField0_ |= 0x00002000;
       }
       if (((from_bitField0_ & 0x10000000) != 0)) {
+        result.pluginEvalFiles_ = pluginEvalFilesBuilder_ == null
+            ? pluginEvalFiles_
+            : pluginEvalFilesBuilder_.build();
+        to_bitField0_ |= 0x00004000;
+      }
+      if (((from_bitField0_ & 0x20000000) != 0)) {
         result.stopCause_ = stopCause_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -2949,6 +3027,9 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         bitField0_ |= 0x00200000;
         onChanged();
       }
+      if (other.hasLoadedVersions()) {
+        mergeLoadedVersions(other.getLoadedVersions());
+      }
       if (other.hasDeclaredPreferences()) {
         mergeDeclaredPreferences(other.getDeclaredPreferences());
       }
@@ -2969,7 +3050,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       }
       if (!other.getStopCause().isEmpty()) {
         stopCause_ = other.stopCause_;
-        bitField0_ |= 0x10000000;
+        bitField0_ |= 0x20000000;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -3175,47 +3256,54 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
               input.readMessage(
                   internalGetDeclaredPreferencesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00400000;
+              bitField0_ |= 0x00800000;
               break;
             } // case 234
             case 242: {
               input.readMessage(
                   internalGetRecalledMemoriesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00800000;
+              bitField0_ |= 0x01000000;
               break;
             } // case 242
             case 250: {
               input.readMessage(
                   internalGetRunConfigFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x01000000;
+              bitField0_ |= 0x02000000;
               break;
             } // case 250
             case 256: {
               approvalMode_ = input.readEnum();
-              bitField0_ |= 0x02000000;
+              bitField0_ |= 0x04000000;
               break;
             } // case 256
             case 266: {
               input.readMessage(
                   internalGetCredentialsFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x04000000;
+              bitField0_ |= 0x08000000;
               break;
             } // case 266
             case 274: {
               input.readMessage(
                   internalGetPluginEvalFilesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x08000000;
+              bitField0_ |= 0x10000000;
               break;
             } // case 274
             case 282: {
               stopCause_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x10000000;
+              bitField0_ |= 0x20000000;
               break;
             } // case 282
+            case 290: {
+              input.readMessage(
+                  internalGetLoadedVersionsFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00400000;
+              break;
+            } // case 290
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -8125,6 +8213,199 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       return this;
     }
 
+    private ai.stigmer.agentic.run.v1.LoadedVersions loadedVersions_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.LoadedVersions, ai.stigmer.agentic.run.v1.LoadedVersions.Builder, ai.stigmer.agentic.run.v1.LoadedVersionsOrBuilder> loadedVersionsBuilder_;
+    /**
+     * <pre>
+     * Every skill and plugin a turn of this run loaded, for the agent and its
+     * subagents, at the version it loaded. A turn that resumes after a pause
+     * and loads a newer version adds an entry, so a run that ran two versions
+     * of one skill lists both. Empty for a run that loaded none, and for runs
+     * that predate this field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+     * @return Whether the loadedVersions field is set.
+     */
+    public boolean hasLoadedVersions() {
+      return ((bitField0_ & 0x00400000) != 0);
+    }
+    /**
+     * <pre>
+     * Every skill and plugin a turn of this run loaded, for the agent and its
+     * subagents, at the version it loaded. A turn that resumes after a pause
+     * and loads a newer version adds an entry, so a run that ran two versions
+     * of one skill lists both. Empty for a run that loaded none, and for runs
+     * that predate this field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+     * @return The loadedVersions.
+     */
+    public ai.stigmer.agentic.run.v1.LoadedVersions getLoadedVersions() {
+      if (loadedVersionsBuilder_ == null) {
+        return loadedVersions_ == null ? ai.stigmer.agentic.run.v1.LoadedVersions.getDefaultInstance() : loadedVersions_;
+      } else {
+        return loadedVersionsBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Every skill and plugin a turn of this run loaded, for the agent and its
+     * subagents, at the version it loaded. A turn that resumes after a pause
+     * and loads a newer version adds an entry, so a run that ran two versions
+     * of one skill lists both. Empty for a run that loaded none, and for runs
+     * that predate this field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+     */
+    public Builder setLoadedVersions(ai.stigmer.agentic.run.v1.LoadedVersions value) {
+      if (loadedVersionsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        loadedVersions_ = value;
+      } else {
+        loadedVersionsBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Every skill and plugin a turn of this run loaded, for the agent and its
+     * subagents, at the version it loaded. A turn that resumes after a pause
+     * and loads a newer version adds an entry, so a run that ran two versions
+     * of one skill lists both. Empty for a run that loaded none, and for runs
+     * that predate this field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+     */
+    public Builder setLoadedVersions(
+        ai.stigmer.agentic.run.v1.LoadedVersions.Builder builderForValue) {
+      if (loadedVersionsBuilder_ == null) {
+        loadedVersions_ = builderForValue.build();
+      } else {
+        loadedVersionsBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Every skill and plugin a turn of this run loaded, for the agent and its
+     * subagents, at the version it loaded. A turn that resumes after a pause
+     * and loads a newer version adds an entry, so a run that ran two versions
+     * of one skill lists both. Empty for a run that loaded none, and for runs
+     * that predate this field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+     */
+    public Builder mergeLoadedVersions(ai.stigmer.agentic.run.v1.LoadedVersions value) {
+      if (loadedVersionsBuilder_ == null) {
+        if (((bitField0_ & 0x00400000) != 0) &&
+          loadedVersions_ != null &&
+          loadedVersions_ != ai.stigmer.agentic.run.v1.LoadedVersions.getDefaultInstance()) {
+          getLoadedVersionsBuilder().mergeFrom(value);
+        } else {
+          loadedVersions_ = value;
+        }
+      } else {
+        loadedVersionsBuilder_.mergeFrom(value);
+      }
+      if (loadedVersions_ != null) {
+        bitField0_ |= 0x00400000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Every skill and plugin a turn of this run loaded, for the agent and its
+     * subagents, at the version it loaded. A turn that resumes after a pause
+     * and loads a newer version adds an entry, so a run that ran two versions
+     * of one skill lists both. Empty for a run that loaded none, and for runs
+     * that predate this field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+     */
+    public Builder clearLoadedVersions() {
+      bitField0_ = (bitField0_ & ~0x00400000);
+      loadedVersions_ = null;
+      if (loadedVersionsBuilder_ != null) {
+        loadedVersionsBuilder_.dispose();
+        loadedVersionsBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Every skill and plugin a turn of this run loaded, for the agent and its
+     * subagents, at the version it loaded. A turn that resumes after a pause
+     * and loads a newer version adds an entry, so a run that ran two versions
+     * of one skill lists both. Empty for a run that loaded none, and for runs
+     * that predate this field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.LoadedVersions.Builder getLoadedVersionsBuilder() {
+      bitField0_ |= 0x00400000;
+      onChanged();
+      return internalGetLoadedVersionsFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Every skill and plugin a turn of this run loaded, for the agent and its
+     * subagents, at the version it loaded. A turn that resumes after a pause
+     * and loads a newer version adds an entry, so a run that ran two versions
+     * of one skill lists both. Empty for a run that loaded none, and for runs
+     * that predate this field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+     */
+    public ai.stigmer.agentic.run.v1.LoadedVersionsOrBuilder getLoadedVersionsOrBuilder() {
+      if (loadedVersionsBuilder_ != null) {
+        return loadedVersionsBuilder_.getMessageOrBuilder();
+      } else {
+        return loadedVersions_ == null ?
+            ai.stigmer.agentic.run.v1.LoadedVersions.getDefaultInstance() : loadedVersions_;
+      }
+    }
+    /**
+     * <pre>
+     * Every skill and plugin a turn of this run loaded, for the agent and its
+     * subagents, at the version it loaded. A turn that resumes after a pause
+     * and loads a newer version adds an entry, so a run that ran two versions
+     * of one skill lists both. Empty for a run that loaded none, and for runs
+     * that predate this field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.run.v1.LoadedVersions, ai.stigmer.agentic.run.v1.LoadedVersions.Builder, ai.stigmer.agentic.run.v1.LoadedVersionsOrBuilder> 
+        internalGetLoadedVersionsFieldBuilder() {
+      if (loadedVersionsBuilder_ == null) {
+        loadedVersionsBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.run.v1.LoadedVersions, ai.stigmer.agentic.run.v1.LoadedVersions.Builder, ai.stigmer.agentic.run.v1.LoadedVersionsOrBuilder>(
+                getLoadedVersions(),
+                getParentForChildren(),
+                isClean());
+        loadedVersions_ = null;
+      }
+      return loadedVersionsBuilder_;
+    }
+
     private ai.stigmer.agentic.run.v1.DeclaredPreferences declaredPreferences_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.agentic.run.v1.DeclaredPreferences, ai.stigmer.agentic.run.v1.DeclaredPreferences.Builder, ai.stigmer.agentic.run.v1.DeclaredPreferencesOrBuilder> declaredPreferencesBuilder_;
@@ -8138,7 +8419,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the declaredPreferences field is set.
      */
     public boolean hasDeclaredPreferences() {
-      return ((bitField0_ & 0x00400000) != 0);
+      return ((bitField0_ & 0x00800000) != 0);
     }
     /**
      * <pre>
@@ -8173,7 +8454,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         declaredPreferencesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00800000;
       onChanged();
       return this;
     }
@@ -8192,7 +8473,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         declaredPreferencesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00800000;
       onChanged();
       return this;
     }
@@ -8206,7 +8487,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergeDeclaredPreferences(ai.stigmer.agentic.run.v1.DeclaredPreferences value) {
       if (declaredPreferencesBuilder_ == null) {
-        if (((bitField0_ & 0x00400000) != 0) &&
+        if (((bitField0_ & 0x00800000) != 0) &&
           declaredPreferences_ != null &&
           declaredPreferences_ != ai.stigmer.agentic.run.v1.DeclaredPreferences.getDefaultInstance()) {
           getDeclaredPreferencesBuilder().mergeFrom(value);
@@ -8217,7 +8498,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         declaredPreferencesBuilder_.mergeFrom(value);
       }
       if (declaredPreferences_ != null) {
-        bitField0_ |= 0x00400000;
+        bitField0_ |= 0x00800000;
         onChanged();
       }
       return this;
@@ -8231,7 +8512,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
      */
     public Builder clearDeclaredPreferences() {
-      bitField0_ = (bitField0_ & ~0x00400000);
+      bitField0_ = (bitField0_ & ~0x00800000);
       declaredPreferences_ = null;
       if (declaredPreferencesBuilder_ != null) {
         declaredPreferencesBuilder_.dispose();
@@ -8249,7 +8530,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
      */
     public ai.stigmer.agentic.run.v1.DeclaredPreferences.Builder getDeclaredPreferencesBuilder() {
-      bitField0_ |= 0x00400000;
+      bitField0_ |= 0x00800000;
       onChanged();
       return internalGetDeclaredPreferencesFieldBuilder().getBuilder();
     }
@@ -8304,7 +8585,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the recalledMemories field is set.
      */
     public boolean hasRecalledMemories() {
-      return ((bitField0_ & 0x00800000) != 0);
+      return ((bitField0_ & 0x01000000) != 0);
     }
     /**
      * <pre>
@@ -8339,7 +8620,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         recalledMemoriesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00800000;
+      bitField0_ |= 0x01000000;
       onChanged();
       return this;
     }
@@ -8358,7 +8639,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         recalledMemoriesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00800000;
+      bitField0_ |= 0x01000000;
       onChanged();
       return this;
     }
@@ -8372,7 +8653,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergeRecalledMemories(ai.stigmer.agentic.run.v1.RecalledMemories value) {
       if (recalledMemoriesBuilder_ == null) {
-        if (((bitField0_ & 0x00800000) != 0) &&
+        if (((bitField0_ & 0x01000000) != 0) &&
           recalledMemories_ != null &&
           recalledMemories_ != ai.stigmer.agentic.run.v1.RecalledMemories.getDefaultInstance()) {
           getRecalledMemoriesBuilder().mergeFrom(value);
@@ -8383,7 +8664,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         recalledMemoriesBuilder_.mergeFrom(value);
       }
       if (recalledMemories_ != null) {
-        bitField0_ |= 0x00800000;
+        bitField0_ |= 0x01000000;
         onChanged();
       }
       return this;
@@ -8397,7 +8678,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
      */
     public Builder clearRecalledMemories() {
-      bitField0_ = (bitField0_ & ~0x00800000);
+      bitField0_ = (bitField0_ & ~0x01000000);
       recalledMemories_ = null;
       if (recalledMemoriesBuilder_ != null) {
         recalledMemoriesBuilder_.dispose();
@@ -8415,7 +8696,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
      */
     public ai.stigmer.agentic.run.v1.RecalledMemories.Builder getRecalledMemoriesBuilder() {
-      bitField0_ |= 0x00800000;
+      bitField0_ |= 0x01000000;
       onChanged();
       return internalGetRecalledMemoriesFieldBuilder().getBuilder();
     }
@@ -8474,7 +8755,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the runConfig field is set.
      */
     public boolean hasRunConfig() {
-      return ((bitField0_ & 0x01000000) != 0);
+      return ((bitField0_ & 0x02000000) != 0);
     }
     /**
      * <pre>
@@ -8517,7 +8798,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         runConfigBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x01000000;
+      bitField0_ |= 0x02000000;
       onChanged();
       return this;
     }
@@ -8540,7 +8821,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         runConfigBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x01000000;
+      bitField0_ |= 0x02000000;
       onChanged();
       return this;
     }
@@ -8558,7 +8839,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergeRunConfig(ai.stigmer.agentic.run.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
-        if (((bitField0_ & 0x01000000) != 0) &&
+        if (((bitField0_ & 0x02000000) != 0) &&
           runConfig_ != null &&
           runConfig_ != ai.stigmer.agentic.run.v1.RunConfig.getDefaultInstance()) {
           getRunConfigBuilder().mergeFrom(value);
@@ -8569,7 +8850,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         runConfigBuilder_.mergeFrom(value);
       }
       if (runConfig_ != null) {
-        bitField0_ |= 0x01000000;
+        bitField0_ |= 0x02000000;
         onChanged();
       }
       return this;
@@ -8587,7 +8868,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
      */
     public Builder clearRunConfig() {
-      bitField0_ = (bitField0_ & ~0x01000000);
+      bitField0_ = (bitField0_ & ~0x02000000);
       runConfig_ = null;
       if (runConfigBuilder_ != null) {
         runConfigBuilder_.dispose();
@@ -8609,7 +8890,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
      */
     public ai.stigmer.agentic.run.v1.RunConfig.Builder getRunConfigBuilder() {
-      bitField0_ |= 0x01000000;
+      bitField0_ |= 0x02000000;
       onChanged();
       return internalGetRunConfigFieldBuilder().getBuilder();
     }
@@ -8695,7 +8976,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder setApprovalModeValue(int value) {
       approvalMode_ = value;
-      bitField0_ |= 0x02000000;
+      bitField0_ |= 0x04000000;
       onChanged();
       return this;
     }
@@ -8735,7 +9016,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder setApprovalMode(ai.stigmer.agentic.run.v1.ApprovalMode value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x02000000;
+      bitField0_ |= 0x04000000;
       approvalMode_ = value.getNumber();
       onChanged();
       return this;
@@ -8755,7 +9036,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearApprovalMode() {
-      bitField0_ = (bitField0_ & ~0x02000000);
+      bitField0_ = (bitField0_ & ~0x04000000);
       approvalMode_ = 0;
       onChanged();
       return this;
@@ -8774,7 +9055,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the credentials field is set.
      */
     public boolean hasCredentials() {
-      return ((bitField0_ & 0x04000000) != 0);
+      return ((bitField0_ & 0x08000000) != 0);
     }
     /**
      * <pre>
@@ -8809,7 +9090,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         credentialsBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x04000000;
+      bitField0_ |= 0x08000000;
       onChanged();
       return this;
     }
@@ -8828,7 +9109,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         credentialsBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x04000000;
+      bitField0_ |= 0x08000000;
       onChanged();
       return this;
     }
@@ -8842,7 +9123,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergeCredentials(ai.stigmer.agentic.run.v1.RunCredentials value) {
       if (credentialsBuilder_ == null) {
-        if (((bitField0_ & 0x04000000) != 0) &&
+        if (((bitField0_ & 0x08000000) != 0) &&
           credentials_ != null &&
           credentials_ != ai.stigmer.agentic.run.v1.RunCredentials.getDefaultInstance()) {
           getCredentialsBuilder().mergeFrom(value);
@@ -8853,7 +9134,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         credentialsBuilder_.mergeFrom(value);
       }
       if (credentials_ != null) {
-        bitField0_ |= 0x04000000;
+        bitField0_ |= 0x08000000;
         onChanged();
       }
       return this;
@@ -8867,7 +9148,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
      */
     public Builder clearCredentials() {
-      bitField0_ = (bitField0_ & ~0x04000000);
+      bitField0_ = (bitField0_ & ~0x08000000);
       credentials_ = null;
       if (credentialsBuilder_ != null) {
         credentialsBuilder_.dispose();
@@ -8885,7 +9166,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
      */
     public ai.stigmer.agentic.run.v1.RunCredentials.Builder getCredentialsBuilder() {
-      bitField0_ |= 0x04000000;
+      bitField0_ |= 0x08000000;
       onChanged();
       return internalGetCredentialsFieldBuilder().getBuilder();
     }
@@ -8939,7 +9220,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * @return Whether the pluginEvalFiles field is set.
      */
     public boolean hasPluginEvalFiles() {
-      return ((bitField0_ & 0x08000000) != 0);
+      return ((bitField0_ & 0x10000000) != 0);
     }
     /**
      * <pre>
@@ -8972,7 +9253,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         pluginEvalFilesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x08000000;
+      bitField0_ |= 0x10000000;
       onChanged();
       return this;
     }
@@ -8990,7 +9271,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       } else {
         pluginEvalFilesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x08000000;
+      bitField0_ |= 0x10000000;
       onChanged();
       return this;
     }
@@ -9003,7 +9284,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder mergePluginEvalFiles(ai.stigmer.agentic.run.v1.PluginEvalFiles value) {
       if (pluginEvalFilesBuilder_ == null) {
-        if (((bitField0_ & 0x08000000) != 0) &&
+        if (((bitField0_ & 0x10000000) != 0) &&
           pluginEvalFiles_ != null &&
           pluginEvalFiles_ != ai.stigmer.agentic.run.v1.PluginEvalFiles.getDefaultInstance()) {
           getPluginEvalFilesBuilder().mergeFrom(value);
@@ -9014,7 +9295,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         pluginEvalFilesBuilder_.mergeFrom(value);
       }
       if (pluginEvalFiles_ != null) {
-        bitField0_ |= 0x08000000;
+        bitField0_ |= 0x10000000;
         onChanged();
       }
       return this;
@@ -9027,7 +9308,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
      */
     public Builder clearPluginEvalFiles() {
-      bitField0_ = (bitField0_ & ~0x08000000);
+      bitField0_ = (bitField0_ & ~0x10000000);
       pluginEvalFiles_ = null;
       if (pluginEvalFilesBuilder_ != null) {
         pluginEvalFilesBuilder_.dispose();
@@ -9044,7 +9325,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.PluginEvalFiles plugin_eval_files = 34 [json_name = "pluginEvalFiles"];</code>
      */
     public ai.stigmer.agentic.run.v1.PluginEvalFiles.Builder getPluginEvalFilesBuilder() {
-      bitField0_ |= 0x08000000;
+      bitField0_ |= 0x10000000;
       onChanged();
       return internalGetPluginEvalFilesFieldBuilder().getBuilder();
     }
@@ -9157,7 +9438,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       stopCause_ = value;
-      bitField0_ |= 0x10000000;
+      bitField0_ |= 0x20000000;
       onChanged();
       return this;
     }
@@ -9177,7 +9458,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
      */
     public Builder clearStopCause() {
       stopCause_ = getDefaultInstance().getStopCause();
-      bitField0_ = (bitField0_ & ~0x10000000);
+      bitField0_ = (bitField0_ & ~0x20000000);
       onChanged();
       return this;
     }
@@ -9201,7 +9482,7 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       stopCause_ = value;
-      bitField0_ |= 0x10000000;
+      bitField0_ |= 0x20000000;
       onChanged();
       return this;
     }

@@ -72,7 +72,6 @@ import { StopController } from "./stop-controller.js";
 import {
   applyTerminalArm,
   awaitingApprovalArm,
-  awaitingReviewArm,
   costCapArm,
   evalScaffoldFailedArm,
   mockAbortArm,
@@ -175,7 +174,9 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   // persist carries and appends what sealed to the session's log, and
   // previews what still streams from the builder's token deltas. Inert
   // until the engine's turn begins (`begin`), so a turn settled during
-  // resolution writes no event. The append presents the credential the
+  // resolution writes no event of the agent's; the one exception is what
+  // the turn's start put back for earlier turns (`writeReconciled`), written
+  // at once under the workspace lock. The append presents the credential the
   // values fetch presents.
   const events = new SessionEventEmitter({
     client,
@@ -271,7 +272,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
    * the activity the way the arm's disposition says. A thrown arm also marks
    * the in-progress sub-agent rows cancelled before that persist, so the
    * status the workflow reads back is the whole terminal state in one write.
-   * (The file-review resume in `settleResolution` is the one place that
+   * (The reconcile turn in `settleResolution` is the one place that
    * applies an arm itself: its write-back must land between the arm and the
    * persist.)
    *
@@ -296,8 +297,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   /**
    * A plugin-eval try's graders read the files they name as the turn left
    * them, the ones it did not change included: read now, with every terminal
-   * write and the review pause, so the status the case workflow reads back
-   * carries them.
+   * write, so the status the case workflow reads back carries them.
    */
   async function recordEvalFiles(): Promise<void> {
     if (frame.evalReadFiles === undefined || frame.evalReadFiles.length === 0 || frame.primaryDir === undefined) return;
@@ -314,10 +314,10 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         return outcome;
       }
       case "file-review-resolved": {
-        // Push the APPROVED tree — reconcile snapped rejected files back to
-        // baseline, so what finalize commits is exactly what the user kept.
-        // After reconcile, before persist, never on a failed reconcile
-        // (diverged bytes must not reach the remote).
+        // A reconcile turn: the undone files are back at their pre-turn
+        // bytes, so push the tree as the person left it. After the undo,
+        // before persist, never on a failed one (diverged bytes must not
+        // reach the remote). No engine ran and none will.
         events.skipRootRows(applyTerminalArm(status, fileReviewResolvedArm(settlement)));
         if (!settlement.failed && frame.writeback) {
           await frame.writeback.finalize();
@@ -325,12 +325,9 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         await recordEvalFiles();
         await chokepoint.write({ final: true });
         console.log(
-          `${activityName} file-review resume short-circuit: execution=${executionId}, ` +
-            `failed=${settlement.failed}, discarded=${settlement.discardedPaths.length}`,
+          `${activityName} reconcile turn: execution=${executionId}, ` +
+            `failed=${settlement.failed}, undone=${settlement.discardedPaths.length}`,
         );
-        // The execution completes here, as it does from `completeTurn`: the
-        // seed carried the transcript and any structured output the paused
-        // turn resolved, and the persisted status holds both.
         return { kind: "return", value: slimStatus(status) };
       }
       case "hooks-refused": {
@@ -441,7 +438,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     };
 
     // The capture baseline: the runtime's LAST act before the engine, after
-    // every write of its own into the tree (the reconcile, the mounts), so
+    // every write of its own into the tree (the owed undos, the mounts), so
     // anything on the tree after this point is the turn's change, whoever
     // wrote it (`capture.ts`). Absent outside capture mode.
     capture = await pinCaptureBaseline({
@@ -485,20 +482,20 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     // tree — unless a stop fired mid-turn (`interrupted`: the tree may be
     // mid-edit and the pause or drain reinvokes this same turn). Before the
     // decisions settle below, so the stamp reads the rows as the engine
-    // left them. A pending review is the outcome table's second WAITING
-    // cause (`awaitingReviewArm`).
-    const reviewPending =
-      capture !== undefined && outcome.kind !== "interrupted"
-        ? await captureCandidate({
-            status,
-            executionId,
-            workspace: turn.workspace,
-            fileReview: adapter.capabilities.fileReview,
-            artifactStorage: turn.artifactStorage,
-            capture,
-            globalBypass: turn.mcp.leases.global,
-          })
-        : false;
+    // left them. A captured change set never holds the turn: the turn takes
+    // its own arm below with the edits applied, and the change set waits on
+    // the run's ledger and in the log for a Keep or an Undo (stigmer#1471).
+    if (capture !== undefined && outcome.kind !== "interrupted") {
+      await captureCandidate({
+        status,
+        executionId,
+        workspace: turn.workspace,
+        fileReview: adapter.capabilities.fileReview,
+        artifactStorage: turn.artifactStorage,
+        capture,
+        globalBypass: turn.mcp.leases.global,
+      });
+    }
 
     // The rows whose decision never runs the tool (SKIP, REJECT) are settled
     // by the runtime, once, now that the adapter has had its look at them and
@@ -509,29 +506,25 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
 
     switch (outcome.kind) {
       case "completed":
-        return reviewPending ? pauseCompletedTurnForReview(turn) : completeTurn(turn, RunPhase.RUN_COMPLETED);
+        return completeTurn(turn, RunPhase.RUN_COMPLETED);
       case "cancelled":
-        return reviewPending ? settleWith(awaitingReviewArm()) : completeTurn(turn, RunPhase.RUN_CANCELLED);
+        return completeTurn(turn, RunPhase.RUN_CANCELLED);
       case "awaiting_approval":
         // The adapter put the WAITING rows on the transcript (and a captured
         // candidate, if any, rides the same write); the arm flips the phase,
         // persists once, and RETURNS to the workflow, which waits for the
-        // approval or file-review signal and reinvokes.
+        // approval signal and reinvokes.
         return settleWith(awaitingApprovalArm());
       case "tool_call_limit": {
-        // A review wins over the terminal: the limit's copy rides
-        // the transcript and the reinvocation's reconcile completes the turn.
-        const settledLimit = await settleWith(reviewPending ? awaitingReviewArm(toolCallLimitArm()) : toolCallLimitArm());
-        console.log(`${activityName} terminated (tool-call limit): execution=${executionId}${reviewPending ? ", review pending" : ""}`);
+        const settledLimit = await settleWith(toolCallLimitArm());
+        console.log(`${activityName} terminated (tool-call limit): execution=${executionId}`);
         return settledLimit;
       }
       case "failed": {
-        const arm = failedArm(outcome.message, outcome.surface);
-        const settledFailure = await settleWith(reviewPending ? awaitingReviewArm(arm) : arm);
+        const settledFailure = await settleWith(failedArm(outcome.message, outcome.surface));
         console.error(
           `${activityName} failed (${outcome.surface}): execution=${executionId}, error=${outcome.message}` +
-            (outcome.cause instanceof Error ? `, cause=${outcome.cause.message}` : "") +
-            (reviewPending ? " — edits on the tree; review pending" : ""),
+            (outcome.cause instanceof Error ? `, cause=${outcome.cause.message}` : ""),
         );
         return settledFailure;
       }
@@ -600,19 +593,6 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
   }
 
   /**
-   * The engine finished AND left a reviewable change: the structured output
-   * is resolved now, before the WAITING persist, so the resume that
-   * reconciles the review completes with it; then
-   * the review pause. Nothing else of the completion epilogue runs here —
-   * the plan artifact and the write-back belong to the settlement that
-   * actually completes the execution.
-   */
-  async function pauseCompletedTurnForReview(turn: TurnInput): Promise<Settled> {
-    await resolveStructuredOutput(turn, lastAssistantText());
-    return settleWith(awaitingReviewArm());
-  }
-
-  /**
    * A turn the engine finished (COMPLETED) or ended cancelled on its own
    * (CANCELLED): the final text from the last AI row; the structured output
    * the execution asked for, extracted from that text unless the adapter
@@ -642,11 +622,10 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         }
       }
 
-      // Write-back safety net on terminal completion. A capture-mode turn
-      // with captured changes paused for review instead, so reaching here
-      // means no reviewable delta this turn and this is normally a no-op —
-      // it exists for stragglers outside the capture, and never runs
-      // mid-turn.
+      // Write-back on terminal completion: the session branch gets the tree
+      // the turn left, captured edits included (review never holds a turn;
+      // a later Undo is pushed by the reconcile turn that puts the files
+      // back). Never mid-turn.
       if (frame.writeback) {
         await frame.writeback.finalize();
       }
@@ -672,9 +651,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
    * The structured output the execution asked for, folded onto the status
    * unless the adapter already did (the deep-agent's `structuredResponse`):
    * extracted from the final text through the tiers below. Runs where the
-   * engine has FINISHED speaking — a completed turn, and a completed turn
-   * the runtime pauses for file review (the pure-reconcile
-   * COMPLETED then carries it, on every harness).
+   * engine has FINISHED speaking: a completed turn.
    */
   async function resolveStructuredOutput(turn: TurnInput, finalText: string | undefined): Promise<void> {
     if (status.structuredOutput !== undefined || !turn.structuredOutputSchema || !finalText) return;
@@ -808,6 +785,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         heartbeat();
       },
       reportProgress: (label) => reportSetupProgress(client, executionId, label),
+      recordReconciled: (outcomes) => events.writeReconciled(outcomes),
     };
     const resolution = await resolveTurnContext(resolutionDeps, adapter.capabilities, frame, () => chokepoint.write());
     if (resolution.kind === "settled") {

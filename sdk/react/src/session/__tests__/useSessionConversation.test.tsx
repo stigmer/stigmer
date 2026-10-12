@@ -9,7 +9,12 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import {
+  FileChangeSetSchema,
+  type FileChangeSet,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
+import {
   ApprovalAction,
+  FileChangeSetStatus,
   FileDecisionAction,
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -33,7 +38,11 @@ function makeSession(id: string): Session {
 function makeExecution(
   id: string,
   phase: RunPhase,
-  opts?: { supersedes?: string },
+  opts?: {
+    supersedes?: string;
+    reconcileFileReview?: boolean;
+    fileChangeSets?: FileChangeSet[];
+  },
 ): Run {
   const exec = create(RunSchema);
   const metadata = create(ApiResourceMetadataSchema);
@@ -41,13 +50,19 @@ function makeExecution(
   exec.metadata = metadata;
   const status = create(RunStatusSchema);
   status.phase = phase;
+  status.fileChangeSets = opts?.fileChangeSets ?? [];
   exec.status = status;
-  if (opts?.supersedes) {
+  if (opts?.supersedes || opts?.reconcileFileReview) {
     const spec = create(RunSpecSchema);
-    spec.supersedesRunId = opts.supersedes;
+    spec.supersedesRunId = opts.supersedes ?? "";
+    spec.reconcileFileReview = opts.reconcileFileReview ?? false;
     exec.spec = spec;
   }
   return exec;
+}
+
+function makeChangeSet(id: string, status: FileChangeSetStatus): FileChangeSet {
+  return create(FileChangeSetSchema, { id, status });
 }
 
 /**
@@ -711,9 +726,7 @@ describe("useSessionConversation", () => {
     });
   });
 
-  it("submitApproval and submitFileDecision do nothing with no active run", async () => {
-    methods.submitFileDecision = vi.fn().mockResolvedValue({});
-    mockStigmer = createMockStigmer(methods);
+  it("submitApproval does nothing with no active run", async () => {
     methods.listBySession.mockResolvedValue({ entries: [makeExecution("e1", RunPhase.RUN_COMPLETED)] });
     const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
       wrapper: createWrapper(mockStigmer),
@@ -722,11 +735,126 @@ describe("useSessionConversation", () => {
 
     await act(async () => {
       await result.current.submitApproval("tc-1", ApprovalAction.APPROVE);
-      await result.current.submitFileDecision("fcs-1", FileDecisionAction.APPROVE);
     });
 
     expect(methods.submitApproval).not.toHaveBeenCalled();
+  });
+
+  it("submitFileDecision does nothing in a conversation with no turn", async () => {
+    methods.submitFileDecision = vi.fn().mockResolvedValue({});
+    mockStigmer = createMockStigmer(methods);
+    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
+      wrapper: createWrapper(mockStigmer),
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.submitFileDecision("fcs-1", FileDecisionAction.APPROVE);
+    });
+
     expect(methods.submitFileDecision).not.toHaveBeenCalled();
+  });
+});
+
+describe("useSessionConversation — review after the turn ends", () => {
+  let methods: MockMethods;
+  let mockStigmer: Stigmer;
+
+  beforeEach(() => {
+    methods = {
+      sessionGet: vi.fn().mockResolvedValue(makeSession("session-1")),
+      listBySession: vi.fn().mockResolvedValue({ entries: [] }),
+      executionCreate: vi.fn(),
+      subscribe: vi.fn().mockReturnValue(createControllableStream<Run>().generator),
+      submitApproval: vi.fn().mockResolvedValue({}),
+      submitFileDecision: vi.fn().mockResolvedValue({}),
+    };
+    mockStigmer = createMockStigmer(methods);
+  });
+
+  it("offers the newest turn's sets awaiting review after that turn has finished", async () => {
+    const turn = makeExecution("e1", RunPhase.RUN_COMPLETED, {
+      fileChangeSets: [
+        makeChangeSet("e1:1", FileChangeSetStatus.AWAITING_REVIEW),
+        makeChangeSet("e1:0", FileChangeSetStatus.DECIDED),
+      ],
+    });
+    methods.listBySession.mockResolvedValue({ entries: [turn] });
+
+    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
+      wrapper: createWrapper(mockStigmer),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.activeStreamRun).toBeNull();
+    expect(result.current.canSendFollowUp).toBe(true);
+    expect(result.current.fileChangeSets.map((cs) => cs.id)).toEqual(["e1:1"]);
+  });
+
+  it("never offers an earlier turn's sets once a later turn exists", async () => {
+    const earlier = makeExecution("e1", RunPhase.RUN_COMPLETED, {
+      fileChangeSets: [makeChangeSet("e1:1", FileChangeSetStatus.AWAITING_REVIEW)],
+    });
+    const later = makeExecution("e2", RunPhase.RUN_COMPLETED);
+    methods.listBySession.mockResolvedValue({ entries: [earlier, later] });
+
+    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
+      wrapper: createWrapper(mockStigmer),
+    });
+
+    await waitFor(() => expect(result.current.completedRuns).toHaveLength(2));
+    expect(result.current.fileChangeSets).toEqual([]);
+  });
+
+  it("does not show a reconcile turn: it is not listed, never streamed, and the dock keeps the turn before it", async () => {
+    const turn = makeExecution("e1", RunPhase.RUN_COMPLETED, {
+      fileChangeSets: [makeChangeSet("e1:1", FileChangeSetStatus.AWAITING_REVIEW)],
+    });
+    const reconcile = makeExecution("r1", RunPhase.RUN_IN_PROGRESS, {
+      reconcileFileReview: true,
+    });
+    methods.listBySession.mockResolvedValue({ entries: [turn, reconcile] });
+
+    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
+      wrapper: createWrapper(mockStigmer),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.completedRuns).toEqual([turn]);
+    expect(result.current.activeStreamRun).toBeNull();
+    expect(result.current.canSendFollowUp).toBe(true);
+    expect(methods.subscribe).not.toHaveBeenCalled();
+    expect(result.current.fileChangeSets.map((cs) => cs.id)).toEqual(["e1:1"]);
+  });
+
+  it("decides on the newest finished turn, past a reconcile turn, and re-reads the runs", async () => {
+    const turn = makeExecution("e1", RunPhase.RUN_COMPLETED, {
+      fileChangeSets: [makeChangeSet("e1:1", FileChangeSetStatus.AWAITING_REVIEW)],
+    });
+    const reconcile = makeExecution("r1", RunPhase.RUN_COMPLETED, {
+      reconcileFileReview: true,
+    });
+    methods.listBySession.mockResolvedValue({ entries: [turn, reconcile] });
+
+    const { result } = renderHook(() => useSessionConversation("session-1", "org"), {
+      wrapper: createWrapper(mockStigmer),
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const listsBefore = methods.listBySession.mock.calls.length;
+
+    await act(async () => {
+      await result.current.submitFileDecision("e1:1", FileDecisionAction.REJECT);
+    });
+
+    expect(methods.submitFileDecision).toHaveBeenCalledTimes(1);
+    expect(methods.submitFileDecision!.mock.calls[0]![0]).toMatchObject({
+      runId: "e1",
+      changeSetId: "e1:1",
+      action: FileDecisionAction.REJECT,
+    });
+    await waitFor(() =>
+      expect(methods.listBySession.mock.calls.length).toBeGreaterThan(listsBefore),
+    );
   });
 });
 

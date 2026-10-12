@@ -43,16 +43,10 @@
  * lands in. The registry fixture keeps pricing and tier pinned and lets every
  * other URL reach the network (`stubRegistryFetch({ live: true })`).
  *
- * The turn's ending is the file review's. The environment pins local artifact
- * storage, so the runtime's capture mode is ON as in production, and a turn
- * that wrote a file ends `RUN_WAITING_FOR_APPROVAL` with the write
- * captured as a change set for review (`hermetic/file-review-capture.test.ts`
- * pins the same ending) — `auto_approve_all` bypasses the tool gate, not the
- * review. So the terminal phase asserted here is COMPLETED, or WAITING with a
- * `candidateCaptured` event on the file-review ledger the runner writes
- * (`file_review_event_stream`; `file_change_sets` is the server's projection
- * of it) and no tool row waiting; a WAITING phase with a tool row at
- * WAITING_APPROVAL would be the gate, and wrong under the bypass.
+ * The turn's ending is COMPLETED. File review never holds a turn (and the
+ * session leaves it off, the default), and `auto_approve_all` bypasses the
+ * tool gate, so no tool row may be left waiting; a WAITING phase would be
+ * the gate, and wrong under the bypass.
  *
  * WHAT IT ASSERTS, AND WHAT A FAILURE MEANS. Structural facts of the persisted
  * transcript, never prose (a live model's words are not ours). A live model may
@@ -229,21 +223,11 @@ describe.skipIf(!liveSecret("CURSOR_API_KEY"))("ExecuteCursor live — the trans
     // is the server's projection of it and is never written from here.
     const reviewEvents = (final!.fileReviewEventStream?.events ?? []).map((e) => e.payload.case);
     console.log(`[transcript-live] ending: phase=${lastPhase === undefined ? "-" : RunPhase[lastPhase]} reviewEvents=[${reviewEvents.join(", ")}] waitingRows=${waitingRows.length}`);
-    if (lastPhase === RunPhase.RUN_WAITING_FOR_APPROVAL) {
-      expect(
-        waitingRows.map((r) => r.name),
-        "the turn waits on a TOOL row under auto_approve_all — the gate did not bypass; the transcript (or the gate) is wrong",
-      ).toEqual([]);
-      expect(
-        reviewEvents,
-        "the turn waits but no captured change set is on the file-review ledger — a WAITING phase with nothing to review; the transcript is wrong",
-      ).toContain("candidateCaptured");
-    } else {
-      expect(
-        lastPhase,
-        "the last persisted phase is neither COMPLETED nor the file review's WAITING — read the phases above",
-      ).toBe(RunPhase.RUN_COMPLETED);
-    }
+    expect(
+      waitingRows.map((r) => r.name),
+      "a TOOL row waits under auto_approve_all — the gate did not bypass; the transcript (or the gate) is wrong",
+    ).toEqual([]);
+    expect(lastPhase, "the last persisted phase is not COMPLETED — read the phases above").toBe(RunPhase.RUN_COMPLETED);
 
     // ── Assert: fact 1 — every row settled ───────────────────────────────────
     const streaming = final!.messages.filter((m) => m.isStreaming);

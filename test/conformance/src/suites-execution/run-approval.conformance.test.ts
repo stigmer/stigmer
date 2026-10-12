@@ -83,7 +83,6 @@ import {
   ApprovalEventType,
   ApprovalPolicySource,
   RunPhase,
-  FileDecisionAction,
   MessageType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -112,7 +111,6 @@ import { toolServerSegment } from "../support/plugins";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import { zipFiles } from "../support/skills";
-import { awaitFileReview, requireReviewSet, submitFileDecisionByPath } from "../support/file-review";
 import { execFileSync } from "node:child_process";
 import { hookifyExampleRule, realPluginFiles, upstreamManifest } from "@stigmer/test-support/real-plugins";
 
@@ -896,10 +894,9 @@ describe("Run — a pushed Cursor-format plugin's hooks decide at the gate", () 
 // tree is under the runner's home. `git hash-object` prints the evidence in
 // the manifest's own unit.
 //
-// The workspace is not a git tree, but the harness gives the runner an
-// artifact store, so every write is captured for review after the turn
-// (`deriveCaptureMode`), trusted or not: the person keeps the rule file, as
-// they would keep it in the console. The other calls write nothing there.
+// The conversation has file review off, the default, so the rule file the
+// agent writes simply lands in the workspace, trusted or not, with nothing
+// offered for review. The other calls write nothing there.
 describe("Run — a real plugin, unchanged, refuses at the gate and survives a tamper", () => {
   const RULE = hookifyExampleRule("dangerous-rm");
   const RULE_ENGINE = "core/rule_engine.py";
@@ -951,12 +948,9 @@ describe("Run — a real plugin, unchanged, refuses at the gate and survives a t
     const firstId = first.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: firstId }));
 
-    const reviewed = await awaitFileReview(clients, firstId);
-    const set = requireReviewSet(reviewed);
-    expect(set.changes.map((change) => change.pathAfter), "the rule file is the turn's one workspace change").toEqual([RULE.path]);
-    await submitFileDecisionByPath(clients, firstId, set, RULE.path, FileDecisionAction.APPROVE);
     const trusted = await awaitTerminal(clients, firstId);
     expect(trusted.status?.phase, "refused calls do not stop the run").toBe(RunPhase.RUN_COMPLETED);
+    expect(trusted.status?.fileChangeSets, "review is off: the rule file lands with nothing to review").toHaveLength(0);
     const rows = allToolCalls(trusted);
     const row = (id: string) => {
       const found = rows.find((tc) => tc.id === id);

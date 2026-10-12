@@ -2,7 +2,7 @@
  * Status-observer notification — the domain-owned consumer of the
  * extension registry's status-transition hooks.
  *
- * The hook is not one "updateStatus chokepoint": there are FIVE
+ * The hook is not one "updateStatus chokepoint": there are FOUR
  * phase-transition persist sites, and a
  * finalize observer that misses any of them misses exactly what it
  * exists to settle (user cancels/terminations, start-failure FAILED,
@@ -13,8 +13,9 @@
  *   2. lifecycle.ts           — the phase-transition persist step
  *                               (cancel/terminate/pause/resume/recover);
  *   3. create-steps.ts        — the StartWorkflow failure arm (FAILED);
- *   4. submit-approval.ts     — reconcileStaleExecution (FAILED);
- *   5. submit-file-decision.ts — the file-review reconcile twin (FAILED).
+ *   4. submit-approval.ts     — reconcileStaleExecution (FAILED).
+ * A file decision changes no phase: it signals no workflow, so it has no
+ * workflow-gone reconcile (domain/session/filereview/decide.ts).
  * Initial-phase stamping at creation (SetInitialPhase → PENDING) is by
  * definition not a transition and does not notify.
  *

@@ -72,6 +72,14 @@ export const GENERATE_SESSION_SUBJECT_ACTIVITY_NAME = "GenerateSessionSubject";
 export const UPDATE_EXECUTION_STATUS_ACTIVITY_NAME = "UpdateExecutionStatus";
 
 export const LOAD_AGENT_EXECUTION_ACTIVITY_NAME = "LoadAgentExecution";
+
+/**
+ * The close of the previous turn's file review, run first in every
+ * message turn's workflow: the previous turn's still-undecided edits are
+ * kept now that a later message was sent (domain/run/filereview/autokeep.ts
+ * keepOutdatedSets). Byte-pinned.
+ */
+export const CLOSE_FILE_REVIEW_ACTIVITY_NAME = "CloseFileReview";
 export const READ_HARNESS_STATE_ID_ACTIVITY_NAME = "ReadHarnessStateId";
 
 /**
@@ -87,3 +95,10 @@ export const RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME = "DeleteExecutionCo
 
 /** The workflow patch that stops new runs calling the retired delete above. Byte-pinned. */
 export const VALUES_FETCHED_PATCH_ID = "values-fetched-from-vaults";
+
+/**
+ * The workflow patch behind which a message turn calls CloseFileReview
+ * first: a run started before the step has no such call in its history,
+ * so a replay of it makes none. Byte-pinned.
+ */
+export const CLOSE_FILE_REVIEW_PATCH_ID = "close-file-review";

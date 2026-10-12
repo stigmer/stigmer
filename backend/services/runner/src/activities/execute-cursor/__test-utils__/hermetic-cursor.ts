@@ -374,6 +374,8 @@ export function beginLiveCursorScenario(options: LiveCursorScenarioOptions): Liv
 }
 
 export interface CursorTurnOptions {
+  /** The run to invoke; the record's execution when omitted (a reconcile turn names its own, `ExecutionRecord.startReconcileTurn`). */
+  readonly executionId?: string;
   /** Empty for a first invocation; the agent id for a HITL reinvocation. */
   readonly threadId?: string;
   /** The HITL cycle index (0 on the first turn); mints the change-set id. */
@@ -415,7 +417,7 @@ export async function runCursorTurn(
   const activities = await createHarnessActivities([row], scenario.config);
   // The typed wire shape the control plane's workflow sends (activity-input.ts).
   const input: ExecuteActivityInput = {
-    execution_id: scenario.record.executionId,
+    execution_id: options.executionId ?? scenario.record.executionId,
     thread_id: options.threadId ?? "",
     turn_seq: options.turnSeq ?? 0,
   };

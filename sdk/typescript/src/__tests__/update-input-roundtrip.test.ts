@@ -338,6 +338,7 @@ describe("toAgentExecutionUpdateInput", () => {
           digest: "Prior turns summarized.",
           windowEnd: timestampFromDate(new Date("2026-08-15T10:00:00Z")),
         },
+        reconcileFileReview: true,
         pluginEvalCase: {
           pluginId: "plg_1",
           pluginDigest: "a".repeat(64),
@@ -792,6 +793,7 @@ describe("toSessionUpdateInput", () => {
         executionTarget: ExecutionTarget.CLOUD,
         vaults: [{ org: "acme", slug: "customer-1234", kind: ApiResourceKind.vault }],
         includeMyVault: true,
+        fileReview: true,
       },
     });
 

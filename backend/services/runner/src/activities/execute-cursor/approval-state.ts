@@ -241,6 +241,15 @@ export interface ApprovalStateFile {
    */
   captureMode: boolean;
   /**
+   * Whether the turn's file review is on (`TurnWorkspace.fileReview`). When
+   * false, the hook ALLOWS a built-in write or delete to flow unreviewed: no
+   * capture, no ask. The secret-like write block still applies, keyed on the
+   * substrate: a git-tracked path flows (a committed `.env.example`), a
+   * gitignored or non-git secret-like path is refused. shell and MCP stay
+   * gated as always. True keeps capture mode or the deny-gate as above.
+   */
+  fileReview: boolean;
+  /**
    * CAS capture for gitignored writes (the deep-agent parity switch). When true,
    * a non-secret gitignored write/edit no longer stays on the deny-gate: the hook
    * stages its pre-write bytes into the runner-owned cas-observations sidecar and
@@ -572,6 +581,8 @@ function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
  * - approvedGrants / approvedGrantTokens: tools approved in the current HITL
  *   cycle, allowed through on reinvocation
  * - toolScope: the agent's tool lists, compiled (`hook-scope.ts`)
+ * - captureMode / fileReview / captureIgnored / gitWorkspace: how file edits
+ *   flow this turn (captured for review, flowing unreviewed, or gated)
  *
  * The static gated built-in set and its category mapping are baked into the
  * generated hook script (from approval-policy.ts), not carried here.
@@ -586,6 +597,7 @@ export function buildApprovalState(
   gitWorkspace = true,
   unattendedSkip = false,
   toolScope: HookToolScope = UNRESTRICTED_HOOK_SCOPE,
+  fileReview = true,
 ): ApprovalStateFile {
   const approvedGrants = grants ?? [];
 
@@ -614,6 +626,7 @@ export function buildApprovalState(
     // only its exact content; a content-less grant authorizes the coarse token.
     approvedGrantTokens: approvedGrants.map((g) => primaryToken(g.key, g.salient, g.contentDigest)),
     captureMode,
+    fileReview,
     captureIgnored,
     gitWorkspace,
     unattendedSkip,

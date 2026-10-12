@@ -82,6 +82,18 @@ export function eventId(
 }
 
 /**
+ * A change set's id taken apart: it is `<runId>:<turnSeq>` (minted by
+ * `harness/turn-context.ts` `provisionWorkspace`), and a run id holds no `:`,
+ * so the run is the text before the first one. An id with no `:` is all run.
+ */
+export function changeSetIdParts(changeSetId: string): { readonly runId: string; readonly turnSeq: string } {
+  const colon = changeSetId.indexOf(":");
+  return colon < 0
+    ? { runId: changeSetId, turnSeq: "" }
+    : { runId: changeSetId.slice(0, colon), turnSeq: changeSetId.slice(colon + 1) };
+}
+
+/**
  * One side (before/after) of a captured file's content, in one of three shapes:
  *
  * - `inline` — the raw text bytes, carried on the wire (the git substrate reads

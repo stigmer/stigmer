@@ -146,6 +146,23 @@ describe("the grading observer", () => {
     expect(rec.recorded).toEqual([]);
   });
 
+  it("never grades a reconcile turn: it runs no model, so there is no answer to judge", async () => {
+    const { client, startSpy } = engine(() => Promise.resolve({}));
+    const rec = recorder();
+    const reconcile = create(RunSchema, {
+      metadata: { id: "run_reconcile", org: "org_1" },
+      spec: { target: { case: "sessionId", value: "ses_1" }, reconcileFileReview: true },
+      status: { phase: RunPhase.RUN_COMPLETED, stopCause: "review_resolved" },
+    });
+    await observe(client, rec)({
+      run: reconcile,
+      oldPhase: RunPhase.RUN_IN_PROGRESS,
+      newPhase: RunPhase.RUN_COMPLETED,
+    });
+    expect(startSpy).not.toHaveBeenCalled();
+    expect(rec.recorded).toEqual([]);
+  });
+
   it("starts the grading workflow when a run completes, once per run", async () => {
     const { client, startSpy } = engine(() => Promise.resolve({}));
     const rec = recorder();

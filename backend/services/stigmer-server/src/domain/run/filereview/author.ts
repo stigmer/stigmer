@@ -2,8 +2,9 @@
  * File-review ledger authoring — ports filereview/author.go: the
  * deterministic event ids, the human-decision builder, the FILE_DECIDED
  * append (the backend-owned writer), the runner-event fold, and the
- * digest/completeness enforcement predicates SubmitFileDecision checks
- * before authoring a decision.
+ * digest/completeness enforcement predicates the decision core
+ * (domain/session/filereview/decide.ts) checks before authoring a
+ * decision.
  */
 import { create, enumToJson } from "@bufbuild/protobuf";
 
@@ -66,11 +67,12 @@ export function decisionScopeId(d: FileDecision): string {
 }
 
 /**
- * Assembles a FileDecision from a validated SubmitFileDecision request
- * plus server-supplied identity. The id is deterministic
- * (changeSetId:scopeId) so a resubmit yields the same decision and the
- * same event id — idempotent by construction. Origin is always USER (the
- * policy auto-keep has its own constructor in autokeep.ts).
+ * Assembles a FileDecision from a validated decision (reviewFileChanges,
+ * or its adapter submitFileDecision) plus server-supplied identity. The id
+ * is deterministic (changeSetId:scopeId) so a resubmit yields the same
+ * decision and the same event id — idempotent by construction. Origin is
+ * always USER (the policy auto-keep has its own constructor in
+ * autokeep.ts).
  */
 export function buildFileDecision(
   changeSetId: string,
@@ -160,15 +162,16 @@ export function recordFileDecisionEventWithActor(
  * server owns the stream.
  *
  * Two invariants are enforced here, not merely documented:
- *   - One writer per event type. FILE_DECIDED is authored exclusively by
- *     SubmitFileDecision; a runner-sent FILE_DECIDED is dropped, so the
- *     runner can never forge a human decision.
+ *   - One writer per event type. FILE_DECIDED is authored only by the
+ *     server (the decision core and the policy keeps); a runner-sent
+ *     FILE_DECIDED is dropped, so the runner can never forge a human
+ *     decision.
  *   - Append-only. An event whose deterministic event_id already exists
  *     is skipped, so a re-sent heartbeat or a Temporal retry never
  *     duplicates (or overwrites) an event.
  *
  * Must run inside the store write lock on the freshly-loaded stream so
- * the appends cannot clobber a concurrent SubmitFileDecision.
+ * the appends cannot clobber a concurrent decision.
  */
 export function appendRunnerEvents(
   status: RunStatus | undefined,
@@ -190,7 +193,7 @@ export function appendRunnerEvents(
   }
 
   for (const ev of incoming) {
-    // Decisions are server-owned (SubmitFileDecision). Never accept one
+    // Decisions are server-owned (the decision core). Never accept one
     // from the runner — defense in depth against a forged human verdict.
     if (ev.eventType === FileReviewEventType.FILE_DECIDED) {
       continue;
@@ -244,8 +247,8 @@ export function targetDigest(
 /**
  * Why an APPROVE of the decision's target must be refused because its
  * diff is not fully reviewable, or "" when the approve may proceed — the
- * completeness sibling of targetDigest; the second precondition
- * SubmitFileDecision enforces before authoring a decision.
+ * completeness sibling of targetDigest; the second precondition the
+ * decision core enforces before authoring a decision.
  *
  * The report rule: a non-COMPLETE diff can never be kept as if complete,
  * so an unreviewable target is not approvable. Applied to APPROVE only —

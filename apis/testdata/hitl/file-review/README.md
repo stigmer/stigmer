@@ -37,8 +37,10 @@ The `expected` entry is a **summary** of each projected `FileChangeSet` — the
 derived `status`, the ordered `change_ids`, the derived `decision_count`, the
 carried `aggregate_digest`, and whether an `approved_snapshot` was set. This is
 the set of fields the fold derives or carries; the internal event_id/timestamp
-shapes are locked by the per-edition unit tests. A terminal `phase` projects an
-empty list (the actionable-projection-is-phase-aware rule).
+shapes are locked by the per-edition unit tests. The projection does not depend
+on `phase`: a finished run keeps its change sets, because a turn never waits for
+review and its sets are decided after it ends (`05-terminal-keeps-sets.json`).
+The field stays in the format as the run's context.
 
 Event bodies are raw protojson decoded with the generated `FileReviewEvent`
 type, so a malformed fixture fails loudly rather than being silently skipped.

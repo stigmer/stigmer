@@ -86,6 +86,25 @@ describe("useCreateSession", () => {
     expect(create.mock.calls[0][0].agentRef).toBeUndefined();
   });
 
+  it("sends file review only when the caller asks for it", async () => {
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-fr" } });
+    const client = createMockStigmer({ create });
+
+    const { result } = renderHook(() => useCreateSession(), {
+      wrapper: wrapper(client),
+    });
+
+    await act(async () => {
+      await result.current.create({ org: "acme", fileReview: true });
+    });
+    await act(async () => {
+      await result.current.create({ org: "acme" });
+    });
+
+    expect(create.mock.calls[0][0].fileReview).toBe(true);
+    expect(create.mock.calls[1][0].fileReview).toBeUndefined();
+  });
+
   it("sets error state on session.create failure", async () => {
     const create = vi.fn().mockRejectedValue(new Error("Permission denied"));
     const client = createMockStigmer({ create });

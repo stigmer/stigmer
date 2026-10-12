@@ -283,9 +283,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * User input message that triggers this run.
    * Each run represents one user message and the agent's response.
+   * Required unless reconcile_file_review is set.
    * </pre>
    *
-   * <code>string message = 3 [json_name = "message", (.buf.validate.field) = { ... }</code>
+   * <code>string message = 3 [json_name = "message"];</code>
    * @return The message.
    */
   @java.lang.Override
@@ -305,9 +306,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * User input message that triggers this run.
    * Each run represents one user message and the agent's response.
+   * Required unless reconcile_file_review is set.
    * </pre>
    *
-   * <code>string message = 3 [json_name = "message", (.buf.validate.field) = { ... }</code>
+   * <code>string message = 3 [json_name = "message"];</code>
    * @return The bytes for message.
    */
   @java.lang.Override
@@ -1219,6 +1221,23 @@ private static final long serialVersionUID = 0L;
     return pluginEvalCase_ == null ? ai.stigmer.agentic.run.v1.PluginEvalCaseContext.getDefaultInstance() : pluginEvalCase_;
   }
 
+  public static final int RECONCILE_FILE_REVIEW_FIELD_NUMBER = 26;
+  private boolean reconcileFileReview_ = false;
+  /**
+   * <pre>
+   * Set on a turn that only puts back the files a person undid after an
+   * earlier turn ended: it runs no model and carries no message. The
+   * server starts one when an undo is decided on a finished turn.
+   * </pre>
+   *
+   * <code>bool reconcile_file_review = 26 [json_name = "reconcileFileReview"];</code>
+   * @return The reconcileFileReview.
+   */
+  @java.lang.Override
+  public boolean getReconcileFileReview() {
+    return reconcileFileReview_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1280,6 +1299,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000008) != 0)) {
       output.writeMessage(25, getPluginEvalCase());
+    }
+    if (reconcileFileReview_ != false) {
+      output.writeBool(26, reconcileFileReview_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1367,6 +1389,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(25, getPluginEvalCase());
     }
+    if (reconcileFileReview_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(26, reconcileFileReview_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1421,6 +1447,8 @@ private static final long serialVersionUID = 0L;
       if (!getPluginEvalCase()
           .equals(other.getPluginEvalCase())) return false;
     }
+    if (getReconcileFileReview()
+        != other.getReconcileFileReview()) return false;
     if (!getTargetCase().equals(other.getTargetCase())) return false;
     switch (targetCase_) {
       case 1:
@@ -1491,6 +1519,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + PLUGIN_EVAL_CASE_FIELD_NUMBER;
       hash = (53 * hash) + getPluginEvalCase().hashCode();
     }
+    hash = (37 * hash) + RECONCILE_FILE_REVIEW_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getReconcileFileReview());
     switch (targetCase_) {
       case 1:
         hash = (37 * hash) + SESSION_ID_FIELD_NUMBER;
@@ -1691,6 +1722,7 @@ private static final long serialVersionUID = 0L;
         pluginEvalCaseBuilder_.dispose();
         pluginEvalCaseBuilder_ = null;
       }
+      reconcileFileReview_ = false;
       targetCase_ = 0;
       target_ = null;
       return this;
@@ -1794,6 +1826,9 @@ private static final long serialVersionUID = 0L;
             ? pluginEvalCase_
             : pluginEvalCaseBuilder_.build();
         to_bitField0_ |= 0x00000008;
+      }
+      if (((from_bitField0_ & 0x00010000) != 0)) {
+        result.reconcileFileReview_ = reconcileFileReview_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1910,6 +1945,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasPluginEvalCase()) {
         mergePluginEvalCase(other.getPluginEvalCase());
+      }
+      if (other.getReconcileFileReview() != false) {
+        setReconcileFileReview(other.getReconcileFileReview());
       }
       switch (other.getTargetCase()) {
         case SESSION_ID: {
@@ -2050,6 +2088,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00008000;
               break;
             } // case 202
+            case 208: {
+              reconcileFileReview_ = input.readBool();
+              bitField0_ |= 0x00010000;
+              break;
+            } // case 208
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2555,9 +2598,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User input message that triggers this run.
      * Each run represents one user message and the agent's response.
+     * Required unless reconcile_file_review is set.
      * </pre>
      *
-     * <code>string message = 3 [json_name = "message", (.buf.validate.field) = { ... }</code>
+     * <code>string message = 3 [json_name = "message"];</code>
      * @return The message.
      */
     public java.lang.String getMessage() {
@@ -2576,9 +2620,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User input message that triggers this run.
      * Each run represents one user message and the agent's response.
+     * Required unless reconcile_file_review is set.
      * </pre>
      *
-     * <code>string message = 3 [json_name = "message", (.buf.validate.field) = { ... }</code>
+     * <code>string message = 3 [json_name = "message"];</code>
      * @return The bytes for message.
      */
     public com.google.protobuf.ByteString
@@ -2598,9 +2643,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User input message that triggers this run.
      * Each run represents one user message and the agent's response.
+     * Required unless reconcile_file_review is set.
      * </pre>
      *
-     * <code>string message = 3 [json_name = "message", (.buf.validate.field) = { ... }</code>
+     * <code>string message = 3 [json_name = "message"];</code>
      * @param value The message to set.
      * @return This builder for chaining.
      */
@@ -2616,9 +2662,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User input message that triggers this run.
      * Each run represents one user message and the agent's response.
+     * Required unless reconcile_file_review is set.
      * </pre>
      *
-     * <code>string message = 3 [json_name = "message", (.buf.validate.field) = { ... }</code>
+     * <code>string message = 3 [json_name = "message"];</code>
      * @return This builder for chaining.
      */
     public Builder clearMessage() {
@@ -2631,9 +2678,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User input message that triggers this run.
      * Each run represents one user message and the agent's response.
+     * Required unless reconcile_file_review is set.
      * </pre>
      *
-     * <code>string message = 3 [json_name = "message", (.buf.validate.field) = { ... }</code>
+     * <code>string message = 3 [json_name = "message"];</code>
      * @param value The bytes for message to set.
      * @return This builder for chaining.
      */
@@ -5399,6 +5447,56 @@ private static final long serialVersionUID = 0L;
         pluginEvalCase_ = null;
       }
       return pluginEvalCaseBuilder_;
+    }
+
+    private boolean reconcileFileReview_ ;
+    /**
+     * <pre>
+     * Set on a turn that only puts back the files a person undid after an
+     * earlier turn ended: it runs no model and carries no message. The
+     * server starts one when an undo is decided on a finished turn.
+     * </pre>
+     *
+     * <code>bool reconcile_file_review = 26 [json_name = "reconcileFileReview"];</code>
+     * @return The reconcileFileReview.
+     */
+    @java.lang.Override
+    public boolean getReconcileFileReview() {
+      return reconcileFileReview_;
+    }
+    /**
+     * <pre>
+     * Set on a turn that only puts back the files a person undid after an
+     * earlier turn ended: it runs no model and carries no message. The
+     * server starts one when an undo is decided on a finished turn.
+     * </pre>
+     *
+     * <code>bool reconcile_file_review = 26 [json_name = "reconcileFileReview"];</code>
+     * @param value The reconcileFileReview to set.
+     * @return This builder for chaining.
+     */
+    public Builder setReconcileFileReview(boolean value) {
+
+      reconcileFileReview_ = value;
+      bitField0_ |= 0x00010000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Set on a turn that only puts back the files a person undid after an
+     * earlier turn ended: it runs no model and carries no message. The
+     * server starts one when an undo is decided on a finished turn.
+     * </pre>
+     *
+     * <code>bool reconcile_file_review = 26 [json_name = "reconcileFileReview"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearReconcileFileReview() {
+      bitField0_ = (bitField0_ & ~0x00010000);
+      reconcileFileReview_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.RunSpec)

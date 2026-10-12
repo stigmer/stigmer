@@ -13,14 +13,15 @@
  * second representation exists to disagree with). The cross-edition
  * parity guard is the shared corpus.
  *
- * "Actionable" is execution-phase-aware: a terminal execution has no
- * actionable review (the workflow that would reconcile is gone), so the
- * seam returns empty for a terminal phase. The durable audit trail lives
- * in the ledger, always preserved regardless of phase.
+ * The projection does not depend on the run's phase. A turn never waits
+ * for review (stigmer#1471), so a finished turn's change sets stay on its
+ * run, and an Undo is put back by a later turn's runner (a reconcile turn,
+ * or the next turn's start), never by the run's own workflow. Which sets
+ * are still decidable is the decision's rule, checked where it is
+ * written: while the set's turn is the conversation's newest.
  */
 import { create } from "@bufbuild/protobuf";
 
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   FileChangeSetStatus,
   FileDecisionScope,
@@ -34,12 +35,8 @@ import type {
 import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 
 export function projectFileChangeSets(
-  phase: RunPhase,
   stream: FileReviewEventStream | undefined,
 ): FileChangeSet[] {
-  if (isTerminalExecution(phase)) {
-    return [];
-  }
   if (stream === undefined || stream.events.length === 0) {
     return [];
   }
@@ -152,20 +149,4 @@ function isFullyDecided(cs: FileChangeSet): boolean {
     }
   }
   return cs.changes.every((c) => decidedFiles.has(c.id));
-}
-
-/**
- * Mirrors the approval package's terminal-phase set exactly, so the two
- * projections collapse identically on a dead execution.
- */
-export function isTerminalExecution(phase: RunPhase): boolean {
-  switch (phase) {
-    case RunPhase.RUN_COMPLETED:
-    case RunPhase.RUN_FAILED:
-    case RunPhase.RUN_CANCELLED:
-    case RunPhase.RUN_TERMINATED:
-      return true;
-    default:
-      return false;
-  }
 }

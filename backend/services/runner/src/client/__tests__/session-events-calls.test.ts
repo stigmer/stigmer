@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * Pins the session log calls the client composes: the append names the run
  * and carries its events and previews, with the scoped credential as the
  * Bearer header when one is given; the run's read pages to the end, a
- * thousand at a time, filtered by run. The transport and the generated
- * clients are replaced at their module seams.
+ * thousand at a time, filtered by run; the typed read asks for one page, in
+ * the order and size the caller names, and hands back its cursor. The
+ * transport and the generated clients are replaced at their module seams.
  */
 
 const appendEvents = vi.fn();
@@ -77,5 +78,22 @@ describe("StigmerClient.listRunSessionEvents", () => {
       { sessionId: "ses_1", runId: "run_1", pageSize: 1000, pageToken: "" },
       { sessionId: "ses_1", runId: "run_1", pageSize: 1000, pageToken: "next" },
     ]);
+  });
+});
+
+describe("StigmerClient.listSessionEvents", () => {
+  it("asks for one page by type, order and size, and returns its cursor", async () => {
+    listEvents.mockResolvedValue({ events: [event("c")], nextPageToken: "more" });
+    const types = ["stigmer.file_review.decided"] as const;
+    const page = await newClient().listSessionEvents("ses_1", { types, order: "desc", pageSize: 50, pageToken: "tok" });
+    expect(page.events.map((e) => (e.event.case === undefined ? "" : e.event.value.id))).toEqual(["c"]);
+    expect(page.nextPageToken).toBe("more");
+    expect(listEvents.mock.calls[0]![0]).toEqual({
+      sessionId: "ses_1",
+      types: ["stigmer.file_review.decided"],
+      order: "desc",
+      pageSize: 50,
+      pageToken: "tok",
+    });
   });
 });

@@ -195,6 +195,7 @@ class RunInput:
     supersedes_run_id: str = ""
     conversation_catchup: ConversationCatchupInput | None = None
     plugin_eval_case: PluginEvalCaseContextInput | None = None
+    reconcile_file_review: bool = False
 
     def _to_proto(self) -> api_pb2.Run:
         spec = spec_pb2.RunSpec(
@@ -204,6 +205,7 @@ class RunInput:
             append_system_prompt=self.append_system_prompt,
             auto_approve_all=self.auto_approve_all,
             supersedes_run_id=self.supersedes_run_id,
+            reconcile_file_review=self.reconcile_file_review,
         )
         if self.run_config is not None:
             spec.run_config.CopyFrom(self.run_config._to_proto())
@@ -262,6 +264,7 @@ class SessionSpecInput:
     vaults: list[ResourceRef] = field(default_factory=list)
     include_my_vault: bool = False
     plugins: list[ResourceRef] = field(default_factory=list)
+    file_review: bool = False
 
     def _to_proto(self) -> session_spec_pb2.SessionSpec:
         msg = session_spec_pb2.SessionSpec(
@@ -271,6 +274,7 @@ class SessionSpecInput:
             cursor_mode=self.cursor_mode,
             execution_target=self.execution_target,
             include_my_vault=self.include_my_vault,
+            file_review=self.file_review,
         )
         if self.agent_ref is not None and (self.agent_ref.org or self.agent_ref.slug):
             _ref = self.agent_ref._to_proto()

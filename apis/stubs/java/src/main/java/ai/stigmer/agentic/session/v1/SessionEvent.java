@@ -87,6 +87,9 @@ private static final long serialVersionUID = 0L;
     STIGMER_HARNESS_NOTE(102),
     STIGMER_AGENT_STRUCTURED_OUTPUT(103),
     STIGMER_MEMORY_RECALLED(104),
+    STIGMER_FILE_REVIEW_CHANGES(105),
+    STIGMER_FILE_REVIEW_DECIDED(106),
+    STIGMER_FILE_REVIEW_RECONCILED(107),
     EVENT_NOT_SET(0);
     private final int value;
     private EventCase(int value) {
@@ -125,6 +128,9 @@ private static final long serialVersionUID = 0L;
         case 102: return STIGMER_HARNESS_NOTE;
         case 103: return STIGMER_AGENT_STRUCTURED_OUTPUT;
         case 104: return STIGMER_MEMORY_RECALLED;
+        case 105: return STIGMER_FILE_REVIEW_CHANGES;
+        case 106: return STIGMER_FILE_REVIEW_DECIDED;
+        case 107: return STIGMER_FILE_REVIEW_RECONCILED;
         case 0: return EVENT_NOT_SET;
         default: return null;
       }
@@ -1202,6 +1208,138 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent.getDefaultInstance();
   }
 
+  public static final int STIGMER_FILE_REVIEW_CHANGES_FIELD_NUMBER = 105;
+  /**
+   * <pre>
+   * The files a turn changed, offered for review (the session asked for
+   * file review).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+   * @return Whether the stigmerFileReviewChanges field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerFileReviewChanges() {
+    return eventCase_ == 105;
+  }
+  /**
+   * <pre>
+   * The files a turn changed, offered for review (the session asked for
+   * file review).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+   * @return The stigmerFileReviewChanges.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent getStigmerFileReviewChanges() {
+    if (eventCase_ == 105) {
+       return (ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * The files a turn changed, offered for review (the session asked for
+   * file review).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEventOrBuilder getStigmerFileReviewChangesOrBuilder() {
+    if (eventCase_ == 105) {
+       return (ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.getDefaultInstance();
+  }
+
+  public static final int STIGMER_FILE_REVIEW_DECIDED_FIELD_NUMBER = 106;
+  /**
+   * <pre>
+   * A turn's file changes, or one of its files, were kept or undone.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+   * @return Whether the stigmerFileReviewDecided field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerFileReviewDecided() {
+    return eventCase_ == 106;
+  }
+  /**
+   * <pre>
+   * A turn's file changes, or one of its files, were kept or undone.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+   * @return The stigmerFileReviewDecided.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent getStigmerFileReviewDecided() {
+    if (eventCase_ == 106) {
+       return (ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * A turn's file changes, or one of its files, were kept or undone.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEventOrBuilder getStigmerFileReviewDecidedOrBuilder() {
+    if (eventCase_ == 106) {
+       return (ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.getDefaultInstance();
+  }
+
+  public static final int STIGMER_FILE_REVIEW_RECONCILED_FIELD_NUMBER = 107;
+  /**
+   * <pre>
+   * The files that were undone were put back.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+   * @return Whether the stigmerFileReviewReconciled field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerFileReviewReconciled() {
+    return eventCase_ == 107;
+  }
+  /**
+   * <pre>
+   * The files that were undone were put back.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+   * @return The stigmerFileReviewReconciled.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent getStigmerFileReviewReconciled() {
+    if (eventCase_ == 107) {
+       return (ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * The files that were undone were put back.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEventOrBuilder getStigmerFileReviewReconciledOrBuilder() {
+    if (eventCase_ == 107) {
+       return (ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1290,6 +1428,15 @@ private static final long serialVersionUID = 0L;
     }
     if (eventCase_ == 104) {
       output.writeMessage(104, (ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent) event_);
+    }
+    if (eventCase_ == 105) {
+      output.writeMessage(105, (ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent) event_);
+    }
+    if (eventCase_ == 106) {
+      output.writeMessage(106, (ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent) event_);
+    }
+    if (eventCase_ == 107) {
+      output.writeMessage(107, (ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent) event_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1396,6 +1543,18 @@ private static final long serialVersionUID = 0L;
     if (eventCase_ == 104) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(104, (ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEvent) event_);
+    }
+    if (eventCase_ == 105) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(105, (ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent) event_);
+    }
+    if (eventCase_ == 106) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(106, (ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent) event_);
+    }
+    if (eventCase_ == 107) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(107, (ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent) event_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -1506,6 +1665,18 @@ private static final long serialVersionUID = 0L;
         if (!getStigmerMemoryRecalled()
             .equals(other.getStigmerMemoryRecalled())) return false;
         break;
+      case 105:
+        if (!getStigmerFileReviewChanges()
+            .equals(other.getStigmerFileReviewChanges())) return false;
+        break;
+      case 106:
+        if (!getStigmerFileReviewDecided()
+            .equals(other.getStigmerFileReviewDecided())) return false;
+        break;
+      case 107:
+        if (!getStigmerFileReviewReconciled()
+            .equals(other.getStigmerFileReviewReconciled())) return false;
+        break;
       case 0:
       default:
     }
@@ -1613,6 +1784,18 @@ private static final long serialVersionUID = 0L;
       case 104:
         hash = (37 * hash) + STIGMER_MEMORY_RECALLED_FIELD_NUMBER;
         hash = (53 * hash) + getStigmerMemoryRecalled().hashCode();
+        break;
+      case 105:
+        hash = (37 * hash) + STIGMER_FILE_REVIEW_CHANGES_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerFileReviewChanges().hashCode();
+        break;
+      case 106:
+        hash = (37 * hash) + STIGMER_FILE_REVIEW_DECIDED_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerFileReviewDecided().hashCode();
+        break;
+      case 107:
+        hash = (37 * hash) + STIGMER_FILE_REVIEW_RECONCILED_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerFileReviewReconciled().hashCode();
         break;
       case 0:
       default:
@@ -1824,6 +2007,15 @@ private static final long serialVersionUID = 0L;
       if (stigmerMemoryRecalledBuilder_ != null) {
         stigmerMemoryRecalledBuilder_.clear();
       }
+      if (stigmerFileReviewChangesBuilder_ != null) {
+        stigmerFileReviewChangesBuilder_.clear();
+      }
+      if (stigmerFileReviewDecidedBuilder_ != null) {
+        stigmerFileReviewDecidedBuilder_.clear();
+      }
+      if (stigmerFileReviewReconciledBuilder_ != null) {
+        stigmerFileReviewReconciledBuilder_.clear();
+      }
       eventCase_ = 0;
       event_ = null;
       return this;
@@ -1961,6 +2153,18 @@ private static final long serialVersionUID = 0L;
           stigmerMemoryRecalledBuilder_ != null) {
         result.event_ = stigmerMemoryRecalledBuilder_.build();
       }
+      if (eventCase_ == 105 &&
+          stigmerFileReviewChangesBuilder_ != null) {
+        result.event_ = stigmerFileReviewChangesBuilder_.build();
+      }
+      if (eventCase_ == 106 &&
+          stigmerFileReviewDecidedBuilder_ != null) {
+        result.event_ = stigmerFileReviewDecidedBuilder_.build();
+      }
+      if (eventCase_ == 107 &&
+          stigmerFileReviewReconciledBuilder_ != null) {
+        result.event_ = stigmerFileReviewReconciledBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -2076,6 +2280,18 @@ private static final long serialVersionUID = 0L;
         }
         case STIGMER_MEMORY_RECALLED: {
           mergeStigmerMemoryRecalled(other.getStigmerMemoryRecalled());
+          break;
+        }
+        case STIGMER_FILE_REVIEW_CHANGES: {
+          mergeStigmerFileReviewChanges(other.getStigmerFileReviewChanges());
+          break;
+        }
+        case STIGMER_FILE_REVIEW_DECIDED: {
+          mergeStigmerFileReviewDecided(other.getStigmerFileReviewDecided());
+          break;
+        }
+        case STIGMER_FILE_REVIEW_RECONCILED: {
+          mergeStigmerFileReviewReconciled(other.getStigmerFileReviewReconciled());
           break;
         }
         case EVENT_NOT_SET: {
@@ -2275,6 +2491,27 @@ private static final long serialVersionUID = 0L;
               eventCase_ = 104;
               break;
             } // case 834
+            case 842: {
+              input.readMessage(
+                  internalGetStigmerFileReviewChangesFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 105;
+              break;
+            } // case 842
+            case 850: {
+              input.readMessage(
+                  internalGetStigmerFileReviewDecidedFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 106;
+              break;
+            } // case 850
+            case 858: {
+              input.readMessage(
+                  internalGetStigmerFileReviewReconciledFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 107;
+              break;
+            } // case 858
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -6371,6 +6608,549 @@ private static final long serialVersionUID = 0L;
       eventCase_ = 104;
       onChanged();
       return stigmerMemoryRecalledBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent, ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.Builder, ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEventOrBuilder> stigmerFileReviewChangesBuilder_;
+    /**
+     * <pre>
+     * The files a turn changed, offered for review (the session asked for
+     * file review).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+     * @return Whether the stigmerFileReviewChanges field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerFileReviewChanges() {
+      return eventCase_ == 105;
+    }
+    /**
+     * <pre>
+     * The files a turn changed, offered for review (the session asked for
+     * file review).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+     * @return The stigmerFileReviewChanges.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent getStigmerFileReviewChanges() {
+      if (stigmerFileReviewChangesBuilder_ == null) {
+        if (eventCase_ == 105) {
+          return (ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 105) {
+          return stigmerFileReviewChangesBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * The files a turn changed, offered for review (the session asked for
+     * file review).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+     */
+    public Builder setStigmerFileReviewChanges(ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent value) {
+      if (stigmerFileReviewChangesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerFileReviewChangesBuilder_.setMessage(value);
+      }
+      eventCase_ = 105;
+      return this;
+    }
+    /**
+     * <pre>
+     * The files a turn changed, offered for review (the session asked for
+     * file review).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+     */
+    public Builder setStigmerFileReviewChanges(
+        ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.Builder builderForValue) {
+      if (stigmerFileReviewChangesBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerFileReviewChangesBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 105;
+      return this;
+    }
+    /**
+     * <pre>
+     * The files a turn changed, offered for review (the session asked for
+     * file review).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+     */
+    public Builder mergeStigmerFileReviewChanges(ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent value) {
+      if (stigmerFileReviewChangesBuilder_ == null) {
+        if (eventCase_ == 105 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 105) {
+          stigmerFileReviewChangesBuilder_.mergeFrom(value);
+        } else {
+          stigmerFileReviewChangesBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 105;
+      return this;
+    }
+    /**
+     * <pre>
+     * The files a turn changed, offered for review (the session asked for
+     * file review).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+     */
+    public Builder clearStigmerFileReviewChanges() {
+      if (stigmerFileReviewChangesBuilder_ == null) {
+        if (eventCase_ == 105) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 105) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerFileReviewChangesBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The files a turn changed, offered for review (the session asked for
+     * file review).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.Builder getStigmerFileReviewChangesBuilder() {
+      return internalGetStigmerFileReviewChangesFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The files a turn changed, offered for review (the session asked for
+     * file review).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEventOrBuilder getStigmerFileReviewChangesOrBuilder() {
+      if ((eventCase_ == 105) && (stigmerFileReviewChangesBuilder_ != null)) {
+        return stigmerFileReviewChangesBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 105) {
+          return (ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * The files a turn changed, offered for review (the session asked for
+     * file review).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent, ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.Builder, ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEventOrBuilder> 
+        internalGetStigmerFileReviewChangesFieldBuilder() {
+      if (stigmerFileReviewChangesBuilder_ == null) {
+        if (!(eventCase_ == 105)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.getDefaultInstance();
+        }
+        stigmerFileReviewChangesBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent, ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent.Builder, ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 105;
+      onChanged();
+      return stigmerFileReviewChangesBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent, ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.Builder, ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEventOrBuilder> stigmerFileReviewDecidedBuilder_;
+    /**
+     * <pre>
+     * A turn's file changes, or one of its files, were kept or undone.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+     * @return Whether the stigmerFileReviewDecided field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerFileReviewDecided() {
+      return eventCase_ == 106;
+    }
+    /**
+     * <pre>
+     * A turn's file changes, or one of its files, were kept or undone.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+     * @return The stigmerFileReviewDecided.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent getStigmerFileReviewDecided() {
+      if (stigmerFileReviewDecidedBuilder_ == null) {
+        if (eventCase_ == 106) {
+          return (ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 106) {
+          return stigmerFileReviewDecidedBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A turn's file changes, or one of its files, were kept or undone.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+     */
+    public Builder setStigmerFileReviewDecided(ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent value) {
+      if (stigmerFileReviewDecidedBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerFileReviewDecidedBuilder_.setMessage(value);
+      }
+      eventCase_ = 106;
+      return this;
+    }
+    /**
+     * <pre>
+     * A turn's file changes, or one of its files, were kept or undone.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+     */
+    public Builder setStigmerFileReviewDecided(
+        ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.Builder builderForValue) {
+      if (stigmerFileReviewDecidedBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerFileReviewDecidedBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 106;
+      return this;
+    }
+    /**
+     * <pre>
+     * A turn's file changes, or one of its files, were kept or undone.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+     */
+    public Builder mergeStigmerFileReviewDecided(ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent value) {
+      if (stigmerFileReviewDecidedBuilder_ == null) {
+        if (eventCase_ == 106 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 106) {
+          stigmerFileReviewDecidedBuilder_.mergeFrom(value);
+        } else {
+          stigmerFileReviewDecidedBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 106;
+      return this;
+    }
+    /**
+     * <pre>
+     * A turn's file changes, or one of its files, were kept or undone.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+     */
+    public Builder clearStigmerFileReviewDecided() {
+      if (stigmerFileReviewDecidedBuilder_ == null) {
+        if (eventCase_ == 106) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 106) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerFileReviewDecidedBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * A turn's file changes, or one of its files, were kept or undone.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.Builder getStigmerFileReviewDecidedBuilder() {
+      return internalGetStigmerFileReviewDecidedFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * A turn's file changes, or one of its files, were kept or undone.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEventOrBuilder getStigmerFileReviewDecidedOrBuilder() {
+      if ((eventCase_ == 106) && (stigmerFileReviewDecidedBuilder_ != null)) {
+        return stigmerFileReviewDecidedBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 106) {
+          return (ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A turn's file changes, or one of its files, were kept or undone.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent, ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.Builder, ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEventOrBuilder> 
+        internalGetStigmerFileReviewDecidedFieldBuilder() {
+      if (stigmerFileReviewDecidedBuilder_ == null) {
+        if (!(eventCase_ == 106)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.getDefaultInstance();
+        }
+        stigmerFileReviewDecidedBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent, ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent.Builder, ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 106;
+      onChanged();
+      return stigmerFileReviewDecidedBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent, ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.Builder, ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEventOrBuilder> stigmerFileReviewReconciledBuilder_;
+    /**
+     * <pre>
+     * The files that were undone were put back.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+     * @return Whether the stigmerFileReviewReconciled field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerFileReviewReconciled() {
+      return eventCase_ == 107;
+    }
+    /**
+     * <pre>
+     * The files that were undone were put back.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+     * @return The stigmerFileReviewReconciled.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent getStigmerFileReviewReconciled() {
+      if (stigmerFileReviewReconciledBuilder_ == null) {
+        if (eventCase_ == 107) {
+          return (ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 107) {
+          return stigmerFileReviewReconciledBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * The files that were undone were put back.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+     */
+    public Builder setStigmerFileReviewReconciled(ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent value) {
+      if (stigmerFileReviewReconciledBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerFileReviewReconciledBuilder_.setMessage(value);
+      }
+      eventCase_ = 107;
+      return this;
+    }
+    /**
+     * <pre>
+     * The files that were undone were put back.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+     */
+    public Builder setStigmerFileReviewReconciled(
+        ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.Builder builderForValue) {
+      if (stigmerFileReviewReconciledBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerFileReviewReconciledBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 107;
+      return this;
+    }
+    /**
+     * <pre>
+     * The files that were undone were put back.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+     */
+    public Builder mergeStigmerFileReviewReconciled(ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent value) {
+      if (stigmerFileReviewReconciledBuilder_ == null) {
+        if (eventCase_ == 107 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 107) {
+          stigmerFileReviewReconciledBuilder_.mergeFrom(value);
+        } else {
+          stigmerFileReviewReconciledBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 107;
+      return this;
+    }
+    /**
+     * <pre>
+     * The files that were undone were put back.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+     */
+    public Builder clearStigmerFileReviewReconciled() {
+      if (stigmerFileReviewReconciledBuilder_ == null) {
+        if (eventCase_ == 107) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 107) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerFileReviewReconciledBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The files that were undone were put back.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.Builder getStigmerFileReviewReconciledBuilder() {
+      return internalGetStigmerFileReviewReconciledFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The files that were undone were put back.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEventOrBuilder getStigmerFileReviewReconciledOrBuilder() {
+      if ((eventCase_ == 107) && (stigmerFileReviewReconciledBuilder_ != null)) {
+        return stigmerFileReviewReconciledBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 107) {
+          return (ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * The files that were undone were put back.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent, ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.Builder, ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEventOrBuilder> 
+        internalGetStigmerFileReviewReconciledFieldBuilder() {
+      if (stigmerFileReviewReconciledBuilder_ == null) {
+        if (!(eventCase_ == 107)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.getDefaultInstance();
+        }
+        stigmerFileReviewReconciledBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent, ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent.Builder, ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 107;
+      onChanged();
+      return stigmerFileReviewReconciledBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionEvent)

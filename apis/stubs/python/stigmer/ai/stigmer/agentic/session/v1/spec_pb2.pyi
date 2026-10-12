@@ -12,7 +12,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SessionSpec(_message.Message):
-    __slots__ = ("agent_ref", "subject", "harness_state_id", "harness_state_id_history", "metadata", "workspace_entries", "skill_refs", "harness", "cursor_mode", "execution_target", "vaults", "include_my_vault", "plugins")
+    __slots__ = ("agent_ref", "subject", "harness_state_id", "harness_state_id_history", "metadata", "workspace_entries", "skill_refs", "harness", "cursor_mode", "execution_target", "vaults", "include_my_vault", "plugins", "file_review")
     class MetadataEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -33,6 +33,7 @@ class SessionSpec(_message.Message):
     VAULTS_FIELD_NUMBER: _ClassVar[int]
     INCLUDE_MY_VAULT_FIELD_NUMBER: _ClassVar[int]
     PLUGINS_FIELD_NUMBER: _ClassVar[int]
+    FILE_REVIEW_FIELD_NUMBER: _ClassVar[int]
     agent_ref: _io_pb2.ApiResourceReference
     subject: str
     harness_state_id: str
@@ -46,4 +47,5 @@ class SessionSpec(_message.Message):
     vaults: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     include_my_vault: bool
     plugins: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
-    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., subject: _Optional[str] = ..., harness_state_id: _Optional[str] = ..., harness_state_id_history: _Optional[_Iterable[str]] = ..., metadata: _Optional[_Mapping[str, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., cursor_mode: _Optional[_Union[_enum_pb2.CursorMode, str]] = ..., execution_target: _Optional[_Union[_enum_pb2.ExecutionTarget, str]] = ..., vaults: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., include_my_vault: bool = ..., plugins: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...
+    file_review: bool
+    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., subject: _Optional[str] = ..., harness_state_id: _Optional[str] = ..., harness_state_id_history: _Optional[_Iterable[str]] = ..., metadata: _Optional[_Mapping[str, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ..., cursor_mode: _Optional[_Union[_enum_pb2.CursorMode, str]] = ..., execution_target: _Optional[_Union[_enum_pb2.ExecutionTarget, str]] = ..., vaults: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., include_my_vault: bool = ..., plugins: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., file_review: bool = ...) -> None: ...

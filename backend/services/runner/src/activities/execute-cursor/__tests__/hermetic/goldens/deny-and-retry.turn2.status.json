@@ -25,7 +25,7 @@
           "argsPreview": "{\"command\":\"npm run build\",\"cwd\":\"/x\",\"timeout\":30000}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "policyEngineVersion": "hooks-1"
+          "policyEngineVersion": "hooks-2"
         }
       ]
     },
@@ -49,29 +49,5 @@
     "requestedServiceTier": "SERVICE_TIER_STANDARD",
     "requestedModelParams": "[{\"id\":\"fast\",\"value\":\"false\"},{\"id\":\"thinking\",\"value\":\"false\"}]",
     "requestedThinkingMode": "THINKING_MODE_DISABLED"
-  },
-  "fileReviewEventStream": {
-    "runId": "aex_hermetic_0001",
-    "events": [
-      {
-        "eventId": "aex_hermetic_0001:1:aex_hermetic_0001:1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
-        "changeSetId": "aex_hermetic_0001:1",
-        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
-        "timestamp": "2026-01-01T00:00:06.000Z",
-        "actor": "runner",
-        "baselineCaptured": {
-          "changeSetId": "aex_hermetic_0001:1",
-          "turnId": "aex_hermetic_0001:1",
-          "harnessId": "cursor",
-          "baselineSnapshot": {
-            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
-          }
-        }
-      }
-    ]
-  },
-  "fileChangeProgress": {
-    "changeSetId": "aex_hermetic_0001:1",
-    "capturedAt": "2026-01-01T00:00:08.000Z"
   }
 }

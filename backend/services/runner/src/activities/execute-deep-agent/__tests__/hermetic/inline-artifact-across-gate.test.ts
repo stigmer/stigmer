@@ -4,8 +4,8 @@
  * invocations on the durable
  * (sqlite) checkpointer.
  *
- * Turn 1: the model writes a report (`write_file`; under capture mode in a
- * non-git session workspace the write FLOWS into the CAS ledger), and
+ * Turn 1: the model writes a report (`write_file`; the session's file review
+ * is off, the default, so the write FLOWS uncaptured), and
  * `streaming-side-effects.ts` hands the path to `InlinePublisher`, which
  * uploads the bytes to artifact storage and appends an `RunArtifact`
  * (`storageKey = artifacts/<executionId>/<name>`, a content hash, the
@@ -32,8 +32,8 @@
  * Also recorded (a shape fact, as found): the write's tool row
  * shows `requiresApproval: true` with `approvalPolicySource` BUILTIN_CATEGORY
  * — the category policy's verdict — while the row is COMPLETED because
- * capture mode let it flow; the artifact carries no URL (the local store
- * mints none).
+ * the write flowed with review off; the artifact carries no URL (the local
+ * store mints none).
  *
  * What every reinvocation golden here shows since #1096 (the runtime over
  * the native adapter): `startedAt` is THIS turn's own,
@@ -47,13 +47,9 @@
  * runtime accountant's fields (`model`, `estimatedCostUsd`, the requested
  * tier and thinking mode).
  *
- * Golden hunk since #1096: turn 1's
- * `fileChangeProgress` is the TRUE snapshot at the WAITING write
- * (`filesChanged: 1`, `report.md` ADD +3, `capturedAt` t=2) where it was a
- * stale t=0 snapshot taken by the stream loop before the engine wrote the
- * file — no later mid-stream persist crossed the floor, so the pause used
- * to persist "0 files" beside a one-file change set. The runtime now
- * refreshes the strip on every write, the terminal one included.
+ * Golden hunk with file review made opt-in (stigmer#1471): turn 1 carries
+ * no `fileChangeProgress` and no ledger events, where capture used to run
+ * in every workspace with a substrate.
  *
  * Golden hunk since #1443, in both goldens: the artifact's `createdAt` is
  * t=1, the write's finish, where it was t=2. The publisher read the clock
@@ -159,7 +155,7 @@ describe("ExecuteDeepAgent hermetic — inline artifact across a gate (sqlite)",
     expect(run1.artifacts[0].contentHash, "sha256 of the bytes").toMatch(/^[0-9a-f]{64}$/);
     expect(existsSync(join(env.artifactPath, run1.artifacts[0].storageKey)), "the bytes reached the store").toBe(true);
     const writeRow = record.toolCalls().find((tc) => tc.id === WRITE_CALL_ID)!;
-    expect(writeRow.status, "capture mode let the write flow").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(writeRow.status, "the write flowed: review is off").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
     expect(run1.artifacts[0].createdAt, "the artifact is stamped at its write's finish").toBe(writeRow.completedAt);
     expect(record.waitingToolCalls().map((tc) => tc.id)).toEqual([EXECUTE_CALL_A.id]);
     await expect(statusJson(run1)).toMatchFileSnapshot("./goldens/inline-artifact.turn1.status.json");

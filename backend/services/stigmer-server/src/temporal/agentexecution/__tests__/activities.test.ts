@@ -16,7 +16,13 @@
  *     read_harness_state_id.go);
  *   - the retired DeleteExecutionContext name stays registered for runs
  *     whose history still calls it, and its body does nothing: a run
- *     stores no copy of its values, so there is nothing to delete.
+ *     stores no copy of its values, so there is nothing to delete;
+ *   - CloseFileReview keeps the previous turn's undecided edits (origin
+ *     next turn, with their `decided` event), the turn before this run's
+ *     own message and not the newest, once; a first turn, a run whose
+ *     message is not in the log, a previous turn since deleted, and one a
+ *     person already decided close nothing; a store fault reading the
+ *     previous turn fails the activity.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -24,24 +30,38 @@ import path from "node:path";
 import { create, fromJson, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   RunSchema,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import {
+  FileChangeSetStatus,
+  FileDecisionAction,
+  FileDecisionOrigin,
+  FileDecisionScope,
+  RunPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileDecisionSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { RunUpdateStatusInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
+import { fileReviewSeed } from "../../../domain/run/__tests__/file-review-seed.js";
+import { ACTOR_USER, recordFileDecisionEventWithActor } from "../../../domain/run/filereview/author.js";
+import { projectFileChangeSets } from "../../../domain/run/filereview/project.js";
+import { SessionEventBroker } from "../../../domain/session/events/broker.js";
+import { createRunAppendingEvents } from "../../../domain/session/events/run-writes.js";
+import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import { createAgentExecutionActivities } from "../activities.js";
 import type { ExecutionStatusWriter } from "../activities.js";
 import {
+  CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
@@ -91,6 +111,7 @@ function newFixture() {
     store,
     logger: silentLogger,
     statusWriter: () => statusWriter,
+    sessionEventBroker: new SessionEventBroker(silentLogger),
   });
   return {
     store,
@@ -305,5 +326,135 @@ describe("the retired DeleteExecutionContext activity", () => {
     await expect(remove("run_old")).resolves.toBeUndefined();
     expect(writes).toEqual([]);
     expect(await store.listResources(ApiResourceKind.run)).toEqual([]);
+  });
+});
+
+describe("CloseFileReview activity", () => {
+  const SESSION = "ses_close";
+  type CloseActivity = (executionId: string, sessionId: string) => Promise<void>;
+
+  /** A store opened with the list indexes (a run write carries events), and the activity over it. */
+  function closeFixture() {
+    const temp = tempStore();
+    cleanups.push(() => temp.cleanup());
+    const sessionEventBroker = new SessionEventBroker(silentLogger);
+    const activities = createAgentExecutionActivities({
+      store: temp.store,
+      logger: silentLogger,
+      statusWriter: () => {
+        throw new Error("CloseFileReview writes no status through the in-process edge");
+      },
+      sessionEventBroker,
+    });
+    const close = activities[CLOSE_FILE_REVIEW_ACTIVITY_NAME] as CloseActivity;
+    /** Creates a turn the way the run chain does: its user message into the log. */
+    const turn = async (id: string, withSet: boolean): Promise<void> => {
+      await createRunAppendingEvents(
+        { store: temp.store, sessionEventBroker },
+        create(RunSchema, {
+          metadata: { id, org: "test-org" },
+          spec: { target: { case: "sessionId", value: SESSION }, message: `message of ${id}` },
+          status: withSet
+            ? { ...fileReviewSeed(id, `${id}:0`).status, phase: RunPhase.RUN_COMPLETED }
+            : { phase: RunPhase.RUN_COMPLETED },
+        }),
+      );
+    };
+    const decisions = async (id: string) => {
+      const run = await temp.store.getResource(ApiResourceKind.run, id, RunSchema);
+      return run.status?.fileChangeSets[0]?.decisions ?? [];
+    };
+    const decidedRuns = async (): Promise<string[]> =>
+      (
+        await temp.store.sessionEvents.list(SESSION, {
+          order: "asc",
+          types: ["stigmer.file_review.decided"],
+          limit: 10,
+        })
+      ).map((record) => record.runId);
+    return { store: temp.store, close, turn, decisions, decidedRuns };
+  }
+
+  it("keeps the previous turn's undecided set, origin next turn, with its decided event", async () => {
+    const { store, close, turn, decisions, decidedRuns } = closeFixture();
+    await turn("run_a", true);
+    await turn("run_b", false);
+
+    await close("run_b", SESSION);
+
+    expect((await decisions("run_a")).map((d) => d.origin)).toEqual([FileDecisionOrigin.POLICY_NEXT_TURN]);
+    const run = await store.getResource(ApiResourceKind.run, "run_a", RunSchema);
+    expect(run.status?.fileChangeSets[0]?.status).toBe(FileChangeSetStatus.DECIDED);
+    expect(await decidedRuns()).toEqual(["run_a"]);
+  });
+
+  it("closes the turn before this run's own message, not the newest, and only once", async () => {
+    const { close, turn, decisions, decidedRuns } = closeFixture();
+    await turn("run_a", true);
+    await turn("run_b", true);
+    await turn("run_c", true);
+
+    await close("run_b", SESSION);
+    await close("run_b", SESSION);
+
+    expect((await decisions("run_a")).map((d) => d.origin)).toEqual([FileDecisionOrigin.POLICY_NEXT_TURN]);
+    expect(await decisions("run_b"), "the run's own set is not its to close").toEqual([]);
+    expect(await decisions("run_c")).toEqual([]);
+    expect(await decidedRuns()).toEqual(["run_a"]);
+  });
+
+  it("a first turn, and a run whose message is not in the log, close nothing", async () => {
+    const { close, turn, decisions, decidedRuns } = closeFixture();
+    await turn("run_a", true);
+
+    await close("run_a", SESSION);
+    await close("run_absent", SESSION);
+    await close("run_a", "");
+
+    expect(await decisions("run_a")).toEqual([]);
+    expect(await decidedRuns()).toEqual([]);
+  });
+
+  it("a previous turn deleted since its message was written has nothing to close", async () => {
+    const { store, close, turn } = closeFixture();
+    await turn("run_a", true);
+    await turn("run_b", false);
+    // The row alone goes (a run's removal takes its message too; this is
+    // the race between the read and the delete).
+    await store.deleteResource(ApiResourceKind.run, "run_a");
+
+    await expect(close("run_b", SESSION)).resolves.toBeUndefined();
+  });
+
+  it("fails on a store fault reading the previous turn, so the activity is retried", async () => {
+    const { store, close, turn, decisions } = closeFixture();
+    await turn("run_a", true);
+    await turn("run_b", false);
+    vi.spyOn(store, "getResource").mockRejectedValueOnce(new Error("store down"));
+
+    await expect(close("run_b", SESSION)).rejects.toThrow("store down");
+    expect(await decisions("run_a"), "nothing was kept").toEqual([]);
+  });
+
+  it("leaves a previous turn a person already decided as it is", async () => {
+    const { store, close, turn, decisions, decidedRuns } = closeFixture();
+    await turn("run_a", true);
+    await store.updateResource(ApiResourceKind.run, "run_a", RunSchema, (run) => {
+      const decision = create(FileDecisionSchema, {
+        id: "run_a:0:run_a:0",
+        changeSetId: "run_a:0",
+        scope: FileDecisionScope.CHANGE_SET,
+        action: FileDecisionAction.REJECT,
+        origin: FileDecisionOrigin.USER,
+      });
+      recordFileDecisionEventWithActor(run.status, "run_a", decision, ACTOR_USER);
+      run.status!.fileChangeSets = projectFileChangeSets(run.status!.fileReviewEventStream);
+    });
+    await turn("run_b", false);
+
+    await close("run_b", SESSION);
+
+    expect((await decisions("run_a")).map((d) => d.origin)).toEqual([FileDecisionOrigin.USER]);
+    expect(await decidedRuns()).toEqual([]);
   });
 });

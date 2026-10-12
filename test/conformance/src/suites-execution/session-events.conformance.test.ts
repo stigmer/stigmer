@@ -21,6 +21,11 @@
 //     sent while the first still works, the session reads running until
 //     BOTH have ended, with one idle, after both user messages;
 //   - a cancelled turn ends the session's turn as end_turn;
+//   - in a session with file review on, a turn that edits a file writes
+//     stigmer.file_review.changes from its change set before it ends; a
+//     person's decision is stigmer.file_review.decided, the server's own,
+//     once per target; an undo's reconcile turn reads running, then
+//     stigmer.file_review.reconciled, then idle, with no user.message;
 //   - the runner acting for a live run appends the agent's events with its
 //     run credential (held here through the scoped-token exchange, without
 //     a runner): a resend is accepted once, the same id with other content
@@ -35,6 +40,7 @@
 // suites/session-events.conformance.test.ts, on the enforcing lane.
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ApprovalAction, RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import type { StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
@@ -44,8 +50,10 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
+import { GitWorkspace } from "../harness/git-workspace";
 import { DESTRUCTIVE_ECHO_TOOL_NAME, ECHO_TOOL_NAME, type McpToolFixture } from "../harness/mcp-server";
 import { agentRefOf, createSubagents, makeAgent, subagentSlugsOf } from "../support/agents";
+import { awaitFileReview, requireChangeByPath, requireReviewSet, reviewChangeSet, reviewFileByPath } from "../support/file-review";
 import { pollUntil } from "../support/run-poll";
 import {
   type AgentExecutionOptions,
@@ -122,6 +130,9 @@ const TYPE_BY_CASE: Readonly<Record<string, string>> = {
   stigmerHarnessNote: "stigmer.harness.note",
   stigmerAgentStructuredOutput: "stigmer.agent.structured_output",
   stigmerMemoryRecalled: "stigmer.memory.recalled",
+  stigmerFileReviewChanges: "stigmer.file_review.changes",
+  stigmerFileReviewDecided: "stigmer.file_review.decided",
+  stigmerFileReviewReconciled: "stigmer.file_review.reconciled",
 };
 
 /** An event's own id. */
@@ -550,5 +561,148 @@ describe("the runner writes what the agent did", () => {
     expect(idle.case === "sessionStatusIdle" && idle.value.stopReason?.type).toBe("budget_reached");
     // The turn past the budget was never requested; clear it for the next arm.
     mock.reset();
+  });
+});
+
+describe("file review's events", () => {
+  /** A turn in a fresh session with file review on, whose agent writes `path` in a git workspace. */
+  async function reviewedTurn(path: string, content: string): Promise<{ sessionId: string; runId: string }> {
+    const { org } = await target.provisionTenancy();
+    const workspace = await GitWorkspace.create();
+    fixtures.defer(() => workspace.cleanup());
+    const session = await clients.sessionCommand.create(
+      makeSession({
+        org,
+        name: uniqueName("events-review"),
+        agentRef: await newAgentRef(org),
+        harness: Harness.NATIVE,
+        localWorkspaces: [{ name: "repo", path: workspace.dir }],
+        fileReview: true,
+      }),
+    );
+    const sessionId = session.metadata!.id;
+    fixtures.defer(() => clients.sessionCommand.delete({ value: sessionId }).catch(() => undefined));
+    mock.enqueue(anthropicToolUse("toolu_events_write", "write_file", { file_path: path, content }));
+    mock.enqueue(anthropicText("Wrote it."));
+    const run = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("events-run"), sessionId, message: "write it" }),
+    );
+    const runId = run.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }).catch(() => undefined));
+    return { sessionId, runId };
+  }
+
+  /** One run's events once the session is idle after it. */
+  function idleLog(sessionId: string, runId: string): Promise<SessionEvent[]> {
+    return pollUntil(
+      async () => (await clients.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000 })).events,
+      (got) => got.length > 0 && typeOf(got[got.length - 1]!) === "session.status_idle",
+      (last) => `run ${runId}'s session never went idle: ${JSON.stringify(last?.map(typeOf))}`,
+    );
+  }
+
+  /** The id the runner derives for a change set's events: <run>.fr<turn>, from the set's <run>:<turn>. */
+  function reviewEventId(changeSetId: string): string {
+    return changeSetId.replace(":", ".fr");
+  }
+
+  it("[rpc:SessionQueryController.listEvents] a turn with review on writes stigmer.file_review.changes from its change set, once, before the session goes idle", async () => {
+    const { sessionId, runId } = await reviewedTurn("notes.txt", "one\ntwo\n");
+    const ended = await awaitFileReview(clients, runId);
+    expect(ended.status?.phase, "review never holds the turn").toBe(RunPhase.RUN_COMPLETED);
+    const set = requireReviewSet(ended);
+    const change = requireChangeByPath(set, "notes.txt");
+
+    const events = await idleLog(sessionId, runId);
+    const types = events.map(typeOf);
+    expect(types.filter((t) => t !== "stigmer.file_review.changes")).toEqual([
+      "user.message",
+      "session.status_running",
+      "agent.tool_use",
+      "agent.tool_result",
+      "agent.message",
+      "session.status_idle",
+    ]);
+    const at = types.indexOf("stigmer.file_review.changes");
+    expect(types.filter((t) => t === "stigmer.file_review.changes"), "one offer per turn").toHaveLength(1);
+    expect(at, "offered after the edit's result").toBeGreaterThan(types.indexOf("agent.tool_result"));
+    expect(at, "and before the turn ends").toBeLessThan(types.indexOf("session.status_idle"));
+    const offered = events[at]!.event;
+    expect(idOf(events[at]!), "named by the run and the turn").toBe(reviewEventId(set.id));
+    expect(offered.case === "stigmerFileReviewChanges" && offered.value.changeSetId).toBe(set.id);
+    expect(offered.case === "stigmerFileReviewChanges" && offered.value.aggregateDigest).toBe(set.aggregateDigest);
+    expect(
+      offered.case === "stigmerFileReviewChanges" &&
+        offered.value.files.map((f) => [f.fileChangeId, f.path, f.previousPath, f.change, f.digest, f.linesAdded, f.linesRemoved, f.reviewable]),
+    ).toEqual([[change.id, "notes.txt", "", "added", change.fileDigest, 2, 0, "complete"]]);
+  });
+
+  it("[rpc:SessionCommandController.reviewFileChanges] a person's decision is stigmer.file_review.decided, the server's, on the change set's run; the same decision again appends nothing", async () => {
+    const { sessionId, runId } = await reviewedTurn("kept.txt", "keep\n");
+    const set = requireReviewSet(await awaitFileReview(clients, runId));
+    const change = requireChangeByPath(set, "kept.txt");
+
+    await reviewFileByPath(clients, sessionId, set, "kept.txt", "keep", { reason: "looks right" });
+    await reviewFileByPath(clients, sessionId, set, "kept.txt", "keep", { reason: "looks right" });
+
+    const decided = (await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000, types: ["stigmer.file_review.decided"] })).events;
+    expect(decided, "a decision is final per target; the repeat appends nothing").toHaveLength(1);
+    const event = decided[0]!;
+    expect(idOf(event), "a server-written id").toMatch(/^sevt_fd_[0-9a-f]{40}$/);
+    expect(event.runId, "written on the change set's run").toBe(runId);
+    const value = event.event;
+    expect(
+      value.case === "stigmerFileReviewDecided" && [
+        value.value.changeSetId,
+        value.value.scope,
+        value.value.fileChangeId,
+        value.value.action,
+        value.value.expectedDigest,
+        value.value.origin,
+        value.value.reason,
+      ],
+    ).toEqual([set.id, "file", change.id, "keep", change.fileDigest, "person", "looks right"]);
+  });
+
+  it("[rpc:SessionQueryController.listEvents] an undo's reconcile turn reads running, stigmer.file_review.reconciled, then idle, and writes no user.message", async () => {
+    const { sessionId, runId } = await reviewedTurn("undone.txt", "undo me\n");
+    const set = requireReviewSet(await awaitFileReview(clients, runId));
+
+    const undone = await reviewChangeSet(clients, sessionId, set, "undo");
+    const reconcileRunId = undone.reconcileRunId;
+    expect(reconcileRunId, "an undo on a finished turn starts a reconcile turn").not.toBe("");
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: reconcileRunId }).catch(() => undefined));
+    expect((await awaitTerminal(clients, reconcileRunId)).status?.phase).toBe(RunPhase.RUN_COMPLETED);
+
+    const reconcile = await idleLog(sessionId, reconcileRunId);
+    expect(reconcile.map(typeOf)).toEqual(["session.status_running", "stigmer.file_review.reconciled", "session.status_idle"]);
+    const undoDecided = (await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000 })).events.find(
+      (event) => event.event.case === "stigmerFileReviewDecided" && event.event.value.changeSetId === set.id,
+    );
+    expect(
+      idOf(reconcile[1]!),
+      "one per undo, named by the change set and the undo's decided event, whichever turn reconciles it",
+    ).toBe(`${reviewEventId(set.id)}.r.${idOf(undoDecided!)}`);
+    const reconciled = reconcile[1]!.event;
+    expect(
+      reconciled.case === "stigmerFileReviewReconciled" && [
+        reconciled.value.changeSetId,
+        reconciled.value.undonePaths,
+        reconciled.value.failure,
+        reconciled.value.failureDetail,
+      ],
+    ).toEqual([set.id, ["undone.txt"], "", ""]);
+    const idle = reconcile[2]!.event;
+    expect(idle.case === "sessionStatusIdle" && idle.value.stopReason?.type).toBe("end_turn");
+
+    const whole = (await log(sessionId)).map(typeOf);
+    expect(whole.filter((t) => t === "user.message"), "the undo is no message").toHaveLength(1);
+    expect(whole.slice(-4), "the person's undo, then the turn that put the file back").toEqual([
+      "stigmer.file_review.decided",
+      "session.status_running",
+      "stigmer.file_review.reconciled",
+      "session.status_idle",
+    ]);
+    expect(mock.remaining(), "the reconcile turn asked no model").toBe(0);
   });
 });

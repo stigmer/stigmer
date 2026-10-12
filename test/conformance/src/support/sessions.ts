@@ -51,9 +51,13 @@ export interface SessionSpecOptions {
   skillRefs?: string[];
   // Workspaces mounted for the session's turns (spec.workspace_entries), each a
   // local path on the runner's host. The first entry is the primary workspace:
-  // when it is a git work tree the runner runs its turns in file-review capture
-  // mode (the file-review suites attach a harness GitWorkspace here).
+  // when it is a git work tree and the session asks for review (`fileReview`)
+  // the runner captures each turn's edits for review (the file-review suites
+  // attach a harness GitWorkspace here).
   localWorkspaces?: LocalWorkspaceOption[];
+  // Whether each turn's file edits are offered for review after the turn
+  // (spec.file_review). Omitted = off, the wire default: edits simply land.
+  fileReview?: boolean;
   // Vault slugs the conversation lists (spec.vaults), in order: the
   // conversation uses exactly those, after the sender's My vault when
   // includeMyVault is set.
@@ -86,6 +90,7 @@ export function makeSessionSpec(opts: SessionSpecOptions = {}): InitShape<typeof
     ...(opts.localWorkspaces !== undefined ? { workspaceEntries: localWorkspaceEntries(opts.localWorkspaces) } : {}),
     ...(opts.vaults !== undefined ? { vaults: opts.vaults.map((slug) => ({ slug, kind: ApiResourceKind.vault })) } : {}),
     ...(opts.includeMyVault !== undefined ? { includeMyVault: opts.includeMyVault } : {}),
+    ...(opts.fileReview !== undefined ? { fileReview: opts.fileReview } : {}),
   };
 }
 

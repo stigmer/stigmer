@@ -96,6 +96,7 @@ function deps(client: ResolutionDeps["client"]): { deps: ResolutionDeps; labels:
       reportProgress: async (label) => {
         labels.push(label);
       },
+      recordReconciled: async () => {},
     },
   };
 }

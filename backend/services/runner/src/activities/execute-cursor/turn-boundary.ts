@@ -21,11 +21,10 @@
  * `waiting` means "a denial pauses": a gated tool call the user must decide.
  * The turn's FILE CHANGES are not this boundary's since #1096 — the runtime
  * captures them once, over whatever the whole turn left on the tree, after
- * `runTurn` returns (`harness/capture.ts`), and decides the review pause
- * itself. Two consequences the boundary used to suppress when it could see
- * the capture: steps 4 and 5 now run on a turn whose only pause would have
- * been a file review, so a hung row is disclosed and a foreign-hook block is
- * failed BEFORE the review rather than after it.
+ * `runTurn` returns (`harness/capture.ts`), and a captured change never
+ * pauses the turn. Two consequences the boundary used to suppress when it
+ * could see the capture: steps 4 and 5 run on a turn with captured edits
+ * too, so a hung row is disclosed and a foreign-hook block is failed on it.
  *
  * Extracted from the activity entry point (index.ts Phase 12) so it is directly
  * unit-testable AND re-enterable: the poisoned-handle / transport-timeout

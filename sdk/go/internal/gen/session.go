@@ -57,6 +57,11 @@ func (s *SessionClient) UpdateSubject(ctx context.Context, input *sessionv1.Upda
 	return resp, wrapErr(err)
 }
 
+func (s *SessionClient) ReviewFileChanges(ctx context.Context, input *sessionv1.ReviewFileChangesInput) (*sessionv1.ReviewFileChangesResponse, error) {
+	resp, err := s.command.ReviewFileChanges(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SessionClient) Delete(ctx context.Context, id string) (*sessionv1.Session, error) {
 	resp, err := s.command.Delete(ctx, &sessionv1.SessionId{Value: id})
 	return resp, wrapErr(err)
@@ -141,6 +146,7 @@ type SessionInput struct {
 	Vaults                []ResourceRef
 	IncludeMyVault        bool
 	Plugins               []ResourceRef
+	FileReview            bool
 }
 
 func (i *SessionInput) toProto() (*sessionv1.Session, error) {
@@ -192,6 +198,7 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 		ref.Kind = apiresourcekind.ApiResourceKind_plugin
 		resource.Spec.Plugins = append(resource.Spec.Plugins, ref)
 	}
+	resource.Spec.FileReview = i.FileReview
 	return resource, nil
 }
 
@@ -231,6 +238,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		for _, r := range s.GetPlugins() {
 			input.Plugins = append(input.Plugins, resourceRefFromProto(r))
 		}
+		input.FileReview = s.GetFileReview()
 	}
 	return input
 }

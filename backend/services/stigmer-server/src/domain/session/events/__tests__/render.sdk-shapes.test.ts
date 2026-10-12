@@ -374,6 +374,91 @@ describe("Stigmer's own events render by the same three rules, under their stigm
         embedding_model: "e",
       },
     },
+    {
+      proto: {
+        case: "stigmerFileReviewChanges",
+        value: {
+          id: "s6",
+          processedAt: AT,
+          changeSetId: "run_1:0",
+          files: [
+            {
+              fileChangeId: "run_1:0:notes.md",
+              path: "notes.md",
+              previousPath: "old.md",
+              change: "renamed",
+              digest: "d1",
+              linesAdded: 2,
+              linesRemoved: 1,
+              reviewable: "complete",
+            },
+          ],
+          aggregateDigest: "d0",
+        },
+      },
+      json: {
+        id: "s6",
+        type: "stigmer.file_review.changes",
+        processed_at: AT,
+        change_set_id: "run_1:0",
+        files: [
+          {
+            file_change_id: "run_1:0:notes.md",
+            path: "notes.md",
+            previous_path: "old.md",
+            change: "renamed",
+            digest: "d1",
+            lines_added: 2,
+            lines_removed: 1,
+            reviewable: "complete",
+          },
+        ],
+        aggregate_digest: "d0",
+      },
+    },
+    {
+      proto: {
+        case: "stigmerFileReviewDecided",
+        value: {
+          id: "s7",
+          processedAt: AT,
+          changeSetId: "run_1:0",
+          scope: "file",
+          fileChangeId: "run_1:0:notes.md",
+          action: "undo",
+          expectedDigest: "d1",
+          origin: "person",
+          reason: "not this",
+        },
+      },
+      json: {
+        id: "s7",
+        type: "stigmer.file_review.decided",
+        processed_at: AT,
+        change_set_id: "run_1:0",
+        scope: "file",
+        file_change_id: "run_1:0:notes.md",
+        action: "undo",
+        expected_digest: "d1",
+        origin: "person",
+        reason: "not this",
+      },
+    },
+    {
+      proto: {
+        case: "stigmerFileReviewReconciled",
+        value: { id: "s8", processedAt: AT, changeSetId: "run_1:0", undonePaths: ["notes.md"], failure: "hash_mismatch", failureDetail: "diverged" },
+      },
+      json: {
+        id: "s8",
+        type: "stigmer.file_review.reconciled",
+        processed_at: AT,
+        change_set_id: "run_1:0",
+        undone_paths: ["notes.md"],
+        failure: "hash_mismatch",
+        failure_detail: "diverged",
+      },
+    },
   ];
 
   it.each(own)("$json.type", ({ proto, json }) => {
