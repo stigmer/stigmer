@@ -47,18 +47,46 @@ class GetAgentQualityReportRequest(_message.Message):
     def __init__(self, org: _Optional[str] = ..., agent_id: _Optional[str] = ..., days: _Optional[int] = ...) -> None: ...
 
 class AgentQualityReport(_message.Message):
-    __slots__ = ("from_date", "to_date", "total", "days", "versions")
+    __slots__ = ("from_date", "to_date", "total", "days", "versions", "agreement")
     FROM_DATE_FIELD_NUMBER: _ClassVar[int]
     TO_DATE_FIELD_NUMBER: _ClassVar[int]
     TOTAL_FIELD_NUMBER: _ClassVar[int]
     DAYS_FIELD_NUMBER: _ClassVar[int]
     VERSIONS_FIELD_NUMBER: _ClassVar[int]
+    AGREEMENT_FIELD_NUMBER: _ClassVar[int]
     from_date: str
     to_date: str
     total: QualitySummary
     days: _containers.RepeatedCompositeFieldContainer[QualityDay]
     versions: _containers.RepeatedCompositeFieldContainer[QualityVersion]
-    def __init__(self, from_date: _Optional[str] = ..., to_date: _Optional[str] = ..., total: _Optional[_Union[QualitySummary, _Mapping]] = ..., days: _Optional[_Iterable[_Union[QualityDay, _Mapping]]] = ..., versions: _Optional[_Iterable[_Union[QualityVersion, _Mapping]]] = ...) -> None: ...
+    agreement: _containers.RepeatedCompositeFieldContainer[JudgeAgreement]
+    def __init__(self, from_date: _Optional[str] = ..., to_date: _Optional[str] = ..., total: _Optional[_Union[QualitySummary, _Mapping]] = ..., days: _Optional[_Iterable[_Union[QualityDay, _Mapping]]] = ..., versions: _Optional[_Iterable[_Union[QualityVersion, _Mapping]]] = ..., agreement: _Optional[_Iterable[_Union[JudgeAgreement, _Mapping]]] = ...) -> None: ...
+
+class JudgeAgreement(_message.Message):
+    __slots__ = ("evaluator_version", "runs", "thumbs_down_none_failed", "rules")
+    EVALUATOR_VERSION_FIELD_NUMBER: _ClassVar[int]
+    RUNS_FIELD_NUMBER: _ClassVar[int]
+    THUMBS_DOWN_NONE_FAILED_FIELD_NUMBER: _ClassVar[int]
+    RULES_FIELD_NUMBER: _ClassVar[int]
+    evaluator_version: str
+    runs: int
+    thumbs_down_none_failed: int
+    rules: _containers.RepeatedCompositeFieldContainer[RuleAgreement]
+    def __init__(self, evaluator_version: _Optional[str] = ..., runs: _Optional[int] = ..., thumbs_down_none_failed: _Optional[int] = ..., rules: _Optional[_Iterable[_Union[RuleAgreement, _Mapping]]] = ...) -> None: ...
+
+class RuleAgreement(_message.Message):
+    __slots__ = ("name", "failed_thumbs_down", "failed_thumbs_up", "passed_thumbs_down", "passed_thumbs_up")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    FAILED_THUMBS_DOWN_FIELD_NUMBER: _ClassVar[int]
+    FAILED_THUMBS_UP_FIELD_NUMBER: _ClassVar[int]
+    PASSED_THUMBS_DOWN_FIELD_NUMBER: _ClassVar[int]
+    PASSED_THUMBS_UP_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    failed_thumbs_down: int
+    failed_thumbs_up: int
+    passed_thumbs_down: int
+    passed_thumbs_up: int
+    def __init__(self, name: _Optional[str] = ..., failed_thumbs_down: _Optional[int] = ..., failed_thumbs_up: _Optional[int] = ..., passed_thumbs_down: _Optional[int] = ..., passed_thumbs_up: _Optional[int] = ...) -> None: ...
 
 class QualitySummary(_message.Message):
     __slots__ = ("runs", "metrics")

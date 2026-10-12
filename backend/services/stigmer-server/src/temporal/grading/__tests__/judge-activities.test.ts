@@ -4,7 +4,8 @@
  * the main paths through the composed server:
  *   - plan: an evaluator switched off between its read and the
  *     reservation leaves no pending score; a judged run deleted meanwhile
- *     is skipped;
+ *     is skipped; a retried plan reuses its earlier attempt's cap, also when
+ *     that attempt's pending score carries the rules' previous version;
  *   - start: a judged run that is gone is not started; an earlier attempt's
  *     judge run is found by name, also when the create loses the race, and
  *     adopted only when it carries the judge label naming the judged run and
@@ -19,7 +20,9 @@
  *     the stored grade, not what it would conclude now; each failure
  *     the workflow saw is recorded with its reason; a judge that vanished,
  *     a judge still running with no failure and a failed judge with no
- *     error each have their reason; a judged run deleted while its score
+ *     error each have their reason; a verdict whose reason runs past the
+ *     bound, which the provider does not enforce, is graded with the reason
+ *     cut (stigmer#2177); a judged run deleted while its score
  *     was written has the score removed and the grade only gives its money
  *     back.
  */
@@ -27,6 +30,7 @@ import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { JUDGE_EVALUATOR_VERSION, RUBRICS } from "@stigmer/eval-runtime/judge";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -48,7 +52,6 @@ import {
   PER_GRADE_CAP_USD,
   judgeRunName,
 } from "../../../domain/score/judge/judge-run.js";
-import { JUDGE_EVALUATOR_VERSION } from "../../../domain/score/judge/rubrics.js";
 import type {
   JudgeRunCreator,
   JudgeSessionDeleter,
@@ -234,6 +237,20 @@ describe("plan-judge", () => {
     expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).toEqual(first);
     expect((await evaluatorStatus())?.reservedUsd, "one cap, not two").toBe(PER_GRADE_CAP_USD);
     expect((await judgeScores("run_1")).map((score) => score.status?.state)).toEqual([ScoreState.pending]);
+  });
+
+  it("reuses an earlier attempt's reservation when its pending score was written under rules a deploy has since changed", async () => {
+    await seedEvaluator();
+    await seedRun("run_1", { agentId: "agt_1" });
+    const first = await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1");
+    expect(first.kind).toBe("grade");
+    const [pending] = await judgeScores("run_1");
+    if (pending?.spec === undefined) throw new Error("expected the first attempt's pending score");
+    pending.spec.evaluatorVersion = "rules-before-the-deploy";
+    await temp.store.saveResource(ApiResourceKind.score, pending.metadata?.id ?? "", ScoreSchema, pending);
+    expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).toEqual(first);
+    expect((await evaluatorStatus())?.reservedUsd, "one cap, not two").toBe(PER_GRADE_CAP_USD);
+    expect((await judgeScores("run_1")).map((score) => score.spec?.evaluatorVersion)).toEqual(["rules-before-the-deploy"]);
   });
 
   it("removes an earlier attempt's pending score, and gives its cap back, when grading was switched off or the evaluator went", async () => {
@@ -460,6 +477,23 @@ describe("record-judge", () => {
       await activities()[RECORD_JUDGE_ACTIVITY_NAME](runId, TICKET, judgeRunId, failure as "" | "busy");
       expect((await judgeScores(runId))[0]?.status?.notGradedReason, runId).toBe(reason);
     }
+  });
+
+  it("grades a verdict whose reason runs past the bound, its reason cut and marked (stigmer#2177)", async () => {
+    await seedEvaluator();
+    await seedRun("run_1");
+    const long = "r".repeat(600);
+    const judge = await seedRun("run_judge", { sessionId: "ses_judge" });
+    if (judge.status !== undefined) {
+      judge.status.structuredOutput = Object.fromEntries(
+        RUBRICS.map((rubric, index) => [rubric.name, { result: "passed", reason: index === 0 ? long : "Fine." }]),
+      );
+    }
+    await temp.store.saveResource(ApiResourceKind.run, "run_judge", RunSchema, judge);
+    expect(await activities()[RECORD_JUDGE_ACTIVITY_NAME]("run_1", TICKET, "run_judge", "")).toBe(GRADE_RECORDED);
+    const [score] = await judgeScores("run_1");
+    expect(score?.status?.state).toBe(ScoreState.graded);
+    expect(score?.spec?.criteria[0]?.reason).toBe(`${long.slice(0, 494)} [cut]`);
   });
 
   it("removes the score it wrote when the judged run went meanwhile, and only gives the grade's money back", async () => {

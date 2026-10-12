@@ -174,4 +174,58 @@ public interface AgentQualityReportOrBuilder extends
    */
   ai.stigmer.agentic.score.v1.QualityVersionOrBuilder getVersionsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Where people's thumbs and the AI judge disagree, one entry per judge
+   * rubric version, most recently seen first. Only runs with both a judge
+   * grade and at least one thumbs in the window are counted.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.score.v1.JudgeAgreement> 
+      getAgreementList();
+  /**
+   * <pre>
+   * Where people's thumbs and the AI judge disagree, one entry per judge
+   * rubric version, most recently seen first. Only runs with both a judge
+   * grade and at least one thumbs in the window are counted.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+   */
+  ai.stigmer.agentic.score.v1.JudgeAgreement getAgreement(int index);
+  /**
+   * <pre>
+   * Where people's thumbs and the AI judge disagree, one entry per judge
+   * rubric version, most recently seen first. Only runs with both a judge
+   * grade and at least one thumbs in the window are counted.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+   */
+  int getAgreementCount();
+  /**
+   * <pre>
+   * Where people's thumbs and the AI judge disagree, one entry per judge
+   * rubric version, most recently seen first. Only runs with both a judge
+   * grade and at least one thumbs in the window are counted.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.score.v1.JudgeAgreementOrBuilder> 
+      getAgreementOrBuilderList();
+  /**
+   * <pre>
+   * Where people's thumbs and the AI judge disagree, one entry per judge
+   * rubric version, most recently seen first. Only runs with both a judge
+   * grade and at least one thumbs in the window are counted.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+   */
+  ai.stigmer.agentic.score.v1.JudgeAgreementOrBuilder getAgreementOrBuilder(
+      int index);
 }

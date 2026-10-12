@@ -12,6 +12,7 @@ import { create } from "@bufbuild/protobuf";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
+import { JUDGE_INSTRUCTION_VERSION } from "@stigmer/eval-runtime/judge";
 import type { EvalGrader, EvalGraderCheck } from "@stigmer/plugin-package";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
@@ -20,7 +21,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 
 import { EVAL_METRIC } from "../../score/constants.js";
-import { JUDGE_INSTRUCTION_VERSION } from "../../score/judge/rubrics.js";
 import {
   INDICATOR_ONLY_REASON,
   criterionNames,

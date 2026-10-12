@@ -18,9 +18,11 @@
  *     attempt's cap, or, when the run is no longer to be graded, removes
  *     the score and gives the cap back.
  *   - start: the judge run is created as the grading caller
- *     (extensions/grading-caller.ts), and a retry finds the run an earlier
- *     attempt created through the run list index's key on the judge label
- *     (domain/run/list-index.ts), never by a scan. A run is adopted only
+ *     (extensions/grading-caller.ts), shown the run and up to three turns
+ *     before it in its session (domain/score/judge/subject.ts, one indexed
+ *     read), and a retry finds the run an earlier attempt created through
+ *     the run list index's key on the judge label (domain/run/list-index.ts),
+ *     never by a scan. A run is adopted only
  *     when it carries the judge label naming the judged run, which no
  *     client may write where reserved labels are guarded, and, when a
  *     caller was minted, was created by that same caller: a run a member
@@ -29,7 +31,7 @@
  *     workflow's policy for up to ten minutes; every other refusal is
  *     answered as the failure the record activity reports.
  *   - poll: whether the judge run has ended.
- *   - record: the verdict, read strictly (domain/score/judge/verdict.ts),
+ *   - record: the verdict, read strictly (`readVerdict`, @stigmer/eval-runtime),
  *     or the reason there is none, replacing the pending score
  *     (domain/score/record.ts); a judge run still going is stopped; the
  *     budget is settled with what the judge spent; and last the judge's
@@ -54,6 +56,14 @@ import { fromBinary } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ApplicationFailure } from "@temporalio/common";
+
+import {
+  REASON_MAX_LENGTH,
+  VERDICT_SCHEMA,
+  judgeMessage,
+  readVerdict,
+  renderSubject,
+} from "@stigmer/eval-runtime/judge";
 
 import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -93,10 +103,8 @@ import {
   notGradedJudgeScore,
   pendingJudgeScore,
 } from "../../domain/score/judge/judge-score.js";
-import { VERDICT_SCHEMA, judgeMessage } from "../../domain/score/judge/rubrics.js";
 import { isSampled } from "../../domain/score/judge/sampling.js";
-import { subjectOf } from "../../domain/score/judge/subject.js";
-import { readVerdict } from "../../domain/score/judge/verdict.js";
+import { earlierRunsOf, subjectPartsOf } from "../../domain/score/judge/subject.js";
 import type {
   JudgeRunCreator,
   JudgeSessionDeleter,
@@ -105,6 +113,7 @@ import type {
 } from "../../domain/score/ports.js";
 import {
   deleteScore,
+  pendingOfOtherVersions,
   replaceUnlessGraded,
   sameWriterScore,
 } from "../../domain/score/record.js";
@@ -132,9 +141,6 @@ import type {
   JudgeStart,
   JudgeTicket,
 } from "./names.js";
-
-/** The longest not-graded reason the record writes, as a criterion's reason is bounded. */
-const REASON_MAX_LENGTH = 500;
 
 export interface JudgeActivityDeps {
   readonly store: Store;
@@ -176,8 +182,11 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
       }
       // A pending score here is an earlier attempt's: one grading execution
       // runs per run, and the pending score is written only after its cap
-      // was set aside, so that cap is still reserved.
-      const earlier = existing;
+      // was set aside, so that cap is still reserved. An attempt planned
+      // before a deploy that changed the rules wrote it under their previous
+      // version; it is adopted the same way, and the grade's record removes
+      // it (domain/score/record.ts).
+      const earlier = existing ?? (await pendingOfOtherVersions(deps, pending))[0];
       const evaluator = await evaluatorOf(deps, run);
       const evaluatorId = evaluator?.metadata?.id ?? "";
       if (
@@ -272,10 +281,11 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
         return { kind: "started", judgeRunId: existing };
       }
 
+      const earlier = await earlierRunsOf(deps.store, run);
       const request = judgeRunRequest({
         judged: run,
         modelName: ticket.modelName,
-        message: judgeMessage(subjectOf(run)),
+        message: judgeMessage(renderSubject(subjectPartsOf(run, earlier))),
         verdictSchema: VERDICT_SCHEMA,
       });
       try {

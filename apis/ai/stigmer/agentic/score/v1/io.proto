@@ -89,6 +89,53 @@ message AgentQualityReport {
   // One entry per agent version that has a grade in the window, most
   // recently seen first.
   repeated QualityVersion versions = 5;
+
+  // Where people's thumbs and the AI judge disagree, one entry per judge
+  // rubric version, most recently seen first. Only runs with both a judge
+  // grade and at least one thumbs in the window are counted.
+  repeated JudgeAgreement agreement = 6;
+}
+
+// JudgeAgreement sets people's thumbs against one version of the AI
+// judge's rubrics: for each run that has both, each thumbs is counted
+// against each rubric that passed or failed on that run.
+//
+// @internal
+// A grade and a thumbs on either side of the window's first day are not
+// joined. Counts and names only, like the rest of the report; the thumbs
+// totals already show in the report's feedback tally.
+message JudgeAgreement {
+  // The version of the rubrics these counts are for.
+  string evaluator_version = 1;
+
+  // Runs with both a judge grade of this version and at least one thumbs.
+  int32 runs = 2;
+
+  // Runs people gave a thumbs down where no rubric failed: the sign of a
+  // failure no rubric catches.
+  int32 thumbs_down_none_failed = 3;
+
+  // One entry per rubric, in name order.
+  repeated RuleAgreement rules = 4;
+}
+
+// RuleAgreement counts one rubric's outcomes against people's thumbs on the
+// same runs. A rubric that did not apply to a run counts nothing.
+message RuleAgreement {
+  // The rubric's name, for example `did-the-task`.
+  string name = 1;
+
+  // Thumbs down on runs the rubric failed: people and the judge agree.
+  int32 failed_thumbs_down = 2;
+
+  // Thumbs up on runs the rubric failed: the rubric may be too strict.
+  int32 failed_thumbs_up = 3;
+
+  // Thumbs down on runs the rubric passed: the rubric may be too lenient.
+  int32 passed_thumbs_down = 4;
+
+  // Thumbs up on runs the rubric passed: people and the judge agree.
+  int32 passed_thumbs_up = 5;
 }
 
 // QualitySummary counts the runs graded and their grades, by metric.

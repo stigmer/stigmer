@@ -177,14 +177,26 @@ describe("stigmer agent quality <agent>", () => {
     expect(client).toBe(stigmer);
     expect(org).toBe("acme");
     expect(target).toBe("support-desk");
-    expect(options).toEqual({ days: 7, flagged: true, limit: 5, format: "json" });
+    expect(options).toEqual({ days: 7, flagged: true, agreement: false, limit: 5, format: "json" });
     expect(stdout).toBe("the report\n");
   });
 
   it("reads the totals for 30 days as a table by default", async () => {
     quality.showAgentQuality.mockResolvedValue("");
     await agentQuality("agt_1");
-    expect(quality.showAgentQuality.mock.calls[0]?.[3]).toEqual({ days: 30, flagged: false, limit: 20, format: "table" });
+    expect(quality.showAgentQuality.mock.calls[0]?.[3]).toEqual({
+      days: 30,
+      flagged: false,
+      agreement: false,
+      limit: 20,
+      format: "table",
+    });
+  });
+
+  it("hands --agreement to the dispatch", async () => {
+    quality.showAgentQuality.mockResolvedValue("");
+    await agentQuality("agt_1", "--agreement");
+    expect(quality.showAgentQuality.mock.calls[0]?.[3]).toMatchObject({ agreement: true, flagged: false });
   });
 
   it("refuses --days out of range before connecting", async () => {

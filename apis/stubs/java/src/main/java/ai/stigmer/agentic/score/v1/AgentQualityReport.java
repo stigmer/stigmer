@@ -37,6 +37,7 @@ private static final long serialVersionUID = 0L;
     toDate_ = "";
     days_ = java.util.Collections.emptyList();
     versions_ = java.util.Collections.emptyList();
+    agreement_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -322,6 +323,77 @@ private static final long serialVersionUID = 0L;
     return versions_.get(index);
   }
 
+  public static final int AGREEMENT_FIELD_NUMBER = 6;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.score.v1.JudgeAgreement> agreement_;
+  /**
+   * <pre>
+   * Where people's thumbs and the AI judge disagree, one entry per judge
+   * rubric version, most recently seen first. Only runs with both a judge
+   * grade and at least one thumbs in the window are counted.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.score.v1.JudgeAgreement> getAgreementList() {
+    return agreement_;
+  }
+  /**
+   * <pre>
+   * Where people's thumbs and the AI judge disagree, one entry per judge
+   * rubric version, most recently seen first. Only runs with both a judge
+   * grade and at least one thumbs in the window are counted.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.score.v1.JudgeAgreementOrBuilder> 
+      getAgreementOrBuilderList() {
+    return agreement_;
+  }
+  /**
+   * <pre>
+   * Where people's thumbs and the AI judge disagree, one entry per judge
+   * rubric version, most recently seen first. Only runs with both a judge
+   * grade and at least one thumbs in the window are counted.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+   */
+  @java.lang.Override
+  public int getAgreementCount() {
+    return agreement_.size();
+  }
+  /**
+   * <pre>
+   * Where people's thumbs and the AI judge disagree, one entry per judge
+   * rubric version, most recently seen first. Only runs with both a judge
+   * grade and at least one thumbs in the window are counted.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.score.v1.JudgeAgreement getAgreement(int index) {
+    return agreement_.get(index);
+  }
+  /**
+   * <pre>
+   * Where people's thumbs and the AI judge disagree, one entry per judge
+   * rubric version, most recently seen first. Only runs with both a judge
+   * grade and at least one thumbs in the window are counted.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.score.v1.JudgeAgreementOrBuilder getAgreementOrBuilder(
+      int index) {
+    return agreement_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -350,6 +422,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < versions_.size(); i++) {
       output.writeMessage(5, versions_.get(i));
+    }
+    for (int i = 0; i < agreement_.size(); i++) {
+      output.writeMessage(6, agreement_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -388,6 +463,15 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+
+        {
+          final int count = agreement_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(agreement_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -416,6 +500,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getDaysList())) return false;
     if (!getVersionsList()
         .equals(other.getVersionsList())) return false;
+    if (!getAgreementList()
+        .equals(other.getAgreementList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -442,6 +528,10 @@ private static final long serialVersionUID = 0L;
     if (getVersionsCount() > 0) {
       hash = (37 * hash) + VERSIONS_FIELD_NUMBER;
       hash = (53 * hash) + getVersionsList().hashCode();
+    }
+    if (getAgreementCount() > 0) {
+      hash = (37 * hash) + AGREEMENT_FIELD_NUMBER;
+      hash = (53 * hash) + getAgreementList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -581,6 +671,7 @@ private static final long serialVersionUID = 0L;
         internalGetTotalFieldBuilder();
         internalGetDaysFieldBuilder();
         internalGetVersionsFieldBuilder();
+        internalGetAgreementFieldBuilder();
       }
     }
     @java.lang.Override
@@ -608,6 +699,13 @@ private static final long serialVersionUID = 0L;
         versionsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000010);
+      if (agreementBuilder_ == null) {
+        agreement_ = java.util.Collections.emptyList();
+      } else {
+        agreement_ = null;
+        agreementBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000020);
       return this;
     }
 
@@ -658,6 +756,15 @@ private static final long serialVersionUID = 0L;
         result.versions_ = versions_;
       } else {
         result.versions_ = versionsBuilder_.build();
+      }
+      if (agreementBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0)) {
+          agreement_ = java.util.Collections.unmodifiableList(agreement_);
+          bitField0_ = (bitField0_ & ~0x00000020);
+        }
+        result.agreement_ = agreement_;
+      } else {
+        result.agreement_ = agreementBuilder_.build();
       }
     }
 
@@ -756,6 +863,32 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (agreementBuilder_ == null) {
+        if (!other.agreement_.isEmpty()) {
+          if (agreement_.isEmpty()) {
+            agreement_ = other.agreement_;
+            bitField0_ = (bitField0_ & ~0x00000020);
+          } else {
+            ensureAgreementIsMutable();
+            agreement_.addAll(other.agreement_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.agreement_.isEmpty()) {
+          if (agreementBuilder_.isEmpty()) {
+            agreementBuilder_.dispose();
+            agreementBuilder_ = null;
+            agreement_ = other.agreement_;
+            bitField0_ = (bitField0_ & ~0x00000020);
+            agreementBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetAgreementFieldBuilder() : null;
+          } else {
+            agreementBuilder_.addAllMessages(other.agreement_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -825,6 +958,19 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 42
+            case 50: {
+              ai.stigmer.agentic.score.v1.JudgeAgreement m =
+                  input.readMessage(
+                      ai.stigmer.agentic.score.v1.JudgeAgreement.parser(),
+                      extensionRegistry);
+              if (agreementBuilder_ == null) {
+                ensureAgreementIsMutable();
+                agreement_.add(m);
+              } else {
+                agreementBuilder_.addMessage(m);
+              }
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1841,6 +1987,354 @@ private static final long serialVersionUID = 0L;
         versions_ = null;
       }
       return versionsBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.score.v1.JudgeAgreement> agreement_ =
+      java.util.Collections.emptyList();
+    private void ensureAgreementIsMutable() {
+      if (!((bitField0_ & 0x00000020) != 0)) {
+        agreement_ = new java.util.ArrayList<ai.stigmer.agentic.score.v1.JudgeAgreement>(agreement_);
+        bitField0_ |= 0x00000020;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.score.v1.JudgeAgreement, ai.stigmer.agentic.score.v1.JudgeAgreement.Builder, ai.stigmer.agentic.score.v1.JudgeAgreementOrBuilder> agreementBuilder_;
+
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.score.v1.JudgeAgreement> getAgreementList() {
+      if (agreementBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(agreement_);
+      } else {
+        return agreementBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public int getAgreementCount() {
+      if (agreementBuilder_ == null) {
+        return agreement_.size();
+      } else {
+        return agreementBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public ai.stigmer.agentic.score.v1.JudgeAgreement getAgreement(int index) {
+      if (agreementBuilder_ == null) {
+        return agreement_.get(index);
+      } else {
+        return agreementBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public Builder setAgreement(
+        int index, ai.stigmer.agentic.score.v1.JudgeAgreement value) {
+      if (agreementBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureAgreementIsMutable();
+        agreement_.set(index, value);
+        onChanged();
+      } else {
+        agreementBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public Builder setAgreement(
+        int index, ai.stigmer.agentic.score.v1.JudgeAgreement.Builder builderForValue) {
+      if (agreementBuilder_ == null) {
+        ensureAgreementIsMutable();
+        agreement_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        agreementBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public Builder addAgreement(ai.stigmer.agentic.score.v1.JudgeAgreement value) {
+      if (agreementBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureAgreementIsMutable();
+        agreement_.add(value);
+        onChanged();
+      } else {
+        agreementBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public Builder addAgreement(
+        int index, ai.stigmer.agentic.score.v1.JudgeAgreement value) {
+      if (agreementBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureAgreementIsMutable();
+        agreement_.add(index, value);
+        onChanged();
+      } else {
+        agreementBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public Builder addAgreement(
+        ai.stigmer.agentic.score.v1.JudgeAgreement.Builder builderForValue) {
+      if (agreementBuilder_ == null) {
+        ensureAgreementIsMutable();
+        agreement_.add(builderForValue.build());
+        onChanged();
+      } else {
+        agreementBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public Builder addAgreement(
+        int index, ai.stigmer.agentic.score.v1.JudgeAgreement.Builder builderForValue) {
+      if (agreementBuilder_ == null) {
+        ensureAgreementIsMutable();
+        agreement_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        agreementBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public Builder addAllAgreement(
+        java.lang.Iterable<? extends ai.stigmer.agentic.score.v1.JudgeAgreement> values) {
+      if (agreementBuilder_ == null) {
+        ensureAgreementIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, agreement_);
+        onChanged();
+      } else {
+        agreementBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public Builder clearAgreement() {
+      if (agreementBuilder_ == null) {
+        agreement_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000020);
+        onChanged();
+      } else {
+        agreementBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public Builder removeAgreement(int index) {
+      if (agreementBuilder_ == null) {
+        ensureAgreementIsMutable();
+        agreement_.remove(index);
+        onChanged();
+      } else {
+        agreementBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public ai.stigmer.agentic.score.v1.JudgeAgreement.Builder getAgreementBuilder(
+        int index) {
+      return internalGetAgreementFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public ai.stigmer.agentic.score.v1.JudgeAgreementOrBuilder getAgreementOrBuilder(
+        int index) {
+      if (agreementBuilder_ == null) {
+        return agreement_.get(index);  } else {
+        return agreementBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.score.v1.JudgeAgreementOrBuilder> 
+         getAgreementOrBuilderList() {
+      if (agreementBuilder_ != null) {
+        return agreementBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(agreement_);
+      }
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public ai.stigmer.agentic.score.v1.JudgeAgreement.Builder addAgreementBuilder() {
+      return internalGetAgreementFieldBuilder().addBuilder(
+          ai.stigmer.agentic.score.v1.JudgeAgreement.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public ai.stigmer.agentic.score.v1.JudgeAgreement.Builder addAgreementBuilder(
+        int index) {
+      return internalGetAgreementFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.score.v1.JudgeAgreement.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Where people's thumbs and the AI judge disagree, one entry per judge
+     * rubric version, most recently seen first. Only runs with both a judge
+     * grade and at least one thumbs in the window are counted.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.score.v1.JudgeAgreement agreement = 6 [json_name = "agreement"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.score.v1.JudgeAgreement.Builder> 
+         getAgreementBuilderList() {
+      return internalGetAgreementFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.score.v1.JudgeAgreement, ai.stigmer.agentic.score.v1.JudgeAgreement.Builder, ai.stigmer.agentic.score.v1.JudgeAgreementOrBuilder> 
+        internalGetAgreementFieldBuilder() {
+      if (agreementBuilder_ == null) {
+        agreementBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.score.v1.JudgeAgreement, ai.stigmer.agentic.score.v1.JudgeAgreement.Builder, ai.stigmer.agentic.score.v1.JudgeAgreementOrBuilder>(
+                agreement_,
+                ((bitField0_ & 0x00000020) != 0),
+                getParentForChildren(),
+                isClean());
+        agreement_ = null;
+      }
+      return agreementBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.score.v1.AgentQualityReport)

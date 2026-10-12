@@ -10,6 +10,10 @@
  * (AuthorizeResolvedTarget, the organization's bar first), so a caller who
  * cannot see the agent learns nothing about it.
  *
+ * The report also sets people's thumbs against the AI judge's rubrics on
+ * the same runs (AgreementCounts), which is how people's feedback shows
+ * which rubric needs work, still in counts and names only.
+ *
  * The report counts every run of the agent in the organization, the
  * conversations the caller cannot open included, because runs are private
  * to their conversation's viewers and an owner would otherwise see only
@@ -35,9 +39,9 @@
  * tries' sessions. An `eval` score is skipped by source as well, so the
  * rule holds even for a row written before the label was stamped.
  *
- * Proven by __tests__/quality.test.ts (the tally, the window, the bound,
- * both lanes composed, the session scope, the no-text proof) and the
- * run-scores conformance suite's two-people arm.
+ * Proven by __tests__/quality.test.ts (the tally, the agreement, the
+ * window, the bound, both lanes composed, the session scope, the no-text
+ * proof) and the run-scores conformance suite's two-people arm.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 
@@ -51,14 +55,17 @@ import {
 import {
   AgentQualityReportSchema,
   CriterionTallySchema,
+  JudgeAgreementSchema,
   MetricTallySchema,
   QualityDaySchema,
   QualitySummarySchema,
   QualityVersionSchema,
+  RuleAgreementSchema,
   ScoreListSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import type {
   AgentQualityReport,
+  JudgeAgreement,
   QualitySummary,
 } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { ScoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/query_pb";
@@ -91,6 +98,7 @@ import {
   listIndexInstantOfMillis,
   type ListIndexQuery,
 } from "../../store/list-index.js";
+import { FEEDBACK_METRIC, JUDGE_METRIC } from "./constants.js";
 import { scoreListIndex } from "./list-index.js";
 
 /** The days a request that names none counts. */
@@ -311,6 +319,130 @@ class SummaryCounts {
   }
 }
 
+/** One judge grade of a run, as the agreement read needs it. */
+interface JudgeGrade {
+  readonly version: string;
+  readonly instant: string;
+  readonly failed: ReadonlyArray<string>;
+  readonly passed: ReadonlyArray<string>;
+}
+
+interface RuleCounts {
+  failedThumbsDown: number;
+  failedThumbsUp: number;
+  passedThumbsDown: number;
+  passedThumbsUp: number;
+}
+
+interface AgreementVersion {
+  runs: number;
+  thumbsDownNoneFailed: number;
+  lastSeen: string;
+  readonly rules: Map<string, RuleCounts>;
+}
+
+/**
+ * Where people's thumbs and the AI judge disagree, per rubric version: the
+ * report's own read, joined per run. A graded judge score and a person's
+ * thumbs on the same run in the window are set against each other, each
+ * thumbs against each rubric that passed or failed; a rubric that did not
+ * apply counts nothing. A run people gave a thumbs down where no rubric
+ * failed is counted apart, as the sign of a failure no rubric catches. It
+ * holds one small entry per graded or thumbed run, within the report's
+ * bound on the rows it reads.
+ */
+class AgreementCounts {
+  private readonly judged = new Map<string, JudgeGrade[]>();
+  private readonly thumbs = new Map<string, boolean[]>();
+
+  add(score: Score, instant: string): void {
+    const spec = score.spec;
+    if (
+      spec === undefined ||
+      score.status?.state !== ScoreState.graded ||
+      spec.value.case !== "passed"
+    ) {
+      return;
+    }
+    if (spec.metric === FEEDBACK_METRIC && spec.source === ScoreSource.human) {
+      const runThumbs = this.thumbs.get(spec.runId) ?? [];
+      runThumbs.push(spec.value.value);
+      this.thumbs.set(spec.runId, runThumbs);
+      return;
+    }
+    if (spec.metric === JUDGE_METRIC && spec.source === ScoreSource.judge) {
+      const grades = this.judged.get(spec.runId) ?? [];
+      grades.push({
+        version: spec.evaluatorVersion,
+        instant,
+        failed: spec.criteria
+          .filter((c) => c.result === CriterionResult.failed)
+          .map((c) => c.name),
+        passed: spec.criteria
+          .filter((c) => c.result === CriterionResult.passed)
+          .map((c) => c.name),
+      });
+      this.judged.set(spec.runId, grades);
+    }
+  }
+
+  /** The wire entries: the most recently seen version first, rubrics by name. */
+  build(): JudgeAgreement[] {
+    const versions = new Map<string, AgreementVersion>();
+    for (const [runId, grades] of this.judged) {
+      const runThumbs = this.thumbs.get(runId);
+      if (runThumbs === undefined) {
+        continue;
+      }
+      for (const grade of grades) {
+        let version = versions.get(grade.version);
+        if (version === undefined) {
+          version = { runs: 0, thumbsDownNoneFailed: 0, lastSeen: grade.instant, rules: new Map() };
+          versions.set(grade.version, version);
+        }
+        if (grade.instant > version.lastSeen) {
+          version.lastSeen = grade.instant;
+        }
+        version.runs += 1;
+        if (grade.failed.length === 0 && runThumbs.some((up) => !up)) {
+          version.thumbsDownNoneFailed += 1;
+        }
+        for (const up of runThumbs) {
+          for (const name of grade.failed) {
+            ruleOf(version, name)[up ? "failedThumbsUp" : "failedThumbsDown"] += 1;
+          }
+          for (const name of grade.passed) {
+            ruleOf(version, name)[up ? "passedThumbsUp" : "passedThumbsDown"] += 1;
+          }
+        }
+      }
+    }
+    return [...versions.entries()]
+      .sort(([a, x], [b, y]) =>
+        x.lastSeen !== y.lastSeen ? (x.lastSeen > y.lastSeen ? -1 : 1) : a < b ? -1 : 1,
+      )
+      .map(([evaluatorVersion, v]) =>
+        create(JudgeAgreementSchema, {
+          evaluatorVersion,
+          runs: v.runs,
+          thumbsDownNoneFailed: v.thumbsDownNoneFailed,
+          rules: [...v.rules.entries()]
+            .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+            .map(([name, r]) => create(RuleAgreementSchema, { name, ...r })),
+        }),
+      );
+  }
+}
+
+function ruleOf(version: AgreementVersion, name: string): RuleCounts {
+  let rule = version.rules.get(name);
+  if (rule === undefined) {
+    rule = { failedThumbsDown: 0, failedThumbsUp: 0, passedThumbsDown: 0, passedThumbsUp: 0 };
+    version.rules.set(name, rule);
+  }
+  return rule;
+}
+
 interface VersionCounts {
   readonly summary: SummaryCounts;
   firstSeen: string;
@@ -325,6 +457,7 @@ interface VersionCounts {
  */
 export class QualityTally {
   private readonly total = new SummaryCounts();
+  private readonly agreement = new AgreementCounts();
   private readonly days = new Map<string, SummaryCounts>();
   private readonly versions = new Map<string, VersionCounts>();
 
@@ -343,6 +476,7 @@ export class QualityTally {
       return;
     }
     this.total.add(score, instant);
+    this.agreement.add(score, instant);
 
     let day = this.days.get(date);
     if (day === undefined) {
@@ -392,6 +526,7 @@ export class QualityTally {
             summary: v.summary.build(),
           }),
         ),
+      agreement: this.agreement.build(),
     });
   }
 }
