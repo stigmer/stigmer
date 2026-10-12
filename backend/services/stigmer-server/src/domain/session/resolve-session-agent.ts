@@ -16,8 +16,8 @@
  *     the version its author last saved. `latest` is an instruction, not a
  *     state: the stored reference keeps no version, so a later echo of the
  *     stored spec cannot move the conversation again;
- *   - a reference unchanged from the stored one (same organization, slug
- *     and version) keeps the stored pin: an edit that echoes the stored
+ *   - a reference unchanged from the stored one (same organization, agent
+ *     id and version) keeps the stored pin: an edit that echoes the stored
  *     spec moves nothing, whoever sends it (a person editing the
  *     conversation's tools, the runner recording its harness state) and
  *     even when the tag it names has moved since (the echo rule the
@@ -26,12 +26,12 @@
  *     hash, refused when the agent holds no such version — or, with no
  *     version, the agent's current version.
  *
- * The agent's id is the one the stored row already pins under the same
- * organization and slug — the conversation's agent, kept by id — else the
- * one ValidateReferences resolved for this write
- * (RESOLVED_REFERENCE_TARGETS_KEY), so a write pays at most the one scan
- * the reference rule already paid; the version then resolves by point reads
- * (the agent row, and the audit row by tag or hash). resolveAgentPin is
+ * The agent's id is the reference's own: NormalizeReferences resolved a
+ * written slug to it, so an agent deleted and remade under its name is a
+ * different id, judged by the reference rule as any reference a write
+ * introduces, and a conversation pinned to the deleted one fails its next
+ * turn naming it. The version then resolves by point reads (the agent row,
+ * and the audit row by tag or hash). resolveAgentPin is
  * that resolution alone, exported for the turn that starts a new
  * conversation (agent-execution's ResolveRunAgent), whose own reference
  * rule walked session_spec.agent_ref. The step runs after
@@ -70,7 +70,6 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
@@ -82,13 +81,7 @@ import {
   internalError,
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
-import { findResourceByName } from "../../pipeline/steps/names.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
-import {
-  checkReferences,
-  resolvedReferenceTargets,
-  type ReferenceTargets,
-} from "../../pipeline/steps/references.js";
 import {
   resolveVersionHash,
   truncateHash,
@@ -119,9 +112,9 @@ export function newResolveSessionAgentStep(
         ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined,
       );
       const ref = session.spec?.agentRef;
-      if (ref === undefined || ref.slug === "") {
+      if (ref === undefined || !namesAgent(ref)) {
         const stored = ctx.get(EXISTING_RESOURCE_KEY) as Session | undefined;
-        if ((stored?.spec?.agentRef?.slug ?? "") === "") {
+        if (!namesAgent(stored?.spec?.agentRef)) {
           // Neither names an agent: an echo. The stored pin stands, which
           // is the built-in assistant's empty pin, or a migrated session's
           // agent that left before the migration could name it (its next
@@ -143,35 +136,10 @@ export function newResolveSessionAgentStep(
         return;
       }
 
-      const pin = await resolveAgentPin(
-        store,
-        resolvedReferenceTargets(ctx),
-        ref,
-        {
-          authorizer,
-          caller: ctx.callerIdentity,
-          heldAgentId: heldAgentIdOf(stored, ref),
-          judgeResolvedAgain: async () => {
-            // The write names the slug again, but the reference rule
-            // passed it over as one the stored row carries: judge it now,
-            // as a reference this write introduces.
-            const refusal = await checkReferences(
-              store,
-              {
-                org: session.metadata?.org ?? "",
-                visibility:
-                  session.metadata?.visibility ??
-                  ApiResourceVisibility.visibility_private,
-              },
-              [{ kind: ApiResourceKind.agent, org: ref.org, slug: ref.slug }],
-              { authorizer, caller: ctx.callerIdentity, stored: [] },
-            );
-            if (refusal !== undefined) {
-              throw refusal;
-            }
-          },
-        },
-      );
+      const pin = await resolveAgentPin(store, ref, {
+        authorizer,
+        caller: ctx.callerIdentity,
+      });
       if (version === LATEST) {
         ref.version = "";
       }
@@ -213,82 +181,34 @@ export interface AgentPin {
   readonly versionHash: string;
 }
 
-/** Who asks for a pin, and the agent the stored row already pins under the same name. */
+/** Who asks for a pin. */
 export interface PinAsker {
   readonly authorizer: Authorizer;
   readonly caller: CallerIdentity;
-  /**
-   * The agent id the stored session pins when the reference names the same
-   * organization and slug as the stored one: the conversation's agent, kept
-   * by id, never resolved by its slug again (so a slug taken by another
-   * agent never redirects it, and an unchanged name costs no scan). Only
-   * when that agent is gone does a write that names its slug again resolve
-   * the slug to the agent that holds it now, judged first by
-   * judgeResolvedAgain.
-   */
-  readonly heldAgentId?: string;
-  /**
-   * The reference rule over the reference, for the agent a slug resolves
-   * to when the held agent is gone: the chain's ValidateReferences passed
-   * the reference over as one the stored row already carries, so the
-   * agent that holds the slug now was never judged. Throws its refusal.
-   */
-  readonly judgeResolvedAgain?: () => Promise<void>;
 }
 
 /**
- * Resolves a reference the chain's ValidateReferences admitted to the agent
- * it names and the version hash its version names (the module header's
- * rule, without the echo): the id the stored row holds under the same name,
- * else the id from the targets that step recorded; the version by point
- * reads. Refuses with FAILED_PRECONDITION an agent gone since the scan or a
- * version the agent does not hold — the latter only to a caller who may run
- * the agent, so a caller who may not learns nothing about its versions (the
- * run gate's own denial answers them). An id neither source carries is a
- * chain built out of order (Internal).
+ * Resolves a reference the chain's NormalizeReferences resolved and its
+ * ValidateReferences admitted to the agent it names (its id) and the
+ * version hash its version names (the module header's rule, without the
+ * echo), by point reads. Refuses with FAILED_PRECONDITION an agent that is
+ * gone (a reference whose id no agent of its organization holds, or one
+ * still written by a name nothing held) or a version the agent does not
+ * hold — the latter only to a caller who may run the agent, so a caller
+ * who may not learns nothing about its versions (the run gate's own denial
+ * answers them).
  */
 export async function resolveAgentPin(
   store: Store,
-  targets: ReferenceTargets | undefined,
   ref: ApiResourceReference,
   asker: PinAsker,
 ): Promise<AgentPin> {
-  const held = asker.heldAgentId ?? "";
-  const named = targets?.idOf({
-    kind: ApiResourceKind.agent,
-    org: ref.org,
-    slug: ref.slug,
-  });
-  let agentId = held !== "" ? held : named;
-  if (agentId === undefined) {
-    // ValidateReferences admitted the reference only if its scan found the
-    // agent; an id it did not record is a chain built out of order.
-    throw internalError(
-      new Error(
-        "an agent reference was resolved without the targets ValidateReferences records",
-      ),
-      "failed to resolve the agent this conversation runs",
+  const agentId = ref.id;
+  const agent = agentId === "" ? undefined : await readAgent(store, agentId);
+  if (agent === undefined || (agent.metadata?.org ?? "") !== ref.org) {
+    throw failedPreconditionError(
+      agentGoneMessage(ref.org, ref.slug !== "" ? ref.slug : ref.id),
     );
-  }
-  let agent = await readAgent(store, agentId);
-  if (agent === undefined && held !== "") {
-    // The conversation's agent is gone. This write names its slug again
-    // and is no echo (an echo kept the pin before this), so it names
-    // whichever agent holds the slug now; the run gate then asks about
-    // that agent, whose id differs from the stored pin.
-    const now =
-      named ??
-      (
-        await findResourceByName(store, ApiResourceKind.agent, AgentSchema, ref.org, ref.slug)
-      )?.metadata?.id;
-    if (now !== undefined && now !== "" && now !== held) {
-      await asker.judgeResolvedAgain?.();
-      agentId = now;
-      agent = await readAgent(store, now);
-    }
-  }
-  if (agent === undefined) {
-    throw failedPreconditionError(agentGoneMessage(ref.org, ref.slug));
   }
   const version = ref.version.trim();
   const versionHash = await resolveVersionHash(
@@ -309,28 +229,23 @@ export async function resolveAgentPin(
       runAgentDeniedMessage(agentId),
     );
     throw failedPreconditionError(
-      agentVersionNotFoundMessage(ref.org, ref.slug, version),
+      agentVersionNotFoundMessage(ref.org, agent.metadata?.slug ?? "", version),
     );
   }
   return { agentId, versionHash };
 }
 
-/** The agent the stored session pins under the reference's own name, if any. */
-export function heldAgentIdOf(
-  stored: Session | undefined,
-  ref: ApiResourceReference,
-): string | undefined {
-  const held = stored?.spec?.agentRef;
-  return held !== undefined && held.org === ref.org && held.slug === ref.slug
-    ? stored?.status?.agentId
-    : undefined;
+/** Whether a reference names an agent at all, by id or by a name nothing held. */
+function namesAgent(ref: ApiResourceReference | undefined): boolean {
+  return ref !== undefined && (ref.id !== "" || ref.slug !== "");
 }
 
 /**
  * Whether an update's reference echoes the stored one: the same agent by
- * organization and slug, naming the same version (none, a tag or a hash),
- * on a session that already holds a pin. `latest` is never an echo; the
- * caller of this function has checked that.
+ * organization and id (or, for a reference still written by a name nothing
+ * held, that name), naming the same version (none, a tag or a hash), on a
+ * session that already holds a pin. `latest` is never an echo; the caller
+ * of this function has checked that.
  */
 function keepsStoredPin(
   stored: Session | undefined,
@@ -341,7 +256,8 @@ function keepsStoredPin(
   return (
     held !== undefined &&
     held.org === ref.org &&
-    held.slug === ref.slug &&
+    held.id === ref.id &&
+    (held.id !== "" || held.slug === ref.slug) &&
     held.version.trim() === version &&
     (stored?.status?.agentId ?? "") !== ""
   );

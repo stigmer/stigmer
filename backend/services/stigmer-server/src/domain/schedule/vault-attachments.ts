@@ -41,7 +41,7 @@ export const SCHEDULE_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof ScheduleS
     const b = refOf(after);
     return (
       (a?.org ?? "") !== (b?.org ?? "") ||
-      (a?.slug ?? "") !== (b?.slug ?? "") ||
+      (a?.id ?? "") !== (b?.id ?? "") ||
       (a?.version ?? "") !== (b?.version ?? "")
     );
   },

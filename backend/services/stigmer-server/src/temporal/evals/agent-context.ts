@@ -95,6 +95,7 @@ export async function loadAgentEvalContext(
     agentEval,
     agent: {
       org: agent.resource.metadata?.org ?? "",
+      id: agent.resource.metadata?.id ?? "",
       slug: agent.resource.metadata?.slug ?? "",
       versionHash: spec.agentVersion,
     },

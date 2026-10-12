@@ -97,21 +97,17 @@ export interface IdentityAccountStore {
     ids: ReadonlyArray<string>,
   ): Promise<ReadonlyArray<IdentityAccount>>;
   /**
-   * The federated account the identity provider `<providerOrg>/<providerSlug>`
-   * vouches for under `idpId` — the federated sign-in's lookup, and the
-   * natural key a federated account is reached by. `providerOrg` is the
-   * provider's organization id, as the stored reference holds it.
+   * The federated account the identity provider `providerId` vouches for
+   * under `idpId` — the federated sign-in's lookup, and the natural key a
+   * federated account is reached by. The provider is named by its id, as
+   * the stored reference holds it, so a provider's rename moves no account.
    */
   findByProviderAndIdpId(
-    providerOrg: string,
-    providerSlug: string,
+    providerId: string,
     idpId: string,
   ): Promise<IdentityAccount | undefined>;
-  /** Every federated account the identity provider vouches for, in id order: what the provider's removal deletes. */
-  findByProvider(
-    providerOrg: string,
-    providerSlug: string,
-  ): Promise<ReadonlyArray<IdentityAccount>>;
+  /** Every federated account the identity provider `providerId` vouches for, in id order: what the provider's removal deletes. */
+  findByProvider(providerId: string): Promise<ReadonlyArray<IdentityAccount>>;
   /**
    * The accounts that belong to one organization: every account whose row
    * names it in `metadata.org` (a platform client's end users, a

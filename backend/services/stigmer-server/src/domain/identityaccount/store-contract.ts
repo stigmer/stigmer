@@ -86,16 +86,15 @@ function directAccount(overrides: {
   });
 }
 
-/** An identity provider as a stored reference names it: its organization's id and its slug. */
+/** An identity provider as a stored reference names it: its organization's id and its own id. */
 interface ProviderRef {
   readonly org: string;
-  readonly slug: string;
+  readonly id: string;
 }
 
 const ACME_ORG = "org_01hzacme000000000000000000";
-const BETA_ORG = "org_01hzbeta000000000000000000";
-const ACME_OKTA: ProviderRef = { org: ACME_ORG, slug: "acme-okta" };
-const ACME_AZURE: ProviderRef = { org: ACME_ORG, slug: "acme-azure" };
+const ACME_OKTA: ProviderRef = { org: ACME_ORG, id: "idp_01hzacmeokta00000000000000" };
+const ACME_AZURE: ProviderRef = { org: ACME_ORG, id: "idp_01hzacmeazure0000000000000" };
 
 /**
  * A federated account: a customer IdP's subject, marked by its
@@ -112,7 +111,7 @@ function federatedAccount(overrides: {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityAccount",
     metadata: {
-      id: federatedAccountIdFor(provider.org, provider.slug, overrides.idpId),
+      id: federatedAccountIdFor(provider.id, overrides.idpId),
       name: overrides.email ?? overrides.idpId,
       org: provider.org,
     },
@@ -123,7 +122,7 @@ function federatedAccount(overrides: {
       identityProviderRef: {
         org: provider.org,
         kind: ApiResourceKind.identity_provider,
-        slug: provider.slug,
+        id: provider.id,
       },
     },
   });
@@ -219,7 +218,7 @@ function mixedShapeAccounts(idpId: string): ReadonlyArray<{
           identityProviderRef: {
             org: ACME_ORG,
             kind: ApiResourceKind.identity_provider,
-            slug: "acme-okta",
+            id: ACME_OKTA.id,
           },
         },
       }),
@@ -480,23 +479,18 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
       const dana = federatedAccount({ idpId: "okta|dana" });
       await store.save(dana);
       assert.equal(
-        (await store.findByProviderAndIdpId(ACME_ORG, "acme-okta", "okta|dana"))
+        (await store.findByProviderAndIdpId(ACME_OKTA.id, "okta|dana"))
           ?.metadata?.id,
         idOf(dana),
         "the natural key must find the row it names",
       );
       assert.equal(
-        await store.findByProviderAndIdpId(ACME_ORG, "acme-azure", "okta|dana"),
+        await store.findByProviderAndIdpId(ACME_AZURE.id, "okta|dana"),
         undefined,
         "another provider's subject is another person",
       );
       assert.equal(
-        await store.findByProviderAndIdpId(BETA_ORG, "acme-okta", "okta|dana"),
-        undefined,
-        "a provider slug in another organization is another provider",
-      );
-      assert.equal(
-        await store.findByProviderAndIdpId(ACME_ORG, "acme-okta", "okta|erin"),
+        await store.findByProviderAndIdpId(ACME_OKTA.id, "okta|erin"),
         undefined,
         "an unknown subject answers undefined",
       );
@@ -507,7 +501,7 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     async ({ store }) => {
       await store.save(directAccount({ idpId: "shared|sam" }));
       assert.equal(
-        await store.findByProviderAndIdpId(ACME_ORG, "acme-okta", "shared|sam"),
+        await store.findByProviderAndIdpId(ACME_OKTA.id, "shared|sam"),
         undefined,
         "a provider's lookup never answers a direct row that shares the subject",
       );
@@ -516,12 +510,12 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
       await store.save(viaOkta);
       await store.save(viaAzure);
       assert.equal(
-        (await store.findByProviderAndIdpId(ACME_ORG, "acme-okta", "shared|sam"))
+        (await store.findByProviderAndIdpId(ACME_OKTA.id, "shared|sam"))
           ?.metadata?.id,
         idOf(viaOkta),
       );
       assert.equal(
-        (await store.findByProviderAndIdpId(ACME_ORG, "acme-azure", "shared|sam"))
+        (await store.findByProviderAndIdpId(ACME_AZURE.id, "shared|sam"))
           ?.metadata?.id,
         idOf(viaAzure),
       );
@@ -546,16 +540,16 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
       await store.save(federatedAccount({ idpId: "azure|c", provider: ACME_AZURE }));
       await store.save(directAccount({ idpId: "okta|d" }));
       assert.deepEqual(
-        (await store.findByProvider(ACME_ORG, "acme-okta")).map(
+        (await store.findByProvider(ACME_OKTA.id)).map(
           (row) => row.metadata?.id,
         ),
         okta.map(idOf).sort(),
         "every row the provider vouches for, ordered by id",
       );
       assert.deepEqual(
-        await store.findByProvider(BETA_ORG, "acme-okta"),
+        await store.findByProvider("idp_01hzunknown000000000000000"),
         [],
-        "a provider slug in another organization is another provider",
+        "a provider that vouches for nobody answers no row",
       );
     },
   ],
@@ -564,11 +558,11 @@ const CASES: ReadonlyArray<PortContractDeclaration<IdentityAccountStore>> = [
     async ({ store, disconnect }) => {
       await disconnect();
       await assert.rejects(
-        store.findByProviderAndIdpId(ACME_ORG, "acme-okta", "okta|dana"),
+        store.findByProviderAndIdpId(ACME_OKTA.id, "okta|dana"),
         "a federated sign-in that read undefined from a broken store would provision a second account",
       );
       await assert.rejects(
-        store.findByProvider(ACME_ORG, "acme-okta"),
+        store.findByProvider(ACME_OKTA.id),
         "a provider's removal that read nothing from a broken store would leave its accounts behind",
       );
     },

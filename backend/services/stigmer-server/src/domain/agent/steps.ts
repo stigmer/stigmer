@@ -43,6 +43,7 @@ import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
+import { referenceDisplayNames } from "../../pipeline/steps/references.js";
 type AgentDesc = typeof AgentSchema;
 
 // ---------------------------------------------------------------------------
@@ -65,23 +66,33 @@ type AgentDesc = typeof AgentSchema;
 // Claude Code's, so an author writing a block by hand never names an enum;
 // a Cursor block names its format.
 //
-// Pipeline position: before NormalizeReferences, so malformed hooks are
-// INVALID_ARGUMENT before any reference is looked up; before the version
+// The plugins are compared by the names they hold now: NormalizeReferences
+// ran first and left each one its id, so a plugin listed twice is one id
+// and two plugins sharing a slug are two ids of one current name.
+//
+// Pipeline position: before ValidateReferences, so malformed hooks are
+// INVALID_ARGUMENT before any reference is judged; before the version
 // hash, so the filled format is part of what is hashed.
 // ---------------------------------------------------------------------------
 
-export function newValidateHooksStep(): PipelineStep<AgentDesc> {
+export function newValidateHooksStep(
+  store: Store,
+): PipelineStep<AgentDesc> {
   return {
     name: "ValidateHooks",
-    execute(ctx: RequestContext<AgentDesc>): void {
+    async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
       const pluginSlugs = new Set<string>();
-      for (const plugin of ctx.newState.spec?.plugins ?? []) {
-        if (pluginSlugs.has(plugin.slug)) {
+      for (const slug of await referenceDisplayNames(
+        store,
+        ApiResourceKind.plugin,
+        ctx.newState.spec?.plugins ?? [],
+      )) {
+        if (pluginSlugs.has(slug)) {
           throw invalidArgumentError(
-            `plugins lists '${plugin.slug}' more than once; list each plugin once, and never two plugins that share a slug`,
+            `plugins lists '${slug}' more than once; list each plugin once, and never two plugins that share a slug`,
           );
         }
-        pluginSlugs.add(plugin.slug);
+        pluginSlugs.add(slug);
       }
       let inlineBlocks = 0;
       for (const source of ctx.newState.spec?.hooks ?? []) {
@@ -221,6 +232,7 @@ export function newCascadeDeleteSharesStep<Desc extends DescMessage>(
       }
       const agentOrg = agent.metadata?.org ?? "";
       const agentSlug = agent.metadata?.slug ?? "";
+      const agentId = agent.metadata?.id ?? "";
 
       let rows: Uint8Array[];
       try {
@@ -241,7 +253,7 @@ export function newCascadeDeleteSharesStep<Desc extends DescMessage>(
           continue;
         }
         const ref = share.spec?.agentRef;
-        if ((ref?.org ?? "") !== agentOrg || (ref?.slug ?? "") !== agentSlug) {
+        if ((ref?.id ?? "") !== agentId || agentId === "") {
           continue;
         }
         if ((share.metadata?.org ?? "") !== agentOrg) {

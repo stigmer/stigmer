@@ -184,11 +184,7 @@ function accountIdOf(provisioning: AccountProvisioning, idpId: string): string {
     return accountIdFor(idpId);
   }
   try {
-    return federatedAccountIdFor(
-      provisioning.provider.org,
-      provisioning.provider.slug,
-      idpId,
-    );
+    return federatedAccountIdFor(provisioning.provider.id, idpId);
   } catch (error) {
     throw internalError(error, "derive federated account id");
   }
@@ -284,7 +280,7 @@ function assignFederatedBackendFields(
   spec.identityProviderRef = create(ApiResourceReferenceSchema, {
     org: provider.org,
     kind: ApiResourceKind.identity_provider,
-    slug: provider.slug,
+    id: provider.id,
   });
   return spec;
 }

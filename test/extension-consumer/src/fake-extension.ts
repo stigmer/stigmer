@@ -724,7 +724,7 @@ const consumerIdentityFederation: IdentityFederation = {
     void caller.identityId;
     return Promise.resolve(
       create(IdentityAccountSchema, {
-        metadata: { id: `ida_federated_${ref.slug}` },
+        metadata: { id: `ida_federated_${ref.id}` },
       }),
     );
   },
@@ -732,8 +732,8 @@ const consumerIdentityFederation: IdentityFederation = {
   deprovisionFederatedAccount: () =>
     Promise.resolve(create(IdentityAccountSchema)),
   getByExternalSub: () => Promise.resolve(create(IdentityAccountSchema)),
-  providerExists: (org: string, slug: string) =>
-    Promise.resolve(org === "consumer-org" && slug === "consumer-idp"),
+  providerExists: (org: string, id: string) =>
+    Promise.resolve(org === "consumer-org" && id === "idp_consumer"),
 };
 
 /**
@@ -1467,8 +1467,7 @@ export async function consumerFederatedSignIn(
     return undefined;
   }
   const existing = await accounts.store.findByProviderAndIdpId(
-    provider.org,
-    provider.slug,
+    provider.id,
     subject,
   );
   if (existing !== undefined) {

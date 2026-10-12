@@ -32,6 +32,7 @@
  * getByReference/listVersions/getVersion/tagVersion blocks.
  */
 import { fromBinary } from "@bufbuild/protobuf";
+import { ConnectError } from "@connectrpc/connect";
 import type { DescMessage, Message, MessageShape } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -55,6 +56,7 @@ import {
 import type { AuditRecord, Store } from "../../store/interface.js";
 import { requireOrgForReference } from "./helpers.js";
 import { findResourceByName } from "./names.js";
+import { findByReference } from "./references.js";
 import type { ResolvedTargetResolver } from "./authorize-resolved-target.js";
 import { TARGET_RESOURCE_KEY } from "./load-target.js";
 import { metadataOf } from "./shapes.js";
@@ -117,8 +119,10 @@ export function newLoadByReferenceWithVersionStep<Desc extends DescMessage>(
 /**
  * The resource a reference names, at its version: the live head for no
  * version or "latest", or when the head is the version by hash or live
- * tag; else the archived row, by hash or by tag. A reference with no slug
- * or no organization is InvalidArgument, a missing resource or version
+ * tag; else the archived row, by hash or by tag. The head is read by the
+ * reference's id, or by its slug in its organization. A reference with
+ * neither, or a slug with no organization, is InvalidArgument, a missing
+ * resource or version
  * NotFound naming it, a store fault Internal. Asks no authorization: the
  * step's pipeline, or the server-side reader, decides who may read.
  */
@@ -127,13 +131,15 @@ export async function loadByReferenceWithVersion<Desc extends DescMessage>(
   binding: VersionedResourceBinding<Desc>,
   ref: ApiResourceReference,
 ): Promise<MessageShape<Desc>> {
-  if (ref.slug === "") {
-    throw invalidArgumentError("slug is required in reference");
+  if (ref.slug === "" && ref.id === "") {
+    throw invalidArgumentError("slug or id is required in reference");
   }
 
   // Org-scoped kinds: the slug is unique only within an org, so an
-  // empty-org reference is under-specified.
-  requireOrgForReference(binding.kind, ref.org);
+  // empty-org reference by slug is under-specified.
+  if (ref.id === "") {
+    requireOrgForReference(binding.kind, ref.org);
+  }
 
   if (
     ref.kind !== ApiResourceKind.api_resource_kind_unknown &&
@@ -146,13 +152,17 @@ export async function loadByReferenceWithVersion<Desc extends DescMessage>(
 
   let head: MessageShape<Desc> | undefined;
   try {
-    head = await findResourceByName(store, binding.kind, binding.schema, ref.org, ref.slug);
+    head = await findByReference(store, binding.kind, binding.schema, ref);
   } catch (error) {
+    if (error instanceof ConnectError) {
+      throw error;
+    }
     throw internalError(error, `failed to list ${binding.noun}s`);
   }
   if (head === undefined) {
-    throw notFoundError(binding.noun, ref.slug);
+    throw notFoundError(binding.noun, ref.slug !== "" ? ref.slug : ref.id);
   }
+  const named = ref.slug !== "" ? ref.slug : (metadataOf(head)?.slug ?? ref.id);
 
   const version = ref.version.trim();
   if (
@@ -172,7 +182,7 @@ export async function loadByReferenceWithVersion<Desc extends DescMessage>(
   if (archived === undefined) {
     throw notFoundError(
       `${binding.noun} version`,
-      `${ref.slug}:${version}`,
+      `${named}:${version}`,
     );
   }
   return archived;

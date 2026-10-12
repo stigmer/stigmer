@@ -154,6 +154,7 @@ async function createPluginEval(
       newAuthorizeStep(PluginEvalCommandController.method.create, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(
       newAuthorizeResolvedTargetStep(deps.authorizer, resolvePluginEvalCreateTargets),
     )
@@ -164,7 +165,6 @@ async function createPluginEval(
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(
       newVaultAttachmentsStep(deps.store, deps.authorizer, PLUGIN_EVAL_VAULT_ATTACHMENTS),

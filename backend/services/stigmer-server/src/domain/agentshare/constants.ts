@@ -20,9 +20,8 @@ export const SHARE_LINK_TOKEN_BYTES = 20;
 export const ORG_REQUIRED_MESSAGE =
   "metadata.org is required for an agent share";
 
-/** InvalidArgument copy when spec.agent_ref.slug is absent — Go, pinned. */
-export const AGENT_REF_SLUG_REQUIRED_MESSAGE =
-  "spec.agent_ref.slug is required";
+/** InvalidArgument copy when spec.agent_ref names no agent, by slug or by id. */
+export const AGENT_REF_REQUIRED_MESSAGE = "spec.agent_ref is required";
 
 /**
  * FailedPrecondition copy when spec.agent_ref names another organization's
