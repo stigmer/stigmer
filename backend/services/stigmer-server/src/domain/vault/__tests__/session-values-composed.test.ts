@@ -214,6 +214,7 @@ describe("a stale write of a conversation's repository tokens", () => {
 describe("a stale write of a conversation's vault choice", () => {
   it("neither detaches a vault attached since its read, nor re-attaches one removed since, nor switches My vault back", async () => {
     const slugs: string[] = [];
+    const ids: string[] = [];
     for (const name of ["Stale first", "Stale second"]) {
       const vault = await vaultCommand.create({
         apiVersion: API_VERSION,
@@ -221,8 +222,10 @@ describe("a stale write of a conversation's vault choice", () => {
         metadata: { name, org: ORG },
       });
       slugs.push(vault.metadata!.slug);
+      ids.push(vault.metadata!.id);
     }
     const [first, second] = slugs as [string, string];
+    const secondId = ids[1]!;
     const ref = (slug: string) => ({
       kind: ApiResourceKind.vault,
       org: ORG,
@@ -237,14 +240,15 @@ describe("a stale write of a conversation's vault choice", () => {
     switching.spec!.includeMyVault = true;
     await command.update(switching);
     const switched = await row(id);
-    expect(switched.spec!.vaults.map((vault) => vault.slug)).toEqual([second]);
+    // The stored row holds the vault by id.
+    expect(switched.spec!.vaults.map((vault) => vault.id)).toEqual([secondId]);
     expect(switched.spec!.includeMyVault).toBe(true);
 
     await tick();
     await command.update(harnessWrite(readAtTurnStart, "harness-1"));
     const stored = await row(id);
     expect(stored.spec!.harnessStateId).toBe("harness-1");
-    expect(stored.spec!.vaults.map((vault) => vault.slug)).toEqual([second]);
+    expect(stored.spec!.vaults.map((vault) => vault.id)).toEqual([secondId]);
     expect(stored.spec!.includeMyVault).toBe(true);
     expect(stored.status!.vaultAttachers).toEqual(
       switched.status!.vaultAttachers,

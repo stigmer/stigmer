@@ -7,6 +7,8 @@ import type {
   UseDependencyGraphOptions,
   UseDependencyGraphReturn,
 } from "./types.js";
+import { deletedReferenceLabel, isDeletedReference } from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 
 /**
@@ -54,53 +56,49 @@ export function useDependencyGraph({
 
     let nodeCount = 1; // root
 
-    const pluginNodes: DependencyNode[] = plugins.map((ref) => {
+    // A target deleted since it was attached comes back with no slug: a
+    // node named "deleted <kind>" that links nowhere.
+    const leaf = (
+      kind: "plugin" | "skill" | "subagent",
+      resourceKind: ApiResourceKind,
+      ref: {
+        readonly org: string;
+        readonly slug: string;
+        readonly id?: string;
+        readonly version?: string;
+      },
+      index: number,
+    ): DependencyNode => {
       nodeCount++;
+      if (isDeletedReference(ref)) {
+        return {
+          id: `${kind}:deleted:${index}`,
+          kind,
+          label: deletedReferenceLabel(resourceKind),
+          children: [],
+        };
+      }
       return {
-        id: `plugin:${ref.slug}`,
-        kind: "plugin" as const,
+        id: `${kind}:${ref.slug}`,
+        kind,
         label: ref.slug,
         qualifiedLabel:
           ref.org && ref.org !== agentOrg
             ? `${slugForOrg(ref.org)}/${ref.slug}`
             : undefined,
+        ...(kind === "subagent" && ref.version
+          ? { metadata: { version: ref.version.slice(0, 8) } }
+          : {}),
         children: [],
         ref: { org: ref.org || agentOrg, slug: ref.slug },
       };
-    });
+    };
 
-    const skillNodes: DependencyNode[] = skillRefs.map((ref) => {
-      nodeCount++;
-      return {
-        id: `skill:${ref.slug}`,
-        kind: "skill" as const,
-        label: ref.slug,
-        qualifiedLabel:
-          ref.org && ref.org !== agentOrg
-            ? `${slugForOrg(ref.org)}/${ref.slug}`
-            : undefined,
-        children: [],
-        ref: { org: ref.org || agentOrg, slug: ref.slug },
-      };
-    });
-
+    const pluginNodes = plugins.map((ref, i) => leaf("plugin", ApiResourceKind.plugin, ref, i));
+    const skillNodes = skillRefs.map((ref, i) => leaf("skill", ApiResourceKind.skill, ref, i));
     // A subagent is an agent of its own: a link to its page at the version
     // this agent pinned, whose own dependencies that page shows.
-    const subagentNodes: DependencyNode[] = subagents.map((ref) => {
-      nodeCount++;
-      return {
-        id: `subagent:${ref.slug}`,
-        kind: "subagent" as const,
-        label: ref.slug,
-        qualifiedLabel:
-          ref.org && ref.org !== agentOrg
-            ? `${slugForOrg(ref.org)}/${ref.slug}`
-            : undefined,
-        metadata: ref.version ? { version: ref.version.slice(0, 8) } : undefined,
-        children: [],
-        ref: { org: ref.org || agentOrg, slug: ref.slug },
-      };
-    });
+    const subagentNodes = subagents.map((ref, i) => leaf("subagent", ApiResourceKind.agent, ref, i));
 
     // Child ordering mirrors the Overview sections: plugins, skills,
     // then subagents.

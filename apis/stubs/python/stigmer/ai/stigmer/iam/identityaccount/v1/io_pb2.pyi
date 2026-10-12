@@ -1,3 +1,4 @@
+from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from ai.stigmer.iam.identityaccount.v1 import api_pb2 as _api_pb2

@@ -1415,7 +1415,7 @@ describe("extension composition (tuple lifecycle + organization directory)", () 
         create(AgentShareSchema, {
           metadata: { id: "ash_seeded_cascade", name: "seeded-cascade-share", org: seededOrgId },
           spec: {
-            agentRef: { kind: ApiResourceKind.agent, org: seededOrgId, slug: agent.metadata?.slug ?? "" },
+            agentRef: { kind: ApiResourceKind.agent, org: seededOrgId, id: agent.metadata?.id ?? "" },
           },
         }),
       );

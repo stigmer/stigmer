@@ -557,12 +557,12 @@ describe("name claims that outlive their write", () => {
 });
 
 describe("lookups and faults", () => {
-  it("a reference without a slug or an organization names no vault", async () => {
+  it("a reference without a slug or id, or without an organization, names no vault", async () => {
     expect(
-      await rig.vaults.findByReference({ org: "", kind: 0, slug: "team" } as never, ""),
+      await rig.vaults.findByReference({ org: "", kind: 0, id: "", slug: "team" } as never, ""),
     ).toBeUndefined();
     expect(
-      await rig.vaults.findByReference({ org: ORG, kind: 0, slug: "" } as never, ORG),
+      await rig.vaults.findByReference({ org: ORG, kind: 0, id: "", slug: "" } as never, ORG),
     ).toBeUndefined();
   });
 

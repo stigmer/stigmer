@@ -32,7 +32,6 @@
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
@@ -211,6 +210,7 @@ async function createSchedule(
       ),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveScheduleDefaultsStep(deps))
     // Before the duplicate check and before ArmSchedule: a refused caller
@@ -226,7 +226,6 @@ async function createSchedule(
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SCHEDULE_VAULT_ATTACHMENTS))
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.schedule))
@@ -266,10 +265,10 @@ async function update(
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
-    .addStep(newValidateScheduleUpdateStep(deps))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
+    .addStep(newValidateScheduleUpdateStep(deps))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SCHEDULE_VAULT_ATTACHMENTS))
     .addStep(newPersistScheduleUpdateStep(deps.store))
@@ -307,6 +306,7 @@ async function apply(
       newAuthorizeStep(ScheduleCommandController.method.apply, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newResolveScheduleDefaultsStep(deps))
     .addStep(newResolveSlugStep())
     .addStep(newLoadForApplyStep(deps.store))
@@ -576,17 +576,9 @@ function newLoadSchedulesByAgentStep(
     ): Promise<void> {
       const req = ctx.input;
 
-      let agentOrg: string;
-      let agentSlug: string;
-      try {
-        const agent = await store.getResource(
-          ApiResourceKind.agent,
-          req.agentId,
-          AgentSchema,
-        );
-        agentOrg = agent.metadata?.org ?? "";
-        agentSlug = agent.metadata?.slug ?? "";
-      } catch {
+      // A schedule's agent_ref holds its agent's id, so a schedule of an
+      // agent since deleted never lists under a new agent of the same name.
+      if (req.agentId === "") {
         ctx.set(
           SCHEDULE_LIST_KEY,
           create(ScheduleListSchema, { totalCount: 0, items: [] }),
@@ -617,7 +609,7 @@ function newLoadSchedulesByAgentStep(
           schedule.spec?.target.case === "agent"
             ? schedule.spec.target.value.agentRef
             : undefined;
-        if ((ref?.org ?? "") !== agentOrg || (ref?.slug ?? "") !== agentSlug) {
+        if ((ref?.id ?? "") !== req.agentId) {
           return false;
         }
         // Org scope: a multi-org caller asking for one org's schedules

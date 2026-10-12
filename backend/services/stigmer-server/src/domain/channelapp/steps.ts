@@ -363,6 +363,7 @@ export function newCheckNoReferencingChannelsStep(
 
       const org = existing.metadata?.org ?? "";
       const slug = existing.metadata?.slug ?? "";
+      const id = existing.metadata?.id ?? "";
 
       let rows: Uint8Array[];
       try {
@@ -385,15 +386,13 @@ export function newCheckNoReferencingChannelsStep(
           continue;
         }
 
+        // A channel's app_ref holds the app's id.
         const ref = channel.spec?.appRef;
-        if (ref === undefined || ref.slug === "") {
+        if (ref === undefined || ref.id === "" || id === "") {
           continue;
         }
-        // An empty ref org means same-org; normalize before comparing so a
-        // pre-normalization row still guards its app.
-        const refOrg = ref.org !== "" ? ref.org : (channel.metadata?.org ?? "");
 
-        if (refOrg === org && ref.slug === slug) {
+        if (ref.id === id) {
           throw failedPreconditionError(
             deleteBlockedByChannelMessage(
               org,

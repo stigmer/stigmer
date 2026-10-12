@@ -113,7 +113,7 @@ beforeEach(async () => {
       metadata: { id: "agt_parent", org: ORG, slug: "parent" },
       spec: {
         plugins: [{ org: ORG, slug: "linear" }],
-        subagents: [{ kind: ApiResourceKind.agent, org: ORG, slug: "helper", version: HEAD }],
+        subagents: [{ kind: ApiResourceKind.agent, org: ORG, id: "agt_helper", version: HEAD }],
       },
       status: { versionHash: HEAD },
     }),
@@ -126,7 +126,7 @@ beforeEach(async () => {
       metadata: { id: "agt_parent", org: ORG, slug: "parent" },
       spec: {
         plugins: [{ org: ORG, slug: "linear" }],
-        subagents: [{ kind: ApiResourceKind.agent, org: ORG, slug: "helper", version: "c".repeat(64) }],
+        subagents: [{ kind: ApiResourceKind.agent, org: ORG, id: "agt_helper", version: "c".repeat(64) }],
       },
       status: { versionHash: OLDER },
     }),

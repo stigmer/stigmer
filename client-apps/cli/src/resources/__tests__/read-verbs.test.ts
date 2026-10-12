@@ -233,6 +233,20 @@ const disabledSchedule = create(ScheduleSchema, {
   },
 });
 
+// A schedule whose agent was deleted: the server answers its reference with
+// the agent's id and no slug.
+const orphanedSchedule = create(ScheduleSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Schedule",
+  metadata: { name: "orphaned", slug: "orphaned", org: ACME_ID, id: "sch_3" },
+  spec: {
+    cron: "0 7 * * *",
+    timeZone: "UTC",
+    enabled: true,
+    target: { case: "agent", value: { agentRef: { kind: ApiResourceKind.agent, org: ACME_ID, id: "agt_gone" } } },
+  },
+});
+
 let backend: Http2Server;
 let client: Stigmer;
 // Every value the organization get was asked for, so a test can count lookups.
@@ -336,6 +350,7 @@ beforeAll(async () => {
         return pausedSchedule;
       },
       list: (req) => {
+        if (req.org === "orphans") return { totalCount: 1, items: [orphanedSchedule] };
         if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
         return { totalCount: 2, items: [pausedSchedule, disabledSchedule] };
       },
@@ -666,6 +681,13 @@ describe("list integration", () => {
     expect(disabledRow).toContain("false");
     expect(disabledRow).toContain("active");
     expect(disabledRow).not.toContain("paused");
+  });
+
+  it("shows a schedule whose agent was deleted as targeting a deleted agent, never a name", async () => {
+    const out = await listResources(client, ApiResourceKind.schedule, "orphans", 50, "table");
+    const row = out.split("\n").find((line) => line.includes("sch_3"));
+    expect(row).toContain("deleted agent");
+    expect(row).not.toContain("agt_gone");
   });
 
   it("lists schedules as JSON matching backend protojson", async () => {

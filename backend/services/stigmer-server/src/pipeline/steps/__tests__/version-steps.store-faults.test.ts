@@ -179,7 +179,7 @@ describe("the getByReference ladder", () => {
   }
   const listed = async () => [toBinary(AgentSchema, agent(HEAD))];
 
-  it("is InvalidArgument for a reference with no slug, before the store is read", async () => {
+  it("is InvalidArgument for a reference with neither slug nor id, before the store is read", async () => {
     const error = await failureOf(
       loadByReferenceWithVersion(
         storeWith({}),
@@ -188,7 +188,18 @@ describe("the getByReference ladder", () => {
       ),
     );
     expect(error.code).toBe(Code.InvalidArgument);
-    expect(error.rawMessage).toBe("slug is required in reference");
+    expect(error.rawMessage).toBe("slug or id is required in reference");
+  });
+
+  it("is Internal, never NotFound, for a failing read of the head a reference names by id", async () => {
+    const error = await failureOf(
+      loadByReferenceWithVersion(
+        storeWith({ getResource: async () => Promise.reject(STORE_DOWN) }),
+        agentVersionBinding,
+        create(ApiResourceReferenceSchema, { org: "acme", id: "agt_1", version: OLD }),
+      ),
+    );
+    expect(error.code).toBe(Code.Internal);
   });
 
   it("is Internal for a failing audit query", async () => {

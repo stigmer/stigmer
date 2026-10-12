@@ -71,7 +71,9 @@ function fullIdentityAccount(): IdentityAccount {
       pictureUrl: "https://acme.example/ada.png",
       isMachineAccount: true,
       provisioningMode: IdentityAccountProvisioningMode.federated,
-      identityProviderRef: { org: "acme", slug: "acme-okta" },
+      // The field declares its kind, so the builder writes it, as it does
+      // every annotated reference.
+      identityProviderRef: { org: "acme", slug: "acme-okta", kind: ApiResourceKind.identity_provider },
       preferences: {
         standingContext: "Keep answers terse.",
         defaultHarness: "cursor",

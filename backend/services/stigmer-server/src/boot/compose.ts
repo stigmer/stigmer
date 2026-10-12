@@ -218,6 +218,7 @@ import {
 import { kindEnumName } from "../pipeline/apiresource-meta.js";
 import { quoteJoin } from "../pipeline/errors.js";
 import { buildInterceptorChain } from "../pipeline/chain.js";
+import { createResourceReferenceInterceptor } from "../pipeline/interceptors/resource-references.js";
 import { KeyedSerializer } from "../pipeline/keyed-serializer.js";
 import {
   SYSTEM_OPERATOR_IDENTITY_ID,
@@ -2066,8 +2067,12 @@ export async function composeServer(
     // shadow a route already served is a boot throw (route-shadowing.ts).
     registerExtensionServicesUnshadowed(router, extensions.services);
   };
+  const resourceReferences = createResourceReferenceInterceptor(
+    store.resourceNames,
+  );
   const inProcessWiring = createInProcessClients(routes, logger, {
     deletingOrganizations,
+    resourceReferences,
   });
   inProcess = inProcessWiring.clients;
 
@@ -2238,7 +2243,7 @@ export async function composeServer(
                 createSingleOrganizationInterceptor(singleOrganization),
             }),
       },
-      { deletingOrganizations },
+      { deletingOrganizations, resourceReferences },
     ),
     modelRegistryLane: registryLanes.modelRegistryLane,
     ...(clientDocumentUrl === ""

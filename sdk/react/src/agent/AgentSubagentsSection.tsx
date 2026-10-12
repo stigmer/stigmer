@@ -16,7 +16,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { ResourceRef } from "@stigmer/sdk";
+import { isDeletedReference, type ResourceRef } from "@stigmer/sdk";
 import { Section } from "../resource-detail/Section.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { AgentPicker } from "./AgentPicker.js";
@@ -125,7 +125,7 @@ export function AgentSubagentsSection({
           <ul className="stg:m-0 stg:flex stg:list-none stg:flex-col stg:divide-y stg:divide-border stg:p-0" aria-label="Subagents">
             {refs.map((ref, index) => (
               <SubagentRow
-                key={`${ref.org || agentOrg}/${ref.slug}`}
+                key={isDeletedReference(ref) ? `deleted/${index}` : `${ref.org || agentOrg}/${ref.slug}`}
                 reference={ref}
                 agentOrg={agentOrg}
                 canUpdate={!!editable && !!onSave}
@@ -226,16 +226,24 @@ function SubagentRow({
 }) {
   const slugForOrg = useOrgSlugForId();
   const refOrg = reference.org || agentOrg;
-  const { agent, isLoading, error } = useAgent(refOrg, reference.slug);
+  // A listed agent deleted since it was listed comes back with no slug: it
+  // is named "deleted agent", read from nowhere and linked nowhere, and
+  // keeps its remove action.
+  const deleted = isDeletedReference(reference);
+  const { agent, isLoading, error } = useAgent(
+    deleted ? null : refOrg,
+    deleted ? null : reference.slug,
+  );
 
-  const label =
-    reference.org && reference.org !== agentOrg
+  const label = deleted
+    ? "deleted agent"
+    : reference.org && reference.org !== agentOrg
       ? `${slugForOrg(reference.org)}/${reference.slug}`
       : reference.slug;
   const pin = reference.version;
   const head = agent?.status?.versionHash ?? "";
   const isBehind = pin !== "" && head !== "" && head !== pin;
-  const isMissing = !isLoading && !error && agent === null;
+  const isMissing = !deleted && !isLoading && !error && agent === null;
 
   const name = (
     <span className="stg:flex stg:min-w-0 stg:items-center stg:gap-3">
@@ -247,7 +255,7 @@ function SubagentRow({
   return (
     <li className="stg:flex stg:flex-col stg:gap-1 stg:px-3 stg:py-2">
       <div className="stg:flex stg:items-center stg:gap-3">
-        {onAgentClick ? (
+        {onAgentClick && !deleted ? (
           <button
             type="button"
             onClick={() => onAgentClick({ org: refOrg, slug: reference.slug })}

@@ -228,7 +228,7 @@ private static final long serialVersionUID = 0L;
    * Skill resources providing additional knowledge to the agent.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
    */
   @java.lang.Override
   public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getSkillRefsList() {
@@ -239,7 +239,7 @@ private static final long serialVersionUID = 0L;
    * Skill resources providing additional knowledge to the agent.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
@@ -251,7 +251,7 @@ private static final long serialVersionUID = 0L;
    * Skill resources providing additional knowledge to the agent.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
    */
   @java.lang.Override
   public int getSkillRefsCount() {
@@ -262,7 +262,7 @@ private static final long serialVersionUID = 0L;
    * Skill resources providing additional knowledge to the agent.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
    */
   @java.lang.Override
   public ai.stigmer.commons.apiresource.ApiResourceReference getSkillRefs(int index) {
@@ -273,7 +273,7 @@ private static final long serialVersionUID = 0L;
    * Skill resources providing additional knowledge to the agent.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
    */
   @java.lang.Override
   public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getSkillRefsOrBuilder(
@@ -822,7 +822,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * servers.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
    */
   @java.lang.Override
   public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getPluginsList() {
@@ -834,7 +834,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * servers.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
@@ -847,7 +847,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * servers.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
    */
   @java.lang.Override
   public int getPluginsCount() {
@@ -859,7 +859,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * servers.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
    */
   @java.lang.Override
   public ai.stigmer.commons.apiresource.ApiResourceReference getPlugins(int index) {
@@ -871,7 +871,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * servers.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
    */
   @java.lang.Override
   public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginsOrBuilder(
@@ -2127,7 +2127,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getSkillRefsList() {
       if (skillRefsBuilder_ == null) {
@@ -2141,7 +2141,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public int getSkillRefsCount() {
       if (skillRefsBuilder_ == null) {
@@ -2155,7 +2155,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference getSkillRefs(int index) {
       if (skillRefsBuilder_ == null) {
@@ -2169,7 +2169,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public Builder setSkillRefs(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
@@ -2190,7 +2190,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public Builder setSkillRefs(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
@@ -2208,7 +2208,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public Builder addSkillRefs(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (skillRefsBuilder_ == null) {
@@ -2228,7 +2228,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public Builder addSkillRefs(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
@@ -2249,7 +2249,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public Builder addSkillRefs(
         ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
@@ -2267,7 +2267,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public Builder addSkillRefs(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
@@ -2285,7 +2285,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public Builder addAllSkillRefs(
         java.lang.Iterable<? extends ai.stigmer.commons.apiresource.ApiResourceReference> values) {
@@ -2304,7 +2304,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public Builder clearSkillRefs() {
       if (skillRefsBuilder_ == null) {
@@ -2321,7 +2321,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public Builder removeSkillRefs(int index) {
       if (skillRefsBuilder_ == null) {
@@ -2338,7 +2338,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getSkillRefsBuilder(
         int index) {
@@ -2349,7 +2349,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getSkillRefsOrBuilder(
         int index) {
@@ -2363,7 +2363,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
          getSkillRefsOrBuilderList() {
@@ -2378,7 +2378,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addSkillRefsBuilder() {
       return internalGetSkillRefsFieldBuilder().addBuilder(
@@ -2389,7 +2389,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addSkillRefsBuilder(
         int index) {
@@ -2401,7 +2401,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * Skill resources providing additional knowledge to the agent.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.ai.stigmer.commons.apiresource.reference_kind) = skill];</code>
      */
     public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference.Builder> 
          getSkillRefsBuilderList() {
@@ -4008,7 +4008,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getPluginsList() {
       if (pluginsBuilder_ == null) {
@@ -4023,7 +4023,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public int getPluginsCount() {
       if (pluginsBuilder_ == null) {
@@ -4038,7 +4038,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference getPlugins(int index) {
       if (pluginsBuilder_ == null) {
@@ -4053,7 +4053,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public Builder setPlugins(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
@@ -4075,7 +4075,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public Builder setPlugins(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
@@ -4094,7 +4094,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public Builder addPlugins(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (pluginsBuilder_ == null) {
@@ -4115,7 +4115,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public Builder addPlugins(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
@@ -4137,7 +4137,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public Builder addPlugins(
         ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
@@ -4156,7 +4156,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public Builder addPlugins(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
@@ -4175,7 +4175,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public Builder addAllPlugins(
         java.lang.Iterable<? extends ai.stigmer.commons.apiresource.ApiResourceReference> values) {
@@ -4195,7 +4195,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public Builder clearPlugins() {
       if (pluginsBuilder_ == null) {
@@ -4213,7 +4213,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public Builder removePlugins(int index) {
       if (pluginsBuilder_ == null) {
@@ -4231,7 +4231,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getPluginsBuilder(
         int index) {
@@ -4243,7 +4243,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginsOrBuilder(
         int index) {
@@ -4258,7 +4258,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
          getPluginsOrBuilderList() {
@@ -4274,7 +4274,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addPluginsBuilder() {
       return internalGetPluginsFieldBuilder().addBuilder(
@@ -4286,7 +4286,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addPluginsBuilder(
         int index) {
@@ -4299,7 +4299,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * servers.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.buf.validate.field) = { ... }</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference plugins = 16 [json_name = "plugins", (.ai.stigmer.commons.apiresource.reference_kind) = plugin];</code>
      */
     public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference.Builder> 
          getPluginsBuilderList() {

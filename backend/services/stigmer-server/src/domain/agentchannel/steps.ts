@@ -34,7 +34,10 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
-import { findResourceByName } from "../../pipeline/steps/names.js";
+import {
+  loadReferenced,
+  referenceDisplayName,
+} from "../../pipeline/steps/references.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import { unknownModelPinRefusal } from "../../modelcatalog/pin-validation.js";
@@ -42,7 +45,7 @@ import { savedChoiceWithoutModelRefusal } from "../../modelcatalog/run-config-ch
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import type { ChannelRuntime } from "./channel-runtime.js";
 import {
-  AGENT_REF_SLUG_REQUIRED_MESSAGE,
+  AGENT_REF_REQUIRED_MESSAGE,
   APP_REF_FROZEN_WHILE_INSTALLED_MESSAGE,
   APP_REF_REQUIRED_FOR_WHATSAPP_MESSAGE,
   APP_REF_SAME_ORG_MESSAGE,
@@ -90,14 +93,13 @@ function validateChannelModelPin(
  * AgentChannelDefaultsResolver mirror whose error contracts this step
  * replicates byte-identically:
  *   1. Requires metadata.org (billing + credentials org, never inferred).
- *   2. Requires spec.agent_ref.slug; normalizes agent_ref.org (empty
- *      means same-org).
- *   3. Enforces the same-org invariant BEFORE the agent load, so a
- *      cross-org request cannot probe another org's slugs through this
- *      path.
+ *   2. Requires spec.agent_ref. NormalizeReferences ran first: its org is
+ *      absolute (empty meant same-org) and a slug is the agent's id.
+ *   3. Enforces the same-org invariant BEFORE the agent load; no refusal
+ *      here names whether another org's slug exists.
  *   4. Validates the model pin and the WhatsApp BYO app_ref rules.
- *   5. Loads the referenced agent — a nonexistent agent is refused with
- *      the same NOT_FOUND a direct agent lookup would produce.
+ *   5. Loads the referenced agent by id — a nonexistent agent is refused
+ *      with the same NOT_FOUND a direct agent lookup would produce.
  *
  * Deliberately NO slug default from the agent (unlike the share's
  * canonical-slug rule): channels are N-per-agent across providers, so no
@@ -121,11 +123,11 @@ export function newResolveChannelDefaultsStep(
       }
 
       const agentRef = channel.spec?.agentRef;
-      if ((agentRef?.slug ?? "") === "") {
-        throw invalidArgumentError(AGENT_REF_SLUG_REQUIRED_MESSAGE);
+      if (!namesResource(agentRef)) {
+        throw invalidArgumentError(AGENT_REF_REQUIRED_MESSAGE);
       }
 
-      const refOrg = agentRef!.org !== "" ? agentRef!.org : metadata!.org;
+      const refOrg = agentRef!.org;
 
       if (refOrg !== metadata!.org) {
         throw failedPreconditionError(sameOrgInvariantMessage(refOrg));
@@ -135,35 +137,29 @@ export function newResolveChannelDefaultsStep(
 
       const appRef = channel.spec?.appRef;
       const isWhatsApp = channel.spec?.providerConfig.case === "whatsapp";
-      if (isWhatsApp && (appRef?.slug ?? "") === "") {
+      if (isWhatsApp && !namesResource(appRef)) {
         throw invalidArgumentError(APP_REF_REQUIRED_FOR_WHATSAPP_MESSAGE);
       }
 
-      // The BYO app must be the channel's own org's; normalized and
-      // checked before the agent load for the same no-probing reason.
-      // Deliberately NO existence or provider-match check: enforcement
+      // The BYO app must be the channel's own org's; checked before the
+      // agent load. Deliberately NO provider-match check: enforcement
       // lives at resolution time (the cloud install flow fails closed; OSS
       // has no install flow).
-      if ((appRef?.slug ?? "") !== "") {
-        const appRefOrg = appRef!.org !== "" ? appRef!.org : metadata!.org;
-        if (appRefOrg !== metadata!.org) {
-          throw failedPreconditionError(APP_REF_SAME_ORG_MESSAGE);
-        }
-        appRef!.org = appRefOrg;
+      if (namesResource(appRef) && appRef!.org !== metadata!.org) {
+        throw failedPreconditionError(APP_REF_SAME_ORG_MESSAGE);
       }
 
       let agent;
       try {
-        agent = await findResourceByName(store, ApiResourceKind.agent, AgentSchema, refOrg, agentRef!.slug);
+        agent = await loadReferenced(store, ApiResourceKind.agent, AgentSchema, agentRef!);
       } catch (error) {
-        throw internalError(error, "failed to list agent resources");
+        throw internalError(error, "failed to read the agent");
       }
       if (agent === undefined) {
         // Byte-identical with the direct agent lookup's refusal.
-        throw notFoundError("Agent", agentRef!.slug);
+        throw notFoundError("Agent", agentRef!.slug !== "" ? agentRef!.slug : agentRef!.id);
       }
 
-      agentRef!.org = refOrg;
       ctx.set(REFERENCED_AGENT_KEY, agent);
 
       // Write-time constraints only a serving runtime can state (the
@@ -278,11 +274,13 @@ export function providerFieldName(spec: AgentChannelSpec | undefined): string {
  * must keep referencing the same agent; the provider arm must not change
  * (install state, credentials, and delivery records are all
  * provider-shaped); the model pin is re-validated; then the app_ref rules
- * (validateAppRefUpdate). Runs after LoadExisting. metadata.slug/org and
+ * (validateAppRefUpdate). Runs after NormalizeReferences, which resolved
+ * the request's references, so both are compared by id. metadata.slug/org and
  * status (install facts, credentials reference) need no step — the
  * generic BuildUpdateState preserves them wholesale.
  */
 export function newValidateChannelUpdateStep(
+  store: Store,
   registry: ModelCatalogProvider,
   channelRuntime: ChannelRuntime | undefined,
 ): PipelineStep<AgentChannelDesc> {
@@ -299,29 +297,26 @@ export function newValidateChannelUpdateStep(
         );
       }
 
-      const inputRef = ctx.input.spec?.agentRef;
+      const inputRef = ctx.newState.spec?.agentRef;
       const existingRef = existing.spec?.agentRef;
 
-      // Normalize the input ref's org the same way create does (empty
-      // means the channel's own org) before comparing.
-      const inputOrg =
-        (inputRef?.org ?? "") !== ""
-          ? inputRef!.org
-          : (existing.metadata?.org ?? "");
-
       if (
-        (inputRef?.slug ?? "") !== (existingRef?.slug ?? "") ||
-        inputOrg !== (existingRef?.org ?? "")
+        (inputRef?.id ?? "") !== (existingRef?.id ?? "") ||
+        (inputRef?.org ?? "") !== (existingRef?.org ?? "")
       ) {
         throw failedPreconditionError(
           agentRefImmutableMessage(
             existingRef?.org ?? "",
-            existingRef?.slug ?? "",
+            await referenceDisplayName(store, ApiResourceKind.agent, {
+              org: existingRef?.org ?? "",
+              id: existingRef?.id ?? "",
+              slug: existingRef?.slug ?? "",
+            }),
           ),
         );
       }
 
-      const inputProvider = providerFieldName(ctx.input.spec);
+      const inputProvider = providerFieldName(ctx.newState.spec);
       const existingProvider = providerFieldName(existing.spec);
       if (inputProvider !== existingProvider) {
         throw failedPreconditionError(
@@ -329,16 +324,15 @@ export function newValidateChannelUpdateStep(
         );
       }
 
-      validateChannelModelPin(registry, ctx.input.spec);
+      validateChannelModelPin(registry, ctx.newState.spec);
 
       validateAppRefUpdate(ctx, existing);
 
       // The serving runtime's write constraints, on the spec that would
-      // be written (ctx.input carries it here — BuildUpdateState runs
-      // after this step). Same posture as ResolveChannelDefaults: last,
-      // and only when composed.
+      // be written. Same posture as ResolveChannelDefaults: last, and only
+      // when composed.
       if (channelRuntime !== undefined) {
-        await channelRuntime.enforceWriteConstraints(ctx.input);
+        await channelRuntime.enforceWriteConstraints(ctx.newState);
       }
     },
   };
@@ -393,22 +387,15 @@ function validateAppRefUpdate(
   ctx: RequestContext<AgentChannelDesc>,
   existing: AgentChannel,
 ): void {
-  const inputAppRef = ctx.input.spec?.appRef;
+  const inputAppRef = ctx.newState.spec?.appRef;
   const existingAppRef = existing.spec?.appRef;
 
-  const isWhatsApp = ctx.input.spec?.providerConfig.case === "whatsapp";
-  if (isWhatsApp && (inputAppRef?.slug ?? "") === "") {
+  const isWhatsApp = ctx.newState.spec?.providerConfig.case === "whatsapp";
+  if (isWhatsApp && !namesResource(inputAppRef)) {
     throw invalidArgumentError(APP_REF_REQUIRED_FOR_WHATSAPP_MESSAGE);
   }
 
-  let inputAppOrg = "";
-  if ((inputAppRef?.slug ?? "") !== "") {
-    inputAppOrg =
-      inputAppRef!.org !== ""
-        ? inputAppRef!.org
-        : (existing.metadata?.org ?? "");
-  }
-
+  const inputAppOrg = namesResource(inputAppRef) ? inputAppRef!.org : "";
   if (inputAppOrg !== "" && inputAppOrg !== (existing.metadata?.org ?? "")) {
     throw failedPreconditionError(APP_REF_SAME_ORG_MESSAGE);
   }
@@ -416,11 +403,24 @@ function validateAppRefUpdate(
   const installed =
     existing.status?.installState === AgentChannelInstallState.installed;
   const changed =
-    (inputAppRef?.slug ?? "") !== (existingAppRef?.slug ?? "") ||
-    ((inputAppRef?.slug ?? "") !== "" &&
-      inputAppOrg !== (existingAppRef?.org ?? ""));
+    heldTarget(inputAppRef) !== heldTarget(existingAppRef) ||
+    (namesResource(inputAppRef) && inputAppOrg !== (existingAppRef?.org ?? ""));
 
   if (installed && changed) {
     throw failedPreconditionError(APP_REF_FROZEN_WHILE_INSTALLED_MESSAGE);
   }
+}
+
+/** Whether a reference names a resource at all, by id or by a slug nothing held. */
+function namesResource(
+  ref: { readonly id: string; readonly slug: string } | undefined,
+): boolean {
+  return ref !== undefined && (ref.id !== "" || ref.slug !== "");
+}
+
+/** What a reference holds, for comparing two of them: its id, else the slug it was written with. */
+function heldTarget(
+  ref: { readonly id: string; readonly slug: string } | undefined,
+): string {
+  return ref === undefined ? "" : ref.id !== "" ? `#${ref.id}` : ref.slug;
 }

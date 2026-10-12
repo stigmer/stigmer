@@ -31,10 +31,10 @@
  *   - an Authorizer that no longer finds the agent answers the missing
  *     copy, and one that is down is INTERNAL.
  * Through the two steps' own faults: a reference with no slug is passed
- * over; a state with no metadata, PinSubagents run without
- * ValidateReferences' targets, and a store fault reading a subagent are
- * INTERNAL; a subagent deleted between the two steps answers the
- * reference rule's missing copy.
+ * over; a state with no metadata and a store fault reading a subagent are
+ * INTERNAL; a reference still written by a name nothing held, and a
+ * subagent deleted between the two steps, answer the reference rule's
+ * missing copy, the latter naming the id the reference holds.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -69,6 +69,7 @@ import {
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import {
   missingReferencesMessage,
+  newNormalizeReferencesStep,
   newValidateReferencesStep,
   referenceTargetKind,
 } from "../../../pipeline/steps/references.js";
@@ -81,6 +82,7 @@ import {
   nestedSubagentMessage,
   newPinSubagentsStep,
   newValidateSubagentListStep,
+  newValidateSubagentNamesStep,
   selfListedMessage,
   subagentNotRunnableMessage,
   subagentUnversionedMessage,
@@ -335,15 +337,40 @@ describe("saving an agent pins each subagent it lists", () => {
   });
 
   it("refuses two agents of one slug from two organizations: a turn names a subagent by its slug", async () => {
+    const names = {
+      resourceNames: {
+        currentMany: (holders: ReadonlyArray<{ kind: string; org: string; id: string }>) =>
+          Promise.resolve(holders.map((h) => ({ ...h, name: "helper", state: "current" as const, claimedAt: "", expiresAt: "" }))),
+      },
+    } as unknown as typeof server.store;
+    const ctx = new RequestContext(
+      AgentSchema,
+      create(AgentSchema, {
+        metadata: { name: "parent", slug: "parent", org: ORG_ID },
+        spec: {
+          subagents: [
+            { kind: ApiResourceKind.agent, org: ORG_ID, id: "agt_mine" },
+            { kind: ApiResourceKind.agent, org: "globex", id: "agt_theirs" },
+          ],
+        },
+      }),
+      testCallerIdentity(),
+      ApiResourceKind.agent,
+    );
+    await expect(newValidateSubagentNamesStep(names).execute(ctx)).rejects.toMatchObject({
+      code: Code.InvalidArgument,
+      rawMessage: listedTwiceMessage("helper"),
+    });
+  });
+
+  it("judges another organization's agent before comparing names, so the answer never says what that organization holds", async () => {
     const child = await command.create(agentInput(uniqueName("helper")));
     const slug = child.metadata!.slug;
-    await expectRefused(
-      command.create(
-        agentInput(uniqueName("parent"), { subagents: [{ slug }, { slug, org: "globex" }] }),
-      ),
-      Code.InvalidArgument,
-      listedTwiceMessage(slug),
+    const error = await grpcError(
+      command.create(agentInput(uniqueName("parent"), { subagents: [{ slug }, { slug, org: "globex" }] })),
     );
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toContain(`referenced agent '${slug}' of another organization is not available`);
   });
 
   it("refuses a subagent whose pinned version lists subagents, and admits an older version without them", async () => {
@@ -486,7 +513,7 @@ describe("the writer clause on subagents", () => {
         subagents: listed.map((agent) => ({
           kind: ApiResourceKind.agent,
           org: ORG_ID,
-          slug: agent.metadata!.slug,
+          id: agent.metadata!.id,
           version: pinned.get(agent) ?? "",
         })),
       },
@@ -635,7 +662,11 @@ describe("the writer clause on subagents", () => {
     const authorizer = runs([], { anas: "", gone: "", flaky: "" });
     await newValidateReferencesStep<typeof AgentSchema>(server.store, authorizer).execute(ctx);
     await newPinSubagentsStep(server.store, authorizer).execute(ctx);
-    expect(pins(ctx.newState)).toEqual([[teams.metadata!.slug, teams.status!.versionHash]]);
+    // The step's own state holds the id NormalizeReferences resolved; a
+    // read through the API names it again (the pins above).
+    expect(ctx.newState.spec!.subagents.map((ref) => [ref.id, ref.version])).toEqual([
+      [teams.metadata!.id, teams.status!.versionHash],
+    ]);
   });
 });
 
@@ -680,9 +711,10 @@ describe("the two steps' own faults", () => {
     });
   }
 
-  it("ValidateSubagentList passes over a reference with no slug, however many there are", () => {
+  it("ValidateSubagentList and ValidateSubagentNames pass over a reference with no slug, however many there are", async () => {
     const ctx = context(["", "", "lone"]);
     expect(() => newValidateSubagentListStep().execute(ctx)).not.toThrow();
+    await expect(newValidateSubagentNamesStep(server.store).execute(ctx)).resolves.toBeUndefined();
   });
 
   it("PinSubagents on a state with no metadata is INTERNAL", async () => {
@@ -690,15 +722,20 @@ describe("the two steps' own faults", () => {
     expect(error.code).toBe(Code.Internal);
   });
 
-  it("PinSubagents run without ValidateReferences' recorded targets is INTERNAL, a wiring fault", async () => {
-    const helper = await command.create(agentInput(uniqueName("unvalidated")));
-    const error = await grpcError(pin(server.store, context([helper.metadata!.slug])));
-    expect(error.code).toBe(Code.Internal);
+  it("PinSubagents reads each listed agent by its id: a reference still written by a name nothing held answers the missing copy", async () => {
+    await expectRefused(
+      pin(server.store, context(["nobody-holds-this"])),
+      Code.FailedPrecondition,
+      missingReferencesMessage(referenceTargetKind(ApiResourceKind.agent)!, [
+        { slug: "nobody-holds-this", org: ORG_ID },
+      ]),
+    );
   });
 
   it("a store fault while reading a subagent is INTERNAL", async () => {
     const helper = await command.create(agentInput(uniqueName("unreadable")));
     const ctx = context([helper.metadata!.slug]);
+    await newNormalizeReferencesStep<typeof AgentSchema>(server.store).execute(ctx);
     await newValidateReferencesStep<typeof AgentSchema>(server.store, admits).execute(ctx);
     const error = await grpcError(pin(readingFails(), ctx));
     expect(error.code).toBe(Code.Internal);
@@ -707,13 +744,14 @@ describe("the two steps' own faults", () => {
   it("a subagent that leaves between ValidateReferences and PinSubagents answers the reference rule's missing copy", async () => {
     const helper = await command.create(agentInput(uniqueName("leaving")));
     const ctx = context([helper.metadata!.slug]);
+    await newNormalizeReferencesStep<typeof AgentSchema>(server.store).execute(ctx);
     await newValidateReferencesStep<typeof AgentSchema>(server.store, admits).execute(ctx);
     await command.delete({ value: helper.metadata!.id });
     await expectRefused(
       pin(server.store, ctx),
       Code.FailedPrecondition,
       missingReferencesMessage(referenceTargetKind(ApiResourceKind.agent)!, [
-        { slug: helper.metadata!.slug, org: ORG_ID },
+        { slug: helper.metadata!.id, org: ORG_ID },
       ]),
     );
   });

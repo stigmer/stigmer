@@ -106,12 +106,20 @@ describe("assertReferenceRequirements", () => {
     )).not.toThrow();
   });
 
+  it("passes a reference by id alone: the server reads it by its id", () => {
+    expect(() => assertReferenceRequirements(
+      { id: "agt_1", slug: "", org: "", kind: 1 },
+      "Agent",
+      "test",
+    )).not.toThrow();
+  });
+
   it("rejects empty slug", () => {
     expect(() => assertReferenceRequirements(
       { slug: "", org: "test-org", kind: 1 },
       "Agent",
       "getAgentByReference",
-    )).toThrow(/requires a non-empty slug/);
+    )).toThrow(/requires a non-empty slug or id/);
   });
 
   it("rejects missing slug", () => {
@@ -119,7 +127,7 @@ describe("assertReferenceRequirements", () => {
       { org: "test-org", kind: 1 },
       "Agent",
       "test",
-    )).toThrow(/requires a non-empty slug/);
+    )).toThrow(/requires a non-empty slug or id/);
   });
 
   it("rejects empty org", () => {

@@ -51,7 +51,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "o\0322ai/stigmer/commons/apiresource/field_" +
       "options.proto\032\'ai/stigmer/commons/apires" +
       "ource/io.proto\032\033buf/validate/validate.pr" +
-      "oto\"\220\t\n\016PluginEvalSpec\022$\n\tplugin_id\030\001 \001(" +
+      "oto\"\273\010\n\016PluginEvalSpec\022$\n\tplugin_id\030\001 \001(" +
       "\tB\007\272H\004r\002\020\001R\010pluginId\022=\n\rplugin_digest\030\002 " +
       "\001(\tB\030\272H\025r\0232\021^$|^[a-f0-9]{64}$R\014pluginDig" +
       "est\022V\n\007targets\030\003 \003(\01322.ai.stigmer.agenti" +
@@ -73,25 +73,23 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9" +
       "_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+" +
       "\\))?)$R\nallowTools\022(\n\020real_mcp_servers\030\r" +
-      " \001(\010R\016realMcpServers\022\256\001\n\006vaults\030\016 \003(\01324." +
-      "ai.stigmer.commons.apiresource.ApiResour" +
-      "ceReferenceB`\272HY\222\001V\020\024\"R\272\001O\n\013vaults.kind\022" +
-      "/vaults must reference resources with ki" +
-      "nd=vault\032\017this.kind == 59\340\205,;R\006vaults\022#\n" +
-      "\rskip_scaffold\030\017 \001(\010R\014skipScaffold\022,\n\022al" +
-      "low_real_servers\030\020 \001(\010R\020allowRealServers" +
-      "B\014\n\n_threshold\"\207\001\n\020PluginEvalTarget\022J\n\007h" +
-      "arness\030\001 \001(\0162&.ai.stigmer.agentic.sessio" +
-      "n.v1.HarnessB\010\272H\005\202\001\002\020\001R\007harness\022\'\n\nmodel" +
-      "_name\030\002 \001(\tB\010\272H\005r\003\030\200\001R\tmodelName*\200\001\n\022Plu" +
-      "ginEvalAblation\022$\n plugin_eval_ablation_" +
-      "unspecified\020\000\022%\n!plugin_eval_ablation_wi" +
-      "th_without\020\001\022\035\n\031plugin_eval_ablation_non" +
-      "e\020\002B\260\001B\tSpecProtoP\001\242\002\004ASAP\252\002 Ai.Stigmer." +
-      "Agentic.Plugineval.V1\312\002 Ai\\Stigmer\\Agent" +
-      "ic\\Plugineval\\V1\342\002,Ai\\Stigmer\\Agentic\\Pl" +
-      "ugineval\\V1\\GPBMetadata\352\002$Ai::Stigmer::A" +
-      "gentic::Plugineval::V1b\006proto3"
+      " \001(\010R\016realMcpServers\022Z\n\006vaults\030\016 \003(\01324.a" +
+      "i.stigmer.commons.apiresource.ApiResourc" +
+      "eReferenceB\014\272H\005\222\001\002\020\024\340\205,;R\006vaults\022#\n\rskip" +
+      "_scaffold\030\017 \001(\010R\014skipScaffold\022,\n\022allow_r" +
+      "eal_servers\030\020 \001(\010R\020allowRealServersB\014\n\n_" +
+      "threshold\"\207\001\n\020PluginEvalTarget\022J\n\007harnes" +
+      "s\030\001 \001(\0162&.ai.stigmer.agentic.session.v1." +
+      "HarnessB\010\272H\005\202\001\002\020\001R\007harness\022\'\n\nmodel_name" +
+      "\030\002 \001(\tB\010\272H\005r\003\030\200\001R\tmodelName*\200\001\n\022PluginEv" +
+      "alAblation\022$\n plugin_eval_ablation_unspe" +
+      "cified\020\000\022%\n!plugin_eval_ablation_with_wi" +
+      "thout\020\001\022\035\n\031plugin_eval_ablation_none\020\002B\260" +
+      "\001B\tSpecProtoP\001\242\002\004ASAP\252\002 Ai.Stigmer.Agent" +
+      "ic.Plugineval.V1\312\002 Ai\\Stigmer\\Agentic\\Pl" +
+      "ugineval\\V1\342\002,Ai\\Stigmer\\Agentic\\Plugine" +
+      "val\\V1\\GPBMetadata\352\002$Ai::Stigmer::Agenti" +
+      "c::Plugineval::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

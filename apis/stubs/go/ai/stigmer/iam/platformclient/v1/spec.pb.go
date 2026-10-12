@@ -232,7 +232,7 @@ var File_ai_stigmer_iam_platformclient_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_platformclient_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/iam/platformclient/v1/spec.proto\x12 ai.stigmer.iam.platformclient.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb5\b\n" +
+	"+ai/stigmer/iam/platformclient/v1/spec.proto\x12 ai.stigmer.iam.platformclient.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe0\a\n" +
 	"\x12PlatformClientSpec\x12!\n" +
 	"\tclient_id\x18\x01 \x01(\tB\x04ȅ,\x01R\bclientId\x122\n" +
 	"\x12client_secret_hash\x18\x02 \x01(\tB\x04ȅ,\x01R\x10clientSecretHash\x123\n" +
@@ -240,9 +240,8 @@ const file_ai_stigmer_iam_platformclient_v1_spec_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12#\n" +
 	"\rnever_expires\x18\x05 \x01(\bR\fneverExpires\x12'\n" +
-	"\x0fallowed_origins\x18\t \x03(\tR\x0eallowedOrigins\x12\xae\x01\n" +
-	"\x06vaults\x18\r \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB`\xbaHY\x92\x01V\x10\x14\"R\xba\x01O\n" +
-	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12:\n" +
+	"\x0fallowed_origins\x18\t \x03(\tR\x0eallowedOrigins\x12Z\n" +
+	"\x06vaults\x18\r \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,;R\x06vaults\x12:\n" +
 	"\x1acreate_accounts_on_sign_in\x18\v \x01(\bR\x16createAccountsOnSignIn\x12<\n" +
 	"\fsign_in_role\x18\f \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\n" +
 	"signInRole:\xf7\x02\xbaH\xf3\x02\x1a\xdb\x01\n" +

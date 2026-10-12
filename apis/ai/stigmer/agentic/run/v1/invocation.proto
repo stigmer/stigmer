@@ -51,12 +51,7 @@ message AgentInvocation {
   // failed start, never as a silent stall.
   ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [
     (ai.stigmer.commons.apiresource.reference_kind) = agent,
-    (buf.validate.field).required = true,
-    (buf.validate.field).cel = {
-      id: "agent_ref.kind"
-      message: "agent_ref must reference a resource with kind=agent"
-      expression: "this.kind == 40"
-    }
+    (buf.validate.field).required = true
   ];
 
   // Prompt the run starts from.
@@ -121,12 +116,7 @@ message AgentInvocation {
   // stops the schedule at its next fire.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [
     (ai.stigmer.commons.apiresource.reference_kind) = vault,
-    (buf.validate.field).repeated.max_items = 20,
-    (buf.validate.field).repeated.items.cel = {
-      id: "vaults.kind"
-      message: "vaults must reference resources with kind=vault"
-      expression: "this.kind == 59"
-    }
+    (buf.validate.field).repeated.max_items = 20
   ];
 
   // Per-invocation model choice and run bounds. Unset fields fall to the

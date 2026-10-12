@@ -30,7 +30,10 @@ export function toTimestamp(value: Date | string): Timestamp {
 /**
  * Narrow a fetched ApiResourceReference to the ResourceRef input shape,
  * or `undefined` when the reference is absent/empty (the builders treat a
- * ref without org and slug as "no reference"). `version` is preserved —
+ * ref without org, slug and id as "no reference"). `id` is preserved: a
+ * stored reference holds the id of the resource it means, and one whose
+ * resource was deleted comes back with an id and no slug, so saving it
+ * back without the id would name nothing. `version` is preserved —
  * dropping it would reset a pinned reference to "latest". `kind` is also
  * preserved: builders overwrite it where the proto annotates a reference
  * kind, but refs without that annotation (e.g. an organization's
@@ -38,10 +41,11 @@ export function toTimestamp(value: Date | string): Timestamp {
  * lossy.
  */
 export function toResourceRefInput(ref: ApiResourceReference | undefined): ResourceRef | undefined {
-  if (!ref || (!ref.org && !ref.slug)) return undefined;
+  if (!ref || (!ref.org && !ref.slug && !ref.id)) return undefined;
   return {
     org: ref.org,
     slug: ref.slug,
+    ...(ref.id && { id: ref.id }),
     ...(ref.version && { version: ref.version }),
     ...(ref.kind && { kind: ref.kind }),
   };

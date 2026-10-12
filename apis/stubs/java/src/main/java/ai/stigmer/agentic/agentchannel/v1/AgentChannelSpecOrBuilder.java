@@ -206,7 +206,7 @@ public interface AgentChannelSpecOrBuilder extends
    * WhatsApp channel installs through your own Meta app.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
    * @return Whether the appRef field is set.
    */
   boolean hasAppRef();
@@ -222,7 +222,7 @@ public interface AgentChannelSpecOrBuilder extends
    * WhatsApp channel installs through your own Meta app.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
    * @return The appRef.
    */
   ai.stigmer.commons.apiresource.ApiResourceReference getAppRef();
@@ -238,7 +238,7 @@ public interface AgentChannelSpecOrBuilder extends
    * WhatsApp channel installs through your own Meta app.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAppRefOrBuilder();
 

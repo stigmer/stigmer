@@ -310,21 +310,23 @@ describe("PlatformClient chains", () => {
     }
   });
 
-  it("stores a bare vault slug under the client's organization, recording who attached it", async () => {
+  it("stores a bare vault slug as the vault's id under the client's organization, recording who attached it", async () => {
     await seedVault("acme", "support-secrets");
     const created = await command.create(
       input("Dashboard", {
         vaults: [vaultRef("support-secrets")],
       }),
     );
+    // This transport composes no reference fill, so the answer shows the
+    // stored form: the organization and the id, no slug.
     const refsOf = (spec: PlatformClientSpec | undefined) =>
-      (spec?.vaults ?? []).map((ref) => `${ref.org}/${ref.slug}`);
+      (spec?.vaults ?? []).map((ref) => `${ref.org}/${ref.id}/${ref.slug}`);
     expect(refsOf(created.platformClient?.spec)).toEqual([
-      "acme/support-secrets",
+      "acme/vlt_acme_support-secrets/",
     ]);
     const id = created.platformClient?.metadata?.id ?? "";
     expect(refsOf((await clients.findById(id))?.spec)).toEqual([
-      "acme/support-secrets",
+      "acme/vlt_acme_support-secrets/",
     ]);
     expect(
       Object.keys(
@@ -377,6 +379,7 @@ describe("PlatformClient chains", () => {
     expect(foreign.rawMessage).toBe(
       notAvailableReferenceMessage(vaultTarget(), {
         kind: ApiResourceKind.vault,
+        id: "",
         org: "globex",
         slug: "shared",
       }),

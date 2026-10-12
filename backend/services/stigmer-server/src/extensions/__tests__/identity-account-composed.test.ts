@@ -147,13 +147,13 @@ function recordingStore(
       calls.push("findByOrg");
       return inner.findByOrg(org);
     },
-    findByProviderAndIdpId: (providerOrg, providerSlug, idpId) => {
+    findByProviderAndIdpId: (providerId, idpId) => {
       calls.push("findByProviderAndIdpId");
-      return inner.findByProviderAndIdpId(providerOrg, providerSlug, idpId);
+      return inner.findByProviderAndIdpId(providerId, idpId);
     },
-    findByProvider: (providerOrg, providerSlug) => {
+    findByProvider: (providerId) => {
       calls.push("findByProvider");
-      return inner.findByProvider(providerOrg, providerSlug);
+      return inner.findByProvider(providerId);
     },
   };
 }
@@ -227,10 +227,11 @@ describe("identity-account points (composed server, trusted-local: driver + fede
   interface ArmCall {
     readonly method: string;
     readonly refOrg: string;
-    readonly refSlug: string;
+    readonly refId: string;
     readonly callerIdentityId: string;
   }
   const armCalls: ArmCall[] = [];
+  const OKTA_ID = "idp_01hzacmeokta0000000000000";
   let providerExistsCalls = 0;
   let providerExists = true;
 
@@ -252,7 +253,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
       armCalls.push({
         method,
         refOrg: ref.org,
-        refSlug: ref.slug,
+        refId: ref.id,
         callerIdentityId: caller.identityId,
       });
       return Promise.resolve(federatedAccount(method));
@@ -309,6 +310,13 @@ describe("identity-account points (composed server, trusted-local: driver + fede
       host: "127.0.0.1",
     });
     const port = await server.start();
+    // The identity provider the federated inputs name, as an edition that
+    // serves providers claims its name (the OSS server has none of its own).
+    await server.store.resourceNames.claim(
+      { kind: "identity_provider", org: "acme", name: "okta" },
+      OKTA_ID,
+      new Date().toISOString(),
+    );
     const transport = transportFor(port);
     command = createClient(IdentityAccountCommandController, transport);
     query = createClient(IdentityAccountQueryController, transport);
@@ -353,8 +361,9 @@ describe("identity-account points (composed server, trusted-local: driver + fede
 
   describe("the federation capability, present", () => {
     // Inputs that pass the boundary validator (refinement 6), so every
-    // refusal below is the HANDLER's. `slug` is required by the
-    // reference's own rules; `org` on the reference may be empty.
+    // refusal below is the HANDLER's. The reference names the provider by
+    // its slug, which the handler resolves to its id before the arm runs;
+    // `org` on the reference may be empty.
     const ref = { org: "acme", slug: "okta" };
 
     it.each([
@@ -411,7 +420,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
           {
             method: name,
             refOrg: "acme",
-            refSlug: "okta",
+            refId: OKTA_ID,
             callerIdentityId: OPERATOR_EMAIL,
           },
         ]);
@@ -440,7 +449,7 @@ describe("identity-account points (composed server, trusted-local: driver + fede
       );
       expect(error.code).toBe(Code.InvalidArgument);
       expect(error.rawMessage).toBe(
-        "identity_provider_ref with a valid slug is required",
+        "identity_provider_ref with a valid slug or id is required",
       );
       expect(armCalls).toEqual([]);
     });
@@ -603,7 +612,7 @@ describe("identity-account points (composed server, declared posture: the verifi
       }
       // A federated row sits at the address of its provider and subject:
       // the OSS adapter under the driver refuses any other id.
-      const laneAccount = federatedAccountIdFor("acme", "acme-okta", subject);
+      const laneAccount = federatedAccountIdFor("idp_01hzacmeokta0000000000000", subject);
       await driver.accounts.save(
         create(IdentityAccountSchema, {
           apiVersion: "iam.stigmer.ai/v1",
@@ -612,7 +621,7 @@ describe("identity-account points (composed server, declared posture: the verifi
           spec: {
             idpId: subject,
             provisioningMode: IdentityAccountProvisioningMode.federated,
-            identityProviderRef: { org: "acme", slug: "acme-okta" },
+            identityProviderRef: { org: "acme", id: "idp_01hzacmeokta0000000000000" },
           },
         }),
       );

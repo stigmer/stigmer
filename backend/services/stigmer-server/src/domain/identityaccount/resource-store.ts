@@ -12,7 +12,7 @@
  * no scan, and it is why `save` refuses a direct account whose id is not
  * its derived id — a stray row would be unreachable by subject forever.
  * A federated account is addressed the same way by its own natural key:
- * its id is `federatedAccountIdFor(provider org, provider slug, subject)`,
+ * its id is `federatedAccountIdFor(provider id, subject)`,
  * so the federated sign-in's lookup is one primary-key read too, and
  * `save` refuses a federated account whose id is not that address. The
  * reserved `stgm_fed|` text keeps the two address spaces apart
@@ -165,43 +165,41 @@ export function newResourceIdentityAccountStore(
     },
 
     async findByProviderAndIdpId(
-      providerOrg,
-      providerSlug,
+      providerId,
       idpId,
     ): Promise<IdentityAccount | undefined> {
       let id: string;
       try {
-        id = federatedAccountIdFor(providerOrg, providerSlug, idpId);
+        id = federatedAccountIdFor(providerId, idpId);
       } catch {
-        // An empty part, or a provider part holding the separator, names
+        // An empty part, or a provider id holding the separator, names
         // no account: `save` refuses a federated row with either, so no
         // row carries it.
         return undefined;
       }
       const account = await readById(id);
       return account !== undefined &&
-        isVouchedForBy(account, providerOrg, providerSlug) &&
+        isVouchedForBy(account, providerId) &&
         account.spec?.idpId === idpId
         ? account
         : undefined;
     },
 
     async findByProvider(
-      providerOrg,
-      providerSlug,
+      providerId,
     ): Promise<ReadonlyArray<IdentityAccount>> {
-      if (providerOrg === "" || providerSlug === "") {
+      if (providerId === "") {
         return [];
       }
       const rows = await store.findAllByField(
         KIND,
-        "spec.identity_provider_ref.slug",
-        providerSlug,
+        "spec.identity_provider_ref.id",
+        providerId,
         IdentityAccountSchema,
       );
       return rows
         .map((bytes) => fromBinary(IdentityAccountSchema, bytes))
-        .filter((account) => isVouchedForBy(account, providerOrg, providerSlug))
+        .filter((account) => isVouchedForBy(account, providerId))
         .sort((a, b) => compareIds(a.metadata?.id ?? "", b.metadata?.id ?? ""));
     },
 
@@ -251,27 +249,17 @@ function refuseMixedShape(account: IdentityAccount): void {
 function federatedAddressOf(account: IdentityAccount): string | undefined {
   const ref = account.spec?.identityProviderRef;
   try {
-    return federatedAccountIdFor(
-      ref?.org ?? "",
-      ref?.slug ?? "",
-      account.spec?.idpId ?? "",
-    );
+    return federatedAccountIdFor(ref?.id ?? "", account.spec?.idpId ?? "");
   } catch {
     return undefined;
   }
 }
 
-/** Whether a federated row names exactly this provider as the one that vouches for it. */
-function isVouchedForBy(
-  account: IdentityAccount,
-  providerOrg: string,
-  providerSlug: string,
-): boolean {
-  const ref = account.spec?.identityProviderRef;
+/** Whether a federated row names exactly this provider, by id, as the one that vouches for it. */
+function isVouchedForBy(account: IdentityAccount, providerId: string): boolean {
   return (
     isFederated(account) &&
-    ref?.org === providerOrg &&
-    ref.slug === providerSlug
+    account.spec?.identityProviderRef?.id === providerId
   );
 }
 

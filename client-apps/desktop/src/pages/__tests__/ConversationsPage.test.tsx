@@ -110,5 +110,7 @@ describe("desktop ConversationsPage", () => {
       "#/library/agents/acme/helper?tab=channels",
     );
     expect(href?.({ spec: {} })).toBeNull();
+    // An agent deleted since the channel was made comes back with no slug.
+    expect(href?.({ spec: { agentRef: { org: "org_acme", slug: "", id: "agt_gone" } } })).toBeNull();
   });
 });

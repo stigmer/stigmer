@@ -30,6 +30,7 @@ import {
   type GetArtifactContentRequest,
   type GetArtifactContentResponse,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import {
@@ -549,6 +550,18 @@ describe("transcriptToMarkdown", () => {
       writeFileSync(goldenPath, actual);
     }
     expect(actual).toBe(readFileSync(goldenPath, "utf8"));
+  });
+
+  it("names a deleted agent as deleted: the server returns its reference with an id and no slug", () => {
+    const gone = session();
+    gone.spec!.agentRef = create(ApiResourceReferenceSchema, {
+      org: "acme",
+      kind: ApiResourceKind.agent,
+      id: "agt_01gone",
+    });
+    const md = transcriptToMarkdown(assembleSessionTranscript(gone, [exec1()]));
+    expect(md).toContain("- Agent: deleted agent");
+    expect(md).not.toContain("agt_01gone");
   });
 
   it("stamps the export time only when provided", () => {

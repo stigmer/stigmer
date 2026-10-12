@@ -1,8 +1,8 @@
 /**
  * LoadByReference — ports steps/load_by_reference.go. GetByReference's
  * loader: validates the reference (kind mismatch → InvalidArgument;
- * org-scoped kinds require an org — RequireOrgForReference), resolves by
- * slug with optional org narrowing, stores under TargetResource.
+ * org-scoped kinds require an org for a slug — RequireOrgForReference),
+ * resolves by id, or by slug in its org, stores under TargetResource.
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
@@ -16,7 +16,7 @@ import { apiResourceKindName } from "../../store/proto-fields.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { requireOrgForReference } from "./helpers.js";
-import { findResourceByName } from "./names.js";
+import { findByReference } from "./references.js";
 import { TARGET_RESOURCE_KEY } from "./load-target.js";
 
 export function newLoadByReferenceStep<TargetDesc extends DescMessage>(
@@ -29,8 +29,8 @@ export function newLoadByReferenceStep<TargetDesc extends DescMessage>(
       ctx: RequestContext<typeof ApiResourceReferenceSchema>,
     ): Promise<void> {
       const ref = ctx.input;
-      if (ref.slug === "") {
-        throw invalidArgumentError("slug is required in reference");
+      if (ref.slug === "" && ref.id === "") {
+        throw invalidArgumentError("slug or id is required in reference");
       }
 
       const kind = ctx.apiResourceKind;
@@ -43,12 +43,14 @@ export function newLoadByReferenceStep<TargetDesc extends DescMessage>(
         );
       }
 
-      requireOrgForReference(kind, ref.org);
+      if (ref.id === "") {
+        requireOrgForReference(kind, ref.org);
+      }
 
       const target: MessageShape<TargetDesc> | undefined =
-        await findResourceByName(store, kind, targetSchema, ref.org, ref.slug);
+        await findByReference(store, kind, targetSchema, ref);
       if (target === undefined) {
-        throw notFoundError(getKindName(kind), ref.slug);
+        throw notFoundError(getKindName(kind), ref.slug !== "" ? ref.slug : ref.id);
       }
 
       ctx.set(TARGET_RESOURCE_KEY, target);

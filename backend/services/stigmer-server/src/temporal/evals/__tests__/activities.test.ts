@@ -83,6 +83,7 @@ import {
   DIGEST,
   EVAL_ID,
   ORG,
+  PLUGIN_ID,
   PLUGIN_SERVER_SEGMENT,
   catalog,
   lane,
@@ -399,7 +400,10 @@ describe("start-try", () => {
     expect(session.session.spec?.plugins[0]).toMatchObject({
       org: ORG,
       kind: ApiResourceKind.plugin,
-      slug: "thermos",
+      // The try names the plugin by the id the eval loaded, never by a
+      // name a remade plugin could take.
+      id: PLUGIN_ID,
+      slug: "",
       version: DIGEST,
     });
     const run = record.runs[0]!;

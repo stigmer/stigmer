@@ -836,7 +836,7 @@ var File_ai_stigmer_iam_identityaccount_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/iam/identityaccount/v1/io.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"`\n" +
+	"*ai/stigmer/iam/identityaccount/v1/io.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a\x1cai/stigmer/iam/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"`\n" +
 	"\x10IdentityAccounts\x12L\n" +
 	"\aentries\x18\x01 \x03(\v22.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\aentries\"1\n" +
 	"\x11IdentityAccountId\x12\x1c\n" +
@@ -854,34 +854,34 @@ const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
 	"\aentries\x18\x02 \x03(\v22.ai.stigmer.iam.identityaccount.v1.IdentityAccountR\aentries\"]\n" +
 	"\x13ListWithIdentityOrg\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\x124\n" +
-	"\x04page\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\"\xc2\x01\n" +
+	"\x04page\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\x04page\"\xc8\x01\n" +
 	"\x11ExternalSubLookup\x12\x18\n" +
-	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12h\n" +
-	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12)\n" +
-	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\"\xc7\x02\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n" +
+	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n" +
+	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\"\xcd\x02\n" +
 	"\x1bCreateFederatedAccountInput\x12\x18\n" +
-	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12h\n" +
-	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12)\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n" +
+	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n" +
 	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\x12\x1c\n" +
 	"\x05email\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05email\x12\x1d\n" +
 	"\n" +
 	"first_name\x18\x05 \x01(\tR\tfirstName\x12\x1b\n" +
 	"\tlast_name\x18\x06 \x01(\tR\blastName\x12\x1f\n" +
 	"\vpicture_url\x18\a \x01(\tR\n" +
-	"pictureUrl\"\xc7\x02\n" +
+	"pictureUrl\"\xcd\x02\n" +
 	"\x1bUpdateFederatedAccountInput\x12\x18\n" +
-	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12h\n" +
-	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12)\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n" +
+	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n" +
 	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\x12\x1c\n" +
 	"\x05email\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05email\x12\x1d\n" +
 	"\n" +
 	"first_name\x18\x05 \x01(\tR\tfirstName\x12\x1b\n" +
 	"\tlast_name\x18\x06 \x01(\tR\blastName\x12\x1f\n" +
 	"\vpicture_url\x18\a \x01(\tR\n" +
-	"pictureUrl\"\xf8\x01\n" +
+	"pictureUrl\"\xfe\x01\n" +
 	" DeprovisionFederatedAccountInput\x12\x18\n" +
-	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12h\n" +
-	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12)\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12n\n" +
+	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12)\n" +
 	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\x12%\n" +
 	"\x0edelete_account\x18\x04 \x01(\bR\rdeleteAccount\"\xb9\x02\n" +
 	"\x19CreateServiceAccountInput\x12\x18\n" +

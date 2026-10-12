@@ -135,6 +135,7 @@ import { agentSearchExtractor } from "./search-extractor.js";
 import {
   newCascadeDeleteSharesStep,
   newValidateHooksStep,
+  newValidatePluginListStep,
 } from "./steps.js";
 import { newCascadeDeleteEvaluatorsStep } from "../evaluator/cascade.js";
 import { newCascadeDeleteAgentEvalsStep } from "../agent-eval/cascade.js";
@@ -157,6 +158,7 @@ import { newValidateAgentRunConfigStep } from "./validate-run-config.js";
 import {
   newPinSubagentsStep,
   newValidateSubagentListStep,
+  newValidateSubagentNamesStep,
 } from "./subagents.js";
 
 export interface AgentControllerDeps {
@@ -223,6 +225,7 @@ async function createAgent(
       newAuthorizeStep(AgentCommandController.method.create, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newValidateVisibilityStep())
     .addStep(newRefuseChildOrgsVisibilityInChildStep(deps.store))
     .addStep(newRequireChildOrgsAuthorityStep(deps.authorizer))
@@ -232,8 +235,9 @@ async function createAgent(
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateHooksStep())
     .addStep(newValidateSubagentListStep())
-    .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newValidatePluginListStep(deps.store))
+    .addStep(newValidateSubagentNamesStep(deps.store))
     .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
@@ -279,11 +283,13 @@ async function update(
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateHooksStep())
     .addStep(newValidateSubagentListStep())
-    .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newValidatePluginListStep(deps.store))
+    .addStep(newValidateSubagentNamesStep(deps.store))
     .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())

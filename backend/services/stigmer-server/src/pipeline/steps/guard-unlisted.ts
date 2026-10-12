@@ -99,10 +99,7 @@ export function newGuardUnlistedStep<Desc extends DescMessage>(
           continue;
         }
         const lists = collectSpecReferences(AgentSchema, agent).some(
-          (ref) =>
-            ref.kind === target.kind &&
-            ref.slug === slug &&
-            (ref.org === "" || ref.org === org),
+          (ref) => ref.kind === target.kind && ref.id === id,
         );
         if (lists) {
           referrers.push(agentMetadata.slug);

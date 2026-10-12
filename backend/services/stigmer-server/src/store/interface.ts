@@ -250,6 +250,13 @@ export interface ResourceNameKey {
   readonly name: string;
 }
 
+/** A resource that may hold names: its kind's enum name, its scope, and its id. */
+export interface ResourceNameHolder {
+  readonly kind: string;
+  readonly org: string;
+  readonly id: string;
+}
+
 /**
  * One name a resource answers to. A resource has one `current` name, its
  * slug, and any `previous` names its renames left, each held until
@@ -324,6 +331,13 @@ export interface ResourceNameStore {
   resolve(key: ResourceNameKey, now: string): Promise<ResourceNameEntry | undefined>;
   /** The current name `id` holds in the kind and scope, or undefined when it holds none. */
   current(kind: string, org: string, id: string): Promise<ResourceNameEntry | undefined>;
+  /**
+   * The current names of many holders in one read, for a response that
+   * names every resource its references hold (the reference fill,
+   * pipeline/interceptors/resource-references.ts). A holder that holds no
+   * current name is absent from the answer; the order is unspecified.
+   */
+  currentMany(holders: ReadonlyArray<ResourceNameHolder>): Promise<ReadonlyArray<ResourceNameEntry>>;
   /**
    * Takes the name as `id`'s current name when nothing holds it at `now`,
    * atomically: of concurrent claims, exactly one wins, and an expired

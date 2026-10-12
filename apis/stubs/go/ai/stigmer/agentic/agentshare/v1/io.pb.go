@@ -481,7 +481,7 @@ var File_ai_stigmer_agentic_agentshare_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/agentshare/v1/io.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"1\n" +
+	")ai/stigmer/agentic/agentshare/v1/io.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/agentshare/v1/api.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"1\n" +
 	"\fAgentShareId\x12!\n" +
 	"\x05value\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\x05value\"\x92\x01\n" +
 	"\x1cGetAgentSharesByAgentRequest\x12!\n" +
@@ -505,14 +505,14 @@ const file_ai_stigmer_agentic_agentshare_v1_io_proto_rawDesc = "" +
 	"\x17GetSharedProfileRequest\x12&\n" +
 	"\bshare_id\x18\x04 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\ashareId\x12'\n" +
 	"\n" +
-	"link_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tlinkTokenJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x03orgR\x04slug\"\xf9\x01\n" +
+	"link_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tlinkTokenJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x03orgR\x04slug\"\xff\x01\n" +
 	"\x12SharedAgentProfile\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\x12\x12\n" +
 	"\x04slug\x18\x02 \x01(\tR\x04slug\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x19\n" +
-	"\bicon_url\x18\x05 \x01(\tR\aiconUrl\x12Q\n" +
-	"\tagent_ref\x18\a \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\bagentRefJ\x04\b\x06\x10\aR\x13default_instance_idB\xac\x02\n" +
+	"\bicon_url\x18\x05 \x01(\tR\aiconUrl\x12W\n" +
+	"\tagent_ref\x18\a \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,(R\bagentRefJ\x04\b\x06\x10\aR\x13default_instance_idB\xac\x02\n" +
 	"$com.ai.stigmer.agentic.agentshare.v1B\aIoProtoP\x01ZVgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1;agentsharev1\xa2\x02\x04ASAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3"
 
 var (

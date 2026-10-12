@@ -97,52 +97,41 @@ describe("accountIdFor — the derived account id", () => {
 });
 
 describe("federatedAccountIdFor — the address of a federated account", () => {
-  const ORG = "org_01hzacme000000000000000000";
+  const OKTA = "idp_01hzacmeokta00000000000000";
+  const AZURE = "idp_01hzacmeazure0000000000000";
 
-  it("pins the golden vector (a change re-addresses every OSS federated account)", () => {
-    expect(federatedAccountIdFor(ORG, "acme-okta", "okta|dana")).toBe(
-      "ida_j2tx1qsp0dk7qrbf0726a04ahh",
-    );
+  it("pins the golden vector (a change re-addresses every federated account)", () => {
+    expect(federatedAccountIdFor(OKTA, "okta|dana")).toBe("ida_7s3y6pmj0eqn8m1gf7nr48dekc");
   });
 
   it("is the derived id of the reserved text, never the subject's own address", () => {
-    expect(federatedAccountIdFor(ORG, "acme-okta", "okta|dana")).toBe(
-      accountIdFor(`${FEDERATED_SUBJECT_PREFIX}${ORG}|acme-okta|okta|dana`),
+    expect(federatedAccountIdFor(OKTA, "okta|dana")).toBe(
+      accountIdFor(`${FEDERATED_SUBJECT_PREFIX}${OKTA}|okta|dana`),
     );
-    expect(federatedAccountIdFor(ORG, "acme-okta", "okta|dana")).not.toBe(
+    expect(federatedAccountIdFor(OKTA, "okta|dana")).not.toBe(
       accountIdFor("okta|dana"),
     );
-    expect(federatedAccountIdFor(ORG, "acme-okta", "x")).toMatch(CROCKFORD_ID);
+    expect(federatedAccountIdFor(OKTA, "x")).toMatch(CROCKFORD_ID);
   });
 
   it("keeps two providers' same subject apart, and a subject holding the separator is the whole remainder", () => {
-    expect(federatedAccountIdFor(ORG, "acme-okta", "shared|sam")).not.toBe(
-      federatedAccountIdFor(ORG, "acme-azure", "shared|sam"),
+    expect(federatedAccountIdFor(OKTA, "shared|sam")).not.toBe(
+      federatedAccountIdFor(AZURE, "shared|sam"),
     );
-    // The one other reading of `acme-okta|a|b` would move the separator
-    // into the slug, which is refused: the text has one reading.
-    expect(federatedAccountIdFor(ORG, "acme-okta", "a|b")).toMatch(
-      CROCKFORD_ID,
-    );
-    expect(() => federatedAccountIdFor(ORG, "acme-okta|a", "b")).toThrow(
+    // The one other reading of `<id>|a|b` would move the separator into
+    // the provider id, which is refused: the text has one reading.
+    expect(federatedAccountIdFor(OKTA, "a|b")).toMatch(CROCKFORD_ID);
+    expect(() => federatedAccountIdFor(`${OKTA}|a`, "b")).toThrow(
       "must not hold '|'",
     );
   });
 
-  it("refuses an empty part and a provider part holding the separator", () => {
-    expect(() => federatedAccountIdFor("", "acme-okta", "okta|dana")).toThrow(
+  it("refuses an empty part and a provider id holding the separator", () => {
+    expect(() => federatedAccountIdFor("", "okta|dana")).toThrow(
       "must not be empty",
     );
-    expect(() => federatedAccountIdFor(ORG, "", "okta|dana")).toThrow(
-      "must not be empty",
-    );
-    expect(() => federatedAccountIdFor(ORG, "acme-okta", "")).toThrow(
-      "must not be empty",
-    );
-    expect(() => federatedAccountIdFor(ORG, "acme|okta", "dana")).toThrow(
-      "must not hold '|'",
-    );
-    expect(() => federatedAccountIdFor("acme|x", "okta", "dana")).toThrow(
+    expect(() => federatedAccountIdFor(OKTA, "")).toThrow("must not be empty");
+    expect(() => federatedAccountIdFor("idp|x", "dana")).toThrow(
       "must not hold '|'",
     );
   });

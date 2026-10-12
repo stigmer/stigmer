@@ -5,10 +5,12 @@
  *   - an agent of the target's own organization that lists it refuses the
  *     delete FAILED_PRECONDITION, naming every lister in sorted order and
  *     the field to remove it from;
- *   - a reference filed without an organization reads as the lister's own;
+ *   - a lister is found by the id its reference holds, whatever
+ *     organization the reference names;
  *   - an agent of another organization (a child organization's agent that
  *     lists its parent's shared agent among them) never blocks, nor does a
- *     same-slug reference of another kind, nor the target itself;
+ *     reference of another kind that holds the same id, nor an agent of
+ *     the same slug in another organization, nor the target itself;
  *   - the plugin's refusal keeps the sentence the plugin guard always said;
  *   - a chain that reached the step without the loaded target, and a store
  *     that cannot list agents, are INTERNAL.
@@ -74,8 +76,9 @@ async function seedAgent(
   );
 }
 
-function agentRef(slug: string, org = PARENT_ORG): ReferenceInit {
-  return { kind: ApiResourceKind.agent, org, slug };
+/** A subagent reference as a stored row holds it: by id. */
+function agentRef(id: string, org = PARENT_ORG): ReferenceInit {
+  return { kind: ApiResourceKind.agent, org, id };
 }
 
 /** Runs the guard for an agent delete with `target` loaded (none to skip the load). */
@@ -108,8 +111,8 @@ const HELPER = { id: "agt_helper", org: PARENT_ORG, slug: "helper" };
 describe("GuardUnlisted for an agent", () => {
   it("refuses while agents of its organization list it, naming each in sorted order", async () => {
     await seedAgent(HELPER.id, HELPER.org, HELPER.slug);
-    await seedAgent("agt_zeta", PARENT_ORG, "zeta", { subagents: [agentRef("helper")] });
-    await seedAgent("agt_alpha", PARENT_ORG, "alpha", { subagents: [agentRef("helper", "")] });
+    await seedAgent("agt_zeta", PARENT_ORG, "zeta", { subagents: [agentRef(HELPER.id)] });
+    await seedAgent("agt_alpha", PARENT_ORG, "alpha", { subagents: [agentRef(HELPER.id, "")] });
 
     const error = await deleteAgent(HELPER);
     expect(error).toBeInstanceOf(ConnectError);
@@ -125,7 +128,7 @@ describe("GuardUnlisted for an agent", () => {
   it("is not blocked by a child organization's agent that lists the parent's shared agent", async () => {
     await seedAgent(HELPER.id, HELPER.org, HELPER.slug);
     await seedAgent("agt_child_lister", CHILD_ORG, "lister", {
-      subagents: [agentRef("helper", PARENT_ORG)],
+      subagents: [agentRef(HELPER.id, PARENT_ORG)],
     });
     expect(await deleteAgent(HELPER)).toBeUndefined();
   });
@@ -133,15 +136,15 @@ describe("GuardUnlisted for an agent", () => {
   it("is not blocked by an agent of another organization listing its own agent of the same slug", async () => {
     await seedAgent(HELPER.id, HELPER.org, HELPER.slug);
     await seedAgent("agt_child_helper", CHILD_ORG, "helper");
-    await seedAgent("agt_child_lister", CHILD_ORG, "lister", { subagents: [agentRef("helper", CHILD_ORG)] });
+    await seedAgent("agt_child_lister", CHILD_ORG, "lister", { subagents: [agentRef("agt_child_helper", CHILD_ORG)] });
     expect(await deleteAgent(HELPER)).toBeUndefined();
   });
 
-  it("is not blocked by a same-slug reference of another kind", async () => {
+  it("is not blocked by a reference of another kind holding the same id", async () => {
     await seedAgent(HELPER.id, HELPER.org, HELPER.slug);
     await seedAgent("agt_lister", PARENT_ORG, "lister", {
-      plugins: [{ kind: ApiResourceKind.plugin, org: PARENT_ORG, slug: "helper" }],
-      skillRefs: [{ kind: ApiResourceKind.skill, org: PARENT_ORG, slug: "helper" }],
+      plugins: [{ kind: ApiResourceKind.plugin, org: PARENT_ORG, id: HELPER.id }],
+      skillRefs: [{ kind: ApiResourceKind.skill, org: PARENT_ORG, id: HELPER.id }],
     });
     expect(await deleteAgent(HELPER)).toBeUndefined();
   });
@@ -169,10 +172,10 @@ describe("GuardUnlisted for a plugin", () => {
       create(PluginSchema, { metadata: { id: "plg_tools", slug: "tools", name: "tools", org: PARENT_ORG } }),
     );
     await seedAgent("agt_user", PARENT_ORG, "user", {
-      plugins: [{ kind: ApiResourceKind.plugin, org: PARENT_ORG, slug: "tools" }],
+      plugins: [{ kind: ApiResourceKind.plugin, org: PARENT_ORG, id: "plg_tools" }],
     });
-    // An agent listing an agent of the plugin's slug is not a plugin listing.
-    await seedAgent("agt_other", PARENT_ORG, "other", { subagents: [agentRef("tools")] });
+    // An agent listing an agent under the plugin's id is not a plugin listing.
+    await seedAgent("agt_other", PARENT_ORG, "other", { subagents: [agentRef("plg_tools")] });
     const ctx = new RequestContext(
       ApiResourceIdSchema,
       create(ApiResourceIdSchema, { value: "plg_tools" }),

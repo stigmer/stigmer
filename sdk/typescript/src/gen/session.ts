@@ -192,7 +192,7 @@ function buildWorkspaceEntryProto(input: WorkspaceEntryInput) {
 }
 
 export function buildSessionProto(input: SessionInput): Session {
-  const agentRef = (input.agentRef?.slug || input.agentRef?.org) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
+  const agentRef = (input.agentRef?.slug || input.agentRef?.org || input.agentRef?.id) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
   const workspaceEntries = input.workspaceEntries?.map(buildWorkspaceEntryProto);
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
   const vaults = input.vaults?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));

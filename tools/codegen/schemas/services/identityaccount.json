@@ -167,7 +167,8 @@
             "messageType": "ApiResourceReference"
           },
           "description": "Reference to the IdentityProvider that this federated account belongs to.\n The IdP must exist and belong to the specified org.",
-          "required": false
+          "required": false,
+          "referenceKind": 21
         },
         {
           "name": "ExternalSub",
@@ -255,7 +256,8 @@
             "messageType": "ApiResourceReference"
           },
           "description": "Reference to the IdentityProvider that the federated account belongs to.",
-          "required": false
+          "required": false,
+          "referenceKind": 21
         },
         {
           "name": "ExternalSub",
@@ -343,7 +345,8 @@
             "messageType": "ApiResourceReference"
           },
           "description": "Reference to the IdentityProvider that the federated account belongs to.",
-          "required": false
+          "required": false,
+          "referenceKind": 21
         },
         {
           "name": "ExternalSub",
@@ -474,7 +477,8 @@
             "messageType": "ApiResourceReference"
           },
           "description": "Reference to the IdentityProvider that the federated account belongs to.",
-          "required": false
+          "required": false,
+          "referenceKind": 21
         },
         {
           "name": "ExternalSub",

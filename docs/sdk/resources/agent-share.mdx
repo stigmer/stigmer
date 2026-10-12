@@ -174,6 +174,7 @@ const agentShare = await stigmer.agentShare.getByReference({
   kind: "...",
   slug: "...",
   version: "...",
+  id: "...",
 });
 ```
 </Tab>
@@ -184,6 +185,7 @@ agentShare, err := client.AgentShare.GetByReference(ctx, &stigmer.ApiResourceRef
   Kind:    "...",
   Slug:    "...",
   Version: "...",
+  Id:      "...",
 })
 ```
 </Tab>
@@ -194,6 +196,7 @@ agent_share = client.agent_shares.get_by_reference(ApiResourceReference(
     kind="...",
     slug="...",
     version="...",
+    id="...",
 ))
 ```
 </Tab>
@@ -204,6 +207,7 @@ AgentShare agentShare = client.agentShares().getByReference(ApiResourceReference
     .kind("...")
     .slug("...")
     .version("...")
+    .id("...")
     .build());
 ```
 </Tab>
@@ -691,14 +695,15 @@ Input for creating or updating an Agent Share.
 
 ### ResourceRef
 
-Generic reference to any API resource by org and slug.
+Generic reference to any API resource.
 
 <TypeTable
   type={{
     org: { type: "string", description: "Organization that owns the referenced resource, by slug or id." },
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
-    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org)." },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+    id: { type: "string", description: "The referenced resource's id: what a stored reference holds." },
   }}
 />
 

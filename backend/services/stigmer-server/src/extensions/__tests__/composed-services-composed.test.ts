@@ -285,13 +285,13 @@ describe("onComposed: a unit receives the composition's own instances", () => {
         }),
         provisioning: {
           mode: "federated",
-          provider: { org: providerOrg, slug: "acme-okta" },
+          provider: { org: providerOrg, id: "idp_01hzacmeokta0000000000000" },
         },
       },
       serverActingFor("idp_01hzacmeokta0000000000000"),
     );
     expect(created.metadata?.id).toBe(
-      federatedAccountIdFor(providerOrg, "acme-okta", "okta|dana"),
+      federatedAccountIdFor("idp_01hzacmeokta0000000000000", "okta|dana"),
     );
     expect(created.spec?.provisioningMode).toBe(
       IdentityAccountProvisioningMode.federated,
@@ -299,8 +299,7 @@ describe("onComposed: a unit receives the composition's own instances", () => {
     expect(
       (
         await accounts.store.findByProviderAndIdpId(
-          providerOrg,
-          "acme-okta",
+          "idp_01hzacmeokta0000000000000",
           "okta|dana",
         )
       )?.metadata?.id,

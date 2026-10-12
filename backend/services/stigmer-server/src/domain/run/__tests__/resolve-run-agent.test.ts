@@ -8,11 +8,10 @@
  *     agent's current version, and reads nothing else about the session;
  *   - a pinned agent since deleted refuses with FAILED_PRECONDITION naming
  *     the session and the agent;
- *   - a new conversation resolves session_spec.agent_ref through the ids
- *     ValidateReferences recorded (RESOLVED_REFERENCE_TARGETS_KEY): its
- *     current version, a live tag, and a refusal for a version the agent
- *     does not hold; a reference with no recorded targets is a chain built
- *     out of order (Internal);
+ *   - a new conversation resolves session_spec.agent_ref by the id it holds
+ *     (NormalizeReferences resolved it): its current version, a live tag,
+ *     and a refusal for a version the agent does not hold; a reference
+ *     still written by a name nothing held is FAILED_PRECONDITION;
  *   - the stamp is written even when empty (the built-in assistant, in a
  *     new conversation or a session pinning no agent), so nothing left in
  *     status survives it;
@@ -62,10 +61,6 @@ import {
   LOADED_EXECUTION_KEY,
   RequestContext,
 } from "../../../pipeline/request-context.js";
-import {
-  loadReferenceTargets,
-  RESOLVED_REFERENCE_TARGETS_KEY,
-} from "../../../pipeline/steps/references.js";
 import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 
@@ -174,24 +169,18 @@ async function stampInSession(
   return ctx.newState;
 }
 
-/** A new conversation on org/slug@version, with the targets ValidateReferences recorded. */
+/** A new conversation on the agent `id`@version, its reference holding the id as NormalizeReferences leaves it; `{ slug }` writes a name nothing held. */
 async function stampNewConversation(
-  slug: string,
+  id: string | { readonly slug: string },
   version: string,
-  recordTargets = true,
   authorizer: Authorizer = ALLOW,
 ): Promise<Run> {
-  const ref = { kind: ApiResourceKind.agent, org: "test-org", slug, version };
+  const held = typeof id === "string" ? { id } : id;
+  const ref = { kind: ApiResourceKind.agent, org: "test-org", ...held, version };
   const ctx = turnContext({
     case: "sessionSpec",
     value: create(SessionSpecSchema, { agentRef: ref }),
   });
-  if (recordTargets) {
-    ctx.set(
-      RESOLVED_REFERENCE_TARGETS_KEY,
-      await loadReferenceTargets(store, [ref], "test-org"),
-    );
-  }
   await newResolveRunAgentStep(store, silentLogger, authorizer).execute(ctx);
   return ctx.newState;
 }
@@ -292,21 +281,18 @@ describe("ResolveRunAgent (create)", () => {
     await seedAgent("agt_v", HEAD);
 
     const error = await refusal(
-      stampNewConversation("agt_v", "no-such-tag", true, DENY),
+      stampNewConversation("agt_v", "no-such-tag", DENY),
     );
 
     expect(error.code).toBe(Code.PermissionDenied);
     expect(error.rawMessage).toBe("unauthorized to run agent 'agt_v'");
   });
 
-  it("is Internal when the reference rule recorded no targets", async () => {
-    await seedAgent("agt_unrecorded", HEAD);
+  it("refuses a reference still written by a name nothing held", async () => {
+    const error = await refusal(stampNewConversation({ slug: "nobody" }, ""));
 
-    const error = await refusal(
-      stampNewConversation("agt_unrecorded", "", false),
-    );
-
-    expect(error.code).toBe(Code.Internal);
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toBe("referenced agent 'test-org/nobody' no longer exists.");
   });
 
   it("stamps an empty agent for a new conversation with the built-in assistant", async () => {

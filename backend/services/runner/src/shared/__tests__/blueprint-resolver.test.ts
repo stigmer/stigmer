@@ -494,6 +494,25 @@ describe("mergePluginRefs", () => {
   it("skips a reference with no slug", () => {
     expect(mergePluginRefs([makeRef("")], [], "acme")).toEqual([]);
   });
+
+  it("keys a reference that holds an id by its id, so one plugin named twice is one entry", () => {
+    const merged = mergePluginRefs(
+      [makeRef("linear", "acme", "plg_1")],
+      [makeRef("linear", "acme", "plg_1"), makeRef("linear-two", "acme", "plg_2")],
+      "acme",
+    );
+    expect(merged.map((ref) => ref.id)).toEqual(["plg_1", "plg_2"]);
+  });
+
+  it("leaves out a plugin that was deleted (an id the server named with no slug), with a warning", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      expect(mergePluginRefs([makeRef("", "acme", "plg_gone")], [], "acme")).toEqual([]);
+      expect(warn.mock.calls[0]?.[0]).toContain("acme/plg_gone");
+    } finally {
+      warn.mockRestore();
+    }
+  });
 });
 
 describe("pluginSubagents", () => {
@@ -503,8 +522,8 @@ describe("pluginSubagents", () => {
   });
 });
 
-function makeRef(slug: string, org = "test-org"): ApiResourceReference {
-  return { slug, org, $typeName: "ai.stigmer.commons.apiresource.ApiResourceReference" } as ApiResourceReference;
+function makeRef(slug: string, org = "test-org", id = ""): ApiResourceReference {
+  return { slug, org, id, $typeName: "ai.stigmer.commons.apiresource.ApiResourceReference" } as ApiResourceReference;
 }
 
 describe("mergeSkillRefs", () => {

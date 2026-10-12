@@ -217,15 +217,17 @@ export function newResolveAgentEvalDefaultsStep(store: Store): PipelineStep<type
       if (refs.length === 0) {
         throw failedPreconditionError(AGENT_EVAL_NO_PLUGINS_MESSAGE);
       }
-      const attachedSlugs = new Set(refs.map((ref) => ref.slug));
+      const plugins: Plugin[] = [];
+      for (const ref of refs) {
+        plugins.push(await loadPluginByReference(store, ref, agentOrg));
+      }
+      // The version's references hold ids; a plugin is selected by the
+      // name it holds now (spec.plugins, a create-time selector).
+      const attachedSlugs = new Set(plugins.map((plugin) => plugin.metadata?.slug ?? ""));
       for (const slug of spec.plugins) {
         if (!attachedSlugs.has(slug)) {
           throw invalidArgumentError(agentEvalUnknownPluginMessage(slug));
         }
-      }
-      const plugins: Plugin[] = [];
-      for (const ref of refs) {
-        plugins.push(await loadPluginByReference(store, ref, agentOrg));
       }
       const allowed = checkAllowTools(
         spec.allowTools,

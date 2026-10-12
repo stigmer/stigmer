@@ -111,6 +111,7 @@ import {
   refuseServiceAccountCaller,
 } from "../../pipeline/steps/refuse-service-account.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { resolveReferencesIn } from "../../pipeline/steps/references.js";
 import type { Store } from "../../store/interface.js";
 import { ownerNamesOf } from "../apikey/queries.js";
 import type { IamPolicyGrantPath } from "../iampolicy/grant-path.js";
@@ -857,9 +858,9 @@ async function federated<Input extends FederatedInput>(
   const caller = callerIdentityOf(ctx);
   const org = input.org;
   const ref = input.identityProviderRef;
-  if (ref === undefined || ref.slug === "") {
+  if (ref === undefined || (ref.slug === "" && ref.id === "")) {
     throw invalidArgumentError(
-      "identity_provider_ref with a valid slug is required",
+      "identity_provider_ref with a valid slug or id is required",
     );
   }
   if (ref.org !== "" && ref.org !== org) {
@@ -870,14 +871,16 @@ async function federated<Input extends FederatedInput>(
   // The annotation's target is the org (`field_path = "org"`); resolved
   // from the input exactly as the pipeline step would.
   await authorizeDirect(method, deps.authorizer, caller, input);
-  const refOrg = ref.org !== "" ? ref.org : org;
-  if (!(await federation.providerExists(refOrg, ref.slug))) {
+  // The reference resolver every write chain runs (NormalizeReferences):
+  // the org defaults to the input's, and a slug becomes the provider's id.
+  const named = ref.slug;
+  await resolveReferencesIn(deps.store, method.input, input, org);
+  if (ref.id === "" || !(await federation.providerExists(ref.org, ref.id))) {
     throw new ConnectError(
-      `IdentityProvider '${refOrg}/${ref.slug}' not found`,
+      `IdentityProvider '${ref.org}/${named !== "" ? named : ref.id}' not found`,
       Code.NotFound,
     );
   }
-  ref.org = refOrg;
   return arm(federation, ref, caller);
 }
 

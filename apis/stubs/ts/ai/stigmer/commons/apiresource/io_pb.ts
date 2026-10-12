@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/io.proto.
  */
 export const file_ai_stigmer_commons_apiresource_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvaW8ucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSImCg1BcGlSZXNvdXJjZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXQoWQXBpUmVzb3VyY2VEZWxldGVJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhcKD3ZlcnNpb25fbWVzc2FnZRgCIAEoCRINCgVmb3JjZRgDIAEoCCJKCh1BcGlSZXNvdXJjZUJ5T3JnQnlTbHVnUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQEilAEKF0ZpbmRBcGlSZXNvdXJjZXNSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEgwKBGtpbmQYAyABKAkSLgoEcGFnZRgEIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8SEwoLcGFnZV9udW1iZXIYBSABKAUSEQoJcGFnZV9zaXplGAYgASgFIosBChVVcGRhdGVWaXNpYmlsaXR5SW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARJVCgp2aXNpYmlsaXR5GAIgASgOMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlVmlzaWJpbGl0eUIKukgHggEEEAEgACJhCgtSZW5hbWVJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEjUKBHNsdWcYAiABKAlCJ7pIJMgBAXIfEAIYPzIZXlthLXpdW2EtejAtOS1dKlthLXowLTldJCKpAgoUQXBpUmVzb3VyY2VSZWZlcmVuY2USRQoDb3JnGAEgASgJQji6SDVyMxg/Mi9eJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kfF5vcmdfWzAtOWEtel17MjZ9JBJNCgRraW5kGAIgASgOMj8uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BcGlSZXNvdXJjZUtpbmQSNQoEc2x1ZxgDIAEoCUInukgkyAEBch8QAhg/MhleW2Etel1bYS16MC05LV0qW2EtejAtOV0kEkQKB3ZlcnNpb24YBCABKAlCM7pIMHIuMixeJHxebGF0ZXN0JHxeW2EtekEtWjAtOS5fLV0rJHxeW2EtZjAtOV17NjR9JGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvaW8ucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSImCg1BcGlSZXNvdXJjZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXQoWQXBpUmVzb3VyY2VEZWxldGVJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhcKD3ZlcnNpb25fbWVzc2FnZRgCIAEoCRINCgVmb3JjZRgDIAEoCCJKCh1BcGlSZXNvdXJjZUJ5T3JnQnlTbHVnUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQEilAEKF0ZpbmRBcGlSZXNvdXJjZXNSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEgwKBGtpbmQYAyABKAkSLgoEcGFnZRgEIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8SEwoLcGFnZV9udW1iZXIYBSABKAUSEQoJcGFnZV9zaXplGAYgASgFIosBChVVcGRhdGVWaXNpYmlsaXR5SW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARJVCgp2aXNpYmlsaXR5GAIgASgOMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlVmlzaWJpbGl0eUIKukgHggEEEAEgACJhCgtSZW5hbWVJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEjUKBHNsdWcYAiABKAlCJ7pIJMgBAXIfEAIYPzIZXlthLXpdW2EtejAtOS1dKlthLXowLTldJCKlAwoUQXBpUmVzb3VyY2VSZWZlcmVuY2USRQoDb3JnGAEgASgJQji6SDVyMxg/Mi9eJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kfF5vcmdfWzAtOWEtel17MjZ9JBJNCgRraW5kGAIgASgOMj8uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BcGlSZXNvdXJjZUtpbmQSNQoEc2x1ZxgDIAEoCUInukgk2AEBch8QAhg/MhleW2Etel1bYS16MC05LV0qW2EtejAtOV0kEkQKB3ZlcnNpb24YBCABKAlCM7pIMHIuMixeJHxebGF0ZXN0JHxeW2EtekEtWjAtOS5fLV0rJHxeW2EtZjAtOV17NjR9JBIKCgJpZBgFIAEoCTpuukhrGmkKFHJlZmVyZW5jZS5pZF9vcl9zbHVnEi9hIHJlZmVyZW5jZSBuYW1lcyBpdHMgcmVzb3VyY2UgYnkgaWQgb3IgYnkgc2x1ZxogdGhpcy5pZCAhPSAnJyB8fCB0aGlzLnNsdWcgIT0gJydiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
  * Wraps a system-generated resource identifier.
@@ -237,9 +237,23 @@ export const RenameInputSchema: GenMessage<RenameInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_commons_apiresource_io, 5);
 
 /**
- * Generic reference to any API resource by org and slug.
+ * Generic reference to any API resource.
  * Used across resources to reference other resources (e.g., Vault, Agent, Skill).
- * Canonical format: "org/slug" (e.g., "acme/web-search", "acme/my-agent").
+ * Canonical written format: "org/slug" (e.g., "acme/web-search", "acme/my-agent").
+ *
+ * A reference has three forms:
+ * - Written: by name (org and slug), by id, or by both. A write that carries
+ *   both must have them agree, or it is refused naming both. A name is
+ *   resolved to its resource's id when the referring resource is written.
+ * - Stored: org (the organization's id), kind, id and version. The slug is
+ *   not stored, so a reference keeps pointing at the resource it meant when
+ *   that resource is renamed, and never at a new resource that takes its old
+ *   name after it is deleted.
+ * - Returned: as stored, with slug filled with the resource's current name.
+ *   A reference whose resource was deleted is returned with an empty slug.
+ *
+ * The kind a reference names is the kind its field declares
+ * (reference_kind); a reference that carries another kind is refused.
  *
  * Every reference in a resource's spec is checked when the resource is
  * written: the target must exist, and a target in another organization
@@ -286,6 +300,9 @@ export type ApiResourceReference = Message<"ai.stigmer.commons.apiresource.ApiRe
    * and end with a letter or digit (e.g., "web-search", "code-reviewer").
    * Length: 2-63 characters.
    *
+   * Written to name the resource; never stored; returned filled with the
+   * resource's current name, empty when the resource was deleted.
+   *
    * @generated from field: string slug = 3;
    */
   slug: string;
@@ -310,6 +327,15 @@ export type ApiResourceReference = Message<"ai.stigmer.commons.apiresource.ApiRe
    * @generated from field: string version = 4;
    */
   version: string;
+
+  /**
+   * The referenced resource's id: what a stored reference holds. Optional
+   * on write, where the slug may name the resource instead; an id no
+   * resource of the kind holds answers as a missing resource.
+   *
+   * @generated from field: string id = 5;
+   */
+  id: string;
 };
 
 /**

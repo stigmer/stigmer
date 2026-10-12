@@ -40,3 +40,25 @@ describe("SetupTab — access slot", () => {
     expect(container.querySelectorAll("section")).toHaveLength(4);
   });
 });
+
+// A target deleted since it was attached comes back with no slug: its row
+// says "deleted <kind>" and keeps its remove action.
+describe("SetupTab — deleted references", () => {
+  it("names a deleted agent, plugin and skill as deleted, each still removable", () => {
+    render(
+      <SetupTab
+        {...BASE_PROPS}
+        agentRef={{ org: "org_acme", slug: "" }}
+        pluginRefs={[{ org: "org_acme", slug: "" }, { org: "org_acme", slug: "linear" }]}
+        skillRefs={[{ org: "org_acme", slug: "" }]}
+        mutations={{ onRemoveAgent: () => {}, onRemovePlugin: () => {}, onRemoveSkill: () => {} }}
+      />,
+    );
+    expect(screen.getByText("deleted agent")).toBeDefined();
+    expect(screen.getByText("deleted plugin")).toBeDefined();
+    expect(screen.getByText("linear")).toBeDefined();
+    expect(screen.getByText("deleted skill")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Remove plugin deleted plugin" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Remove skill deleted skill" })).toBeDefined();
+  });
+});

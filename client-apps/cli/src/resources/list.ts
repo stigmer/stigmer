@@ -299,10 +299,20 @@ const SESSION_TABLE: TableShape = {
 // carries shows the pinned id rather than claiming the assistant.
 function sessionAgent(json: JsonObject, orgLabel: OrgLabel): string {
   const agentRef = obj(obj(json, "spec"), "agent_ref");
-  const slug = str(agentRef, "slug");
-  if (slug !== "") return `${orgLabel(str(agentRef, "org"))}/${slug}`;
+  if (str(agentRef, "slug") !== "" || str(agentRef, "id") !== "") {
+    return agentLabel(agentRef, orgLabel);
+  }
   const pinned = str(obj(json, "status"), "agent_id");
   return pinned !== "" ? pinned : BUILT_IN_ASSISTANT_NAME;
+}
+
+// A referenced agent as `org/slug`. A reference holds its agent's id and
+// the server names it by the agent's current slug; an agent deleted since
+// comes back with no slug, and reads "deleted agent".
+function agentLabel(agentRef: JsonObject, orgLabel: OrgLabel): string {
+  const slug = str(agentRef, "slug");
+  if (slug === "" && str(agentRef, "id") !== "") return "deleted agent";
+  return `${orgLabel(str(agentRef, "org"))}/${slug}`;
 }
 
 // A channel serves traffic only when installed AND enabled (the install
@@ -319,7 +329,7 @@ const AGENT_CHANNEL_TABLE: TableShape = {
     return [
       str(metadata, "id"),
       str(metadata, "slug"),
-      `${orgLabel(str(agentRef, "org"))}/${str(agentRef, "slug")}`,
+      agentLabel(agentRef, orgLabel),
       providerOf(spec),
       // Zero-valued enums are omitted from protojson; a channel is
       // initialized to pending_install on create, so "-" is the rare
@@ -365,7 +375,7 @@ const SCHEDULE_TABLE: TableShape = {
     return [
       str(metadata, "id"),
       str(metadata, "slug"),
-      `${orgLabel(str(agentRef, "org"))}/${str(agentRef, "slug")}`,
+      agentLabel(agentRef, orgLabel),
       str(spec, "cron"),
       str(spec, "time_zone"),
       bool(spec, "enabled") ? "true" : "false",

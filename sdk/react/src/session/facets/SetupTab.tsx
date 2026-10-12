@@ -1,7 +1,13 @@
 "use client";
 
 import { useId } from "react";
-import { BUILT_IN_ASSISTANT_NAME, type ResourceRef } from "@stigmer/sdk";
+import {
+  BUILT_IN_ASSISTANT_NAME,
+  deletedReferenceLabel,
+  isDeletedReference,
+  type ResourceRef,
+} from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Copy, FileJson, FileText } from "lucide-react";
 import type { HarnessOption } from "../../models/harness.js";
 import { HARNESS_META } from "../../models/harness.js";
@@ -187,6 +193,20 @@ function RunConfigSection({
 }
 
 // ---------------------------------------------------------------------------
+// References: a target deleted since it was attached comes back with no
+// slug, and is shown as "deleted <kind>", its remove action kept.
+// ---------------------------------------------------------------------------
+
+function refName(kind: ApiResourceKind, ref: ResourceRef): string {
+  return isDeletedReference(ref) ? deletedReferenceLabel(kind) : ref.slug;
+}
+
+/** A row key: a deleted target has no slug, and two of them must not share one. */
+function refKey(ref: ResourceRef, index: number): string {
+  return isDeletedReference(ref) ? `deleted/${index}` : `${ref.org}/${ref.slug}`;
+}
+
+// ---------------------------------------------------------------------------
 // Agent
 // ---------------------------------------------------------------------------
 
@@ -210,12 +230,12 @@ function AgentSection({
             onRemove ? (
               <FacetRemoveButton
                 onClick={onRemove}
-                label={`Remove agent ${agentRef.slug}`}
+                label={`Remove agent ${refName(ApiResourceKind.agent, agentRef)}`}
               />
             ) : undefined
           }
         >
-          <span className="stg:truncate">{agentRef.slug}</span>
+          <span className="stg:truncate">{refName(ApiResourceKind.agent, agentRef)}</span>
         </FacetRow>
       ) : (
         <FacetRow meta="built-in">
@@ -240,19 +260,19 @@ function PluginsSection({
   return (
     <FacetSection heading="Plugins" count={pluginRefs.length}>
       {pluginRefs.length > 0 ? (
-        pluginRefs.map((ref) => (
+        pluginRefs.map((ref, i) => (
           <FacetRow
-            key={`${ref.org}/${ref.slug}`}
+            key={refKey(ref, i)}
             actions={
               onRemove ? (
                 <FacetRemoveButton
                   onClick={() => onRemove(ref)}
-                  label={`Remove plugin ${ref.slug}`}
+                  label={`Remove plugin ${refName(ApiResourceKind.plugin, ref)}`}
                 />
               ) : undefined
             }
           >
-            <span className="stg:truncate">{ref.slug}</span>
+            <span className="stg:truncate">{refName(ApiResourceKind.plugin, ref)}</span>
           </FacetRow>
         ))
       ) : (
@@ -276,19 +296,19 @@ function SkillsSection({
   return (
     <FacetSection heading="Skills" count={skillRefs.length}>
       {skillRefs.length > 0 ? (
-        skillRefs.map((ref) => (
+        skillRefs.map((ref, i) => (
           <FacetRow
-            key={`${ref.org}/${ref.slug}`}
+            key={refKey(ref, i)}
             actions={
               onRemove ? (
                 <FacetRemoveButton
                   onClick={() => onRemove(ref)}
-                  label={`Remove skill ${ref.slug}`}
+                  label={`Remove skill ${refName(ApiResourceKind.skill, ref)}`}
                 />
               ) : undefined
             }
           >
-            <span className="stg:truncate">{ref.slug}</span>
+            <span className="stg:truncate">{refName(ApiResourceKind.skill, ref)}</span>
           </FacetRow>
         ))
       ) : (

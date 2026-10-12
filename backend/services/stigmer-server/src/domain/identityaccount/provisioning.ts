@@ -90,7 +90,7 @@ export class UserInfoFetchError extends Error {
  *     subject rules apply; its id is derived from the provider and the
  *     subject (constants.ts `federatedAccountIdFor`), and it belongs to the
  *     provider's organization. `provider` is the stored reference's
- *     absolute form: the organization id and the provider's slug.
+ *     form: the organization id and the provider's id.
  *   - `service_account`: an organization's own non-person account,
  *     created by its admins (domain/identityaccount/service-accounts.ts).
  *     Its subject is the reserved `stgm_sa|` composite, and it belongs to
@@ -109,7 +109,8 @@ export type AccountProvisioning =
 export interface FederatedProvider {
   /** The provider's organization id. */
   readonly org: string;
-  readonly slug: string;
+  /** The provider's id: what the account's address is derived from and its reference holds. */
+  readonly id: string;
 }
 
 /**

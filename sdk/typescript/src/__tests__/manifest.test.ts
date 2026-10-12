@@ -337,6 +337,28 @@ describe("serializeManifest", () => {
     );
   });
 
+  it("names each referenced resource by org and slug, dropping the id the server stores", () => {
+    const withRefs = create(AgentSchema, {
+      metadata: { id: "agt_01example", name: "lead", org: "acme" },
+      spec: {
+        skillRefs: [
+          { kind: ApiResourceKind.skill, org: "acme", slug: "refunds", id: "skl_01refunds" },
+          // A deleted target: the server names it by no slug, so the id stays.
+          { kind: ApiResourceKind.skill, org: "acme", slug: "", id: "skl_01gone" },
+        ],
+      },
+    });
+    const doc = parseYaml(serializeManifest(withRefs)) as {
+      metadata: Record<string, unknown>;
+      spec: { skill_refs: Array<Record<string, unknown>> };
+    };
+    expect(doc.metadata.id).toBe("agt_01example");
+    expect(doc.spec.skill_refs[0]).toEqual({ org: "acme", kind: "skill", slug: "refunds" });
+    expect(doc.spec.skill_refs[1]).toEqual({ org: "acme", kind: "skill", id: "skl_01gone" });
+    // The caller's message is not changed.
+    expect(withRefs.spec?.skillRefs[0]?.id).toBe("skl_01refunds");
+  });
+
   it("rejects messages of kinds outside the registry", () => {
     // ApiResourceMetadata is a real proto message but not a manifest kind.
     const notAResource = create(ApiResourceMetadataSchema, { name: "x" });

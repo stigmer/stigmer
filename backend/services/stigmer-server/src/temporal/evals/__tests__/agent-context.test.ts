@@ -75,7 +75,7 @@ describe("an agent eval's context", () => {
     const context = await loader(source)(AGENT_EVAL_ID);
     expect(context?.kind).toBe("agent");
     if (context?.kind !== "agent") return;
-    expect(context.agent).toEqual({ org: ORG, slug: "support-desk", versionHash: AGENT_HASH });
+    expect(context.agent).toEqual({ org: ORG, id: "agt_1", slug: "support-desk", versionHash: AGENT_HASH });
     expect(context.sources.map((entry) => [entry.digest, entry.pluginIndex])).toEqual([[DIGEST, 0]]);
     expect(context.matrix.cases[0]?.targets[0]?.target).toMatchObject({ harness: Harness.NATIVE, modelName: MODEL });
     expect(source.reads).toBe(1);

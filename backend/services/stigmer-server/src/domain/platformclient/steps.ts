@@ -176,6 +176,27 @@ export async function findClientByName(
   return id === undefined ? undefined : clients.findById(id);
 }
 
+/**
+ * The client a reference request names: by its id through the port, the
+ * row in the reference's organization when it names one; else by its org
+ * and slug. Beside an id the slug is not looked up (findByReference,
+ * pipeline/steps/references.ts, says why).
+ */
+export async function findClientByReference(
+  store: Store,
+  clients: PlatformClientStore,
+  ref: { readonly org: string; readonly id: string; readonly slug: string },
+): Promise<PlatformClient | undefined> {
+  if (ref.id === "") {
+    return findClientByName(store, clients, ref.org, ref.slug);
+  }
+  const client = await clients.findById(ref.id);
+  if (client === undefined || (ref.org !== "" && (client.metadata?.org ?? "") !== ref.org)) {
+    return undefined;
+  }
+  return client;
+}
+
 /** The name holder for a platform client: its row through the port. */
 export function platformClientNameHolder(clients: PlatformClientStore): NameHolder {
   return portHolder((id) => clients.findById(id));
@@ -363,8 +384,8 @@ export function newLoadClientByReferenceStep(
       ctx: RequestContext<typeof ApiResourceReferenceSchema>,
     ): Promise<void> {
       const ref = ctx.input;
-      if (ref.slug === "") {
-        throw invalidArgumentError("slug is required in reference");
+      if (ref.slug === "" && ref.id === "") {
+        throw invalidArgumentError("slug or id is required in reference");
       }
       if (
         ref.kind !== ApiResourceKind.api_resource_kind_unknown &&
@@ -374,11 +395,13 @@ export function newLoadClientByReferenceStep(
           `kind mismatch: expected platform_client, got ${ApiResourceKind[ref.kind] ?? String(ref.kind)}`,
         );
       }
-      requireOrgForReference(ApiResourceKind.platform_client, ref.org);
-      const client = await findClientByName(store, clients, ref.org, ref.slug);
+      if (ref.id === "") {
+        requireOrgForReference(ApiResourceKind.platform_client, ref.org);
+      }
+      const client = await findClientByReference(store, clients, ref);
       if (client === undefined) {
         throw new ConnectError(
-          referenceNotFoundMessage(ref.org, ref.slug),
+          referenceNotFoundMessage(ref.org, ref.slug !== "" ? ref.slug : ref.id),
           Code.NotFound,
         );
       }
