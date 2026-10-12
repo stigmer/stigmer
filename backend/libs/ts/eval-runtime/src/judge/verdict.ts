@@ -2,8 +2,12 @@
  * The strict reader of a judge run's verdict: its structured output must
  * name exactly the rubrics asked (the platform's, rubrics.ts, unless the
  * caller names its own), each with one of the allowed results (passed,
- * failed or not_applicable unless the caller narrows them) and a reason of
- * 1 to 500 characters, and nothing else. A plugin eval's AI-graded check
+ * failed or not_applicable unless the caller narrows them) and a non-empty
+ * string reason, and nothing else. A reason past 500 characters is cut to
+ * the bound and marked before it is read: the schema's `maxLength` is
+ * advice the provider does not enforce (stigmer#2143 measured 555 to 632
+ * characters on a real model), and a long-winded verdict keeps its result
+ * on every path that reads one (stigmer#2177). A plugin eval's AI-graded check
  * asks one rubric named after its grader, answered passed or failed only,
  * since the format's judge votes PASS or FAIL. Anything else is refused,
  * never read as a lower grade: a model's structured reply can still miss
@@ -19,6 +23,16 @@
  */
 import type { JsonObject, JsonValue } from "./json.js";
 import { REASON_MAX_LENGTH, RUBRICS } from "./rubrics.js";
+
+/** The marker a cut reason ends in. */
+export const REASON_CUT_MARKER = " [cut]";
+
+/** `reason` cut to REASON_MAX_LENGTH, marked where it was cut. */
+export function cutReason(reason: string): string {
+  return reason.length <= REASON_MAX_LENGTH
+    ? reason
+    : `${reason.slice(0, REASON_MAX_LENGTH - REASON_CUT_MARKER.length)}${REASON_CUT_MARKER}`;
+}
 
 /** A result a verdict may give, as the schema spells it. */
 export type VerdictResultName = "passed" | "failed" | "not_applicable";
@@ -74,7 +88,7 @@ export function readVerdict(
     if (verdict === undefined) {
       return {
         kind: "refused",
-        cause: `the judge's ${JSON.stringify(name)} is not a result with a reason of 1 to ${REASON_MAX_LENGTH} characters`,
+        cause: `the judge's ${JSON.stringify(name)} is not a result with a reason`,
       };
     }
     verdicts.push(verdict);
@@ -99,12 +113,8 @@ function rubricVerdictOf(
   if (named === undefined) {
     return undefined;
   }
-  if (
-    typeof reason !== "string" ||
-    reason.trim() === "" ||
-    reason.length > REASON_MAX_LENGTH
-  ) {
+  if (typeof reason !== "string" || reason.trim() === "") {
     return undefined;
   }
-  return { name, result: named, reason };
+  return { name, result: named, reason: cutReason(reason) };
 }

@@ -26,6 +26,8 @@
  */
 import { afterAll, describe, expect, it, vi } from "vitest";
 
+import { REASON_MAX_LENGTH, cutReason } from "@stigmer/eval-runtime";
+
 import type {
   EvalFocus,
   EvalGrader,
@@ -50,11 +52,9 @@ import { PATTERN_DEADLINE_MS, newPatternPool } from "../patterns.js";
 import type { PatternAnswer, PatternJob, PatternRunner } from "../patterns.js";
 import { FILE_MATCH_BUDGET, fileMatchCost } from "../file-exists.js";
 import {
-  GRADER_REASON_MAX_LENGTH,
   PATTERN_POOL_BUSY_REASON,
   FILES_NOT_RECORDED_REASON,
   TOO_MANY_CREATED_FILES_REASON,
-  cutReason,
   PATTERN_TIME_LIMIT_REASON,
   fileAbsentReason,
   focusLabel,
@@ -820,9 +820,9 @@ describe("the work and the reasons per try", () => {
       pool,
     );
     expect(failed).toEqual({ passed: false, reason: cutReason(`no file created in the run matches '${long}'`) });
-    expect((failed as { reason: string }).reason).toHaveLength(GRADER_REASON_MAX_LENGTH);
+    expect((failed as { reason: string }).reason).toHaveLength(REASON_MAX_LENGTH);
     expect((failed as { reason: string }).reason.endsWith(" [cut]")).toBe(true);
-    expect((refused as { notGraded: string }).notGraded).toHaveLength(GRADER_REASON_MAX_LENGTH);
+    expect((refused as { notGraded: string }).notGraded).toHaveLength(REASON_MAX_LENGTH);
   });
 });
 

@@ -46,6 +46,8 @@ export {
 } from "./judge/rubrics.js";
 export {
   ALL_VERDICT_RESULTS,
+  REASON_CUT_MARKER,
+  cutReason,
   readVerdict,
   type RubricVerdict,
   type VerdictReading,

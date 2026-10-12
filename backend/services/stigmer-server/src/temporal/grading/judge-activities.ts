@@ -55,7 +55,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ApplicationFailure } from "@temporalio/common";
 
-import { VERDICT_SCHEMA, judgeMessage, readVerdict } from "@stigmer/eval-runtime";
+import { REASON_MAX_LENGTH, VERDICT_SCHEMA, judgeMessage, readVerdict } from "@stigmer/eval-runtime";
 
 import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -132,9 +132,6 @@ import type {
   JudgeStart,
   JudgeTicket,
 } from "./names.js";
-
-/** The longest not-graded reason the record writes, as a criterion's reason is bounded. */
-const REASON_MAX_LENGTH = 500;
 
 export interface JudgeActivityDeps {
   readonly store: Store;

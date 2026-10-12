@@ -4,7 +4,9 @@
  *
  * The load-bearing pins:
  *   - the verdict is read only when it names exactly the rubrics, each with
- *     a known result and a reason of 1 to 500 characters;
+ *     a known result and a non-empty string reason; a reason past 500
+ *     characters is cut to the bound and marked, never refused
+ *     (stigmer#2177);
  *   - JUDGE_EVALUATOR_VERSION is pinned: a rubric, schema or instruction
  *     change moves it on purpose, here;
  *   - JUDGE_INSTRUCTION_VERSION is pinned: it re-versions every judge,
@@ -20,7 +22,7 @@ import {
   MADE_NOTHING_UP,
   VERDICT_SCHEMA,
 } from "../rubrics.js";
-import { readVerdict } from "../verdict.js";
+import { cutReason, readVerdict } from "../verdict.js";
 
 describe("readVerdict", () => {
   const good = {
@@ -38,14 +40,25 @@ describe("readVerdict", () => {
     });
   });
 
-  it("refuses wrong rubrics, a missing or long reason, an unknown result, extra keys and no output", () => {
+  it("cuts a reason past the bound and keeps the result", () => {
+    const long = "r".repeat(600);
+    expect(readVerdict({ ...good, [DID_THE_TASK]: { result: "passed", reason: long } })).toMatchObject({
+      kind: "read",
+      verdicts: [{ name: DID_THE_TASK, result: "passed", reason: `${long.slice(0, 494)} [cut]` }, {}],
+    });
+    expect(cutReason("r".repeat(500))).toBe("r".repeat(500));
+    expect(cutReason("r".repeat(501))).toHaveLength(500);
+  });
+
+  it("refuses wrong rubrics, a missing, empty or non-string reason, an unknown result, extra keys and no output", () => {
     const refusals: Array<JsonObject | undefined> = [
       undefined,
       { [DID_THE_TASK]: good[DID_THE_TASK] },
       { ...good, extra: { result: "passed", reason: "x" } },
       { ...good, [DID_THE_TASK]: { result: "passed" } },
       { ...good, [DID_THE_TASK]: { result: "passed", reason: "" } },
-      { ...good, [DID_THE_TASK]: { result: "passed", reason: "r".repeat(501) } },
+      { ...good, [DID_THE_TASK]: { result: "passed", reason: "   " } },
+      { ...good, [DID_THE_TASK]: { result: "passed", reason: 7 } },
       { ...good, [DID_THE_TASK]: { result: "mostly", reason: "x" } },
       { ...good, [DID_THE_TASK]: { result: "passed", reason: "x", score: 1 } },
       { ...good, [DID_THE_TASK]: "passed" },

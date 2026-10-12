@@ -19,7 +19,9 @@
  *     the stored grade, not what it would conclude now; each failure
  *     the workflow saw is recorded with its reason; a judge that vanished,
  *     a judge still running with no failure and a failed judge with no
- *     error each have their reason; a judged run deleted while its score
+ *     error each have their reason; a verdict whose reason runs past the
+ *     bound, which the provider does not enforce, is graded with the reason
+ *     cut (stigmer#2177); a judged run deleted while its score
  *     was written has the score removed and the grade only gives its money
  *     back.
  */
@@ -27,7 +29,7 @@ import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { JUDGE_EVALUATOR_VERSION } from "@stigmer/eval-runtime";
+import { JUDGE_EVALUATOR_VERSION, RUBRICS } from "@stigmer/eval-runtime";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -460,6 +462,23 @@ describe("record-judge", () => {
       await activities()[RECORD_JUDGE_ACTIVITY_NAME](runId, TICKET, judgeRunId, failure as "" | "busy");
       expect((await judgeScores(runId))[0]?.status?.notGradedReason, runId).toBe(reason);
     }
+  });
+
+  it("grades a verdict whose reason runs past the bound, its reason cut and marked (stigmer#2177)", async () => {
+    await seedEvaluator();
+    await seedRun("run_1");
+    const long = "r".repeat(600);
+    const judge = await seedRun("run_judge", { sessionId: "ses_judge" });
+    if (judge.status !== undefined) {
+      judge.status.structuredOutput = Object.fromEntries(
+        RUBRICS.map((rubric, index) => [rubric.name, { result: "passed", reason: index === 0 ? long : "Fine." }]),
+      );
+    }
+    await temp.store.saveResource(ApiResourceKind.run, "run_judge", RunSchema, judge);
+    expect(await activities()[RECORD_JUDGE_ACTIVITY_NAME]("run_1", TICKET, "run_judge", "")).toBe(GRADE_RECORDED);
+    const [score] = await judgeScores("run_1");
+    expect(score?.status?.state).toBe(ScoreState.graded);
+    expect(score?.spec?.criteria[0]?.reason).toBe(`${long.slice(0, 494)} [cut]`);
   });
 
   it("removes the score it wrote when the judged run went meanwhile, and only gives the grade's money back", async () => {
