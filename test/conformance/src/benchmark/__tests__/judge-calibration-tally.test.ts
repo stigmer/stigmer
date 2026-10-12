@@ -2,10 +2,12 @@
 // caught, passes kept and not applicable matched are counted apart per
 // rubric; an unreadable try is a miss in every direction and counted on its
 // own; the bar refuses below 90% caught or kept, below 80% matched, and any
-// unreadable verdict; and the generated module reads back as the counts.
+// unreadable verdict; the generated module reads back as the counts; and
+// the judge cell caps each grade as the server caps a live grade's judge run.
 // Domain: conformance benchmark (the judge's calibration).
 import { describe, expect, it } from "vitest";
 
+import { PER_GRADE_CAP_USD } from "../judge/calibrate";
 import {
   renderCalibrationModule,
   shortfallsOf,
@@ -103,5 +105,11 @@ describe("renderCalibrationModule", () => {
     expect(source.startsWith("// GENERATED")).toBe(true);
     const literal = source.slice(source.indexOf("= ") + 2, source.lastIndexOf(";"));
     expect(JSON.parse(literal)).toMatchObject({ evaluatorVersion: "v", examplesDigest: "d", grades: 1 });
+  });
+});
+
+describe("the judge cell", () => {
+  it("caps each grade at the server's per-grade cap, $0.25 (domain/score/judge/judge-run.ts)", () => {
+    expect(PER_GRADE_CAP_USD).toBe(0.25);
   });
 });

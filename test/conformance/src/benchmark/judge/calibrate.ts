@@ -87,15 +87,10 @@ export async function runJudgeCalibration(
   const models = new Set<string>();
   let spentUsd = 0;
   let inFlight = 0;
-  let stoppedAtBudget = false;
 
   const worker = async (): Promise<void> => {
     for (;;) {
       if (spentUsd + (inFlight + 1) * PER_GRADE_CAP_USD > options.budgetUsd) {
-        if (queue.length > 0 && !stoppedAtBudget) {
-          stoppedAtBudget = true;
-          io.log(`judge: stopping at the budget, $${spentUsd.toFixed(2)} spent of $${options.budgetUsd}; ${queue.length} tries not run`);
-        }
         return;
       }
       const next = queue.shift();
@@ -118,6 +113,11 @@ export async function runJudgeCalibration(
     await Promise.all(Array.from({ length: options.concurrency }, () => worker()));
   } finally {
     await clients.organizationCommand.delete({ value: org }).catch(() => undefined);
+  }
+  // Every worker has stopped: what is left in the queue is what the budget kept from running.
+  const stoppedAtBudget = queue.length > 0;
+  if (stoppedAtBudget) {
+    io.log(`judge: stopped at the budget, $${spentUsd.toFixed(2)} spent of $${options.budgetUsd}; ${queue.length} tries not run`);
   }
 
   const { calibration, misses } = tallyCalibration(
