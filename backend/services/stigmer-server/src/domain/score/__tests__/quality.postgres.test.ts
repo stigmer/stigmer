@@ -9,7 +9,8 @@
  *     window's first UTC day: another organization's, another agent's, an
  *     eval try's and an older score are not counted;
  *   - a read longer than one batch follows the index's cursor without
- *     losing or repeating a row (one batch and 50 more);
+ *     losing or repeating a row (one batch and 50 more), and joins a run's
+ *     judge grade and thumbs read in different batches into the agreement;
  *   - the flagged list pages the same rows, failed grades only, and asks
  *     the session scope about each page's sessions; page_size 0 is one
  *     full page with a token, never the whole list.
@@ -20,6 +21,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import {
+  CriterionResult,
   ScoreSource,
   ScoreState,
 } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
@@ -116,7 +118,15 @@ interface Seed {
   readonly passed?: boolean;
   readonly daysAgo?: number;
   readonly sessionId?: string;
+  readonly runId?: string;
+  readonly kind?: "judge" | "thumbs";
 }
+
+const SOURCE_OF_KIND = {
+  check: { metric: "run-health", source: ScoreSource.check, evaluatorVersion: "checks-v1" },
+  judge: { metric: "judge", source: ScoreSource.judge, evaluatorVersion: "j2" },
+  thumbs: { metric: "feedback", source: ScoreSource.human, evaluatorVersion: "" },
+} as const;
 
 async function seedScore(store: Store, seed: Seed): Promise<string> {
   seq++;
@@ -134,12 +144,14 @@ async function seedScore(store: Store, seed: Seed): Promise<string> {
         labels: seed.evalTry === true ? { [PLUGIN_EVAL_LABEL]: "pev_x" } : {},
       },
       spec: {
-        runId: `run_quality${seq}`,
+        runId: seed.runId ?? `run_quality${seq}`,
         sessionId: seed.sessionId ?? "ses_mine",
-        metric: "run-health",
-        source: ScoreSource.check,
-        evaluatorVersion: "checks-v1",
+        ...SOURCE_OF_KIND[seed.kind ?? "check"],
         value: { case: "passed", value: seed.passed ?? true },
+        criteria:
+          seed.kind === "judge"
+            ? [{ name: "did-the-task", result: seed.passed === false ? CriterionResult.failed : CriterionResult.passed }]
+            : [],
       },
       status: {
         state: ScoreState.graded,
@@ -232,11 +244,13 @@ describe.each(fixtures)("an agent's quality on $name", (fixture) => {
   );
 
   it.skipIf(fixture.skip)(
-    "follows the cursor across batches without losing or repeating a row",
+    "follows the cursor across batches without losing or repeating a row, joining a run read in two batches",
     async () => {
       const opened = await fixture.open();
       try {
         const { store } = opened;
+        // The newest row: a judge grade, read in the first batch.
+        await seedScore(store, { runId: "run_split", kind: "judge", passed: false });
         const SEEDED = QUALITY_REPORT_BATCH + 50;
         // Seeded in parallel batches: one row at a time takes minutes on a
         // loaded Postgres.
@@ -247,9 +261,14 @@ describe.each(fixtures)("an agent's quality on $name", (fixture) => {
             ),
           );
         }
+        // The oldest row: a thumbs up on the same run, read in the last batch.
+        await seedScore(store, { runId: "run_split", kind: "thumbs" });
         const report = await reportOf(store, 1);
-        expect(report.total?.runs).toBe(SEEDED);
-        expect(report.total?.metrics[0]?.passed).toBe(SEEDED);
+        expect(report.total?.runs).toBe(SEEDED + 1);
+        expect(report.total?.metrics.find((m) => m.metric === "run-health")?.passed).toBe(SEEDED);
+        expect(
+          report.agreement.map((a) => [a.evaluatorVersion, a.runs, a.rules.map((r) => [r.name, r.failedThumbsUp])]),
+        ).toEqual([["j2", 1, [["did-the-task", 1]]]]);
       } finally {
         await opened.close();
       }
