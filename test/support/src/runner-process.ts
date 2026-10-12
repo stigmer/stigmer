@@ -192,6 +192,13 @@ export interface RunnerOptions {
   // timelines) exist nowhere but its stdout, and the benchmark readers and
   // their smoke read them from this file.
   logFile?: string;
+  // Where the runner sends its traces: an OTLP/HTTP JSON receiver's endpoint
+  // and the login header it requires, with the conversation's text on, the
+  // standard OpenTelemetry settings an operator would set
+  // (docs/guides/self-hosting/tracing.mdx). Spans leave every 200 ms so a
+  // suite reads a finished run's trace without waiting the SDK's 5 s.
+  // Omitted, the runner exports nothing.
+  telemetry?: { readonly endpoint: string; readonly login: string };
 }
 
 export interface RunningRunner {
@@ -294,6 +301,15 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
             // queued agent turns (#715). Keep every LLM caller on the one
             // provider the mock implements.
             STIGMER_PRIMARY_MODEL: "claude-sonnet-4-6",
+          }
+        : {}),
+      ...(opts.telemetry !== undefined
+        ? {
+            OTEL_EXPORTER_OTLP_ENDPOINT: opts.telemetry.endpoint,
+            OTEL_EXPORTER_OTLP_PROTOCOL: "http/json",
+            OTEL_EXPORTER_OTLP_HEADERS: `authorization=${encodeURIComponent(opts.telemetry.login)}`,
+            OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: "true",
+            OTEL_BSP_SCHEDULE_DELAY: "200",
           }
         : {}),
     },

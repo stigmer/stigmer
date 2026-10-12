@@ -5,7 +5,7 @@
  * `runCursorTurn` is what `adapter.ts`'s `runTurn` delegates to: the HITL
  * gate, the agent (parked, created or resumed), the prompt, the stream, the
  * turn boundary, `run.wait()` and its recovery spines, and its own teardown
- * (the denial watcher, the gate, the OTel span, and what becomes of the agent
+ * (the denial watcher, the gate, the run's trace span, and what becomes of the agent
  * handle). Everything else about a turn is the runtime's
  * (`harness/run-turn.ts`): the resolution phases, the persist chokepoint, the
  * watchdog, the cost cap, the interruption table, the completion epilogue,
@@ -53,6 +53,7 @@ import { closeProxySessions } from "./http2-interceptor.js";
 import { clearCapturedRejection, getCapturedRejection } from "./rejection-capture.js";
 import { newTurnStreamState } from "./turn-stream.js";
 import { CursorWorkspaceHooksRefusal } from "./workspace-hook-files.js";
+import { CursorRunTelemetry } from "./run-telemetry.js";
 import { streamAndSettle, usageSnapshotFor } from "./turn-settle.js";
 import {
   buildTurnPrompt,
@@ -105,20 +106,18 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
 
     const prompt = await buildTurnPrompt(input, sink, engine, rows);
 
-    // The OTel turn span. Coarse-grained — spans the whole turn (agent.send +
-    // stream + any recovery retry + the turn boundary), ended once from the
-    // finally so it never leaks on a non-happy path and includes any recovery
-    // retry's tokens (read from the runtime's usage summary at end time).
-    const { startCursorTurnSpan } = await import("../../otel.js");
-    const turnSpan = await startCursorTurnSpan({ model: engine.validatedModel, mode: engine.agentMode, sessionId });
+    // The Cursor run's trace span (`run-telemetry.ts`): the whole engine
+    // stretch (agent.send + stream + any recovery retry + the turn
+    // boundary), its tool calls under it, ended once from the finally so it
+    // never leaks on a non-happy path, with every usage report's tokens.
+    const telemetry = CursorRunTelemetry.start({ model: engine.validatedModel, mode: engine.agentMode });
     let turnTelemetryFinished = false;
     const resolvedEngine = engine;
     finishTurnTelemetry = async () => {
       if (turnTelemetryFinished) return;
       turnTelemetryFinished = true;
+      telemetry.end(outcome);
       const usage = usageSnapshotFor(sink);
-      turnSpan.setTokens(Number(usage.inputTokens), Number(usage.outputTokens));
-      turnSpan.end();
       try {
         const { recordTurnMetrics } = await import("../../otel.js");
         const startedAt = sink.status.startedAt ? new Date(sink.status.startedAt).getTime() : Date.now();
@@ -134,13 +133,13 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
       }
     };
 
-    outcome = await streamAndSettle({ input, sink, engine, gate, prompt, rows, streamState });
+    outcome = await streamAndSettle({ input, sink, engine, gate, prompt, rows, streamState, telemetry });
     return outcome;
   } catch (err) {
     outcome = await classifyThrown(err, input, config, engine);
     return outcome;
   } finally {
-    // End the OTel turn span + record metrics on EVERY exit path (idempotent).
+    // End the Cursor run's spans + record metrics on EVERY exit path (idempotent).
     await finishTurnTelemetry?.();
 
     // Close the denial-ledger watcher on EVERY exit path (idempotent) so no

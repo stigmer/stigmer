@@ -58,6 +58,7 @@ import { mountPlatformRoute } from "./platform-route.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
 import type { CostAdvisoryMiddleware, StigmerMiddleware } from "../../middleware/index.js";
 import { createWebFetchTool, type GuardPosture } from "../../tools/index.js";
+import { withSubAgentSpan } from "../../middleware/otel-spans.js";
 import { buildSubAgentMiddleware } from "./subagent-wiring.js";
 import { SubAgentGate } from "../../shared/subagent-gate.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
@@ -228,6 +229,8 @@ export interface SubagentTransformOptions {
    */
   readonly casObserver?: CasCaptureObserver;
   readonly parentModelName: string;
+  /** Which MCP server each parent tool belongs to, for the sub-agents' tool spans (`middleware/otel-spans.ts`). */
+  readonly toolServerMap?: ReadonlyMap<string, string>;
   /**
    * URL-guard posture for the native `web_fetch` tool, inherited from the
    * parent (resolveGuardPosture(config.mode) in turn-setup.ts) so a sub-agent
@@ -496,6 +499,8 @@ export async function compileSubagents(
     readonly platformDir?: string;
     /** Shared CAS observer (capture mode only); see {@link SubagentTransformOptions.casObserver}. */
     readonly casObserver?: CasCaptureObserver;
+    /** See {@link SubagentTransformOptions.toolServerMap}. */
+    readonly toolServerMap?: ReadonlyMap<string, string>;
     readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
     /** Shell env for `execute`; see {@link SubagentTransformOptions.shellEnv}. */
     readonly shellEnv?: Record<string, string>;
@@ -556,6 +561,7 @@ export async function compileSubagents(
           captureIgnored: !!opts.casObserver,
           pathNormalization: { rootDir: opts.workspaceRootDir },
           ...(opts.scopeBase ? { toolScope: { ...opts.scopeBase, scope: spec.scope } } : {}),
+          otelSpans: { toolServerMap: opts.toolServerMap ?? new Map() },
         }) as unknown[],
         backend,
         // Enforced inside this graph's own filesystem tools — and inherited by
@@ -569,8 +575,14 @@ export async function compileSubagents(
       // log line, never failed at its first delegation.
       buildGraph(randomUUID());
 
+      // Each invocation runs in an `invoke_agent` span of its own, opened
+      // inside the parent's `task` tool span, so the sub-agent's calls nest
+      // where they happened in the run's trace.
       const gatedRunnable = gate.wrapRunnable<Record<string, unknown>, Record<string, unknown>>(
-        { invoke: (input, config) => buildGraph(subAgentInvocationId(config)).invoke(input, config) },
+        {
+          invoke: (input, config) =>
+            withSubAgentSpan(spec.name, () => buildGraph(subAgentInvocationId(config)).invoke(input, config)),
+        },
         spec.name,
       );
 
@@ -626,6 +638,7 @@ export async function transformAndCompileSubagents(
     approvalGate,
     casObserver,
     parentModelName,
+    toolServerMap,
     webFetchPosture,
     costAdvisory,
     modelFactory,
@@ -689,6 +702,7 @@ export async function transformAndCompileSubagents(
     workspaceRootDir: workspaceBackend.rootDir,
     platformDir: workspaceBackend.platformDir,
     casObserver,
+    toolServerMap,
     modelFactory,
     shellEnv,
     permissions,

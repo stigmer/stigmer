@@ -9,6 +9,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { resetTelemetrySettingsForTests } from "../otel-export.js";
 import { buildInterceptorConfig } from "../runner-manager.js";
 import {
   OTEL_WORKFLOW_INTERCEPTOR_MODULE,
@@ -17,6 +18,8 @@ import {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  // The settings are resolved once per process (otel-export.ts); each case reads its own.
+  resetTelemetrySettingsForTests();
 });
 
 describe("the manager's workflow interceptor modules", () => {

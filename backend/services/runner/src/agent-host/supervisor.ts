@@ -38,6 +38,7 @@ import { fileURLToPath } from "node:url";
 
 import type { Config } from "../config.js";
 import type { HarnessName } from "../harness/registry.js";
+import { telemetrySettings } from "../otel-export.js";
 import { RUNNER_ENTRY_URL } from "../runner-entry.js";
 import { agentIdentity, setprivArgs, type AgentIdentity } from "../shared/agent-identity.js";
 import { Peer, streamChannel, type LineChannel } from "./channel.js";
@@ -283,6 +284,7 @@ export class AgentHostSupervisor {
       cursorEndpoint: config.proxyEndpoint !== null || config.cursorApiKey !== "" ? this.options.proxy.cursorEndpoint : null,
       token,
       platformProxied: config.proxyEndpoint !== null,
+      telemetry: telemetrySettings(),
     };
   }
 }
