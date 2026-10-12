@@ -51,6 +51,11 @@ func (o *OAuthAppClient) Update(ctx context.Context, input *OAuthAppInput) (*oau
 	return resp, wrapErr(err)
 }
 
+func (o *OAuthAppClient) Rename(ctx context.Context, input *apiresource.RenameInput) (*oauthappv1.OAuthApp, error) {
+	resp, err := o.command.Rename(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (o *OAuthAppClient) Delete(ctx context.Context, input *DeleteResourceInput) (*oauthappv1.OAuthApp, error) {
 	resp, err := o.command.Delete(ctx, &apiresource.ApiResourceDeleteInput{
 		ResourceId:     input.ResourceID,

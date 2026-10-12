@@ -5,7 +5,7 @@
 
 import { Vault } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ApiResourceDeleteInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
+import { ApiResourceDeleteInput, RenameInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
 import { CompleteSignInInput, CompleteSignInOutput, ConnectLink, CreateConnectLinkInput, RemoveVaultConnectionsInput, RemoveVaultSecretsInput, SetVaultConnectionInput, SetVaultSecretsInput, StartSignInInput, StartSignInOutput } from "./io_pbjs";
 
 /**
@@ -24,6 +24,14 @@ export const VaultCommandController = {
      * shared, unless it is created with organization visibility
      * (metadata.visibility), which shares it with every member at once.
      *
+     * A slug another vault of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another vault was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *
+     *   - SLUG_RESERVED — another vault held the slug until a recent rename, and
+     *     it still leads there. Metadata: slug.
+     *
      * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.create
      */
     create: {
@@ -37,6 +45,16 @@ export const VaultCommandController = {
      *
      * Entries are kept as stored: change them with setSecrets, removeSecrets,
      * setConnection and removeConnections.
+     *
+     * The slug changes only through rename. A slug the vault was renamed away
+     * from, named without the vault's id, is refused with FAILED_PRECONDITION
+     * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+     * write by a name that stops resolving after 30 days would later make a
+     * second vault:
+     *
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
+     *     for reading, but a write names its current slug. Metadata: slug (the
+     *     one the request named).
      *
      * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.update
      */
@@ -57,6 +75,30 @@ export const VaultCommandController = {
     updateVisibility: {
       name: "updateVisibility",
       I: UpdateVisibilityInput,
+      O: Vault,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Rename a vault: change its slug, the name people type.
+     *
+     * The vault keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * vault for reading for 30 days, during which no other vault of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * update). A slug another vault holds is refused with ALREADY_EXISTS, and one
+     * another vault was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     *
+     * My vault is named after its person and is never renamed: renaming it is
+     * refused with INVALID_ARGUMENT, and so is a slug that starts with my-vault,
+     * as on create.
+     *
+     * @generated from rpc ai.stigmer.agentic.vault.v1.VaultCommandController.rename
+     */
+    rename: {
+      name: "rename",
+      I: RenameInput,
       O: Vault,
       kind: MethodKind.Unary,
     },

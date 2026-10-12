@@ -23,6 +23,7 @@ const (
 	ChannelAppCommandController_Apply_FullMethodName  = "/ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController/apply"
 	ChannelAppCommandController_Create_FullMethodName = "/ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController/create"
 	ChannelAppCommandController_Update_FullMethodName = "/ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController/update"
+	ChannelAppCommandController_Rename_FullMethodName = "/ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController/rename"
 	ChannelAppCommandController_Delete_FullMethodName = "/ai.stigmer.agentic.channelapp.v1.ChannelAppCommandController/delete"
 )
 
@@ -37,17 +38,54 @@ type ChannelAppCommandControllerClient interface {
 	// If the resource does not exist, creates a new channel app.
 	// If the resource exists, updates the existing channel app. Sending
 	// the redaction marker for a secret field preserves the stored value.
+	//
+	// A request that carries metadata.id of a channel app in its organization
+	// updates that channel app, and its slug changes only through rename. A slug
+	// the channel app was renamed away from, named without the channel app's id,
+	// is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"), because a write by a name that stops resolving after
+	// 30 days would later make a second channel app:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same channel
+	//     app for reading, but a write names its current slug. Metadata: slug
+	//     (the one the request named).
 	Apply(ctx context.Context, in *ChannelApp, opts ...grpc.CallOption) (*ChannelApp, error)
 	// Create a channel app.
 	//
 	// The creator's organization owns the channel app, and the organization's
 	// current admins manage it.
+	//
+	// A slug another channel app of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another channel app was renamed away from, which
+	// still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another channel app held the slug until a recent
+	//     rename, and it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *ChannelApp, opts ...grpc.CallOption) (*ChannelApp, error)
 	// Update an existing channel app.
 	//
 	// Sending the redaction marker for a secret field preserves the
 	// stored value; the provider arm is immutable.
+	//
+	// The slug changes only through rename. An update that names the channel app
+	// by a slug it was renamed away from, without its id, is refused with
+	// SLUG_RENAMED (see apply).
 	Update(ctx context.Context, in *ChannelApp, opts ...grpc.CallOption) (*ChannelApp, error)
+	// Rename a channel app: change its slug, the name people type.
+	//
+	// The channel app keeps its id, so everything that names it keeps working,
+	// and every answer names it by the new slug. The old slug keeps leading to
+	// the channel app for reading for 30 days, during which no other channel app
+	// of the organization can take it and this one can take it back; then it is
+	// released. A write that names the old slug is refused with SLUG_RENAMED (see
+	// apply). A slug another channel app holds is refused with ALREADY_EXISTS,
+	// and one another channel app was recently renamed away from with
+	// SLUG_RESERVED (see create).
+	//
+	// Its webhook URLs name its id, so nothing registered with Slack or Meta
+	// changes.
+	Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*ChannelApp, error)
 	// Delete a channel app.
 	//
 	// Deletion is blocked while any AgentChannel references this app via
@@ -93,6 +131,16 @@ func (c *channelAppCommandControllerClient) Update(ctx context.Context, in *Chan
 	return out, nil
 }
 
+func (c *channelAppCommandControllerClient) Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*ChannelApp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChannelApp)
+	err := c.cc.Invoke(ctx, ChannelAppCommandController_Rename_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *channelAppCommandControllerClient) Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*ChannelApp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChannelApp)
@@ -114,17 +162,54 @@ type ChannelAppCommandControllerServer interface {
 	// If the resource does not exist, creates a new channel app.
 	// If the resource exists, updates the existing channel app. Sending
 	// the redaction marker for a secret field preserves the stored value.
+	//
+	// A request that carries metadata.id of a channel app in its organization
+	// updates that channel app, and its slug changes only through rename. A slug
+	// the channel app was renamed away from, named without the channel app's id,
+	// is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+	// (domain "stigmer.ai"), because a write by a name that stops resolving after
+	// 30 days would later make a second channel app:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same channel
+	//     app for reading, but a write names its current slug. Metadata: slug
+	//     (the one the request named).
 	Apply(context.Context, *ChannelApp) (*ChannelApp, error)
 	// Create a channel app.
 	//
 	// The creator's organization owns the channel app, and the organization's
 	// current admins manage it.
+	//
+	// A slug another channel app of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another channel app was renamed away from, which
+	// still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another channel app held the slug until a recent
+	//     rename, and it still leads there. Metadata: slug.
 	Create(context.Context, *ChannelApp) (*ChannelApp, error)
 	// Update an existing channel app.
 	//
 	// Sending the redaction marker for a secret field preserves the
 	// stored value; the provider arm is immutable.
+	//
+	// The slug changes only through rename. An update that names the channel app
+	// by a slug it was renamed away from, without its id, is refused with
+	// SLUG_RENAMED (see apply).
 	Update(context.Context, *ChannelApp) (*ChannelApp, error)
+	// Rename a channel app: change its slug, the name people type.
+	//
+	// The channel app keeps its id, so everything that names it keeps working,
+	// and every answer names it by the new slug. The old slug keeps leading to
+	// the channel app for reading for 30 days, during which no other channel app
+	// of the organization can take it and this one can take it back; then it is
+	// released. A write that names the old slug is refused with SLUG_RENAMED (see
+	// apply). A slug another channel app holds is refused with ALREADY_EXISTS,
+	// and one another channel app was recently renamed away from with
+	// SLUG_RESERVED (see create).
+	//
+	// Its webhook URLs name its id, so nothing registered with Slack or Meta
+	// changes.
+	Rename(context.Context, *apiresource.RenameInput) (*ChannelApp, error)
 	// Delete a channel app.
 	//
 	// Deletion is blocked while any AgentChannel references this app via
@@ -147,6 +232,9 @@ func (UnimplementedChannelAppCommandControllerServer) Create(context.Context, *C
 }
 func (UnimplementedChannelAppCommandControllerServer) Update(context.Context, *ChannelApp) (*ChannelApp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedChannelAppCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*ChannelApp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rename not implemented")
 }
 func (UnimplementedChannelAppCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*ChannelApp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -225,6 +313,24 @@ func _ChannelAppCommandController_Update_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChannelAppCommandController_Rename_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.RenameInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChannelAppCommandControllerServer).Rename(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChannelAppCommandController_Rename_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChannelAppCommandControllerServer).Rename(ctx, req.(*apiresource.RenameInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ChannelAppCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(apiresource.ApiResourceDeleteInput)
 	if err := dec(in); err != nil {
@@ -261,6 +367,10 @@ var ChannelAppCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "update",
 			Handler:    _ChannelAppCommandController_Update_Handler,
+		},
+		{
+			MethodName: "rename",
+			Handler:    _ChannelAppCommandController_Rename_Handler,
 		},
 		{
 			MethodName: "delete",

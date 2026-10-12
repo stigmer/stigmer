@@ -4,6 +4,7 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
+import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput;
 import ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest;
@@ -41,6 +42,12 @@ public final class PlatformClientClient {
     public PlatformClient update(PlatformClientInput input) {
         try {
             return command.update(input.toProto());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public PlatformClient rename(RenameInput input) {
+        try {
+            return command.rename(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.agentic.schedule.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.schedule.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
 class ScheduleCommandControllerStub(object):
@@ -31,6 +32,11 @@ class ScheduleCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.FromString,
                 _registered_method=True)
+        self.rename = channel.unary_unary(
+                '/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/rename',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleId.SerializeToString,
@@ -54,6 +60,17 @@ class ScheduleCommandControllerServicer(object):
 
     def apply(self, request, context):
         """Create or update a schedule.
+
+        A request that carries metadata.id of a schedule in its organization
+        updates that schedule, and its slug changes only through rename. A slug the
+        schedule was renamed away from, named without the schedule's id, is refused
+        with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+        "stigmer.ai"), because a write by a name that stops resolving after 30 days
+        would later make a second schedule:
+
+        - SLUG_RENAMED — the slug was renamed: it still leads to the same
+        schedule for reading, but a write names its current slug. Metadata:
+        slug (the one the request named).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -65,6 +82,14 @@ class ScheduleCommandControllerServicer(object):
         Scheduling an agent is a billing-affecting decision: every fire
         creates a run that consumes the schedule-owning
         organization's credits, unattended.
+
+        A slug another schedule of the organization holds is refused with
+        ALREADY_EXISTS. A slug another schedule was renamed away from, which still
+        leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+        google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+        - SLUG_RESERVED — another schedule held the slug until a recent rename,
+        and it still leads there. Metadata: slug.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -73,11 +98,34 @@ class ScheduleCommandControllerServicer(object):
     def update(self, request, context):
         """Update an existing schedule.
 
-        Replaces the spec wholesale. The slug, the referenced agent, and the
-        target arm are immutable; cron, time zone, enablement, and the
-        message may all change. Status (firing observations, the platform
+        Replaces the spec wholesale. The referenced agent and the target arm
+        are immutable; cron, time zone, enablement, and the message may all
+        change. Status (firing observations, the platform
         pause) is never touched by updates — use resume to clear a platform
         pause.
+
+        The slug changes only through rename. An update that names the schedule by
+        a slug it was renamed away from, without its id, is refused with
+        SLUG_RENAMED (see apply).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def rename(self, request, context):
+        """Rename a schedule: change its slug, the name people type.
+
+        The schedule keeps its id, so everything that names it keeps working, and
+        every answer names it by the new slug. The old slug keeps leading to the
+        schedule for reading for 30 days, during which no other schedule of the
+        organization can take it and this one can take it back; then it is
+        released. A write that names the old slug is refused with SLUG_RENAMED (see
+        apply). A slug another schedule holds is refused with ALREADY_EXISTS, and
+        one another schedule was recently renamed away from with SLUG_RESERVED (see
+        create).
+
+        Its fires keep their times; a conversation an earlier fire started keeps
+        the name it was given then.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -144,6 +192,11 @@ def add_ScheduleCommandControllerServicer_to_server(servicer, server):
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.SerializeToString,
+            ),
+            'rename': grpc.unary_unary_rpc_method_handler(
+                    servicer.rename,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -243,6 +296,33 @@ class ScheduleCommandController(object):
             target,
             '/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/update',
             ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def rename(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/rename',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.FromString,
             options,
             channel_credentials,

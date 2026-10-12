@@ -108,6 +108,37 @@ public final class ChannelAppCommandControllerGrpc {
     return getUpdateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
+      ai.stigmer.agentic.channelapp.v1.ChannelApp> getRenameMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "rename",
+      requestType = ai.stigmer.commons.apiresource.RenameInput.class,
+      responseType = ai.stigmer.agentic.channelapp.v1.ChannelApp.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
+      ai.stigmer.agentic.channelapp.v1.ChannelApp> getRenameMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput, ai.stigmer.agentic.channelapp.v1.ChannelApp> getRenameMethod;
+    if ((getRenameMethod = ChannelAppCommandControllerGrpc.getRenameMethod) == null) {
+      synchronized (ChannelAppCommandControllerGrpc.class) {
+        if ((getRenameMethod = ChannelAppCommandControllerGrpc.getRenameMethod) == null) {
+          ChannelAppCommandControllerGrpc.getRenameMethod = getRenameMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.RenameInput, ai.stigmer.agentic.channelapp.v1.ChannelApp>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "rename"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.RenameInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.channelapp.v1.ChannelApp.getDefaultInstance()))
+              .setSchemaDescriptor(new ChannelAppCommandControllerMethodDescriptorSupplier("rename"))
+              .build();
+        }
+      }
+    }
+    return getRenameMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.ApiResourceDeleteInput,
       ai.stigmer.agentic.channelapp.v1.ChannelApp> getDeleteMethod;
 
@@ -211,6 +242,15 @@ public final class ChannelAppCommandControllerGrpc {
      * If the resource does not exist, creates a new channel app.
      * If the resource exists, updates the existing channel app. Sending
      * the redaction marker for a secret field preserves the stored value.
+     * A request that carries metadata.id of a channel app in its organization
+     * updates that channel app, and its slug changes only through rename. A slug
+     * the channel app was renamed away from, named without the channel app's id,
+     * is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"), because a write by a name that stops resolving after
+     * 30 days would later make a second channel app:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same channel
+     *     app for reading, but a write names its current slug. Metadata: slug
+     *     (the one the request named).
      * </pre>
      */
     default void apply(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -223,6 +263,12 @@ public final class ChannelAppCommandControllerGrpc {
      * Create a channel app.
      * The creator's organization owns the channel app, and the organization's
      * current admins manage it.
+     * A slug another channel app of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another channel app was renamed away from, which
+     * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another channel app held the slug until a recent
+     *     rename, and it still leads there. Metadata: slug.
      * </pre>
      */
     default void create(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -235,11 +281,34 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
+     * The slug changes only through rename. An update that names the channel app
+     * by a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     default void update(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.channelapp.v1.ChannelApp> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rename a channel app: change its slug, the name people type.
+     * The channel app keeps its id, so everything that names it keeps working,
+     * and every answer names it by the new slug. The old slug keeps leading to
+     * the channel app for reading for 30 days, during which no other channel app
+     * of the organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another channel app holds is refused with ALREADY_EXISTS,
+     * and one another channel app was recently renamed away from with
+     * SLUG_RESERVED (see create).
+     * Its webhook URLs name its id, so nothing registered with Slack or Meta
+     * changes.
+     * </pre>
+     */
+    default void rename(ai.stigmer.commons.apiresource.RenameInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.channelapp.v1.ChannelApp> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRenameMethod(), responseObserver);
     }
 
     /**
@@ -294,6 +363,15 @@ public final class ChannelAppCommandControllerGrpc {
      * If the resource does not exist, creates a new channel app.
      * If the resource exists, updates the existing channel app. Sending
      * the redaction marker for a secret field preserves the stored value.
+     * A request that carries metadata.id of a channel app in its organization
+     * updates that channel app, and its slug changes only through rename. A slug
+     * the channel app was renamed away from, named without the channel app's id,
+     * is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"), because a write by a name that stops resolving after
+     * 30 days would later make a second channel app:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same channel
+     *     app for reading, but a write names its current slug. Metadata: slug
+     *     (the one the request named).
      * </pre>
      */
     public void apply(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -307,6 +385,12 @@ public final class ChannelAppCommandControllerGrpc {
      * Create a channel app.
      * The creator's organization owns the channel app, and the organization's
      * current admins manage it.
+     * A slug another channel app of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another channel app was renamed away from, which
+     * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another channel app held the slug until a recent
+     *     rename, and it still leads there. Metadata: slug.
      * </pre>
      */
     public void create(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
@@ -320,12 +404,36 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
+     * The slug changes only through rename. An update that names the channel app
+     * by a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     public void update(ai.stigmer.agentic.channelapp.v1.ChannelApp request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.channelapp.v1.ChannelApp> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rename a channel app: change its slug, the name people type.
+     * The channel app keeps its id, so everything that names it keeps working,
+     * and every answer names it by the new slug. The old slug keeps leading to
+     * the channel app for reading for 30 days, during which no other channel app
+     * of the organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another channel app holds is refused with ALREADY_EXISTS,
+     * and one another channel app was recently renamed away from with
+     * SLUG_RESERVED (see create).
+     * Its webhook URLs name its id, so nothing registered with Slack or Meta
+     * changes.
+     * </pre>
+     */
+    public void rename(ai.stigmer.commons.apiresource.RenameInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.channelapp.v1.ChannelApp> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRenameMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -367,6 +475,15 @@ public final class ChannelAppCommandControllerGrpc {
      * If the resource does not exist, creates a new channel app.
      * If the resource exists, updates the existing channel app. Sending
      * the redaction marker for a secret field preserves the stored value.
+     * A request that carries metadata.id of a channel app in its organization
+     * updates that channel app, and its slug changes only through rename. A slug
+     * the channel app was renamed away from, named without the channel app's id,
+     * is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"), because a write by a name that stops resolving after
+     * 30 days would later make a second channel app:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same channel
+     *     app for reading, but a write names its current slug. Metadata: slug
+     *     (the one the request named).
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp apply(ai.stigmer.agentic.channelapp.v1.ChannelApp request) throws io.grpc.StatusException {
@@ -379,6 +496,12 @@ public final class ChannelAppCommandControllerGrpc {
      * Create a channel app.
      * The creator's organization owns the channel app, and the organization's
      * current admins manage it.
+     * A slug another channel app of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another channel app was renamed away from, which
+     * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another channel app held the slug until a recent
+     *     rename, and it still leads there. Metadata: slug.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp create(ai.stigmer.agentic.channelapp.v1.ChannelApp request) throws io.grpc.StatusException {
@@ -391,11 +514,34 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
+     * The slug changes only through rename. An update that names the channel app
+     * by a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp update(ai.stigmer.agentic.channelapp.v1.ChannelApp request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rename a channel app: change its slug, the name people type.
+     * The channel app keeps its id, so everything that names it keeps working,
+     * and every answer names it by the new slug. The old slug keeps leading to
+     * the channel app for reading for 30 days, during which no other channel app
+     * of the organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another channel app holds is refused with ALREADY_EXISTS,
+     * and one another channel app was recently renamed away from with
+     * SLUG_RESERVED (see create).
+     * Its webhook URLs name its id, so nothing registered with Slack or Meta
+     * changes.
+     * </pre>
+     */
+    public ai.stigmer.agentic.channelapp.v1.ChannelApp rename(ai.stigmer.commons.apiresource.RenameInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRenameMethod(), getCallOptions(), request);
     }
 
     /**
@@ -436,6 +582,15 @@ public final class ChannelAppCommandControllerGrpc {
      * If the resource does not exist, creates a new channel app.
      * If the resource exists, updates the existing channel app. Sending
      * the redaction marker for a secret field preserves the stored value.
+     * A request that carries metadata.id of a channel app in its organization
+     * updates that channel app, and its slug changes only through rename. A slug
+     * the channel app was renamed away from, named without the channel app's id,
+     * is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"), because a write by a name that stops resolving after
+     * 30 days would later make a second channel app:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same channel
+     *     app for reading, but a write names its current slug. Metadata: slug
+     *     (the one the request named).
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp apply(ai.stigmer.agentic.channelapp.v1.ChannelApp request) {
@@ -448,6 +603,12 @@ public final class ChannelAppCommandControllerGrpc {
      * Create a channel app.
      * The creator's organization owns the channel app, and the organization's
      * current admins manage it.
+     * A slug another channel app of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another channel app was renamed away from, which
+     * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another channel app held the slug until a recent
+     *     rename, and it still leads there. Metadata: slug.
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp create(ai.stigmer.agentic.channelapp.v1.ChannelApp request) {
@@ -460,11 +621,34 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
+     * The slug changes only through rename. An update that names the channel app
+     * by a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.agentic.channelapp.v1.ChannelApp update(ai.stigmer.agentic.channelapp.v1.ChannelApp request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rename a channel app: change its slug, the name people type.
+     * The channel app keeps its id, so everything that names it keeps working,
+     * and every answer names it by the new slug. The old slug keeps leading to
+     * the channel app for reading for 30 days, during which no other channel app
+     * of the organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another channel app holds is refused with ALREADY_EXISTS,
+     * and one another channel app was recently renamed away from with
+     * SLUG_RESERVED (see create).
+     * Its webhook URLs name its id, so nothing registered with Slack or Meta
+     * changes.
+     * </pre>
+     */
+    public ai.stigmer.agentic.channelapp.v1.ChannelApp rename(ai.stigmer.commons.apiresource.RenameInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRenameMethod(), getCallOptions(), request);
     }
 
     /**
@@ -505,6 +689,15 @@ public final class ChannelAppCommandControllerGrpc {
      * If the resource does not exist, creates a new channel app.
      * If the resource exists, updates the existing channel app. Sending
      * the redaction marker for a secret field preserves the stored value.
+     * A request that carries metadata.id of a channel app in its organization
+     * updates that channel app, and its slug changes only through rename. A slug
+     * the channel app was renamed away from, named without the channel app's id,
+     * is refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"), because a write by a name that stops resolving after
+     * 30 days would later make a second channel app:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same channel
+     *     app for reading, but a write names its current slug. Metadata: slug
+     *     (the one the request named).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> apply(
@@ -518,6 +711,12 @@ public final class ChannelAppCommandControllerGrpc {
      * Create a channel app.
      * The creator's organization owns the channel app, and the organization's
      * current admins manage it.
+     * A slug another channel app of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another channel app was renamed away from, which
+     * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another channel app held the slug until a recent
+     *     rename, and it still leads there. Metadata: slug.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> create(
@@ -531,12 +730,36 @@ public final class ChannelAppCommandControllerGrpc {
      * Update an existing channel app.
      * Sending the redaction marker for a secret field preserves the
      * stored value; the provider arm is immutable.
+     * The slug changes only through rename. An update that names the channel app
+     * by a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> update(
         ai.stigmer.agentic.channelapp.v1.ChannelApp request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Rename a channel app: change its slug, the name people type.
+     * The channel app keeps its id, so everything that names it keeps working,
+     * and every answer names it by the new slug. The old slug keeps leading to
+     * the channel app for reading for 30 days, during which no other channel app
+     * of the organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another channel app holds is refused with ALREADY_EXISTS,
+     * and one another channel app was recently renamed away from with
+     * SLUG_RESERVED (see create).
+     * Its webhook URLs name its id, so nothing registered with Slack or Meta
+     * changes.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.channelapp.v1.ChannelApp> rename(
+        ai.stigmer.commons.apiresource.RenameInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRenameMethod(), getCallOptions()), request);
     }
 
     /**
@@ -556,7 +779,8 @@ public final class ChannelAppCommandControllerGrpc {
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
-  private static final int METHODID_DELETE = 3;
+  private static final int METHODID_RENAME = 3;
+  private static final int METHODID_DELETE = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -585,6 +809,10 @@ public final class ChannelAppCommandControllerGrpc {
           break;
         case METHODID_UPDATE:
           serviceImpl.update((ai.stigmer.agentic.channelapp.v1.ChannelApp) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.channelapp.v1.ChannelApp>) responseObserver);
+          break;
+        case METHODID_RENAME:
+          serviceImpl.rename((ai.stigmer.commons.apiresource.RenameInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.channelapp.v1.ChannelApp>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -630,6 +858,13 @@ public final class ChannelAppCommandControllerGrpc {
               ai.stigmer.agentic.channelapp.v1.ChannelApp,
               ai.stigmer.agentic.channelapp.v1.ChannelApp>(
                 service, METHODID_UPDATE)))
+        .addMethod(
+          getRenameMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.RenameInput,
+              ai.stigmer.agentic.channelapp.v1.ChannelApp>(
+                service, METHODID_RENAME)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -688,6 +923,7 @@ public final class ChannelAppCommandControllerGrpc {
               .addMethod(getApplyMethod())
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
+              .addMethod(getRenameMethod())
               .addMethod(getDeleteMethod())
               .build();
         }

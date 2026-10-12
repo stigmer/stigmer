@@ -41,7 +41,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       ".proto\032\'ai/stigmer/commons/apiresource/i" +
       "o.proto\0328ai/stigmer/commons/apiresource/" +
       "rpc_service_options.proto\032+ai/stigmer/co" +
-      "mmons/rpc/method_options.proto2\216\005\n\033Chann" +
+      "mmons/rpc/method_options.proto2\257\006\n\033Chann" +
       "elAppCommandController\022c\n\005apply\022,.ai.sti" +
       "gmer.agentic.channelapp.v1.ChannelApp\032,." +
       "ai.stigmer.agentic.channelapp.v1.Channel" +
@@ -53,16 +53,20 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       ".ai.stigmer.agentic.channelapp.v1.Channe" +
       "lApp\032,.ai.stigmer.agentic.channelapp.v1." +
       "ChannelApp\"9\302\270\0305\010\002\0200\"\013metadata.id*\"unaut" +
-      "horized to update channel app\022\251\001\n\006delete" +
-      "\0226.ai.stigmer.commons.apiresource.ApiRes" +
-      "ourceDeleteInput\032,.ai.stigmer.agentic.ch" +
-      "annelapp.v1.ChannelApp\"9\302\270\0305\010\003\0200\"\013resour" +
-      "ce_id*\"unauthorized to delete channel ap" +
-      "p\032\004\240\377+0B\263\001B\014CommandProtoP\001\242\002\004ASAC\252\002 Ai.S" +
-      "tigmer.Agentic.Channelapp.V1\312\002 Ai\\Stigme" +
-      "r\\Agentic\\Channelapp\\V1\342\002,Ai\\Stigmer\\Age" +
-      "ntic\\Channelapp\\V1\\GPBMetadata\352\002$Ai::Sti" +
-      "gmer::Agentic::Channelapp::V1b\006proto3"
+      "horized to update channel app\022\236\001\n\006rename" +
+      "\022+.ai.stigmer.commons.apiresource.Rename" +
+      "Input\032,.ai.stigmer.agentic.channelapp.v1" +
+      ".ChannelApp\"9\302\270\0305\010\003\0200\"\013resource_id*\"unau" +
+      "thorized to rename channel app\022\251\001\n\006delet" +
+      "e\0226.ai.stigmer.commons.apiresource.ApiRe" +
+      "sourceDeleteInput\032,.ai.stigmer.agentic.c" +
+      "hannelapp.v1.ChannelApp\"9\302\270\0305\010\003\0200\"\013resou" +
+      "rce_id*\"unauthorized to delete channel a" +
+      "pp\032\004\240\377+0B\263\001B\014CommandProtoP\001\242\002\004ASAC\252\002 Ai." +
+      "Stigmer.Agentic.Channelapp.V1\312\002 Ai\\Stigm" +
+      "er\\Agentic\\Channelapp\\V1\342\002,Ai\\Stigmer\\Ag" +
+      "entic\\Channelapp\\V1\\GPBMetadata\352\002$Ai::St" +
+      "igmer::Agentic::Channelapp::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -23,6 +23,7 @@ const (
 	VaultCommandController_Create_FullMethodName            = "/ai.stigmer.agentic.vault.v1.VaultCommandController/create"
 	VaultCommandController_Update_FullMethodName            = "/ai.stigmer.agentic.vault.v1.VaultCommandController/update"
 	VaultCommandController_UpdateVisibility_FullMethodName  = "/ai.stigmer.agentic.vault.v1.VaultCommandController/updateVisibility"
+	VaultCommandController_Rename_FullMethodName            = "/ai.stigmer.agentic.vault.v1.VaultCommandController/rename"
 	VaultCommandController_Delete_FullMethodName            = "/ai.stigmer.agentic.vault.v1.VaultCommandController/delete"
 	VaultCommandController_SetSecrets_FullMethodName        = "/ai.stigmer.agentic.vault.v1.VaultCommandController/setSecrets"
 	VaultCommandController_RemoveSecrets_FullMethodName     = "/ai.stigmer.agentic.vault.v1.VaultCommandController/removeSecrets"
@@ -45,17 +46,50 @@ type VaultCommandControllerClient interface {
 	// private, so only the organization's admins may use it until it is
 	// shared, unless it is created with organization visibility
 	// (metadata.visibility), which shares it with every member at once.
+	//
+	// A slug another vault of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another vault was renamed away from, which still
+	// leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another vault held the slug until a recent rename, and
+	//     it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *Vault, opts ...grpc.CallOption) (*Vault, error)
 	// Update a vault's name, description and external id.
 	//
 	// Entries are kept as stored: change them with setSecrets, removeSecrets,
 	// setConnection and removeConnections.
+	//
+	// The slug changes only through rename. A slug the vault was renamed away
+	// from, named without the vault's id, is refused with FAILED_PRECONDITION
+	// carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+	// write by a name that stops resolving after 30 days would later make a
+	// second vault:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
+	//     for reading, but a write names its current slug. Metadata: slug (the
+	//     one the request named).
 	Update(ctx context.Context, in *Vault, opts ...grpc.CallOption) (*Vault, error)
 	// Update the visibility of a shared vault.
 	//
 	// Setting org lets every member of the organization use the vault in
 	// their runs. My vault is always private.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Vault, error)
+	// Rename a vault: change its slug, the name people type.
+	//
+	// The vault keeps its id, so everything that names it keeps working, and
+	// every answer names it by the new slug. The old slug keeps leading to the
+	// vault for reading for 30 days, during which no other vault of the
+	// organization can take it and this one can take it back; then it is
+	// released. A write that names the old slug is refused with SLUG_RENAMED (see
+	// update). A slug another vault holds is refused with ALREADY_EXISTS, and one
+	// another vault was recently renamed away from with SLUG_RESERVED (see
+	// create).
+	//
+	// My vault is named after its person and is never renamed: renaming it is
+	// refused with INVALID_ARGUMENT, and so is a slug that starts with my-vault,
+	// as on create.
+	Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*Vault, error)
 	// Delete a vault and every value it holds.
 	//
 	// Sessions, schedules, shares, channels and platform clients that name the
@@ -136,6 +170,16 @@ func (c *vaultCommandControllerClient) UpdateVisibility(ctx context.Context, in 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Vault)
 	err := c.cc.Invoke(ctx, VaultCommandController_UpdateVisibility_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vaultCommandControllerClient) Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*Vault, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Vault)
+	err := c.cc.Invoke(ctx, VaultCommandController_Rename_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -234,17 +278,50 @@ type VaultCommandControllerServer interface {
 	// private, so only the organization's admins may use it until it is
 	// shared, unless it is created with organization visibility
 	// (metadata.visibility), which shares it with every member at once.
+	//
+	// A slug another vault of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another vault was renamed away from, which still
+	// leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another vault held the slug until a recent rename, and
+	//     it still leads there. Metadata: slug.
 	Create(context.Context, *Vault) (*Vault, error)
 	// Update a vault's name, description and external id.
 	//
 	// Entries are kept as stored: change them with setSecrets, removeSecrets,
 	// setConnection and removeConnections.
+	//
+	// The slug changes only through rename. A slug the vault was renamed away
+	// from, named without the vault's id, is refused with FAILED_PRECONDITION
+	// carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+	// write by a name that stops resolving after 30 days would later make a
+	// second vault:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
+	//     for reading, but a write names its current slug. Metadata: slug (the
+	//     one the request named).
 	Update(context.Context, *Vault) (*Vault, error)
 	// Update the visibility of a shared vault.
 	//
 	// Setting org lets every member of the organization use the vault in
 	// their runs. My vault is always private.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Vault, error)
+	// Rename a vault: change its slug, the name people type.
+	//
+	// The vault keeps its id, so everything that names it keeps working, and
+	// every answer names it by the new slug. The old slug keeps leading to the
+	// vault for reading for 30 days, during which no other vault of the
+	// organization can take it and this one can take it back; then it is
+	// released. A write that names the old slug is refused with SLUG_RENAMED (see
+	// update). A slug another vault holds is refused with ALREADY_EXISTS, and one
+	// another vault was recently renamed away from with SLUG_RESERVED (see
+	// create).
+	//
+	// My vault is named after its person and is never renamed: renaming it is
+	// refused with INVALID_ARGUMENT, and so is a slug that starts with my-vault,
+	// as on create.
+	Rename(context.Context, *apiresource.RenameInput) (*Vault, error)
 	// Delete a vault and every value it holds.
 	//
 	// Sessions, schedules, shares, channels and platform clients that name the
@@ -308,6 +385,9 @@ func (UnimplementedVaultCommandControllerServer) Update(context.Context, *Vault)
 }
 func (UnimplementedVaultCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Vault, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
+}
+func (UnimplementedVaultCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*Vault, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rename not implemented")
 }
 func (UnimplementedVaultCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*Vault, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -403,6 +483,24 @@ func _VaultCommandController_UpdateVisibility_Handler(srv interface{}, ctx conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(VaultCommandControllerServer).UpdateVisibility(ctx, req.(*apiresource.UpdateVisibilityInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VaultCommandController_Rename_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.RenameInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VaultCommandControllerServer).Rename(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VaultCommandController_Rename_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VaultCommandControllerServer).Rename(ctx, req.(*apiresource.RenameInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -569,6 +667,10 @@ var VaultCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "updateVisibility",
 			Handler:    _VaultCommandController_UpdateVisibility_Handler,
+		},
+		{
+			MethodName: "rename",
+			Handler:    _VaultCommandController_Rename_Handler,
 		},
 		{
 			MethodName: "delete",

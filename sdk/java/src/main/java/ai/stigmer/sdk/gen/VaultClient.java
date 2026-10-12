@@ -30,6 +30,7 @@ import ai.stigmer.agentic.vault.v1.VaultQueryControllerGrpc;
 import ai.stigmer.agentic.vault.v1.VaultValueControllerGrpc;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
+import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
@@ -64,6 +65,12 @@ public final class VaultClient {
     public Vault updateVisibility(UpdateVisibilityInput input) {
         try {
             return command.updateVisibility(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Vault rename(RenameInput input) {
+        try {
+            return command.rename(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

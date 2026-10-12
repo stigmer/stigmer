@@ -31,6 +31,11 @@ class IdentityProviderCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.FromString,
                 _registered_method=True)
+        self.rename = channel.unary_unary(
+                '/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/rename',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
@@ -50,6 +55,18 @@ class IdentityProviderCommandControllerServicer(object):
 
         Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED
         included.
+
+        A request that carries metadata.id of an identity provider in its
+        organization updates that identity provider, and its slug changes only
+        through rename. A slug the identity provider was renamed away from, named
+        without the identity provider's id, is refused with FAILED_PRECONDITION
+        carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+        write by a name that stops resolving after 30 days would later make a
+        second identity provider:
+
+        - SLUG_RENAMED — the slug was renamed: it still leads to the same
+        identity provider for reading, but a write names its current slug.
+        Metadata: slug (the one the request named).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -68,6 +85,14 @@ class IdentityProviderCommandControllerServicer(object):
 
         - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
         identity provider that exists keeps signing people in. No metadata.
+
+        A slug another identity provider of the organization holds is refused with
+        ALREADY_EXISTS. A slug another identity provider was renamed away from,
+        which still leads to it for 30 days, is refused with ALREADY_EXISTS
+        carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+        - SLUG_RESERVED — another identity provider held the slug until a recent
+        rename, and it still leads there. Metadata: slug.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -85,6 +110,28 @@ class IdentityProviderCommandControllerServicer(object):
         - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
         identity provider keeps signing people in as it is, and can still
         be deleted. No metadata.
+
+        The slug changes only through rename. An update that names the identity
+        provider by a slug it was renamed away from, without its id, is refused
+        with SLUG_RENAMED (see apply).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def rename(self, request, context):
+        """Rename an identity provider: change its slug, the name people type.
+
+        The identity provider keeps its id, so everything that names it keeps
+        working, and every answer names it by the new slug. The old slug keeps
+        leading to the identity provider for reading for 30 days, during which no
+        other identity provider of the organization can take it and this one can
+        take it back; then it is released. A write that names the old slug is
+        refused with SLUG_RENAMED (see apply). A slug another identity provider
+        holds is refused with ALREADY_EXISTS, and one another identity provider was
+        recently renamed away from with SLUG_RESERVED (see create).
+
+        Sign-in does not name its slug, so the people it signs in keep signing in.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -117,6 +164,11 @@ def add_IdentityProviderCommandControllerServicer_to_server(servicer, server):
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.SerializeToString,
+            ),
+            'rename': grpc.unary_unary_rpc_method_handler(
+                    servicer.rename,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -206,6 +258,33 @@ class IdentityProviderCommandController(object):
             target,
             '/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/update',
             ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def rename(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/rename',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_api__pb2.IdentityProvider.FromString,
             options,
             channel_credentials,

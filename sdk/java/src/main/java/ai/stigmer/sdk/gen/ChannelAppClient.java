@@ -9,6 +9,7 @@ import ai.stigmer.agentic.channelapp.v1.ChannelApps;
 import ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
+import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -38,6 +39,12 @@ public final class ChannelAppClient {
     public ChannelApp update(ChannelAppInput input) {
         try {
             return command.update(input.toProto());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ChannelApp rename(RenameInput input) {
+        try {
+            return command.rename(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

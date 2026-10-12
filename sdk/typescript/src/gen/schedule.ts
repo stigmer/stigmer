@@ -16,7 +16,7 @@ import { Harness, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/se
 import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on schedule resources. */
@@ -44,6 +44,12 @@ export class ScheduleClient {
   async update(input: ScheduleInput): Promise<Schedule> {
     try {
       return await this.command.update(buildScheduleProto(input));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async rename(input: RenameInput): Promise<Schedule> {
+    try {
+      return await this.command.rename(input);
     } catch (e) { throw wrapError(e); }
   }
 

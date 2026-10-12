@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "r/commons/apiresource/io.proto\0328ai/stigm" +
       "er/commons/apiresource/rpc_service_optio" +
       "ns.proto\032+ai/stigmer/commons/rpc/method_" +
-      "options.proto2\215\014\n\026VaultCommandController" +
+      "options.proto2\236\r\n\026VaultCommandController" +
       "\022\244\001\n\006create\022\".ai.stigmer.agentic.vault.v" +
       "1.Vault\032\".ai.stigmer.agentic.vault.v1.Va" +
       "ult\"R\302\270\030N\0104\020\036\"\014metadata.org*:unauthorize" +
@@ -55,37 +55,40 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "dateVisibilityInput\032\".ai.stigmer.agentic" +
       ".vault.v1.Vault\">\302\270\030:\0100\020;\"\013resource_id*\'" +
       "unauthorized to update vault visibility\022" +
-      "\231\001\n\006delete\0226.ai.stigmer.commons.apiresou" +
-      "rce.ApiResourceDeleteInput\032\".ai.stigmer." +
-      "agentic.vault.v1.Vault\"3\302\270\030/\010\003\020;\"\013resour" +
-      "ce_id*\034unauthorized to delete vault\022i\n\ns" +
-      "etSecrets\0221.ai.stigmer.agentic.vault.v1." +
-      "SetVaultSecretsInput\032\".ai.stigmer.agenti" +
-      "c.vault.v1.Vault\"\004\320\270\030\001\022o\n\rremoveSecrets\022" +
-      "4.ai.stigmer.agentic.vault.v1.RemoveVaul" +
-      "tSecretsInput\032\".ai.stigmer.agentic.vault" +
-      ".v1.Vault\"\004\320\270\030\001\022o\n\rsetConnection\0224.ai.st" +
-      "igmer.agentic.vault.v1.SetVaultConnectio" +
-      "nInput\032\".ai.stigmer.agentic.vault.v1.Vau" +
-      "lt\"\004\320\270\030\001\022w\n\021removeConnections\0228.ai.stigm" +
-      "er.agentic.vault.v1.RemoveVaultConnectio" +
-      "nsInput\032\".ai.stigmer.agentic.vault.v1.Va" +
-      "ult\"\004\320\270\030\001\022r\n\013startSignIn\022-.ai.stigmer.ag" +
-      "entic.vault.v1.StartSignInInput\032..ai.sti" +
-      "gmer.agentic.vault.v1.StartSignInOutput\"" +
-      "\004\320\270\030\001\022{\n\016completeSignIn\0220.ai.stigmer.age" +
-      "ntic.vault.v1.CompleteSignInInput\0321.ai.s" +
-      "tigmer.agentic.vault.v1.CompleteSignInOu" +
-      "tput\"\004\320\270\030\001\022\272\001\n\021createConnectLink\0223.ai.st" +
-      "igmer.agentic.vault.v1.CreateConnectLink" +
-      "Input\032(.ai.stigmer.agentic.vault.v1.Conn" +
-      "ectLink\"F\302\270\030B\010\002\020;\"\010vault_id*2unauthorize" +
-      "d to make a Connect link for this vault\032" +
-      "\004\240\377+;B\237\001B\014CommandProtoP\001\242\002\004ASAV\252\002\033Ai.Sti" +
-      "gmer.Agentic.Vault.V1\312\002\033Ai\\Stigmer\\Agent" +
-      "ic\\Vault\\V1\342\002\'Ai\\Stigmer\\Agentic\\Vault\\V" +
-      "1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Va" +
-      "ult::V1b\006proto3"
+      "\216\001\n\006rename\022+.ai.stigmer.commons.apiresou" +
+      "rce.RenameInput\032\".ai.stigmer.agentic.vau" +
+      "lt.v1.Vault\"3\302\270\030/\010\003\020;\"\013resource_id*\034unau" +
+      "thorized to rename vault\022\231\001\n\006delete\0226.ai" +
+      ".stigmer.commons.apiresource.ApiResource" +
+      "DeleteInput\032\".ai.stigmer.agentic.vault.v" +
+      "1.Vault\"3\302\270\030/\010\003\020;\"\013resource_id*\034unauthor" +
+      "ized to delete vault\022i\n\nsetSecrets\0221.ai." +
+      "stigmer.agentic.vault.v1.SetVaultSecrets" +
+      "Input\032\".ai.stigmer.agentic.vault.v1.Vaul" +
+      "t\"\004\320\270\030\001\022o\n\rremoveSecrets\0224.ai.stigmer.ag" +
+      "entic.vault.v1.RemoveVaultSecretsInput\032\"" +
+      ".ai.stigmer.agentic.vault.v1.Vault\"\004\320\270\030\001" +
+      "\022o\n\rsetConnection\0224.ai.stigmer.agentic.v" +
+      "ault.v1.SetVaultConnectionInput\032\".ai.sti" +
+      "gmer.agentic.vault.v1.Vault\"\004\320\270\030\001\022w\n\021rem" +
+      "oveConnections\0228.ai.stigmer.agentic.vaul" +
+      "t.v1.RemoveVaultConnectionsInput\032\".ai.st" +
+      "igmer.agentic.vault.v1.Vault\"\004\320\270\030\001\022r\n\013st" +
+      "artSignIn\022-.ai.stigmer.agentic.vault.v1." +
+      "StartSignInInput\032..ai.stigmer.agentic.va" +
+      "ult.v1.StartSignInOutput\"\004\320\270\030\001\022{\n\016comple" +
+      "teSignIn\0220.ai.stigmer.agentic.vault.v1.C" +
+      "ompleteSignInInput\0321.ai.stigmer.agentic." +
+      "vault.v1.CompleteSignInOutput\"\004\320\270\030\001\022\272\001\n\021" +
+      "createConnectLink\0223.ai.stigmer.agentic.v" +
+      "ault.v1.CreateConnectLinkInput\032(.ai.stig" +
+      "mer.agentic.vault.v1.ConnectLink\"F\302\270\030B\010\002" +
+      "\020;\"\010vault_id*2unauthorized to make a Con" +
+      "nect link for this vault\032\004\240\377+;B\237\001B\014Comma" +
+      "ndProtoP\001\242\002\004ASAV\252\002\033Ai.Stigmer.Agentic.Va" +
+      "ult.V1\312\002\033Ai\\Stigmer\\Agentic\\Vault\\V1\342\002\'A" +
+      "i\\Stigmer\\Agentic\\Vault\\V1\\GPBMetadata\352\002" +
+      "\037Ai::Stigmer::Agentic::Vault::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

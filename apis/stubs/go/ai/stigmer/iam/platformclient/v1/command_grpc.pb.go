@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	PlatformClientCommandController_Create_FullMethodName       = "/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/create"
 	PlatformClientCommandController_Update_FullMethodName       = "/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/update"
+	PlatformClientCommandController_Rename_FullMethodName       = "/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/rename"
 	PlatformClientCommandController_Delete_FullMethodName       = "/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/delete"
 	PlatformClientCommandController_RotateSecret_FullMethodName = "/ai.stigmer.iam.platformclient.v1.PlatformClientCommandController/rotateSecret"
 )
@@ -49,6 +50,14 @@ type PlatformClientCommandControllerClient interface {
 	// The slug `system-share-client` is platform-reserved (it identifies the org's
 	// system-managed share client) and is rejected with INVALID_ARGUMENT — including
 	// when derived from the resource name.
+	//
+	// A slug another platform client of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another platform client was renamed away from, which
+	// still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another platform client held the slug until a recent
+	//     rename, and it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *PlatformClient, opts ...grpc.CallOption) (*PlatformClientCreateResponse, error)
 	// Update an existing platform client.
 	//
@@ -56,7 +65,33 @@ type PlatformClientCommandControllerClient interface {
 	// credential fields (client_id, client_secret_hash, secret_fingerprint),
 	// which are kept from the stored client. Use rotateSecret to change the
 	// client secret. A system-managed client cannot be updated.
+	//
+	// The slug changes only through rename. A slug the platform client was
+	// renamed away from, named without the platform client's id, is refused with
+	// FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+	// "stigmer.ai"), because a write by a name that stops resolving after 30 days
+	// would later make a second platform client:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+	//     platform client for reading, but a write names its current slug.
+	//     Metadata: slug (the one the request named).
 	Update(ctx context.Context, in *PlatformClient, opts ...grpc.CallOption) (*PlatformClient, error)
+	// Rename a platform client: change its slug, the name people type.
+	//
+	// The platform client keeps its id, so everything that names it keeps
+	// working, and every answer names it by the new slug. The old slug keeps
+	// leading to the platform client for reading for 30 days, during which no
+	// other platform client of the organization can take it and this one can take
+	// it back; then it is released. A write that names the old slug is refused
+	// with SLUG_RENAMED (see update). A slug another platform client holds is
+	// refused with ALREADY_EXISTS, and one another platform client was recently
+	// renamed away from with SLUG_RESERVED (see create).
+	//
+	// Its client_id and its tokens do not name its slug, so the platforms that
+	// use it keep working. A system-managed client cannot be renamed, as it
+	// cannot be updated, and the slug system-share-client is refused with
+	// INVALID_ARGUMENT, as on create.
+	Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*PlatformClient, error)
 	// Delete a platform client.
 	//
 	// Immediately invalidates the client_id and client_secret AND revokes
@@ -106,6 +141,16 @@ func (c *platformClientCommandControllerClient) Update(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *platformClientCommandControllerClient) Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*PlatformClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PlatformClient)
+	err := c.cc.Invoke(ctx, PlatformClientCommandController_Rename_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *platformClientCommandControllerClient) Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*PlatformClient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PlatformClient)
@@ -149,6 +194,14 @@ type PlatformClientCommandControllerServer interface {
 	// The slug `system-share-client` is platform-reserved (it identifies the org's
 	// system-managed share client) and is rejected with INVALID_ARGUMENT — including
 	// when derived from the resource name.
+	//
+	// A slug another platform client of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another platform client was renamed away from, which
+	// still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another platform client held the slug until a recent
+	//     rename, and it still leads there. Metadata: slug.
 	Create(context.Context, *PlatformClient) (*PlatformClientCreateResponse, error)
 	// Update an existing platform client.
 	//
@@ -156,7 +209,33 @@ type PlatformClientCommandControllerServer interface {
 	// credential fields (client_id, client_secret_hash, secret_fingerprint),
 	// which are kept from the stored client. Use rotateSecret to change the
 	// client secret. A system-managed client cannot be updated.
+	//
+	// The slug changes only through rename. A slug the platform client was
+	// renamed away from, named without the platform client's id, is refused with
+	// FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+	// "stigmer.ai"), because a write by a name that stops resolving after 30 days
+	// would later make a second platform client:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+	//     platform client for reading, but a write names its current slug.
+	//     Metadata: slug (the one the request named).
 	Update(context.Context, *PlatformClient) (*PlatformClient, error)
+	// Rename a platform client: change its slug, the name people type.
+	//
+	// The platform client keeps its id, so everything that names it keeps
+	// working, and every answer names it by the new slug. The old slug keeps
+	// leading to the platform client for reading for 30 days, during which no
+	// other platform client of the organization can take it and this one can take
+	// it back; then it is released. A write that names the old slug is refused
+	// with SLUG_RENAMED (see update). A slug another platform client holds is
+	// refused with ALREADY_EXISTS, and one another platform client was recently
+	// renamed away from with SLUG_RESERVED (see create).
+	//
+	// Its client_id and its tokens do not name its slug, so the platforms that
+	// use it keep working. A system-managed client cannot be renamed, as it
+	// cannot be updated, and the slug system-share-client is refused with
+	// INVALID_ARGUMENT, as on create.
+	Rename(context.Context, *apiresource.RenameInput) (*PlatformClient, error)
 	// Delete a platform client.
 	//
 	// Immediately invalidates the client_id and client_secret AND revokes
@@ -190,6 +269,9 @@ func (UnimplementedPlatformClientCommandControllerServer) Create(context.Context
 }
 func (UnimplementedPlatformClientCommandControllerServer) Update(context.Context, *PlatformClient) (*PlatformClient, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedPlatformClientCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*PlatformClient, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rename not implemented")
 }
 func (UnimplementedPlatformClientCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*PlatformClient, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -253,6 +335,24 @@ func _PlatformClientCommandController_Update_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PlatformClientCommandController_Rename_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.RenameInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformClientCommandControllerServer).Rename(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformClientCommandController_Rename_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformClientCommandControllerServer).Rename(ctx, req.(*apiresource.RenameInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PlatformClientCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(apiresource.ApiResourceDeleteInput)
 	if err := dec(in); err != nil {
@@ -303,6 +403,10 @@ var PlatformClientCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "update",
 			Handler:    _PlatformClientCommandController_Update_Handler,
+		},
+		{
+			MethodName: "rename",
+			Handler:    _PlatformClientCommandController_Rename_Handler,
 		},
 		{
 			MethodName: "delete",

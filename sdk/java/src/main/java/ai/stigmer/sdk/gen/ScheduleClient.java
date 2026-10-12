@@ -12,6 +12,7 @@ import ai.stigmer.agentic.schedule.v1.ScheduleId;
 import ai.stigmer.agentic.schedule.v1.ScheduleList;
 import ai.stigmer.agentic.schedule.v1.ScheduleQueryControllerGrpc;
 import ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult;
+import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -41,6 +42,12 @@ public final class ScheduleClient {
     public Schedule update(ScheduleInput input) {
         try {
             return command.update(input.toProto());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Schedule rename(RenameInput input) {
+        try {
+            return command.rename(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

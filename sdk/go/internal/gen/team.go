@@ -42,6 +42,11 @@ func (t *TeamClient) Update(ctx context.Context, input *TeamInput) (*teamv1.Team
 	return resp, wrapErr(err)
 }
 
+func (t *TeamClient) Rename(ctx context.Context, input *apiresource.RenameInput) (*teamv1.Team, error) {
+	resp, err := t.command.Rename(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (t *TeamClient) Delete(ctx context.Context, input *DeleteResourceInput) (*teamv1.Team, error) {
 	resp, err := t.command.Delete(ctx, &apiresource.ApiResourceDeleteInput{
 		ResourceId:     input.ResourceID,

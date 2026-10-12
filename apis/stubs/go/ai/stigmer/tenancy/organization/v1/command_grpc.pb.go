@@ -38,6 +38,17 @@ type OrganizationCommandControllerClient interface {
 	//
 	// Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
 	// LICENSE_RENEWAL_REQUIRED included.
+	//
+	// A request that carries metadata.id updates that organization, and its
+	// slug changes only through rename. A slug the organization was renamed
+	// away from, named without its id, is refused with FAILED_PRECONDITION
+	// carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because
+	// a write by a name that stops resolving after 30 days would later make a
+	// second organization:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+	//     organization for reading, but a write names its current slug.
+	//     Metadata: slug (the one the request named).
 	Apply(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Create an organization.
 	//
@@ -104,8 +115,9 @@ type OrganizationCommandControllerClient interface {
 	Create(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Update an existing organization.
 	//
-	// The slug is not changed by an update (it is ignored, as for every
-	// kind); rename changes it.
+	// The slug is not changed by an update; rename changes it. An update
+	// that names the organization by a slug it was renamed away from,
+	// without its id, is refused with SLUG_RENAMED (see apply).
 	Update(ctx context.Context, in *Organization, opts ...grpc.CallOption) (*Organization, error)
 	// Change what the organization lets its members do (OrganizationPolicies),
 	// the one way to change a policy: update and apply keep the stored
@@ -234,6 +246,17 @@ type OrganizationCommandControllerServer interface {
 	//
 	// Its create arm is refused as create is, ORGANIZATION_LIMIT_REACHED and
 	// LICENSE_RENEWAL_REQUIRED included.
+	//
+	// A request that carries metadata.id updates that organization, and its
+	// slug changes only through rename. A slug the organization was renamed
+	// away from, named without its id, is refused with FAILED_PRECONDITION
+	// carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because
+	// a write by a name that stops resolving after 30 days would later make a
+	// second organization:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+	//     organization for reading, but a write names its current slug.
+	//     Metadata: slug (the one the request named).
 	Apply(context.Context, *Organization) (*Organization, error)
 	// Create an organization.
 	//
@@ -300,8 +323,9 @@ type OrganizationCommandControllerServer interface {
 	Create(context.Context, *Organization) (*Organization, error)
 	// Update an existing organization.
 	//
-	// The slug is not changed by an update (it is ignored, as for every
-	// kind); rename changes it.
+	// The slug is not changed by an update; rename changes it. An update
+	// that names the organization by a slug it was renamed away from,
+	// without its id, is refused with SLUG_RENAMED (see apply).
 	Update(context.Context, *Organization) (*Organization, error)
 	// Change what the organization lets its members do (OrganizationPolicies),
 	// the one way to change a policy: update and apply keep the stored

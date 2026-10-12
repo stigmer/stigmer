@@ -4,7 +4,7 @@
 
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApiResourceDeleteInputSchema } from "../../../commons/apiresource/io_pb.js";
+import type { ApiResourceDeleteInputSchema, RenameInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_iam_identityprovider_v1_api } from "./api_pb.js";
  * Describes the file ai/stigmer/iam/identityprovider/v1/command.proto.
  */
 export const file_ai_stigmer_iam_identityprovider_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2NvbW1hbmQucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEy3gUKIUlkZW50aXR5UHJvdmlkZXJDb21tYW5kQ29udHJvbGxlchJzCgVhcHBseRI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlcho0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlchLLAQoGY3JlYXRlEjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyGjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyIlXCuBhRCAsQHiIMbWV0YWRhdGEub3JnKj11bmF1dGhvcml6ZWQgdG8gY3JlYXRlIGlkZW50aXR5IHByb3ZpZGVyIGluIHRoaXMgb3JnYW5pemF0aW9uErUBCgZ1cGRhdGUSNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIiP8K4GDsIAhAVIgttZXRhZGF0YS5pZCoodW5hdXRob3JpemVkIHRvIHVwZGF0ZSBpZGVudGl0eSBwcm92aWRlchK3AQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIiP8K4GDsIAxAVIgtyZXNvdXJjZV9pZCoodW5hdXRob3JpemVkIHRvIGRlbGV0ZSBpZGVudGl0eSBwcm92aWRlchoEoP8rFWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_identityprovider_v1_api]);
+  fileDesc("CjBhaS9zdGlnbWVyL2lhbS9pZGVudGl0eXByb3ZpZGVyL3YxL2NvbW1hbmQucHJvdG8SImFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEyjQcKIUlkZW50aXR5UHJvdmlkZXJDb21tYW5kQ29udHJvbGxlchJzCgVhcHBseRI0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlcho0LmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5cHJvdmlkZXIudjEuSWRlbnRpdHlQcm92aWRlchLLAQoGY3JlYXRlEjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyGjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyIlXCuBhRCAsQHiIMbWV0YWRhdGEub3JnKj11bmF1dGhvcml6ZWQgdG8gY3JlYXRlIGlkZW50aXR5IHByb3ZpZGVyIGluIHRoaXMgb3JnYW5pemF0aW9uErUBCgZ1cGRhdGUSNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIaNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eXByb3ZpZGVyLnYxLklkZW50aXR5UHJvdmlkZXIiP8K4GDsIAhAVIgttZXRhZGF0YS5pZCoodW5hdXRob3JpemVkIHRvIHVwZGF0ZSBpZGVudGl0eSBwcm92aWRlchKsAQoGcmVuYW1lEisuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlJlbmFtZUlucHV0GjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyIj/CuBg7CAMQFSILcmVzb3VyY2VfaWQqKHVuYXV0aG9yaXplZCB0byByZW5hbWUgaWRlbnRpdHkgcHJvdmlkZXIStwEKBmRlbGV0ZRI2LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZURlbGV0ZUlucHV0GjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlwcm92aWRlci52MS5JZGVudGl0eVByb3ZpZGVyIj/CuBg7CAMQFSILcmVzb3VyY2VfaWQqKHVuYXV0aG9yaXplZCB0byBkZWxldGUgaWRlbnRpdHkgcHJvdmlkZXIaBKD/KxViBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_identityprovider_v1_api]);
 
 /**
  * IdentityProviderCommandController provides write operations for identity providers.
@@ -31,6 +31,18 @@ export const IdentityProviderCommandController: GenService<{
    *
    * Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED
    * included.
+   *
+   * A request that carries metadata.id of an identity provider in its
+   * organization updates that identity provider, and its slug changes only
+   * through rename. A slug the identity provider was renamed away from, named
+   * without the identity provider's id, is refused with FAILED_PRECONDITION
+   * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+   * write by a name that stops resolving after 30 days would later make a
+   * second identity provider:
+   *
+   *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+   *     identity provider for reading, but a write names its current slug.
+   *     Metadata: slug (the one the request named).
    *
    * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.apply
    */
@@ -53,6 +65,14 @@ export const IdentityProviderCommandController: GenService<{
    *   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
    *     identity provider that exists keeps signing people in. No metadata.
    *
+   * A slug another identity provider of the organization holds is refused with
+   * ALREADY_EXISTS. A slug another identity provider was renamed away from,
+   * which still leads to it for 30 days, is refused with ALREADY_EXISTS
+   * carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+   *
+   *   - SLUG_RESERVED — another identity provider held the slug until a recent
+   *     rename, and it still leads there. Metadata: slug.
+   *
    * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.create
    */
   create: {
@@ -73,11 +93,36 @@ export const IdentityProviderCommandController: GenService<{
    *     identity provider keeps signing people in as it is, and can still
    *     be deleted. No metadata.
    *
+   * The slug changes only through rename. An update that names the identity
+   * provider by a slug it was renamed away from, without its id, is refused
+   * with SLUG_RENAMED (see apply).
+   *
    * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.update
    */
   update: {
     methodKind: "unary";
     input: typeof IdentityProviderSchema;
+    output: typeof IdentityProviderSchema;
+  },
+  /**
+   * Rename an identity provider: change its slug, the name people type.
+   *
+   * The identity provider keeps its id, so everything that names it keeps
+   * working, and every answer names it by the new slug. The old slug keeps
+   * leading to the identity provider for reading for 30 days, during which no
+   * other identity provider of the organization can take it and this one can
+   * take it back; then it is released. A write that names the old slug is
+   * refused with SLUG_RENAMED (see apply). A slug another identity provider
+   * holds is refused with ALREADY_EXISTS, and one another identity provider was
+   * recently renamed away from with SLUG_RESERVED (see create).
+   *
+   * Sign-in does not name its slug, so the people it signs in keep signing in.
+   *
+   * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController.rename
+   */
+  rename: {
+    methodKind: "unary";
+    input: typeof RenameInputSchema;
     output: typeof IdentityProviderSchema;
   },
   /**

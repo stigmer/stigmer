@@ -11,6 +11,7 @@ import ai.stigmer.agentic.agent.v1.GetAgentVersionInput;
 import ai.stigmer.agentic.agent.v1.ListAgentVersionsInput;
 import ai.stigmer.agentic.agent.v1.ListAgentVersionsResponse;
 import ai.stigmer.agentic.agent.v1.TagAgentVersionInput;
+import ai.stigmer.commons.apiresource.RenameInput;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.commons.rpc.PageInfo;
@@ -53,6 +54,12 @@ public final class AgentClient {
     public Agent updateVisibility(UpdateVisibilityInput input) {
         try {
             return command.updateVisibility(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Agent rename(RenameInput input) {
+        try {
+            return command.rename(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

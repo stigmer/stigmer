@@ -5,6 +5,7 @@
 
 import { Schedule } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
+import { RenameInput } from "../../../commons/apiresource/io_pbjs";
 import { ScheduleId, ScheduleTriggerResult } from "./io_pbjs";
 
 /**
@@ -17,6 +18,17 @@ export const ScheduleCommandController = {
   methods: {
     /**
      * Create or update a schedule.
+     *
+     * A request that carries metadata.id of a schedule in its organization
+     * updates that schedule, and its slug changes only through rename. A slug the
+     * schedule was renamed away from, named without the schedule's id, is refused
+     * with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second schedule:
+     *
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     schedule for reading, but a write names its current slug. Metadata:
+     *     slug (the one the request named).
      *
      * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.apply
      */
@@ -33,6 +45,14 @@ export const ScheduleCommandController = {
      * creates a run that consumes the schedule-owning
      * organization's credits, unattended.
      *
+     * A slug another schedule of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another schedule was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *
+     *   - SLUG_RESERVED — another schedule held the slug until a recent rename,
+     *     and it still leads there. Metadata: slug.
+     *
      * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.create
      */
     create: {
@@ -44,17 +64,44 @@ export const ScheduleCommandController = {
     /**
      * Update an existing schedule.
      *
-     * Replaces the spec wholesale. The slug, the referenced agent, and the
-     * target arm are immutable; cron, time zone, enablement, and the
-     * message may all change. Status (firing observations, the platform
+     * Replaces the spec wholesale. The referenced agent and the target arm
+     * are immutable; cron, time zone, enablement, and the message may all
+     * change. Status (firing observations, the platform
      * pause) is never touched by updates — use resume to clear a platform
      * pause.
+     *
+     * The slug changes only through rename. An update that names the schedule by
+     * a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      *
      * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.update
      */
     update: {
       name: "update",
       I: Schedule,
+      O: Schedule,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Rename a schedule: change its slug, the name people type.
+     *
+     * The schedule keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * schedule for reading for 30 days, during which no other schedule of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another schedule holds is refused with ALREADY_EXISTS, and
+     * one another schedule was recently renamed away from with SLUG_RESERVED (see
+     * create).
+     *
+     * Its fires keep their times; a conversation an earlier fire started keeps
+     * the name it was given then.
+     *
+     * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.rename
+     */
+    rename: {
+      name: "rename",
+      I: RenameInput,
       O: Schedule,
       kind: MethodKind.Unary,
     },

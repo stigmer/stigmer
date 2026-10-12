@@ -81,6 +81,37 @@ public final class PlatformClientCommandControllerGrpc {
     return getUpdateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
+      ai.stigmer.iam.platformclient.v1.PlatformClient> getRenameMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "rename",
+      requestType = ai.stigmer.commons.apiresource.RenameInput.class,
+      responseType = ai.stigmer.iam.platformclient.v1.PlatformClient.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
+      ai.stigmer.iam.platformclient.v1.PlatformClient> getRenameMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput, ai.stigmer.iam.platformclient.v1.PlatformClient> getRenameMethod;
+    if ((getRenameMethod = PlatformClientCommandControllerGrpc.getRenameMethod) == null) {
+      synchronized (PlatformClientCommandControllerGrpc.class) {
+        if ((getRenameMethod = PlatformClientCommandControllerGrpc.getRenameMethod) == null) {
+          PlatformClientCommandControllerGrpc.getRenameMethod = getRenameMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.RenameInput, ai.stigmer.iam.platformclient.v1.PlatformClient>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "rename"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.RenameInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.platformclient.v1.PlatformClient.getDefaultInstance()))
+              .setSchemaDescriptor(new PlatformClientCommandControllerMethodDescriptorSupplier("rename"))
+              .build();
+        }
+      }
+    }
+    return getRenameMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.ApiResourceDeleteInput,
       ai.stigmer.iam.platformclient.v1.PlatformClient> getDeleteMethod;
 
@@ -224,6 +255,12 @@ public final class PlatformClientCommandControllerGrpc {
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
+     * A slug another platform client of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another platform client was renamed away from, which
+     * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another platform client held the slug until a recent
+     *     rename, and it still leads there. Metadata: slug.
      * </pre>
      */
     default void create(ai.stigmer.iam.platformclient.v1.PlatformClient request,
@@ -238,11 +275,41 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
+     * The slug changes only through rename. A slug the platform client was
+     * renamed away from, named without the platform client's id, is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second platform client:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     platform client for reading, but a write names its current slug.
+     *     Metadata: slug (the one the request named).
      * </pre>
      */
     default void update(ai.stigmer.iam.platformclient.v1.PlatformClient request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rename a platform client: change its slug, the name people type.
+     * The platform client keeps its id, so everything that names it keeps
+     * working, and every answer names it by the new slug. The old slug keeps
+     * leading to the platform client for reading for 30 days, during which no
+     * other platform client of the organization can take it and this one can take
+     * it back; then it is released. A write that names the old slug is refused
+     * with SLUG_RENAMED (see update). A slug another platform client holds is
+     * refused with ALREADY_EXISTS, and one another platform client was recently
+     * renamed away from with SLUG_RESERVED (see create).
+     * Its client_id and its tokens do not name its slug, so the platforms that
+     * use it keep working. A system-managed client cannot be renamed, as it
+     * cannot be updated, and the slug system-share-client is refused with
+     * INVALID_ARGUMENT, as on create.
+     * </pre>
+     */
+    default void rename(ai.stigmer.commons.apiresource.RenameInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRenameMethod(), responseObserver);
     }
 
     /**
@@ -331,6 +398,12 @@ public final class PlatformClientCommandControllerGrpc {
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
+     * A slug another platform client of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another platform client was renamed away from, which
+     * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another platform client held the slug until a recent
+     *     rename, and it still leads there. Metadata: slug.
      * </pre>
      */
     public void create(ai.stigmer.iam.platformclient.v1.PlatformClient request,
@@ -346,12 +419,43 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
+     * The slug changes only through rename. A slug the platform client was
+     * renamed away from, named without the platform client's id, is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second platform client:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     platform client for reading, but a write names its current slug.
+     *     Metadata: slug (the one the request named).
      * </pre>
      */
     public void update(ai.stigmer.iam.platformclient.v1.PlatformClient request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rename a platform client: change its slug, the name people type.
+     * The platform client keeps its id, so everything that names it keeps
+     * working, and every answer names it by the new slug. The old slug keeps
+     * leading to the platform client for reading for 30 days, during which no
+     * other platform client of the organization can take it and this one can take
+     * it back; then it is released. A write that names the old slug is refused
+     * with SLUG_RENAMED (see update). A slug another platform client holds is
+     * refused with ALREADY_EXISTS, and one another platform client was recently
+     * renamed away from with SLUG_RESERVED (see create).
+     * Its client_id and its tokens do not name its slug, so the platforms that
+     * use it keep working. A system-managed client cannot be renamed, as it
+     * cannot be updated, and the slug system-share-client is refused with
+     * INVALID_ARGUMENT, as on create.
+     * </pre>
+     */
+    public void rename(ai.stigmer.commons.apiresource.RenameInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRenameMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -424,6 +528,12 @@ public final class PlatformClientCommandControllerGrpc {
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
+     * A slug another platform client of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another platform client was renamed away from, which
+     * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another platform client held the slug until a recent
+     *     rename, and it still leads there. Metadata: slug.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse create(ai.stigmer.iam.platformclient.v1.PlatformClient request) throws io.grpc.StatusException {
@@ -438,11 +548,41 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
+     * The slug changes only through rename. A slug the platform client was
+     * renamed away from, named without the platform client's id, is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second platform client:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     platform client for reading, but a write names its current slug.
+     *     Metadata: slug (the one the request named).
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClient update(ai.stigmer.iam.platformclient.v1.PlatformClient request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rename a platform client: change its slug, the name people type.
+     * The platform client keeps its id, so everything that names it keeps
+     * working, and every answer names it by the new slug. The old slug keeps
+     * leading to the platform client for reading for 30 days, during which no
+     * other platform client of the organization can take it and this one can take
+     * it back; then it is released. A write that names the old slug is refused
+     * with SLUG_RENAMED (see update). A slug another platform client holds is
+     * refused with ALREADY_EXISTS, and one another platform client was recently
+     * renamed away from with SLUG_RESERVED (see create).
+     * Its client_id and its tokens do not name its slug, so the platforms that
+     * use it keep working. A system-managed client cannot be renamed, as it
+     * cannot be updated, and the slug system-share-client is refused with
+     * INVALID_ARGUMENT, as on create.
+     * </pre>
+     */
+    public ai.stigmer.iam.platformclient.v1.PlatformClient rename(ai.stigmer.commons.apiresource.RenameInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRenameMethod(), getCallOptions(), request);
     }
 
     /**
@@ -513,6 +653,12 @@ public final class PlatformClientCommandControllerGrpc {
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
+     * A slug another platform client of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another platform client was renamed away from, which
+     * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another platform client held the slug until a recent
+     *     rename, and it still leads there. Metadata: slug.
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse create(ai.stigmer.iam.platformclient.v1.PlatformClient request) {
@@ -527,11 +673,41 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
+     * The slug changes only through rename. A slug the platform client was
+     * renamed away from, named without the platform client's id, is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second platform client:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     platform client for reading, but a write names its current slug.
+     *     Metadata: slug (the one the request named).
      * </pre>
      */
     public ai.stigmer.iam.platformclient.v1.PlatformClient update(ai.stigmer.iam.platformclient.v1.PlatformClient request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rename a platform client: change its slug, the name people type.
+     * The platform client keeps its id, so everything that names it keeps
+     * working, and every answer names it by the new slug. The old slug keeps
+     * leading to the platform client for reading for 30 days, during which no
+     * other platform client of the organization can take it and this one can take
+     * it back; then it is released. A write that names the old slug is refused
+     * with SLUG_RENAMED (see update). A slug another platform client holds is
+     * refused with ALREADY_EXISTS, and one another platform client was recently
+     * renamed away from with SLUG_RESERVED (see create).
+     * Its client_id and its tokens do not name its slug, so the platforms that
+     * use it keep working. A system-managed client cannot be renamed, as it
+     * cannot be updated, and the slug system-share-client is refused with
+     * INVALID_ARGUMENT, as on create.
+     * </pre>
+     */
+    public ai.stigmer.iam.platformclient.v1.PlatformClient rename(ai.stigmer.commons.apiresource.RenameInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRenameMethod(), getCallOptions(), request);
     }
 
     /**
@@ -602,6 +778,12 @@ public final class PlatformClientCommandControllerGrpc {
      * The slug `system-share-client` is platform-reserved (it identifies the org's
      * system-managed share client) and is rejected with INVALID_ARGUMENT — including
      * when derived from the resource name.
+     * A slug another platform client of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another platform client was renamed away from, which
+     * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another platform client held the slug until a recent
+     *     rename, and it still leads there. Metadata: slug.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse> create(
@@ -617,12 +799,43 @@ public final class PlatformClientCommandControllerGrpc {
      * credential fields (client_id, client_secret_hash, secret_fingerprint),
      * which are kept from the stored client. Use rotateSecret to change the
      * client secret. A system-managed client cannot be updated.
+     * The slug changes only through rename. A slug the platform client was
+     * renamed away from, named without the platform client's id, is refused with
+     * FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+     * "stigmer.ai"), because a write by a name that stops resolving after 30 days
+     * would later make a second platform client:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+     *     platform client for reading, but a write names its current slug.
+     *     Metadata: slug (the one the request named).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClient> update(
         ai.stigmer.iam.platformclient.v1.PlatformClient request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Rename a platform client: change its slug, the name people type.
+     * The platform client keeps its id, so everything that names it keeps
+     * working, and every answer names it by the new slug. The old slug keeps
+     * leading to the platform client for reading for 30 days, during which no
+     * other platform client of the organization can take it and this one can take
+     * it back; then it is released. A write that names the old slug is refused
+     * with SLUG_RENAMED (see update). A slug another platform client holds is
+     * refused with ALREADY_EXISTS, and one another platform client was recently
+     * renamed away from with SLUG_RESERVED (see create).
+     * Its client_id and its tokens do not name its slug, so the platforms that
+     * use it keep working. A system-managed client cannot be renamed, as it
+     * cannot be updated, and the slug system-share-client is refused with
+     * INVALID_ARGUMENT, as on create.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.platformclient.v1.PlatformClient> rename(
+        ai.stigmer.commons.apiresource.RenameInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRenameMethod(), getCallOptions()), request);
     }
 
     /**
@@ -663,8 +876,9 @@ public final class PlatformClientCommandControllerGrpc {
 
   private static final int METHODID_CREATE = 0;
   private static final int METHODID_UPDATE = 1;
-  private static final int METHODID_DELETE = 2;
-  private static final int METHODID_ROTATE_SECRET = 3;
+  private static final int METHODID_RENAME = 2;
+  private static final int METHODID_DELETE = 3;
+  private static final int METHODID_ROTATE_SECRET = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -689,6 +903,10 @@ public final class PlatformClientCommandControllerGrpc {
           break;
         case METHODID_UPDATE:
           serviceImpl.update((ai.stigmer.iam.platformclient.v1.PlatformClient) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient>) responseObserver);
+          break;
+        case METHODID_RENAME:
+          serviceImpl.rename((ai.stigmer.commons.apiresource.RenameInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.platformclient.v1.PlatformClient>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -731,6 +949,13 @@ public final class PlatformClientCommandControllerGrpc {
               ai.stigmer.iam.platformclient.v1.PlatformClient,
               ai.stigmer.iam.platformclient.v1.PlatformClient>(
                 service, METHODID_UPDATE)))
+        .addMethod(
+          getRenameMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.RenameInput,
+              ai.stigmer.iam.platformclient.v1.PlatformClient>(
+                service, METHODID_RENAME)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -795,6 +1020,7 @@ public final class PlatformClientCommandControllerGrpc {
               .setSchemaDescriptor(new PlatformClientCommandControllerFileDescriptorSupplier())
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
+              .addMethod(getRenameMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getRotateSecretMethod())
               .build();

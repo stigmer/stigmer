@@ -58,6 +58,12 @@ class AgentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def rename(self, input: io_pb2.RenameInput) -> api_pb2.Agent:
+        try:
+            return self._command.rename(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, id: str) -> api_pb2.Agent:
         try:
             return self._command.delete(io_pb2.AgentId(value=id))

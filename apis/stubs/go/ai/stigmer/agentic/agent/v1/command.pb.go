@@ -26,12 +26,13 @@ var File_ai_stigmer_agentic_agent_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_command_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/agent/v1/command.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a$ai/stigmer/agentic/agent/v1/io.proto\x1a)ai/stigmer/agentic/agent/v1/version.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe6\x06\n" +
+	")ai/stigmer/agentic/agent/v1/command.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a$ai/stigmer/agentic/agent/v1/io.proto\x1a)ai/stigmer/agentic/agent/v1/version.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xf7\a\n" +
 	"\x16AgentCommandController\x12O\n" +
 	"\x05apply\x12\".ai.stigmer.agentic.agent.v1.Agent\x1a\".ai.stigmer.agentic.agent.v1.Agent\x12\x9b\x01\n" +
 	"\x06create\x12\".ai.stigmer.agentic.agent.v1.Agent\x1a\".ai.stigmer.agentic.agent.v1.Agent\"I¸\x18E\b\x06\x10\x1e\"\fmetadata.org*1unauthorized to create agent in this organization\x12\x85\x01\n" +
 	"\x06update\x12\".ai.stigmer.agentic.agent.v1.Agent\x1a\".ai.stigmer.agentic.agent.v1.Agent\"3¸\x18/\b\x02\x10(\"\vmetadata.id*\x1cunauthorized to update agent\x12\xad\x01\n" +
-	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a\".ai.stigmer.agentic.agent.v1.Agent\">¸\x18:\b0\x10(\"\vresource_id*'unauthorized to update agent visibility\x12\x81\x01\n" +
+	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a\".ai.stigmer.agentic.agent.v1.Agent\">¸\x18:\b0\x10(\"\vresource_id*'unauthorized to update agent visibility\x12\x8e\x01\n" +
+	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a\".ai.stigmer.agentic.agent.v1.Agent\"3¸\x18/\b\x03\x10(\"\vresource_id*\x1cunauthorized to rename agent\x12\x81\x01\n" +
 	"\x06delete\x12$.ai.stigmer.agentic.agent.v1.AgentId\x1a\".ai.stigmer.agentic.agent.v1.Agent\"-¸\x18)\b\x03\x10(\"\x05value*\x1cunauthorized to delete agent\x12\x9a\x01\n" +
 	"\n" +
 	"tagVersion\x121.ai.stigmer.agentic.agent.v1.TagAgentVersionInput\x1a\".ai.stigmer.agentic.agent.v1.Agent\"5¸\x181\b\x02\x10(\"\bagent_id*!unauthorized to tag agent version\x1a\x04\xa0\xff+(B\x8e\x02\n" +
@@ -40,24 +41,27 @@ const file_ai_stigmer_agentic_agent_v1_command_proto_rawDesc = "" +
 var file_ai_stigmer_agentic_agent_v1_command_proto_goTypes = []any{
 	(*Agent)(nil), // 0: ai.stigmer.agentic.agent.v1.Agent
 	(*apiresource.UpdateVisibilityInput)(nil), // 1: ai.stigmer.commons.apiresource.UpdateVisibilityInput
-	(*AgentId)(nil),              // 2: ai.stigmer.agentic.agent.v1.AgentId
-	(*TagAgentVersionInput)(nil), // 3: ai.stigmer.agentic.agent.v1.TagAgentVersionInput
+	(*apiresource.RenameInput)(nil),           // 2: ai.stigmer.commons.apiresource.RenameInput
+	(*AgentId)(nil),                           // 3: ai.stigmer.agentic.agent.v1.AgentId
+	(*TagAgentVersionInput)(nil),              // 4: ai.stigmer.agentic.agent.v1.TagAgentVersionInput
 }
 var file_ai_stigmer_agentic_agent_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.agent.v1.AgentCommandController.apply:input_type -> ai.stigmer.agentic.agent.v1.Agent
 	0, // 1: ai.stigmer.agentic.agent.v1.AgentCommandController.create:input_type -> ai.stigmer.agentic.agent.v1.Agent
 	0, // 2: ai.stigmer.agentic.agent.v1.AgentCommandController.update:input_type -> ai.stigmer.agentic.agent.v1.Agent
 	1, // 3: ai.stigmer.agentic.agent.v1.AgentCommandController.updateVisibility:input_type -> ai.stigmer.commons.apiresource.UpdateVisibilityInput
-	2, // 4: ai.stigmer.agentic.agent.v1.AgentCommandController.delete:input_type -> ai.stigmer.agentic.agent.v1.AgentId
-	3, // 5: ai.stigmer.agentic.agent.v1.AgentCommandController.tagVersion:input_type -> ai.stigmer.agentic.agent.v1.TagAgentVersionInput
-	0, // 6: ai.stigmer.agentic.agent.v1.AgentCommandController.apply:output_type -> ai.stigmer.agentic.agent.v1.Agent
-	0, // 7: ai.stigmer.agentic.agent.v1.AgentCommandController.create:output_type -> ai.stigmer.agentic.agent.v1.Agent
-	0, // 8: ai.stigmer.agentic.agent.v1.AgentCommandController.update:output_type -> ai.stigmer.agentic.agent.v1.Agent
-	0, // 9: ai.stigmer.agentic.agent.v1.AgentCommandController.updateVisibility:output_type -> ai.stigmer.agentic.agent.v1.Agent
-	0, // 10: ai.stigmer.agentic.agent.v1.AgentCommandController.delete:output_type -> ai.stigmer.agentic.agent.v1.Agent
-	0, // 11: ai.stigmer.agentic.agent.v1.AgentCommandController.tagVersion:output_type -> ai.stigmer.agentic.agent.v1.Agent
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
+	2, // 4: ai.stigmer.agentic.agent.v1.AgentCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
+	3, // 5: ai.stigmer.agentic.agent.v1.AgentCommandController.delete:input_type -> ai.stigmer.agentic.agent.v1.AgentId
+	4, // 6: ai.stigmer.agentic.agent.v1.AgentCommandController.tagVersion:input_type -> ai.stigmer.agentic.agent.v1.TagAgentVersionInput
+	0, // 7: ai.stigmer.agentic.agent.v1.AgentCommandController.apply:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	0, // 8: ai.stigmer.agentic.agent.v1.AgentCommandController.create:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	0, // 9: ai.stigmer.agentic.agent.v1.AgentCommandController.update:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	0, // 10: ai.stigmer.agentic.agent.v1.AgentCommandController.updateVisibility:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	0, // 11: ai.stigmer.agentic.agent.v1.AgentCommandController.rename:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	0, // 12: ai.stigmer.agentic.agent.v1.AgentCommandController.delete:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	0, // 13: ai.stigmer.agentic.agent.v1.AgentCommandController.tagVersion:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	7, // [7:14] is the sub-list for method output_type
+	0, // [0:7] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

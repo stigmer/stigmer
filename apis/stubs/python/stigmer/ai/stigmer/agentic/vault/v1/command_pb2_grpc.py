@@ -32,6 +32,11 @@ class VaultCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_api__pb2.Vault.FromString,
                 _registered_method=True)
+        self.rename = channel.unary_unary(
+                '/ai.stigmer.agentic.vault.v1.VaultCommandController/rename',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_api__pb2.Vault.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.vault.v1.VaultCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
@@ -85,6 +90,14 @@ class VaultCommandControllerServicer(object):
         private, so only the organization's admins may use it until it is
         shared, unless it is created with organization visibility
         (metadata.visibility), which shares it with every member at once.
+
+        A slug another vault of the organization holds is refused with
+        ALREADY_EXISTS. A slug another vault was renamed away from, which still
+        leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+        google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+
+        - SLUG_RESERVED — another vault held the slug until a recent rename, and
+        it still leads there. Metadata: slug.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -95,6 +108,16 @@ class VaultCommandControllerServicer(object):
 
         Entries are kept as stored: change them with setSecrets, removeSecrets,
         setConnection and removeConnections.
+
+        The slug changes only through rename. A slug the vault was renamed away
+        from, named without the vault's id, is refused with FAILED_PRECONDITION
+        carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+        write by a name that stops resolving after 30 days would later make a
+        second vault:
+
+        - SLUG_RENAMED — the slug was renamed: it still leads to the same vault
+        for reading, but a write names its current slug. Metadata: slug (the
+        one the request named).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -105,6 +128,26 @@ class VaultCommandControllerServicer(object):
 
         Setting org lets every member of the organization use the vault in
         their runs. My vault is always private.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def rename(self, request, context):
+        """Rename a vault: change its slug, the name people type.
+
+        The vault keeps its id, so everything that names it keeps working, and
+        every answer names it by the new slug. The old slug keeps leading to the
+        vault for reading for 30 days, during which no other vault of the
+        organization can take it and this one can take it back; then it is
+        released. A write that names the old slug is refused with SLUG_RENAMED (see
+        update). A slug another vault holds is refused with ALREADY_EXISTS, and one
+        another vault was recently renamed away from with SLUG_RESERVED (see
+        create).
+
+        My vault is named after its person and is never renamed: renaming it is
+        refused with INVALID_ARGUMENT, and so is a slug that starts with my-vault,
+        as on create.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -212,6 +255,11 @@ def add_VaultCommandControllerServicer_to_server(servicer, server):
             'updateVisibility': grpc.unary_unary_rpc_method_handler(
                     servicer.updateVisibility,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_api__pb2.Vault.SerializeToString,
+            ),
+            'rename': grpc.unary_unary_rpc_method_handler(
+                    servicer.rename,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_api__pb2.Vault.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -336,6 +384,33 @@ class VaultCommandController(object):
             target,
             '/ai.stigmer.agentic.vault.v1.VaultCommandController/updateVisibility',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_api__pb2.Vault.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def rename(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.vault.v1.VaultCommandController/rename',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.RenameInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_vault_dot_v1_dot_api__pb2.Vault.FromString,
             options,
             channel_credentials,

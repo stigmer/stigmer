@@ -108,6 +108,37 @@ public final class OAuthAppCommandControllerGrpc {
     return getUpdateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
+      ai.stigmer.iam.oauthapp.v1.OAuthApp> getRenameMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "rename",
+      requestType = ai.stigmer.commons.apiresource.RenameInput.class,
+      responseType = ai.stigmer.iam.oauthapp.v1.OAuthApp.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput,
+      ai.stigmer.iam.oauthapp.v1.OAuthApp> getRenameMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.RenameInput, ai.stigmer.iam.oauthapp.v1.OAuthApp> getRenameMethod;
+    if ((getRenameMethod = OAuthAppCommandControllerGrpc.getRenameMethod) == null) {
+      synchronized (OAuthAppCommandControllerGrpc.class) {
+        if ((getRenameMethod = OAuthAppCommandControllerGrpc.getRenameMethod) == null) {
+          OAuthAppCommandControllerGrpc.getRenameMethod = getRenameMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.RenameInput, ai.stigmer.iam.oauthapp.v1.OAuthApp>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "rename"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.RenameInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.oauthapp.v1.OAuthApp.getDefaultInstance()))
+              .setSchemaDescriptor(new OAuthAppCommandControllerMethodDescriptorSupplier("rename"))
+              .build();
+        }
+      }
+    }
+    return getRenameMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.ApiResourceDeleteInput,
       ai.stigmer.iam.oauthapp.v1.OAuthApp> getDeleteMethod;
 
@@ -210,6 +241,15 @@ public final class OAuthAppCommandControllerGrpc {
      * Create or update an OAuth app.
      * If the resource does not exist, creates a new OAuth app.
      * If the resource exists, updates the existing OAuth app.
+     * A request that carries metadata.id of an OAuth app in its organization
+     * updates that OAuth app, and its slug changes only through rename. A slug
+     * the OAuth app was renamed away from, named without the OAuth app's id, is
+     * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"), because a write by a name that stops resolving after
+     * 30 days would later make a second OAuth app:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same OAuth
+     *     app for reading, but a write names its current slug. Metadata: slug
+     *     (the one the request named).
      * </pre>
      */
     default void apply(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
@@ -222,6 +262,12 @@ public final class OAuthAppCommandControllerGrpc {
      * Create an OAuth app.
      * The creator's organization owns the OAuth app, and the organization's
      * current admins manage it.
+     * A slug another OAuth app of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another OAuth app was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another OAuth app held the slug until a recent rename,
+     *     and it still leads there. Metadata: slug.
      * </pre>
      */
     default void create(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
@@ -232,11 +278,34 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing OAuth app.
+     * The slug changes only through rename. An update that names the OAuth app by
+     * a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     default void update(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApp> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rename an OAuth app: change its slug, the name people type.
+     * The OAuth app keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * OAuth app for reading for 30 days, during which no other OAuth app of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another OAuth app holds is refused with ALREADY_EXISTS, and
+     * one another OAuth app was recently renamed away from with SLUG_RESERVED
+     * (see create).
+     * Its addresses and its redirect URI do not name its slug, so sign-ins
+     * through it are unchanged.
+     * </pre>
+     */
+    default void rename(ai.stigmer.commons.apiresource.RenameInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApp> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRenameMethod(), responseObserver);
     }
 
     /**
@@ -291,6 +360,15 @@ public final class OAuthAppCommandControllerGrpc {
      * Create or update an OAuth app.
      * If the resource does not exist, creates a new OAuth app.
      * If the resource exists, updates the existing OAuth app.
+     * A request that carries metadata.id of an OAuth app in its organization
+     * updates that OAuth app, and its slug changes only through rename. A slug
+     * the OAuth app was renamed away from, named without the OAuth app's id, is
+     * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"), because a write by a name that stops resolving after
+     * 30 days would later make a second OAuth app:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same OAuth
+     *     app for reading, but a write names its current slug. Metadata: slug
+     *     (the one the request named).
      * </pre>
      */
     public void apply(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
@@ -304,6 +382,12 @@ public final class OAuthAppCommandControllerGrpc {
      * Create an OAuth app.
      * The creator's organization owns the OAuth app, and the organization's
      * current admins manage it.
+     * A slug another OAuth app of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another OAuth app was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another OAuth app held the slug until a recent rename,
+     *     and it still leads there. Metadata: slug.
      * </pre>
      */
     public void create(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
@@ -315,12 +399,36 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing OAuth app.
+     * The slug changes only through rename. An update that names the OAuth app by
+     * a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     public void update(ai.stigmer.iam.oauthapp.v1.OAuthApp request,
         io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApp> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rename an OAuth app: change its slug, the name people type.
+     * The OAuth app keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * OAuth app for reading for 30 days, during which no other OAuth app of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another OAuth app holds is refused with ALREADY_EXISTS, and
+     * one another OAuth app was recently renamed away from with SLUG_RESERVED
+     * (see create).
+     * Its addresses and its redirect URI do not name its slug, so sign-ins
+     * through it are unchanged.
+     * </pre>
+     */
+    public void rename(ai.stigmer.commons.apiresource.RenameInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApp> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRenameMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -362,6 +470,15 @@ public final class OAuthAppCommandControllerGrpc {
      * Create or update an OAuth app.
      * If the resource does not exist, creates a new OAuth app.
      * If the resource exists, updates the existing OAuth app.
+     * A request that carries metadata.id of an OAuth app in its organization
+     * updates that OAuth app, and its slug changes only through rename. A slug
+     * the OAuth app was renamed away from, named without the OAuth app's id, is
+     * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"), because a write by a name that stops resolving after
+     * 30 days would later make a second OAuth app:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same OAuth
+     *     app for reading, but a write names its current slug. Metadata: slug
+     *     (the one the request named).
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp apply(ai.stigmer.iam.oauthapp.v1.OAuthApp request) throws io.grpc.StatusException {
@@ -374,6 +491,12 @@ public final class OAuthAppCommandControllerGrpc {
      * Create an OAuth app.
      * The creator's organization owns the OAuth app, and the organization's
      * current admins manage it.
+     * A slug another OAuth app of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another OAuth app was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another OAuth app held the slug until a recent rename,
+     *     and it still leads there. Metadata: slug.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp create(ai.stigmer.iam.oauthapp.v1.OAuthApp request) throws io.grpc.StatusException {
@@ -384,11 +507,34 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing OAuth app.
+     * The slug changes only through rename. An update that names the OAuth app by
+     * a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp update(ai.stigmer.iam.oauthapp.v1.OAuthApp request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rename an OAuth app: change its slug, the name people type.
+     * The OAuth app keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * OAuth app for reading for 30 days, during which no other OAuth app of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another OAuth app holds is refused with ALREADY_EXISTS, and
+     * one another OAuth app was recently renamed away from with SLUG_RESERVED
+     * (see create).
+     * Its addresses and its redirect URI do not name its slug, so sign-ins
+     * through it are unchanged.
+     * </pre>
+     */
+    public ai.stigmer.iam.oauthapp.v1.OAuthApp rename(ai.stigmer.commons.apiresource.RenameInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRenameMethod(), getCallOptions(), request);
     }
 
     /**
@@ -429,6 +575,15 @@ public final class OAuthAppCommandControllerGrpc {
      * Create or update an OAuth app.
      * If the resource does not exist, creates a new OAuth app.
      * If the resource exists, updates the existing OAuth app.
+     * A request that carries metadata.id of an OAuth app in its organization
+     * updates that OAuth app, and its slug changes only through rename. A slug
+     * the OAuth app was renamed away from, named without the OAuth app's id, is
+     * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"), because a write by a name that stops resolving after
+     * 30 days would later make a second OAuth app:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same OAuth
+     *     app for reading, but a write names its current slug. Metadata: slug
+     *     (the one the request named).
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp apply(ai.stigmer.iam.oauthapp.v1.OAuthApp request) {
@@ -441,6 +596,12 @@ public final class OAuthAppCommandControllerGrpc {
      * Create an OAuth app.
      * The creator's organization owns the OAuth app, and the organization's
      * current admins manage it.
+     * A slug another OAuth app of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another OAuth app was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another OAuth app held the slug until a recent rename,
+     *     and it still leads there. Metadata: slug.
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp create(ai.stigmer.iam.oauthapp.v1.OAuthApp request) {
@@ -451,11 +612,34 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing OAuth app.
+     * The slug changes only through rename. An update that names the OAuth app by
+     * a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     public ai.stigmer.iam.oauthapp.v1.OAuthApp update(ai.stigmer.iam.oauthapp.v1.OAuthApp request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rename an OAuth app: change its slug, the name people type.
+     * The OAuth app keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * OAuth app for reading for 30 days, during which no other OAuth app of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another OAuth app holds is refused with ALREADY_EXISTS, and
+     * one another OAuth app was recently renamed away from with SLUG_RESERVED
+     * (see create).
+     * Its addresses and its redirect URI do not name its slug, so sign-ins
+     * through it are unchanged.
+     * </pre>
+     */
+    public ai.stigmer.iam.oauthapp.v1.OAuthApp rename(ai.stigmer.commons.apiresource.RenameInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRenameMethod(), getCallOptions(), request);
     }
 
     /**
@@ -496,6 +680,15 @@ public final class OAuthAppCommandControllerGrpc {
      * Create or update an OAuth app.
      * If the resource does not exist, creates a new OAuth app.
      * If the resource exists, updates the existing OAuth app.
+     * A request that carries metadata.id of an OAuth app in its organization
+     * updates that OAuth app, and its slug changes only through rename. A slug
+     * the OAuth app was renamed away from, named without the OAuth app's id, is
+     * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+     * (domain "stigmer.ai"), because a write by a name that stops resolving after
+     * 30 days would later make a second OAuth app:
+     *   - SLUG_RENAMED — the slug was renamed: it still leads to the same OAuth
+     *     app for reading, but a write names its current slug. Metadata: slug
+     *     (the one the request named).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApp> apply(
@@ -509,6 +702,12 @@ public final class OAuthAppCommandControllerGrpc {
      * Create an OAuth app.
      * The creator's organization owns the OAuth app, and the organization's
      * current admins manage it.
+     * A slug another OAuth app of the organization holds is refused with
+     * ALREADY_EXISTS. A slug another OAuth app was renamed away from, which still
+     * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+     * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+     *   - SLUG_RESERVED — another OAuth app held the slug until a recent rename,
+     *     and it still leads there. Metadata: slug.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApp> create(
@@ -520,12 +719,36 @@ public final class OAuthAppCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing OAuth app.
+     * The slug changes only through rename. An update that names the OAuth app by
+     * a slug it was renamed away from, without its id, is refused with
+     * SLUG_RENAMED (see apply).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApp> update(
         ai.stigmer.iam.oauthapp.v1.OAuthApp request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Rename an OAuth app: change its slug, the name people type.
+     * The OAuth app keeps its id, so everything that names it keeps working, and
+     * every answer names it by the new slug. The old slug keeps leading to the
+     * OAuth app for reading for 30 days, during which no other OAuth app of the
+     * organization can take it and this one can take it back; then it is
+     * released. A write that names the old slug is refused with SLUG_RENAMED (see
+     * apply). A slug another OAuth app holds is refused with ALREADY_EXISTS, and
+     * one another OAuth app was recently renamed away from with SLUG_RESERVED
+     * (see create).
+     * Its addresses and its redirect URI do not name its slug, so sign-ins
+     * through it are unchanged.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.oauthapp.v1.OAuthApp> rename(
+        ai.stigmer.commons.apiresource.RenameInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRenameMethod(), getCallOptions()), request);
     }
 
     /**
@@ -546,7 +769,8 @@ public final class OAuthAppCommandControllerGrpc {
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
-  private static final int METHODID_DELETE = 3;
+  private static final int METHODID_RENAME = 3;
+  private static final int METHODID_DELETE = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -575,6 +799,10 @@ public final class OAuthAppCommandControllerGrpc {
           break;
         case METHODID_UPDATE:
           serviceImpl.update((ai.stigmer.iam.oauthapp.v1.OAuthApp) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApp>) responseObserver);
+          break;
+        case METHODID_RENAME:
+          serviceImpl.rename((ai.stigmer.commons.apiresource.RenameInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.oauthapp.v1.OAuthApp>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -620,6 +848,13 @@ public final class OAuthAppCommandControllerGrpc {
               ai.stigmer.iam.oauthapp.v1.OAuthApp,
               ai.stigmer.iam.oauthapp.v1.OAuthApp>(
                 service, METHODID_UPDATE)))
+        .addMethod(
+          getRenameMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.RenameInput,
+              ai.stigmer.iam.oauthapp.v1.OAuthApp>(
+                service, METHODID_RENAME)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -678,6 +913,7 @@ public final class OAuthAppCommandControllerGrpc {
               .addMethod(getApplyMethod())
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
+              .addMethod(getRenameMethod())
               .addMethod(getDeleteMethod())
               .build();
         }

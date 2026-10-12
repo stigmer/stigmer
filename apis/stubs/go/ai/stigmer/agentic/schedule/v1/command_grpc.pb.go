@@ -8,6 +8,7 @@ package schedulev1
 
 import (
 	context "context"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -22,6 +23,7 @@ const (
 	ScheduleCommandController_Apply_FullMethodName   = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/apply"
 	ScheduleCommandController_Create_FullMethodName  = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/create"
 	ScheduleCommandController_Update_FullMethodName  = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/update"
+	ScheduleCommandController_Rename_FullMethodName  = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/rename"
 	ScheduleCommandController_Delete_FullMethodName  = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/delete"
 	ScheduleCommandController_Resume_FullMethodName  = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/resume"
 	ScheduleCommandController_Trigger_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/trigger"
@@ -34,21 +36,58 @@ const (
 // ScheduleCommandController handles write operations for schedules.
 type ScheduleCommandControllerClient interface {
 	// Create or update a schedule.
+	//
+	// A request that carries metadata.id of a schedule in its organization
+	// updates that schedule, and its slug changes only through rename. A slug the
+	// schedule was renamed away from, named without the schedule's id, is refused
+	// with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+	// "stigmer.ai"), because a write by a name that stops resolving after 30 days
+	// would later make a second schedule:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+	//     schedule for reading, but a write names its current slug. Metadata:
+	//     slug (the one the request named).
 	Apply(ctx context.Context, in *Schedule, opts ...grpc.CallOption) (*Schedule, error)
 	// Create a schedule.
 	//
 	// Scheduling an agent is a billing-affecting decision: every fire
 	// creates a run that consumes the schedule-owning
 	// organization's credits, unattended.
+	//
+	// A slug another schedule of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another schedule was renamed away from, which still
+	// leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another schedule held the slug until a recent rename,
+	//     and it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *Schedule, opts ...grpc.CallOption) (*Schedule, error)
 	// Update an existing schedule.
 	//
-	// Replaces the spec wholesale. The slug, the referenced agent, and the
-	// target arm are immutable; cron, time zone, enablement, and the
-	// message may all change. Status (firing observations, the platform
+	// Replaces the spec wholesale. The referenced agent and the target arm
+	// are immutable; cron, time zone, enablement, and the message may all
+	// change. Status (firing observations, the platform
 	// pause) is never touched by updates — use resume to clear a platform
 	// pause.
+	//
+	// The slug changes only through rename. An update that names the schedule by
+	// a slug it was renamed away from, without its id, is refused with
+	// SLUG_RENAMED (see apply).
 	Update(ctx context.Context, in *Schedule, opts ...grpc.CallOption) (*Schedule, error)
+	// Rename a schedule: change its slug, the name people type.
+	//
+	// The schedule keeps its id, so everything that names it keeps working, and
+	// every answer names it by the new slug. The old slug keeps leading to the
+	// schedule for reading for 30 days, during which no other schedule of the
+	// organization can take it and this one can take it back; then it is
+	// released. A write that names the old slug is refused with SLUG_RENAMED (see
+	// apply). A slug another schedule holds is refused with ALREADY_EXISTS, and
+	// one another schedule was recently renamed away from with SLUG_RESERVED (see
+	// create).
+	//
+	// Its fires keep their times; a conversation an earlier fire started keeps
+	// the name it was given then.
+	Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*Schedule, error)
 	// Delete a schedule.
 	//
 	// Firing stops permanently. Runs created by past fires are
@@ -119,6 +158,16 @@ func (c *scheduleCommandControllerClient) Update(ctx context.Context, in *Schedu
 	return out, nil
 }
 
+func (c *scheduleCommandControllerClient) Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*Schedule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Schedule)
+	err := c.cc.Invoke(ctx, ScheduleCommandController_Rename_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *scheduleCommandControllerClient) Delete(ctx context.Context, in *ScheduleId, opts ...grpc.CallOption) (*Schedule, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Schedule)
@@ -156,21 +205,58 @@ func (c *scheduleCommandControllerClient) Trigger(ctx context.Context, in *Sched
 // ScheduleCommandController handles write operations for schedules.
 type ScheduleCommandControllerServer interface {
 	// Create or update a schedule.
+	//
+	// A request that carries metadata.id of a schedule in its organization
+	// updates that schedule, and its slug changes only through rename. A slug the
+	// schedule was renamed away from, named without the schedule's id, is refused
+	// with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail (domain
+	// "stigmer.ai"), because a write by a name that stops resolving after 30 days
+	// would later make a second schedule:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+	//     schedule for reading, but a write names its current slug. Metadata:
+	//     slug (the one the request named).
 	Apply(context.Context, *Schedule) (*Schedule, error)
 	// Create a schedule.
 	//
 	// Scheduling an agent is a billing-affecting decision: every fire
 	// creates a run that consumes the schedule-owning
 	// organization's credits, unattended.
+	//
+	// A slug another schedule of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another schedule was renamed away from, which still
+	// leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+	// google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another schedule held the slug until a recent rename,
+	//     and it still leads there. Metadata: slug.
 	Create(context.Context, *Schedule) (*Schedule, error)
 	// Update an existing schedule.
 	//
-	// Replaces the spec wholesale. The slug, the referenced agent, and the
-	// target arm are immutable; cron, time zone, enablement, and the
-	// message may all change. Status (firing observations, the platform
+	// Replaces the spec wholesale. The referenced agent and the target arm
+	// are immutable; cron, time zone, enablement, and the message may all
+	// change. Status (firing observations, the platform
 	// pause) is never touched by updates — use resume to clear a platform
 	// pause.
+	//
+	// The slug changes only through rename. An update that names the schedule by
+	// a slug it was renamed away from, without its id, is refused with
+	// SLUG_RENAMED (see apply).
 	Update(context.Context, *Schedule) (*Schedule, error)
+	// Rename a schedule: change its slug, the name people type.
+	//
+	// The schedule keeps its id, so everything that names it keeps working, and
+	// every answer names it by the new slug. The old slug keeps leading to the
+	// schedule for reading for 30 days, during which no other schedule of the
+	// organization can take it and this one can take it back; then it is
+	// released. A write that names the old slug is refused with SLUG_RENAMED (see
+	// apply). A slug another schedule holds is refused with ALREADY_EXISTS, and
+	// one another schedule was recently renamed away from with SLUG_RESERVED (see
+	// create).
+	//
+	// Its fires keep their times; a conversation an earlier fire started keeps
+	// the name it was given then.
+	Rename(context.Context, *apiresource.RenameInput) (*Schedule, error)
 	// Delete a schedule.
 	//
 	// Firing stops permanently. Runs created by past fires are
@@ -218,6 +304,9 @@ func (UnimplementedScheduleCommandControllerServer) Create(context.Context, *Sch
 }
 func (UnimplementedScheduleCommandControllerServer) Update(context.Context, *Schedule) (*Schedule, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedScheduleCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*Schedule, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rename not implemented")
 }
 func (UnimplementedScheduleCommandControllerServer) Delete(context.Context, *ScheduleId) (*Schedule, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -302,6 +391,24 @@ func _ScheduleCommandController_Update_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ScheduleCommandController_Rename_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.RenameInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScheduleCommandControllerServer).Rename(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScheduleCommandController_Rename_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScheduleCommandControllerServer).Rename(ctx, req.(*apiresource.RenameInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ScheduleCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ScheduleId)
 	if err := dec(in); err != nil {
@@ -374,6 +481,10 @@ var ScheduleCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "update",
 			Handler:    _ScheduleCommandController_Update_Handler,
+		},
+		{
+			MethodName: "rename",
+			Handler:    _ScheduleCommandController_Rename_Handler,
 		},
 		{
 			MethodName: "delete",

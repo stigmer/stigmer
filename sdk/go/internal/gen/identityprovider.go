@@ -52,6 +52,11 @@ func (i *IdentityProviderClient) Update(ctx context.Context, input *IdentityProv
 	return resp, wrapErr(err)
 }
 
+func (i *IdentityProviderClient) Rename(ctx context.Context, input *apiresource.RenameInput) (*identityproviderv1.IdentityProvider, error) {
+	resp, err := i.command.Rename(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (i *IdentityProviderClient) Delete(ctx context.Context, input *DeleteResourceInput) (*identityproviderv1.IdentityProvider, error) {
 	resp, err := i.command.Delete(ctx, &apiresource.ApiResourceDeleteInput{
 		ResourceId:     input.ResourceID,

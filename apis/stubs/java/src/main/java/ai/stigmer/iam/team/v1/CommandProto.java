@@ -41,21 +41,25 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ons/apiresource/rpc_service_options.prot" +
       "o\032+ai/stigmer/commons/rpc/method_options" +
       ".proto\032 ai/stigmer/iam/team/v1/api.proto" +
-      "2\275\003\n\025TeamCommandController\022\216\001\n\006create\022\034." +
+      "2\307\004\n\025TeamCommandController\022\216\001\n\006create\022\034." +
       "ai.stigmer.iam.team.v1.Team\032\034.ai.stigmer" +
       ".iam.team.v1.Team\"H\302\270\030D\010-\020\036\"\014metadata.or" +
       "g*0unauthorized to create team in this o" +
       "rganization\022x\n\006update\022\034.ai.stigmer.iam.t" +
       "eam.v1.Team\032\034.ai.stigmer.iam.team.v1.Tea" +
       "m\"2\302\270\030.\010\002\020\030\"\013metadata.id*\033unauthorized t" +
-      "o update team\022\222\001\n\006delete\0226.ai.stigmer.co" +
-      "mmons.apiresource.ApiResourceDeleteInput" +
-      "\032\034.ai.stigmer.iam.team.v1.Team\"2\302\270\030.\010\003\020\030" +
-      "\"\013resource_id*\033unauthorized to delete te" +
-      "am\032\004\240\377+\030B\213\001B\014CommandProtoP\001\242\002\004ASIT\252\002\026Ai." +
-      "Stigmer.Iam.Team.V1\312\002\026Ai\\Stigmer\\Iam\\Tea" +
-      "m\\V1\342\002\"Ai\\Stigmer\\Iam\\Team\\V1\\GPBMetadat" +
-      "a\352\002\032Ai::Stigmer::Iam::Team::V1b\006proto3"
+      "o update team\022\207\001\n\006rename\022+.ai.stigmer.co" +
+      "mmons.apiresource.RenameInput\032\034.ai.stigm" +
+      "er.iam.team.v1.Team\"2\302\270\030.\010\003\020\030\"\013resource_" +
+      "id*\033unauthorized to rename team\022\222\001\n\006dele" +
+      "te\0226.ai.stigmer.commons.apiresource.ApiR" +
+      "esourceDeleteInput\032\034.ai.stigmer.iam.team" +
+      ".v1.Team\"2\302\270\030.\010\003\020\030\"\013resource_id*\033unautho" +
+      "rized to delete team\032\004\240\377+\030B\213\001B\014CommandPr" +
+      "otoP\001\242\002\004ASIT\252\002\026Ai.Stigmer.Iam.Team.V1\312\002\026" +
+      "Ai\\Stigmer\\Iam\\Team\\V1\342\002\"Ai\\Stigmer\\Iam\\" +
+      "Team\\V1\\GPBMetadata\352\002\032Ai::Stigmer::Iam::" +
+      "Team::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

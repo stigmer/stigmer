@@ -23,6 +23,7 @@ const (
 	IdentityProviderCommandController_Apply_FullMethodName  = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/apply"
 	IdentityProviderCommandController_Create_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/create"
 	IdentityProviderCommandController_Update_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/update"
+	IdentityProviderCommandController_Rename_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/rename"
 	IdentityProviderCommandController_Delete_FullMethodName = "/ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandController/delete"
 )
 
@@ -39,6 +40,18 @@ type IdentityProviderCommandControllerClient interface {
 	//
 	// Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED
 	// included.
+	//
+	// A request that carries metadata.id of an identity provider in its
+	// organization updates that identity provider, and its slug changes only
+	// through rename. A slug the identity provider was renamed away from, named
+	// without the identity provider's id, is refused with FAILED_PRECONDITION
+	// carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+	// write by a name that stops resolving after 30 days would later make a
+	// second identity provider:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+	//     identity provider for reading, but a write names its current slug.
+	//     Metadata: slug (the one the request named).
 	Apply(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error)
 	// Create an identity provider.
 	//
@@ -52,6 +65,14 @@ type IdentityProviderCommandControllerClient interface {
 	//
 	//   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
 	//     identity provider that exists keeps signing people in. No metadata.
+	//
+	// A slug another identity provider of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another identity provider was renamed away from,
+	// which still leads to it for 30 days, is refused with ALREADY_EXISTS
+	// carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another identity provider held the slug until a recent
+	//     rename, and it still leads there. Metadata: slug.
 	Create(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error)
 	// Update an existing identity provider.
 	//
@@ -64,7 +85,24 @@ type IdentityProviderCommandControllerClient interface {
 	//   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
 	//     identity provider keeps signing people in as it is, and can still
 	//     be deleted. No metadata.
+	//
+	// The slug changes only through rename. An update that names the identity
+	// provider by a slug it was renamed away from, without its id, is refused
+	// with SLUG_RENAMED (see apply).
 	Update(ctx context.Context, in *IdentityProvider, opts ...grpc.CallOption) (*IdentityProvider, error)
+	// Rename an identity provider: change its slug, the name people type.
+	//
+	// The identity provider keeps its id, so everything that names it keeps
+	// working, and every answer names it by the new slug. The old slug keeps
+	// leading to the identity provider for reading for 30 days, during which no
+	// other identity provider of the organization can take it and this one can
+	// take it back; then it is released. A write that names the old slug is
+	// refused with SLUG_RENAMED (see apply). A slug another identity provider
+	// holds is refused with ALREADY_EXISTS, and one another identity provider was
+	// recently renamed away from with SLUG_RESERVED (see create).
+	//
+	// Sign-in does not name its slug, so the people it signs in keep signing in.
+	Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*IdentityProvider, error)
 	// Delete an identity provider.
 	//
 	// The federated accounts the provider vouches for are
@@ -111,6 +149,16 @@ func (c *identityProviderCommandControllerClient) Update(ctx context.Context, in
 	return out, nil
 }
 
+func (c *identityProviderCommandControllerClient) Rename(ctx context.Context, in *apiresource.RenameInput, opts ...grpc.CallOption) (*IdentityProvider, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdentityProvider)
+	err := c.cc.Invoke(ctx, IdentityProviderCommandController_Rename_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *identityProviderCommandControllerClient) Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*IdentityProvider, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IdentityProvider)
@@ -134,6 +182,18 @@ type IdentityProviderCommandControllerServer interface {
 	//
 	// Either arm is refused as create or update is, LICENSE_RENEWAL_REQUIRED
 	// included.
+	//
+	// A request that carries metadata.id of an identity provider in its
+	// organization updates that identity provider, and its slug changes only
+	// through rename. A slug the identity provider was renamed away from, named
+	// without the identity provider's id, is refused with FAILED_PRECONDITION
+	// carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"), because a
+	// write by a name that stops resolving after 30 days would later make a
+	// second identity provider:
+	//
+	//   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+	//     identity provider for reading, but a write names its current slug.
+	//     Metadata: slug (the one the request named).
 	Apply(context.Context, *IdentityProvider) (*IdentityProvider, error)
 	// Create an identity provider.
 	//
@@ -147,6 +207,14 @@ type IdentityProviderCommandControllerServer interface {
 	//
 	//   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; every
 	//     identity provider that exists keeps signing people in. No metadata.
+	//
+	// A slug another identity provider of the organization holds is refused with
+	// ALREADY_EXISTS. A slug another identity provider was renamed away from,
+	// which still leads to it for 30 days, is refused with ALREADY_EXISTS
+	// carrying a google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+	//
+	//   - SLUG_RESERVED — another identity provider held the slug until a recent
+	//     rename, and it still leads there. Metadata: slug.
 	Create(context.Context, *IdentityProvider) (*IdentityProvider, error)
 	// Update an existing identity provider.
 	//
@@ -159,7 +227,24 @@ type IdentityProviderCommandControllerServer interface {
 	//   - LICENSE_RENEWAL_REQUIRED — the server's license has ended; the
 	//     identity provider keeps signing people in as it is, and can still
 	//     be deleted. No metadata.
+	//
+	// The slug changes only through rename. An update that names the identity
+	// provider by a slug it was renamed away from, without its id, is refused
+	// with SLUG_RENAMED (see apply).
 	Update(context.Context, *IdentityProvider) (*IdentityProvider, error)
+	// Rename an identity provider: change its slug, the name people type.
+	//
+	// The identity provider keeps its id, so everything that names it keeps
+	// working, and every answer names it by the new slug. The old slug keeps
+	// leading to the identity provider for reading for 30 days, during which no
+	// other identity provider of the organization can take it and this one can
+	// take it back; then it is released. A write that names the old slug is
+	// refused with SLUG_RENAMED (see apply). A slug another identity provider
+	// holds is refused with ALREADY_EXISTS, and one another identity provider was
+	// recently renamed away from with SLUG_RESERVED (see create).
+	//
+	// Sign-in does not name its slug, so the people it signs in keep signing in.
+	Rename(context.Context, *apiresource.RenameInput) (*IdentityProvider, error)
 	// Delete an identity provider.
 	//
 	// The federated accounts the provider vouches for are
@@ -183,6 +268,9 @@ func (UnimplementedIdentityProviderCommandControllerServer) Create(context.Conte
 }
 func (UnimplementedIdentityProviderCommandControllerServer) Update(context.Context, *IdentityProvider) (*IdentityProvider, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedIdentityProviderCommandControllerServer) Rename(context.Context, *apiresource.RenameInput) (*IdentityProvider, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rename not implemented")
 }
 func (UnimplementedIdentityProviderCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*IdentityProvider, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -261,6 +349,24 @@ func _IdentityProviderCommandController_Update_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityProviderCommandController_Rename_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.RenameInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityProviderCommandControllerServer).Rename(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityProviderCommandController_Rename_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityProviderCommandControllerServer).Rename(ctx, req.(*apiresource.RenameInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IdentityProviderCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(apiresource.ApiResourceDeleteInput)
 	if err := dec(in); err != nil {
@@ -297,6 +403,10 @@ var IdentityProviderCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "update",
 			Handler:    _IdentityProviderCommandController_Update_Handler,
+		},
+		{
+			MethodName: "rename",
+			Handler:    _IdentityProviderCommandController_Rename_Handler,
 		},
 		{
 			MethodName: "delete",

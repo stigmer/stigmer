@@ -4,7 +4,7 @@
 
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApiResourceDeleteInputSchema } from "../../../commons/apiresource/io_pb.js";
+import type { ApiResourceDeleteInputSchema, RenameInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_iam_oauthapp_v1_api } from "./api_pb.js";
  * Describes the file ai/stigmer/iam/oauthapp/v1/command.proto.
  */
 export const file_ai_stigmer_iam_oauthapp_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9jb21tYW5kLnByb3RvEhphaS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MTLOBAoZT0F1dGhBcHBDb21tYW5kQ29udHJvbGxlchJTCgVhcHBseRIkLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwGiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHASowEKBmNyZWF0ZRIkLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwGiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHAiTcK4GEkIFxAeIgxtZXRhZGF0YS5vcmcqNXVuYXV0aG9yaXplZCB0byBjcmVhdGUgb2F1dGggYXBwIGluIHRoaXMgb3JnYW5pemF0aW9uEo0BCgZ1cGRhdGUSJC5haS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MS5PQXV0aEFwcBokLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwIjfCuBgzCAIQFiILbWV0YWRhdGEuaWQqIHVuYXV0aG9yaXplZCB0byB1cGRhdGUgb2F1dGggYXBwEp8BCgZkZWxldGUSNi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VEZWxldGVJbnB1dBokLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwIjfCuBgzCAMQFiILcmVzb3VyY2VfaWQqIHVuYXV0aG9yaXplZCB0byBkZWxldGUgb2F1dGggYXBwGgSg/ysWYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_oauthapp_v1_api]);
+  fileDesc("CihhaS9zdGlnbWVyL2lhbS9vYXV0aGFwcC92MS9jb21tYW5kLnByb3RvEhphaS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MTLlBQoZT0F1dGhBcHBDb21tYW5kQ29udHJvbGxlchJTCgVhcHBseRIkLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwGiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHASowEKBmNyZWF0ZRIkLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwGiQuYWkuc3RpZ21lci5pYW0ub2F1dGhhcHAudjEuT0F1dGhBcHAiTcK4GEkIFxAeIgxtZXRhZGF0YS5vcmcqNXVuYXV0aG9yaXplZCB0byBjcmVhdGUgb2F1dGggYXBwIGluIHRoaXMgb3JnYW5pemF0aW9uEo0BCgZ1cGRhdGUSJC5haS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MS5PQXV0aEFwcBokLmFpLnN0aWdtZXIuaWFtLm9hdXRoYXBwLnYxLk9BdXRoQXBwIjfCuBgzCAIQFiILbWV0YWRhdGEuaWQqIHVuYXV0aG9yaXplZCB0byB1cGRhdGUgb2F1dGggYXBwEpQBCgZyZW5hbWUSKy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuUmVuYW1lSW5wdXQaJC5haS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MS5PQXV0aEFwcCI3wrgYMwgDEBYiC3Jlc291cmNlX2lkKiB1bmF1dGhvcml6ZWQgdG8gcmVuYW1lIE9BdXRoIGFwcBKfAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaJC5haS5zdGlnbWVyLmlhbS5vYXV0aGFwcC52MS5PQXV0aEFwcCI3wrgYMwgDEBYiC3Jlc291cmNlX2lkKiB1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIG9hdXRoIGFwcBoEoP8rFmIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_iam_oauthapp_v1_api]);
 
 /**
  * OAuthAppCommandController provides write operations for OAuth app resources.
@@ -28,6 +28,17 @@ export const OAuthAppCommandController: GenService<{
    *
    * If the resource does not exist, creates a new OAuth app.
    * If the resource exists, updates the existing OAuth app.
+   *
+   * A request that carries metadata.id of an OAuth app in its organization
+   * updates that OAuth app, and its slug changes only through rename. A slug
+   * the OAuth app was renamed away from, named without the OAuth app's id, is
+   * refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+   * (domain "stigmer.ai"), because a write by a name that stops resolving after
+   * 30 days would later make a second OAuth app:
+   *
+   *   - SLUG_RENAMED — the slug was renamed: it still leads to the same OAuth
+   *     app for reading, but a write names its current slug. Metadata: slug
+   *     (the one the request named).
    *
    * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.apply
    */
@@ -42,6 +53,14 @@ export const OAuthAppCommandController: GenService<{
    * The creator's organization owns the OAuth app, and the organization's
    * current admins manage it.
    *
+   * A slug another OAuth app of the organization holds is refused with
+   * ALREADY_EXISTS. A slug another OAuth app was renamed away from, which still
+   * leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+   * google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+   *
+   *   - SLUG_RESERVED — another OAuth app held the slug until a recent rename,
+   *     and it still leads there. Metadata: slug.
+   *
    * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.create
    */
   create: {
@@ -52,11 +71,37 @@ export const OAuthAppCommandController: GenService<{
   /**
    * Update an existing OAuth app.
    *
+   * The slug changes only through rename. An update that names the OAuth app by
+   * a slug it was renamed away from, without its id, is refused with
+   * SLUG_RENAMED (see apply).
+   *
    * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.update
    */
   update: {
     methodKind: "unary";
     input: typeof OAuthAppSchema;
+    output: typeof OAuthAppSchema;
+  },
+  /**
+   * Rename an OAuth app: change its slug, the name people type.
+   *
+   * The OAuth app keeps its id, so everything that names it keeps working, and
+   * every answer names it by the new slug. The old slug keeps leading to the
+   * OAuth app for reading for 30 days, during which no other OAuth app of the
+   * organization can take it and this one can take it back; then it is
+   * released. A write that names the old slug is refused with SLUG_RENAMED (see
+   * apply). A slug another OAuth app holds is refused with ALREADY_EXISTS, and
+   * one another OAuth app was recently renamed away from with SLUG_RESERVED
+   * (see create).
+   *
+   * Its addresses and its redirect URI do not name its slug, so sign-ins
+   * through it are unchanged.
+   *
+   * @generated from rpc ai.stigmer.iam.oauthapp.v1.OAuthAppCommandController.rename
+   */
+  rename: {
+    methodKind: "unary";
+    input: typeof RenameInputSchema;
     output: typeof OAuthAppSchema;
   },
   /**

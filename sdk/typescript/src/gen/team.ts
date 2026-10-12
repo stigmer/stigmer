@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type RenameInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { TeamSchema, type Team } from "@stigmer/protos/ai/stigmer/iam/team/v1/api_pb";
 import { TeamCommandController } from "@stigmer/protos/ai/stigmer/iam/team/v1/command_pb";
@@ -34,6 +34,12 @@ export class TeamClient {
   async update(input: TeamInput): Promise<Team> {
     try {
       return await this.command.update(buildTeamProto(input));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async rename(input: RenameInput): Promise<Team> {
+    try {
+      return await this.command.rename(input);
     } catch (e) { throw wrapError(e); }
   }
 

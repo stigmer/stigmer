@@ -7,7 +7,7 @@
 package schedulev1
 
 import (
-	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -26,36 +26,40 @@ var File_ai_stigmer_agentic_schedule_v1_command_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_agentic_schedule_v1_command_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/agentic/schedule/v1/command.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a'ai/stigmer/agentic/schedule/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xc1\x06\n" +
+	",ai/stigmer/agentic/schedule/v1/command.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a'ai/stigmer/agentic/schedule/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xdb\a\n" +
 	"\x19ScheduleCommandController\x12[\n" +
 	"\x05apply\x12(.ai.stigmer.agentic.schedule.v1.Schedule\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\x12b\n" +
 	"\x06create\x12(.ai.stigmer.agentic.schedule.v1.Schedule\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"\x04и\x18\x01\x12\x94\x01\n" +
-	"\x06update\x12(.ai.stigmer.agentic.schedule.v1.Schedule\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"6¸\x182\b\x02\x108\"\vmetadata.id*\x1funauthorized to update schedule\x12\x90\x01\n" +
+	"\x06update\x12(.ai.stigmer.agentic.schedule.v1.Schedule\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"6¸\x182\b\x02\x108\"\vmetadata.id*\x1funauthorized to update schedule\x12\x97\x01\n" +
+	"\x06rename\x12+.ai.stigmer.commons.apiresource.RenameInput\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"6¸\x182\b\x03\x108\"\vresource_id*\x1funauthorized to rename schedule\x12\x90\x01\n" +
 	"\x06delete\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"0¸\x18,\b\x03\x108\"\x05value*\x1funauthorized to delete schedule\x12\x90\x01\n" +
 	"\x06resume\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"0¸\x18,\b\x02\x108\"\x05value*\x1funauthorized to resume schedule\x12\x9f\x01\n" +
 	"\atrigger\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a5.ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult\"1¸\x18-\b\x02\x108\"\x05value* unauthorized to trigger schedule\x1a\x04\xa0\xff+8B\xa3\x02\n" +
 	"\"com.ai.stigmer.agentic.schedule.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_schedule_v1_command_proto_goTypes = []any{
-	(*Schedule)(nil),              // 0: ai.stigmer.agentic.schedule.v1.Schedule
-	(*ScheduleId)(nil),            // 1: ai.stigmer.agentic.schedule.v1.ScheduleId
-	(*ScheduleTriggerResult)(nil), // 2: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult
+	(*Schedule)(nil),                // 0: ai.stigmer.agentic.schedule.v1.Schedule
+	(*apiresource.RenameInput)(nil), // 1: ai.stigmer.commons.apiresource.RenameInput
+	(*ScheduleId)(nil),              // 2: ai.stigmer.agentic.schedule.v1.ScheduleId
+	(*ScheduleTriggerResult)(nil),   // 3: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult
 }
 var file_ai_stigmer_agentic_schedule_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.apply:input_type -> ai.stigmer.agentic.schedule.v1.Schedule
 	0, // 1: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.create:input_type -> ai.stigmer.agentic.schedule.v1.Schedule
 	0, // 2: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.update:input_type -> ai.stigmer.agentic.schedule.v1.Schedule
-	1, // 3: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.delete:input_type -> ai.stigmer.agentic.schedule.v1.ScheduleId
-	1, // 4: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.resume:input_type -> ai.stigmer.agentic.schedule.v1.ScheduleId
-	1, // 5: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.trigger:input_type -> ai.stigmer.agentic.schedule.v1.ScheduleId
-	0, // 6: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.apply:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
-	0, // 7: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.create:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
-	0, // 8: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.update:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
-	0, // 9: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.delete:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
-	0, // 10: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.resume:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
-	2, // 11: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.trigger:output_type -> ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
+	1, // 3: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.rename:input_type -> ai.stigmer.commons.apiresource.RenameInput
+	2, // 4: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.delete:input_type -> ai.stigmer.agentic.schedule.v1.ScheduleId
+	2, // 5: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.resume:input_type -> ai.stigmer.agentic.schedule.v1.ScheduleId
+	2, // 6: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.trigger:input_type -> ai.stigmer.agentic.schedule.v1.ScheduleId
+	0, // 7: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.apply:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
+	0, // 8: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.create:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
+	0, // 9: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.update:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
+	0, // 10: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.rename:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
+	0, // 11: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.delete:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
+	0, // 12: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.resume:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
+	3, // 13: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.trigger:output_type -> ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult
+	7, // [7:14] is the sub-list for method output_type
+	0, // [0:7] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
