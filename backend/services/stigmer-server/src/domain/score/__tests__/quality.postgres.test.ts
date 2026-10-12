@@ -11,7 +11,8 @@
  *   - a read longer than one batch follows the index's cursor without
  *     losing or repeating a row (one batch and 50 more);
  *   - the flagged list pages the same rows, failed grades only, and asks
- *     the session scope about each page's sessions.
+ *     the session scope about each page's sessions; page_size 0 is one
+ *     full page with a token, never the whole list.
  */
 import { create } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
@@ -35,6 +36,7 @@ import { silentLogger } from "../../../extensions/__tests__/composed-support.js"
 import type { CallerIdentity } from "../../../extensions/identity.js";
 import type { ListReadScope } from "../../../extensions/list-read-scope.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
+import { LIST_PAGE_MAX_SIZE } from "../../../pipeline/steps/list-page.js";
 import type { Store } from "../../../store/interface.js";
 import { PostgresStore } from "../../../store/postgres/store.js";
 import {
@@ -297,5 +299,30 @@ describe.each(fixtures)("an agent's quality on $name", (fixture) => {
         await opened.close();
       }
     },
+  );
+  it.skipIf(fixture.skip)(
+    "answers page_size 0 with one full page and a token, never the whole list",
+    async () => {
+      const opened = await fixture.open();
+      try {
+        const { store } = opened;
+        for (let i = 0; i < 105; i += 35) {
+          await Promise.all(
+            Array.from({ length: 35 }, () =>
+              seedScore(store, { passed: false }),
+            ),
+          );
+        }
+        const first = await flaggedOf(store, undefined, 0);
+        expect(first.items).toHaveLength(LIST_PAGE_MAX_SIZE);
+        expect(first.nextPageToken).not.toBe("");
+        const rest = await flaggedOf(store, undefined, 0, first.nextPageToken);
+        expect(rest.items).toHaveLength(5);
+        expect(rest.nextPageToken).toBe("");
+      } finally {
+        await opened.close();
+      }
+    },
+    60_000,
   );
 });

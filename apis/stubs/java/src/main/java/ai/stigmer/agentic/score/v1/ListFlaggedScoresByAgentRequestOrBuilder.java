@@ -65,7 +65,8 @@ public interface ListFlaggedScoresByAgentRequestOrBuilder extends
 
   /**
    * <pre>
-   * The most scores to return, at most 100; zero returns them all.
+   * The most scores to return, at most 100; zero returns a page of 100.
+   * Follow next_page_token for the rest.
    * </pre>
    *
    * <code>int32 page_size = 4 [json_name = "pageSize", (.buf.validate.field) = { ... }</code>

@@ -81,6 +81,7 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import {
+  LIST_PAGE_MAX_SIZE,
   listPageFingerprint,
   readListPage,
 } from "../../pipeline/steps/list-page.js";
@@ -547,7 +548,13 @@ export function newListFlaggedScoresStep(
         store: deps.store,
         declaration: scoreListIndex,
         query: agentScoresQuery(input.org, input.agentId, window),
-        request: input,
+        // Zero is one full page with a token here, never the whole list: a
+        // page costs a session read and a scope question per session, so
+        // every request stays inside the loop's examine budget.
+        request: {
+          pageSize: input.pageSize === 0 ? LIST_PAGE_MAX_SIZE : input.pageSize,
+          pageToken: input.pageToken,
+        },
         fingerprint: listPageFingerprint({
           lane: "score.listFlaggedByAgent",
           org: input.org,

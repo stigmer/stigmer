@@ -453,7 +453,8 @@ export type ListFlaggedScoresByAgentRequest = Message<"ai.stigmer.agentic.score.
   days: number;
 
   /**
-   * The most scores to return, at most 100; zero returns them all.
+   * The most scores to return, at most 100; zero returns a page of 100.
+   * Follow next_page_token for the rest.
    *
    * @generated from field: int32 page_size = 4;
    */

@@ -760,7 +760,8 @@ type ListFlaggedScoresByAgentRequest struct {
 	// How many days to look back, ending today, from 1 to 90. Zero looks back
 	// 30. Days are UTC.
 	Days int32 `protobuf:"varint,3,opt,name=days,proto3" json:"days,omitempty"`
-	// The most scores to return, at most 100; zero returns them all.
+	// The most scores to return, at most 100; zero returns a page of 100.
+	// Follow next_page_token for the rest.
 	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// The previous response's next_page_token, to continue that list; every
 	// other field must equal that request's, or the call is refused.

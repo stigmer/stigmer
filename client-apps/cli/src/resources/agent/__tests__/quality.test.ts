@@ -301,6 +301,25 @@ describe("showAgentQuality, --flagged", () => {
     expect(out).not.toContain("stayed-on-topic");
   });
 
+  it("reads every page at 100 a request under --limit 0, following each token to the end", async () => {
+    const server = fakeServer({
+      pages: [
+        create(ScoreListSchema, { totalCount: 1, items: [flagged("run_3", "judge", 30)], nextPageToken: "t1" }),
+        create(ScoreListSchema, { totalCount: 0, items: [], nextPageToken: "t2" }),
+        create(ScoreListSchema, { totalCount: 1, items: [flagged("run_2", "feedback", 20)], nextPageToken: "" }),
+      ],
+    });
+    const out = await showAgentQuality(server.client, "acme", "support-desk", options({ flagged: true, limit: 0 }));
+
+    expect(server.flaggedRequests.map((r) => [r.pageSize, r.pageToken])).toEqual([
+      [100, ""],
+      [100, "t1"],
+      [100, "t2"],
+    ]);
+    expect(out).toContain("run_3");
+    expect(out).toContain("run_2");
+  });
+
   it("prints a dash for a grade with no recorded time", async () => {
     const undated = create(ScoreSchema, { spec: { runId: "run_9", metric: "judge", value: { case: "passed", value: false } } });
     const server = fakeServer({ pages: [create(ScoreListSchema, { totalCount: 1, items: [undated] })] });
