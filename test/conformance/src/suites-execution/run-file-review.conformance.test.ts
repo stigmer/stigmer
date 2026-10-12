@@ -974,7 +974,13 @@ describe("Run file review — the next message closes the review", () => {
   });
 });
 
-describe.skipIf(!collectionTarget.capabilities.scheduleFiring)(
+// A fired turn runs in the schedule's session, whose creator is the
+// schedule's lane account: only a runner that acts as each run's creator can
+// serve it. The hosted edition serves those turns in the sandbox its
+// composition provisions, proven by that composition's own suites.
+describe.skipIf(
+  !collectionTarget.capabilities.scheduleFiring || !collectionTarget.capabilities.runnerActsAsRunCreator,
+)(
   "Run file review — an unattended turn's write (scheduleFiring targets)",
   () => {
     it("a fired turn that writes a file applies it and ends, with nothing to review (stigmer#1471)", async () => {
