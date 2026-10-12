@@ -170,6 +170,99 @@ public final class SessionCommandControllerGrpc {
     return getReviewFileChangesMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ConfirmToolUseInput,
+      ai.stigmer.agentic.session.v1.SessionEvent> getConfirmToolUseMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "confirmToolUse",
+      requestType = ai.stigmer.agentic.session.v1.ConfirmToolUseInput.class,
+      responseType = ai.stigmer.agentic.session.v1.SessionEvent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ConfirmToolUseInput,
+      ai.stigmer.agentic.session.v1.SessionEvent> getConfirmToolUseMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ConfirmToolUseInput, ai.stigmer.agentic.session.v1.SessionEvent> getConfirmToolUseMethod;
+    if ((getConfirmToolUseMethod = SessionCommandControllerGrpc.getConfirmToolUseMethod) == null) {
+      synchronized (SessionCommandControllerGrpc.class) {
+        if ((getConfirmToolUseMethod = SessionCommandControllerGrpc.getConfirmToolUseMethod) == null) {
+          SessionCommandControllerGrpc.getConfirmToolUseMethod = getConfirmToolUseMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.ConfirmToolUseInput, ai.stigmer.agentic.session.v1.SessionEvent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "confirmToolUse"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.ConfirmToolUseInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.SessionEvent.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("confirmToolUse"))
+              .build();
+        }
+      }
+    }
+    return getConfirmToolUseMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.GrantPermissionInput,
+      ai.stigmer.agentic.session.v1.GrantPermissionResponse> getGrantPermissionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "grantPermission",
+      requestType = ai.stigmer.agentic.session.v1.GrantPermissionInput.class,
+      responseType = ai.stigmer.agentic.session.v1.GrantPermissionResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.GrantPermissionInput,
+      ai.stigmer.agentic.session.v1.GrantPermissionResponse> getGrantPermissionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.GrantPermissionInput, ai.stigmer.agentic.session.v1.GrantPermissionResponse> getGrantPermissionMethod;
+    if ((getGrantPermissionMethod = SessionCommandControllerGrpc.getGrantPermissionMethod) == null) {
+      synchronized (SessionCommandControllerGrpc.class) {
+        if ((getGrantPermissionMethod = SessionCommandControllerGrpc.getGrantPermissionMethod) == null) {
+          SessionCommandControllerGrpc.getGrantPermissionMethod = getGrantPermissionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.GrantPermissionInput, ai.stigmer.agentic.session.v1.GrantPermissionResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "grantPermission"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.GrantPermissionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.GrantPermissionResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("grantPermission"))
+              .build();
+        }
+      }
+    }
+    return getGrantPermissionMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.InterruptSessionInput,
+      ai.stigmer.agentic.session.v1.InterruptSessionResponse> getInterruptMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "interrupt",
+      requestType = ai.stigmer.agentic.session.v1.InterruptSessionInput.class,
+      responseType = ai.stigmer.agentic.session.v1.InterruptSessionResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.InterruptSessionInput,
+      ai.stigmer.agentic.session.v1.InterruptSessionResponse> getInterruptMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.InterruptSessionInput, ai.stigmer.agentic.session.v1.InterruptSessionResponse> getInterruptMethod;
+    if ((getInterruptMethod = SessionCommandControllerGrpc.getInterruptMethod) == null) {
+      synchronized (SessionCommandControllerGrpc.class) {
+        if ((getInterruptMethod = SessionCommandControllerGrpc.getInterruptMethod) == null) {
+          SessionCommandControllerGrpc.getInterruptMethod = getInterruptMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.InterruptSessionInput, ai.stigmer.agentic.session.v1.InterruptSessionResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "interrupt"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.InterruptSessionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.InterruptSessionResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("interrupt"))
+              .build();
+        }
+      }
+    }
+    return getInterruptMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.SessionId,
       ai.stigmer.agentic.session.v1.Session> getDeleteMethod;
 
@@ -371,6 +464,73 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Allow or deny a tool use that waits for an answer.
+     * A call that needs a person's answer is an agent.tool_use (or
+     * agent.mcp_tool_use) with evaluated_permission ask, and the session goes
+     * idle with stop_reason requires_action naming it. The answer is appended
+     * as a user.tool_confirmation. A deny may carry a message, which the
+     * agent reads. When every waiting call of the turn is answered, the turn
+     * resumes; until then the session re-states requires_action with the
+     * calls still waiting.
+     * ## Error Conditions
+     * - NOT_FOUND: the tool use is not one of this conversation's calls that
+     *   asked
+     * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+     *   was stopped), or it was already answered the other way (an answer is
+     *   final)
+     * ## Idempotency
+     * The same answer sent again records nothing new and returns the event
+     * first recorded.
+     * </pre>
+     */
+    default void confirmToolUse(ai.stigmer.agentic.session.v1.ConfirmToolUseInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEvent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getConfirmToolUseMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Allow a tool use, and every call of its class for the rest of the turn.
+     * The class is the call's built-in category (write, delete or shell), its
+     * MCP server, or, when a hook asked, that hook on that tool. The grant is
+     * appended as a stigmer.permission.grant after the call's
+     * user.tool_confirmation, and every other call of the class waiting in
+     * the same turn is allowed with it. A call with no class (one the
+     * default never asks about) is allowed alone, with no grant.
+     * ## Error Conditions
+     * As confirmToolUse.
+     * ## Idempotency
+     * The same grant sent again records nothing new.
+     * </pre>
+     */
+    default void grantPermission(ai.stigmer.agentic.session.v1.GrantPermissionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.GrantPermissionResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGrantPermissionMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Stop the session's unfinished work.
+     * Appends a user.interrupt and stops every unfinished turn of the
+     * conversation: queued, working, waiting for an answer or paused. Each
+     * ends cancelled and the session goes idle with end_turn. Files undone
+     * in a turn that waited are put back at once.
+     * ## Error Conditions
+     * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
+     *   be stopped)
+     * - FAILED_PRECONDITION: the execution engine is not connected
+     * ## Idempotency
+     * An interrupt with nothing unfinished records the event and stops
+     * nothing.
+     * </pre>
+     */
+    default void interrupt(ai.stigmer.agentic.session.v1.InterruptSessionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.InterruptSessionResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getInterruptMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a session.
      * Deletion cascades to the session's runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
@@ -511,6 +671,76 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Allow or deny a tool use that waits for an answer.
+     * A call that needs a person's answer is an agent.tool_use (or
+     * agent.mcp_tool_use) with evaluated_permission ask, and the session goes
+     * idle with stop_reason requires_action naming it. The answer is appended
+     * as a user.tool_confirmation. A deny may carry a message, which the
+     * agent reads. When every waiting call of the turn is answered, the turn
+     * resumes; until then the session re-states requires_action with the
+     * calls still waiting.
+     * ## Error Conditions
+     * - NOT_FOUND: the tool use is not one of this conversation's calls that
+     *   asked
+     * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+     *   was stopped), or it was already answered the other way (an answer is
+     *   final)
+     * ## Idempotency
+     * The same answer sent again records nothing new and returns the event
+     * first recorded.
+     * </pre>
+     */
+    public void confirmToolUse(ai.stigmer.agentic.session.v1.ConfirmToolUseInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEvent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getConfirmToolUseMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Allow a tool use, and every call of its class for the rest of the turn.
+     * The class is the call's built-in category (write, delete or shell), its
+     * MCP server, or, when a hook asked, that hook on that tool. The grant is
+     * appended as a stigmer.permission.grant after the call's
+     * user.tool_confirmation, and every other call of the class waiting in
+     * the same turn is allowed with it. A call with no class (one the
+     * default never asks about) is allowed alone, with no grant.
+     * ## Error Conditions
+     * As confirmToolUse.
+     * ## Idempotency
+     * The same grant sent again records nothing new.
+     * </pre>
+     */
+    public void grantPermission(ai.stigmer.agentic.session.v1.GrantPermissionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.GrantPermissionResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGrantPermissionMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Stop the session's unfinished work.
+     * Appends a user.interrupt and stops every unfinished turn of the
+     * conversation: queued, working, waiting for an answer or paused. Each
+     * ends cancelled and the session goes idle with end_turn. Files undone
+     * in a turn that waited are put back at once.
+     * ## Error Conditions
+     * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
+     *   be stopped)
+     * - FAILED_PRECONDITION: the execution engine is not connected
+     * ## Idempotency
+     * An interrupt with nothing unfinished records the event and stops
+     * nothing.
+     * </pre>
+     */
+    public void interrupt(ai.stigmer.agentic.session.v1.InterruptSessionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.InterruptSessionResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getInterruptMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a session.
      * Deletion cascades to the session's runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
@@ -634,6 +864,73 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Allow or deny a tool use that waits for an answer.
+     * A call that needs a person's answer is an agent.tool_use (or
+     * agent.mcp_tool_use) with evaluated_permission ask, and the session goes
+     * idle with stop_reason requires_action naming it. The answer is appended
+     * as a user.tool_confirmation. A deny may carry a message, which the
+     * agent reads. When every waiting call of the turn is answered, the turn
+     * resumes; until then the session re-states requires_action with the
+     * calls still waiting.
+     * ## Error Conditions
+     * - NOT_FOUND: the tool use is not one of this conversation's calls that
+     *   asked
+     * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+     *   was stopped), or it was already answered the other way (an answer is
+     *   final)
+     * ## Idempotency
+     * The same answer sent again records nothing new and returns the event
+     * first recorded.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.SessionEvent confirmToolUse(ai.stigmer.agentic.session.v1.ConfirmToolUseInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getConfirmToolUseMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Allow a tool use, and every call of its class for the rest of the turn.
+     * The class is the call's built-in category (write, delete or shell), its
+     * MCP server, or, when a hook asked, that hook on that tool. The grant is
+     * appended as a stigmer.permission.grant after the call's
+     * user.tool_confirmation, and every other call of the class waiting in
+     * the same turn is allowed with it. A call with no class (one the
+     * default never asks about) is allowed alone, with no grant.
+     * ## Error Conditions
+     * As confirmToolUse.
+     * ## Idempotency
+     * The same grant sent again records nothing new.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.GrantPermissionResponse grantPermission(ai.stigmer.agentic.session.v1.GrantPermissionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGrantPermissionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Stop the session's unfinished work.
+     * Appends a user.interrupt and stops every unfinished turn of the
+     * conversation: queued, working, waiting for an answer or paused. Each
+     * ends cancelled and the session goes idle with end_turn. Files undone
+     * in a turn that waited are put back at once.
+     * ## Error Conditions
+     * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
+     *   be stopped)
+     * - FAILED_PRECONDITION: the execution engine is not connected
+     * ## Idempotency
+     * An interrupt with nothing unfinished records the event and stops
+     * nothing.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.InterruptSessionResponse interrupt(ai.stigmer.agentic.session.v1.InterruptSessionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getInterruptMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete a session.
      * Deletion cascades to the session's runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
@@ -751,6 +1048,73 @@ public final class SessionCommandControllerGrpc {
     public ai.stigmer.agentic.session.v1.ReviewFileChangesResponse reviewFileChanges(ai.stigmer.agentic.session.v1.ReviewFileChangesInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getReviewFileChangesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Allow or deny a tool use that waits for an answer.
+     * A call that needs a person's answer is an agent.tool_use (or
+     * agent.mcp_tool_use) with evaluated_permission ask, and the session goes
+     * idle with stop_reason requires_action naming it. The answer is appended
+     * as a user.tool_confirmation. A deny may carry a message, which the
+     * agent reads. When every waiting call of the turn is answered, the turn
+     * resumes; until then the session re-states requires_action with the
+     * calls still waiting.
+     * ## Error Conditions
+     * - NOT_FOUND: the tool use is not one of this conversation's calls that
+     *   asked
+     * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+     *   was stopped), or it was already answered the other way (an answer is
+     *   final)
+     * ## Idempotency
+     * The same answer sent again records nothing new and returns the event
+     * first recorded.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.SessionEvent confirmToolUse(ai.stigmer.agentic.session.v1.ConfirmToolUseInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getConfirmToolUseMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Allow a tool use, and every call of its class for the rest of the turn.
+     * The class is the call's built-in category (write, delete or shell), its
+     * MCP server, or, when a hook asked, that hook on that tool. The grant is
+     * appended as a stigmer.permission.grant after the call's
+     * user.tool_confirmation, and every other call of the class waiting in
+     * the same turn is allowed with it. A call with no class (one the
+     * default never asks about) is allowed alone, with no grant.
+     * ## Error Conditions
+     * As confirmToolUse.
+     * ## Idempotency
+     * The same grant sent again records nothing new.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.GrantPermissionResponse grantPermission(ai.stigmer.agentic.session.v1.GrantPermissionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGrantPermissionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Stop the session's unfinished work.
+     * Appends a user.interrupt and stops every unfinished turn of the
+     * conversation: queued, working, waiting for an answer or paused. Each
+     * ends cancelled and the session goes idle with end_turn. Files undone
+     * in a turn that waited are put back at once.
+     * ## Error Conditions
+     * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
+     *   be stopped)
+     * - FAILED_PRECONDITION: the execution engine is not connected
+     * ## Idempotency
+     * An interrupt with nothing unfinished records the event and stops
+     * nothing.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.InterruptSessionResponse interrupt(ai.stigmer.agentic.session.v1.InterruptSessionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getInterruptMethod(), getCallOptions(), request);
     }
 
     /**
@@ -881,6 +1245,76 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Allow or deny a tool use that waits for an answer.
+     * A call that needs a person's answer is an agent.tool_use (or
+     * agent.mcp_tool_use) with evaluated_permission ask, and the session goes
+     * idle with stop_reason requires_action naming it. The answer is appended
+     * as a user.tool_confirmation. A deny may carry a message, which the
+     * agent reads. When every waiting call of the turn is answered, the turn
+     * resumes; until then the session re-states requires_action with the
+     * calls still waiting.
+     * ## Error Conditions
+     * - NOT_FOUND: the tool use is not one of this conversation's calls that
+     *   asked
+     * - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+     *   was stopped), or it was already answered the other way (an answer is
+     *   final)
+     * ## Idempotency
+     * The same answer sent again records nothing new and returns the event
+     * first recorded.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionEvent> confirmToolUse(
+        ai.stigmer.agentic.session.v1.ConfirmToolUseInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getConfirmToolUseMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Allow a tool use, and every call of its class for the rest of the turn.
+     * The class is the call's built-in category (write, delete or shell), its
+     * MCP server, or, when a hook asked, that hook on that tool. The grant is
+     * appended as a stigmer.permission.grant after the call's
+     * user.tool_confirmation, and every other call of the class waiting in
+     * the same turn is allowed with it. A call with no class (one the
+     * default never asks about) is allowed alone, with no grant.
+     * ## Error Conditions
+     * As confirmToolUse.
+     * ## Idempotency
+     * The same grant sent again records nothing new.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.GrantPermissionResponse> grantPermission(
+        ai.stigmer.agentic.session.v1.GrantPermissionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGrantPermissionMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Stop the session's unfinished work.
+     * Appends a user.interrupt and stops every unfinished turn of the
+     * conversation: queued, working, waiting for an answer or paused. Each
+     * ends cancelled and the session goes idle with end_turn. Files undone
+     * in a turn that waited are put back at once.
+     * ## Error Conditions
+     * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
+     *   be stopped)
+     * - FAILED_PRECONDITION: the execution engine is not connected
+     * ## Idempotency
+     * An interrupt with nothing unfinished records the event and stops
+     * nothing.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.InterruptSessionResponse> interrupt(
+        ai.stigmer.agentic.session.v1.InterruptSessionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getInterruptMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete a session.
      * Deletion cascades to the session's runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
@@ -917,8 +1351,11 @@ public final class SessionCommandControllerGrpc {
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_UPDATE_SUBJECT = 3;
   private static final int METHODID_REVIEW_FILE_CHANGES = 4;
-  private static final int METHODID_DELETE = 5;
-  private static final int METHODID_APPEND_EVENTS = 6;
+  private static final int METHODID_CONFIRM_TOOL_USE = 5;
+  private static final int METHODID_GRANT_PERMISSION = 6;
+  private static final int METHODID_INTERRUPT = 7;
+  private static final int METHODID_DELETE = 8;
+  private static final int METHODID_APPEND_EVENTS = 9;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -956,6 +1393,18 @@ public final class SessionCommandControllerGrpc {
         case METHODID_REVIEW_FILE_CHANGES:
           serviceImpl.reviewFileChanges((ai.stigmer.agentic.session.v1.ReviewFileChangesInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.ReviewFileChangesResponse>) responseObserver);
+          break;
+        case METHODID_CONFIRM_TOOL_USE:
+          serviceImpl.confirmToolUse((ai.stigmer.agentic.session.v1.ConfirmToolUseInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEvent>) responseObserver);
+          break;
+        case METHODID_GRANT_PERMISSION:
+          serviceImpl.grantPermission((ai.stigmer.agentic.session.v1.GrantPermissionInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.GrantPermissionResponse>) responseObserver);
+          break;
+        case METHODID_INTERRUPT:
+          serviceImpl.interrupt((ai.stigmer.agentic.session.v1.InterruptSessionInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.InterruptSessionResponse>) responseObserver);
           break;
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.agentic.session.v1.SessionId) request,
@@ -1018,6 +1467,27 @@ public final class SessionCommandControllerGrpc {
               ai.stigmer.agentic.session.v1.ReviewFileChangesInput,
               ai.stigmer.agentic.session.v1.ReviewFileChangesResponse>(
                 service, METHODID_REVIEW_FILE_CHANGES)))
+        .addMethod(
+          getConfirmToolUseMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.ConfirmToolUseInput,
+              ai.stigmer.agentic.session.v1.SessionEvent>(
+                service, METHODID_CONFIRM_TOOL_USE)))
+        .addMethod(
+          getGrantPermissionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.GrantPermissionInput,
+              ai.stigmer.agentic.session.v1.GrantPermissionResponse>(
+                service, METHODID_GRANT_PERMISSION)))
+        .addMethod(
+          getInterruptMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.InterruptSessionInput,
+              ai.stigmer.agentic.session.v1.InterruptSessionResponse>(
+                service, METHODID_INTERRUPT)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1085,6 +1555,9 @@ public final class SessionCommandControllerGrpc {
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateSubjectMethod())
               .addMethod(getReviewFileChangesMethod())
+              .addMethod(getConfirmToolUseMethod())
+              .addMethod(getGrantPermissionMethod())
+              .addMethod(getInterruptMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getAppendEventsMethod())
               .build();

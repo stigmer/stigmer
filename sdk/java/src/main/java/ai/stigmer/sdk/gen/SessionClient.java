@@ -4,6 +4,11 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.session.v1.AppendSessionEventsInput;
 import ai.stigmer.agentic.session.v1.AppendSessionEventsResponse;
+import ai.stigmer.agentic.session.v1.ConfirmToolUseInput;
+import ai.stigmer.agentic.session.v1.GrantPermissionInput;
+import ai.stigmer.agentic.session.v1.GrantPermissionResponse;
+import ai.stigmer.agentic.session.v1.InterruptSessionInput;
+import ai.stigmer.agentic.session.v1.InterruptSessionResponse;
 import ai.stigmer.agentic.session.v1.ListSessionEventsRequest;
 import ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest;
 import ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest;
@@ -12,6 +17,7 @@ import ai.stigmer.agentic.session.v1.ReviewFileChangesInput;
 import ai.stigmer.agentic.session.v1.ReviewFileChangesResponse;
 import ai.stigmer.agentic.session.v1.Session;
 import ai.stigmer.agentic.session.v1.SessionCommandControllerGrpc;
+import ai.stigmer.agentic.session.v1.SessionEvent;
 import ai.stigmer.agentic.session.v1.SessionEventList;
 import ai.stigmer.agentic.session.v1.SessionId;
 import ai.stigmer.agentic.session.v1.SessionList;
@@ -59,6 +65,24 @@ public final class SessionClient {
     public ReviewFileChangesResponse reviewFileChanges(ReviewFileChangesInput input) {
         try {
             return command.reviewFileChanges(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SessionEvent confirmToolUse(ConfirmToolUseInput input) {
+        try {
+            return command.confirmToolUse(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public GrantPermissionResponse grantPermission(GrantPermissionInput input) {
+        try {
+            return command.grantPermission(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public InterruptSessionResponse interrupt(InterruptSessionInput input) {
+        try {
+            return command.interrupt(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
