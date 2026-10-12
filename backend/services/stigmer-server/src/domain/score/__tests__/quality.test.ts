@@ -339,6 +339,23 @@ describe("the tally", () => {
     expect(agreement[1]?.rules.map((r) => [r.name, r.passedThumbsUp])).toEqual([["did-the-task", 1]]);
   });
 
+  it("puts the judge version seen most recently first in the agreement, whichever run it came from", () => {
+    const tally = new QualityTally(qualityWindowOf(7, NOW));
+    const judged = (runId: string, version: string, at: string) => {
+      tally.add(
+        scoreOf({ runId, metric: "judge", evaluatorVersion: version, criteria: [["did-the-task", CriterionResult.passed]], at }),
+      );
+      tally.add(scoreOf({ runId, metric: "feedback", passed: true, at }));
+    };
+    judged("run_1", "j-old", "2026-10-07T10:00:00Z");
+    judged("run_2", "j-new", "2026-10-09T10:00:00Z");
+    judged("run_3", "j-old", "2026-10-11T10:00:00Z");
+    expect(tally.build().agreement.map((a) => [a.evaluatorVersion, a.runs])).toEqual([
+      ["j-old", 2],
+      ["j-new", 1],
+    ]);
+  });
+
   it("never adds two evaluator versions together, and puts the newest first", () => {
     const tally = new QualityTally(qualityWindowOf(7, NOW));
     tally.add(

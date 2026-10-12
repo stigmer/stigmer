@@ -100,7 +100,7 @@ import type {
   ScoreDeleter,
   ScoreRecorder,
 } from "../../../domain/score/ports.js";
-import { replaceUnlessGraded, sameWriterScore } from "../../../domain/score/record.js";
+import { pendingOfOtherVersions, replaceUnlessGraded, sameWriterScore } from "../../../domain/score/record.js";
 import {
   baseConfig,
   silentLogger,
@@ -292,13 +292,14 @@ describe("judge scores", () => {
 });
 
 describe("replaceUnlessGraded", () => {
-  it("throws a recorder fault that is no refusal, and finds no same-writer score for a score with no spec", async () => {
+  it("throws a recorder fault that is no refusal, and finds no same-writer score or placeholder for a score with no spec", async () => {
     const run = await seedRun();
     const faulty = { ...writeDeps(), recorder: { record: () => Promise.reject(new Error("socket closed")) } };
     await expect(replaceUnlessGraded(faulty, pendingJudgeScore(run))).rejects.toThrow("socket closed");
     const internal = { ...writeDeps(), recorder: { record: () => Promise.reject(new ConnectError("boom", Code.Internal)) } };
     await expect(replaceUnlessGraded(internal, pendingJudgeScore(run))).rejects.toThrow("boom");
     expect(await sameWriterScore(writeDeps(), create(ScoreSchema, {}))).toBeUndefined();
+    expect(await pendingOfOtherVersions(writeDeps(), create(ScoreSchema, {}))).toEqual([]);
   });
 
   it("keeps the score there when a writer keeps losing its race", async () => {
