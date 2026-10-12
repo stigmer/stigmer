@@ -14,7 +14,7 @@ Define agents in YAML, deploy with one command, call from any app via API.
 Run locally with SQLite or connect to Stigmer Cloud for production.
 Bring your own Anthropic API key — agents run on Claude models.
 
-[![License](https://img.shields.io/github/license/stigmer/stigmer)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-community-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/EtANnfsJ8B)
 [![GitHub stars](https://img.shields.io/github/stars/stigmer/stigmer?style=flat)](https://github.com/stigmer/stigmer/stargazers)
 
@@ -217,4 +217,13 @@ We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+Stigmer is open source under the [Apache License 2.0](LICENSE), with one
+exception: the [`ee/`](ee/) directory, Stigmer Enterprise, is under the
+[Stigmer Enterprise License](ee/LICENSE). The Enterprise code is public and
+readable; running it in production needs a license key. Without a key, the
+Enterprise server behaves exactly as the open-source server and runs no
+Enterprise code. Everything outside `ee/` stays Apache 2.0 and never depends
+on it.
+
+The licenses grant rights in the code, not in the Stigmer names or logo; see
+[TRADEMARKS.md](TRADEMARKS.md).
