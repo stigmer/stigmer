@@ -393,16 +393,19 @@ export interface TurnInput extends NormalizedActivityInput {
    */
   readonly sessionId: string;
   /**
-   * The approval decisions the user has made on this execution's WAITING
-   * rows, keyed by tool-call id: the one projection both harness readers
-   * agree on (`status.messages[].toolCalls[]` where `approvalAction` is set
-   * and `status` is WAITING_APPROVAL). Derived by the runtime from
-   * `sink.status` on every invocation, never stored, so it cannot drift from
-   * the rows. An adapter reads the ROW for anything else it needs (args,
-   * content digest) and this map for the verdict; it never re-derives the
-   * verdict from the rows itself.
+   * The answers a person gave this execution's WAITING rows, keyed by
+   * tool-call id: read by the runtime from the session's log on every
+   * reinvocation (`approval-answers.ts`), never stored. An adapter reads the
+   * ROW for anything else it needs (args, content digest) and this map for
+   * the verdict; it never re-derives the verdict from the rows itself.
    */
   readonly approvalDecisions: ReadonlyMap<string, ApprovalAction>;
+  /**
+   * The reason a person gave with a deny, by tool-call id (only denies that
+   * carry one): what the model reads with the refusal, on every engine
+   * (`shared/hooks/messages.ts` `personDecisionSentence`).
+   */
+  readonly approvalDenyMessages: ReadonlyMap<string, string>;
   readonly execution: Run;
   /** The same object as `blueprint.session`; `bindHarnessState` writes it. */
   readonly session: Session;

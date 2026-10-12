@@ -33,6 +33,16 @@
     }
   },
   {
+    "session_id": "ses_hermetic_0001",
+    "run_id": "aex_hermetic_0001",
+    "user_tool_confirmation": {
+      "id": "sevt_tc_04cdee2dcafafa5f4821929b24b91aa3ef0ab80b",
+      "result": "deny",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-exec-0001",
+      "deny_message": "use make clean instead"
+    }
+  },
+  {
     "run_id": "aex_hermetic_0001",
     "agent_tool_result": {
       "id": "aex_hermetic_0001.call-hermetic-exec-0001.r",

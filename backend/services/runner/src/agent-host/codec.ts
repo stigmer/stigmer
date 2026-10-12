@@ -139,6 +139,7 @@ export interface WireTurnInput {
   readonly turnSeq: number;
   readonly sessionId: string;
   readonly approvalDecisions: readonly (readonly [string, ApprovalAction])[];
+  readonly approvalDenyMessages: readonly (readonly [string, string])[];
   readonly execution: string;
   readonly session: string;
   readonly blueprint: {
@@ -237,6 +238,7 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
     turnSeq: input.turnSeq,
     sessionId: input.sessionId,
     approvalDecisions: [...input.approvalDecisions],
+    approvalDenyMessages: [...input.approvalDenyMessages],
     execution: encodeMessage(RunSchema, input.execution),
     session: encodeMessage(SessionSchema, input.session),
     blueprint: {
@@ -353,6 +355,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
     turnSeq: wire.turnSeq,
     sessionId: wire.sessionId,
     approvalDecisions: new Map(wire.approvalDecisions),
+    approvalDenyMessages: new Map(wire.approvalDenyMessages),
     execution: decodeMessage(RunSchema, wire.execution),
     session,
     blueprint: {

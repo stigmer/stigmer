@@ -1,5 +1,7 @@
 /**
- * Hermetic goldens: the three HITL round trips — APPROVE, SKIP, REJECT — each
+ * Hermetic goldens: the three HITL round trips — an allow, a bare deny (the
+ * `skip` golden: what a person's Skip is since approvals became session
+ * events) and a deny with a reason (the `reject` golden) — each
  * two invocations of the whole `ExecuteDeepAgent` activity on the durable
  * (sqlite) checkpointer, the production local posture (`config.ts` resolves
  * `sqlite` in local mode and `http` in cloud; both resume the same way).
@@ -12,9 +14,11 @@
  * match the same file is the assertion that the decision to come is invisible
  * to the first invocation.
  *
- * Between turns the test does what the server's `SubmitApproval` does — writes
+ * Between turns the test does what the server's answer core does — appends
+ * the `user.tool_confirmation` to the session's log and stamps
  * `approval_action` on the WAITING row (`ExecutionRecord.decideWaitingToolCalls`),
- * nothing else — and the second invocation reads the real persisted status.
+ * nothing else — and the second invocation reads the answer from the log
+ * (`harness/approval-answers.ts`) over the real persisted status.
  *
  * Turn 2 (one golden per decision): the activity seeds its status from the
  * persisted transcript (`shouldSeedFromPersistedTranscript`), reads the
@@ -24,13 +28,11 @@
  *    the command's output (exactly one copy of the gated call, the run-1
  *    transcript a strict prefix of the final one — `hitl-resume-history`'s
  *    invariant), the model closes, COMPLETED.
- *  - SKIP: the gate returns a "skipped by user" ToolMessage; the tool never
- *    runs; `reconcileNonExecutingDecisions` stamps the row SKIPPED after the
- *    stream; COMPLETED.
- *  - REJECT (issue #197, `hitl-reject`'s invariant): the gate returns a denial
- *    ToolMessage and the run CONTINUES; the row is stamped SKIPPED with
- *    `error: "Rejected by user"` and keeps `approvalAction = REJECT` for
- *    audit; COMPLETED, never stuck at WAITING_APPROVAL.
+ *  - a deny, bare or with a reason (issue #197, `hitl-reject`'s invariant):
+ *    the gate returns a denial ToolMessage and the run CONTINUES; the row is
+ *    stamped SKIPPED with `error: "Rejected by user"` and keeps
+ *    `approvalAction = REJECT` for audit; COMPLETED, never stuck at
+ *    WAITING_APPROVAL. A reason is in the denial the model reads.
  *
  * Carried from the retired `hitl-reject.test.ts` (both arms), `hitl-resume-
  * history.test.ts` (seed + single copy), `hitl-resume-approve-all.test.ts`'s
@@ -61,6 +63,7 @@ import {
   RunStatusSchema,
   type RunStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import { ToolMessage } from "@langchain/core/messages";
 import {
   ApprovalAction,
   RunPhase,
@@ -119,20 +122,28 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
   });
 
   describe.each([
-    { name: "approve", action: ApprovalAction.APPROVE },
-    { name: "skip", action: ApprovalAction.SKIP },
-    { name: "reject", action: ApprovalAction.REJECT },
-  ])("$name", ({ name, action }) => {
+    { name: "approve", action: ApprovalAction.APPROVE, denyMessage: "" },
+    { name: "skip", action: ApprovalAction.SKIP, denyMessage: "" },
+    { name: "reject", action: ApprovalAction.REJECT, denyMessage: "use make clean instead" },
+  ])("$name", ({ name, action, denyMessage }) => {
     it(`pauses on the gate, then ${name} carries the decision to COMPLETED`, async () => {
       // ── Arrange ────────────────────────────────────────────────────────────
       clock.reset();
       const record = deepAgentExecutionRecord({ message: USER_MESSAGE });
+      // What the model reads back for the gated call: the tool's output, or
+      // the denial (with the person's reason, when they gave one).
+      const toolResultsRead: string[] = [];
       const scenario = beginDeepAgentScenario({
         env,
         clock,
         record,
         checkpointer: "sqlite",
-        script: () => ({ turns: [GATED_OPENING_TURN, CLOSING_TURN] }),
+        script: () => (transcript) => {
+          const answered = transcript.filter((m) => ToolMessage.isInstance(m));
+          if (answered.length === 0) return GATED_OPENING_TURN;
+          toolResultsRead.push(...answered.map((m) => String(m.content)));
+          return CLOSING_TURN;
+        },
       });
 
       // ── Act 1: the gate pauses the turn ────────────────────────────────────
@@ -160,8 +171,12 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
       );
       await expect(record.eventsGolden()).toMatchFileSnapshot(GATE_TURN1_GOLDEN.replace(".status.json", ".events.json"));
 
-      // ── Between turns: what SubmitApproval does to the row ─────────────────
-      expect(record.decideWaitingToolCalls(action, DECIDED_AT)).toBe(1);
+      // ── Between turns: the server's answer, on the log and the row ─────────
+      expect(record.decideWaitingToolCalls(action, DECIDED_AT, undefined, denyMessage)).toBe(1);
+      expect(
+        record.sessionEvents.filter((e) => e.event.case === "userToolConfirmation").length,
+        "the answer is on the session's log",
+      ).toBe(1);
 
       // ── Act 2: the reinvocation resumes inside the gate ────────────────────
       const turn2 = await runDeepAgentTurn(scenario, { turnSeq: 1 });
@@ -175,7 +190,9 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
       const rows = final.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === EXECUTE_CALL_A.id);
       expect(rows, "exactly one copy of the gated call — reconciled in place, never duplicated").toHaveLength(1);
       const row = rows[0];
-      expect(row.approvalAction, "the decision is preserved for audit").toBe(action);
+      expect(row.approvalAction, "the decision is preserved for audit; any deny is a REJECT").toBe(
+        action === ApprovalAction.APPROVE ? ApprovalAction.APPROVE : ApprovalAction.REJECT,
+      );
       expect(row.approvalDecidedAt).toBe(DECIDED_AT);
       expect(row.status, "never left at WAITING_APPROVAL").not.toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
       if (action === ApprovalAction.APPROVE) {
@@ -185,7 +202,12 @@ describe("ExecuteDeepAgent hermetic — HITL round trips (sqlite)", () => {
       } else {
         expect(row.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
         expect(row.result, "the tool never ran").toBe("");
-        expect(row.error).toBe(action === ApprovalAction.REJECT ? "Rejected by user" : "");
+        expect(row.error).toBe("Rejected by user");
+        expect(toolResultsRead, "the model reads the denial, with the person's reason when given").toEqual([
+          denyMessage === ""
+            ? "Tool 'execute' was rejected by the user. Do not retry it; proceed by taking their objection into account."
+            : `Tool 'execute' was rejected by the user: ${denyMessage}. Do not retry it; proceed by taking their objection into account.`,
+        ]);
       }
 
       const run1Ai = run1.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);

@@ -37,7 +37,7 @@
  * job: carry a REJECTed or SKIPped row to its terminal status. The decision
  * is on the row (the server's field) and the transition follows from it with
  * no engine knowledge, so it belongs to the runtime — one writer per field,
- * as `approvalDecisionsOf` is the runtime's one reader and
+ * as `approval-answers.ts` is the runtime's one reader and
  * `terminalizeNonExecutingDecisions` its one writer (landed in #1096,
  * `harness/approval-decisions.ts`). An adapter's whole duty for a
  * non-executing decision is to not execute.

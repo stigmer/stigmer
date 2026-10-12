@@ -153,7 +153,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       // The kit's runtime half now carries the contract for every subject;
       // what is the fake's own here is the persist cadence around it.
       clock.reset();
-      const { driver, final } = await assertNonExecutingDecisionSettlesSkipped(harness, ApprovalAction.REJECT, "fake-reject");
+      const { driver, final } = await assertNonExecutingDecisionSettlesSkipped(harness, "", "fake-reject");
       expect(driver.record.persistedPhases).toEqual([
         RunPhase.RUN_WAITING_FOR_APPROVAL,
         RunPhase.RUN_IN_PROGRESS,

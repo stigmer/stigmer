@@ -323,7 +323,7 @@ export class HookRequestHandler {
         if (moved !== undefined) return moved;
         const refusal = this.refusals.get(identity) ?? this.refusals.get(coarse) ?? (exact !== "" ? this.refusals.get(exact) : undefined);
         if (refusal !== undefined) {
-          const message = personDecisionSentence(refusal.toolName, refusal.action, "");
+          const message = personDecisionSentence(refusal.toolName, refusal.action, refusal.comment);
           return { decision: "refused", deny: denyAnswer(message), message };
         }
         const record: HookDecisionRecord = { provenance: provenanceOf(outcome.decision, outcome.leased, this.turn.globalBypass), hook: outcome.hook };

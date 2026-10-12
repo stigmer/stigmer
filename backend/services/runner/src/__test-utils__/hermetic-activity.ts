@@ -118,6 +118,7 @@ import {
   signalWorkerShutdown,
   unregisterWorkerShutdownSignal,
 } from "../shared/worker-shutdown.js";
+import { answerEventsFor, stampedActionOf } from "./approval-log.js";
 import { decideCapturedFileChanges, type FileReviewVerdicts } from "./file-review-projection.js";
 import { mockStigmerClient } from "./mock-client.js";
 
@@ -166,8 +167,9 @@ export interface ExecutionRecordInput {
  *    phase and transcript alone. Modelled as: record the label, change nothing else.
  *  - Any other status replaces the held status wholesale (the runner is the
  *    writer of the transcript; the server's own field-ownership merge — approval
- *    fields it owns — is exercised by the test SETTING `approvalAction` on the
- *    record between invocations, exactly as `SubmitApproval` would).
+ *    fields it owns — is exercised by the test answering on the record between
+ *    invocations, the answer on the log and the stamp on the row, exactly as
+ *    the server's answer core does: `decideWaitingToolCalls`).
  *  - The fields the server stamps at create and the runner never sends — the
  *    agent and version the turn runs, the declared preferences and recalled
  *    memories — survive every runner write, as they do in the server's
@@ -201,6 +203,8 @@ export interface ExecutionRecordInput {
 /** The log's type name of each event the hermetic log can hold that a typed read asks for (`event.proto`'s `event_type`). */
 const LOG_TYPES: Partial<Record<NonNullable<SessionEvent["event"]["case"]>, string>> = {
   userMessage: "user.message",
+  userToolConfirmation: "user.tool_confirmation",
+  stigmerPermissionGrant: "stigmer.permission.grant",
   stigmerFileReviewChanges: "stigmer.file_review.changes",
   stigmerFileReviewDecided: "stigmer.file_review.decided",
   stigmerFileReviewReconciled: "stigmer.file_review.reconciled",
@@ -398,18 +402,24 @@ export class ExecutionRecord {
   }
 
   /**
-   * What the server's `SubmitApproval` does to the row: record the decision on
-   * the tool call the runner wrote. The runner owns `status`; the server owns
-   * `approval_action` (field ownership, 005 mandate 2) — so this is the ONE
-   * place a test writes it, and the status stays WAITING_APPROVAL until the
-   * resumed turn runs the tool, exactly as in production. `onlyId` decides one
-   * of several calls paused in the same round and leaves the rest waiting, as
-   * a user deciding them one at a time does.
+   * What the server's answer core does when a person answers the calls that
+   * asked (`confirmToolUse`, `grantPermission`): append the answer to the
+   * session's log and stamp the row in the same act (`approval-log.ts`). The
+   * runner owns `status`; the server owns `approval_action` — so this is the
+   * ONE place a test answers, and the status stays WAITING_APPROVAL until the
+   * resumed turn runs the tool, exactly as in production. The resumed turn
+   * reads the answer from the log (`harness/approval-answers.ts`). `onlyId`
+   * answers one of several calls paused in the same round and leaves the
+   * rest waiting, as a person answering them one at a time does; a deny may
+   * carry `denyMessage`, the reason the model reads.
    */
-  decideWaitingToolCalls(action: ApprovalAction, decidedAt: string, onlyId?: string): number {
+  decideWaitingToolCalls(action: ApprovalAction, decidedAt: string, onlyId?: string, denyMessage = ""): number {
     const waiting = this.waitingToolCalls().filter((tc) => onlyId === undefined || tc.id === onlyId);
     for (const tc of waiting) {
-      tc.approvalAction = action;
+      this.sessionEvents.push(
+        ...answerEventsFor({ sessionId: this.session.metadata?.id ?? "", runId: this.executionId }, tc, action, denyMessage),
+      );
+      tc.approvalAction = stampedActionOf(action);
       tc.approvalDecidedAt = decidedAt;
     }
     return waiting.length;
@@ -632,8 +642,11 @@ export class ExecutionRecord {
         this.appendSessionEvents(runId, events, previews);
         return create(AppendSessionEventsResponseSchema);
       }),
-      listRunSessionEvents: vi.fn(async (_sessionId: string, runId: string) =>
-        this.sessionEvents.filter((e) => e.runId === runId).map((e) => clone(SessionEventSchema, e)),
+      listRunSessionEvents: vi.fn(async (_sessionId: string, runId: string, types: readonly string[] = []) =>
+        this.sessionEvents
+          .filter((e) => e.runId === runId)
+          .filter((e) => types.length === 0 || (e.event.case !== undefined && types.includes(LOG_TYPES[e.event.case] ?? "")))
+          .map((e) => clone(SessionEventSchema, e)),
       ),
       listSessionEvents: vi.fn(async (_sessionId: string, query: { readonly types: readonly string[]; readonly order: "asc" | "desc" }) => ({
         events: this.listSessionEventsPage(query.types, query.order),
