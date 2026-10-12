@@ -27,10 +27,13 @@
  * Metrics keep the names and attributes the dashboards read (histograms
  * and counters, MCP tool counts MCP-only); the provider is now the real one.
  *
- * Graceful no-op when no TracerProvider/MeterProvider is configured.
+ * Graceful no-op when no TracerProvider/MeterProvider is configured: the
+ * API's own tracer and meter are no-ops then, and nothing is awaited before
+ * a call's handler, so the middleware never changes a call's timing.
  */
 
 import { isGraphBubbleUp } from "@langchain/langgraph";
+import * as api from "@opentelemetry/api";
 import type { Span } from "@opentelemetry/api";
 
 import {
@@ -94,19 +97,6 @@ interface ModelAnswer {
   readonly additional_kwargs?: Record<string, unknown>;
 }
 
-/**
- * Lazy OTel accessor. Returns null when @opentelemetry/api is not
- * available; with no provider configured its tracer and meter are no-ops.
- */
-async function getOtel() {
-  try {
-    const api = await import("@opentelemetry/api");
-    return api;
-  } catch {
-    return null;
-  }
-}
-
 /** The model name a model instance carries, for a model `buildChatModel` did not build. */
 function modelNameOf(model: unknown): string {
   const named = (model ?? {}) as { model?: unknown; model_name?: unknown };
@@ -165,12 +155,12 @@ export function createOtelSpansMiddleware(
   let mcpToolDuration: { record(v: number, attrs?: Record<string, unknown>): void } | null = null;
   let mcpToolCount: { add(v: number, attrs?: Record<string, unknown>): void } | null = null;
 
-  async function ensureMetrics(): Promise<void> {
+  // Synchronous on purpose: nothing awaits between the graph handing a call
+  // here and the call itself, so the spans add no turn of the event loop to
+  // any tool's or model's path.
+  function ensureMetrics(): void {
     if (metricsInitialized) return;
     metricsInitialized = true;
-
-    const api = await getOtel();
-    if (!api) return;
 
     try {
       const meter = api.metrics.getMeter(TRACER_NAME);
@@ -205,10 +195,7 @@ export function createOtelSpansMiddleware(
     name: "OtelSpansMiddleware",
 
     async wrapModelCall(request, handler) {
-      const api = await getOtel();
-      await ensureMetrics();
-
-      if (!api) return handler(request);
+      ensureMetrics();
 
       const facts = chatModelFacts(request.model);
       const requestModel = facts?.requestModel ?? modelNameOf(request.model);
@@ -263,10 +250,7 @@ export function createOtelSpansMiddleware(
     },
 
     async wrapToolCall(request, handler) {
-      const api = await getOtel();
-      await ensureMetrics();
-
-      if (!api) return handler(request);
+      ensureMetrics();
 
       const { id, name, args } = request.toolCall;
       const serverName = toolServerMap.get(name);
@@ -334,8 +318,6 @@ export function createOtelSpansMiddleware(
  * sub-agent's approval is not a failure.
  */
 export async function withSubAgentSpan<T>(name: string, run: () => Promise<T>): Promise<T> {
-  const api = await getOtel();
-  if (!api) return run();
   const span = api.trace.getTracer(TRACER_NAME).startSpan(`${OP_INVOKE_AGENT} ${name}`, {
     kind: api.SpanKind.INTERNAL,
     attributes: { [GEN_AI_OPERATION_NAME]: OP_INVOKE_AGENT, [GEN_AI_AGENT_NAME]: name },
