@@ -148,10 +148,13 @@ Rows read `| \`Message.field\` | class |`.
 
 | Field | Class |
 |---|---|
+| `ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest.agent_id` | stamped id |
+| `ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest.agent_id` | stamped id |
 | `ai.stigmer.agentic.score.v1.ListScoresByRunRequest.run_id` | stamped id |
 | `ai.stigmer.agentic.score.v1.ListScoresBySessionRequest.session_id` | stamped id |
 | `ai.stigmer.agentic.score.v1.ScoreSpec.run_id` | stamped id |
 | `ai.stigmer.agentic.score.v1.ScoreSpec.session_id` | stamped id |
+| `ai.stigmer.agentic.score.v1.ScoreStatus.agent_id` | stamped id |
 
 ## `ai.stigmer.agentic.session.v1`
 
