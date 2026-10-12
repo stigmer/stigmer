@@ -104,6 +104,16 @@ message SessionEvent {
 
     // Which of the agent's memories the turn recalled.
     StigmerMemoryRecalledEvent stigmer_memory_recalled = 104 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.memory.recalled"];
+
+    // The files a turn changed, offered for review (the session asked for
+    // file review).
+    StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];
+
+    // A turn's file changes, or one of its files, were kept or undone.
+    StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];
+
+    // The files that were undone were put back.
+    StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];
   }
 }
 
@@ -529,6 +539,170 @@ message EventPreview {
       "agent.thinking"
     ]
   }];
+}
+
+// StigmerFileReviewChangesEvent lists the files a turn changed, offered
+// for review: stigmer.file_review.changes. Written once per turn that
+// changed files in a session with file review on. The edits are already
+// applied; each stays until it is undone (SessionCommandController
+// reviewFileChanges), and whatever is undecided when the next message is
+// sent is kept.
+message StigmerFileReviewChangesEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The turn's change set, as reviewFileChanges names it.
+  string change_set_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // The files the turn changed.
+  repeated StigmerFileReviewChange files = 4;
+
+  // The digest of the whole change set: the expected_digest a decision on
+  // the whole set presents.
+  string aggregate_digest = 5;
+}
+
+// StigmerFileReviewChange is one file a turn changed.
+message StigmerFileReviewChange {
+  // The file's change, as a decision on one file names it.
+  string file_change_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The file's path in the workspace after the change; for a deleted file,
+  // the path it had.
+  string path = 2;
+
+  // The path the file had before a rename; empty otherwise.
+  string previous_path = 3;
+
+  // What happened to the file: added, modified, deleted or renamed.
+  string change = 4 [(buf.validate.field).string = {
+    in: [
+      "added",
+      "modified",
+      "deleted",
+      "renamed"
+    ]
+  }];
+
+  // The digest of the file's change: the expected_digest a decision on
+  // this file presents.
+  string digest = 5;
+
+  // Lines the change added; 0 for a binary file or one whose text was
+  // withheld.
+  int32 lines_added = 6 [(buf.validate.field).int32.gte = 0];
+
+  // Lines the change removed; 0 for a binary file or one whose text was
+  // withheld.
+  int32 lines_removed = 7 [(buf.validate.field).int32.gte = 0];
+
+  // How much of the change can be shown: complete (the whole diff), binary
+  // (bytes only, no text diff), secret (a secret-like file whose text is
+  // withheld) or partial (too large, or not readable). Only a complete or
+  // an acknowledged binary change can be kept on its own; any change can
+  // be undone.
+  string reviewable = 8 [(buf.validate.field).string = {
+    in: [
+      "complete",
+      "partial",
+      "binary",
+      "secret"
+    ]
+  }];
+}
+
+// StigmerFileReviewDecidedEvent records that a turn's file changes, or one
+// of its files, were kept or undone: stigmer.file_review.decided. Written
+// by the server only: by a person's decision, or by a rule that keeps
+// changes on the person's behalf.
+message StigmerFileReviewDecidedEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The change set decided, as stigmer.file_review.changes named it.
+  string change_set_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // What the decision covers: change_set (every file of the set) or file
+  // (the one file_change_id).
+  string scope = 4 [(buf.validate.field).string = {
+    in: [
+      "change_set",
+      "file"
+    ]
+  }];
+
+  // The file decided, when scope is file; empty otherwise.
+  string file_change_id = 5;
+
+  // keep (the change stays) or undo (the file is put back as it was before
+  // the turn).
+  string action = 6 [(buf.validate.field).string = {
+    in: [
+      "keep",
+      "undo"
+    ]
+  }];
+
+  // The digest the decision was made against.
+  string expected_digest = 7;
+
+  // Who decided: person (someone with edit access to the conversation),
+  // approved_command (every change came from a command the person had
+  // approved), eval_try (a plugin eval's try, whose edits are always
+  // kept) or next_turn (the next message was sent before a decision, so
+  // the change was kept).
+  string origin = 8 [(buf.validate.field).string = {
+    in: [
+      "person",
+      "approved_command",
+      "eval_try",
+      "next_turn"
+    ]
+  }];
+
+  // The reason given with the decision, if any.
+  string reason = 9;
+}
+
+// StigmerFileReviewReconciledEvent records that the files an undo covers
+// were put back: stigmer.file_review.reconciled. Written once per undo
+// (a change set's files can be undone one at a time), by the turn that put
+// them back; its id names the undo's stigmer.file_review.decided event.
+message StigmerFileReviewReconciledEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The change set reconciled.
+  string change_set_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // The paths put back as they were before the turn.
+  repeated string undone_paths = 4;
+
+  // Why nothing was put back, when the reconcile failed: hash_mismatch
+  // (the captured content no longer matches what was reviewed) or
+  // reconcile_failed (the files could not be restored). Empty when the
+  // files were put back.
+  string failure = 5 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string = {
+      in: [
+        "hash_mismatch",
+        "reconcile_failed"
+      ]
+    }
+  ];
+
+  // What failed, for a person; empty when nothing failed.
+  string failure_detail = 6;
 }
 
 // EventDelta is one fragment of a previewed agent.message.

@@ -188,6 +188,7 @@ message ApiResourceReference {
 
   // The referenced resource's id: what a stored reference holds. Optional
   // on write, where the slug may name the resource instead; an id no
-  // resource of the kind holds answers as a missing resource.
-  string id = 5;
+  // resource of the kind holds answers as a missing resource. At most 64
+  // characters.
+  string id = 5 [(buf.validate.field).string.max_len = 64];
 }

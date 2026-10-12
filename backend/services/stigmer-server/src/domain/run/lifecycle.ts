@@ -404,7 +404,7 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
         }
         throw internalError(error, "failed to persist execution");
       }
-      // Notify site 2 of 5 (status-observers.ts): observers see the persisted
+      // Notify site 2 of 4 (status-observers.ts): observers see the persisted
       // transition before LifecycleBroadcast runs — broadcast stays last.
       await notifyStatusObservers(deps, updated, oldPhase, targetPhase);
       // Hand the persisted result to the broadcast step and the handler's
@@ -887,6 +887,7 @@ function newStartFreshWorkflowStep(
           sessionId: sessionIdOf(execution.spec),
           agentId: execution.status?.agentId ?? "",
           autoApproveAll: execution.spec?.autoApproveAll ?? false,
+          reconcileFileReview: execution.spec?.reconcileFileReview ?? false,
         });
       } catch (error) {
         if (error instanceof EngineDispatchError) {

@@ -1,6 +1,7 @@
 /**
  * Pins what the server writes into a session's log for each run
- * transition (../transitions.ts): the turn's user message at creation, and
+ * transition (../transitions.ts): the turn's user message at creation
+ * (none for a reconcile turn, which has no message), and
  * the session's status, which describes the whole session, so a run that
  * stops ends the turn only when no other run of the session works.
  */
@@ -62,6 +63,16 @@ describe("creation", () => {
 
   it("writes only the user message while another run of the session works (the session is already running)", () => {
     expect(types({ kind: "create", run: run(P.RUN_PENDING) }, 1)).toEqual(["user.message"]);
+  });
+
+  it("a reconcile turn writes no user message; its status events are any run's", () => {
+    const reconcile = run(P.RUN_PENDING, { message: "" });
+    reconcile.spec!.reconcileFileReview = true;
+    expect(types({ kind: "create", run: reconcile })).toEqual(["session.status_running"]);
+    expect(types({ kind: "create", run: reconcile }, 1)).toEqual([]);
+    reconcile.status!.phase = P.RUN_COMPLETED;
+    reconcile.status!.stopCause = "review_resolved";
+    expect(types({ kind: "update", previousPhase: P.RUN_IN_PROGRESS, run: reconcile })).toEqual(["session.status_idle"]);
   });
 });
 

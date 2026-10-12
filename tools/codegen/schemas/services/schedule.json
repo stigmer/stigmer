@@ -263,8 +263,11 @@
           "type": {
             "kind": "string"
           },
-          "description": "The referenced resource's id: what a stored reference holds. Optional\n on write, where the slug may name the resource instead; an id no\n resource of the kind holds answers as a missing resource.",
-          "required": false
+          "description": "The referenced resource's id: what a stored reference holds. Optional\n on write, where the slug may name the resource instead; an id no\n resource of the kind holds answers as a missing resource. At most 64\n characters.",
+          "required": false,
+          "validation": {
+            "maxLength": 64
+          }
         }
       ]
     },

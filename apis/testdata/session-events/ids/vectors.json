@@ -1,5 +1,5 @@
 {
-  "description": "Cross-reader session event id vectors. A tool use event id is <runId>.<callId> when that id matches the contract pattern ^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$ with 16 characters to spare for suffixes and the call id is neither empty nor root; otherwise <runId>.h<the first 32 hex digits of SHA-256 of the call id>. Run ids hold no dot, so the first dot ends the run part. The runner derives these ids (backend/services/runner/src/harness/events/ids.ts); a reader that answers a tool use derives the same id from the call id it holds.",
+  "description": "Cross-reader session event id vectors. A tool use event id is <runId>.<callId> when that id matches the contract pattern ^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$ with 16 characters to spare for suffixes and the call id is neither empty nor root; otherwise <runId>.h<the first 32 hex digits of SHA-256 of the call id>. Run ids hold no dot, so the first dot ends the run part. The runner derives these ids (backend/services/runner/src/harness/events/ids.ts); a reader that answers a tool use derives the same id from the call id it holds. A file-review event id is derived from its change set id <runId>:<turnSeq> (the run is the text before the first colon): stigmer.file_review.changes is <runId>.fr<turnSeq> and stigmer.file_review.reconciled is <runId>.fr<turnSeq>.r, one per change set whichever run writes it.",
   "vectors": [
     {
       "name": "anthropic-call-id",
@@ -60,6 +60,22 @@
       "runId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p",
       "callId": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
       "toolUseId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.hc1f054b54f64f14ad48acc290dd72d07"
+    }
+  ],
+  "fileReview": [
+    {
+      "name": "first-turn",
+      "changeSetId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p:0",
+      "changesId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.fr0",
+      "reconciledId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.fr0.r.sevt_fd_0f3c9a1b2d4e5f60718293a4b5c6d7e8f9012345",
+      "decidedEventId": "sevt_fd_0f3c9a1b2d4e5f60718293a4b5c6d7e8f9012345"
+    },
+    {
+      "name": "later-turn",
+      "changeSetId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p:17",
+      "changesId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.fr17",
+      "reconciledId": "run_01jz8k3q9w4e5r6t7y8u9i0o1p.fr17.r.sevt_fd_a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+      "decidedEventId": "sevt_fd_a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"
     }
   ]
 }

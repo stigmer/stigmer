@@ -9,6 +9,8 @@
  *     field's, in ONE batched read; the handler's message is not mutated;
  *   - a target that holds no name (it was deleted) keeps an empty slug;
  *   - each frame of a stream (run.subscribe) is filled as it passes.
+ *   - a run's status references (what it loaded) are named too, each list
+ *     by its own field's kind.
  * Through a composed server, over the wire and in process alike:
  *   - a reference written by slug is stored by id with no slug, and read
  *     back with both, whichever transport reads it;
@@ -129,6 +131,30 @@ describe("the reference fill, over the interceptor alone", () => {
     }
     expect(seen).toEqual(["run_1:support", "run_2:support"]);
     expect(names.asked).toHaveLength(2);
+  });
+
+  it("names a run's loaded skills and plugins by their lists' kinds, and leaves a deleted one's slug empty", async () => {
+    const names = namesOf({ "skill/org_a/skl_1": "refunds", "plugin/org_a/plg_1": "github-tools" });
+    const run = create(RunSchema, {
+      metadata: { id: "run_1", org: "org_a" },
+      status: {
+        loadedVersions: {
+          skills: [
+            { org: "org_a", id: "skl_1", version: "1".repeat(64) },
+            { org: "org_a", kind: ApiResourceKind.skill, id: "skl_gone", version: "2".repeat(64) },
+          ],
+          plugins: [{ org: "org_a", id: "plg_1", version: "d".repeat(64) }],
+        },
+      },
+    });
+    const response = await unaryThrough(names, RunQueryController.method.get, run);
+    const loaded = (response.message as Run).status!.loadedVersions!;
+    expect(loaded.skills.map((r) => [r.kind, r.id, r.slug])).toEqual([
+      [ApiResourceKind.skill, "skl_1", "refunds"],
+      [ApiResourceKind.skill, "skl_gone", ""],
+    ]);
+    expect(loaded.plugins.map((r) => [r.kind, r.id, r.slug])).toEqual([[ApiResourceKind.plugin, "plg_1", "github-tools"]]);
+    expect(names.asked).toHaveLength(1);
   });
 
   it("fillReferenceNames over a type that holds no reference reports none and reads nothing", async () => {

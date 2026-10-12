@@ -107,6 +107,7 @@ function deps(options: { readonly channels: boolean }): ResolutionDeps {
     enterPhase: () => undefined,
     reportProgress: async () => undefined,
     identifyRun: () => {},
+    recordReconciled: async () => undefined,
   };
 }
 

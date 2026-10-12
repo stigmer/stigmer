@@ -181,6 +181,16 @@
       "description": "Plugins this conversation uses, each whole, besides its agent's: their\n skills, agents, hooks and MCP servers. A chat with the built-in\n assistant gets its tools from these.\n\n The agent's tool lists govern a conversation's plugins like its own: an\n agent whose tools list does not name a plugin's server cannot use it.",
       "required": false,
       "referenceKind": 58
+    },
+    {
+      "name": "FileReview",
+      "jsonName": "fileReview",
+      "protoField": "file_review",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether each turn's file edits are offered for review, Keep or Undo,\n after the turn. Off unless the caller sets it. Review never makes a\n turn wait: the edits are applied as the agent makes them, each stays\n until it is undone, and whatever is undecided when the next message is\n sent is kept. A turn in a workspace that cannot record its edits asks\n before each file write instead.",
+      "required": false
     }
   ]
 }

@@ -53,6 +53,44 @@ service SessionCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update session subject";
   }
 
+  // Keep or undo the file changes a turn made, or one of its files.
+  //
+  // In a conversation with file review on (SessionSpec.file_review), each
+  // turn's file edits are applied as the agent makes them and listed in a
+  // stigmer.file_review.changes event. They can be decided until the
+  // conversation's next message is sent; then whatever is undecided is
+  // kept. Keep records the choice. Undo puts the file back as it was
+  // before the turn: at once when the turn has ended (the reply names the
+  // turn that does it), else when the turn's next step starts. The
+  // decision is appended as a stigmer.file_review.decided event.
+  //
+  // ## Error Conditions
+  //
+  // - NOT_FOUND: the change set is not one of this conversation's
+  // - FAILED_PRECONDITION: the conversation has moved on (a later message
+  //   was sent), the change was already decided the other way (a decision
+  //   is final), the file is not in the change set, or a keep of a change
+  //   that cannot be shown whole without acknowledge_unreviewable
+  // - INVALID_ARGUMENT: expected_digest does not match the change
+  //
+  // ## Idempotency
+  //
+  // The same decision sent again records nothing new and starts no second
+  // turn.
+  //
+  // @internal
+  // can_edit on the session, the posture of every answer a person gives a
+  // conversation. The decision lands on the change set's run as a
+  // FILE_DECIDED ledger event in the same write as its session event;
+  // RunCommandController.submitFileDecision is an adapter onto the same
+  // core.
+  rpc reviewFileChanges(ReviewFileChangesInput) returns (ReviewFileChangesResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "session_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to review file changes in session";
+  }
+
   // Delete a session.
   //
   // Deletion cascades to the session's runs. Billing usage

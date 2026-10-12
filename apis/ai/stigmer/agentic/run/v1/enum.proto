@@ -1132,6 +1132,11 @@ enum FileDecisionOrigin {
   // try's edits apply as they do in Claude Code's evals, and nobody reviews
   // a try. The decision's actor is "policy".
   FILE_DECISION_ORIGIN_POLICY_EVAL_TRY = 3;
+
+  // Platform policy kept what was still undecided in the set because the
+  // conversation's next message was sent: review lasts until then, and the
+  // next turn built on the kept files. The decision's actor is "policy".
+  FILE_DECISION_ORIGIN_POLICY_NEXT_TURN = 4;
 }
 
 // FileReviewEventType is the kind of event in the append-only file-review

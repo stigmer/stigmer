@@ -161,10 +161,11 @@ public interface ApiResourceReferenceOrBuilder extends
    * <pre>
    * The referenced resource's id: what a stored reference holds. Optional
    * on write, where the slug may name the resource instead; an id no
-   * resource of the kind holds answers as a missing resource.
+   * resource of the kind holds answers as a missing resource. At most 64
+   * characters.
    * </pre>
    *
-   * <code>string id = 5 [json_name = "id"];</code>
+   * <code>string id = 5 [json_name = "id", (.buf.validate.field) = { ... }</code>
    * @return The id.
    */
   java.lang.String getId();
@@ -172,10 +173,11 @@ public interface ApiResourceReferenceOrBuilder extends
    * <pre>
    * The referenced resource's id: what a stored reference holds. Optional
    * on write, where the slug may name the resource instead; an id no
-   * resource of the kind holds answers as a missing resource.
+   * resource of the kind holds answers as a missing resource. At most 64
+   * characters.
    * </pre>
    *
-   * <code>string id = 5 [json_name = "id"];</code>
+   * <code>string id = 5 [json_name = "id", (.buf.validate.field) = { ... }</code>
    * @return The bytes for id.
    */
   com.google.protobuf.ByteString

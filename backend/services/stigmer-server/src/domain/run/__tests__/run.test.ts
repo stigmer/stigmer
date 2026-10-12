@@ -22,7 +22,12 @@
  *     echo of a stored one passes);
  *   - the populated getRunSummary arm (phase counts, active count,
  *     avg duration, failure ranks) that the zero-record conformance arm
- *     cannot reach.
+ *     cannot reach;
+ *   - what a run loaded (status.loaded_versions) admits only what the
+ *     reference rule admits from the run's organization: a status write
+ *     naming another organization's skill, or an id nothing holds, stores
+ *     none of it, so no read names it; its own organization's skill is
+ *     stored and named.
  */
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
@@ -39,6 +44,7 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
@@ -54,6 +60,7 @@ import {
   ServiceTier,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   SubmitApprovalInputSchema,
   SubmitFileDecisionInputSchema,
@@ -475,6 +482,71 @@ describe("get / list / listBySession over the wire", () => {
     expect(new Set(result.entries.map((e) => e.metadata!.id))).toEqual(ids);
     expect(result.nextPageToken).toBe("");
     expect(result.totalPages).toBe(1);
+  });
+});
+
+describe("what a run loaded (loaded_versions) over the wire", () => {
+  async function seedSkill(id: string, org: string, slug: string): Promise<void> {
+    await namingSaves(server.store).saveResource(
+      ApiResourceKind.skill,
+      id,
+      SkillSchema,
+      create(SkillSchema, { metadata: { id, org, slug, name: slug }, spec: { name: slug, skillMd: "# s" } }),
+    );
+  }
+
+  it("stores and names its own organization's skill, and drops another organization's and an id nothing holds", async () => {
+    const id = await seed(seedInput());
+    await seedSkill("skl_loaded_own", ORG_ID, "loaded-own");
+    await seedSkill("skl_loaded_theirs", idOf("other-org"), "loaded-theirs");
+    const version = "1".repeat(64);
+
+    await command.updateStatus({
+      runId: id,
+      status: {
+        phase: RunPhase.RUN_IN_PROGRESS,
+        loadedVersions: {
+          skills: [
+            { org: ORG_ID, kind: ApiResourceKind.skill, id: "skl_loaded_own", version },
+            { org: idOf("other-org"), kind: ApiResourceKind.skill, id: "skl_loaded_theirs", version },
+            { org: ORG_ID, kind: ApiResourceKind.skill, id: "skl_loaded_nothing", version },
+          ],
+        },
+      },
+    });
+
+    const read = await query.get({ value: id });
+    expect(read.status?.loadedVersions?.skills.map((r) => [r.org, r.id, r.slug])).toEqual([
+      [ORG_ID, "skl_loaded_own", "loaded-own"],
+    ]);
+  });
+
+  it("keeps what the run holds across later writes, drops a new foreign entry beside it, and answers NotFound for a missing run", async () => {
+    const id = await seed(seedInput());
+    await seedSkill("skl_held_own", ORG_ID, "held-own");
+    const v1 = "1".repeat(64);
+    const held = { org: ORG_ID, kind: ApiResourceKind.skill, id: "skl_held_own", version: v1 };
+    await command.updateStatus({ runId: id, status: { phase: RunPhase.RUN_IN_PROGRESS, loadedVersions: { skills: [held] } } });
+    // A resend of what the run holds, then the held entry beside a foreign one.
+    await command.updateStatus({ runId: id, status: { phase: RunPhase.RUN_IN_PROGRESS, loadedVersions: { skills: [held] } } });
+    await command.updateStatus({
+      runId: id,
+      status: {
+        phase: RunPhase.RUN_IN_PROGRESS,
+        loadedVersions: {
+          skills: [held],
+          plugins: [{ org: idOf("other-org"), kind: ApiResourceKind.plugin, id: "plg_theirs", version: "d".repeat(64) }],
+        },
+      },
+    });
+    const read = await query.get({ value: id });
+    expect(read.status?.loadedVersions?.skills.map((r) => [r.id, r.version])).toEqual([["skl_held_own", v1]]);
+    expect(read.status?.loadedVersions?.plugins).toEqual([]);
+
+    await expectCode(
+      () => command.updateStatus({ runId: "aexec_loaded_missing", status: { loadedVersions: { skills: [held] } } }),
+      Code.NotFound,
+    );
   });
 });
 
@@ -1344,7 +1416,7 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
     };
   }
 
-  it("signals approvalGateResolved exactly once, only when the unified gate clears", async () => {
+  it("signals approvalGateResolved exactly once, only when the gate clears", async () => {
     const id = await seed(
       gatedSeed({
         toolCalls: [
@@ -1381,6 +1453,36 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
         runId: id,
         toolCallId: "tc-write",
         action: ApprovalAction.REJECT,
+      }),
+      testCallerIdentity(),
+    );
+    expect(signalled).toEqual([id]);
+  });
+
+  it("a change set awaiting review never holds the signal: the gate is approvals alone (stigmer#1471)", async () => {
+    const init = gatedSeed();
+    init.status = {
+      ...init.status,
+      fileChangeSets: [
+        create(FileChangeSetSchema, { id: `${init.metadata.id}:0`, status: FileChangeSetStatus.AWAITING_REVIEW }),
+      ],
+    };
+    const id = await seed(init);
+    const signalled: string[] = [];
+    const deps = stubDeps(
+      stubConnectedEngine({
+        signalApprovalGateResolved: async (executionId) => {
+          signalled.push(executionId);
+        },
+      }),
+    );
+
+    await submitApproval(
+      deps,
+      create(SubmitApprovalInputSchema, {
+        runId: id,
+        toolCallId: "tc-1",
+        action: ApprovalAction.APPROVE,
       }),
       testCallerIdentity(),
     );
@@ -1438,7 +1540,7 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
   });
 
   // The reconcile's →FAILED stamp is notify
-  // site 4 of 5 — a terminal transition the update-status chokepoint
+  // site 4 of 4 — a terminal transition the update-status chokepoint
   // never sees.
   it("the stale-workflow reconcile notifies the composed status observers", async () => {
     const id = await seed(
@@ -1493,6 +1595,9 @@ describe("the decider is the authorized caller (direct calls, #1385)", () => {
       engineState: () => ENGINE_DISCONNECTED,
       gateSteps: new Map(),
       statusObservers: [],
+      reconcileTurns: () => {
+        throw new Error("a keep starts no reconcile turn");
+      },
     };
   }
 
@@ -1658,56 +1763,6 @@ describe("submitFileDecision over the wire", () => {
       (c) => c.id === changeSetId,
     );
     expect(csRepeat?.decisions).toHaveLength(1);
-  });
-
-  // The file-review reconcile twin is notify
-  // site 5 of 5.
-  it("the workflow-gone reconcile notifies the composed status observers", async () => {
-    const { init, changeSetId, aggregate } = ledgerSeed();
-    const id = await seed(init);
-    const observed: RunStatusTransition[] = [];
-    const deps = {
-      store: server.store,
-      logger: silentLogger,
-      authorizer: newPermissiveSingleTeamAuthorizer(),
-      broker: server.agentExecutionStreamBroker,
-      sessionEventBroker: server.sessionEventBroker,
-      engineState: () =>
-        ({
-          connected: true,
-          engine: stubConnectedEngine({
-            signalApprovalGateResolved: async (executionId: string) => {
-              throw new EngineWorkflowNotFoundError(executionId);
-            },
-          }),
-        }) as ExecutionEngineState,
-      statusObservers: [
-        (t: RunStatusTransition): void => void observed.push(t),
-      ],
-    };
-
-    // A CHANGE_SET decision resolves the whole gate, so the signal fires
-    // and the vanished workflow triggers the reconcile.
-    await expectCode(
-      () =>
-        submitFileDecision(
-          deps,
-          create(SubmitFileDecisionInputSchema, {
-            runId: id,
-            changeSetId,
-            scope: FileDecisionScope.CHANGE_SET,
-            action: FileDecisionAction.APPROVE,
-            expectedDigest: aggregate,
-          }),
-          testCallerIdentity(),
-        ),
-      Code.FailedPrecondition,
-    );
-    expect(observed).toHaveLength(1);
-    expect(observed[0]?.oldPhase).toBe(
-      RunPhase.RUN_WAITING_FOR_APPROVAL,
-    );
-    expect(observed[0]?.newPhase).toBe(RunPhase.RUN_FAILED);
   });
 
   it("refuses a run with no actionable change sets, naming the run and its phase", async () => {

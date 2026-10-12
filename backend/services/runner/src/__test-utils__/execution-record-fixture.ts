@@ -69,8 +69,10 @@ export interface ExecutionRecordOptions {
   readonly message: string;
   /** The agent's instructions (system prompt body). */
   readonly instructions?: string;
-  /** Session workspace entries (a `local_path` entry turns on capture mode). */
+  /** Session workspace entries (a `local_path` entry gives the turn a substrate to capture into). */
   readonly workspaceEntries?: WorkspaceEntry[];
+  /** `SessionSpec.file_review`: the turn's edits are offered for review after it. Off when omitted, as on the wire. */
+  readonly fileReview?: boolean;
   /** The model the turn runs with (`status.run_config.model_name`); the pinned fixture model when omitted. */
   readonly modelName?: string;
   readonly autoApproveAll?: boolean;
@@ -168,6 +170,7 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
         ? undefined
         : create(ApiResourceReferenceSchema, { kind: ApiResourceKind.agent, org: ids.org, slug: ids.agentName }),
       workspaceEntries: options.workspaceEntries ?? [],
+      fileReview: options.fileReview ?? false,
     }),
     status: {
       agentId: builtIn ? "" : ids.agentId,

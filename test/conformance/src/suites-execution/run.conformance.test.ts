@@ -1224,27 +1224,24 @@ describe("Run conformance — subscribe & populated read surfaces", () => {
     const created = await createExecution(org, agent);
     await awaitTerminal(clients, created.metadata!.id);
 
-    // A text-only completed run has an empty file-review stream AND a
-    // terminal phase — both fold into the same precondition refusal (there
-    // is deliberately no separate wrong-phase arm). The deeper arms need
-    // file-edit choreography; the digest-mismatch arm lives in
-    // run-file-review.conformance.test.ts. Message prefix only:
-    // the copy embeds the phase enum's rendering, which is the Go
-    // formatter's, not a contract.
-    const err = await expectGrpcCode(
+    // A text-only completed run has an empty file-review stream: there is
+    // nothing to decide, whatever its phase (a finished turn's sets stay
+    // decidable, so the phase alone refuses nothing). The change set id is
+    // well formed for this run, so the refusal is the missing set's. The
+    // deeper arms need file-edit choreography and live in
+    // run-file-review.conformance.test.ts. The code is the contract; the
+    // copy is the server's.
+    await expectGrpcCode(
       () =>
         clients.agentExecutionCommand.submitFileDecision({
           runId: created.metadata!.id,
-          changeSetId: "cs_x",
+          changeSetId: `${created.metadata!.id}:1`,
           expectedDigest: "digest",
           scope: FileDecisionScope.CHANGE_SET,
           action: FileDecisionAction.APPROVE,
         }),
       Code.FailedPrecondition,
       "submitFileDecision on a run that produced no file changes",
-    );
-    expect(err.rawMessage).toContain(
-      `execution ${created.metadata!.id} has no actionable file change sets`,
     );
   });
 });

@@ -641,6 +641,7 @@ const run = await stigmer.run.create({
   supersedesRunId: "...",
   conversationCatchup: {},
   pluginEvalCase: {},
+  reconcileFileReview: false,
 });
 ```
 </Tab>
@@ -667,6 +668,7 @@ run, err := client.Run.Create(ctx, &stigmer.RunInput{
   SupersedesRunId:        "...",
   ConversationCatchup:    &stigmer.ConversationCatchupInput{},
   PluginEvalCase:         &stigmer.PluginEvalCaseContextInput{},
+  ReconcileFileReview:    false,
 })
 ```
 </Tab>
@@ -693,6 +695,7 @@ run = client.runs.create(RunInput(
     supersedes_run_id="...",
     conversation_catchup=None,
     plugin_eval_case=None,
+    reconcile_file_review=False,
 ))
 ```
 </Tab>
@@ -719,6 +722,7 @@ Run run = client.runs().create(RunInput.builder()
     .supersedesRunId("...")
     .conversationCatchup(null)
     .pluginEvalCase(null)
+    .reconcileFileReview(false)
     .build());
 ```
 </Tab>
@@ -756,6 +760,7 @@ const run = await stigmer.run.update({
   supersedesRunId: "...",
   conversationCatchup: {},
   pluginEvalCase: {},
+  reconcileFileReview: false,
 });
 ```
 </Tab>
@@ -782,6 +787,7 @@ run, err := client.Run.Update(ctx, &stigmer.RunInput{
   SupersedesRunId:        "...",
   ConversationCatchup:    &stigmer.ConversationCatchupInput{},
   PluginEvalCase:         &stigmer.PluginEvalCaseContextInput{},
+  ReconcileFileReview:    false,
 })
 ```
 </Tab>
@@ -808,6 +814,7 @@ run = client.runs.update(RunInput(
     supersedes_run_id="...",
     conversation_catchup=None,
     plugin_eval_case=None,
+    reconcile_file_review=False,
 ))
 ```
 </Tab>
@@ -834,6 +841,7 @@ Run run = client.runs().update(RunInput.builder()
     .supersedesRunId("...")
     .conversationCatchup(null)
     .pluginEvalCase(null)
+    .reconcileFileReview(false)
     .build());
 ```
 </Tab>
@@ -1335,6 +1343,7 @@ Input for creating or updating a Run.
     supersedesRunId: { type: "string", description: "ID of the run this one supersedes via edit-and-resubmit (optional)." },
     conversationCatchup: { type: "ConversationCatchupInput", description: "Conversation events the agent has not yet seen, composed by the platform for this turn (optional).", typeDescriptionLink: "#conversationcatchupinput" },
     pluginEvalCase: { type: "PluginEvalCaseContextInput", description: "What a plugin-eval case gives this try beyond its message: a starting folder, reference folders, an earlier conversation, variables and MCP stand-ins.", typeDescriptionLink: "#pluginevalcasecontextinput" },
+    reconcileFileReview: { type: "boolean", description: "Set on a turn that only puts back the files a person undid after an earlier turn ended: it runs no model and carries no message." },
   }}
 />
 
@@ -1357,6 +1366,7 @@ SessionSpec defines the configurable properties of a session.
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets this conversation's runs use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of the listed vaults." },
     plugins: { type: "ResourceRef[]", description: "Plugins this conversation uses, each whole, besides its agent's: their skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
+    fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn." },
   }}
 />
 
@@ -1903,6 +1913,7 @@ RunStatus contains all run results and state.
     recalledMemoriesReport: { type: "RecalledMemoriesReport", description: "Report of which recalled memories were injected into this run's prompt.", typeDescriptionLink: "#recalledmemoriesreport" },
     agentId: { type: "string", description: "ID of the agent this turn ran." },
     agentVersionHash: { type: "string", description: "Content hash of the agent version this turn ran (AgentStatus.version_hash at create; resolvable through AgentQueryController.getVersion with agent_id)." },
+    loadedVersions: { type: "LoadedVersions", description: "Every skill and plugin a turn of this run loaded, for the agent and its subagents, at the version it loaded.", typeDescriptionLink: "#loadedversions" },
     declaredPreferences: { type: "DeclaredPreferences", description: "Standing preferences declared by the organization and the calling user, snapshotted into this run at create time.", typeDescriptionLink: "#declaredpreferences" },
     recalledMemories: { type: "RecalledMemories", description: "The caller's confirmed memories, snapshotted into this run at create time: the candidate set the prompt was built from.", typeDescriptionLink: "#recalledmemories" },
     runConfig: { type: "RunConfig", description: "The settings this turn runs with: spec.run_config (or the saved settings of the surface it came through), the defaults of the agent version the turn runs, and the lane's operator profile, resolved by RunConfig's rule.", typeDescriptionLink: "#runconfig" },
@@ -1925,6 +1936,20 @@ Represents a single message in the agent conversation.
     toolCalls: { type: "ToolCall[]", description: "Tool calls associated with this message (if type == ai and tools were invoked).", typeDescriptionLink: "#toolcall" },
     metadata: { type: "object", description: "Optional message metadata." },
     isStreaming: { type: "boolean", description: "True while the AI is actively generating this message, false when complete." },
+  }}
+/>
+
+### ApiResourceReference
+
+Generic reference to any API resource.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource, by slug or id." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org)." },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+    id: { type: "string", description: "The referenced resource's id: what a stored reference holds." },
   }}
 />
 
@@ -2236,6 +2261,17 @@ A git no-commit tree snapshot (write-tree + a stigmer-namespaced ref).
   type={{
     treeOid: { type: "string", description: "The tree object id produced by git write-tree." },
     ref: { type: "string", description: "The ref the snapshot is pinned under, e.g. \"refs/stigmer/{run}/{baseline|candidate|approved}\"." },
+  }}
+/>
+
+### LoadedVersions
+
+LoadedVersions lists what a run loaded besides its agent: one list per kind, each entry a reference to the exact version that ran.
+
+<TypeTable
+  type={{
+    skills: { type: "ApiResourceReference[]", description: "Skills, each at its version hash (SkillStatus.version_hash).", typeDescriptionLink: "#apiresourcereference" },
+    plugins: { type: "ApiResourceReference[]", description: "Plugins, each at its archive's digest (PluginStatus.digest).", typeDescriptionLink: "#apiresourcereference" },
   }}
 />
 
@@ -2777,6 +2813,7 @@ FileDecisionOrigin records which authority authored a FileDecision: a human revi
 | `FILE_DECISION_ORIGIN_USER` | A human reviewer decided via SubmitFileDecision. |
 | `FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND` | Platform policy auto-kept the set because every mutation in its turn came from commands the human explicitly authorized (per-command approval, APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified against server-authored approval records before authoring. |
 | `FILE_DECISION_ORIGIN_POLICY_EVAL_TRY` | Platform policy kept the set because its run is a plugin eval's try: a try's edits apply as they do in Claude Code's evals, and nobody reviews a try. |
+| `FILE_DECISION_ORIGIN_POLICY_NEXT_TURN` | Platform policy kept what was still undecided in the set because the conversation's next message was sent: review lasts until then, and the next turn built on the kept files. |
 
 ### FileReviewEventType
 

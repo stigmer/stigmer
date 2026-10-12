@@ -35,17 +35,39 @@
  * and keeps streaming IN_PROGRESS until then, and without the latch its
  * stragglers un-pause the execution and Resume finds nothing to resume.
  *
+ * loaded_versions is the one field merged by union rather than replaced:
+ * every attempt of a turn resolves its skills and plugins again, so a turn
+ * resumed after a pause may load a newer version than it started on, and a
+ * run that ran two versions of one skill must say both. Its entries are
+ * admitted first (AdmitLoadedVersions): updateStatus is open to whoever
+ * may edit the run, not only the runner, and every read names each stored
+ * entry with its target's current slug, so an entry the reference rule
+ * would refuse from the run's organization (another organization's
+ * resource, a parent's not shared with its children, an id nothing holds)
+ * is dropped, never stored and never named.
+ *
+ * A turn's file review closes when a later message is sent
+ * (filereview/autokeep.ts keepOutdatedSets). The next turn's workflow
+ * closes a turn that already captured; a turn that captures after the
+ * later message was sent is closed here, as its candidate is folded: a
+ * write carrying a CANDIDATE_CAPTURED asks the store for the run of the
+ * session's newest `user.message`, read under the session's lock, and
+ * keeps the run's undecided sets in the same write when that run is
+ * another. No other write pays the read.
+ *
  * Broadcast rides in-memory channels.
  */
 import { create } from "@bufbuild/protobuf";
 
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
+  LoadedVersionsSchema,
   RunSchema,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import {
+  FileReviewEventType,
   RunControlSignal,
   RunPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
@@ -56,6 +78,8 @@ import type {
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -73,6 +97,11 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import { isServerComposedRequest } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  checkReference,
+  loadReferenceTargets,
+  type SpecReference,
+} from "../../pipeline/steps/references.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
@@ -80,7 +109,11 @@ import { ensureApprovalRequests } from "./approval/author.js";
 import { preserveApprovalFields } from "./approval/preserve.js";
 import { projectPendingApprovals } from "./approval/project.js";
 import { appendRunnerEvents } from "./filereview/author.js";
-import { autoKeepApprovedCommandSets, autoKeepPluginEvalTrySets } from "./filereview/autokeep.js";
+import {
+  autoKeepApprovedCommandSets,
+  autoKeepPluginEvalTrySets,
+  keepOutdatedSets,
+} from "./filereview/autokeep.js";
 import { isPluginEvalRun } from "../plugin-eval/plugin-eval-run.js";
 import { projectFileChangeSets } from "./filereview/project.js";
 import { reconcileFileChangeProgress } from "./filereview/progress.js";
@@ -158,6 +191,12 @@ export async function updateStatus(
       },
     })
     .addStep({
+      name: "AdmitLoadedVersions",
+      async execute(ctx) {
+        await admitLoadedVersions(deps.store, ctx.input, deps.logger);
+      },
+    })
+    .addStep({
       name: "MergeAndPersistExecution",
       async execute(ctx) {
         let updated: Run;
@@ -165,17 +204,23 @@ export async function updateStatus(
         try {
           // The merge commits with the session's status events when it
           // changes whether the run is working (session/events/run-writes.ts).
+          // A write folding a candidate asks for the conversation's newest
+          // turn, so a late capture of an outdated turn is kept as it
+          // lands (module header).
+          const foldsCandidate = carriesCandidate(ctx.input);
           ({ run: updated, previousPhase: oldPhase } = await updateRunAppendingEvents(
             deps,
             ctx.input.runId,
-            (execution) => {
+            (execution, session) => {
               applyUpdateStatusMerge(
                 execution,
                 ctx.input,
                 deps.logger,
                 isServerComposedRequest(identity) ? "platform" : "wire",
+                foldsCandidate && isOutdatedTurn(ctx.input.runId, session.runOfNewestType),
               );
             },
+            foldsCandidate ? { runOfNewestType: NEWEST_TURN_EVENT_TYPE } : {},
           ));
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
@@ -233,6 +278,25 @@ export async function updateStatus(
       signal: RunControlSignal.UNSPECIFIED,
     }),
   );
+}
+
+/** The event that names the conversation's newest turn: the user message its run was created with. */
+const NEWEST_TURN_EVENT_TYPE = "user.message";
+
+/** Whether the incoming status folds a captured candidate into the ledger. */
+function carriesCandidate(input: RunUpdateStatusInput): boolean {
+  return (input.status?.fileReviewEventStream?.events ?? []).some(
+    (ev) => ev.eventType === FileReviewEventType.CANDIDATE_CAPTURED,
+  );
+}
+
+/**
+ * Whether a later message was sent after this run's: the session's newest
+ * `user.message` belongs to another run. A session with none (a run in no
+ * session) has no later turn.
+ */
+function isOutdatedTurn(runId: string, newestTurnRunId: string | undefined): boolean {
+  return newestTurnRunId !== undefined && newestTurnRunId !== runId;
 }
 
 /**
@@ -342,13 +406,16 @@ export type StatusWriter = "platform" | "wire";
  * (synchronous by store contract), so the merge, the approval event
  * authoring, and the pending_approvals projection all see the same
  * snapshot that will be persisted. `writer` defaults to the wire, the
- * side that grants nothing extra.
+ * side that grants nothing extra. `outdatedTurn` says a later message was
+ * sent after this run's, so its file review is closed in this write (the
+ * caller reads it under the session's lock; module header).
  */
 export function applyUpdateStatusMerge(
   execution: Run,
   input: RunUpdateStatusInput,
   logger: Logger,
   writer: StatusWriter = "wire",
+  outdatedTurn = false,
 ): void {
   if (execution.status === undefined) {
     execution.status = create(RunStatusSchema);
@@ -554,8 +621,8 @@ export function applyUpdateStatusMerge(
 
   // Fold the runner-authored capture/reconcile events (carried on the
   // request payload) into the server-owned ledger: append-only,
-  // idempotent by event_id, FILE_DECIDED dropped (server-authored by
-  // SubmitFileDecision).
+  // idempotent by event_id, FILE_DECIDED dropped (server-authored: a
+  // person's decision or a policy keep, never the runner's).
   appendRunnerEvents(status, input.runId, requestStatus);
 
   // Approved-command auto-keep: a candidate whose provenance
@@ -570,14 +637,22 @@ export function applyUpdateStatusMerge(
   );
   // A plugin eval's try keeps its edits by policy: nobody reviews a try.
   autoKeepPluginEvalTrySets(status, input.runId, isPluginEvalRun(execution), logger);
+  // A turn that captured after a later message was sent is closed as it
+  // lands: its undecided edits are kept, as the next turn keeps them.
+  if (outdatedTurn) {
+    const kept = keepOutdatedSets(status, input.runId);
+    if (kept > 0) {
+      logger.info("Kept a turn's undecided file changes: a later message was sent", {
+        executionId: input.runId,
+        decisions: kept,
+      });
+    }
+  }
 
   // Recompute file_change_sets from the append-only ledger via its single
   // projection seam — always derived, never merged, so it cannot go
   // stale.
-  status.fileChangeSets = projectFileChangeSets(
-    status.phase,
-    status.fileReviewEventStream,
-  );
+  status.fileChangeSets = projectFileChangeSets(status.fileReviewEventStream);
 
   // Mid-run live capture: merge the runner-owned transient
   // progress snapshot (presence-guarded replace, like streaming_usage
@@ -634,10 +709,130 @@ export function applyUpdateStatusMerge(
     status.pluginEvalFiles = requestStatus.pluginEvalFiles;
   }
 
+  // Merge loaded_versions: runner-owned, sent with every write of a turn
+  // attempt. A union over (id, version), never a replace: a resumed attempt
+  // that loads a moved head adds the version it ran beside the one before,
+  // and a resend of the same list adds nothing.
+  if (requestStatus.loadedVersions !== undefined) {
+    const loaded = status.loadedVersions ?? create(LoadedVersionsSchema);
+    loaded.skills = unionReferences(
+      loaded.skills,
+      requestStatus.loadedVersions.skills,
+      ApiResourceKind.skill,
+    );
+    loaded.plugins = unionReferences(
+      loaded.plugins,
+      requestStatus.loadedVersions.plugins,
+      ApiResourceKind.plugin,
+    );
+    status.loadedVersions = loaded;
+  }
+
   logger.debug("Merged status fields", {
     executionId: input.runId,
     phase: RunPhase[status.phase],
     messagesCount: status.messages.length,
     pendingApprovalsCount: status.pendingApprovals.length,
   });
+}
+
+/**
+ * The stored list followed by every incoming entry whose (id, version) it
+ * does not hold, in the order sent. Stored entries are never removed or
+ * reordered. Each appended entry takes its stored form: the list's kind,
+ * no slug (the response interceptor names it).
+ */
+function unionReferences(
+  stored: readonly ApiResourceReference[],
+  incoming: readonly ApiResourceReference[],
+  kind: ApiResourceKind,
+): ApiResourceReference[] {
+  const merged = [...stored];
+  const held = new Set(stored.map((ref) => `${ref.id}@${ref.version}`));
+  for (const ref of incoming) {
+    const key = `${ref.id}@${ref.version}`;
+    if (held.has(key)) {
+      continue;
+    }
+    held.add(key);
+    merged.push(
+      create(ApiResourceReferenceSchema, {
+        org: ref.org,
+        kind,
+        id: ref.id,
+        version: ref.version,
+      }),
+    );
+  }
+  return merged;
+}
+
+/**
+ * Keeps, in a write's loaded_versions, only the entries the run may hold:
+ * those it holds already, and new ones the reference rule admits from the
+ * run's organization (`checkReference`: a resource of its own organization
+ * that exists, or one its parent shares with child organizations). Each new
+ * target is read once; a write that adds nothing new reads nothing but the
+ * run. The floor clause does not apply: the run did load what it lists, and
+ * the floor guards what a spec exposes. A dropped entry is logged, never
+ * refused, so a skill deleted mid-turn cannot fail the turn's later writes.
+ */
+export async function admitLoadedVersions(
+  store: Store,
+  input: RunUpdateStatusInput,
+  logger: Logger,
+): Promise<void> {
+  const loaded = input.status?.loadedVersions;
+  if (loaded === undefined || (loaded.skills.length === 0 && loaded.plugins.length === 0)) {
+    return;
+  }
+  let run: Run;
+  try {
+    run = await store.getResource(ApiResourceKind.run, input.runId, RunSchema);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      // The merge answers NotFound for the same read.
+      return;
+    }
+    /* v8 ignore next -- @preserve: a store fault other than a missing row; no test injects one here */
+    throw internalError(error, "failed to read the run");
+  }
+  const runOrg = run.metadata?.org ?? "";
+  const held = new Set(
+    [...(run.status?.loadedVersions?.skills ?? []), ...(run.status?.loadedVersions?.plugins ?? [])].map(
+      (ref) => `${ref.id}@${ref.version}`,
+    ),
+  );
+  const lists = [
+    [ApiResourceKind.skill, loaded.skills],
+    [ApiResourceKind.plugin, loaded.plugins],
+  ] as const;
+  const fresh: SpecReference[] = lists.flatMap(([kind, refs]) =>
+    refs
+      .filter((ref) => !held.has(`${ref.id}@${ref.version}`))
+      .map((ref) => ({ kind, org: ref.org, id: ref.id, slug: "" })),
+  );
+  if (fresh.length === 0) {
+    return;
+  }
+  const targets = await loadReferenceTargets(store, fresh, runOrg);
+  const parent = { org: runOrg, visibility: run.metadata?.visibility ?? 0 };
+  const admits = (kind: ApiResourceKind, ref: ApiResourceReference): boolean => {
+    if (held.has(`${ref.id}@${ref.version}`)) {
+      return true;
+    }
+    const verdict = checkReference(targets, parent, { kind, org: ref.org, id: ref.id, slug: "" });
+    if (verdict.kind === "ok" || verdict.kind === "below-floor") {
+      return true;
+    }
+    logger.warn("Dropped a loaded version the run's organization may not reference", {
+      executionId: input.runId,
+      kind: ApiResourceKind[kind],
+      id: ref.id,
+      verdict: verdict.kind,
+    });
+    return false;
+  };
+  loaded.skills = loaded.skills.filter((ref) => admits(ApiResourceKind.skill, ref));
+  loaded.plugins = loaded.plugins.filter((ref) => admits(ApiResourceKind.plugin, ref));
 }

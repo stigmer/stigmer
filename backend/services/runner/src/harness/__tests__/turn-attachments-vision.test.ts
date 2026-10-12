@@ -49,6 +49,7 @@ function deps(): ResolutionDeps {
     enterPhase: () => {},
     reportProgress: async () => {},
     identifyRun: () => {},
+    recordReconciled: async () => {},
   };
 }
 

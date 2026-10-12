@@ -2,7 +2,8 @@
  * Pins SessionCommandController.appendEvents (../append.ts): only the
  * runner acting for the run writes its events (the open-source decision,
  * and a composed one), only while the run is not finished, only the types
- * a runner produces, into the run's own session, whole or not at all, with
+ * a runner produces (never a file-review decision, which would forge a
+ * person's keep or undo), into the run's own session, whole or not at all, with
  * a resent event recognised by its id and bytes. Previews reach only the
  * streams that asked for them; stored events reach every stream.
  */
@@ -158,8 +159,15 @@ describe("what a runner may append", () => {
     ["user.message", { case: "userMessage", value: { id: "x", content: [{ type: "text", text: "hi" }] } }],
     ["session.status_running", { case: "sessionStatusRunning", value: { id: "x" } }],
     ["session.status_idle", { case: "sessionStatusIdle", value: { id: "x", stopReason: { type: "end_turn" } } }],
+    [
+      "stigmer.file_review.decided",
+      {
+        case: "stigmerFileReviewDecided",
+        value: { id: "x", changeSetId: "run_a:1", scope: "change_set", action: "keep", origin: "person" },
+      },
+    ],
   ];
-  it.each(serverOnly)("refuses %s: the user's turn and the session's status are the server's", async (_type, event) => {
+  it.each(serverOnly)("refuses %s: the user's turn, the session's status and a file-review decision are the server's", async (_type, event) => {
     await seedRun("run_a", "ses_a");
     const error = await refusal(append({ runId: "run_a", events: [message("ok"), { event }] }, auth.mintRunCredential("run_a")));
     expect(error.code).toBe(Code.InvalidArgument);
@@ -176,6 +184,30 @@ describe("what a runner may append", () => {
       auth.mintRunCredential("run_a"),
     );
     expect(await stored("ses_a")).toEqual(["err"]);
+  });
+
+  it("accepts the files a turn changed and the undone files it put back, which a runner writes", async () => {
+    await seedRun("run_a", "ses_a");
+    await append(
+      {
+        runId: "run_a",
+        events: [
+          {
+            event: {
+              case: "stigmerFileReviewChanges",
+              value: {
+                id: "run_a.fr1",
+                changeSetId: "run_a:1",
+                files: [{ fileChangeId: "fc-1", path: "src/a.ts", change: "modified", reviewable: "complete" }],
+              },
+            },
+          },
+          { event: { case: "stigmerFileReviewReconciled", value: { id: "run_a.fr1.r", changeSetId: "run_a:1", undonePaths: ["src/a.ts"] } } },
+        ],
+      },
+      auth.mintRunCredential("run_a"),
+    );
+    expect(await stored("ses_a")).toEqual(["run_a.fr1", "run_a.fr1.r"]);
   });
 
   it("refuses a preview past the size cap, before anything is stored", async () => {

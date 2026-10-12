@@ -26,6 +26,10 @@
  * under can_view on the session, appendEvents is the runner's own lane
  * (events/append.ts carries its gate), and delete removes the log before
  * the row (DeleteSessionEvents).
+ *
+ * reviewFileChanges keeps or undoes a turn's file edits under can_edit on
+ * the session (filereview/review-file-changes.ts, deciding through
+ * filereview/decide.ts).
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
@@ -149,6 +153,9 @@ import type { SessionEventBroker } from "./events/broker.js";
 import { newDeleteSessionEventsStep } from "./events/delete-step.js";
 import { listSessionEvents } from "./events/list.js";
 import { streamSessionEvents } from "./events/stream.js";
+import type { ReconcileTurnCreatorProvider } from "./filereview/decide.js";
+import { reviewFileChanges } from "./filereview/review-file-changes.js";
+import type { StreamBroker } from "../run/stream-broker.js";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 
 export interface SessionControllerDeps {
@@ -186,6 +193,10 @@ export interface SessionControllerDeps {
   readonly sessionEventBroker: SessionEventBroker;
   /** Decides whose runner credential may append a run's events (appendEvents). */
   readonly runnerAuth: RunnerCredentialProvider;
+  /** The runs' live subscribers see a file decision (reviewFileChanges). */
+  readonly broker: StreamBroker;
+  /** Creates the reconcile turn an undo on an ended turn starts (reviewFileChanges). */
+  readonly reconcileTurns: ReconcileTurnCreatorProvider;
 }
 
 /**
@@ -216,6 +227,8 @@ export function registerSessionServices(
       updateSubject(deps, req, callerIdentityOf(ctx)),
     delete: (id, ctx) => deleteSession(deps, id, ctx),
     appendEvents: (input, ctx) => appendSessionEvents(deps, input, ctx),
+    reviewFileChanges: (input, ctx) =>
+      reviewFileChanges(deps, input, callerIdentityOf(ctx)),
   });
   router.service(SessionQueryController, {
     get: (id, ctx) => get(deps, id, ctx),

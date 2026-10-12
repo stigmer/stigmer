@@ -1,6 +1,6 @@
 {
-  "name": "terminal-empty",
-  "description": "A terminal execution projects no actionable file change sets (phase-aware), even with a fully captured ledger. The ledger itself is preserved; only the projection collapses.",
+  "name": "terminal-keeps-sets",
+  "description": "A finished execution still projects its change sets: a turn never waits for review, so its sets are decided after it ends (the projection does not depend on the phase).",
   "run_id": "aex_terminal",
   "phase": "RUN_COMPLETED",
   "events": [
@@ -32,5 +32,14 @@
       }
     }
   ],
-  "expected": []
+  "expected": [
+    {
+      "id": "cs1",
+      "status": "FILE_CHANGE_SET_STATUS_AWAITING_REVIEW",
+      "change_ids": ["fc1"],
+      "decision_count": 0,
+      "aggregate_digest": "agg1",
+      "has_approved_snapshot": false
+    }
+  ]
 }

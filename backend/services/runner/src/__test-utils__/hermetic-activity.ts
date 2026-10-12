@@ -92,10 +92,12 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
+  FileDecisionAction,
   RunControlSignal,
   RunPhase,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/spec_pb";
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -184,8 +186,26 @@ export interface ExecutionRecordInput {
  * event is ALREADY_EXISTS, and a run whose held phase is finished takes no
  * more events (FAILED_PRECONDITION), which is what proves every event of a
  * turn lands before its terminal status. `listRunSessionEvents` answers
- * from it, so a reinvocation reads back what the first wrote.
+ * from it, so a reinvocation reads back what the first wrote, and
+ * `listSessionEvents` pages it newest first by type, the read a turn's start
+ * makes for the undos still owed.
+ *
+ * File review is modelled the way the server's decision core does it:
+ * {@link decideCapturedFileChanges} decides the captured files, folds them
+ * onto `status.file_change_sets` and writes each decision into the log as
+ * `stigmer.file_review.decided`; {@link startReconcileTurn} creates the
+ * reconcile turn an Undo on a finished run starts, a second run of the same
+ * session (`RunSpec.reconcile_file_review`, no message) that the client
+ * answers by its id.
  */
+/** The log's type name of each event the hermetic log can hold that a typed read asks for (`event.proto`'s `event_type`). */
+const LOG_TYPES: Partial<Record<NonNullable<SessionEvent["event"]["case"]>, string>> = {
+  userMessage: "user.message",
+  stigmerFileReviewChanges: "stigmer.file_review.changes",
+  stigmerFileReviewDecided: "stigmer.file_review.decided",
+  stigmerFileReviewReconciled: "stigmer.file_review.reconciled",
+};
+
 /** The phases the server treats as finished: an append for such a run is refused. */
 const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
   RunPhase.RUN_COMPLETED,
@@ -221,6 +241,10 @@ export class ExecutionRecord {
   readonly resentEventIds: string[] = [];
   /** Every append the log refused, by its reason: a runner defect the emitter would drop silently. */
   readonly refusedAppends: string[] = [];
+  /** The reconcile turn {@link startReconcileTurn} created, once it has; its status is its own. */
+  reconcileRun: Run | undefined;
+  /** Every status the reconcile turn's runner wrote, in order. */
+  readonly reconcilePersisted: RunStatus[] = [];
 
   constructor(input: ExecutionRecordInput) {
     this.execution = clone(RunSchema, input.execution);
@@ -401,7 +425,82 @@ export class ExecutionRecord {
    */
   decideCapturedFileChanges(verdicts: FileReviewVerdicts, decidedAt: string): number {
     if (!this.execution.status) throw new Error("ExecutionRecord: no status to decide file changes on (test bug)");
-    return decideCapturedFileChanges(this.execution.status, verdicts, decidedAt);
+    const decisions = decideCapturedFileChanges(this.execution.status, verdicts, decidedAt);
+    for (const decision of decisions) {
+      const id = `sevt_fd_${this.sessionEvents.length}`;
+      this.sessionEvents.push(
+        create(SessionEventSchema, {
+          sessionId: this.session.metadata?.id ?? "",
+          runId: this.executionId,
+          event: {
+            case: "stigmerFileReviewDecided",
+            value: {
+              id,
+              changeSetId: decision.changeSetId,
+              scope: "file",
+              fileChangeId: decision.fileChangeId,
+              action: decision.action === FileDecisionAction.REJECT ? "undo" : "keep",
+              expectedDigest: decision.expectedDigest,
+              origin: "person",
+            },
+          },
+        }),
+      );
+    }
+    return decisions.length;
+  }
+
+  /**
+   * The reconcile turn the decision core starts for an Undo on a finished
+   * run: a second run of this session with `reconcile_file_review` set and no
+   * message, created as the server's create path would (in progress, nothing
+   * on its status). The client answers it by its id from then on. Returns its
+   * id.
+   */
+  startReconcileTurn(runId = `${this.executionId}-reconcile`): string {
+    const spec = clone(RunSpecSchema, this.execution.spec ?? create(RunSpecSchema));
+    spec.message = "";
+    spec.reconcileFileReview = true;
+    this.reconcileRun = create(RunSchema, {
+      metadata: { org: this.execution.metadata?.org ?? "", id: runId, name: runId },
+      spec,
+      status: { phase: RunPhase.RUN_IN_PROGRESS },
+    });
+    return runId;
+  }
+
+  /** The reconcile turn's last full status (phase set), or undefined if it wrote none. */
+  get reconcileFinalStatus(): RunStatus | undefined {
+    return this.reconcilePersisted.filter((s) => s.phase !== RunPhase.RUN_PHASE_UNSPECIFIED).at(-1);
+  }
+
+  /** The run a request names: the reconcile turn's id answers it, any other this execution. */
+  private runNamed(runId: string): Run {
+    return this.reconcileRun !== undefined && runId === this.reconcileRun.metadata?.id ? this.reconcileRun : this.execution;
+  }
+
+  /** A write to the reconcile turn: kept as written, its phase held when the write carries none. */
+  private applyReconcileStatus(status: RunStatus): RunControlSignal {
+    const snapshot = clone(RunStatusSchema, status);
+    this.reconcilePersisted.push(snapshot);
+    const run = this.reconcileRun!;
+    if (snapshot.phase === RunPhase.RUN_PHASE_UNSPECIFIED) {
+      snapshot.phase = run.status?.phase ?? RunPhase.RUN_IN_PROGRESS;
+    }
+    run.status = snapshot;
+    return RunControlSignal.UNSPECIFIED;
+  }
+
+  /**
+   * The server's typed read of the log (`listEvents` with `types` and
+   * `order`), newest first when asked: one page holds it all. Only the types
+   * the runner asks for are named; any other event matches no type.
+   */
+  listSessionEventsPage(types: readonly string[], order: "asc" | "desc"): SessionEvent[] {
+    const wanted = new Set(types);
+    const matching = this.sessionEvents.filter((e) => e.event.case !== undefined && wanted.has(LOG_TYPES[e.event.case] ?? ""));
+    const ordered = order === "desc" ? [...matching].reverse() : matching;
+    return ordered.map((e) => clone(SessionEventSchema, e));
   }
 
   /**
@@ -434,7 +533,7 @@ export class ExecutionRecord {
 
   /** The server's append rules over the modelled log (the class header). */
   appendSessionEvents(runId: string, events: readonly SessionEvent[], previews: readonly SessionEventPreview[]): void {
-    const phase = this.execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
+    const phase = this.runNamed(runId).status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
     if (TERMINAL_PHASES.has(phase)) {
       this.refusedAppends.push(`run '${runId}' is finished`);
       throw new ConnectError(`run '${runId}' is finished; it takes no more events`, Code.FailedPrecondition);
@@ -451,7 +550,9 @@ export class ExecutionRecord {
         this.resentEventIds.push(id);
         continue;
       }
-      fresh.push(clone(SessionEventSchema, event));
+      const own = clone(SessionEventSchema, event);
+      own.runId = runId;
+      fresh.push(own);
     }
     this.sessionEvents.push(...fresh);
     this.sessionPreviews.push(...previews.map((p) => clone(SessionEventPreviewSchema, p)));
@@ -501,7 +602,7 @@ export class ExecutionRecord {
    */
   client(overrides: Partial<StigmerClient> = {}): StigmerClient {
     return mockStigmerClient({
-      getExecution: vi.fn(async () => clone(RunSchema, this.execution)),
+      getExecution: vi.fn(async (id: string) => clone(RunSchema, this.runNamed(id))),
       getSession: vi.fn(async () => this.session),
       getAgent: vi.fn(async () => {
         if (this.agent === undefined) {
@@ -518,9 +619,10 @@ export class ExecutionRecord {
         }
         return create(AgentVersionEntrySchema, { versionHash, specSnapshot: this.agent.spec });
       }),
-      updateStatus: vi.fn(async (_id: string, status: RunStatus) => {
+      updateStatus: vi.fn(async (id: string, status: RunStatus) => {
         // The activity reads only `.signal`; UNSPECIFIED means "keep going".
-        return create(UpdateStatusResponseSchema, { signal: this.applyStatusUpdate(status) });
+        const signal = this.runNamed(id) === this.execution ? this.applyStatusUpdate(status) : this.applyReconcileStatus(status);
+        return create(UpdateStatusResponseSchema, { signal });
       }),
       updateSession: vi.fn(async (session: Session) => {
         this.sessionUpdates.push(clone(SessionSchema, session));
@@ -533,6 +635,10 @@ export class ExecutionRecord {
       listRunSessionEvents: vi.fn(async (_sessionId: string, runId: string) =>
         this.sessionEvents.filter((e) => e.runId === runId).map((e) => clone(SessionEventSchema, e)),
       ),
+      listSessionEvents: vi.fn(async (_sessionId: string, query: { readonly types: readonly string[]; readonly order: "asc" | "desc" }) => ({
+        events: this.listSessionEventsPage(query.types, query.order),
+        nextPageToken: "",
+      })),
       // A run whose agent and tools declare nothing: the fetch answers no values.
       fetchExecutionValues: vi.fn(async () => create(ExecutionValuesSchema)),
       getAgentByReference: vi.fn(async (ref: ApiResourceReference) => {

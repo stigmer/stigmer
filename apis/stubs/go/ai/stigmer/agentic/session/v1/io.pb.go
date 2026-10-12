@@ -445,6 +445,169 @@ func (x *UpdateSessionSubjectRequest) GetSubject() string {
 	return ""
 }
 
+// ReviewFileChangesInput keeps or undoes a turn's file changes, or one of
+// its files.
+type ReviewFileChangesInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The conversation.
+	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// The change set, as its stigmer.file_review.changes event names it.
+	ChangeSetId string `protobuf:"bytes,2,opt,name=change_set_id,json=changeSetId,proto3" json:"change_set_id,omitempty"`
+	// change_set (every file of the set) or file (the one file_change_id).
+	Scope string `protobuf:"bytes,3,opt,name=scope,proto3" json:"scope,omitempty"`
+	// The file to decide, when scope is file.
+	FileChangeId string `protobuf:"bytes,4,opt,name=file_change_id,json=fileChangeId,proto3" json:"file_change_id,omitempty"`
+	// keep or undo.
+	Action string `protobuf:"bytes,5,opt,name=action,proto3" json:"action,omitempty"`
+	// The digest of what the person saw: the file's digest for scope file,
+	// the set's aggregate_digest for scope change_set. A decision against a
+	// change that differs is refused.
+	ExpectedDigest string `protobuf:"bytes,6,opt,name=expected_digest,json=expectedDigest,proto3" json:"expected_digest,omitempty"`
+	// An optional reason, kept with the decision.
+	Reason string `protobuf:"bytes,7,opt,name=reason,proto3" json:"reason,omitempty"`
+	// Set on a keep to keep a binary change consciously: its bytes can be
+	// put back, but it has no text diff to show. Ignored on an undo, and
+	// never relaxes expected_digest.
+	AcknowledgeUnreviewable bool `protobuf:"varint,8,opt,name=acknowledge_unreviewable,json=acknowledgeUnreviewable,proto3" json:"acknowledge_unreviewable,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *ReviewFileChangesInput) Reset() {
+	*x = ReviewFileChangesInput{}
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReviewFileChangesInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReviewFileChangesInput) ProtoMessage() {}
+
+func (x *ReviewFileChangesInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReviewFileChangesInput.ProtoReflect.Descriptor instead.
+func (*ReviewFileChangesInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ReviewFileChangesInput) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *ReviewFileChangesInput) GetChangeSetId() string {
+	if x != nil {
+		return x.ChangeSetId
+	}
+	return ""
+}
+
+func (x *ReviewFileChangesInput) GetScope() string {
+	if x != nil {
+		return x.Scope
+	}
+	return ""
+}
+
+func (x *ReviewFileChangesInput) GetFileChangeId() string {
+	if x != nil {
+		return x.FileChangeId
+	}
+	return ""
+}
+
+func (x *ReviewFileChangesInput) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *ReviewFileChangesInput) GetExpectedDigest() string {
+	if x != nil {
+		return x.ExpectedDigest
+	}
+	return ""
+}
+
+func (x *ReviewFileChangesInput) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *ReviewFileChangesInput) GetAcknowledgeUnreviewable() bool {
+	if x != nil {
+		return x.AcknowledgeUnreviewable
+	}
+	return false
+}
+
+// ReviewFileChangesResponse answers a recorded decision.
+type ReviewFileChangesResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The turn started to put undone files back now, when the decision was
+	// an undo on a turn that had ended; empty otherwise, or when no turn
+	// could be started then (the next turn puts them back before its agent
+	// runs).
+	ReconcileRunId string `protobuf:"bytes,1,opt,name=reconcile_run_id,json=reconcileRunId,proto3" json:"reconcile_run_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ReviewFileChangesResponse) Reset() {
+	*x = ReviewFileChangesResponse{}
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReviewFileChangesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReviewFileChangesResponse) ProtoMessage() {}
+
+func (x *ReviewFileChangesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReviewFileChangesResponse.ProtoReflect.Descriptor instead.
+func (*ReviewFileChangesResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ReviewFileChangesResponse) GetReconcileRunId() string {
+	if x != nil {
+		return x.ReconcileRunId
+	}
+	return ""
+}
+
 // ListSessionEventsRequest pages through one session's event log.
 type ListSessionEventsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -476,7 +639,7 @@ type ListSessionEventsRequest struct {
 
 func (x *ListSessionEventsRequest) Reset() {
 	*x = ListSessionEventsRequest{}
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -488,7 +651,7 @@ func (x *ListSessionEventsRequest) String() string {
 func (*ListSessionEventsRequest) ProtoMessage() {}
 
 func (x *ListSessionEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -501,7 +664,7 @@ func (x *ListSessionEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionEventsRequest.ProtoReflect.Descriptor instead.
 func (*ListSessionEventsRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListSessionEventsRequest) GetSessionId() string {
@@ -588,7 +751,7 @@ type SessionEventList struct {
 
 func (x *SessionEventList) Reset() {
 	*x = SessionEventList{}
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -600,7 +763,7 @@ func (x *SessionEventList) String() string {
 func (*SessionEventList) ProtoMessage() {}
 
 func (x *SessionEventList) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -613,7 +776,7 @@ func (x *SessionEventList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionEventList.ProtoReflect.Descriptor instead.
 func (*SessionEventList) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *SessionEventList) GetEvents() []*SessionEvent {
@@ -650,7 +813,7 @@ type StreamSessionEventsRequest struct {
 
 func (x *StreamSessionEventsRequest) Reset() {
 	*x = StreamSessionEventsRequest{}
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -662,7 +825,7 @@ func (x *StreamSessionEventsRequest) String() string {
 func (*StreamSessionEventsRequest) ProtoMessage() {}
 
 func (x *StreamSessionEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -675,7 +838,7 @@ func (x *StreamSessionEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamSessionEventsRequest.ProtoReflect.Descriptor instead.
 func (*StreamSessionEventsRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *StreamSessionEventsRequest) GetSessionId() string {
@@ -718,7 +881,7 @@ type StreamSessionEventsResponse struct {
 
 func (x *StreamSessionEventsResponse) Reset() {
 	*x = StreamSessionEventsResponse{}
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -730,7 +893,7 @@ func (x *StreamSessionEventsResponse) String() string {
 func (*StreamSessionEventsResponse) ProtoMessage() {}
 
 func (x *StreamSessionEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -743,7 +906,7 @@ func (x *StreamSessionEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamSessionEventsResponse.ProtoReflect.Descriptor instead.
 func (*StreamSessionEventsResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *StreamSessionEventsResponse) GetFrame() isStreamSessionEventsResponse_Frame {
@@ -839,7 +1002,7 @@ type SessionEventPreview struct {
 
 func (x *SessionEventPreview) Reset() {
 	*x = SessionEventPreview{}
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -851,7 +1014,7 @@ func (x *SessionEventPreview) String() string {
 func (*SessionEventPreview) ProtoMessage() {}
 
 func (x *SessionEventPreview) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -864,7 +1027,7 @@ func (x *SessionEventPreview) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionEventPreview.ProtoReflect.Descriptor instead.
 func (*SessionEventPreview) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{11}
+	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SessionEventPreview) GetPreview() isSessionEventPreview_Preview {
@@ -944,7 +1107,7 @@ type AppendSessionEventsInput struct {
 
 func (x *AppendSessionEventsInput) Reset() {
 	*x = AppendSessionEventsInput{}
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -956,7 +1119,7 @@ func (x *AppendSessionEventsInput) String() string {
 func (*AppendSessionEventsInput) ProtoMessage() {}
 
 func (x *AppendSessionEventsInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -969,7 +1132,7 @@ func (x *AppendSessionEventsInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendSessionEventsInput.ProtoReflect.Descriptor instead.
 func (*AppendSessionEventsInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{12}
+	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AppendSessionEventsInput) GetRunId() string {
@@ -1007,7 +1170,7 @@ type AppendSessionEventsResponse struct {
 
 func (x *AppendSessionEventsResponse) Reset() {
 	*x = AppendSessionEventsResponse{}
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1019,7 +1182,7 @@ func (x *AppendSessionEventsResponse) String() string {
 func (*AppendSessionEventsResponse) ProtoMessage() {}
 
 func (x *AppendSessionEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1032,7 +1195,7 @@ func (x *AppendSessionEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendSessionEventsResponse.ProtoReflect.Descriptor instead.
 func (*AppendSessionEventsResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{13}
+	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *AppendSessionEventsResponse) GetEvents() []*SessionEvent {
@@ -1075,7 +1238,21 @@ const file_ai_stigmer_agentic_session_v1_io_proto_rawDesc = "" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\"O\n" +
 	"\x1bUpdateSessionSubjectRequest\x12\x16\n" +
 	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x18\n" +
-	"\asubject\x18\x02 \x01(\tR\asubject\"\x9a\x03\n" +
+	"\asubject\x18\x02 \x01(\tR\asubject\"\x90\x04\n" +
+	"\x16ReviewFileChangesInput\x12&\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\x12+\n" +
+	"\rchange_set_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vchangeSetId\x12-\n" +
+	"\x05scope\x18\x03 \x01(\tB\x17\xbaH\x14r\x12R\n" +
+	"change_setR\x04fileR\x05scope\x12$\n" +
+	"\x0efile_change_id\x18\x04 \x01(\tR\ffileChangeId\x12)\n" +
+	"\x06action\x18\x05 \x01(\tB\x11\xbaH\x0er\fR\x04keepR\x04undoR\x06action\x120\n" +
+	"\x0fexpected_digest\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0eexpectedDigest\x12 \n" +
+	"\x06reason\x18\a \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x06reason\x129\n" +
+	"\x18acknowledge_unreviewable\x18\b \x01(\bR\x17acknowledgeUnreviewable:\x91\x01\xbaH\x8d\x01\x1a\x8a\x01\n" +
+	"\"review_file_changes.file_change_id\x12-file_change_id is required when scope is file\x1a5this.scope != 'file' || size(this.file_change_id) > 0\"E\n" +
+	"\x19ReviewFileChangesResponse\x12(\n" +
+	"\x10reconcile_run_id\x18\x01 \x01(\tR\x0ereconcileRunId\"\x9a\x03\n" +
 	"\x18ListSessionEventsRequest\x12%\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12'\n" +
@@ -1136,7 +1313,7 @@ func file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_ai_stigmer_agentic_session_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_ai_stigmer_agentic_session_v1_io_proto_goTypes = []any{
 	(*SessionId)(nil),                    // 0: ai.stigmer.agentic.session.v1.SessionId
 	(*AgentId)(nil),                      // 1: ai.stigmer.agentic.session.v1.AgentId
@@ -1145,32 +1322,34 @@ var file_ai_stigmer_agentic_session_v1_io_proto_goTypes = []any{
 	(*ListSessionsByAgentRequest)(nil),   // 4: ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest
 	(*ListSessionsByChannelRequest)(nil), // 5: ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest
 	(*UpdateSessionSubjectRequest)(nil),  // 6: ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest
-	(*ListSessionEventsRequest)(nil),     // 7: ai.stigmer.agentic.session.v1.ListSessionEventsRequest
-	(*SessionEventList)(nil),             // 8: ai.stigmer.agentic.session.v1.SessionEventList
-	(*StreamSessionEventsRequest)(nil),   // 9: ai.stigmer.agentic.session.v1.StreamSessionEventsRequest
-	(*StreamSessionEventsResponse)(nil),  // 10: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse
-	(*SessionEventPreview)(nil),          // 11: ai.stigmer.agentic.session.v1.SessionEventPreview
-	(*AppendSessionEventsInput)(nil),     // 12: ai.stigmer.agentic.session.v1.AppendSessionEventsInput
-	(*AppendSessionEventsResponse)(nil),  // 13: ai.stigmer.agentic.session.v1.AppendSessionEventsResponse
-	(*Session)(nil),                      // 14: ai.stigmer.agentic.session.v1.Session
-	(*SessionEvent)(nil),                 // 15: ai.stigmer.agentic.session.v1.SessionEvent
-	(*EventStart)(nil),                   // 16: ai.stigmer.agentic.session.v1.EventStart
-	(*EventDelta)(nil),                   // 17: ai.stigmer.agentic.session.v1.EventDelta
-	(*ToolOutputDelta)(nil),              // 18: ai.stigmer.agentic.session.v1.ToolOutputDelta
+	(*ReviewFileChangesInput)(nil),       // 7: ai.stigmer.agentic.session.v1.ReviewFileChangesInput
+	(*ReviewFileChangesResponse)(nil),    // 8: ai.stigmer.agentic.session.v1.ReviewFileChangesResponse
+	(*ListSessionEventsRequest)(nil),     // 9: ai.stigmer.agentic.session.v1.ListSessionEventsRequest
+	(*SessionEventList)(nil),             // 10: ai.stigmer.agentic.session.v1.SessionEventList
+	(*StreamSessionEventsRequest)(nil),   // 11: ai.stigmer.agentic.session.v1.StreamSessionEventsRequest
+	(*StreamSessionEventsResponse)(nil),  // 12: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse
+	(*SessionEventPreview)(nil),          // 13: ai.stigmer.agentic.session.v1.SessionEventPreview
+	(*AppendSessionEventsInput)(nil),     // 14: ai.stigmer.agentic.session.v1.AppendSessionEventsInput
+	(*AppendSessionEventsResponse)(nil),  // 15: ai.stigmer.agentic.session.v1.AppendSessionEventsResponse
+	(*Session)(nil),                      // 16: ai.stigmer.agentic.session.v1.Session
+	(*SessionEvent)(nil),                 // 17: ai.stigmer.agentic.session.v1.SessionEvent
+	(*EventStart)(nil),                   // 18: ai.stigmer.agentic.session.v1.EventStart
+	(*EventDelta)(nil),                   // 19: ai.stigmer.agentic.session.v1.EventDelta
+	(*ToolOutputDelta)(nil),              // 20: ai.stigmer.agentic.session.v1.ToolOutputDelta
 }
 var file_ai_stigmer_agentic_session_v1_io_proto_depIdxs = []int32{
-	14, // 0: ai.stigmer.agentic.session.v1.SessionList.entries:type_name -> ai.stigmer.agentic.session.v1.Session
-	15, // 1: ai.stigmer.agentic.session.v1.SessionEventList.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
-	15, // 2: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
-	16, // 3: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event_start:type_name -> ai.stigmer.agentic.session.v1.EventStart
-	17, // 4: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event_delta:type_name -> ai.stigmer.agentic.session.v1.EventDelta
-	18, // 5: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.stigmer_tool_output_delta:type_name -> ai.stigmer.agentic.session.v1.ToolOutputDelta
-	16, // 6: ai.stigmer.agentic.session.v1.SessionEventPreview.event_start:type_name -> ai.stigmer.agentic.session.v1.EventStart
-	17, // 7: ai.stigmer.agentic.session.v1.SessionEventPreview.event_delta:type_name -> ai.stigmer.agentic.session.v1.EventDelta
-	18, // 8: ai.stigmer.agentic.session.v1.SessionEventPreview.stigmer_tool_output_delta:type_name -> ai.stigmer.agentic.session.v1.ToolOutputDelta
-	15, // 9: ai.stigmer.agentic.session.v1.AppendSessionEventsInput.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
-	11, // 10: ai.stigmer.agentic.session.v1.AppendSessionEventsInput.previews:type_name -> ai.stigmer.agentic.session.v1.SessionEventPreview
-	15, // 11: ai.stigmer.agentic.session.v1.AppendSessionEventsResponse.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	16, // 0: ai.stigmer.agentic.session.v1.SessionList.entries:type_name -> ai.stigmer.agentic.session.v1.Session
+	17, // 1: ai.stigmer.agentic.session.v1.SessionEventList.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	17, // 2: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	18, // 3: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event_start:type_name -> ai.stigmer.agentic.session.v1.EventStart
+	19, // 4: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event_delta:type_name -> ai.stigmer.agentic.session.v1.EventDelta
+	20, // 5: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.stigmer_tool_output_delta:type_name -> ai.stigmer.agentic.session.v1.ToolOutputDelta
+	18, // 6: ai.stigmer.agentic.session.v1.SessionEventPreview.event_start:type_name -> ai.stigmer.agentic.session.v1.EventStart
+	19, // 7: ai.stigmer.agentic.session.v1.SessionEventPreview.event_delta:type_name -> ai.stigmer.agentic.session.v1.EventDelta
+	20, // 8: ai.stigmer.agentic.session.v1.SessionEventPreview.stigmer_tool_output_delta:type_name -> ai.stigmer.agentic.session.v1.ToolOutputDelta
+	17, // 9: ai.stigmer.agentic.session.v1.AppendSessionEventsInput.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	13, // 10: ai.stigmer.agentic.session.v1.AppendSessionEventsInput.previews:type_name -> ai.stigmer.agentic.session.v1.SessionEventPreview
+	17, // 11: ai.stigmer.agentic.session.v1.AppendSessionEventsResponse.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
 	12, // [12:12] is the sub-list for method output_type
 	12, // [12:12] is the sub-list for method input_type
 	12, // [12:12] is the sub-list for extension type_name
@@ -1185,14 +1364,14 @@ func file_ai_stigmer_agentic_session_v1_io_proto_init() {
 	}
 	file_ai_stigmer_agentic_session_v1_api_proto_init()
 	file_ai_stigmer_agentic_session_v1_event_proto_init()
-	file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[9].OneofWrappers = []any{}
-	file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[10].OneofWrappers = []any{
+	file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[11].OneofWrappers = []any{}
+	file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[12].OneofWrappers = []any{
 		(*StreamSessionEventsResponse_Event)(nil),
 		(*StreamSessionEventsResponse_EventStart)(nil),
 		(*StreamSessionEventsResponse_EventDelta)(nil),
 		(*StreamSessionEventsResponse_StigmerToolOutputDelta)(nil),
 	}
-	file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[11].OneofWrappers = []any{
+	file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[13].OneofWrappers = []any{
 		(*SessionEventPreview_EventStart)(nil),
 		(*SessionEventPreview_EventDelta)(nil),
 		(*SessionEventPreview_StigmerToolOutputDelta)(nil),
@@ -1203,7 +1382,7 @@ func file_ai_stigmer_agentic_session_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -970,6 +970,45 @@ ai.stigmer.agentic.run.v1.TodoItem defaultValue);
 
   /**
    * <pre>
+   * Every skill and plugin a turn of this run loaded, for the agent and its
+   * subagents, at the version it loaded. A turn that resumes after a pause
+   * and loads a newer version adds an entry, so a run that ran two versions
+   * of one skill lists both. Empty for a run that loaded none, and for runs
+   * that predate this field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+   * @return Whether the loadedVersions field is set.
+   */
+  boolean hasLoadedVersions();
+  /**
+   * <pre>
+   * Every skill and plugin a turn of this run loaded, for the agent and its
+   * subagents, at the version it loaded. A turn that resumes after a pause
+   * and loads a newer version adds an entry, so a run that ran two versions
+   * of one skill lists both. Empty for a run that loaded none, and for runs
+   * that predate this field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+   * @return The loadedVersions.
+   */
+  ai.stigmer.agentic.run.v1.LoadedVersions getLoadedVersions();
+  /**
+   * <pre>
+   * Every skill and plugin a turn of this run loaded, for the agent and its
+   * subagents, at the version it loaded. A turn that resumes after a pause
+   * and loads a newer version adds an entry, so a run that ran two versions
+   * of one skill lists both. Empty for a run that loaded none, and for runs
+   * that predate this field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
+   */
+  ai.stigmer.agentic.run.v1.LoadedVersionsOrBuilder getLoadedVersionsOrBuilder();
+
+  /**
+   * <pre>
    * Standing preferences declared by the organization and the calling user,
    * snapshotted into this run at create time.
    * </pre>

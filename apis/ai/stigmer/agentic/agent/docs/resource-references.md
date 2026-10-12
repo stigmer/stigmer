@@ -16,7 +16,8 @@ version: stable
 |---|---|---|---|
 | `org` | No | `^$\|^[a-z][a-z0-9-]*[a-z0-9]$\|^org_[0-9a-z]{26}$`, at most 63 chars | Organization that owns the referenced resource. Empty = relative reference (resolved from the parent resource's `metadata.org` at write time). |
 | `kind` | Yes | Lowercase string enum name | Resource kind. See [Kind Values](#kind-values). |
-| `slug` | Yes | `^[a-z][a-z0-9-]*[a-z0-9]$`, 2 to 63 chars | Resource slug, unique within the organization. |
+| `id` | No | A resource id, at most 64 chars | The target's id, which a stored reference holds. Name the target by `id`, by `slug`, or by both. |
+| `slug` | One of `id` or `slug` | `^[a-z][a-z0-9-]*[a-z0-9]$`, 2 to 63 chars | Resource slug, unique within the organization. |
 | `version` | No | Tag, hash, or empty | Version pin. Only applicable to versioned resources (Skills, Plugins, and Agents listed in `subagents`). Ignored for non-versioned resources. |
 
 ## Kind Values
@@ -139,7 +140,9 @@ Tags are mutable pointers — `stable` may point to different content over time.
 The proto enforces these constraints via `buf.validate`:
 
 - `org`: optional, matches `^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[0-9a-z]{26}$`, at most 63 chars (empty string allowed for relative references)
-- `slug`: required, matches `^[a-z][a-z0-9-]*[a-z0-9]$`, 2 to 63 chars
+- `id`: optional, at most 64 chars
+- `slug`: optional when `id` is set, matches `^[a-z][a-z0-9-]*[a-z0-9]$`, 2 to 63 chars
+- `id` or `slug`: one of them is required (`reference.id_or_slug`)
 - `version`: optional, matches `^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$`
 - `kind`: required, must be a defined `ApiResourceKind` enum value
 

@@ -698,7 +698,7 @@ describe("lifecycle pipelines", () => {
   });
 
   // The lifecycle persist step is notify
-  // site 2 of 5 — the user-initiated terminal transitions the update-status
+  // site 2 of 4 — the user-initiated terminal transitions the update-status
   // chokepoint never sees MUST reach the composed observers (a billing
   // composition's finalize settles on exactly these).
   it("cancel notifies the composed status observers with the persisted transition", async () => {

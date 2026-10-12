@@ -21,7 +21,8 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import { displayFileChangeSets, syntheticUserPrompt } from "@stigmer/sdk";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { deletedReferenceLabel, displayFileChangeSets, isDeletedReference, syntheticUserPrompt } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { isTerminalPhase } from "./run-phases.js";
 import { MessageEntry, type MessageEntryProps } from "./MessageEntry.js";
@@ -428,6 +429,7 @@ export type ThreadItem =
   | { readonly kind: "recalled-memories"; readonly report: RecalledMemoriesReport; readonly facts: readonly RecalledMemoryFact[]; readonly key: string }
   | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
   | { readonly kind: "agent-version"; readonly versionHash: string; readonly label: string; readonly key: string }
+  | { readonly kind: "loaded-versions"; readonly changes: readonly LoadedVersionChange[]; readonly key: string }
   | {
       readonly kind: "todos";
       readonly key: string;
@@ -678,6 +680,9 @@ export function buildThreadItems(
   // The version the previous turn ran, so a marker appears only where the
   // version a turn ran starts or changes.
   let lastAgentVersionHash = "";
+  // What the last turn that recorded a list loaded, so a marker appears only
+  // where a skill or plugin it loaded moved to another version.
+  let lastLoaded: ReadonlyMap<string, LoadedVersionChange> | undefined;
   // Tool-call ids that render as an inline-approval-capable ToolCallItem (a
   // regular parent tool, or a sub-agent's nested tool). Their approvals show
   // inline on the row, so they are excluded from the bottom backstop below —
@@ -844,6 +849,27 @@ export function buildThreadItems(
         label: agentVersionLabel(turnVersionHash),
         key: `${execId}-agent-version`,
       });
+    }
+
+    // A skill or plugin this turn loaded at another version than the turn
+    // before it opens the segment too. A resource the previous turn did not
+    // load is not "updated" (a new one arrives with a new agent version),
+    // and a turn that recorded no list (older runs, the built-in assistant)
+    // leaves the comparison where it stands.
+    const turnLoaded = lastLoadedVersions(exec);
+    if (turnLoaded !== undefined) {
+      const previous = lastLoaded;
+      const changes =
+        previous === undefined
+          ? []
+          : [...turnLoaded.entries()].flatMap(([resource, entry]) => {
+              const before = previous.get(resource);
+              return before !== undefined && before.version !== entry.version ? [entry] : [];
+            });
+      if (changes.length > 0) {
+        items.push({ kind: "loaded-versions", changes, key: `${execId}-loaded-versions` });
+      }
+      lastLoaded = turnLoaded;
     }
 
     // The user-turn synthesis rule (empty / "execute" placeholder /
@@ -1743,6 +1769,8 @@ export function ThreadItemRenderer({
       return <SummarizationCard event={item.event} />;
     case "agent-version":
       return <AgentVersionMarker label={item.label} />;
+    case "loaded-versions":
+      return <LoadedVersionsMarker changes={item.changes} />;
     case "liveness": {
       const Liveness = slots?.LivenessStatusLine ?? LivenessStatusLine;
       return <Liveness />;
@@ -1818,6 +1846,73 @@ function AgentVersionMarker({ label }: { readonly label: string }) {
     >
       <span aria-hidden="true" className="stg:h-px stg:flex-1 stg:bg-border" />
       <span>Agent version {label}</span>
+      <span aria-hidden="true" className="stg:h-px stg:flex-1 stg:bg-border" />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// LoadedVersionsMarker — the skills and plugins that moved under a turn
+// ---------------------------------------------------------------------------
+
+/**
+ * One skill or plugin a turn loaded (`RunStatus.loaded_versions`): its
+ * kind, its id, the slug the server filled (empty once it was deleted) and
+ * the version that ran.
+ *
+ * @internal Exported as part of {@link ThreadItem} — not part of the public
+ * API.
+ */
+export interface LoadedVersionChange {
+  readonly kind: ApiResourceKind;
+  readonly id: string;
+  readonly slug: string;
+  readonly version: string;
+}
+
+/**
+ * The version a run last loaded of each skill and plugin, keyed by kind and
+ * id: a run resumed after a push holds both versions, and the later one is
+ * what its last attempt ran. Undefined for a run that recorded none.
+ */
+function lastLoadedVersions(run: Run): ReadonlyMap<string, LoadedVersionChange> | undefined {
+  const loaded = run.status?.loadedVersions;
+  if (loaded === undefined || (loaded.skills.length === 0 && loaded.plugins.length === 0)) return undefined;
+  const byResource = new Map<string, LoadedVersionChange>();
+  const lists = [
+    [ApiResourceKind.skill, loaded.skills],
+    [ApiResourceKind.plugin, loaded.plugins],
+  ] as const;
+  for (const [kind, refs] of lists) {
+    for (const ref of refs) {
+      byResource.set(`${kind}/${ref.id}`, { kind, id: ref.id, slug: ref.slug, version: ref.version });
+    }
+  }
+  return byResource;
+}
+
+/** How one moved resource reads: "Skill refunds updated", or "Deleted skill updated" once it is gone. */
+function loadedVersionChangeText(change: LoadedVersionChange): string {
+  if (isDeletedReference(change)) {
+    const label = deletedReferenceLabel(change.kind);
+    return `${label.charAt(0).toUpperCase()}${label.slice(1)} updated`;
+  }
+  return `${change.kind === ApiResourceKind.skill ? "Skill" : "Plugin"} ${change.slug} updated`;
+}
+
+/**
+ * A quiet centered divider naming each skill and plugin the turns below it
+ * ran at a newer version than the turn before, in the agent version
+ * marker's form. Needs no consumer wiring: the server fills each name.
+ */
+function LoadedVersionsMarker({ changes }: { readonly changes: readonly LoadedVersionChange[] }) {
+  return (
+    <div
+      className="stg:flex stg:items-center stg:gap-3 stg:px-4 stg:py-2 stg:text-xs stg:text-muted-foreground"
+      data-testid="loaded-versions-marker"
+    >
+      <span aria-hidden="true" className="stg:h-px stg:flex-1 stg:bg-border" />
+      <span>{changes.map(loadedVersionChangeText).join(" · ")}</span>
       <span aria-hidden="true" className="stg:h-px stg:flex-1 stg:bg-border" />
     </div>
   );

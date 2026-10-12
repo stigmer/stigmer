@@ -59,7 +59,11 @@
  *     input replaces the arguments. No decision falls through.
  *  3. Capture mode keeps its flow-and-review bookkeeping for whatever runs:
  *     capture is review, not approval, so a hook's `allow` never skips it.
- *  4. The default, only when no hook decided.
+ *     With no hook deciding, a built-in write or delete then flows when the
+ *     turn's file review is off (`file_review_off`), or when capture would
+ *     review it (`file_capture`).
+ *  4. The default, only when no hook decided: for a built-in write or
+ *     delete that means a turn with review on and nothing to capture it.
  *  5. The handler; when it succeeds, PostToolUse. Every hook's context, and
  *     a PostToolUse hook's reasons for blocking, are appended to the result.
  *
@@ -146,9 +150,25 @@ export interface ApprovalGateConfig {
    */
   readonly fileCaptureMode?: boolean;
   /**
-   * Capturability predicate for {@link fileCaptureMode}: given a tool's raw target
-   * path (as the model wrote it), resolves true when the path would be captured by
-   * the git snapshot (tracked / not gitignored). Injected by setup so the gate
+   * The turn's file review is off (`TurnWorkspace.fileReview` false): a
+   * built-in `write`/`delete` FLOWS and is not reviewed, with no capture
+   * bookkeeping. The secret-like write block still applies first, keyed on
+   * {@link fileCaptureSubstrate}; `shell` and MCP tools are unaffected.
+   * Absent or false keeps review's rules (capture, or the deny-gate).
+   */
+  readonly fileReviewOff?: boolean;
+  /**
+   * The workspace can capture file edits (`TurnWorkspace.captureSubstrate`),
+   * whatever review says: the secret-like write block lets a secret-like path
+   * through only where it holds and the path is git-capturable
+   * ({@link isCapturablePath}). Absent falls back to {@link fileCaptureMode},
+   * which implies it.
+   */
+  readonly fileCaptureSubstrate?: boolean;
+  /**
+   * Capturability predicate for {@link fileCaptureMode} and the secret-like write
+   * block: given a tool's raw target path (as the model wrote it), resolves true
+   * when the path would be captured by the git snapshot (tracked / not gitignored). Injected by setup so the gate
    * stays pure and testable, and so the harness owns path normalization (the
    * deep-agent virtual-root path mapping). Absent ⇒ nothing is bypassed (safe).
    */
@@ -327,10 +347,9 @@ export function createApprovalGateMiddleware(
       }
       if (globalBypass) return run("auto_approve_all", "auto_approve");
 
-      // 3. Capture mode: a mutation it can review flows.
-      if (await captureFlows(config, call.toolCall, serverSlug, category)) {
-        return run("file_capture", "auto_approve");
-      }
+      // 3. A file edit flows: review is off, or capture reviews it.
+      const flow = await fileEditFlows(config, call.toolCall, serverSlug, category);
+      if (flow !== undefined) return run(flow, "auto_approve");
 
       // 4. The default.
       const requirement = resolveToolApproval(toolName, serverSlug, call.toolCall.args, mcpDefault, leasedCategories);
@@ -473,11 +492,14 @@ function skipUnattended(config: ApprovalGateConfig, call: ToolCallRequest, hook:
  * has no capture substrate for it is never applied and never surfaced for
  * approval. Undefined when the call is not blocked.
  *
- * The cases, unchanged from before hooks: in capture mode a git-tracked path
- * flows (git reviews it); a gitignored or non-git one is blocked whether or
- * not a CAS observer backs the gate (`captureIgnored` would capture it, and
- * its content must not surface anywhere); outside capture mode, the classic
- * no-storage deny-gate, it is blocked. The turn boundary reads the recorded
+ * The cases, keyed on the workspace's substrate and never on review: where
+ * the workspace can capture and the path is git-tracked it flows (in capture
+ * mode git reviews it; with review off it is an ordinary tracked file, a
+ * committed `.env.example`, say); a gitignored or non-git one is blocked
+ * whether or not a CAS observer backs the gate (`captureIgnored` would
+ * capture it, and its content must not surface anywhere), and whether or not
+ * review is on; with no substrate (the classic no-storage deny-gate) it is
+ * blocked. The turn boundary reads the recorded
  * path to author a content-less DIFF_UNREVIEWABLE entry. A delete carries no
  * content, so a secret-like delete needs no block: a human may still approve
  * it on the card (its bytes are simply never captured).
@@ -491,9 +513,29 @@ async function secretWriteBlock(
   if (serverSlug || category !== "write") return undefined;
   const path = extractFilePath(toolCall.args);
   if (path === null || !isSecretLikePath(path)) return undefined;
-  if (config.fileCaptureMode && config.isCapturablePath && (await config.isCapturablePath(path))) return undefined;
+  const substrate = config.fileCaptureSubstrate ?? config.fileCaptureMode ?? false;
+  if (substrate && config.isCapturablePath && (await config.isCapturablePath(path))) return undefined;
   config.recordBlockedSecret?.(path);
   return secretBlockToolMessage(toolCall.name, path, toolCall.id);
+}
+
+/**
+ * Whether a built-in file write or delete flows unasked, and under which
+ * source: `file_review_off` when the turn's review is off (nothing is
+ * captured; a secret-like write was already blocked), `file_capture` when
+ * capture reviews it ({@link captureFlows}). `undefined` sends the call to
+ * the default: shell and MCP tools always, and a file edit in a turn with
+ * review on that capture cannot hold.
+ */
+async function fileEditFlows(
+  config: ApprovalGateConfig,
+  toolCall: ToolCallRequest["toolCall"],
+  serverSlug: string,
+  category: ToolApprovalCategory | undefined,
+): Promise<PolicySource | undefined> {
+  if (serverSlug || (category !== "write" && category !== "delete")) return undefined;
+  if (config.fileReviewOff) return "file_review_off";
+  return (await captureFlows(config, toolCall, serverSlug, category)) ? "file_capture" : undefined;
 }
 
 /**

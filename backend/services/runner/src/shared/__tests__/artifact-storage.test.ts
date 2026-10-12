@@ -834,10 +834,11 @@ describe("resolveUsableArtifactStorage", () => {
       ctx,
     );
 
-    // Non-git workspace + no usable storage => no capture substrate => deny-gate.
-    expect(deriveCaptureMode("/some/workspace", false, !!storage)).toBe(false);
+    // Non-git workspace + no usable storage => no capture substrate => a turn
+    // with review on falls to the deny-gate.
+    expect(deriveCaptureMode("/some/workspace", false, !!storage, true)).toBe(false);
     // A git workspace still captures (git substrate needs no storage), but its
     // gitignored->CAS edits and offload are off because the store is absent.
-    expect(deriveCaptureMode("/some/workspace", true, !!storage)).toBe(true);
+    expect(deriveCaptureMode("/some/workspace", true, !!storage, true)).toBe(true);
   });
 });

@@ -20,7 +20,7 @@
           "argsPreview": "{\"file_path\":\"/notes.md\",\"old_string\":\"first\\n\",\"new_string\":\"first\\nsecond\\n\"}",
           "toolKind": "TOOL_KIND_FILE_EDIT",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "policyEngineVersion": "hooks-1",
+          "policyEngineVersion": "hooks-2",
           "fileChangeSetId": "aex_hermetic_0001:0"
         }
       ]
@@ -31,8 +31,9 @@
       "timestamp": "2026-01-01T00:00:02.000Z"
     }
   ],
-  "phase": "RUN_WAITING_FOR_APPROVAL",
+  "phase": "RUN_COMPLETED",
   "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:02.000Z",
   "artifacts": [
     {
       "name": "notes.md",

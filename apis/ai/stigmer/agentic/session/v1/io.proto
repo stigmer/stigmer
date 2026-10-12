@@ -94,6 +94,63 @@ message UpdateSessionSubjectRequest {
   string subject = 2;
 }
 
+// ReviewFileChangesInput keeps or undoes a turn's file changes, or one of
+// its files.
+message ReviewFileChangesInput {
+  option (buf.validate.message).cel = {
+    id: "review_file_changes.file_change_id"
+    message: "file_change_id is required when scope is file"
+    expression: "this.scope != 'file' || size(this.file_change_id) > 0"
+  };
+
+  // The conversation.
+  string session_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The change set, as its stigmer.file_review.changes event names it.
+  string change_set_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // change_set (every file of the set) or file (the one file_change_id).
+  string scope = 3 [(buf.validate.field).string = {
+    in: [
+      "change_set",
+      "file"
+    ]
+  }];
+
+  // The file to decide, when scope is file.
+  string file_change_id = 4;
+
+  // keep or undo.
+  string action = 5 [(buf.validate.field).string = {
+    in: [
+      "keep",
+      "undo"
+    ]
+  }];
+
+  // The digest of what the person saw: the file's digest for scope file,
+  // the set's aggregate_digest for scope change_set. A decision against a
+  // change that differs is refused.
+  string expected_digest = 6 [(buf.validate.field).string.min_len = 1];
+
+  // An optional reason, kept with the decision.
+  string reason = 7 [(buf.validate.field).string.max_len = 2000];
+
+  // Set on a keep to keep a binary change consciously: its bytes can be
+  // put back, but it has no text diff to show. Ignored on an undo, and
+  // never relaxes expected_digest.
+  bool acknowledge_unreviewable = 8;
+}
+
+// ReviewFileChangesResponse answers a recorded decision.
+message ReviewFileChangesResponse {
+  // The turn started to put undone files back now, when the decision was
+  // an undo on a turn that had ended; empty otherwise, or when no turn
+  // could be started then (the next turn puts them back before its agent
+  // runs).
+  string reconcile_run_id = 1;
+}
+
 // ListSessionEventsRequest pages through one session's event log.
 message ListSessionEventsRequest {
   // The session whose events to list.

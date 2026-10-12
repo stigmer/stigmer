@@ -2,7 +2,9 @@
  * The TS-server half of the cross-edition file-review projection corpus
  * (apis/testdata/hitl/file-review) — ports filereview/corpus_test.go:
  * replays a persisted file_review ledger through projectFileChangeSets
- * and asserts the normalized projected summary (derived status, ordered
+ * (a fixture's `phase` is context only: the projection does not read it,
+ * so a finished run keeps its sets) and asserts the normalized projected
+ * summary (derived status, ordered
  * change ids, decision count, aggregate digest, approved-snapshot
  * presence; diff_completeness / blocked_reasons / acknowledged ids where
  * the fixture declares them). Also pins the file-digest vector corpus
@@ -10,14 +12,12 @@
  */
 import path from "node:path";
 
-import { create, enumFromJson, enumToJson, fromJson } from "@bufbuild/protobuf";
+import { create, enumToJson, fromJson } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
 import {
   FileReviewBlockReasonSchema,
   DiffCompletenessSchema,
-  RunPhase,
-  RunPhaseSchema,
   FileChangeSetStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { FileChangeSet } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
@@ -95,11 +95,7 @@ describe("shared file-review projection corpus", () => {
         stream.events.push(fromJson(FileReviewEventSchema, raw as never));
       }
 
-      const phase =
-        fx.phase === undefined || fx.phase === ""
-          ? RunPhase.RUN_PHASE_UNSPECIFIED
-          : enumFromJson(RunPhaseSchema, fx.phase);
-      const got = projectFileChangeSets(phase, stream);
+      const got = projectFileChangeSets(stream);
 
       expect(got.length, "projected change-set count").toBe(fx.expected.length);
       for (const [i, want] of fx.expected.entries()) {
