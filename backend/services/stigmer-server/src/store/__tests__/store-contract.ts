@@ -1231,6 +1231,30 @@ export function describeStoreContract(
       }
     });
 
+    it("currentMany answers every holder's current name in one read, and skips a holder with none", async () => {
+      const agent = (name: string) => ({ kind: "agent", org: "org_a", name });
+      await names().claim(agent("support"), "agt_1", T0);
+      await names().claim(agent("billing"), "agt_2", T0);
+      await names().claim({ kind: "skill", org: "org_a", name: "support" }, "skl_1", T0);
+      await names().rename({
+        kind: "agent", org: "org_a", id: "agt_2", from: "billing", to: "invoices", fromExpiresAt: T3, now: T1,
+      });
+
+      const found = await names().currentMany([
+        { kind: "agent", org: "org_a", id: "agt_1" },
+        { kind: "agent", org: "org_a", id: "agt_2" },
+        { kind: "skill", org: "org_a", id: "skl_1" },
+        // Same id, wrong scope or kind: no name.
+        { kind: "agent", org: "org_b", id: "agt_1" },
+        { kind: "plugin", org: "org_a", id: "skl_1" },
+        { kind: "agent", org: "org_a", id: "agt_gone" },
+      ]);
+      expect(
+        found.map((e) => `${e.kind}/${e.org}/${e.id}=${e.name}`).sort(),
+      ).toEqual(["agent/org_a/agt_1=support", "agent/org_a/agt_2=invoices", "skill/org_a/skl_1=support"]);
+      expect(await names().currentMany([])).toEqual([]);
+    });
+
     it("a name is unique within its kind and scope only", async () => {
       expect((await names().claim(key("acme"), "org_a", T0)).claimed).toBe(true);
       expect(

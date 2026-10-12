@@ -1,13 +1,14 @@
 /**
  * Pins the subagents a run's agent lists (run-subagents.ts), over a real
  * SQLite store holding an agent's head and an archived version:
- *   - each reference is read at the version its parent pinned: the head
- *     when the pin is the head's hash, an archived version by its hash;
- *     each carries its name in the turn (its slug) and its organization,
- *     the run's when the reference names none;
+ *   - each reference is read by the id it holds at the version its parent
+ *     pinned: the head when the pin is the head's hash, an archived version
+ *     by its hash; each carries its name in the turn (the agent's current
+ *     slug) and its organization, the run's when the reference names none;
  *   - a listed agent that is gone, and a pinned version it no longer has,
- *     refuse the create FAILED_PRECONDITION naming it;
- *   - no agent, an agent listing none, and a reference with no slug read
+ *     refuse the create FAILED_PRECONDITION naming it; a listed agent
+ *     deleted and remade under its name is gone, never the new agent;
+ *   - no agent, an agent listing none, and a reference naming nothing read
  *     nothing;
  *   - a store fault, reading the agent or its pinned version, is
  *     INTERNAL, never mistaken for a gone subagent or version.
@@ -76,17 +77,18 @@ afterAll(async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-function listing(...refs: Array<{ slug: string; version: string; org?: string }>): AgentSpec {
+/** An agent spec listing subagents as a stored row holds them: by id. */
+function listing(...refs: Array<{ id: string; version: string; org?: string }>): AgentSpec {
   return create(AgentSpecSchema, {
-    subagents: refs.map((ref) => ({ kind: ApiResourceKind.agent, org: ref.org ?? "", slug: ref.slug, version: ref.version })),
+    subagents: refs.map((ref) => ({ kind: ApiResourceKind.agent, org: ref.org ?? "", id: ref.id, version: ref.version })),
   });
 }
 
 describe("runSubagents", () => {
-  it("reads each subagent at its pinned version, by its slug, in its organization", async () => {
+  it("reads each subagent at its pinned version, by its id, in its organization, named by its slug", async () => {
     const subagents = await runSubagents(
       store,
-      listing({ slug: "researcher", version: OLDER, org: ORG }, { slug: "researcher", version: HEAD, org: OTHER_ORG }),
+      listing({ id: "agt_researcher", version: OLDER, org: ORG }, { id: "agt_theirs", version: HEAD, org: OTHER_ORG }),
       ORG,
     );
     expect(subagents.map((s) => [s.name, s.org, s.spec.instructions])).toEqual([
@@ -97,27 +99,38 @@ describe("runSubagents", () => {
   });
 
   it("reads the head when the pin is its hash, in the run's organization when the reference names none", async () => {
-    const [only, ...rest] = await runSubagents(store, listing({ slug: "researcher", version: HEAD }), ORG);
+    const [only, ...rest] = await runSubagents(store, listing({ id: "agt_researcher", version: HEAD }), ORG);
     expect(rest).toEqual([]);
     expect([only?.org, only?.spec.instructions]).toEqual([ORG, "Research, as it is now."]);
   });
 
-  it("refuses a listed agent that is gone, naming it", async () => {
-    const error = await runSubagents(store, listing({ slug: "departed", version: HEAD }), ORG).then(
+  it("refuses a listed agent that is gone, naming the id its reference holds", async () => {
+    const error = await runSubagents(store, listing({ id: "agt_departed", version: HEAD }), ORG).then(
       () => undefined,
       (e: unknown) => e,
     );
     expect(error).toBeInstanceOf(ConnectError);
     expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
-    expect((error as ConnectError).rawMessage).toBe(subagentGoneMessage("departed", HEAD));
+    expect((error as ConnectError).rawMessage).toBe(subagentGoneMessage("agt_departed", HEAD));
     expect((error as ConnectError).rawMessage).toBe(
-      `this conversation's agent lists subagent 'departed' at version ${HEAD.slice(0, 12)}, which no longer exists; save the agent again to list a version it has, or remove 'departed' from its subagents`,
+      `this conversation's agent lists subagent 'agt_departed' at version ${HEAD.slice(0, 12)}, which no longer exists; save the agent again to list a version it has, or remove 'agt_departed' from its subagents`,
     );
+  });
+
+  it("delete and remake: a listed agent deleted since is gone, though another agent now holds its name", async () => {
+    // agt_researcher holds "researcher"; the listing names the agent that
+    // held it before, in the same organization.
+    const error = await runSubagents(store, listing({ id: "agt_researcher_before", version: HEAD, org: ORG }), ORG).then(
+      () => undefined,
+      (e: unknown) => e,
+    );
+    expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
+    expect((error as ConnectError).rawMessage).toBe(subagentGoneMessage("agt_researcher_before", HEAD));
   });
 
   it("refuses a pinned version the agent no longer has, naming it", async () => {
     const gone = "c".repeat(64);
-    const error = await runSubagents(store, listing({ slug: "researcher", version: gone }), ORG).then(
+    const error = await runSubagents(store, listing({ id: "agt_researcher", version: gone }), ORG).then(
       () => undefined,
       (e: unknown) => e,
     );
@@ -125,17 +138,17 @@ describe("runSubagents", () => {
     expect((error as ConnectError).rawMessage).toBe(subagentGoneMessage("researcher", gone));
   });
 
-  it("reads nothing for no agent, an agent listing none, or a reference with no slug", async () => {
+  it("reads nothing for no agent, an agent listing none, or a reference naming nothing", async () => {
     expect(await runSubagents(store, undefined, ORG)).toEqual([]);
     expect(await runSubagents(store, create(AgentSpecSchema), ORG)).toEqual([]);
-    expect(await runSubagents(store, listing({ slug: "", version: HEAD }), ORG)).toEqual([]);
+    expect(await runSubagents(store, listing({ id: "", version: HEAD }), ORG)).toEqual([]);
   });
 
   it("answers a store fault INTERNAL, never a gone subagent", async () => {
     const failing = {
-      listResources: () => Promise.reject(new Error("disk gone")),
+      getResource: () => Promise.reject(new Error("disk gone")),
     } as unknown as Store;
-    const error = await runSubagents(failing, listing({ slug: "researcher", version: HEAD }), ORG).then(
+    const error = await runSubagents(failing, listing({ id: "agt_researcher", version: HEAD }), ORG).then(
       () => undefined,
       (e: unknown) => e,
     );
@@ -152,7 +165,7 @@ describe("runSubagents", () => {
         return typeof value === "function" ? value.bind(target) : value;
       },
     });
-    const error = await runSubagents(versionReadFails, listing({ slug: "researcher", version: OLDER }), ORG).then(
+    const error = await runSubagents(versionReadFails, listing({ id: "agt_researcher", version: OLDER }), ORG).then(
       () => undefined,
       (e: unknown) => e,
     );

@@ -629,6 +629,7 @@ export {
 export type {
   ResourceNameClaim,
   ResourceNameEntry,
+  ResourceNameHolder,
   ResourceNameKey,
   ResourceNameRename,
   ResourceNameState,
@@ -655,6 +656,21 @@ export {
   resourceNameKey,
 } from "./pipeline/steps/names.js";
 export type { NameHolder, NameTable, NamedKind } from "./pipeline/steps/names.js";
+// A reference holds the id of the resource it means (pipeline/steps/
+// references.ts): a composition's code that reads a stored reference reads
+// its target by that id, names it in copy by the target's current slug,
+// and resolves a reference it is handed (by id, or by org and slug) the
+// one way every chain does.
+export {
+  findByReference,
+  loadReferenced,
+  referenceDisplayName,
+  referenceDisplayNames,
+  resolveReferences,
+  resolveReferencesIn,
+} from "./pipeline/steps/references.js";
+export type { HeldReference } from "./pipeline/steps/references.js";
+export { fillReferenceNames } from "./pipeline/interceptors/resource-references.js";
 // The API-key verifier's refusal of a key created before sign-in was
 // turned on (stigmer/stigmer#1169): a client branches on the reason, not
 // the copy.

@@ -41,8 +41,8 @@ export const NO_DOWNLOADABLE_MEDIA_MESSAGE = "no downloadable media at this time
 /** InvalidArgument copy when metadata.org is absent — Go, byte-pinned. */
 export const ORG_REQUIRED_MESSAGE = "metadata.org is required for an agent channel";
 
-/** InvalidArgument copy when spec.agent_ref.slug is absent — Go, pinned. */
-export const AGENT_REF_SLUG_REQUIRED_MESSAGE = "spec.agent_ref.slug is required";
+/** InvalidArgument copy when spec.agent_ref names no agent, by slug or by id. */
+export const AGENT_REF_REQUIRED_MESSAGE = "spec.agent_ref is required";
 
 /**
  * FailedPrecondition copy for the same-org invariant — Go

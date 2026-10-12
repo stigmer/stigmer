@@ -365,7 +365,7 @@ private static final long serialVersionUID = 0L;
    * WhatsApp channel installs through your own Meta app.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
    * @return Whether the appRef field is set.
    */
   @java.lang.Override
@@ -384,7 +384,7 @@ private static final long serialVersionUID = 0L;
    * WhatsApp channel installs through your own Meta app.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
    * @return The appRef.
    */
   @java.lang.Override
@@ -403,7 +403,7 @@ private static final long serialVersionUID = 0L;
    * WhatsApp channel installs through your own Meta app.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
    */
   @java.lang.Override
   public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAppRefOrBuilder() {
@@ -2168,7 +2168,7 @@ private static final long serialVersionUID = 0L;
      * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
      * @return Whether the appRef field is set.
      */
     public boolean hasAppRef() {
@@ -2186,7 +2186,7 @@ private static final long serialVersionUID = 0L;
      * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
      * @return The appRef.
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference getAppRef() {
@@ -2208,7 +2208,7 @@ private static final long serialVersionUID = 0L;
      * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
      */
     public Builder setAppRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (appRefBuilder_ == null) {
@@ -2235,7 +2235,7 @@ private static final long serialVersionUID = 0L;
      * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
      */
     public Builder setAppRef(
         ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
@@ -2260,7 +2260,7 @@ private static final long serialVersionUID = 0L;
      * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
      */
     public Builder mergeAppRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (appRefBuilder_ == null) {
@@ -2292,7 +2292,7 @@ private static final long serialVersionUID = 0L;
      * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
      */
     public Builder clearAppRef() {
       bitField0_ = (bitField0_ & ~0x00000020);
@@ -2316,7 +2316,7 @@ private static final long serialVersionUID = 0L;
      * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getAppRefBuilder() {
       bitField0_ |= 0x00000020;
@@ -2335,7 +2335,7 @@ private static final long serialVersionUID = 0L;
      * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAppRefOrBuilder() {
       if (appRefBuilder_ != null) {
@@ -2357,7 +2357,7 @@ private static final long serialVersionUID = 0L;
      * WhatsApp channel installs through your own Meta app.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.ai.stigmer.commons.apiresource.reference_kind) = channel_app];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 

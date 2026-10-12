@@ -309,17 +309,16 @@ var File_ai_stigmer_agentic_run_v1_invocation_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_invocation_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xec\x06\n" +
-	"\x0fAgentInvocation\x12\xb6\x01\n" +
-	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
-	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12$\n" +
+	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xbd\x05\n" +
+	"\x0fAgentInvocation\x12]\n" +
+	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
+	"\xbaH\x03\xc8\x01\x01\xe0\x85,(R\bagentRef\x12$\n" +
 	"\amessage\x18\x02 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80@R\amessage\x12@\n" +
 	"\aharness\x18\x03 \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12\xa9\x02\n" +
 	"\x11workspace_entries\x18\x04 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryB\xcc\x01\xbaH\xc8\x01\x92\x01\xc4\x01\"\xc1\x01\xba\x01\xbd\x01\n" +
-	"\x1aworkspace_entries.no_token\x12_a repository here cannot carry a token: save it as a connection in a vault the invocation names\x1a>!has(this.source.git_repo) || this.source.git_repo.token == ''R\x10workspaceEntries\x12\xae\x01\n" +
-	"\x06vaults\x18\a \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB`\xbaHY\x92\x01V\x10\x14\"R\xba\x01O\n" +
-	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12C\n" +
+	"\x1aworkspace_entries.no_token\x12_a repository here cannot carry a token: save it as a connection in a vault the invocation names\x1a>!has(this.source.git_repo) || this.source.git_repo.token == ''R\x10workspaceEntries\x12Z\n" +
+	"\x06vaults\x18\a \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,;R\x06vaults\x12C\n" +
 	"\n" +
 	"run_config\x18\x06 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfigJ\x04\b\x05\x10\x06R\x10environment_refs\"\xf6\x02\n" +
 	"\tRunConfig\x12\x1d\n" +

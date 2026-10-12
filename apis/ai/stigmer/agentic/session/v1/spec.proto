@@ -46,17 +46,10 @@ message SessionSpec {
   // @internal
   // Another organization's agent is accepted only when it is this
   // organization's parent's, shared at visibility_child_orgs
-  // (the reference rule). The resolved id beside the reference is what
-  // every turn reads, by point read, so a slug deleted and taken by another
-  // agent never redirects a live conversation (the share's pin).
-  ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [
-    (ai.stigmer.commons.apiresource.reference_kind) = agent,
-    (buf.validate.field).cel = {
-      id: "session_agent_ref.kind"
-      message: "agent_ref must reference a resource with kind=agent"
-      expression: "this.kind == 40"
-    }
-  ];
+  // (the reference rule). The reference holds the agent's id, which every
+  // turn reads by point read, so a slug deleted and taken by another agent
+  // never redirects a live conversation (the share's pin).
+  ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [(ai.stigmer.commons.apiresource.reference_kind) = agent];
 
   // Conversation title for UI display.
   string subject = 2;
@@ -120,15 +113,9 @@ message SessionSpec {
   // whose content is added to the agent's context alongside agent-level skills.
   //
   // @internal
-  // Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [
-    (ai.stigmer.commons.apiresource.reference_kind) = skill,
-    (buf.validate.field).repeated.items.cel = {
-      id: "session_skill_refs.kind"
-      message: "skill_refs must reference resources with kind=skill"
-      expression: "this.kind == 43"
-    }
-  ];
+  // Merge semantics: union'd with agent-level skill_refs, deduplicated by the
+  // skill's current name (a skill mounts by its name).
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [(ai.stigmer.commons.apiresource.reference_kind) = skill];
 
   // Execution harness for this session.
   //
@@ -200,12 +187,7 @@ message SessionSpec {
   // run has no person.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 15 [
     (ai.stigmer.commons.apiresource.reference_kind) = vault,
-    (buf.validate.field).repeated.max_items = 20,
-    (buf.validate.field).repeated.items.cel = {
-      id: "vaults.kind"
-      message: "vaults must reference resources with kind=vault"
-      expression: "this.kind == 59"
-    }
+    (buf.validate.field).repeated.max_items = 20
   ];
 
   // Fields 16 and 17 held secrets and logins handed to one conversation
@@ -233,14 +215,7 @@ message SessionSpec {
   // Added to the agent version's plugins, one entry per plugin; this
   // reference's version wins when both name it. Resolved at turn start, the
   // reference's version when set, else the installed version.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [
-    (ai.stigmer.commons.apiresource.reference_kind) = plugin,
-    (buf.validate.field).repeated.items.cel = {
-      id: "session_plugins.kind"
-      message: "plugins must reference resources with kind=plugin"
-      expression: "this.kind == 58"
-    }
-  ];
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference plugins = 19 [(ai.stigmer.commons.apiresource.reference_kind) = plugin];
 
   // Whether each turn's file edits are offered for review, Keep or Undo,
   // after the turn. Off unless the caller sets it. Review never makes a

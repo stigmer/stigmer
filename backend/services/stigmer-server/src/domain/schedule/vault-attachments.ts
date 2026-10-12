@@ -41,6 +41,8 @@ export const SCHEDULE_VAULT_ATTACHMENTS: VaultAttachmentOptions<typeof ScheduleS
     const b = refOf(after);
     return (
       (a?.org ?? "") !== (b?.org ?? "") ||
+      (a?.id ?? "") !== (b?.id ?? "") ||
+      // A reference still written by a name nothing held carries no id.
       (a?.slug ?? "") !== (b?.slug ?? "") ||
       (a?.version ?? "") !== (b?.version ?? "")
     );

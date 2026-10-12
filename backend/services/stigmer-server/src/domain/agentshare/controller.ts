@@ -30,7 +30,6 @@
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/status_pb";
@@ -200,6 +199,7 @@ async function createShare(
       ),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newResolveShareAudienceStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveShareDefaultsStep(deps.store))
@@ -215,7 +215,6 @@ async function createShare(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newStampAgentPinStep())
-    .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SHARE_VAULT_ATTACHMENTS))
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.agent_share))
@@ -260,12 +259,12 @@ async function update(
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
-    .addStep(newValidateShareUpdateStep())
     .addStep(newBuildUpdateStateStep())
     // After BuildUpdateState, which rebuilds the state from the request.
+    .addStep(newNormalizeReferencesStep(deps.store))
+    .addStep(newValidateShareUpdateStep(deps.store))
     .addStep(newResolveShareAudienceStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SHARE_VAULT_ATTACHMENTS))
     .addStep(newPersistStep(deps.store))
@@ -301,6 +300,7 @@ async function apply(
       ),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newResolveShareAudienceStep())
     .addStep(newResolveShareDefaultsStep(deps.store))
     .addStep(newResolveSlugStep())
@@ -597,10 +597,9 @@ async function getByAgent(
 }
 
 /**
- * LoadSharesByAgent — Go loadSharesByAgentStep: resolves the agent by ID
- * to its org+slug identity (shares reference agents by org+slug while
- * this RPC is keyed on the stable agent ID), then filters shares whose
- * spec.agent_ref matches.
+ * LoadSharesByAgent — Go loadSharesByAgentStep: the shares whose
+ * spec.agent_ref holds the agent's id, so a share of an agent since
+ * deleted never lists under a new agent of the same name.
  */
 function newLoadSharesByAgentStep(
   store: Store,
@@ -619,17 +618,7 @@ function newLoadSharesByAgentStep(
         items: [],
       });
 
-      let agentOrg: string;
-      let agentSlug: string;
-      try {
-        const agent = await store.getResource(
-          ApiResourceKind.agent,
-          req.agentId,
-          AgentSchema,
-        );
-        agentOrg = agent.metadata?.org ?? "";
-        agentSlug = agent.metadata?.slug ?? "";
-      } catch {
+      if (req.agentId === "") {
         ctx.set(SHARE_LIST_KEY, emptyList);
         return;
       }
@@ -659,8 +648,7 @@ function newLoadSharesByAgentStep(
         decoded.filter((share) => {
           const ref = share.spec?.agentRef;
           return (
-            (ref?.org ?? "") === agentOrg &&
-            (ref?.slug ?? "") === agentSlug &&
+            (ref?.id ?? "") === req.agentId &&
             (req.org === "" || (share.metadata?.org ?? "") === req.org)
           );
         }),

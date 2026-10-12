@@ -29,7 +29,6 @@
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { create, fromBinary } from "@bufbuild/protobuf";
 
-import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
@@ -207,6 +206,7 @@ async function createChannel(
       ),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newValidateVisibilityStep())
     .addStep(
       newResolveChannelDefaultsStep(
@@ -228,7 +228,6 @@ async function createChannel(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newInitInstallStateStep())
-    .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, CHANNEL_VAULT_ATTACHMENTS))
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.agent_channel))
@@ -275,12 +274,16 @@ async function update(
     .addStep(newValidateProtoStep())
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
-    .addStep(
-      newValidateChannelUpdateStep(deps.modelRegistry, deps.channelRuntime),
-    )
     .addStep(newBuildUpdateStateStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
+    .addStep(
+      newValidateChannelUpdateStep(
+        deps.store,
+        deps.modelRegistry,
+        deps.channelRuntime,
+      ),
+    )
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, CHANNEL_VAULT_ATTACHMENTS))
     .addStep(newPersistStep(deps.store))
@@ -322,6 +325,7 @@ async function apply(
       ),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(
       newResolveChannelDefaultsStep(
         deps.store,
@@ -599,7 +603,11 @@ async function getByAgent(
   return result as AgentChannelList;
 }
 
-/** LoadChannelsByAgent — Go loadChannelsByAgentStep. */
+/**
+ * LoadChannelsByAgent — Go loadChannelsByAgentStep: the channels whose
+ * spec.agent_ref holds the agent's id, so a channel of an agent since
+ * deleted never lists under a new agent of the same name.
+ */
 function newLoadChannelsByAgentStep(
   store: Store,
   listReadScope: ListReadScope | undefined,
@@ -617,17 +625,7 @@ function newLoadChannelsByAgentStep(
         items: [],
       });
 
-      let agentOrg: string;
-      let agentSlug: string;
-      try {
-        const agent = await store.getResource(
-          ApiResourceKind.agent,
-          req.agentId,
-          AgentSchema,
-        );
-        agentOrg = agent.metadata?.org ?? "";
-        agentSlug = agent.metadata?.slug ?? "";
-      } catch {
+      if (req.agentId === "") {
         ctx.set(CHANNEL_LIST_KEY, emptyList);
         return;
       }
@@ -657,8 +655,7 @@ function newLoadChannelsByAgentStep(
         decoded.filter((channel) => {
           const ref = channel.spec?.agentRef;
           return (
-            (ref?.org ?? "") === agentOrg &&
-            (ref?.slug ?? "") === agentSlug &&
+            (ref?.id ?? "") === req.agentId &&
             (req.org === "" || (channel.metadata?.org ?? "") === req.org)
           );
         }),

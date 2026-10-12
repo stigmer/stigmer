@@ -106,11 +106,11 @@ import {
 } from "../../pipeline/steps/defaults.js";
 import {
   claimName,
-  findResourceByName,
   newClaimNameStep,
   releaseNameAfterFailure,
 } from "../../pipeline/steps/names.js";
 import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { findByReference as findReferenced } from "../../pipeline/steps/references.js";
 import { destroySecretBackingState } from "../../pipeline/steps/secret-cleanup.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type {
@@ -273,7 +273,7 @@ export interface VaultService {
   /** The caller's My vault, created through the create chain when absent. */
   ensureMine(orgId: string, caller: CallerIdentity): Promise<Vault>;
   findById(id: string): Promise<Vault | undefined>;
-  /** A vault by reference; an empty org on the reference reads `fallbackOrgId`. */
+  /** A vault by reference, by its id (a stored one) or its slug; an empty org on the reference reads `fallbackOrgId`. */
   findByReference(
     ref: ApiResourceReference,
     fallbackOrgId: string,
@@ -514,10 +514,14 @@ export function newVaultService(deps: VaultServiceDeps): VaultService {
     fallbackOrgId: string,
   ): Promise<Vault | undefined> {
     const org = ref.org !== "" ? ref.org : fallbackOrgId;
-    if (org === "" || ref.slug === "") {
+    if (org === "" || (ref.id === "" && ref.slug === "")) {
       return undefined;
     }
-    return findResourceByName(store, ApiResourceKind.vault, VaultSchema, org, ref.slug);
+    return findReferenced(store, ApiResourceKind.vault, VaultSchema, {
+      org,
+      id: ref.id,
+      slug: ref.slug,
+    });
   }
 
   async function findByExternalId(

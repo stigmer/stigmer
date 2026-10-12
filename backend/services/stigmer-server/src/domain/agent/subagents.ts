@@ -4,12 +4,21 @@
  * Managed Agents pins a predefined agent when the agent listing it is
  * created or updated.
  *
- * Two steps:
+ * Three steps:
  *
- *   - ValidateSubagentList runs with ValidateHooks, before any reference is
- *     looked up: an agent may not list itself, and lists each slug once,
- *     since a turn names a subagent by its slug (two agents of one slug from
- *     two organizations would share the name). Both are INVALID_ARGUMENT.
+ *   - ValidateSubagentList runs with ValidateHooks, after NormalizeReferences
+ *     resolved each reference to its agent's id and before any is judged:
+ *     an agent may not list itself (by id, or on a create by the slug it is
+ *     about to claim). INVALID_ARGUMENT. It reads nothing. A listed agent
+ *     that is deleted and remade under its name is a different id, judged
+ *     as one the write introduces.
+ *   - ValidateSubagentNames runs directly after ValidateReferences: the list
+ *     names each slug once, by the names the listed agents hold now (two
+ *     agents of one slug from two organizations would share it), since a
+ *     turn names a subagent by its slug. INVALID_ARGUMENT. It runs only once
+ *     the reference rule has admitted every listed agent, so its copy never
+ *     names an agent of another organization the writer has no standing to
+ *     learn about (pipeline/steps/references.ts, clause iii).
  *   - PinSubagents runs after ValidateReferences, which has already judged
  *     each reference's existence, organization and visibility floor
  *     (pipeline/steps/references.ts). For each reference it:
@@ -58,14 +67,16 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
-import { findResourceByName } from "../../pipeline/steps/names.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
   checkWriter,
   collectSpecReferences,
+  loadReferenceTargets,
+  loadReferenced,
   missingReferencesMessage,
+  referenceDisplayNames,
+  referenceKey,
   referenceTargetKind,
-  resolvedReferenceTargets,
 } from "../../pipeline/steps/references.js";
 import type {
   ReferenceParent,
@@ -114,41 +125,70 @@ export function subagentNotRunnableMessage(slug: string): string {
   return `subagent '${slug}' is not an agent you may run; list an agent you may run, or ask its owner to share it with you`;
 }
 
-/** Whether a reference names this agent itself. */
+/**
+ * Whether a reference names this agent itself: by its id, or, on a create,
+ * by the slug the agent is about to claim, which no name table entry holds
+ * yet, so NormalizeReferences left it as written.
+ */
 function namesSelf(
   ref: ApiResourceReference,
-  org: string,
-  slug: string,
+  self: { readonly org: string; readonly id: string; readonly slug: string },
 ): boolean {
-  return ref.slug === slug && (ref.org === "" || ref.org === org);
+  if (ref.id !== "") {
+    return ref.id === self.id;
+  }
+  return self.slug !== "" && ref.slug === self.slug && ref.org === self.org;
 }
 
-/** ValidateSubagentList — the module header's first step. */
+/** ValidateSubagentList — the module header's first step; runs after NormalizeReferences, so it compares ids. */
 export function newValidateSubagentListStep(): PipelineStep<AgentDesc> {
   return {
     name: "ValidateSubagentList",
     execute(ctx: RequestContext<AgentDesc>): void {
       const metadata = ctx.newState.metadata;
-      const org = metadata?.org ?? "";
-      const slug = metadata?.slug ?? "";
-      const seen = new Set<string>();
-      for (const ref of ctx.newState.spec?.subagents ?? []) {
-        if (ref.slug === "") {
-          continue;
+      const self = {
+        org: metadata?.org ?? "",
+        id: metadata?.id ?? "",
+        slug: metadata?.slug ?? "",
+      };
+      const listed = (ctx.newState.spec?.subagents ?? []).filter(
+        (ref) => ref.id !== "" || ref.slug !== "",
+      );
+      for (const ref of listed) {
+        if (namesSelf(ref, self)) {
+          throw invalidArgumentError(selfListedMessage(self.slug));
         }
-        if (slug !== "" && namesSelf(ref, org, slug)) {
-          throw invalidArgumentError(selfListedMessage(slug));
-        }
-        if (seen.has(ref.slug)) {
-          throw invalidArgumentError(listedTwiceMessage(ref.slug));
-        }
-        seen.add(ref.slug);
       }
     },
   };
 }
 
-/** PinSubagents — the module header's second step. */
+/** ValidateSubagentNames — the module header's second step; runs after ValidateReferences admitted every listed agent. */
+export function newValidateSubagentNamesStep(
+  store: Store,
+): PipelineStep<AgentDesc> {
+  return {
+    name: "ValidateSubagentNames",
+    async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
+      const listed = (ctx.newState.spec?.subagents ?? []).filter(
+        (ref) => ref.id !== "" || ref.slug !== "",
+      );
+      // A turn names a subagent by its slug, so two listed agents may not
+      // share the name they hold now, whatever their ids and organizations.
+      const seen = new Set<string>();
+      for (const name of await referenceDisplayNames(store, ApiResourceKind.agent, listed)) {
+        if (seen.has(name)) {
+          throw invalidArgumentError(listedTwiceMessage(name));
+        }
+        seen.add(name);
+      }
+    },
+  };
+}
+
+
+
+/** PinSubagents — the module header's third step. */
 export function newPinSubagentsStep(
   store: Store,
   authorizer: Authorizer,
@@ -157,7 +197,7 @@ export function newPinSubagentsStep(
     name: "PinSubagents",
     async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
       const refs = (ctx.newState.spec?.subagents ?? []).filter(
-        (ref) => ref.slug !== "",
+        (ref) => ref.id !== "" || ref.slug !== "",
       );
       if (refs.length === 0) {
         return;
@@ -179,6 +219,7 @@ export function newPinSubagentsStep(
       // versions or its own subagents.
       await judgeWriter(
         ctx,
+        store,
         authorizer,
         refs.filter((ref) => heldPin(stored, ref) === undefined),
         parent,
@@ -191,6 +232,7 @@ export function newPinSubagentsStep(
       // which version every surface of this agent runs.
       await judgeWriter(
         ctx,
+        store,
         authorizer,
         refs.filter((ref) => {
           const held = kept.get(ref);
@@ -209,7 +251,7 @@ async function pinnedHash(
 ): Promise<string> {
   let head;
   try {
-    head = await findResourceByName(store, ApiResourceKind.agent, AgentSchema, ref.org, ref.slug);
+    head = await loadReferenced(store, ApiResourceKind.agent, AgentSchema, ref);
   } catch (error) {
     throw internalError(error, "failed to read a subagent");
   }
@@ -217,6 +259,7 @@ async function pinnedHash(
     // ValidateReferences found it a moment ago; it has left since.
     throw subagentGone(ref);
   }
+  const slug = head.metadata?.slug ?? "";
   const named = ref.version.trim();
   const hash = await resolveVersionHash(
     store,
@@ -226,11 +269,11 @@ async function pinnedHash(
   );
   if (hash === undefined) {
     throw failedPreconditionError(
-      subagentVersionNotFoundMessage(ref.slug, named),
+      subagentVersionNotFoundMessage(slug, named),
     );
   }
   if (hash === "") {
-    throw failedPreconditionError(subagentUnversionedMessage(ref.slug));
+    throw failedPreconditionError(subagentUnversionedMessage(slug));
   }
   const pinned = await loadVersion(
     store,
@@ -238,8 +281,12 @@ async function pinnedHash(
     head.metadata?.id ?? "",
     hash,
   );
-  if ((pinned.resource.spec?.subagents ?? []).some((s) => s.slug !== "")) {
-    throw failedPreconditionError(nestedSubagentMessage(ref.slug));
+  if (
+    (pinned.resource.spec?.subagents ?? []).some(
+      (s) => s.id !== "" || s.slug !== "",
+    )
+  ) {
+    throw failedPreconditionError(nestedSubagentMessage(slug));
   }
   return hash;
 }
@@ -259,8 +306,8 @@ function heldPin(
   stored: ReadonlyArray<SpecReference>,
   ref: ApiResourceReference,
 ): string | undefined {
-  return stored.find((held) => held.org === ref.org && held.slug === ref.slug)
-    ?.version;
+  const wanted = referenceKey({ ...ref, kind: ApiResourceKind.agent });
+  return stored.find((held) => referenceKey(held) === wanted)?.version;
 }
 
 /**
@@ -270,6 +317,7 @@ function heldPin(
  */
 async function judgeWriter(
   ctx: RequestContext<AgentDesc>,
+  store: Store,
   authorizer: Authorizer,
   refs: ReadonlyArray<ApiResourceReference>,
   parent: ReferenceParent,
@@ -277,22 +325,18 @@ async function judgeWriter(
   if (refs.length === 0) {
     return;
   }
-  const targets = resolvedReferenceTargets(ctx);
-  if (targets === undefined) {
-    throw internalError(
-      new Error(
-        "PinSubagents ran without resolved reference targets — the step must follow ValidateReferences",
-      ),
-      "pin subagents requires the resolved references",
-    );
-  }
-  for (const ref of refs) {
-    const spec: SpecReference = {
+  const specs = refs.map(
+    (ref): SpecReference => ({
       kind: ApiResourceKind.agent,
+      id: ref.id,
       slug: ref.slug,
       org: ref.org,
       version: ref.version,
-    };
+    }),
+  );
+  const targets = await loadReferenceTargets(store, specs, parent.org);
+  for (const [i, ref] of refs.entries()) {
+    const spec = specs[i]!;
     const verdict = await checkWriter(
       targets,
       parent,
@@ -301,16 +345,22 @@ async function judgeWriter(
       IamPermission.can_execute,
     );
     if (verdict.kind === "not-viewable") {
-      throw permissionDeniedError(subagentNotRunnableMessage(ref.slug));
+      throw permissionDeniedError(
+        subagentNotRunnableMessage(targets.slugOf(spec) ?? ref.slug),
+      );
     }
     if (verdict.kind === "missing") {
-      throw subagentGone(ref);
+      throw subagentGone({ ...ref, slug: targets.slugOf(spec) ?? ref.slug });
     }
   }
 }
 
-/** The reference rule's own missing-target refusal, for a listed agent that left after ValidateReferences found it. */
-function subagentGone(ref: ApiResourceReference): Error {
+/**
+ * The reference rule's own missing-target refusal, for a listed agent that
+ * left after ValidateReferences found it: named by its slug when one is
+ * known, else by the id the reference holds.
+ */
+function subagentGone(ref: Pick<ApiResourceReference, "org" | "id" | "slug">): Error {
   const entry = referenceTargetKind(ApiResourceKind.agent);
   if (entry === undefined) {
     /* v8 ignore next -- @preserve: the reference rule table is a constant that holds an agent entry; no input reaches this */
@@ -319,5 +369,9 @@ function subagentGone(ref: ApiResourceReference): Error {
       "pin subagents",
     );
   }
-  return failedPreconditionError(missingReferencesMessage(entry, [ref]));
+  return failedPreconditionError(
+    missingReferencesMessage(entry, [
+      { org: ref.org, slug: ref.slug !== "" ? ref.slug : ref.id },
+    ]),
+  );
 }

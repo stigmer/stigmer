@@ -205,11 +205,11 @@ describe("an agent eval through the shared activities", () => {
 
     const session = record.sessions[0]!.session;
     expect(session.metadata?.labels[PLUGIN_EVAL_LABEL]).toBe(EVAL_ID);
-    expect(session.spec?.agentRef).toMatchObject({ org: ORG, slug: "support-desk", version: AGENT_HASH });
-    expect(session.spec?.plugins.map((ref) => [ref.slug, ref.version])).toEqual([
-      ["thermos", DIGEST],
-      ["refunds", REFUNDS_DIGEST],
-      ["style", STYLE_DIGEST],
+    expect(session.spec?.agentRef).toMatchObject({ org: ORG, id: AGENT_ID, slug: "", version: AGENT_HASH });
+    expect(session.spec?.plugins.map((ref) => [ref.id, ref.version])).toEqual([
+      [PLUGIN_ID, DIGEST],
+      [REFUNDS_ID, REFUNDS_DIGEST],
+      [STYLE_ID, STYLE_DIGEST],
     ]);
     const run = record.runs[0]!.run;
     expect(run.spec?.runConfig?.modelName).toBe("");

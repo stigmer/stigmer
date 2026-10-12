@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.iam.identityaccount.v1;
 
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "ai/stigmer/iam/identityaccount/v1/api.proto";
@@ -68,7 +69,7 @@ message ExternalSubLookup {
   string org = 1 [(buf.validate.field).required = true];
 
   // Reference to the IdentityProvider that the federated account belongs to.
-  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [(ai.stigmer.commons.apiresource.reference_kind) = identity_provider];
 
   // External subject identifier from the platform's OIDC provider.
   // The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
@@ -91,7 +92,7 @@ message CreateFederatedAccountInput {
 
   // Reference to the IdentityProvider that this federated account belongs to.
   // The IdP must exist and belong to the specified org.
-  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [(ai.stigmer.commons.apiresource.reference_kind) = identity_provider];
 
   // External subject identifier from the platform's OIDC provider.
   // The raw OIDC sub claim (e.g., "google-oauth2|109876543210").
@@ -127,7 +128,7 @@ message UpdateFederatedAccountInput {
   string org = 1 [(buf.validate.field).required = true];
 
   // Reference to the IdentityProvider that the federated account belongs to.
-  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [(ai.stigmer.commons.apiresource.reference_kind) = identity_provider];
 
   // External subject identifier (OIDC sub claim) — lookup key, not updatable.
   string external_sub = 3 [(buf.validate.field).required = true];
@@ -173,7 +174,7 @@ message DeprovisionFederatedAccountInput {
   string org = 1 [(buf.validate.field).required = true];
 
   // Reference to the IdentityProvider that the federated account belongs to.
-  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2;
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [(ai.stigmer.commons.apiresource.reference_kind) = identity_provider];
 
   // External subject identifier (OIDC sub claim) — lookup key.
   string external_sub = 3 [(buf.validate.field).required = true];

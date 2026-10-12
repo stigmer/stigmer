@@ -39,7 +39,7 @@ public interface UpdateFederatedAccountInputOrBuilder extends
    * Reference to the IdentityProvider that the federated account belongs to.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
    * @return Whether the identityProviderRef field is set.
    */
   boolean hasIdentityProviderRef();
@@ -48,7 +48,7 @@ public interface UpdateFederatedAccountInputOrBuilder extends
    * Reference to the IdentityProvider that the federated account belongs to.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
    * @return The identityProviderRef.
    */
   ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef();
@@ -57,7 +57,7 @@ public interface UpdateFederatedAccountInputOrBuilder extends
    * Reference to the IdentityProvider that the federated account belongs to.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder();
 

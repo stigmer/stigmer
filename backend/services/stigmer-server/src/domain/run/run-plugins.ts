@@ -34,7 +34,7 @@ import { loadPluginByReference } from "../plugin/versions.js";
 import type { RunPlugin } from "../vault/resolve.js";
 import type { RunSubagent } from "./run-subagents.js";
 
-/** The run's plugin references, each once, keyed by organization and slug. */
+/** The run's plugin references, each once, keyed by organization and id (or the slug a reference still written by a name nothing held carries). */
 export function runPluginReferences(
   agentSpec: AgentSpec | undefined,
   session: Session | undefined,
@@ -42,9 +42,12 @@ export function runPluginReferences(
   subagents: readonly RunSubagent[] = [],
 ): ApiResourceReference[] {
   const merged = new Map<string, ApiResourceReference>();
-  const keyOf = (ref: ApiResourceReference): string => `${ref.org || executionOrg}/${ref.slug}`;
+  const keyOf = (ref: ApiResourceReference): string =>
+    `${ref.org || executionOrg}/${ref.id !== "" ? `#${ref.id}` : ref.slug}`;
+  const named = (ref: ApiResourceReference): boolean =>
+    ref.id !== "" || ref.slug !== "";
   const add = (ref: ApiResourceReference): void => {
-    if (ref.slug !== "") {
+    if (named(ref)) {
       merged.set(keyOf(ref), ref);
     }
   };
@@ -55,7 +58,7 @@ export function runPluginReferences(
     for (const ref of subagent.spec.plugins) {
       // A subagent's own plugin reference names its organization's plugin.
       const own = ref.org === "" ? { ...ref, org: subagent.org } : ref;
-      if (own.slug !== "" && !merged.has(keyOf(own))) {
+      if (named(own) && !merged.has(keyOf(own))) {
         merged.set(keyOf(own), own);
       }
     }

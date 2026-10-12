@@ -17,8 +17,8 @@
  *     it. A pinned agent since deleted refuses with FAILED_PRECONDITION
  *     naming the session and the agent (one point read).
  *   - a new conversation takes its session_spec.agent_ref, resolved by the
- *     session's own rule (resolveAgentPin) from the id the turn's
- *     reference rule recorded: that rule walked session_spec.agent_ref.
+ *     session's own rule (resolveAgentPin) from the reference's id, which
+ *     the turn's NormalizeReferences resolved.
  *     CreateSessionIfNeeded re-takes the stamp from the session it
  *     creates, whose own chain resolved and gated the same reference, so a
  *     version saved between the two resolutions never leaves a turn and its
@@ -64,7 +64,6 @@ import {
 } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { LOADED_EXECUTION_KEY } from "../../pipeline/request-context.js";
-import { resolvedReferenceTargets } from "../../pipeline/steps/references.js";
 import { truncateHash } from "../../pipeline/steps/version-history.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -115,13 +114,11 @@ export function newResolveRunAgentStep(
         }
       } else {
         const ref = newSessionSpecOf(execution.spec)?.agentRef;
-        if (ref !== undefined && ref.slug !== "") {
-          pin = await resolveAgentPin(
-            store,
-            resolvedReferenceTargets(ctx),
-            ref,
-            { authorizer, caller: ctx.callerIdentity },
-          );
+        if (ref !== undefined && (ref.id !== "" || ref.slug !== "")) {
+          pin = await resolveAgentPin(store, ref, {
+            authorizer,
+            caller: ctx.callerIdentity,
+          });
         }
       }
 

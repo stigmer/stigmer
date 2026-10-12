@@ -300,17 +300,15 @@ var File_ai_stigmer_agentic_agentchannel_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_agentchannel_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xbd\a\n" +
-	"\x10AgentChannelSpec\x12\xb6\x01\n" +
-	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
-	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12\x18\n" +
+	"-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x9c\x05\n" +
+	"\x10AgentChannelSpec\x12]\n" +
+	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
+	"\xbaH\x03\xc8\x01\x01\xe0\x85,(R\bagentRef\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\x12N\n" +
 	"\x05slack\x18\x03 \x01(\v26.ai.stigmer.agentic.agentchannel.v1.SlackChannelConfigH\x00R\x05slack\x12W\n" +
-	"\bwhatsapp\x18\x06 \x01(\v29.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfigH\x00R\bwhatsapp\x12\xae\x01\n" +
-	"\x06vaults\x18\t \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB`\xbaHY\x92\x01V\x10\x14\"R\xba\x01O\n" +
-	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12\xc4\x01\n" +
-	"\aapp_ref\x18\x05 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBu\xbaHn\xba\x01k\n" +
-	"\fapp_ref.kind\x127app_ref must reference a resource with kind=channel_app\x1a\"this.slug == '' || this.kind == 48\xe0\x85,0R\x06appRef\x12>\n" +
+	"\bwhatsapp\x18\x06 \x01(\v29.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfigH\x00R\bwhatsapp\x12Z\n" +
+	"\x06vaults\x18\t \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,;R\x06vaults\x12S\n" +
+	"\aapp_ref\x18\x05 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,0R\x06appRef\x12>\n" +
 	"\x1bproactive_messaging_enabled\x18\a \x01(\bR\x19proactiveMessagingEnabled\x12C\n" +
 	"\n" +
 	"run_config\x18\b \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfigB\x18\n" +

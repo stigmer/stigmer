@@ -56,6 +56,7 @@ import { PlatformClientSpecSchema } from "@stigmer/protos/ai/stigmer/iam/platfor
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import {
   Harness,
@@ -807,6 +808,21 @@ describe("toSessionUpdateInput", () => {
       original,
       buildSessionProto(toSessionUpdateInput(original)),
     );
+  });
+
+  it("keeps the id of a reference whose target was deleted, which comes back with no slug", () => {
+    const original = fixture();
+    original.spec!.agentRef = create(ApiResourceReferenceSchema, {
+      org: "acme",
+      kind: ApiResourceKind.agent,
+      id: "agt_gone",
+    });
+    original.spec!.skillRefs = [
+      create(ApiResourceReferenceSchema, { org: "acme", kind: ApiResourceKind.skill, id: "skl_gone" }),
+    ];
+    const rebuilt = buildSessionProto(toSessionUpdateInput(original));
+    expect([rebuilt.spec?.agentRef?.id, rebuilt.spec?.agentRef?.slug]).toEqual(["agt_gone", ""]);
+    expect(rebuilt.spec?.skillRefs.map((r) => [r.org, r.id, r.slug])).toEqual([["acme", "skl_gone", ""]]);
   });
 
   it("preserves harness state history when only the subject changes (hand-written mapper gap)", () => {

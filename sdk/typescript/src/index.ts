@@ -33,6 +33,13 @@ export {
   buildEmbedSnippet,
 } from "./sharing.js";
 
+// References the server returned (a deleted target has an id and no slug)
+export {
+  isDeletedReference,
+  deletedReferenceLabel,
+  type ReturnedReference,
+} from "./references.js";
+
 // Error handling
 export {
   StigmerError,

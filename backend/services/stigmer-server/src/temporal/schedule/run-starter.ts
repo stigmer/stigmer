@@ -46,7 +46,7 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import type { ScheduleFireCallerMint } from "../../extensions/schedule-fire-caller.js";
 import { ScheduleFireCallerRefusedError } from "../../extensions/schedule-fire-caller.js";
 import { bumpStatusAudit } from "../../pipeline/steps/defaults.js";
-import { findResourceByName } from "../../pipeline/steps/names.js";
+import { loadReferenced } from "../../pipeline/steps/references.js";
 import { agentExecutionListIndex } from "../../domain/run/list-index.js";
 import { SCHEDULE_ID_LABEL_KEY } from "../../domain/schedule/labels.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
@@ -410,16 +410,20 @@ export class RunStarter {
   }
 
   /**
-   * Loads the referenced agent, the reference's org defaulting to the
-   * schedule's own. An undefined agent with a reason means the
-   * deterministic dangling-reference failure (Go resolveTargetAgent).
+   * Loads the referenced agent by the id its reference holds, the
+   * reference's org defaulting to the schedule's own: an agent deleted and
+   * remade under its name is another agent, and the fire refuses rather
+   * than run it. An undefined agent with a reason means the deterministic
+   * dangling-reference failure (Go resolveTargetAgent).
    */
   private async resolveTargetAgent(
     schedule: Schedule,
   ): Promise<{ agent?: Agent; missingReason: string }> {
     const ref = invocationOf(schedule)?.agentRef;
-    const slug = ref?.slug ?? "";
-    if (slug === "") {
+    // The reference's id, or the name it still carries when nothing held
+    // that name at write: what the refusal names.
+    const held = ref === undefined ? "" : ref.id !== "" ? ref.id : ref.slug;
+    if (held === "") {
       return { missingReason: "schedule has no agent target" };
     }
     let org = ref?.org ?? "";
@@ -428,10 +432,13 @@ export class RunStarter {
     }
     let agent: Agent | undefined;
     try {
-      agent = await findResourceByName(this.deps.store, ApiResourceKind.agent, AgentSchema, org, slug);
+      agent = await loadReferenced(this.deps.store, ApiResourceKind.agent, AgentSchema, {
+        org,
+        id: ref?.id ?? "",
+      });
     } catch (error) {
       throw new Error(
-        `resolve target agent ${org}/${slug}: ${error instanceof Error ? error.message : String(error)}`,
+        `resolve target agent ${org}/${held}: ${error instanceof Error ? error.message : String(error)}`,
         { cause: error },
       );
     }
@@ -439,7 +446,7 @@ export class RunStarter {
       // The deterministic start-failure copy — cross-edition contract (the
       // conformance firing suite asserts the pause reason built from it,
       // byte-for-byte).
-      return { missingReason: `target agent ${org}/${slug} not found` };
+      return { missingReason: `target agent ${org}/${held} not found` };
     }
     return { agent, missingReason: "" };
   }
@@ -476,7 +483,7 @@ export class RunStarter {
       agentRef: create(ApiResourceReferenceSchema, {
         kind: ApiResourceKind.agent,
         org: agent.metadata?.org ?? "",
-        slug: agent.metadata?.slug ?? "",
+        id: agent.metadata?.id ?? "",
         version: invocation?.agentRef?.version ?? "",
       }),
       subject: SESSION_SUBJECT_PREFIX + (schedule.metadata?.slug ?? ""),

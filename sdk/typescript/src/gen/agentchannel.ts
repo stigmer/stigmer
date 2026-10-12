@@ -240,9 +240,9 @@ function buildRunConfigProto(input: RunConfigInput) {
 }
 
 export function buildAgentChannelProto(input: AgentChannelInput): AgentChannel {
-  const agentRef = (input.agentRef?.slug || input.agentRef?.org) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
+  const agentRef = (input.agentRef?.slug || input.agentRef?.org || input.agentRef?.id) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
   const vaults = input.vaults?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
-  const appRef = (input.appRef?.slug || input.appRef?.org) ? create(ApiResourceReferenceSchema, { ...input.appRef, kind: 48 }) : undefined;
+  const appRef = (input.appRef?.slug || input.appRef?.org || input.appRef?.id) ? create(ApiResourceReferenceSchema, { ...input.appRef, kind: 48 }) : undefined;
   const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
   const spec = Object.assign(create(AgentChannelSpecSchema), stripUndefined({
     agentRef,

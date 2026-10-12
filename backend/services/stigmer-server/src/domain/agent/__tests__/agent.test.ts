@@ -367,17 +367,16 @@ describe("agent cascade delete (oss#611)", () => {
       }),
     );
     const agentId = agent.metadata!.id;
-    const agentSlug = agent.metadata!.slug;
 
     // A bystander agent whose share must survive the sweep untouched.
     const bystander = await command.create(agentInput({ name: "Bystander" }));
 
-    // Shares are seeded directly into the store; the cascade matches
-    // spec.agent_ref.
+    // Shares are seeded directly into the store, holding the agent's id as
+    // a stored reference does; the cascade matches spec.agent_ref.id.
     const sameOrgShare = create(AgentShareSchema, {
       metadata: { id: "ash_same_org", name: "same-org-share", org: ORG_ID },
       spec: {
-        agentRef: { kind: ApiResourceKind.agent, org: ORG_ID, slug: agentSlug },
+        agentRef: { kind: ApiResourceKind.agent, org: ORG_ID, id: agentId },
       },
     });
     await namingSaves(server.store).saveResource(
@@ -397,7 +396,7 @@ describe("agent cascade delete (oss#611)", () => {
         org: GLOBEX_ID,
       },
       spec: {
-        agentRef: { kind: ApiResourceKind.agent, org: ORG_ID, slug: agentSlug },
+        agentRef: { kind: ApiResourceKind.agent, org: ORG_ID, id: agentId },
       },
     });
     await namingSaves(server.store).saveResource(
@@ -413,7 +412,7 @@ describe("agent cascade delete (oss#611)", () => {
         agentRef: {
           kind: ApiResourceKind.agent,
           org: ORG_ID,
-          slug: bystander.metadata!.slug,
+          id: bystander.metadata!.id,
         },
       },
     });

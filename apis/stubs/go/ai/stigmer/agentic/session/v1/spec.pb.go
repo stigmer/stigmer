@@ -292,28 +292,24 @@ var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xf2\v\n" +
-	"\vSessionSpec\x12\xbb\x01\n" +
-	"\tagent_ref\x18\x0e \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBh\xbaHa\xba\x01^\n" +
-	"\x16session_agent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xe0\x85,(R\bagentRef\x12\x18\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xe7\b\n" +
+	"\vSessionSpec\x12W\n" +
+	"\tagent_ref\x18\x0e \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,(R\bagentRef\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12(\n" +
 	"\x10harness_state_id\x18\x03 \x01(\tR\x0eharnessStateId\x127\n" +
 	"\x18harness_state_id_history\x18\r \x03(\tR\x15harnessStateIdHistory\x12T\n" +
 	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Z\n" +
-	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xc3\x01\n" +
+	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12Y\n" +
 	"\n" +
-	"skill_refs\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBn\xbaHg\x92\x01d\"b\xba\x01_\n" +
-	"\x17session_skill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x12@\n" +
+	"skill_refs\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,+R\tskillRefs\x12@\n" +
 	"\aharness\x18\n" +
 	" \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12J\n" +
 	"\vcursor_mode\x18\v \x01(\x0e2).ai.stigmer.agentic.session.v1.CursorModeR\n" +
 	"cursorMode\x12Y\n" +
-	"\x10execution_target\x18\f \x01(\x0e2..ai.stigmer.agentic.session.v1.ExecutionTargetR\x0fexecutionTarget\x12\xae\x01\n" +
-	"\x06vaults\x18\x0f \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB`\xbaHY\x92\x01V\x10\x14\"R\xba\x01O\n" +
-	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12(\n" +
-	"\x10include_my_vault\x18\x12 \x01(\bR\x0eincludeMyVault\x12\xb9\x01\n" +
-	"\aplugins\x18\x13 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBi\xbaHb\x92\x01_\"]\xba\x01Z\n" +
-	"\x14session_plugins.kind\x121plugins must reference resources with kind=plugin\x1a\x0fthis.kind == 58\xe0\x85,:R\aplugins\x12\x1f\n" +
+	"\x10execution_target\x18\f \x01(\x0e2..ai.stigmer.agentic.session.v1.ExecutionTargetR\x0fexecutionTarget\x12Z\n" +
+	"\x06vaults\x18\x0f \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,;R\x06vaults\x12(\n" +
+	"\x10include_my_vault\x18\x12 \x01(\bR\x0eincludeMyVault\x12T\n" +
+	"\aplugins\x18\x13 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,:R\aplugins\x12\x1f\n" +
 	"\vfile_review\x18\x14 \x01(\bR\n" +
 	"fileReview\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +

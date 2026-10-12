@@ -137,6 +137,14 @@ import {
   RESOURCE_NAMES_BACKFILL_PAGE_SIZE,
 } from "../resource-names-backfill.js";
 import {
+  ARCHIVED_KIND_AT_REWRITE,
+  NAMED_KINDS_AT_REWRITE,
+  REFERENCES_BY_ID_PAGE_SIZE,
+  REFERRING_KINDS_AT_REWRITE,
+  ReferenceRewrite,
+} from "../references-by-id.js";
+import type { NameAtRewrite } from "../references-by-id.js";
+import {
   ENVIRONMENT_RETIRED_PAGE_SIZE,
   ENVIRONMENT_RETIRED_POLICY_KIND,
   RETIRED_ENVIRONMENT_KIND,
@@ -198,9 +206,11 @@ export const SCHEMA_VERSION_27 = 27;
 export const SCHEMA_VERSION_28 = 28;
 /** v29: every named kind's slug recorded as its current name in the name table. */
 export const SCHEMA_VERSION_29 = 29;
+/** v30: every stored reference holds the id of the resource its name held. */
+export const SCHEMA_VERSION_30 = 30;
 
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_29;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_30;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -255,6 +265,7 @@ export function runMigrations(
     [SCHEMA_VERSION_27, migrateToV27],
     [SCHEMA_VERSION_28, (migrating) => migrateToV28(migrating, logger)],
     [SCHEMA_VERSION_29, (migrating) => migrateToV29(migrating, logger)],
+    [SCHEMA_VERSION_30, (migrating) => migrateToV30(migrating, logger)],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1613,6 +1624,72 @@ function migrateToV29(db: DatabaseSync, logger: StoreLogger): void {
       insert.run(name.kind, name.org, name.name, name.id, name.claimedAt);
     }
   }
+}
+
+/**
+ * v30: every stored reference holds the id of the resource its name held
+ * (../references-by-id.ts says which rows, how a reference resolves, what
+ * an unresolved one keeps, and why an unreadable row fails the step). The
+ * live names of the kinds a reference may name are read once; each
+ * referring kind is read in keyset pages and a row its rewrite changed is
+ * written back; the agent's archived versions are rewritten in place under
+ * their hashes. The Postgres driver's v25 in this engine's terms. Runs
+ * inside applyInTransaction's BEGIN.
+ */
+function migrateToV30(db: DatabaseSync, logger: StoreLogger): void {
+  const now = new Date().toISOString();
+  const names = db
+    .prepare(
+      `SELECT kind, org, name, id FROM resource_names
+       WHERE kind IN (${NAMED_KINDS_AT_REWRITE.map(() => "?").join(", ")})
+         AND (expires_at = '' OR expires_at > ?)`,
+    )
+    .all(...NAMED_KINDS_AT_REWRITE, now) as unknown as NameAtRewrite[];
+  const rewrite = new ReferenceRewrite(names);
+  const page = db.prepare(
+    `SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const update = db.prepare(`UPDATE resources SET data = ? WHERE kind = ? AND id = ?`);
+  for (const referring of REFERRING_KINDS_AT_REWRITE) {
+    for (let after = ""; ; ) {
+      const rows = page.all(referring.kind, after, REFERENCES_BY_ID_PAGE_SIZE) as Array<{
+        id: string;
+        data: Uint8Array;
+      }>;
+      for (const row of rows) {
+        const rewritten = rewrite.rewrite(referring, row.id, row.data);
+        if (rewritten !== undefined) {
+          update.run(rewritten, referring.kind, row.id);
+        }
+      }
+      if (rows.length < REFERENCES_BY_ID_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  }
+  const archived = ARCHIVED_KIND_AT_REWRITE;
+  const archivePage = db.prepare(
+    `SELECT id, data FROM resource_audit WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`,
+  );
+  const archiveUpdate = db.prepare(`UPDATE resource_audit SET data = ? WHERE id = ?`);
+  for (let after = 0; ; ) {
+    const rows = archivePage.all(archived.kind, after, REFERENCES_BY_ID_PAGE_SIZE) as Array<{
+      id: number;
+      data: Uint8Array;
+    }>;
+    for (const row of rows) {
+      const rewritten = rewrite.rewrite(archived, `archive ${row.id}`, row.data);
+      if (rewritten !== undefined) {
+        archiveUpdate.run(rewritten, row.id);
+      }
+    }
+    if (rows.length < REFERENCES_BY_ID_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  rewrite.report(logger);
 }
 
 /**

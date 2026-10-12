@@ -580,7 +580,8 @@ describe("the agent's subagents", () => {
           versionHash: RECORDED_HASH,
           specSnapshot: {
             plugins: [{ org: ORG, slug: "linear" }],
-            subagents: [{ kind: ApiResourceKind.agent, org: ORG, slug, version }],
+            // A stored version holds each subagent by id.
+            subagents: [{ kind: ApiResourceKind.agent, org: ORG, id: `agt_${slug.replace("-", "_")}`, version }],
           },
         }),
     };

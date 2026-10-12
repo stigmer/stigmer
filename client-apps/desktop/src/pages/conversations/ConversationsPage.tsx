@@ -7,6 +7,7 @@ import {
   useActiveOrgId,
   useOrgSlugForId,
 } from "@stigmer/react";
+import { isDeletedReference } from "@stigmer/sdk";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 /**
@@ -75,7 +76,9 @@ export default function ConversationsPage() {
         // its default tab (desktop reads no ?tab= param yet); Channels
         // is one click away there.
         channelHref={(channel) =>
-          channel.spec?.agentRef
+          // An agent deleted since the channel was made has no slug and
+          // no page: the channel links nowhere.
+          channel.spec?.agentRef && !isDeletedReference(channel.spec.agentRef)
             ? `#/library/agents/${slugForOrg(channel.spec.agentRef.org || org)}/${channel.spec.agentRef.slug}?tab=channels`
             : null
         }

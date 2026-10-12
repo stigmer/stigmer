@@ -45,9 +45,12 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { createdByOf } from "../../pipeline/steps/authorization-facts.js";
 import { evaluateAuthorizer } from "../../pipeline/steps/authorize.js";
-import { findResourceByName } from "../../pipeline/steps/names.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
-import { collectSpecReferences } from "../../pipeline/steps/references.js";
+import {
+  collectSpecReferences,
+  loadReferenced,
+  referenceKey,
+} from "../../pipeline/steps/references.js";
 import type { SpecReference } from "../../pipeline/steps/references.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 import type { Store } from "../../store/interface.js";
@@ -78,7 +81,7 @@ export interface VaultAttachmentOptions<Desc extends DescMessage> {
 }
 
 function sameReference(a: SpecReference, b: SpecReference): boolean {
-  return a.org === b.org && a.slug === b.slug;
+  return referenceKey(a) === referenceKey(b);
 }
 
 function vaultReferencesOf<Desc extends DescMessage>(
@@ -89,7 +92,7 @@ function vaultReferencesOf<Desc extends DescMessage>(
     return [];
   }
   return collectSpecReferences(schema, row as Message).filter(
-    (ref) => ref.kind === ApiResourceKind.vault && ref.slug !== "",
+    (ref) => ref.kind === ApiResourceKind.vault && (ref.id !== "" || ref.slug !== ""),
   );
 }
 
@@ -136,7 +139,10 @@ export function newVaultAttachmentsStep<Desc extends DescMessage>(
         try {
           named.push({
             ref,
-            vault: await findResourceByName(store, ApiResourceKind.vault, VaultSchema, ref.org || org, ref.slug),
+            vault: await loadReferenced(store, ApiResourceKind.vault, VaultSchema, {
+              org: ref.org || org,
+              id: ref.id,
+            }),
             kept: stored.some((held) => sameReference(held, ref)),
           });
         } catch (error) {
@@ -192,7 +198,9 @@ export function newVaultAttachmentsStep<Desc extends DescMessage>(
               throw internalError(decision.cause, "failed to authorize an attached vault");
             }
             if (decision.kind !== "allow") {
-              throw permissionDeniedError(rejudgedVaultRefusal(ref));
+              throw permissionDeniedError(
+                rejudgedVaultRefusal({ ...ref, slug: vault.metadata?.slug ?? ref.slug }),
+              );
             }
           }
           attachers[vaultId] = caller.identityId;

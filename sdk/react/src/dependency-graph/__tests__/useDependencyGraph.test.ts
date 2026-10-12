@@ -143,4 +143,21 @@ describe("useDependencyGraph", () => {
     });
     expect(isEmpty).toBe(false);
   });
+
+  it("names a dependency deleted since it was attached as deleted, with no navigation ref", () => {
+    const { tree } = graphFor({
+      ...emptySpec,
+      plugins: [{ org: "acme", slug: "", id: "plg_gone" }],
+      skillRefs: [{ org: "acme", slug: "", id: "skl_gone" }, { org: "acme", slug: "", id: "skl_gone2" }],
+      subagents: [{ org: "acme", slug: "", id: "agt_gone", version: "abc" }],
+    });
+    const nodes = tree!.root.children;
+    expect(nodes.map((n) => [n.id, n.label])).toEqual([
+      ["plugin:deleted:0", "deleted plugin"],
+      ["skill:deleted:0", "deleted skill"],
+      ["skill:deleted:1", "deleted skill"],
+      ["subagent:deleted:0", "deleted agent"],
+    ]);
+    expect(nodes.every((n) => n.ref === undefined)).toBe(true);
+  });
 });

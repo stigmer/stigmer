@@ -108,15 +108,13 @@ describe("rotateShareLink — LoadShareForLinkRotation", () => {
 });
 
 describe("the shared-agent profile's agent read", () => {
-  it("answers a name-table fault as the domain's sanitized Internal", async () => {
+  it("answers a fault reading the agent by its id as the domain's sanitized Internal", async () => {
     const faulting = {
-      resourceNames: {
-        resolve: () => Promise.reject(LOCKED()),
-      },
+      getResource: () => Promise.reject(LOCKED()),
     } as unknown as Store;
     const share = create(AgentShareSchema, {
       metadata: { id: SHARE_ID, org: "org_acme", slug: "support" },
-      spec: { agentRef: { org: "org_acme", slug: "support" } },
+      spec: { agentRef: { org: "org_acme", id: "agt_support" } },
     });
     const error = await buildSharedAgentProfile(faulting, share).then(
       () => undefined,

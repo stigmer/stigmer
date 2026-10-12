@@ -3,11 +3,22 @@
  * `ApiResourceReference` fields runs, and the ONE rule that decides whether
  * a reference may be written.
  *
- * NormalizeReferences fills EMPTY org fields in ApiResourceReference
- * messages inside the spec from the resource's own metadata.org, so stored
- * references are absolute; an explicit org is preserved. Only the spec is
- * walked — status is system-generated and already absolute. Runs after
- * BuildNewState/BuildUpdateState, before Persist.
+ * NormalizeReferences resolves every ApiResourceReference inside the spec
+ * to the id of the resource it names (`resolveReferences`): an EMPTY org
+ * takes the resource's own metadata.org (an explicit org is preserved), the
+ * kind is the field's, and a slug becomes the id its name table entry holds
+ * now, the slug then cleared. A stored reference is {org, kind, id,
+ * version}: it keeps meaning the resource it meant when that resource is
+ * renamed, and never means a new resource that takes a deleted one's name.
+ * Responses name each reference again with its target's current slug
+ * (pipeline/interceptors/resource-references.ts). Only the spec is walked —
+ * status is system-generated. It is a step, so it runs on serving and
+ * in-process writes alike, and on every chain it runs as soon as the
+ * resource's organization is known and before any step that reads a
+ * reference: on create and in the apply pre-chains directly after
+ * ValidateProto, on update directly after BuildUpdateState. Resolving is
+ * idempotent on ids, so an apply that delegates resolves once in effect.
+ * __tests__/reference-wiring.test.ts holds every chain to that order.
  *
  * ValidateReferences runs directly after it and asks `checkReference` for
  * every reference the walk finds, then the writer clause of (ii) for the
@@ -65,8 +76,10 @@
  * (`reference_kind`, the contract's word for what the field points to),
  * never the `kind` value a client happened to put on the message: the
  * runtime resolves `skill_refs` as skills whatever the message says, and
- * the rule must agree with the runtime. A reference with an empty slug is
- * unset and skipped (the field-level CEL rules own "required").
+ * the rule must agree with the runtime; NormalizeReferences refuses a
+ * reference whose `kind` says otherwise. A reference with neither id nor
+ * slug is unset and skipped (the message's own rule refuses one written
+ * that way).
  *
  * The floor has a second door. Raising a resource's level through
  * updateVisibility could open the same gap a create cannot, so
@@ -94,10 +107,8 @@
  * shared is the run's to refuse, the escalation door's posture above. Every
  * other chain judges every reference, as it always has.
  *
- * ValidateReferences records what it resolved on the request context under
- * RESOLVED_REFERENCE_TARGETS_KEY, so a later step that needs a reference's
- * id (a session pinning its agent) reads the answer this write already paid
- * for instead of scanning again.
+ * A later step that needs a reference's target (a session pinning its
+ * agent) reads the reference's id, which NormalizeReferences set.
  *
  * REFERENCE_TARGET_KINDS is the one explicit table of kinds a spec may
  * reference, with each kind's schema and its `readByRun` flag: the
@@ -105,19 +116,20 @@
  * test pins against the protos, so a new `reference_kind` in the contract
  * fails the pin until this table says how it is read.
  *
- * Cost: one `listResources` scan per referenced KIND per write (not per
- * reference), decoded once into a (org, slug) index; the same scan every
- * runtime path already pays per reference when it resolves the target at
- * run start. A store read by (kind, org, slug) is the follow-on that
- * removes the scan everywhere, and is not this module's.
- *
+ * Cost: one point read per distinct target a write judges, by id, and
+ * one name read per distinct slug a write names. *
  * The refusal copy is exported below. The MCP-server sentence predates the
  * rule and is wire contract (byte-pinned by pipeline/__tests__/steps.test.ts
  * and the agent conformance suite); its siblings for the other kinds take
  * the same shape. `collectSpecReferences` is the walk exported for the
  * readers that ask the reverse question ("who references this?").
  */
-import type { DescField, DescMessage, Message } from "@bufbuild/protobuf";
+import type {
+  DescField,
+  DescMessage,
+  Message,
+  MessageShape,
+} from "@bufbuild/protobuf";
 import { getOption, hasOption } from "@bufbuild/protobuf";
 import { reflect } from "@bufbuild/protobuf/reflect";
 import type { ConnectError } from "@connectrpc/connect";
@@ -131,7 +143,10 @@ import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb"
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
-import type { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import {
+  ApiResourceReferenceSchema,
+  type UpdateVisibilityInputSchema,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -147,10 +162,11 @@ import {
 } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
+import { kindEnumName } from "../apiresource-meta.js";
 import { evaluateAuthorizer } from "./authorize.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { messageFieldByName, metadataOf } from "./shapes.js";
-import { findResourceByName } from "./names.js";
+import { findResourceByName, resolveName } from "./names.js";
 
 const API_RESOURCE_REFERENCE_TYPE =
   "ai.stigmer.commons.apiresource.ApiResourceReference";
@@ -230,9 +246,15 @@ export function referenceTargetKind(
 // The rule.
 // ---------------------------------------------------------------------------
 
-/** One reference a spec carries, as the walker reads it; `kind` is the field's declared kind. */
+/**
+ * One reference a spec carries, as the walker reads it; `kind` is the
+ * field's declared kind. A stored reference holds its target's `id` and no
+ * slug; a written one may hold a slug the resolver has not turned into an
+ * id yet, which is a name nothing holds once NormalizeReferences has run.
+ */
 export interface SpecReference {
   readonly kind: ApiResourceKind;
+  readonly id: string;
   readonly slug: string;
   readonly org: string;
   /** The version the reference names; empty or absent names none. */
@@ -262,10 +284,12 @@ export type ReferenceVerdict =
   /** The writer clause: the writer does not hold the kind's `writerMust` on the target. */
   | { readonly kind: "not-viewable" };
 
-/** The visibility and id of every referenced row the rule may need, one scan per kind (the module header). */
+/** The visibility, id and name of every referenced row the rule may need, each read once (the module header). */
 export interface ReferenceTargets {
   visibilityOf(ref: SpecReference): ApiResourceVisibility | undefined;
   idOf(ref: SpecReference): string | undefined;
+  /** The target's own current slug, for the copy a person reads. */
+  slugOf(ref: SpecReference): string | undefined;
   /**
    * The writing organization's parent, read only when a reference names
    * another organization; "" when it has none or none was needed.
@@ -273,18 +297,21 @@ export interface ReferenceTargets {
   readonly writerParentOrg: string;
 }
 
-/** One indexed target: what the floor reads and what the writer clause asks about. */
+/** One indexed target: what the floor reads, what the writer clause asks about, and its name. */
 interface IndexedTarget {
   readonly visibility: ApiResourceVisibility;
   readonly id: string;
+  readonly slug: string;
 }
 
 /**
- * Loads the rows the given references name: each distinct (kind, org,
- * slug) read once through the name table, then by id
- * (pipeline/steps/names.ts), so the rule reads only the targets it judges.
- * A reference whose kind is not in the table is a contract the pin test
- * has not admitted yet and is an internal fault.
+ * Loads the rows the given references name: each distinct target read
+ * once, by a point read of its id, or, for a reference still written by
+ * name, through the name table (pipeline/steps/names.ts), so the rule
+ * reads only the targets it judges. A row of another organization than the
+ * reference names is no target of it. A reference whose kind is not in the
+ * table is a contract the pin test has not admitted yet and is an internal
+ * fault.
  */
 export async function loadReferenceTargets(
   store: Store,
@@ -302,23 +329,30 @@ export async function loadReferenceTargets(
         "reference rule table has no entry for the referenced kind",
       );
     }
-    const key = targetKey(ref.kind, ref.org, ref.slug);
-    if (found.has(key) || ref.org === "" || ref.slug === "") {
+    const key = referenceKey(ref);
+    if (found.has(key) || ref.org === "" || (ref.id === "" && ref.slug === "")) {
       continue;
     }
-    const target = await findResourceByName(
-      store,
-      ref.kind,
-      entry.schema,
-      ref.org,
-      ref.slug,
-    );
+    const target =
+      ref.id !== ""
+        ? await readReferenced(store, ref.kind, entry.schema, ref.id)
+        : await findResourceByName(
+            store,
+            ref.kind,
+            entry.schema,
+            ref.org,
+            ref.slug,
+          );
     const metadata = target === undefined ? undefined : metadataOf(target);
     found.set(
       key,
-      metadata === undefined
+      metadata === undefined || metadata.org !== ref.org
         ? undefined
-        : { visibility: metadata.visibility, id: metadata.id },
+        : {
+            visibility: metadata.visibility,
+            id: metadata.id,
+            slug: metadata.slug,
+          },
     );
   }
   const crosses = refs.some((ref) => ref.org !== "" && ref.org !== writerOrg);
@@ -329,16 +363,143 @@ export async function loadReferenceTargets(
   return {
     writerParentOrg,
     visibilityOf(ref) {
-      return found.get(targetKey(ref.kind, ref.org, ref.slug))?.visibility;
+      return found.get(referenceKey(ref))?.visibility;
     },
     idOf(ref) {
-      return found.get(targetKey(ref.kind, ref.org, ref.slug))?.id;
+      return found.get(referenceKey(ref))?.id;
+    },
+    slugOf(ref) {
+      return found.get(referenceKey(ref))?.slug;
     },
   };
 }
 
-function targetKey(kind: ApiResourceKind, org: string, slug: string): string {
-  return `${kind}/${org}/${slug}`;
+/**
+ * What makes two references the same: their kind, organization and id, or,
+ * for one still written by name, its slug.
+ */
+export function referenceKey(ref: SpecReference): string {
+  return ref.id !== ""
+    ? `${ref.kind}/${ref.org}/#${ref.id}`
+    : `${ref.kind}/${ref.org}/${ref.slug}`;
+}
+
+/** A stored reference as the readers below take it. */
+export interface HeldReference {
+  readonly org: string;
+  readonly id: string;
+}
+
+/**
+ * The row a stored reference names: a point read by its id. Undefined when
+ * the reference holds no id (a name nothing held when it was written), no
+ * row of the kind holds the id (the target was deleted), or the row
+ * belongs to another organization than the reference names.
+ */
+export async function loadReferenced<Desc extends DescMessage>(
+  store: Store,
+  kind: ApiResourceKind,
+  schema: Desc,
+  ref: HeldReference,
+): Promise<MessageShape<Desc> | undefined> {
+  if (ref.id === "") {
+    return undefined;
+  }
+  const row = (await readReferenced(store, kind, schema, ref.id)) as
+    | MessageShape<Desc>
+    | undefined;
+  return row !== undefined && metadataOf(row)?.org === ref.org ? row : undefined;
+}
+
+/**
+ * The resource a reference REQUEST names (getByReference and the server
+ * readers that load a reference they were handed): by its id, a point read
+ * whose row must belong to the reference's organization when it names one;
+ * else by its org and slug through the name table. Beside an id the slug is
+ * not looked up: a read lane authorizes the row only after this finds it,
+ * so asking the name table here would tell a caller with no standing on
+ * the organization whether it holds a name. Undefined when nothing matches.
+ */
+export async function findByReference<Desc extends DescMessage>(
+  store: Store,
+  kind: ApiResourceKind,
+  schema: Desc,
+  ref: { readonly org: string; readonly id: string; readonly slug: string },
+): Promise<MessageShape<Desc> | undefined> {
+  if (ref.id === "") {
+    return findResourceByName(store, kind, schema, ref.org, ref.slug);
+  }
+  const row = (await readReferenced(store, kind, schema, ref.id)) as
+    | MessageShape<Desc>
+    | undefined;
+  const metadata = row === undefined ? undefined : metadataOf(row);
+  return metadata === undefined || (ref.org !== "" && metadata.org !== ref.org)
+    ? undefined
+    : row;
+}
+
+/**
+ * The name a person reads for a stored reference in copy: its target's
+ * current slug, else the slug it was written with, else its id (a target
+ * that is gone has no name).
+ */
+export async function referenceDisplayName(
+  store: Pick<Store, "resourceNames">,
+  kind: ApiResourceKind,
+  ref: HeldReference & { readonly slug: string },
+): Promise<string> {
+  if (ref.slug !== "" || ref.id === "") {
+    return ref.slug;
+  }
+  const entry = await store.resourceNames.current(
+    kindEnumName(kind),
+    ref.org,
+    ref.id,
+  );
+  return entry?.name ?? ref.id;
+}
+
+/**
+ * The names a person reads for many stored references of one kind, in one
+ * read of the name table (`currentMany`), in the order given: each one's
+ * referenceDisplayName.
+ */
+export async function referenceDisplayNames(
+  store: Pick<Store, "resourceNames">,
+  kind: ApiResourceKind,
+  refs: ReadonlyArray<HeldReference & { readonly slug: string }>,
+): Promise<string[]> {
+  const kindName = kindEnumName(kind);
+  const held = refs.filter((ref) => ref.slug === "" && ref.id !== "");
+  const entries =
+    held.length === 0
+      ? []
+      : await store.resourceNames.currentMany(
+          held.map((ref) => ({ kind: kindName, org: ref.org, id: ref.id })),
+        );
+  const names = new Map(entries.map((e) => [`${e.org}/${e.id}`, e.name]));
+  return refs.map((ref) =>
+    ref.slug !== "" || ref.id === ""
+      ? ref.slug
+      : (names.get(`${ref.org}/${ref.id}`) ?? ref.id),
+  );
+}
+
+/** A row by id, or undefined when no row of the kind holds it. */
+async function readReferenced(
+  store: Store,
+  kind: ApiResourceKind,
+  schema: DescMessage,
+  id: string,
+): Promise<Message | undefined> {
+  try {
+    return await store.getResource(kind, id, schema);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      return undefined;
+    }
+    throw internalError(error, "failed to read a referenced resource");
+  }
 }
 
 /** An organization's `spec.parent_org`; "" when it has none or its row is gone. */
@@ -452,7 +613,7 @@ export async function checkWriter(
 }
 
 function sameReference(a: SpecReference, b: SpecReference): boolean {
-  return a.kind === b.kind && a.org === b.org && a.slug === b.slug;
+  return referenceKey(a) === referenceKey(b);
 }
 
 /**
@@ -663,12 +824,184 @@ export function referenceRefusal(
 // The steps.
 // ---------------------------------------------------------------------------
 
-export function newNormalizeReferencesStep<
-  Desc extends DescMessage,
->(): PipelineStep<Desc> {
+/**
+ * Resolves every reference in a resource's spec in place (the module
+ * header's resolution): see resolveReferencesIn.
+ */
+export async function resolveReferences(
+  store: Store,
+  schema: DescMessage,
+  resource: Message,
+  defaultOrg: string,
+  now: Date = new Date(),
+  stored?: Message,
+): Promise<void> {
+  const found: Array<{ ref: ReflectMessage; field: DescField }> = [];
+  forEachSpecReference(schema, resource, (ref, field) => found.push({ ref, field }));
+  const held = new Set(
+    (stored === undefined ? [] : collectSpecReferences(schema, stored))
+      .filter((ref) => ref.id !== "")
+      .map(referenceKey),
+  );
+  await resolveFound(store, found, defaultOrg, now, held);
+}
+
+/**
+ * Resolves every reference anywhere in a message in place, not only under
+ * `spec`: for a request that carries a reference of its own (the federated
+ * account inputs, domain/identityaccount/controller.ts). For each one:
+ *
+ *   - an empty `org` takes `defaultOrg`;
+ *   - a `kind` other than the field's `reference_kind` is refused
+ *     (INVALID_ARGUMENT), and an empty one takes it;
+ *   - a slug is resolved to its id through the name table, each distinct
+ *     (kind, org, slug) once, a previous name included; the id is set and
+ *     the slug cleared. An id the write also carries must be the one the
+ *     slug names when the slug names one, or the write is refused naming
+ *     both (INVALID_ARGUMENT). Beside an id, a slug nothing holds is a
+ *     name read before its resource was deleted (a reader writing back
+ *     what it read): the id stands and the slug is cleared;
+ *   - a slug nothing holds and no id are left as written, for the
+ *     reference rule to refuse as a missing target, so resolving never
+ *     says which names exist;
+ *   - an id the stored row already holds (resolveReferences' `stored`, an
+ *     update's loaded row) whose resource has since been deleted stands
+ *     whatever slug is echoed beside it, and the slug is cleared: it is the
+ *     name a reader read before the delete, which another resource may have
+ *     taken since, and the runner writing back a session it read at turn
+ *     start must not be refused for it. Beside a live resource's id, a slug
+ *     naming another one is a person's edit, and is refused as above;
+ *   - a reference into ANOTHER organization than `defaultOrg` is resolved
+ *     without asking that organization anything the writer could read
+ *     back: one that carries an id is held by that id and its slug is not
+ *     looked up (no disagreement is judged), and one written by slug alone
+ *     takes the id its name holds. Both keep the slug as written, so the
+ *     reference rule's one cross-organization sentence names what the
+ *     writer wrote whatever exists; ValidateReferences clears it once the
+ *     rule admits the reference (clause iii).
+ *
+ * Idempotent: a reference that holds an id and no slug is left as it is.
+ */
+export async function resolveReferencesIn(
+  store: Store,
+  schema: DescMessage,
+  message: Message,
+  defaultOrg: string,
+  now: Date = new Date(),
+): Promise<void> {
+  const found: Array<{ ref: ReflectMessage; field: DescField }> = [];
+  walk(reflect(schema, message), (ref, field) => found.push({ ref, field }));
+  await resolveFound(store, found, defaultOrg, now, new Set());
+}
+
+async function resolveFound(
+  store: Store,
+  found: ReadonlyArray<{ ref: ReflectMessage; field: DescField }>,
+  defaultOrg: string,
+  now: Date,
+  held: ReadonlySet<string>,
+): Promise<void> {
+  const resolved = new Map<string, string | undefined>();
+  for (const { ref, field } of found) {
+    const orgField = REFERENCE_FIELDS.org;
+    if (defaultOrg !== "" && stringField(ref, "org") === "") {
+      ref.set(orgField, defaultOrg);
+    }
+    const kind = settleKind(ref, field);
+    const org = stringField(ref, "org");
+    const slug = stringField(ref, "slug");
+    if (slug === "" || org === "") {
+      continue;
+    }
+    const written = stringField(ref, "id");
+    if (
+      written !== "" &&
+      held.has(referenceKey({ kind, org, id: written, slug, version: "" })) &&
+      (await store.resourceNames.current(kindEnumName(kind), org, written)) === undefined
+    ) {
+      // An echo of a reference the stored row holds, to a resource deleted
+      // since: the slug is the name the writer read, which another resource
+      // may have taken.
+      ref.set(REFERENCE_FIELDS.slug, "");
+      continue;
+    }
+    const foreign = org !== defaultOrg;
+    if (foreign && written !== "") {
+      continue;
+    }
+    const key = `${kind}/${org}/${slug}`;
+    if (!resolved.has(key)) {
+      resolved.set(key, await resolveName(store, kind, org, slug, now));
+    }
+    const named = resolved.get(key);
+    if (written !== "" && named !== undefined && written !== named) {
+      throw invalidArgumentError(
+        `${field.name} names '${slug}' and id '${written}', which are not the same resource; name it by its slug, by its id, or by both when they agree.`,
+      );
+    }
+    if (named === undefined && written === "") {
+      continue;
+    }
+    ref.set(REFERENCE_FIELDS.id, named ?? written);
+    if (!foreign) {
+      ref.set(REFERENCE_FIELDS.slug, "");
+    }
+  }
+}
+
+/**
+ * Clears the slug of every reference in the spec that holds an id: a
+ * reference into another organization keeps the slug it was written with
+ * until ValidateReferences admits it (resolveReferencesIn), and is stored
+ * by its id alone like every other.
+ */
+function settleAdmitted(schema: DescMessage, resource: Message): void {
+  forEachSpecReference(schema, resource, (ref) => {
+    if (stringField(ref, "id") !== "" && stringField(ref, "slug") !== "") {
+      ref.set(REFERENCE_FIELDS.slug, "");
+    }
+  });
+}
+
+/**
+ * The kind a reference names, written onto it: the field's declared kind
+ * when the contract declares one. A reference that names another kind is
+ * refused, with the copy the contract's per-field rules answered before the
+ * declaration became the one rule.
+ */
+function settleKind(ref: ReflectMessage, field: DescField): ApiResourceKind {
+  const written = numberField(ref, "kind") as ApiResourceKind;
+  const declared = declaredKind(field, ref);
+  if (written === declared) {
+    return declared;
+  }
+  if (written === ApiResourceKind.api_resource_kind_unknown) {
+    ref.set(REFERENCE_FIELDS.kind, declared);
+  } else {
+    const target = field.fieldKind === "list" ? "resources" : "a resource";
+    throw invalidArgumentError(
+      `${field.name} must reference ${target} with kind=${ApiResourceKind[declared]}`,
+    );
+  }
+  return declared;
+}
+
+/** A reference's own fields, which the resolver writes. */
+const REFERENCE_FIELDS = ApiResourceReferenceSchema.field;
+
+/**
+ * NormalizeReferences: every reference the spec carries resolved to its
+ * id (resolveReferences), its org defaulting to the resource's own. Runs
+ * as soon as the resource's organization is known and before any step that
+ * reads a reference (the module header), so no step meets a reference in
+ * two shapes.
+ */
+export function newNormalizeReferencesStep<Desc extends DescMessage>(
+  store: Store,
+): PipelineStep<Desc> {
   return {
     name: "NormalizeReferences",
-    execute(ctx: RequestContext<Desc>): void {
+    async execute(ctx: RequestContext<Desc>): Promise<void> {
       const metadata = metadataOf(ctx.newState);
       if (metadata === undefined) {
         throw internalError(
@@ -676,36 +1009,24 @@ export function newNormalizeReferencesStep<
           "normalize references",
         );
       }
-      // No org to resolve from — skip silently; the rule's first clause
-      // refuses a reference left without one.
-      if (metadata.org === "") {
-        return;
-      }
-      forEachSpecReference(ctx.schema, ctx.newState, (ref) => {
-        const orgField = ref.fields.find((f) => f.name === "org");
-        if (orgField !== undefined && (ref.get(orgField) as string) === "") {
-          ref.set(orgField, metadata.org);
-        }
-      });
+      // With no org to default to, an org-less reference stays empty, and
+      // the rule's first clause refuses it. On an update the stored row is
+      // loaded, and a reference it holds is an echo (resolveReferencesIn).
+      await resolveReferences(
+        store,
+        ctx.schema,
+        ctx.newState,
+        metadata.org,
+        new Date(),
+        ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined,
+      );
     },
   };
 }
 
-/**
- * The request-context key ValidateReferences records its resolved targets
- * under (a ReferenceTargets), read through resolvedReferenceTargets by a
- * later step of the same chain that needs a reference's id. Absent when the
- * spec carries no reference.
- */
-export const RESOLVED_REFERENCE_TARGETS_KEY = "resolvedReferenceTargets";
-
-/** The targets ValidateReferences resolved on this request, or undefined when it resolved none. */
-export function resolvedReferenceTargets<Desc extends DescMessage>(
-  ctx: RequestContext<Desc>,
-): ReferenceTargets | undefined {
-  return ctx.get(RESOLVED_REFERENCE_TARGETS_KEY) as
-    | ReferenceTargets
-    | undefined;
+/** Whether a collected reference names anything: an unset message field collects as neither id nor slug. */
+function isSet(ref: SpecReference): boolean {
+  return ref.id !== "" || ref.slug !== "";
 }
 
 /** Which references ValidateReferences judges (the module header). */
@@ -713,7 +1034,7 @@ export interface ValidateReferencesOptions {
   /**
    * `every` (the default): every reference the spec carries. `introduced`:
    * only those the stored row does not already carry (by kind,
-   * organization and slug); a create judges every one either way.
+   * organization and id); a create judges every one either way.
    */
   readonly judge?: "every" | "introduced";
 }
@@ -722,10 +1043,11 @@ export interface ValidateReferencesOptions {
  * ValidateReferences: the references the spec carries, judged for the
  * request's caller against the stored row (EXISTING_RESOURCE_KEY on an
  * update; none on a create) — the module header's clauses and its writer
- * clause. Records the targets it resolved for every reference
- * (RESOLVED_REFERENCE_TARGETS_KEY), judged or not — and, under
- * `introduced`, loads and records nothing when the write introduces no
- * reference.
+ * clause. Under `introduced`, it reads nothing when the write introduces
+ * no reference. A later step that needs a target reads the reference's id,
+ * which NormalizeReferences set. A reference it admits into another
+ * organization loses the slug it was written with here
+ * (resolveReferencesIn), so every stored reference holds its id alone.
  */
 export function newValidateReferencesStep<Desc extends DescMessage>(
   store: Store,
@@ -743,11 +1065,8 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
         );
       }
       const refs = collectSpecReferences(ctx.schema, ctx.newState).filter(
-        (ref) => ref.slug !== "",
+        isSet,
       );
-      if (refs.length === 0) {
-        return;
-      }
       const parent: ReferenceParent = {
         org: metadata.org,
         visibility: metadata.visibility,
@@ -763,21 +1082,18 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
               (ref) => !stored.some((held) => sameReference(held, ref)),
             )
           : refs;
-      if (judged.length === 0 && options.judge === "introduced") {
-        // Nothing new to judge, and a reference the stored row carries is
-        // the later step's to read by the id the row already holds.
-        return;
+      if (judged.length > 0) {
+        const targets = await loadReferenceTargets(store, judged, parent.org);
+        const refusal = await judgeReferences(targets, store, parent, judged, {
+          authorizer,
+          caller: ctx.callerIdentity,
+          stored,
+        });
+        if (refusal !== undefined) {
+          throw refusal;
+        }
       }
-      const targets = await loadReferenceTargets(store, refs, parent.org);
-      const refusal = await judgeReferences(targets, store, parent, judged, {
-        authorizer,
-        caller: ctx.callerIdentity,
-        stored,
-      });
-      if (refusal !== undefined) {
-        throw refusal;
-      }
-      ctx.set(RESOLVED_REFERENCE_TARGETS_KEY, targets);
+      settleAdmitted(ctx.schema, ctx.newState);
     },
   };
 }
@@ -821,22 +1137,45 @@ async function judgeReferences(
           : verdict,
     });
   }
-  return referenceRefusal(parent, await namedForPeople(store, parent, verdicts));
+  return referenceRefusal(
+    parent,
+    await namedForPeople(store, targets, parent, verdicts),
+  );
 }
 
 /**
- * The verdicts with the writer's own organization named by its slug, for
- * the refusal's copy: references are judged by id, but a person reads the
- * sentence. Another organization is never named by a refusal at all
+ * The verdicts named for the refusal's copy: references are judged by id,
+ * but a person reads the sentence. Each target of the writer's own
+ * organization is named by its own current slug (a reference still written
+ * by name keeps the name it was written with; one whose id names nothing
+ * is named by that id), and the writer's own organization by its slug. A
+ * target of another organization is named as the writer wrote it, its
+ * slug or else its id, never by what that organization calls it, and that
+ * organization is never named by a refusal at all
  * (notAvailableReferenceMessage says why).
  */
 async function namedForPeople<
   V extends { readonly ref: SpecReference; readonly verdict: ReferenceVerdict },
 >(
   store: Store,
+  targets: ReferenceTargets,
   parent: ReferenceParent,
-  verdicts: ReadonlyArray<V>,
+  given: ReadonlyArray<V>,
 ): Promise<ReadonlyArray<V>> {
+  const verdicts = given.map((verdict) =>
+    verdict.ref.slug !== ""
+      ? verdict
+      : {
+          ...verdict,
+          ref: {
+            ...verdict.ref,
+            slug:
+              (verdict.ref.org === parent.org
+                ? targets.slugOf(verdict.ref)
+                : undefined) ?? verdict.ref.id,
+          },
+        },
+  );
   // Only a refusal is read by a person; a write that passes reads nothing.
   const refusesOwn = verdicts.some(
     ({ ref, verdict }) => ref.org === parent.org && verdict.kind !== "ok",
@@ -898,7 +1237,7 @@ export function newGuardReferenceFloorOnEscalationStep(
       }
       const refs = collectors
         .flatMap((collect) => collect(row))
-        .filter((ref) => ref.slug !== "");
+        .filter(isSet);
       if (refs.length === 0) {
         return;
       }
@@ -911,6 +1250,7 @@ export function newGuardReferenceFloorOnEscalationStep(
         parent,
         await namedForPeople(
           store,
+          targets,
           parent,
           refs
             .map((ref) => ({
@@ -946,6 +1286,7 @@ export function collectSpecReferences(
   forEachSpecReference(schema, msg, (ref, field) => {
     refs.push({
       kind: declaredKind(field, ref),
+      id: stringField(ref, "id"),
       slug: stringField(ref, "slug"),
       org: stringField(ref, "org"),
       version: stringField(ref, "version"),

@@ -282,7 +282,7 @@ var File_ai_stigmer_iam_identityaccount_v1_spec_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/iam/identityaccount/v1/spec.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a,ai/stigmer/iam/identityaccount/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x91\x04\n" +
+	",ai/stigmer/iam/identityaccount/v1/spec.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a,ai/stigmer/iam/identityaccount/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x97\x04\n" +
 	"\x13IdentityAccountSpec\x12\x1d\n" +
 	"\x06idp_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05idpId\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1d\n" +
@@ -292,8 +292,8 @@ const file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDesc = "" +
 	"\vpicture_url\x18\x05 \x01(\tR\n" +
 	"pictureUrl\x12,\n" +
 	"\x12is_machine_account\x18\x06 \x01(\bR\x10isMachineAccount\x12o\n" +
-	"\x11provisioning_mode\x18\a \x01(\x0e2B.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningModeR\x10provisioningMode\x12h\n" +
-	"\x15identity_provider_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12_\n" +
+	"\x11provisioning_mode\x18\a \x01(\x0e2B.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningModeR\x10provisioningMode\x12n\n" +
+	"\x15identity_provider_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,\x15R\x13identityProviderRef\x12_\n" +
 	"\vpreferences\x18\t \x01(\v2=.ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferencesR\vpreferences\"\xe3\x02\n" +
 	"\x1aIdentityAccountPreferences\x123\n" +
 	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12A\n" +

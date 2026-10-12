@@ -1,6 +1,7 @@
 "use client";
 
 import { timestampDate } from "@bufbuild/protobuf/wkt";
+import { isDeletedReference } from "@stigmer/sdk";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
@@ -107,7 +108,9 @@ export function createScheduleColumns(
           item.spec?.target?.case === "agent" ? item.spec.target.value : undefined;
         return (
           <span className="stg:text-muted-foreground">
-            {target?.agentRef ? (
+            {target?.agentRef && isDeletedReference(target.agentRef) ? (
+              "deleted agent"
+            ) : target?.agentRef ? (
               <QualifiedAgentRef org={target.agentRef.org} slug={target.agentRef.slug} />
             ) : (
               "—"

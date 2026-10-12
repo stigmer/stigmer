@@ -758,7 +758,7 @@ describe("references (agent spec as the vehicle)", () => {
       testCallerIdentity(),
       ApiResourceKind.agent,
     );
-    await newNormalizeReferencesStep<typeof AgentSchema>().execute(ctx);
+    await newNormalizeReferencesStep<typeof AgentSchema>(store).execute(ctx);
     expect(ctx.newState.spec?.skillRefs[0]?.org).toBe("acme");
 
     const explicit = new RequestContext(
@@ -767,7 +767,7 @@ describe("references (agent spec as the vehicle)", () => {
       testCallerIdentity(),
       ApiResourceKind.agent,
     );
-    await newNormalizeReferencesStep<typeof AgentSchema>().execute(explicit);
+    await newNormalizeReferencesStep<typeof AgentSchema>(store).execute(explicit);
     expect(explicit.newState.spec?.skillRefs[0]?.org).toBe("other-org");
   });
 

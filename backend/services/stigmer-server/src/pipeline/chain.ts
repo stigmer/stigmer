@@ -67,6 +67,12 @@ export interface ServingChainInterceptors {
 export interface SharedChainInterceptors {
   /** Refuses a request naming an organization being deleted. */
   readonly deletingOrganizations?: Interceptor;
+  /**
+   * Names every reference a response holds by its target's current slug
+   * (interceptors/resource-references.ts): on both chains, so an RPC
+   * answers the same over any transport.
+   */
+  readonly resourceReferences?: Interceptor;
 }
 
 export function buildInterceptorChain(
@@ -88,6 +94,9 @@ export function buildInterceptorChain(
     ...(shared.deletingOrganizations === undefined
       ? []
       : [shared.deletingOrganizations]),
+    ...(shared.resourceReferences === undefined
+      ? []
+      : [shared.resourceReferences]),
     createApiResourceInterceptor(),
   ];
 }

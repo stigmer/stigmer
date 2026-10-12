@@ -43,17 +43,52 @@ import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import { releaseNamesOfDeleted } from "../../pipeline/steps/names.js";
+import { referenceDisplayNames } from "../../pipeline/steps/references.js";
 type AgentDesc = typeof AgentSchema;
 
 // ---------------------------------------------------------------------------
-// ValidateHooks — the agent's plugins and its own hooks block, checked
-// where the proto's own rules cannot reach. Each plugin is listed once by
-// slug (spec.plugins): the slug is what a run records as the deciding hook
+// ValidatePluginList — each plugin is listed once by slug (spec.plugins):
+// the slug is what a run records as the deciding hook
 // (ToolCall.approval_policy_hook) and what a hook's "approve all" lease is
 // keyed by, and the name a turn gives its skills, agents and tools, so two
-// plugins sharing one, even from two organizations, would share them. One
-// inline block at most (spec.hooks), so "the agent's own hooks" names one
-// thing. An inline block is held to the rules a plugin's hooks are held to
+// plugins sharing one, even from two organizations, would share them. The
+// plugins are compared by the names they hold now: NormalizeReferences ran
+// first and left each one its id, so a plugin listed twice is one id and
+// two plugins sharing a slug are two ids of one current name, read in one
+// batch from the name table. INVALID_ARGUMENT, directly after
+// ValidateReferences admitted every one of them, so the copy never names a
+// plugin of another organization the writer has no standing to learn
+// about (pipeline/steps/references.ts, clause iii).
+// ---------------------------------------------------------------------------
+
+export function newValidatePluginListStep(
+  store: Store,
+): PipelineStep<AgentDesc> {
+  return {
+    name: "ValidatePluginList",
+    async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
+      const pluginSlugs = new Set<string>();
+      for (const slug of await referenceDisplayNames(
+        store,
+        ApiResourceKind.plugin,
+        ctx.newState.spec?.plugins ?? [],
+      )) {
+        if (pluginSlugs.has(slug)) {
+          throw invalidArgumentError(
+            `plugins lists '${slug}' more than once; list each plugin once, and never two plugins that share a slug`,
+          );
+        }
+        pluginSlugs.add(slug);
+      }
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// ValidateHooks — the agent's own hooks block, checked where the proto's
+// own rules cannot reach. One inline block at most (spec.hooks), so "the
+// agent's own hooks" names one thing. An inline block is held to the rules
+// a plugin's hooks are held to
 // at install, from the one library that reads them (@stigmer/plugin-package),
 // in either format, since both engines run both. Claude Code's: the two
 // tool-call events, a matcher that is "*", an exact list or a regular
@@ -65,8 +100,9 @@ type AgentDesc = typeof AgentSchema;
 // Claude Code's, so an author writing a block by hand never names an enum;
 // a Cursor block names its format.
 //
-// Pipeline position: before NormalizeReferences, so malformed hooks are
-// INVALID_ARGUMENT before any reference is looked up; before the version
+//
+// Pipeline position: before ValidateReferences, so malformed hooks are
+// INVALID_ARGUMENT before any reference is judged; before the version
 // hash, so the filled format is part of what is hashed.
 // ---------------------------------------------------------------------------
 
@@ -74,15 +110,6 @@ export function newValidateHooksStep(): PipelineStep<AgentDesc> {
   return {
     name: "ValidateHooks",
     execute(ctx: RequestContext<AgentDesc>): void {
-      const pluginSlugs = new Set<string>();
-      for (const plugin of ctx.newState.spec?.plugins ?? []) {
-        if (pluginSlugs.has(plugin.slug)) {
-          throw invalidArgumentError(
-            `plugins lists '${plugin.slug}' more than once; list each plugin once, and never two plugins that share a slug`,
-          );
-        }
-        pluginSlugs.add(plugin.slug);
-      }
       let inlineBlocks = 0;
       for (const source of ctx.newState.spec?.hooks ?? []) {
         switch (source.source.case) {
@@ -221,6 +248,7 @@ export function newCascadeDeleteSharesStep<Desc extends DescMessage>(
       }
       const agentOrg = agent.metadata?.org ?? "";
       const agentSlug = agent.metadata?.slug ?? "";
+      const agentId = agent.metadata?.id ?? "";
 
       let rows: Uint8Array[];
       try {
@@ -241,7 +269,7 @@ export function newCascadeDeleteSharesStep<Desc extends DescMessage>(
           continue;
         }
         const ref = share.spec?.agentRef;
-        if ((ref?.org ?? "") !== agentOrg || (ref?.slug ?? "") !== agentSlug) {
+        if ((ref?.id ?? "") !== agentId || agentId === "") {
           continue;
         }
         if ((share.metadata?.org ?? "") !== agentOrg) {

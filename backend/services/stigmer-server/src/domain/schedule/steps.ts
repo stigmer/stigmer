@@ -24,7 +24,10 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
-import { findResourceByName } from "../../pipeline/steps/names.js";
+import {
+  loadReferenced,
+  referenceDisplayName,
+} from "../../pipeline/steps/references.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { Store } from "../../store/interface.js";
 import { scheduleModelPinningRefusal } from "../../temporal/schedule/model-pinning.js";
@@ -50,13 +53,14 @@ export interface ScheduleValidationDeps {
  *     for every fire, so it can never be inferred.
  *  2. Validates the cron grammar and the time zone (cron.ts — lexical
  *     rules; no cron parsing in either edition).
- *  3. Requires spec.agent.agent_ref.slug and normalizes its org (empty
- *     means same-org, the platform-wide relative-reference convention).
+ *  3. Requires spec.agent.agent_ref. NormalizeReferences ran first: the
+ *     org is absolute (empty meant same-org, the platform-wide
+ *     relative-reference convention) and a slug is the agent's id.
  *  4. Enforces the same-org invariant: agent_ref.org must equal
  *     metadata.org — the schedule's org pays for every fire, and both must
- *     be the agent's. Checked BEFORE the agent load so a cross-org request
- *     cannot probe another org's slugs through this path.
- *  5. Loads the referenced agent — scheduling a nonexistent agent is
+ *     be the agent's. Checked BEFORE the agent load, and no refusal names
+ *     whether another org's slug exists.
+ *  5. Loads the referenced agent by id — scheduling a nonexistent agent is
  *     refused with the same NOT_FOUND a direct agent lookup would produce.
  *
  * Deliberately NO slug default from the agent: schedules are N-per-agent
@@ -87,24 +91,17 @@ export function newResolveScheduleDefaultsStep(
 
       const agentRef =
         spec?.target.case === "agent" ? spec.target.value.agentRef : undefined;
-      if ((agentRef?.slug ?? "") === "") {
-        throw invalidArgumentError("spec.agent.agent_ref.slug is required");
+      if (agentRef === undefined || (agentRef.id === "" && agentRef.slug === "")) {
+        throw invalidArgumentError("spec.agent.agent_ref is required");
       }
 
       validateScheduleWorkspace(spec);
       validateScheduleModelPinning(deps.modelRegistry, spec);
 
-      // Empty ref org means same-org; make it absolute before the
-      // invariant compares orgs.
-      let refOrg = agentRef?.org ?? "";
-      if (refOrg === "") {
-        refOrg = metadata?.org ?? "";
-      }
-
       // The same-org invariant (spec.proto): the schedule's org is the
       // billing org for every fire, and it must be the agent's. Checked
-      // BEFORE the agent load so a cross-org request cannot probe another
-      // org's slugs through this path.
+      // BEFORE the agent load.
+      const refOrg = agentRef.org;
       if (refOrg !== (metadata?.org ?? "")) {
         throw failedPreconditionError(
           `spec.agent.agent_ref.org must match metadata.org — a schedule must live in the referenced agent's organization (${refOrg})`,
@@ -113,19 +110,16 @@ export function newResolveScheduleDefaultsStep(
 
       let found;
       try {
-        found = await findResourceByName(deps.store, ApiResourceKind.agent, AgentSchema, refOrg, agentRef?.slug ?? "");
+        found = await loadReferenced(deps.store, ApiResourceKind.agent, AgentSchema, agentRef);
       } catch (error) {
-        throw internalError(error, "failed to list agent resources");
+        throw internalError(error, "failed to read the agent");
       }
       if (found === undefined) {
         // Byte-identical with the direct agent lookup's refusal (the
         // indistinguishability contract).
-        throw notFoundError("Agent", agentRef?.slug ?? "");
+        throw notFoundError("Agent", agentRef.slug !== "" ? agentRef.slug : agentRef.id);
       }
 
-      if (agentRef !== undefined) {
-        agentRef.org = refOrg;
-      }
       ctx.set(REFERENCED_AGENT_KEY, found);
     },
   };
@@ -263,7 +257,8 @@ export function targetFieldName(spec: ScheduleSpec | undefined): string {
  *     spec wholesale and does not run the defaults resolver, so the write
  *     path must hold the same bar as create.
  *
- * Runs after LoadExisting. metadata.slug/org immutability needs no step
+ * Runs after NormalizeReferences, which resolved the request's reference,
+ * so the agent is compared by id. metadata.slug/org immutability needs no step
  * here: the generic BuildUpdateState preserves both from the existing
  * resource. Status (firing observations, auto-pause) is likewise preserved
  * wholesale — the invariant that keeps the failure-streak auto-pause immune to
@@ -274,7 +269,7 @@ export function newValidateScheduleUpdateStep(
 ): PipelineStep<typeof ScheduleSchema> {
   return {
     name: "ValidateScheduleUpdate",
-    execute(ctx: RequestContext<typeof ScheduleSchema>): void {
+    async execute(ctx: RequestContext<typeof ScheduleSchema>): Promise<void> {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Schedule | undefined;
       if (existing === undefined) {
         throw internalError(
@@ -308,19 +303,17 @@ export function newValidateScheduleUpdateStep(
           ? existing.spec.target.value.agentRef
           : undefined;
 
-      // Normalize the input ref's org the same way create does (empty
-      // means the schedule's own org) before comparing.
-      let inputOrg = inputRef?.org ?? "";
-      if (inputOrg === "") {
-        inputOrg = existing.metadata?.org ?? "";
-      }
-
       if (
-        (inputRef?.slug ?? "") !== (existingRef?.slug ?? "") ||
-        inputOrg !== (existingRef?.org ?? "")
+        (inputRef?.id ?? "") !== (existingRef?.id ?? "") ||
+        (inputRef?.org ?? "") !== (existingRef?.org ?? "")
       ) {
+        const held = await referenceDisplayName(deps.store, ApiResourceKind.agent, {
+          org: existingRef?.org ?? "",
+          id: existingRef?.id ?? "",
+          slug: existingRef?.slug ?? "",
+        });
         throw failedPreconditionError(
-          `spec.agent.agent_ref is immutable (schedule runs ${existingRef?.org ?? ""}/${existingRef?.slug ?? ""}) — create a new schedule to run a different agent`,
+          `spec.agent.agent_ref is immutable (schedule runs ${existingRef?.org ?? ""}/${held}) — create a new schedule to run a different agent`,
         );
       }
     },

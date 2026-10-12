@@ -893,10 +893,16 @@ describe("Session conformance — references across organizations and on update"
     fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }).catch(() => undefined));
     await clients.skillCommand.delete({ value: skill.metadata!.id });
 
-    const updated = await updateSession(session, makeSessionSpec({ agentRef, skillRefs: [skill.metadata!.slug], subject: "renamed" }));
+    // The echo is what the session's read answered: the skill by its id,
+    // named by the slug it had. The id stands now the skill is gone.
+    const updated = await updateSession(session, {
+      ...makeSessionSpec({ agentRef, subject: "renamed" }),
+      skillRefs: session.spec!.skillRefs,
+    });
 
     expect(updated.spec?.subject).toBe("renamed");
-    expect(updated.spec?.skillRefs.map((ref) => ref.slug)).toEqual([skill.metadata!.slug]);
+    // The skill is gone: the answer holds its id and names no slug.
+    expect(updated.spec?.skillRefs.map((ref) => [ref.id, ref.slug])).toEqual([[skill.metadata!.id, ""]]);
   });
 });
 

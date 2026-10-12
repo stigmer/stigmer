@@ -38,6 +38,7 @@ import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js"
 
 import { PLUGIN_EVAL_VAULT_ATTACHMENTS } from "../../plugin-eval/vault-attachments.js";
 import { SCHEDULE_VAULT_ATTACHMENTS } from "../../schedule/vault-attachments.js";
+import { resolveReferences } from "../../../pipeline/steps/references.js";
 import { myVaultLockRefusal, myVaultRefusal, newVaultAttachmentsStep } from "../attachments.js";
 import type { VaultAttachmentOptions } from "../attachments.js";
 import type { VaultRig } from "./support.js";
@@ -97,9 +98,11 @@ const SCHEDULE: VaultAttachmentOptions<typeof ScheduleSchema> = {
   surface: "a schedule other than its owner's own",
   allowsOwnersMyVault: true,
   rejudgeAllWhen: (existing, next) => {
-    const slugOf = (row: Schedule) =>
-      row.spec?.target.case === "agent" ? row.spec.target.value.agentRef?.slug : "";
-    return slugOf(existing) !== slugOf(next);
+    const agentOf = (row: Schedule) => {
+      const ref = row.spec?.target.case === "agent" ? row.spec.target.value.agentRef : undefined;
+      return `${ref?.id ?? ""}/${ref?.slug ?? ""}`;
+    };
+    return agentOf(existing) !== agentOf(next);
   },
   attachers: {
     get: (row) => row.status?.vaultAttachers,
@@ -130,7 +133,10 @@ async function run<Desc extends DescMessage>(
     }),
     kind,
   );
+  // The chain's resolver runs first, and a stored row holds ids.
+  await resolveReferences(rig.store, schema, ctx.newState, ORG);
   if (opts.existing !== undefined) {
+    await resolveReferences(rig.store, schema, opts.existing, ORG);
     ctx.set(EXISTING_RESOURCE_KEY, opts.existing);
   }
   await newVaultAttachmentsStep(rig.store, opts.authorizer ?? allowAll, options).execute(ctx);
@@ -450,6 +456,7 @@ describe("faults and deleted vaults", () => {
       testCallerIdentity({ identityId: "ida_admin" }),
       ApiResourceKind.session,
     );
+    await resolveReferences(rig.store, SessionSchema, ctx.newState, ORG);
     const error = await refusalOf(
       Promise.resolve(newVaultAttachmentsStep(failing, allowAll, SESSION).execute(ctx)),
     );

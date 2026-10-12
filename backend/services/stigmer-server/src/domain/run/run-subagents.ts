@@ -19,14 +19,14 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { Code, ConnectError } from "@connectrpc/connect";
 
 import { failedPreconditionError, internalError } from "../../pipeline/errors.js";
-import { findResourceByName } from "../../pipeline/steps/names.js";
+import { loadReferenced } from "../../pipeline/steps/references.js";
 import { loadVersion } from "../../pipeline/steps/version-history.js";
 import type { Store } from "../../store/interface.js";
 import { agentVersionBinding } from "../agent/versions.js";
 
 /** One subagent of a run, at its pinned version. */
 export interface RunSubagent {
-  /** Its name in the turn: the listed agent's slug. */
+  /** Its name in the turn: the listed agent's current slug. */
   readonly name: string;
   /** The organization it belongs to. */
   readonly org: string;
@@ -47,30 +47,35 @@ export async function runSubagents(
 ): Promise<RunSubagent[]> {
   const subagents: RunSubagent[] = [];
   for (const ref of agentSpec?.subagents ?? []) {
-    if (ref.slug === "") {
+    if (ref.id === "" && ref.slug === "") {
       continue;
     }
     const org = ref.org || executionOrg;
     let head;
     try {
-      head = await findResourceByName(store, ApiResourceKind.agent, AgentSchema, org, ref.slug);
+      head = await loadReferenced(store, ApiResourceKind.agent, AgentSchema, { org, id: ref.id });
     } catch (error) {
       throw internalError(error, "failed to read a subagent");
     }
     if (head === undefined) {
-      throw failedPreconditionError(subagentGoneMessage(ref.slug, ref.version));
+      // A listed agent since deleted: its id names nothing, and an agent
+      // remade under its name is another agent, never this one.
+      throw failedPreconditionError(
+        subagentGoneMessage(ref.slug !== "" ? ref.slug : ref.id, ref.version),
+      );
     }
+    const name = head.metadata?.slug ?? "";
     let spec: AgentSpec | undefined;
     try {
       spec = (await loadVersion(store, agentVersionBinding, head.metadata?.id ?? "", ref.version)).resource.spec;
     } catch (error) {
       if (error instanceof ConnectError && error.code === Code.NotFound) {
-        throw failedPreconditionError(subagentGoneMessage(ref.slug, ref.version));
+        throw failedPreconditionError(subagentGoneMessage(name, ref.version));
       }
       throw error;
     }
     if (spec !== undefined) {
-      subagents.push({ name: ref.slug, org, spec });
+      subagents.push({ name, org, spec });
     }
   }
   return subagents;

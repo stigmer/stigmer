@@ -28,16 +28,25 @@ import {
 const DIGEST = "sha256:0123abcd";
 
 describe("armAttachment", () => {
-  const facts = { org: "acme", slug: "thermos", digest: DIGEST };
+  const facts = { org: "acme", id: "plg_thermos", slug: "thermos", digest: DIGEST };
 
-  it("lists the plugin by slug at the eval's digest on the with-arm", () => {
+  it("lists the plugin by its id at the eval's digest on the with-arm", () => {
     const attached = armAttachment("with", facts);
     expect(attached.plugins).toHaveLength(1);
     expect(attached.plugins[0]).toMatchObject({
       org: "acme",
       kind: ApiResourceKind.plugin,
-      slug: "thermos",
+      id: "plg_thermos",
+      slug: "",
       version: DIGEST,
+    });
+  });
+
+  it("lists it by slug for a context written before references held ids", () => {
+    const { id: _id, ...unaddressed } = facts;
+    expect(armAttachment("with", unaddressed).plugins[0]).toMatchObject({
+      id: "",
+      slug: "thermos",
     });
   });
 
@@ -48,9 +57,10 @@ describe("armAttachment", () => {
 });
 
 describe("pluginAttachmentFacts", () => {
-  it("reads the row's organization and slug, takes the digest given, and names each server as a turn does", () => {
+  it("reads the row's organization, id and slug, takes the digest given, and names each server as a turn does", () => {
     const plugin = create(PluginSchema, {
       metadata: create(ApiResourceMetadataSchema, {
+        id: "plg_thermos",
         org: "acme",
         slug: "thermos",
         name: "Thermos Kit",
@@ -64,6 +74,7 @@ describe("pluginAttachmentFacts", () => {
     });
     expect(pluginAttachmentFacts(plugin, DIGEST)).toEqual({
       org: "acme",
+      id: "plg_thermos",
       slug: "thermos",
       digest: DIGEST,
       serverSegments: ["plugin_Thermos_Kit_github", "plugin_Thermos_Kit_issue_tracker"],
@@ -77,6 +88,7 @@ describe("pluginAttachmentFacts", () => {
     expect(pluginAttachmentFacts(plugin, DIGEST).serverSegments).toEqual([]);
     expect(pluginAttachmentFacts(create(PluginSchema), DIGEST)).toEqual({
       org: "",
+      id: "",
       slug: "",
       digest: DIGEST,
       serverSegments: [],

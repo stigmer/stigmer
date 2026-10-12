@@ -59,21 +59,16 @@ export function fakeIdentityAccountStore(): FakeIdentityAccountStore {
         (row) => org !== "" && row.metadata?.org === org,
       );
     },
-    async findByProviderAndIdpId(providerOrg, providerSlug, idpId) {
+    async findByProviderAndIdpId(providerId, idpId) {
       return [...rows.values()].find(
         (row) =>
-          row.spec?.identityProviderRef?.org === providerOrg &&
-          row.spec.identityProviderRef.slug === providerSlug &&
+          row.spec?.identityProviderRef?.id === providerId &&
           row.spec.idpId === idpId,
       );
     },
-    async findByProvider(providerOrg, providerSlug) {
+    async findByProvider(providerId) {
       return [...rows.values()]
-        .filter(
-          (row) =>
-            row.spec?.identityProviderRef?.org === providerOrg &&
-            row.spec.identityProviderRef.slug === providerSlug,
-        )
+        .filter((row) => row.spec?.identityProviderRef?.id === providerId)
         .sort((a, b) =>
           (a.metadata?.id ?? "").localeCompare(b.metadata?.id ?? ""),
         );
