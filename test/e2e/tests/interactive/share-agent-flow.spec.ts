@@ -1,5 +1,8 @@
 import { create } from "@bufbuild/protobuf";
-import { GetAgentSharesByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
+import {
+  GetAgentSharesByAgentRequestSchema,
+  GetSharedProfileRequestSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
 import { assertNoErrorBoundary } from "../../helpers/navigation";
@@ -164,6 +167,62 @@ test.describe("Share agent flow", () => {
       ),
     ).toBeVisible({ timeout: 10_000 });
 
+    await deleteShare(page, testAgent.slug);
+  });
+
+  test("rename the agent from its detail view: the old library URL moves to the new one, and the share's chat link still answers", async ({
+    page,
+    testAgent,
+    stigmerClient,
+  }) => {
+    await openAgentDetail(page, testAgent.org, testAgent.slug);
+    await openSharesTab(page);
+    await expect(page.getByText("No shares yet")).toBeVisible({
+      timeout: 10_000,
+    });
+    const shareSlug = `${testAgent.slug}-share`;
+    await createShare(page, shareSlug);
+    const chatPath = await chatPathOf(stigmerClient, testAgent.id, shareSlug);
+
+    // Rename from the Overview's slug field (the local user may delete the
+    // agent, so the field is offered). The address follows in place.
+    const renamed = `${testAgent.slug}-renamed`;
+    await page.getByRole("tab", { name: "Overview" }).click();
+    await page.getByLabel("Slug").fill(renamed);
+    await page.getByRole("button", { name: "Rename" }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/library/agents/[^/]+/${renamed}$`),
+      { timeout: 15_000 },
+    );
+
+    // A bookmark to the old address opens the agent, and the address
+    // becomes the new one.
+    await page.goto(`/library/agents/${testAgent.org}/${testAgent.slug}`);
+    await expect(page.getByRole("heading", { name: testAgent.slug })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page).toHaveURL(
+      new RegExp(`/library/agents/[^/]+/${renamed}$`),
+      { timeout: 15_000 },
+    );
+    await assertNoErrorBoundary(page);
+
+    // The chat link names the share by its id, so it still answers: the
+    // server resolves it to the renamed agent, and the page boots (on the
+    // open-source stack its guest sign-in is unimplemented, so it shows
+    // its error state rather than the agent; the embed spec's posture).
+    const shareId = chatPath.replace("/chat/", "");
+    const profile = await stigmerClient.agentShare.getSharedProfile(
+      create(GetSharedProfileRequestSchema, { shareId }),
+    );
+    expect(profile.name).toBe(testAgent.slug);
+    await page.goto(chatPath);
+    await expect(
+      page.getByText(new RegExp(`${testAgent.slug}|Something went wrong`)).first(),
+    ).toBeVisible({ timeout: 20_000 });
+
+    await openAgentDetail(page, testAgent.org, renamed);
+    await openSharesTab(page);
     await deleteShare(page, testAgent.slug);
   });
 });

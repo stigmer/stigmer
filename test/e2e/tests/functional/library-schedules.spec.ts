@@ -240,7 +240,9 @@ test.describe("Schedule detail tabs and inline editing", () => {
       // reflects the new value. The editor opens on the stored text, and
       // the fill replaces it whole (an append here was stigmer/stigmer#1575).
       await page.getByText("Send today's reminders.").click();
-      const messageField = page.getByRole("textbox");
+      // The message editor is the page's one textarea (the slug field is
+      // a text input).
+      const messageField = page.locator("textarea");
       await expect(messageField).toHaveValue("Send today's reminders.");
       await messageField.fill("Send this week's reminders.");
       await page.getByRole("button", { name: "Save" }).click();
@@ -265,6 +267,50 @@ test.describe("Schedule detail tabs and inline editing", () => {
       ).toBe("Send this week's reminders.");
       expect(after.spec?.cron).toBe("0 9 * * *");
       expect(after.spec?.enabled).toBe(true);
+    } finally {
+      await seeded.cleanup();
+    }
+  });
+});
+
+test.describe("Schedule rename", () => {
+  test.beforeEach(async ({ page, stigmerClient }) => {
+    await pinActiveOrg(page, stigmerClient);
+  });
+
+  test("renames a schedule from its detail view; the old reference still reads it, and the address follows", async ({
+    page,
+    stigmerClient,
+  }) => {
+    const seeded = await createTestSchedule(stigmerClient);
+    const renamed = `${seeded.scheduleSlug}-renamed`;
+    try {
+      await page.goto(`/library/schedules/${SCHEDULES_ORG}/${seeded.scheduleSlug}`);
+      await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible({
+        timeout: 15_000,
+      });
+
+      await page.getByLabel("Slug").fill(renamed);
+      await page.getByRole("button", { name: "Rename" }).click();
+      await expect(page).toHaveURL(
+        new RegExp(`/library/schedules/${SCHEDULES_ORG}/${renamed}$`),
+        { timeout: 15_000 },
+      );
+
+      // The old reference reads the same schedule, named by its new slug.
+      const byOld = await stigmerClient.schedule.getByReference({
+        org: SCHEDULES_ORG,
+        slug: seeded.scheduleSlug,
+      });
+      expect(byOld.metadata?.id).toBe(seeded.scheduleId);
+      expect(byOld.metadata?.slug).toBe(renamed);
+
+      // A bookmark to the old address opens it and moves to the new one.
+      await page.goto(`/library/schedules/${SCHEDULES_ORG}/${seeded.scheduleSlug}`);
+      await expect(page).toHaveURL(
+        new RegExp(`/library/schedules/${SCHEDULES_ORG}/${renamed}$`),
+        { timeout: 15_000 },
+      );
     } finally {
       await seeded.cleanup();
     }
