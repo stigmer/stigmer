@@ -25,7 +25,7 @@ public enum ProviderKeySource
   PROVIDER_KEY_SOURCE_UNSPECIFIED(0),
   /**
    * <pre>
-   * The platform's provider account served the call; it is billed.
+   * A connection the platform provides served the call.
    * </pre>
    *
    * <code>PROVIDER_KEY_SOURCE_PLATFORM = 1;</code>
@@ -58,7 +58,7 @@ public enum ProviderKeySource
   public static final int PROVIDER_KEY_SOURCE_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * The platform's provider account served the call; it is billed.
+   * A connection the platform provides served the call.
    * </pre>
    *
    * <code>PROVIDER_KEY_SOURCE_PLATFORM = 1;</code>
@@ -132,7 +132,7 @@ public enum ProviderKeySource
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.UsageProto.getDescriptor().getEnumType(6);
+    return ai.stigmer.agentic.run.v1.UsageProto.getDescriptor().getEnumType(5);
   }
 
   private static final ProviderKeySource[] VALUES = values();

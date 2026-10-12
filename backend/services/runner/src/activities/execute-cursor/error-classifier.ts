@@ -18,10 +18,19 @@
  * override: when no source can positively identify the error category and
  * the agent was obtained via resume, the error is upgraded to "agent-stale"
  * so that poisoned-handle recovery fires.
+ *
+ * Whose Cursor account an error is about: through the Stigmer proxy the
+ * Cursor key is always the organization's own, as it is the operator's own
+ * `CURSOR_API_KEY` in direct mode, so Cursor's message ("usage limit", "not
+ * available for free users") is passed through as the actionable one in
+ * both modes. The one message the classifier words itself is the proxy's
+ * refusal for an organization that holds no Cursor key, recognised by
+ * PROVIDER_KEY_REQUIRED_SENTINEL ahead of every other pattern: its 403
+ * would otherwise read as Cursor rejecting a key.
  */
 
 import type { CapturedRejection } from "./rejection-capture.js";
-import { PLATFORM_CAPACITY_SENTINEL } from "../../shared/model-error.js";
+import { PROVIDER_KEY_REQUIRED_SENTINEL } from "../../shared/model-error.js";
 
 export type ErrorCategory =
   | "auth"
@@ -155,6 +164,13 @@ export const DETAIL_FREE_FALLBACK_USER_PREFIX =
 export const TRANSPORT_TIMEOUT_USER_PREFIX =
   "The connection to the model could not be established — please retry.";
 
+/**
+ * What a turn of an organization with no Cursor key reads, whichever source
+ * carried the proxy's refusal. The proxy's own copy, without its code.
+ */
+const NO_CURSOR_KEY_MESSAGE =
+  "This organization has no Cursor key. An admin can add one in Settings → Provider keys.";
+
 const AUTH_PATTERNS = [
   "unauthenticated", "unauthorized", "401", "forbidden",
   "permission_denied", "invalid api key", "not logged in",
@@ -162,13 +178,11 @@ const AUTH_PATTERNS = [
 // Billing/quota exhaustion is terminal, unlike a transient rate limit —
 // retrying cannot succeed until someone adds credits. "usage limit" moved
 // here from RATE_LIMIT_PATTERNS (it previously classified as retryable,
-// which burned retries against an exhausted account). Includes the platform
-// sentinel (see shared/model-error.ts) so a platform-attributed rewrite
-// relayed through Cursor infrastructure is also diagnosed as billing.
+// which burned retries against an exhausted account).
 const BILLING_PATTERNS = [
   "credit balance is too low", "insufficient_quota",
   "no credits remaining", "exceeded your current quota",
-  "usage limit", "stigmer_platform_model_capacity",
+  "usage limit",
 ];
 const RATE_LIMIT_PATTERNS = [
   "resource_exhausted", "rate limit", "429", "too many",
@@ -188,7 +202,20 @@ function matchesAny(text: string, patterns: string[]): boolean {
   return patterns.some((p) => lower.includes(p));
 }
 
-function classifyText(text: string): { category: ErrorCategory; retryable: boolean } {
+/** A text's category and retry rule, and the message to show instead of the text when the classifier words it. */
+interface TextDiagnosis {
+  category: ErrorCategory;
+  retryable: boolean;
+  message?: string;
+}
+
+function classifyText(text: string): TextDiagnosis {
+  // No Cursor key first: the refusal carries "permission_denied" and a 403,
+  // and its fix is an admin's, so it is terminal "auth" (never upgraded to
+  // agent-stale, never retried) with the classifier's own wording.
+  if (text.includes(PROVIDER_KEY_REQUIRED_SENTINEL)) {
+    return { category: "auth", retryable: false, message: NO_CURSOR_KEY_MESSAGE };
+  }
   // Billing before auth/rate-limit: billing prose can carry "429" or quota
   // wording that would otherwise match the transient rate-limit patterns.
   if (matchesAny(text, BILLING_PATTERNS)) return { category: "billing", retryable: false };
@@ -213,15 +240,6 @@ interface SynthesizeErrorOpts {
   durationMs?: number;
   /** Number of messages received from the stream (0 = no response at all). */
   messageCount?: number;
-  /**
-   * True when the execution key is platform-managed (the run rides the
-   * Stigmer proxy). Enables the attribution rule of the platform provider
-   * error contract (see shared/model-error.ts): billing errors on a
-   * platform key must never tell the customer to fix an account they do
-   * not own. BYO-key runs leave this false — there the raw Cursor message
-   * IS the actionable one (it is the user's own account).
-   */
-  proxyMode?: boolean;
 }
 
 /**
@@ -254,38 +272,7 @@ export function synthesizeError(opts: SynthesizeErrorOpts): ClassifiedError {
     return { ...classified, category: "agent-stale", retryable: true };
   }
 
-  return attributePlatformBilling(classified, opts.proxyMode === true);
-}
-
-/**
- * Attribution (platform provider error contract, Cursor surface): a
- * billing error on a platform-managed key is the PLATFORM's fault — the
- * customer's org credits are fine, and Cursor's raw prose ("reach out to
- * an admin to enable on-demand usage") points at a Cursor dashboard they
- * do not own. Reword with platform attribution, quoting the original so
- * Cursor's limit-reset date survives.
- *
- * <p>Two cases pass through untouched: messages already carrying the
- * sentinel (the proxy's end-stream rewrite landed — this is the runner-side
- * fallback for the message-bearing in-stream error path the proxy relays
- * verbatim), and BYO-key runs (the raw message is about the user's own
- * account and must never be hidden).
- */
-function attributePlatformBilling(
-  classified: ClassifiedError,
-  proxyMode: boolean,
-): ClassifiedError {
-  if (classified.category !== "billing" || !proxyMode) return classified;
-  if (classified.message.includes(PLATFORM_CAPACITY_SENTINEL)) return classified;
-  return {
-    ...classified,
-    message:
-      `The Stigmer platform's Cursor capacity is temporarily exhausted. ` +
-      `This is a platform-side issue - your organization's credits were not ` +
-      `charged for this call. Ask your platform operator to restock Cursor ` +
-      `execution keys. Provider message: "${classified.message}" ` +
-      `[code: ${PLATFORM_CAPACITY_SENTINEL}]`,
-  };
+  return classified;
 }
 
 /**
@@ -304,11 +291,11 @@ function classifyFromSources(opts: SynthesizeErrorOpts): ClassifiedError {
       .filter((v): v is string => typeof v === "string" && v.length > 0)
       .join(" ");
     if (text.trim().length > 0) {
-      const { category, retryable } = classifyText(text);
+      const diagnosis = classifyText(text);
       return {
-        category,
-        message: message ?? text,
-        retryable,
+        category: diagnosis.category,
+        message: diagnosis.message ?? message ?? text,
+        retryable: diagnosis.retryable,
         source: "sdk",
       };
     }
@@ -321,33 +308,34 @@ function classifyFromSources(opts: SynthesizeErrorOpts): ClassifiedError {
     const isBareGeneric = opts.sdkResultFields === "Cursor run failed"
       || opts.sdkResultFields === OBJECT_JUNK_STRING;
     if (!isBareGeneric) {
-      const { category, retryable } = classifyText(opts.sdkResultFields);
+      const diagnosis = classifyText(opts.sdkResultFields);
       return {
-        category,
-        message: opts.sdkResultFields,
-        retryable,
+        category: diagnosis.category,
+        message: diagnosis.message ?? opts.sdkResultFields,
+        retryable: diagnosis.retryable,
         source: "sdk",
       };
     }
   }
 
   if (opts.streamErrorMessage) {
-    const { category, retryable } = classifyText(opts.streamErrorMessage);
+    const diagnosis = classifyText(opts.streamErrorMessage);
     return {
-      category,
-      message: opts.streamErrorMessage,
-      retryable,
+      category: diagnosis.category,
+      message: diagnosis.message ?? opts.streamErrorMessage,
+      retryable: diagnosis.retryable,
       source: "stream",
     };
   }
 
   if (opts.capturedRejection) {
-    const { category } = classifyText(
+    const diagnosis = classifyText(
       `${opts.capturedRejection.code} ${opts.capturedRejection.message}`,
     );
+    const { category } = diagnosis;
     return {
       category: category === "unknown" ? "network" : category,
-      message: `[${opts.capturedRejection.code}] ${opts.capturedRejection.message}`,
+      message: diagnosis.message ?? `[${opts.capturedRejection.code}] ${opts.capturedRejection.message}`,
       // Rejections default to retryable (transport flakes), except the two
       // terminal diagnoses that cannot self-heal on retry.
       retryable: category !== "auth" && category !== "billing",
@@ -359,11 +347,11 @@ function classifyFromSources(opts: SynthesizeErrorOpts): ClassifiedError {
   // the failing conversation turn. Surface that text even when it does not match
   // a known pattern — a specific message beats the generic fallback.
   if (opts.conversationErrorText) {
-    const { category, retryable } = classifyText(opts.conversationErrorText);
+    const diagnosis = classifyText(opts.conversationErrorText);
     return {
-      category,
-      message: opts.conversationErrorText,
-      retryable,
+      category: diagnosis.category,
+      message: diagnosis.message ?? opts.conversationErrorText,
+      retryable: diagnosis.retryable,
       source: "conversation",
     };
   }

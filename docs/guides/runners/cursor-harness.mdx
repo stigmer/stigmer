@@ -2,8 +2,8 @@
 title: Set up the Cursor harness
 description:
   Run Agent Sessions on the Cursor execution engine. Configure the Cursor API
-  key for a local runner, use the platform-managed key on Stigmer Cloud, and
-  select the Cursor harness when you create a Session.
+  key for a local runner, save your Organization's Cursor key on Stigmer Cloud,
+  and select the Cursor harness when you create a Session.
 ---
 
 A [Harness](/docs/concepts/harnesses) is the engine that runs an Agent's turns.
@@ -28,11 +28,11 @@ the Cursor worker alongside the native one.
 
 What you supply depends on where the runner runs:
 
-| Your setup                              | Cursor credential                                  |
-| --------------------------------------- | -------------------------------------------------- |
-| **Local runner** (OSS or self-hosted)   | You provide `CURSOR_API_KEY` directly              |
-| **Stigmer Cloud** (managed runner)      | Platform-managed — the proxy injects the real key  |
-| **Embedded local runner against Cloud** | Platform-managed — proxy mode injects the real key |
+| Your setup                              | Cursor credential                                                   |
+| --------------------------------------- | ------------------------------------------------------------------- |
+| **Local runner** (OSS or self-hosted)   | You provide `CURSOR_API_KEY` directly                               |
+| **Stigmer Cloud** (managed runner)      | Your Organization's Cursor key — the proxy injects it               |
+| **Embedded local runner against Cloud** | Your Organization's Cursor key — proxy mode injects it the same way |
 
 ## Set up a local runner (direct mode)
 
@@ -68,15 +68,26 @@ runner starts the native worker only — Cursor Sessions have nowhere to run.
 
 <Callout type="info">
   `CURSOR_API_KEY` is only needed in **direct mode** — a runner you operate
-  yourself. On Stigmer Cloud you never handle a Cursor key; see below.
+  yourself. On Stigmer Cloud an administrator saves the Organization's Cursor
+  key once, in the console; see below.
 </Callout>
 
 ## Use Stigmer Cloud (proxy mode)
 
-On Stigmer Cloud you do not manage a Cursor key. The platform routes Cursor SDK
-traffic through the Stigmer proxy, which validates your `STIGMER_TOKEN` and
-injects the real Cursor credential upstream. Cloud runners start the Cursor
-worker for you — the harness is available out of the box.
+On Stigmer Cloud a Cursor run uses your Organization's own Cursor key. An
+administrator saves it in **Settings → Provider keys**, and Stigmer checks it
+with Cursor when it is saved. See
+[Model provider keys](/docs/guides/integrations/model-provider-keys#cursor) for
+which keys Cursor accepts. Cursor bills that key's plan for the run; Stigmer
+charges nothing for it. Child Organizations use their parent's key unless they
+save their own.
+
+The platform routes Cursor SDK traffic through the Stigmer proxy, which
+validates your `STIGMER_TOKEN` and injects the Organization's Cursor key
+upstream, so the key never reaches the sandbox the run works in. Cloud runners
+start the Cursor worker for you. An Organization with no Cursor key cannot start
+a Cursor run: the run is refused before it starts, with a message saying an
+administrator can add one in Settings → Provider keys.
 
 This is also how an **embedded local runner** running against Stigmer Cloud
 works: it executes on the user's machine yet routes Cursor traffic through the

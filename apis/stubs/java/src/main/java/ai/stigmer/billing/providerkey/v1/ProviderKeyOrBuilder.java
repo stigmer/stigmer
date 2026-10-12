@@ -32,8 +32,8 @@ public interface ProviderKeyOrBuilder extends
 
   /**
    * <pre>
-   * The provider the key is for: "anthropic" or "openai", the proxy's own
-   * provider names.
+   * The provider the key is for: "anthropic", "openai" or "cursor", the
+   * proxy's own provider names.
    * </pre>
    *
    * <code>string provider = 2 [json_name = "provider"];</code>
@@ -42,8 +42,8 @@ public interface ProviderKeyOrBuilder extends
   java.lang.String getProvider();
   /**
    * <pre>
-   * The provider the key is for: "anthropic" or "openai", the proxy's own
-   * provider names.
+   * The provider the key is for: "anthropic", "openai" or "cursor", the
+   * proxy's own provider names.
    * </pre>
    *
    * <code>string provider = 2 [json_name = "provider"];</code>
@@ -205,7 +205,7 @@ public interface ProviderKeyOrBuilder extends
    * The endpoint the key is used against, as the provider's own SDK takes
    * it as its base URL; empty means the provider's own API. For example
    * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
-   * gateway. Always empty on an inherited row.
+   * gateway. Always empty on an inherited row and on a Cursor key.
    * </pre>
    *
    * <code>string base_url = 10 [json_name = "baseUrl"];</code>
@@ -217,7 +217,7 @@ public interface ProviderKeyOrBuilder extends
    * The endpoint the key is used against, as the provider's own SDK takes
    * it as its base URL; empty means the provider's own API. For example
    * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
-   * gateway. Always empty on an inherited row.
+   * gateway. Always empty on an inherited row and on a Cursor key.
    * </pre>
    *
    * <code>string base_url = 10 [json_name = "baseUrl"];</code>

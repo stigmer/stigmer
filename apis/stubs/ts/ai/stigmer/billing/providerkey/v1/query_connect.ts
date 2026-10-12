@@ -7,7 +7,7 @@ import { ListProviderKeysInput, ListProviderKeysOutput } from "./io_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
- * ProviderKeyQueryController reads an organization's own LLM provider keys,
+ * ProviderKeyQueryController reads an organization's own model provider keys,
  * never their secrets.
  *
  * Authorizes against the organization with can_view_billing, the permission

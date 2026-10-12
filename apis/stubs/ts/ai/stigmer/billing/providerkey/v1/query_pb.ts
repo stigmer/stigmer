@@ -15,7 +15,7 @@ export const file_ai_stigmer_billing_providerkey_v1_query: GenFile = /*@__PURE__
   fileDesc("Ci1haS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvcXVlcnkucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MTLjAQoaUHJvdmlkZXJLZXlRdWVyeUNvbnRyb2xsZXISxAEKBGxpc3QSOC5haS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEuTGlzdFByb3ZpZGVyS2V5c0lucHV0GjkuYWkuc3RpZ21lci5iaWxsaW5nLnByb3ZpZGVya2V5LnYxLkxpc3RQcm92aWRlcktleXNPdXRwdXQiR8K4GEMIGxAeIgNvcmcqOHVuYXV0aG9yaXplZCB0byB2aWV3IHByb3ZpZGVyIGtleXMgZm9yIHRoaXMgb3JnYW5pemF0aW9uYgZwcm90bzM", [file_ai_stigmer_billing_providerkey_v1_io, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
- * ProviderKeyQueryController reads an organization's own LLM provider keys,
+ * ProviderKeyQueryController reads an organization's own model provider keys,
  * never their secrets.
  *
  * Authorizes against the organization with can_view_billing, the permission

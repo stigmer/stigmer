@@ -577,7 +577,7 @@ outside it sees them.
   Organization is `org`: `org` for the one a message is about (`metadata.org`,
   `GetCreditBalanceInput.org`), `<role>_org` for a second one in the same
   message (`ProviderKey.inherited_from_org`), `orgs` for a list
-  (`CursorAccount.orgs`), `org_<attribute>` for something that describes one
+  (`repeated string orgs`), `org_<attribute>` for something that describes one
   (`InvitationPreview.org_name`), `orgs` in a count (`max_orgs`), and `org` in a
   per-organization amount (`per_extra_org_micros`). RPCs and requests that
   filter by one say `Org` (`listByOrg`, `getForOrg`). The kind itself, and the

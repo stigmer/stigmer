@@ -64,8 +64,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object sessionId_ = "";
   /**
    * <pre>
-   * The session the run belongs to. The provider reconciler matches
-   * Cursor conversations to sessions through the usage record's session.
+   * The session the run belongs to, stamped onto the usage record.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -86,8 +85,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The session the run belongs to. The provider reconciler matches
-   * Cursor conversations to sessions through the usage record's session.
+   * The session the run belongs to, stamped onto the usage record.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -595,8 +593,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object sessionId_ = "";
     /**
      * <pre>
-     * The session the run belongs to. The provider reconciler matches
-     * Cursor conversations to sessions through the usage record's session.
+     * The session the run belongs to, stamped onto the usage record.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -616,8 +613,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The session the run belongs to. The provider reconciler matches
-     * Cursor conversations to sessions through the usage record's session.
+     * The session the run belongs to, stamped onto the usage record.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -638,8 +634,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The session the run belongs to. The provider reconciler matches
-     * Cursor conversations to sessions through the usage record's session.
+     * The session the run belongs to, stamped onto the usage record.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -656,8 +651,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The session the run belongs to. The provider reconciler matches
-     * Cursor conversations to sessions through the usage record's session.
+     * The session the run belongs to, stamped onto the usage record.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -671,8 +665,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The session the run belongs to. The provider reconciler matches
-     * Cursor conversations to sessions through the usage record's session.
+     * The session the run belongs to, stamped onto the usage record.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>

@@ -10,7 +10,6 @@
           "can_grant_access": {},
           "can_issue_license": {},
           "can_manage_credits": {},
-          "can_manage_cursor_accounts": {},
           "can_manage_model_pricing": {},
           "can_manage_plans": {},
           "can_view_access": {},
@@ -69,11 +68,6 @@
                 }
               }
             ]
-          }
-        },
-        "can_manage_cursor_accounts": {
-          "computedUserset": {
-            "relation": "operator"
           }
         },
         "can_manage_model_pricing": {

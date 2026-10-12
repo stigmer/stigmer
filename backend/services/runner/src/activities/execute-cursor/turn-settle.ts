@@ -59,7 +59,7 @@ import {
   type TurnOnDeltaDeps,
   type TurnStreamState,
 } from "./turn-stream.js";
-import type { AdjudicatedRows, CursorEngine, CursorGate, CursorPrompt, CursorAdapterConfig } from "./turn-setup.js";
+import type { AdjudicatedRows, CursorEngine, CursorGate, CursorPrompt } from "./turn-setup.js";
 import { createFreshAgent } from "./turn-setup.js";
 import { declaredServerCount } from "../../shared/mcp-resolver.js";
 
@@ -67,7 +67,6 @@ import { declaredServerCount } from "../../shared/mcp-resolver.js";
 export interface CursorTurnFrame {
   readonly input: TurnInput;
   readonly sink: TurnSink;
-  readonly config: CursorAdapterConfig;
   readonly engine: CursorEngine;
   readonly gate: CursorGate;
   readonly prompt: CursorPrompt;
@@ -81,7 +80,7 @@ export interface CursorTurnFrame {
  * built here, once, and shared with both recovery spines.
  */
 export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutcome> {
-  const { input, sink, config, engine, gate, prompt, rows, streamState } = frame;
+  const { input, sink, engine, gate, prompt, rows, streamState } = frame;
   const { executionId, sessionId, blueprint, workspace, mcp } = input;
   const { status } = sink;
 
@@ -386,7 +385,6 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
         fallbackContext: { model: engine.validatedModel, mode: engine.agentMode, agentId: engine.resolution.agentId },
         durationMs: (result as unknown as Record<string, unknown>).durationMs as number | undefined,
         messageCount: status.messages.length,
-        proxyMode: !!config.proxyEndpoint,
       });
 
       console.error(
@@ -457,7 +455,6 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
           conversationErrorText: retryConversationErrorText,
           isResumedHandle: false,
           fallbackContext: { model: engine.validatedModel, mode: engine.agentMode, agentId: freshAgent.agentId },
-          proxyMode: !!config.proxyEndpoint,
         });
         const message = formatClassifiedError(retryClassified);
         console.error(`ExecuteCursor poisoned-handle recovery FAILED: execution=${executionId}, retryError=${message}`);

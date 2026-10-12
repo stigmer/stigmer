@@ -57,11 +57,6 @@ class CostCalculationStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     COST_CALCULATION_STATUS_RECONCILED: _ClassVar[CostCalculationStatus]
     COST_CALCULATION_STATUS_MANUAL_ADJUSTED: _ClassVar[CostCalculationStatus]
 
-class CursorKeySource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    CURSOR_KEY_SOURCE_UNSPECIFIED: _ClassVar[CursorKeySource]
-    CURSOR_KEY_SOURCE_MANAGED_KEY: _ClassVar[CursorKeySource]
-
 class ProviderKeySource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     PROVIDER_KEY_SOURCE_UNSPECIFIED: _ClassVar[ProviderKeySource]
@@ -98,8 +93,6 @@ COST_CALCULATION_STATUS_ESTIMATED: CostCalculationStatus
 COST_CALCULATION_STATUS_PRICE_NOT_FOUND: CostCalculationStatus
 COST_CALCULATION_STATUS_RECONCILED: CostCalculationStatus
 COST_CALCULATION_STATUS_MANUAL_ADJUSTED: CostCalculationStatus
-CURSOR_KEY_SOURCE_UNSPECIFIED: CursorKeySource
-CURSOR_KEY_SOURCE_MANAGED_KEY: CursorKeySource
 PROVIDER_KEY_SOURCE_UNSPECIFIED: ProviderKeySource
 PROVIDER_KEY_SOURCE_PLATFORM: ProviderKeySource
 PROVIDER_KEY_SOURCE_ORGANIZATION: ProviderKeySource
@@ -220,7 +213,7 @@ class BillingLink(_message.Message):
     def __init__(self, debit_status: _Optional[_Union[BillingDebitStatus, str]] = ..., reservation_id: _Optional[str] = ..., billing_debit_id: _Optional[str] = ..., debited_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., billing_attempt_count: _Optional[int] = ..., last_billing_error: _Optional[str] = ...) -> None: ...
 
 class LlmCallUsageRecord(_message.Message):
-    __slots__ = ("usage_record_id", "run_id", "root_run_id", "sequence", "idempotency_key", "canonical_payload_hash", "call_id", "observed_at", "created_at", "metering_source", "trust_level", "usage_status", "is_billable", "provider", "requested_model", "resolved_model", "endpoint", "streaming", "service_tier", "provider_request_id", "harness", "cursor_account_id", "cursor_key_id", "http_status_code", "finish_reason", "error_code", "cursor_key_source", "provider_key_source", "thinking", "tokens", "cost", "proxy_timing", "provider_usage_json", "billing", "org", "session_id", "labels")
+    __slots__ = ("usage_record_id", "run_id", "root_run_id", "sequence", "idempotency_key", "canonical_payload_hash", "call_id", "observed_at", "created_at", "metering_source", "trust_level", "usage_status", "is_billable", "provider", "requested_model", "resolved_model", "endpoint", "streaming", "service_tier", "provider_request_id", "harness", "http_status_code", "finish_reason", "error_code", "provider_key_source", "thinking", "tokens", "cost", "proxy_timing", "provider_usage_json", "billing", "org", "session_id", "labels")
     class LabelsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -249,12 +242,9 @@ class LlmCallUsageRecord(_message.Message):
     SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
     HARNESS_FIELD_NUMBER: _ClassVar[int]
-    CURSOR_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
-    CURSOR_KEY_ID_FIELD_NUMBER: _ClassVar[int]
     HTTP_STATUS_CODE_FIELD_NUMBER: _ClassVar[int]
     FINISH_REASON_FIELD_NUMBER: _ClassVar[int]
     ERROR_CODE_FIELD_NUMBER: _ClassVar[int]
-    CURSOR_KEY_SOURCE_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_KEY_SOURCE_FIELD_NUMBER: _ClassVar[int]
     THINKING_FIELD_NUMBER: _ClassVar[int]
     TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -286,12 +276,9 @@ class LlmCallUsageRecord(_message.Message):
     service_tier: str
     provider_request_id: str
     harness: str
-    cursor_account_id: str
-    cursor_key_id: str
     http_status_code: int
     finish_reason: str
     error_code: str
-    cursor_key_source: CursorKeySource
     provider_key_source: ProviderKeySource
     thinking: str
     tokens: TokenUsage
@@ -302,7 +289,7 @@ class LlmCallUsageRecord(_message.Message):
     org: str
     session_id: str
     labels: _containers.ScalarMap[str, str]
-    def __init__(self, usage_record_id: _Optional[str] = ..., run_id: _Optional[str] = ..., root_run_id: _Optional[str] = ..., sequence: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., canonical_payload_hash: _Optional[str] = ..., call_id: _Optional[str] = ..., observed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., metering_source: _Optional[_Union[UsageMeteringSource, str]] = ..., trust_level: _Optional[_Union[UsageTrustLevel, str]] = ..., usage_status: _Optional[_Union[UsageCompletionStatus, str]] = ..., is_billable: bool = ..., provider: _Optional[str] = ..., requested_model: _Optional[str] = ..., resolved_model: _Optional[str] = ..., endpoint: _Optional[str] = ..., streaming: bool = ..., service_tier: _Optional[str] = ..., provider_request_id: _Optional[str] = ..., harness: _Optional[str] = ..., cursor_account_id: _Optional[str] = ..., cursor_key_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., finish_reason: _Optional[str] = ..., error_code: _Optional[str] = ..., cursor_key_source: _Optional[_Union[CursorKeySource, str]] = ..., provider_key_source: _Optional[_Union[ProviderKeySource, str]] = ..., thinking: _Optional[str] = ..., tokens: _Optional[_Union[TokenUsage, _Mapping]] = ..., cost: _Optional[_Union[CostStamp, _Mapping]] = ..., proxy_timing: _Optional[_Union[ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., billing: _Optional[_Union[BillingLink, _Mapping]] = ..., org: _Optional[str] = ..., session_id: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    def __init__(self, usage_record_id: _Optional[str] = ..., run_id: _Optional[str] = ..., root_run_id: _Optional[str] = ..., sequence: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., canonical_payload_hash: _Optional[str] = ..., call_id: _Optional[str] = ..., observed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., metering_source: _Optional[_Union[UsageMeteringSource, str]] = ..., trust_level: _Optional[_Union[UsageTrustLevel, str]] = ..., usage_status: _Optional[_Union[UsageCompletionStatus, str]] = ..., is_billable: bool = ..., provider: _Optional[str] = ..., requested_model: _Optional[str] = ..., resolved_model: _Optional[str] = ..., endpoint: _Optional[str] = ..., streaming: bool = ..., service_tier: _Optional[str] = ..., provider_request_id: _Optional[str] = ..., harness: _Optional[str] = ..., http_status_code: _Optional[int] = ..., finish_reason: _Optional[str] = ..., error_code: _Optional[str] = ..., provider_key_source: _Optional[_Union[ProviderKeySource, str]] = ..., thinking: _Optional[str] = ..., tokens: _Optional[_Union[TokenUsage, _Mapping]] = ..., cost: _Optional[_Union[CostStamp, _Mapping]] = ..., proxy_timing: _Optional[_Union[ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., billing: _Optional[_Union[BillingLink, _Mapping]] = ..., org: _Optional[str] = ..., session_id: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class UsageReportAggregate(_message.Message):
     __slots__ = ("input_tokens", "output_tokens", "total_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "reasoning_tokens", "llm_call_count", "billable_cost_micros", "provider_cost_micros", "primary_model", "primary_provider")

@@ -129,16 +129,6 @@ export {
   type GetCustomerModelPricingParams,
 } from "./billing.js";
 
-// Cursor accounts client (platform operators only)
-export {
-  CursorAccountsClient,
-  type UpsertCursorAccountParams,
-  type DeleteCursorAccountParams,
-  type AddCursorMemberKeyParams,
-  type RemoveCursorMemberKeyParams,
-  type SetCursorMemberKeyEnabledParams,
-} from "./cursor-accounts.js";
-
 // Search client
 export {
   SearchClient,

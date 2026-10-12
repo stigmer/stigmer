@@ -1,14 +1,21 @@
 /**
- * Tests for the billing category of the Cursor error classifier
- * (stigmer/stigmer#330 follow-through: the Cursor arm kept working during
- * the incident, but its classifier had no billing category — quota
- * exhaustion of Cursor-managed keys would have classified as retryable
- * rate-limit or unknown, burning retries against an exhausted account).
+ * Tests for the account-shaped categories of the Cursor error classifier.
+ *
+ * Billing (stigmer/stigmer#330 follow-through: without a billing category,
+ * quota exhaustion classified as retryable rate-limit or unknown, burning
+ * retries against an exhausted account): terminal, and Cursor's own message
+ * is what the user reads, because the Cursor key is the organization's own
+ * through the proxy and the operator's own in direct mode.
+ *
+ * No Cursor key: the proxy's refusal, recognised by its code in any source
+ * the classifier reads, reads as the missing key and where an admin adds
+ * it, is terminal, and is never taken for a stale agent.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { synthesizeError } from "../error-classifier.js";
 import type { CapturedRejection } from "../rejection-capture.js";
+import { PROVIDER_KEY_REQUIRED_SENTINEL } from "../../../shared/model-error.js";
 
 const FALLBACK = { model: "default", mode: "cloud", agentId: "agent-1" };
 
@@ -70,16 +77,6 @@ describe("error-classifier billing category", () => {
     expect(result.retryable).toBe(true);
   });
 
-  it("the platform capacity sentinel is diagnosed as billing", () => {
-    const result = synthesizeError({
-      ...base(),
-      streamErrorMessage:
-        "Model capacity unavailable [code: STIGMER_PLATFORM_MODEL_CAPACITY]",
-    });
-    expect(result.category).toBe("billing");
-    expect(result.retryable).toBe(false);
-  });
-
   it("billing via captured rejection is non-retryable", () => {
     const rejection: CapturedRejection = {
       code: "resource_exhausted",
@@ -105,10 +102,9 @@ describe("error-classifier billing category", () => {
   });
 });
 
-describe("platform attribution of billing errors (proxy mode)", () => {
-  // The exact message the 2026-08-15 pool-drain incident put in front of a
-  // customer: Cursor's team-usage-limit prose relayed raw, telling them to
-  // "reach out to an admin" of a Cursor team they cannot see.
+describe("Cursor's own billing message", () => {
+  // Cursor's team-usage-limit prose: about the account the key belongs to,
+  // which is the organization's own (or the operator's, in direct mode).
   const CURSOR_USAGE_LIMIT_MESSAGE =
     "Your team has reached its usage limit. Please reach out to an admin to " +
     "enable on-demand usage, or return on 8/20/2026 when your limit resets.";
@@ -120,54 +116,63 @@ describe("platform attribution of billing errors (proxy mode)", () => {
     vi.restoreAllMocks();
   });
 
-  it("rewords managed-key billing errors with platform attribution", () => {
+  it("passes through unchanged, as terminal billing", () => {
     const result = synthesizeError({
       ...base(),
       streamErrorMessage: CURSOR_USAGE_LIMIT_MESSAGE,
-      proxyMode: true,
     });
     expect(result.category).toBe("billing");
     expect(result.retryable).toBe(false);
-    expect(result.message).toContain("Stigmer platform");
-    expect(result.message).toContain("credits were not charged");
-    expect(result.message).toContain("STIGMER_PLATFORM_MODEL_CAPACITY");
-    // Cursor's limit-reset date must survive, quoted, not erased.
-    expect(result.message).toContain("return on 8/20/2026");
-  });
-
-  it("leaves BYO-key (direct mode) billing errors untouched", () => {
-    // A self-hoster's drained personal account: the raw message IS the
-    // actionable one — never hide it behind platform attribution.
-    const result = synthesizeError({
-      ...base(),
-      streamErrorMessage: CURSOR_USAGE_LIMIT_MESSAGE,
-      proxyMode: false,
-    });
-    expect(result.category).toBe("billing");
     expect(result.message).toBe(CURSOR_USAGE_LIMIT_MESSAGE);
-    expect(result.message).not.toContain("STIGMER_PLATFORM_MODEL_CAPACITY");
+  });
+});
+
+describe("an organization with no Cursor key", () => {
+  // The cloud's Cursor REST lane refuses the SDK's key exchange with this
+  // body; the SDK surfaces it as a thrown error carrying the message.
+  const REFUSAL =
+    "This organization has no Cursor key. An admin can add one in Settings → Provider keys. " +
+    `[code: ${PROVIDER_KEY_REQUIRED_SENTINEL}]`;
+  const NO_KEY = "This organization has no Cursor key. An admin can add one in Settings → Provider keys.";
+
+  beforeEach(() => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it("does not double-wrap a message the proxy already rewrote", () => {
-    const proxyRewritten =
-      "The Stigmer platform's Cursor capacity is temporarily exhausted. " +
-      "[code: STIGMER_PLATFORM_MODEL_CAPACITY]";
+  it("reads as the missing key from a thrown SDK error, terminal and not retried", () => {
     const result = synthesizeError({
       ...base(),
-      streamErrorMessage: proxyRewritten,
-      proxyMode: true,
+      sdkError: { code: "permission_denied", status: 403, message: `[permission_denied] ${REFUSAL}` },
     });
-    expect(result.category).toBe("billing");
-    expect(result.message).toBe(proxyRewritten);
+    expect(result).toEqual({ category: "auth", message: NO_KEY, retryable: false, source: "sdk" });
   });
 
-  it("never rewords non-billing categories in proxy mode", () => {
-    const result = synthesizeError({
+  it("reads the same from every other source the classifier reads", () => {
+    const fromResult = synthesizeError({ ...base(), sdkResultFields: REFUSAL });
+    const fromStream = synthesizeError({ ...base(), streamErrorMessage: REFUSAL });
+    const fromConversation = synthesizeError({ ...base(), conversationErrorText: REFUSAL });
+    const fromRejection = synthesizeError({
       ...base(),
-      streamErrorMessage: "rate limit exceeded, retry after 2s",
-      proxyMode: true,
+      capturedRejection: { code: "permission_denied", message: REFUSAL, timestamp: Date.now() },
     });
-    expect(result.category).toBe("rate-limit");
-    expect(result.message).not.toContain("Stigmer platform");
+    for (const result of [fromResult, fromStream, fromConversation, fromRejection]) {
+      expect(result.category, result.source).toBe("auth");
+      expect(result.message, result.source).toBe(NO_KEY);
+      expect(result.retryable, result.source).toBe(false);
+    }
+  });
+
+  it("is checked before billing, so a refusal quoting billing prose still names the missing key", () => {
+    const result = synthesizeError({ ...base(), streamErrorMessage: `usage limit ${REFUSAL}` });
+    expect(result.message).toBe(NO_KEY);
+  });
+
+  it("is never upgraded to agent-stale on a resumed handle", () => {
+    const result = synthesizeError({ ...base(), isResumedHandle: true, streamErrorMessage: REFUSAL });
+    expect(result.category).toBe("auth");
+    expect(result.retryable).toBe(false);
   });
 });

@@ -281,7 +281,7 @@ describe("EncryptionScope (the Java record's validation invariants)", () => {
     );
 
     const platform = EncryptionScope.forPlatformResource(
-      "cursoraccount",
+      "runnerpayloadkey",
       "acc_1",
     );
     expect(platform.tenantSegment).toBe("platform");

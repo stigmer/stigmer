@@ -29,3 +29,27 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request removes the pool of platform-owned Cursor accounts and
+  # its usage attribution: every Cursor run now uses the organization's own
+  # Cursor key, saved as a provider key. It deletes the CursorAccount
+  # package, the CursorKeySource enum, the cursor_account_id, cursor_key_id
+  # and cursor_key_source fields of LlmCallUsageRecord (38, 39, 43) and
+  # RecordLlmCallUsageInput (15, 16, 17), and the can_manage_cursor_accounts
+  # permission (35); every number and name is reserved. It is made before
+  # launch: the release notes name the change under Upgrading. This block
+  # exists for that one pull request. While it stays, buf breaking does not
+  # report these rules on the listed files, so the pull request that
+  # removes it lands straight after the merge.
+  ignore_only:
+    FILE_NO_DELETE:
+      - ai/stigmer/platform/cursoraccount/v1/command.proto
+      - ai/stigmer/platform/cursoraccount/v1/cursor_account.proto
+      - ai/stigmer/platform/cursoraccount/v1/io.proto
+      - ai/stigmer/platform/cursoraccount/v1/query.proto
+    ENUM_NO_DELETE:
+      - ai/stigmer/agentic/run/v1/usage.proto
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/run/v1/usage.proto
+      - ai/stigmer/billing/v1/io.proto
+    ENUM_VALUE_NO_DELETE:
+      - ai/stigmer/iam/v1/enum.proto
