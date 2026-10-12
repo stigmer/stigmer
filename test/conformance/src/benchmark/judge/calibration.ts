@@ -7,7 +7,7 @@
 import type { JudgeCalibration } from "./calibration-tally";
 
 export const JUDGE_CALIBRATION: JudgeCalibration | undefined = {
-  "evaluatorVersion": "e6b2728dfc4b352a7bc30bd450fe6112dd914ffe5cb15ac34c9ff0a2616872e7",
+  "evaluatorVersion": "6f72a46d287fb688930cd5b02c536bd0ddae7847aee1b9cfe1248bb7b135fa82",
   "examplesDigest": "06dd4c57b65bb706d56176d515e4986b638a362d19b580ed269a2b476b158b59",
   "model": "claude-sonnet-4-6",
   "tries": 3,
@@ -16,18 +16,18 @@ export const JUDGE_CALIBRATION: JudgeCalibration | undefined = {
   "grades": 207,
   "unreadable": 0,
   "costPerGradeUsd": {
-    "mean": 0.014118,
-    "max": 0.031627
+    "mean": 0.01633,
+    "max": 0.03165
   },
   "rubrics": [
     {
       "name": "did-the-task",
       "failsCaught": {
-        "n": 86,
+        "n": 87,
         "of": 90
       },
       "passesKept": {
-        "n": 107,
+        "n": 103,
         "of": 117
       },
       "notApplicableMatched": {
@@ -42,11 +42,11 @@ export const JUDGE_CALIBRATION: JudgeCalibration | undefined = {
         "of": 45
       },
       "passesKept": {
-        "n": 126,
+        "n": 127,
         "of": 132
       },
       "notApplicableMatched": {
-        "n": 26,
+        "n": 22,
         "of": 30
       }
     },
@@ -57,7 +57,7 @@ export const JUDGE_CALIBRATION: JudgeCalibration | undefined = {
         "of": 51
       },
       "passesKept": {
-        "n": 51,
+        "n": 47,
         "of": 54
       },
       "notApplicableMatched": {
@@ -68,15 +68,15 @@ export const JUDGE_CALIBRATION: JudgeCalibration | undefined = {
     {
       "name": "asked-when-unclear",
       "failsCaught": {
-        "n": 34,
+        "n": 35,
         "of": 39
       },
       "passesKept": {
-        "n": 34,
+        "n": 38,
         "of": 39
       },
       "notApplicableMatched": {
-        "n": 121,
+        "n": 122,
         "of": 129
       }
     }
