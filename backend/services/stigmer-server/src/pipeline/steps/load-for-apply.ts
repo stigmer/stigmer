@@ -2,7 +2,11 @@
  * LoadForApply — ports steps/load_for_apply.go. Apply's existence probe:
  * NEVER fails on not-found — it sets the ShouldCreate/ExistsInDatabase
  * flags the controller branches on (create vs update), and populates the
- * id when the resource exists.
+ * id when the resource exists. The resource is found as every write finds
+ * it (names.ts findResourceForWrite): by the id the manifest carries, in
+ * its organization, then by slug; a slug the resource was renamed away
+ * from is refused with SLUG_RENAMED rather than updating it for the hold
+ * and making a second one after.
  */
 import { clone } from "@bufbuild/protobuf";
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
@@ -10,7 +14,7 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import type { Store } from "../../store/interface.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
-import { findResourceByName } from "./names.js";
+import { findResourceForWrite, storedRowReader } from "./names.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
 import { metadataOf } from "./shapes.js";
 
@@ -32,7 +36,12 @@ export function newLoadForApplyStep<Desc extends DescMessage>(
         return;
       }
 
-      const existing = await findResourceByName(store, ctx.apiResourceKind, ctx.schema, metadata.org, metadata.slug);
+      const existing = await findResourceForWrite(
+        store,
+        ctx.apiResourceKind,
+        metadata,
+        storedRowReader(store, ctx.apiResourceKind, ctx.schema),
+      );
 
       if (existing === undefined) {
         ctx.set(EXISTS_IN_DATABASE_KEY, false);
@@ -43,9 +52,7 @@ export function newLoadForApplyStep<Desc extends DescMessage>(
       ctx.set(EXISTING_RESOURCE_KEY, existing);
       ctx.set(EXISTS_IN_DATABASE_KEY, true);
       ctx.set(SHOULD_CREATE_KEY, false);
-      if (metadata.id === "") {
-        metadata.id = metadataOf(existing)?.id ?? "";
-      }
+      metadata.id = metadataOf(existing)?.id ?? "";
     },
   };
 }
@@ -57,9 +64,10 @@ export function newLoadForApplyStep<Desc extends DescMessage>(
  * this the delegated update chain's Authorize step checks an EMPTY
  * resource id — the permissive OSS default never noticed, but a real
  * Authorizer (the cloud edition) must check the true target, exactly as
- * the Java edition's post-load authorize order does.
- * OSS wire behavior is unchanged: the update chain re-resolves and
- * loads by slug regardless, and the rosters pin the byte-identity.
+ * the Java edition's post-load authorize order does. The resolved id
+ * replaces whatever id the manifest carried: one the probe passed over (a
+ * row of another organization, or none) must not reach the update chain,
+ * which loads by id.
  */
 export function withResolvedApplyId<Desc extends DescMessage>(
   schema: Desc,
@@ -69,7 +77,7 @@ export function withResolvedApplyId<Desc extends DescMessage>(
   const enriched = clone(schema, original);
   const metadata = metadataOf(enriched);
   const resolvedId = metadataOf(resolved.newState)?.id ?? "";
-  if (metadata !== undefined && metadata.id === "" && resolvedId !== "") {
+  if (metadata !== undefined && resolvedId !== "") {
     metadata.id = resolvedId;
   }
   return enriched;

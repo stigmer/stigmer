@@ -36,6 +36,7 @@ import type {
   ApiResourceDeleteInput,
   ApiResourceId,
   ApiResourceReference,
+  RenameInput,
 } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OAuthAppSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
@@ -93,7 +94,8 @@ import {
   newCreateAuthorizationTuplesStep,
 } from "../../pipeline/steps/authorization-tuples.js";
 import { newClaimNameStep, newReleaseNamesStep, releaseNameOnFailure } from "../../pipeline/steps/names.js";
-import { newPersistStep } from "../../pipeline/steps/persist.js";
+import { newPersistOntoLiveRowStep, newPersistStep } from "../../pipeline/steps/persist.js";
+import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
@@ -133,6 +135,7 @@ export function registerOAuthAppServices(
     apply: (app, ctx) => apply(deps, app, ctx),
     create: (app, ctx) => createOAuthApp(deps, app, ctx),
     update: (app, ctx) => update(deps, app, ctx),
+    rename: (input, ctx) => rename(deps, input, ctx),
     delete: (input, ctx) => deleteOAuthApp(deps, input, ctx),
   });
   router.service(OAuthAppQueryController, {
@@ -234,13 +237,39 @@ async function update(
       newEncryptClientSecretForUpdateStep(deps.secretService, deps.logger),
     )
     .addStep(newClaimAddressesStep(deps.store, "update"))
-    .addStep(newPersistStep(deps.store))
+    .addStep(newPersistOntoLiveRowStep(deps.store))
     .addStep(newReleaseDroppedAddressesStep(deps.store, deps.logger))
     .build()
     .execute(reqCtx);
   const result = reqCtx.newState;
   redactOAuthApp(result);
   return result;
+}
+
+/**
+ * Rename — the only writer of an OAuth app's slug (pipeline/steps/rename.ts):
+ * the name moves, then the live row's slug; the old slug keeps leading to
+ * it for reading for 30 days. The response is redacted like every other.
+ */
+async function rename(
+  deps: OAuthAppControllerDeps,
+  input: RenameInput,
+  ctx: HandlerContext,
+): Promise<OAuthApp> {
+  const renamed = await renameResource(
+    {
+      method: OAuthAppCommandController.method.rename,
+      names: deps.store,
+      rows: storeRenameRows(deps.store, ApiResourceKind.oauth_app, OAuthAppSchema),
+      authorizer: deps.authorizer,
+      logger: deps.logger,
+    },
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  redactOAuthApp(renamed);
+  return renamed;
 }
 
 /**

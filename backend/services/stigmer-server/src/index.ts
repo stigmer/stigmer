@@ -643,8 +643,11 @@ export { ORGANIZATION_SLUG_RESERVED } from "./domain/organization/names.js";
 // answers "taken" and resolves names for every kind in every edition.
 export {
   NAMED_KINDS,
+  SLUG_RENAMED,
+  SLUG_RESERVED,
   claimName,
   findResourceByName,
+  findResourceForWrite,
   kindClaimsNames,
   nameTakenError,
   newClaimNameStep,
@@ -653,9 +656,24 @@ export {
   releaseNameAfterFailure,
   releaseNameOnFailure,
   resolveName,
+  resolveNameEntry,
   resourceNameKey,
+  slugRenamedError,
 } from "./pipeline/steps/names.js";
-export type { NameHolder, NameTable, NamedKind } from "./pipeline/steps/names.js";
+export type { NameHolder, NameTable, NamedKind, WriteTarget } from "./pipeline/steps/names.js";
+// A rename moves a name (pipeline/steps/rename.ts): a composition that
+// keeps a renamable kind's rows in its own table (a team, an identity
+// provider) runs the same chain over its port, so a rename holds the old
+// slug for the same 30 days and writes only the slug, in every edition.
+export {
+  RENAMED_NAME_HOLD_MS,
+  RENAMED_RESOURCE_KEY,
+  moveName,
+  portRenameRows,
+  renameResource,
+  storeRenameRows,
+} from "./pipeline/steps/rename.js";
+export type { NewSlugRule, RenameChain, RenameRows } from "./pipeline/steps/rename.js";
 // A reference holds the id of the resource it means (pipeline/steps/
 // references.ts): a composition's code that reads a stored reference reads
 // its target by that id, names it in copy by the target's current slug,

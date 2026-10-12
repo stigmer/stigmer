@@ -11,10 +11,16 @@
  *      organization's current name and the old one a previous name, held
  *      for RENAMED_SLUG_HOLD_MS (for good when the old name is the id an
  *      organization made before ids were minted carries);
- *   2. the row is written with the new slug; when that fails, the names
- *      move back. If the move back fails too, both slugs still lead to the
- *      same organization, and a retry converges: the new slug is already
- *      its own, and the row's slug is one of its own previous names.
+ *   2. the new slug and the spec audit are written onto the live row,
+ *      inside the store's atomic write, and nothing else, so an update
+ *      that landed since the load stays; when that fails, the names move
+ *      back. If the move back fails too, both slugs still lead to the same
+ *      organization, and a retry converges: the new slug is already its
+ *      own, and the row's slug is one of its own previous names.
+ *
+ * The name move is every renamable kind's (pipeline/steps/rename.ts
+ * moveName); the organization keeps its own steps, its server-wide key and
+ * its own refusal.
  *
  * Proven by __tests__/organization-rename.test.ts and the
  * organization-identity conformance suite.
@@ -26,6 +32,7 @@ import { internalError, notFoundError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { setAuditFieldsForUpdate } from "../../pipeline/steps/defaults.js";
+import { moveName } from "../../pipeline/steps/rename.js";
 
 import type { RenameInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -35,7 +42,7 @@ import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organizat
 import {
   ORGANIZATION_NAME_KIND,
   RENAMED_SLUG_HOLD_MS,
-  nameHolderIsGone,
+  organizationHolder,
   refusalForHeldName,
   settleOrganizationSlug,
 } from "./names.js";
@@ -127,15 +134,7 @@ export function newRenameOrganizationSlugStep(
       };
       let moved;
       try {
-        moved = await store.resourceNames.rename(move);
-        if (!moved.claimed && (await nameHolderIsGone(store, moved.entry, now))) {
-          await store.resourceNames.release(
-            moved.entry.kind,
-            moved.entry.org,
-            moved.entry.id,
-          );
-          moved = await store.resourceNames.rename(move);
-        }
+        moved = await moveName(store, move, organizationHolder(store));
       } catch (error) {
         throw internalError(error, "failed to rename the organization");
       }
@@ -144,24 +143,15 @@ export function newRenameOrganizationSlugStep(
       }
       const recorded: NameMove = moved.takenBack === undefined ? { move } : { move, takenBack: moved.takenBack };
       ctx.set(NAME_MOVE_KEY, recorded);
-      metadata.slug = ctx.input.slug;
-      setAuditFieldsForUpdate(
-        OrganizationSchema,
-        organization,
-        "spec_audit",
-        ctx.callerIdentity,
-      );
-      const specAudit = organization.status?.audit?.specAudit;
-      if (specAudit !== undefined) {
-        specAudit.event = "renamed";
-      }
     },
   };
 }
 
 /**
- * Writes the renamed organization. When the write fails, the names move
- * back (the module header says why a failed move back is safe).
+ * Writes the new slug and the spec audit (event "renamed") onto the live
+ * organization row, inside the store's atomic write. When the write fails,
+ * the names move back (the module header says why a failed move back is
+ * safe). The written row is the chain's answer.
  */
 export function newPersistRenamedOrganizationStep(
   store: Store,
@@ -175,13 +165,19 @@ export function newPersistRenamedOrganizationStep(
         return; // the slug was already the organization's
       }
       const { move, takenBack } = recorded;
-      const organization = ctx.get(RENAMED_ORGANIZATION_KEY) as Organization;
+      const identity = ctx.callerIdentity;
+      let organization: Organization;
       try {
-        await store.saveResource(
+        organization = await store.updateResource(
           ApiResourceKind.organization,
           move.id,
           OrganizationSchema,
-          organization,
+          (row) => {
+            if (row.metadata !== undefined) {
+              row.metadata.slug = move.to;
+            }
+            setAuditFieldsForUpdate(OrganizationSchema, row, "spec_audit", identity, "renamed");
+          },
         );
       } catch (error) {
         try {
@@ -200,8 +196,12 @@ export function newPersistRenamedOrganizationStep(
             },
           );
         }
+        if (error instanceof ResourceNotFoundError) {
+          throw notFoundError("Organization", move.id);
+        }
         throw internalError(error, "failed to save organization");
       }
+      ctx.set(RENAMED_ORGANIZATION_KEY, organization);
       await settleOrganizationSlug(store, organization, logger);
     },
   };

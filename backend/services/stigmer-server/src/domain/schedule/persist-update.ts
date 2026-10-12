@@ -3,7 +3,9 @@
  * pkg/domain/schedule/controller/update.go.
  *
  * Persists an update as a graft of exactly what the request path owns —
- * apiVersion/kind/metadata/spec, the audit bump BuildUpdateState stamped,
+ * apiVersion/kind/metadata (all but the slug, which is rename's: the
+ * live row's is kept, pipeline/steps/rename.ts)/spec, the audit bump
+ * BuildUpdateState stamped,
  * and who attached each vault the spec names (the VaultAttachments step's
  * record, which a fire with no person asks `can_use` of) — onto the LIVE
  * row, inside one store.updateResource closure.
@@ -47,9 +49,13 @@ export function newPersistScheduleUpdateStep(
           scheduleId,
           ScheduleSchema,
           (row) => {
+            const slug = row.metadata?.slug;
             row.apiVersion = newState.apiVersion;
             row.kind = newState.kind;
             row.metadata = newState.metadata;
+            if (row.metadata !== undefined && slug !== undefined) {
+              row.metadata.slug = slug;
+            }
             row.spec = newState.spec;
             // The status leaves the request path owns: its own audit bump
             // and the vault attachers it judged against this spec. Every

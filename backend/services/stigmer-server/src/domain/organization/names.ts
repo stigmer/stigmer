@@ -68,6 +68,7 @@ import {
   storedRowHolder,
 } from "../../pipeline/steps/names.js";
 import type { NameHolder } from "../../pipeline/steps/names.js";
+import { RENAMED_NAME_HOLD_MS } from "../../pipeline/steps/rename.js";
 import { metadataOf } from "../../pipeline/steps/shapes.js";
 
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -82,8 +83,8 @@ import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organizat
  */
 export const ORGANIZATION_SLUG_RESERVED = "ORGANIZATION_SLUG_RESERVED";
 
-/** How long a renamed organization's old slug keeps resolving to it: 30 days. */
-export const RENAMED_SLUG_HOLD_MS = 30 * 24 * 60 * 60 * 1000;
+/** How long a renamed organization's old slug keeps resolving to it: every renamed resource's hold (pipeline/steps/rename.ts). */
+export const RENAMED_SLUG_HOLD_MS = RENAMED_NAME_HOLD_MS;
 
 /**
  * How old a name must be before a holder with no organization row counts as
@@ -142,7 +143,7 @@ export async function nameHolderIsGone(
 }
 
 /** An organization holds its names while its row exists. */
-function organizationHolder(store: Store): NameHolder {
+export function organizationHolder(store: Store): NameHolder {
   return storedRowHolder(store, ApiResourceKind.organization, OrganizationSchema);
 }
 

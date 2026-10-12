@@ -2,6 +2,8 @@
  * LoadExisting — ports steps/load_existing.go. Update/Delete's loader:
  * by id when provided (direct lookup), else by org-scoped slug (the
  * fallback populates the id back into metadata so merge/persist have it).
+ * A slug is read as every write reads one (names.ts findResourceForWrite):
+ * one the resource was renamed away from is refused with SLUG_RENAMED.
  * NotFound FAILS here — apply's tolerant probe is LoadForApply.
  *
  * Deliberate divergence from the Go source (decided 2026-08-26): Go
@@ -22,7 +24,7 @@ import {
 } from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
-import { findResourceByName, kindClaimsNames } from "./names.js";
+import { findResourceForWrite, kindClaimsNames, storedRowReader } from "./names.js";
 import { metadataOf } from "./shapes.js";
 
 /** Context key for the loaded resource (Go ExistingResourceKey). */
@@ -57,7 +59,12 @@ export function newLoadExistingStep<Desc extends DescMessage>(
           throw error;
         }
       } else if (metadata.slug !== "" && kindClaimsNames(ctx.apiResourceKind)) {
-        const found = await findResourceByName(store, ctx.apiResourceKind, ctx.schema, metadata.org, metadata.slug);
+        const found = await findResourceForWrite(
+          store,
+          ctx.apiResourceKind,
+          { id: "", org: metadata.org, slug: metadata.slug },
+          storedRowReader(store, ctx.apiResourceKind, ctx.schema),
+        );
         if (found === undefined) {
           throw notFoundError(getKindName(ctx.apiResourceKind), metadata.slug);
         }

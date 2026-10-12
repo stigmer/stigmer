@@ -46,7 +46,10 @@ import type {
   ScheduleFireList,
   ScheduleTriggerResult,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type {
+  ApiResourceReference,
+  RenameInput,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
@@ -59,6 +62,7 @@ import { internalError } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
+import { renameResource, storeRenameRows } from "../../pipeline/steps/rename.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import {
@@ -169,6 +173,7 @@ export function registerScheduleServices(
     apply: (schedule, ctx) => apply(deps, schedule, ctx),
     create: (schedule, ctx) => createSchedule(deps, schedule, ctx),
     update: (schedule, ctx) => update(deps, schedule, ctx),
+    rename: (input, ctx) => rename(deps, input, ctx),
     delete: (scheduleId, ctx) => deleteSchedule(deps, scheduleId, ctx),
     resume: (scheduleId, ctx) => resume(deps, scheduleId, ctx),
     trigger: (scheduleId, ctx) => trigger(deps, scheduleId, ctx),
@@ -184,6 +189,32 @@ export function registerScheduleServices(
 
 function kindOf(ctx: HandlerContext): ApiResourceKind {
   return ctx.values.get(apiResourceKindKey);
+}
+
+/**
+ * Rename — the only writer of a schedule's slug (pipeline/steps/rename.ts):
+ * the name moves, then the live row's slug, and nothing else, so a fire
+ * the tick records meanwhile stays. The Temporal schedule is named by the
+ * schedule's id and keeps firing; the old slug keeps leading to the
+ * schedule for reading for 30 days.
+ */
+async function rename(
+  deps: ScheduleControllerDeps,
+  input: RenameInput,
+  ctx: HandlerContext,
+): Promise<Schedule> {
+  return renameResource(
+    {
+      method: ScheduleCommandController.method.rename,
+      names: deps.store,
+      rows: storeRenameRows(deps.store, ApiResourceKind.schedule, ScheduleSchema),
+      authorizer: deps.authorizer,
+      logger: deps.logger,
+    },
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
 }
 
 /**

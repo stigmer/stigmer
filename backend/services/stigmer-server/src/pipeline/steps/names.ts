@@ -30,6 +30,13 @@
  *     fault is logged, and the next claim of the name frees it;
  *   - findResourceByName: a name read through the table, then a point
  *     read by id, in place of the scan every lookup by slug used to run.
+ *     A read follows a previous name a rename left for its hold
+ *     (pipeline/steps/rename.ts);
+ *   - findResourceForWrite: a write's lookup. By the id the request carries
+ *     first, then by name; a previous name is refused with SLUG_RENAMED,
+ *     because a write that kept following it would make a second resource
+ *     once the hold ends. Every loader of a write calls it (LoadForApply,
+ *     LoadExisting, and the probes of kinds kept elsewhere).
  *
  * NAMED_KINDS says, for every kind, whether its slug is claimed or why
  * not; __tests__/names.postgres.test.ts holds it equal to ApiResourceKind, so a new
@@ -50,8 +57,13 @@ import type {
   ResourceNameKey,
   Store,
 } from "../../store/interface.js";
-import { getKindName, kindEnumName } from "../apiresource-meta.js";
-import { alreadyExistsError, internalError } from "../errors.js";
+import { getKindName, kindEnumName, kindNoun } from "../apiresource-meta.js";
+import {
+  alreadyExistsError,
+  alreadyExistsWithReasonError,
+  failedPreconditionError,
+  internalError,
+} from "../errors.js";
 import type { PipelineStep } from "../pipeline.js";
 import type { RequestContext } from "../request-context.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
@@ -257,11 +269,53 @@ export async function holderIsGone(
 /** Where ClaimName leaves the entry it won, for releaseNameAfterFailure. */
 const CLAIMED_NAME_KEY = "resourceNameClaim";
 
-/** The refusal of a create whose slug another resource of the kind holds: the kind's duplicate copy. */
+/**
+ * The ErrorInfo reason a create or rename carries when the slug is another
+ * resource's recent previous name, which still leads to it. Wire contract,
+ * documented on each renamable kind's create; metadata `slug`. An
+ * organization keeps its own reason (domain/organization/names.ts).
+ */
+export const SLUG_RESERVED = "SLUG_RESERVED";
+
+/**
+ * The ErrorInfo reason a write carries when it names a resource by a slug
+ * the resource was renamed away from. Reads follow the old slug for its
+ * hold; a write does not, because a file that kept naming it would make a
+ * second resource once the hold ends. Wire contract, documented on each
+ * renamable kind's apply and update; metadata `slug`, the name the request
+ * gave. The copy never names the current slug: the loaders run before the
+ * write authorizes its target, so a caller who may not read the resource
+ * must not learn its new name (a client that may read it looks it up by
+ * the old slug, which still resolves).
+ */
+export const SLUG_RENAMED = "SLUG_RENAMED";
+
+/** The refusal of a write that names a resource by a slug it was renamed away from. */
+export function slugRenamedError(kind: ApiResourceKind, slug: string): Error {
+  const noun = kindNoun(kind);
+  return failedPreconditionError(
+    `${capitalized(noun)} '${slug}' was renamed; it still leads to the same ${noun} for reading. Write to it by its current slug or its id`,
+    { reason: SLUG_RENAMED, metadata: { slug } },
+  );
+}
+
+/**
+ * The refusal of a create or rename whose slug another resource of the
+ * kind holds: SLUG_RESERVED for a recent previous name, which still leads
+ * to the resource that held it, and the kind's duplicate copy for a
+ * current one.
+ */
 export function nameTakenError(
   kind: ApiResourceKind,
   entry: ResourceNameEntry,
 ): Error {
+  if (entry.state === "previous") {
+    const noun = kindNoun(kind);
+    return alreadyExistsWithReasonError(
+      `${capitalized(noun)} slug '${entry.name}' was recently another ${noun}'s, and still leads to it`,
+      { reason: SLUG_RESERVED, metadata: { slug: entry.name } },
+    );
+  }
   return alreadyExistsError(
     getKindName(kind),
     `slug '${entry.name}' in org '${entry.org}' (id: ${entry.id})`,
@@ -472,12 +526,26 @@ export async function resolveName(
   slug: string,
   now: Date = new Date(),
 ): Promise<string | undefined> {
+  return (await resolveNameEntry(store, kind, org, slug, now))?.id;
+}
+
+/**
+ * The entry `slug` names in the kind and organization at `now`, current or
+ * a previous name still held, or undefined when nothing holds it: what
+ * resolveName answers, with the entry's state.
+ */
+export async function resolveNameEntry(
+  store: NameTable,
+  kind: ApiResourceKind,
+  org: string,
+  slug: string,
+  now: Date = new Date(),
+): Promise<ResourceNameEntry | undefined> {
   requireNamedKind(kind);
-  const entry = await store.resourceNames.resolve(
+  return store.resourceNames.resolve(
     resourceNameKey(kind, org, slug),
     now.toISOString(),
   );
-  return entry?.id;
 }
 
 /**
@@ -502,6 +570,63 @@ export async function findResourceByName<Desc extends DescMessage>(
     return undefined;
   }
   return readById(store, kind, schema, id);
+}
+
+/** What a write names its resource by: the request's metadata. */
+export interface WriteTarget {
+  readonly id: string;
+  readonly org: string;
+  readonly slug: string;
+}
+
+/**
+ * The resource a write names, or undefined when it names none: by the id
+ * the request carries when a row of the kind in the request's organization
+ * holds it, else by its slug through the table. A row the id holds in
+ * another organization is passed over, so a manifest copied between
+ * organizations makes its own resource; an id nothing holds falls through
+ * to the slug. A slug the kind's resource was renamed away from is refused
+ * with SLUG_RENAMED (slugRenamedError says why). `readById` reads a kind
+ * whose rows a composition keeps elsewhere (its port); it defaults to the
+ * store.
+ */
+export async function findResourceForWrite<Desc extends DescMessage>(
+  store: NameTable,
+  kind: ApiResourceKind,
+  target: WriteTarget,
+  readRow: (id: string) => Promise<MessageShape<Desc> | undefined>,
+  now: Date = new Date(),
+): Promise<MessageShape<Desc> | undefined> {
+  if (target.id !== "") {
+    const byId = await readRow(target.id);
+    if (byId !== undefined && (metadataOf(byId)?.org ?? "") === target.org) {
+      return byId;
+    }
+  }
+  if (target.slug === "") {
+    return undefined;
+  }
+  const entry = await resolveNameEntry(store, kind, target.org, target.slug, now);
+  if (entry === undefined) {
+    return undefined;
+  }
+  if (entry.state === "previous") {
+    throw slugRenamedError(kind, target.slug);
+  }
+  return readRow(entry.id);
+}
+
+/** A reader of the kind's rows by id in the store, for findResourceForWrite. */
+export function storedRowReader<Desc extends DescMessage>(
+  store: Store,
+  kind: ApiResourceKind,
+  schema: Desc,
+): (id: string) => Promise<MessageShape<Desc> | undefined> {
+  return (id) => readById(store, kind, schema, id);
+}
+
+function capitalized(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
 function requireNamedKind(kind: ApiResourceKind): void {

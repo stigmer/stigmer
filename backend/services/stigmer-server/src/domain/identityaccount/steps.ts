@@ -79,10 +79,10 @@ import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import {
   claimNameOf,
-  holderIsGone,
   portHolder,
 } from "../../pipeline/steps/names.js";
 import type { NameHolder } from "../../pipeline/steps/names.js";
+import { moveName } from "../../pipeline/steps/rename.js";
 import { TARGET_RESOURCE_KEY } from "../../pipeline/steps/load-target.js";
 import { idValueOf, metadataOf } from "../../pipeline/steps/shapes.js";
 import { fittedName, fittedSlug } from "../../pipeline/steps/slug.js";
@@ -476,7 +476,7 @@ interface ServiceAccountRename {
  * the organization's service accounts. The name moves in the name table
  * with no hold: a name a service account gave up is free again at once,
  * unlike a renamed resource's 30 days. A name held by an account that is
- * gone is freed and taken (pipeline/steps/names.ts holderIsGone). Its
+ * gone is freed and taken (pipeline/steps/rename.ts moveName). Its
  * person fields stay empty, whatever the request sent: its one name is
  * `metadata.name`. Any other account passes untouched.
  */
@@ -511,17 +511,7 @@ export function newRenameServiceAccountStep(
       };
       let renamed;
       try {
-        renamed = await store.resourceNames.rename(move);
-        if (
-          !renamed.claimed &&
-          (await holderIsGone(renamed.entry, now, accountNameHolder(accounts)))
-        ) {
-          await store.resourceNames.releaseName(
-            { kind: move.kind, org: move.org, name: move.to },
-            renamed.entry.id,
-          );
-          renamed = await store.resourceNames.rename(move);
-        }
+        renamed = await moveName(store, move, accountNameHolder(accounts));
       } catch (error) {
         throw internalError(error, "failed to rename the service account");
       }
