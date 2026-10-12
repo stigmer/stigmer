@@ -30,9 +30,166 @@ message ListScoresBySessionRequest {
 
 // ScoreList is a list of scores.
 message ScoreList {
-  // Number of scores in the list.
+  // Number of scores in this response. On a paged list it counts this page
+  // only; follow next_page_token for the rest.
   int32 total_count = 1;
 
   // The scores, newest first.
   repeated Score items = 2;
+
+  // Set when more scores may follow: pass it as page_token to continue. A
+  // page may hold fewer scores than page_size, even none, and still carry a
+  // token. Empty when the list is complete, and always empty on the lists
+  // of one run or one session, which are returned whole.
+  string next_page_token = 3;
+}
+
+// GetAgentQualityReportRequest asks how one agent's runs in one
+// organization went over the last few days.
+message GetAgentQualityReportRequest {
+  // Organization whose runs of the agent are counted. The caller must be
+  // able to view it; runs in other organizations are never counted.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // ID of the agent whose runs are counted. The caller must be able to view
+  // it.
+  string agent_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // How many days to count, ending today, from 1 to 90. Zero counts the
+  // last 30. Days are UTC.
+  int32 days = 3 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 90
+  }];
+}
+
+// AgentQualityReport counts one agent's grades in one organization, in
+// total, per day and per agent version.
+//
+// @internal
+// Counts, metric and criterion names, version hashes and dates only: no
+// reason, no comment and no model's text, so the report quotes no
+// conversation and can be shown to everyone who sees the organization and
+// the agent, including people who cannot open the runs it counts. A plugin
+// eval's tries are not counted: they are tests, not live runs.
+message AgentQualityReport {
+  // First day counted (UTC), as YYYY-MM-DD.
+  string from_date = 1;
+
+  // Last day counted (UTC, today), as YYYY-MM-DD.
+  string to_date = 2;
+
+  // Every grade in the window.
+  QualitySummary total = 3;
+
+  // One entry per UTC day that has a grade, oldest first. A grade counts on
+  // the day it was given.
+  repeated QualityDay days = 4;
+
+  // One entry per agent version that has a grade in the window, most
+  // recently seen first.
+  repeated QualityVersion versions = 5;
+}
+
+// QualitySummary counts the runs graded and their grades, by metric.
+message QualitySummary {
+  // Distinct runs with at least one grade.
+  int32 runs = 1;
+
+  // One tally per metric and evaluator version. Two versions of the same
+  // checks or rubrics are never added together.
+  repeated MetricTally metrics = 2;
+}
+
+// MetricTally counts the grades of one metric at one evaluator version.
+message MetricTally {
+  // What was measured: `run-health`, `judge` or `feedback` (a person's
+  // thumbs, where up counts as passed and down as failed).
+  string metric = 1;
+
+  // The version of the checks or rubrics that gave these grades. Empty for
+  // a person's feedback.
+  string evaluator_version = 2;
+
+  // Grades that passed.
+  int32 passed = 3;
+
+  // Grades that failed.
+  int32 failed = 4;
+
+  // Runs that could not be graded.
+  int32 not_graded = 5;
+
+  // Runs picked for grading whose grade is not in yet.
+  int32 pending = 6;
+
+  // One tally per check or rubric item, in name order.
+  repeated CriterionTally criteria = 7;
+}
+
+// CriterionTally counts one check's or rubric item's outcomes.
+message CriterionTally {
+  // The criterion's identifier, for example `no-repeated-calls`.
+  string name = 1;
+
+  // Runs that met the criterion.
+  int32 passed = 2;
+
+  // Runs that did not meet it.
+  int32 failed = 3;
+
+  // Runs it did not apply to.
+  int32 not_applicable = 4;
+}
+
+// QualityDay is one UTC day's grades.
+message QualityDay {
+  // The day, as YYYY-MM-DD.
+  string date = 1;
+
+  // The day's grades.
+  QualitySummary summary = 2;
+}
+
+// QualityVersion is the grades of the runs of one agent version.
+message QualityVersion {
+  // Content hash of the agent version. Empty for runs of an agent with no
+  // recorded version.
+  string agent_version_hash = 1;
+
+  // First UTC day in the window with a grade of this version, as
+  // YYYY-MM-DD.
+  string first_date = 2;
+
+  // Last UTC day in the window with a grade of this version, as
+  // YYYY-MM-DD.
+  string last_date = 3;
+
+  // The version's grades.
+  QualitySummary summary = 4;
+}
+
+// ListFlaggedScoresByAgentRequest lists the failed grades of one agent's
+// runs in one organization that the caller can open.
+message ListFlaggedScoresByAgentRequest {
+  // Organization whose runs are listed. The caller must be able to view it.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // ID of the agent whose runs are listed. The caller must be able to view
+  // it.
+  string agent_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // How many days to look back, ending today, from 1 to 90. Zero looks back
+  // 30. Days are UTC.
+  int32 days = 3 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 90
+  }];
+
+  // The most scores to return, at most 100; zero returns them all.
+  int32 page_size = 4 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 5;
 }

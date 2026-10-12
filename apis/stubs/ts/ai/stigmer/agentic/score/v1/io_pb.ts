@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/score/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_score_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MSIgCgdTY29yZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiMQoWTGlzdFNjb3Jlc0J5UnVuUmVxdWVzdBIXCgZydW5faWQYASABKAlCB7pIBHICEAEiOQoaTGlzdFNjb3Jlc0J5U2Vzc2lvblJlcXVlc3QSGwoKc2Vzc2lvbl9pZBgBIAEoCUIHukgEcgIQASJTCglTY29yZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSMQoFaXRlbXMYAiADKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuU2NvcmViBnByb3RvMw", [file_ai_stigmer_agentic_score_v1_api, file_buf_validate_validate]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MSIgCgdTY29yZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiMQoWTGlzdFNjb3Jlc0J5UnVuUmVxdWVzdBIXCgZydW5faWQYASABKAlCB7pIBHICEAEiOQoaTGlzdFNjb3Jlc0J5U2Vzc2lvblJlcXVlc3QSGwoKc2Vzc2lvbl9pZBgBIAEoCUIHukgEcgIQASJsCglTY29yZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSMQoFaXRlbXMYAiADKAsyIi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuU2NvcmUSFwoPbmV4dF9wYWdlX3Rva2VuGAMgASgJImgKHEdldEFnZW50UXVhbGl0eVJlcG9ydFJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhkKCGFnZW50X2lkGAIgASgJQge6SARyAhABEhcKBGRheXMYAyABKAVCCbpIBhoEGFooACLqAQoSQWdlbnRRdWFsaXR5UmVwb3J0EhEKCWZyb21fZGF0ZRgBIAEoCRIPCgd0b19kYXRlGAIgASgJEjoKBXRvdGFsGAMgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlF1YWxpdHlTdW1tYXJ5EjUKBGRheXMYBCADKAsyJy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuUXVhbGl0eURheRI9Cgh2ZXJzaW9ucxgFIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5RdWFsaXR5VmVyc2lvbiJZCg5RdWFsaXR5U3VtbWFyeRIMCgRydW5zGAEgASgFEjkKB21ldHJpY3MYAiADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuTWV0cmljVGFsbHkivAEKC01ldHJpY1RhbGx5Eg4KBm1ldHJpYxgBIAEoCRIZChFldmFsdWF0b3JfdmVyc2lvbhgCIAEoCRIOCgZwYXNzZWQYAyABKAUSDgoGZmFpbGVkGAQgASgFEhIKCm5vdF9ncmFkZWQYBSABKAUSDwoHcGVuZGluZxgGIAEoBRI9Cghjcml0ZXJpYRgHIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5Dcml0ZXJpb25UYWxseSJWCg5Dcml0ZXJpb25UYWxseRIMCgRuYW1lGAEgASgJEg4KBnBhc3NlZBgCIAEoBRIOCgZmYWlsZWQYAyABKAUSFgoObm90X2FwcGxpY2FibGUYBCABKAUiWAoKUXVhbGl0eURheRIMCgRkYXRlGAEgASgJEjwKB3N1bW1hcnkYAiABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuUXVhbGl0eVN1bW1hcnkikQEKDlF1YWxpdHlWZXJzaW9uEhoKEmFnZW50X3ZlcnNpb25faGFzaBgBIAEoCRISCgpmaXJzdF9kYXRlGAIgASgJEhEKCWxhc3RfZGF0ZRgDIAEoCRI8CgdzdW1tYXJ5GAQgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlF1YWxpdHlTdW1tYXJ5IpsBCh9MaXN0RmxhZ2dlZFNjb3Jlc0J5QWdlbnRSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARIZCghhZ2VudF9pZBgCIAEoCUIHukgEcgIQARIXCgRkYXlzGAMgASgFQgm6SAYaBBhaKAASGgoJcGFnZV9zaXplGAQgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YBSABKAliBnByb3RvMw", [file_ai_stigmer_agentic_score_v1_api, file_buf_validate_validate]);
 
 /**
  * ScoreId wraps a score identifier.
@@ -90,7 +90,8 @@ export const ListScoresBySessionRequestSchema: GenMessage<ListScoresBySessionReq
  */
 export type ScoreList = Message<"ai.stigmer.agentic.score.v1.ScoreList"> & {
   /**
-   * Number of scores in the list.
+   * Number of scores in this response. On a paged list it counts this page
+   * only; follow next_page_token for the rest.
    *
    * @generated from field: int32 total_count = 1;
    */
@@ -102,6 +103,16 @@ export type ScoreList = Message<"ai.stigmer.agentic.score.v1.ScoreList"> & {
    * @generated from field: repeated ai.stigmer.agentic.score.v1.Score items = 2;
    */
   items: Score[];
+
+  /**
+   * Set when more scores may follow: pass it as page_token to continue. A
+   * page may hold fewer scores than page_size, even none, and still carry a
+   * token. Empty when the list is complete, and always empty on the lists
+   * of one run or one session, which are returned whole.
+   *
+   * @generated from field: string next_page_token = 3;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -110,4 +121,357 @@ export type ScoreList = Message<"ai.stigmer.agentic.score.v1.ScoreList"> & {
  */
 export const ScoreListSchema: GenMessage<ScoreList> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_score_v1_io, 3);
+
+/**
+ * GetAgentQualityReportRequest asks how one agent's runs in one
+ * organization went over the last few days.
+ *
+ * @generated from message ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest
+ */
+export type GetAgentQualityReportRequest = Message<"ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest"> & {
+  /**
+   * Organization whose runs of the agent are counted. The caller must be
+   * able to view it; runs in other organizations are never counted.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * ID of the agent whose runs are counted. The caller must be able to view
+   * it.
+   *
+   * @generated from field: string agent_id = 2;
+   */
+  agentId: string;
+
+  /**
+   * How many days to count, ending today, from 1 to 90. Zero counts the
+   * last 30. Days are UTC.
+   *
+   * @generated from field: int32 days = 3;
+   */
+  days: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest.
+ * Use `create(GetAgentQualityReportRequestSchema)` to create a new message.
+ */
+export const GetAgentQualityReportRequestSchema: GenMessage<GetAgentQualityReportRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 4);
+
+/**
+ * AgentQualityReport counts one agent's grades in one organization, in
+ * total, per day and per agent version.
+ *
+ * @generated from message ai.stigmer.agentic.score.v1.AgentQualityReport
+ */
+export type AgentQualityReport = Message<"ai.stigmer.agentic.score.v1.AgentQualityReport"> & {
+  /**
+   * First day counted (UTC), as YYYY-MM-DD.
+   *
+   * @generated from field: string from_date = 1;
+   */
+  fromDate: string;
+
+  /**
+   * Last day counted (UTC, today), as YYYY-MM-DD.
+   *
+   * @generated from field: string to_date = 2;
+   */
+  toDate: string;
+
+  /**
+   * Every grade in the window.
+   *
+   * @generated from field: ai.stigmer.agentic.score.v1.QualitySummary total = 3;
+   */
+  total?: QualitySummary;
+
+  /**
+   * One entry per UTC day that has a grade, oldest first. A grade counts on
+   * the day it was given.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.score.v1.QualityDay days = 4;
+   */
+  days: QualityDay[];
+
+  /**
+   * One entry per agent version that has a grade in the window, most
+   * recently seen first.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.score.v1.QualityVersion versions = 5;
+   */
+  versions: QualityVersion[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.score.v1.AgentQualityReport.
+ * Use `create(AgentQualityReportSchema)` to create a new message.
+ */
+export const AgentQualityReportSchema: GenMessage<AgentQualityReport> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 5);
+
+/**
+ * QualitySummary counts the runs graded and their grades, by metric.
+ *
+ * @generated from message ai.stigmer.agentic.score.v1.QualitySummary
+ */
+export type QualitySummary = Message<"ai.stigmer.agentic.score.v1.QualitySummary"> & {
+  /**
+   * Distinct runs with at least one grade.
+   *
+   * @generated from field: int32 runs = 1;
+   */
+  runs: number;
+
+  /**
+   * One tally per metric and evaluator version. Two versions of the same
+   * checks or rubrics are never added together.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.score.v1.MetricTally metrics = 2;
+   */
+  metrics: MetricTally[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.score.v1.QualitySummary.
+ * Use `create(QualitySummarySchema)` to create a new message.
+ */
+export const QualitySummarySchema: GenMessage<QualitySummary> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 6);
+
+/**
+ * MetricTally counts the grades of one metric at one evaluator version.
+ *
+ * @generated from message ai.stigmer.agentic.score.v1.MetricTally
+ */
+export type MetricTally = Message<"ai.stigmer.agentic.score.v1.MetricTally"> & {
+  /**
+   * What was measured: `run-health`, `judge` or `feedback` (a person's
+   * thumbs, where up counts as passed and down as failed).
+   *
+   * @generated from field: string metric = 1;
+   */
+  metric: string;
+
+  /**
+   * The version of the checks or rubrics that gave these grades. Empty for
+   * a person's feedback.
+   *
+   * @generated from field: string evaluator_version = 2;
+   */
+  evaluatorVersion: string;
+
+  /**
+   * Grades that passed.
+   *
+   * @generated from field: int32 passed = 3;
+   */
+  passed: number;
+
+  /**
+   * Grades that failed.
+   *
+   * @generated from field: int32 failed = 4;
+   */
+  failed: number;
+
+  /**
+   * Runs that could not be graded.
+   *
+   * @generated from field: int32 not_graded = 5;
+   */
+  notGraded: number;
+
+  /**
+   * Runs picked for grading whose grade is not in yet.
+   *
+   * @generated from field: int32 pending = 6;
+   */
+  pending: number;
+
+  /**
+   * One tally per check or rubric item, in name order.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.score.v1.CriterionTally criteria = 7;
+   */
+  criteria: CriterionTally[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.score.v1.MetricTally.
+ * Use `create(MetricTallySchema)` to create a new message.
+ */
+export const MetricTallySchema: GenMessage<MetricTally> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 7);
+
+/**
+ * CriterionTally counts one check's or rubric item's outcomes.
+ *
+ * @generated from message ai.stigmer.agentic.score.v1.CriterionTally
+ */
+export type CriterionTally = Message<"ai.stigmer.agentic.score.v1.CriterionTally"> & {
+  /**
+   * The criterion's identifier, for example `no-repeated-calls`.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Runs that met the criterion.
+   *
+   * @generated from field: int32 passed = 2;
+   */
+  passed: number;
+
+  /**
+   * Runs that did not meet it.
+   *
+   * @generated from field: int32 failed = 3;
+   */
+  failed: number;
+
+  /**
+   * Runs it did not apply to.
+   *
+   * @generated from field: int32 not_applicable = 4;
+   */
+  notApplicable: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.score.v1.CriterionTally.
+ * Use `create(CriterionTallySchema)` to create a new message.
+ */
+export const CriterionTallySchema: GenMessage<CriterionTally> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 8);
+
+/**
+ * QualityDay is one UTC day's grades.
+ *
+ * @generated from message ai.stigmer.agentic.score.v1.QualityDay
+ */
+export type QualityDay = Message<"ai.stigmer.agentic.score.v1.QualityDay"> & {
+  /**
+   * The day, as YYYY-MM-DD.
+   *
+   * @generated from field: string date = 1;
+   */
+  date: string;
+
+  /**
+   * The day's grades.
+   *
+   * @generated from field: ai.stigmer.agentic.score.v1.QualitySummary summary = 2;
+   */
+  summary?: QualitySummary;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.score.v1.QualityDay.
+ * Use `create(QualityDaySchema)` to create a new message.
+ */
+export const QualityDaySchema: GenMessage<QualityDay> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 9);
+
+/**
+ * QualityVersion is the grades of the runs of one agent version.
+ *
+ * @generated from message ai.stigmer.agentic.score.v1.QualityVersion
+ */
+export type QualityVersion = Message<"ai.stigmer.agentic.score.v1.QualityVersion"> & {
+  /**
+   * Content hash of the agent version. Empty for runs of an agent with no
+   * recorded version.
+   *
+   * @generated from field: string agent_version_hash = 1;
+   */
+  agentVersionHash: string;
+
+  /**
+   * First UTC day in the window with a grade of this version, as
+   * YYYY-MM-DD.
+   *
+   * @generated from field: string first_date = 2;
+   */
+  firstDate: string;
+
+  /**
+   * Last UTC day in the window with a grade of this version, as
+   * YYYY-MM-DD.
+   *
+   * @generated from field: string last_date = 3;
+   */
+  lastDate: string;
+
+  /**
+   * The version's grades.
+   *
+   * @generated from field: ai.stigmer.agentic.score.v1.QualitySummary summary = 4;
+   */
+  summary?: QualitySummary;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.score.v1.QualityVersion.
+ * Use `create(QualityVersionSchema)` to create a new message.
+ */
+export const QualityVersionSchema: GenMessage<QualityVersion> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 10);
+
+/**
+ * ListFlaggedScoresByAgentRequest lists the failed grades of one agent's
+ * runs in one organization that the caller can open.
+ *
+ * @generated from message ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest
+ */
+export type ListFlaggedScoresByAgentRequest = Message<"ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest"> & {
+  /**
+   * Organization whose runs are listed. The caller must be able to view it.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * ID of the agent whose runs are listed. The caller must be able to view
+   * it.
+   *
+   * @generated from field: string agent_id = 2;
+   */
+  agentId: string;
+
+  /**
+   * How many days to look back, ending today, from 1 to 90. Zero looks back
+   * 30. Days are UTC.
+   *
+   * @generated from field: int32 days = 3;
+   */
+  days: number;
+
+  /**
+   * The most scores to return, at most 100; zero returns them all.
+   *
+   * @generated from field: int32 page_size = 4;
+   */
+  pageSize: number;
+
+  /**
+   * The previous response's next_page_token, to continue that list; every
+   * other field must equal that request's, or the call is refused.
+   *
+   * @generated from field: string page_token = 5;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest.
+ * Use `create(ListFlaggedScoresByAgentRequestSchema)` to create a new message.
+ */
+export const ListFlaggedScoresByAgentRequestSchema: GenMessage<ListFlaggedScoresByAgentRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_score_v1_io, 11);
 

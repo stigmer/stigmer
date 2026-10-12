@@ -168,10 +168,16 @@ func (x *ListScoresBySessionRequest) GetSessionId() string {
 // ScoreList is a list of scores.
 type ScoreList struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Number of scores in the list.
+	// Number of scores in this response. On a paged list it counts this page
+	// only; follow next_page_token for the rest.
 	TotalCount int32 `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	// The scores, newest first.
-	Items         []*Score `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	Items []*Score `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	// Set when more scores may follow: pass it as page_token to continue. A
+	// page may hold fewer scores than page_size, even none, and still carry a
+	// token. Empty when the list is complete, and always empty on the lists
+	// of one run or one session, which are returned whole.
+	NextPageToken string `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -220,6 +226,614 @@ func (x *ScoreList) GetItems() []*Score {
 	return nil
 }
 
+func (x *ScoreList) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+// GetAgentQualityReportRequest asks how one agent's runs in one
+// organization went over the last few days.
+type GetAgentQualityReportRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization whose runs of the agent are counted. The caller must be
+	// able to view it; runs in other organizations are never counted.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// ID of the agent whose runs are counted. The caller must be able to view
+	// it.
+	AgentId string `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	// How many days to count, ending today, from 1 to 90. Zero counts the
+	// last 30. Days are UTC.
+	Days          int32 `protobuf:"varint,3,opt,name=days,proto3" json:"days,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAgentQualityReportRequest) Reset() {
+	*x = GetAgentQualityReportRequest{}
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAgentQualityReportRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAgentQualityReportRequest) ProtoMessage() {}
+
+func (x *GetAgentQualityReportRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAgentQualityReportRequest.ProtoReflect.Descriptor instead.
+func (*GetAgentQualityReportRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetAgentQualityReportRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *GetAgentQualityReportRequest) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *GetAgentQualityReportRequest) GetDays() int32 {
+	if x != nil {
+		return x.Days
+	}
+	return 0
+}
+
+// AgentQualityReport counts one agent's grades in one organization, in
+// total, per day and per agent version.
+type AgentQualityReport struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// First day counted (UTC), as YYYY-MM-DD.
+	FromDate string `protobuf:"bytes,1,opt,name=from_date,json=fromDate,proto3" json:"from_date,omitempty"`
+	// Last day counted (UTC, today), as YYYY-MM-DD.
+	ToDate string `protobuf:"bytes,2,opt,name=to_date,json=toDate,proto3" json:"to_date,omitempty"`
+	// Every grade in the window.
+	Total *QualitySummary `protobuf:"bytes,3,opt,name=total,proto3" json:"total,omitempty"`
+	// One entry per UTC day that has a grade, oldest first. A grade counts on
+	// the day it was given.
+	Days []*QualityDay `protobuf:"bytes,4,rep,name=days,proto3" json:"days,omitempty"`
+	// One entry per agent version that has a grade in the window, most
+	// recently seen first.
+	Versions      []*QualityVersion `protobuf:"bytes,5,rep,name=versions,proto3" json:"versions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AgentQualityReport) Reset() {
+	*x = AgentQualityReport{}
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentQualityReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentQualityReport) ProtoMessage() {}
+
+func (x *AgentQualityReport) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentQualityReport.ProtoReflect.Descriptor instead.
+func (*AgentQualityReport) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AgentQualityReport) GetFromDate() string {
+	if x != nil {
+		return x.FromDate
+	}
+	return ""
+}
+
+func (x *AgentQualityReport) GetToDate() string {
+	if x != nil {
+		return x.ToDate
+	}
+	return ""
+}
+
+func (x *AgentQualityReport) GetTotal() *QualitySummary {
+	if x != nil {
+		return x.Total
+	}
+	return nil
+}
+
+func (x *AgentQualityReport) GetDays() []*QualityDay {
+	if x != nil {
+		return x.Days
+	}
+	return nil
+}
+
+func (x *AgentQualityReport) GetVersions() []*QualityVersion {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
+// QualitySummary counts the runs graded and their grades, by metric.
+type QualitySummary struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Distinct runs with at least one grade.
+	Runs int32 `protobuf:"varint,1,opt,name=runs,proto3" json:"runs,omitempty"`
+	// One tally per metric and evaluator version. Two versions of the same
+	// checks or rubrics are never added together.
+	Metrics       []*MetricTally `protobuf:"bytes,2,rep,name=metrics,proto3" json:"metrics,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QualitySummary) Reset() {
+	*x = QualitySummary{}
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QualitySummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QualitySummary) ProtoMessage() {}
+
+func (x *QualitySummary) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QualitySummary.ProtoReflect.Descriptor instead.
+func (*QualitySummary) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *QualitySummary) GetRuns() int32 {
+	if x != nil {
+		return x.Runs
+	}
+	return 0
+}
+
+func (x *QualitySummary) GetMetrics() []*MetricTally {
+	if x != nil {
+		return x.Metrics
+	}
+	return nil
+}
+
+// MetricTally counts the grades of one metric at one evaluator version.
+type MetricTally struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// What was measured: `run-health`, `judge` or `feedback` (a person's
+	// thumbs, where up counts as passed and down as failed).
+	Metric string `protobuf:"bytes,1,opt,name=metric,proto3" json:"metric,omitempty"`
+	// The version of the checks or rubrics that gave these grades. Empty for
+	// a person's feedback.
+	EvaluatorVersion string `protobuf:"bytes,2,opt,name=evaluator_version,json=evaluatorVersion,proto3" json:"evaluator_version,omitempty"`
+	// Grades that passed.
+	Passed int32 `protobuf:"varint,3,opt,name=passed,proto3" json:"passed,omitempty"`
+	// Grades that failed.
+	Failed int32 `protobuf:"varint,4,opt,name=failed,proto3" json:"failed,omitempty"`
+	// Runs that could not be graded.
+	NotGraded int32 `protobuf:"varint,5,opt,name=not_graded,json=notGraded,proto3" json:"not_graded,omitempty"`
+	// Runs picked for grading whose grade is not in yet.
+	Pending int32 `protobuf:"varint,6,opt,name=pending,proto3" json:"pending,omitempty"`
+	// One tally per check or rubric item, in name order.
+	Criteria      []*CriterionTally `protobuf:"bytes,7,rep,name=criteria,proto3" json:"criteria,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MetricTally) Reset() {
+	*x = MetricTally{}
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetricTally) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetricTally) ProtoMessage() {}
+
+func (x *MetricTally) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetricTally.ProtoReflect.Descriptor instead.
+func (*MetricTally) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *MetricTally) GetMetric() string {
+	if x != nil {
+		return x.Metric
+	}
+	return ""
+}
+
+func (x *MetricTally) GetEvaluatorVersion() string {
+	if x != nil {
+		return x.EvaluatorVersion
+	}
+	return ""
+}
+
+func (x *MetricTally) GetPassed() int32 {
+	if x != nil {
+		return x.Passed
+	}
+	return 0
+}
+
+func (x *MetricTally) GetFailed() int32 {
+	if x != nil {
+		return x.Failed
+	}
+	return 0
+}
+
+func (x *MetricTally) GetNotGraded() int32 {
+	if x != nil {
+		return x.NotGraded
+	}
+	return 0
+}
+
+func (x *MetricTally) GetPending() int32 {
+	if x != nil {
+		return x.Pending
+	}
+	return 0
+}
+
+func (x *MetricTally) GetCriteria() []*CriterionTally {
+	if x != nil {
+		return x.Criteria
+	}
+	return nil
+}
+
+// CriterionTally counts one check's or rubric item's outcomes.
+type CriterionTally struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The criterion's identifier, for example `no-repeated-calls`.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Runs that met the criterion.
+	Passed int32 `protobuf:"varint,2,opt,name=passed,proto3" json:"passed,omitempty"`
+	// Runs that did not meet it.
+	Failed int32 `protobuf:"varint,3,opt,name=failed,proto3" json:"failed,omitempty"`
+	// Runs it did not apply to.
+	NotApplicable int32 `protobuf:"varint,4,opt,name=not_applicable,json=notApplicable,proto3" json:"not_applicable,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CriterionTally) Reset() {
+	*x = CriterionTally{}
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CriterionTally) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CriterionTally) ProtoMessage() {}
+
+func (x *CriterionTally) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CriterionTally.ProtoReflect.Descriptor instead.
+func (*CriterionTally) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *CriterionTally) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CriterionTally) GetPassed() int32 {
+	if x != nil {
+		return x.Passed
+	}
+	return 0
+}
+
+func (x *CriterionTally) GetFailed() int32 {
+	if x != nil {
+		return x.Failed
+	}
+	return 0
+}
+
+func (x *CriterionTally) GetNotApplicable() int32 {
+	if x != nil {
+		return x.NotApplicable
+	}
+	return 0
+}
+
+// QualityDay is one UTC day's grades.
+type QualityDay struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The day, as YYYY-MM-DD.
+	Date string `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
+	// The day's grades.
+	Summary       *QualitySummary `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QualityDay) Reset() {
+	*x = QualityDay{}
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QualityDay) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QualityDay) ProtoMessage() {}
+
+func (x *QualityDay) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QualityDay.ProtoReflect.Descriptor instead.
+func (*QualityDay) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *QualityDay) GetDate() string {
+	if x != nil {
+		return x.Date
+	}
+	return ""
+}
+
+func (x *QualityDay) GetSummary() *QualitySummary {
+	if x != nil {
+		return x.Summary
+	}
+	return nil
+}
+
+// QualityVersion is the grades of the runs of one agent version.
+type QualityVersion struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Content hash of the agent version. Empty for runs of an agent with no
+	// recorded version.
+	AgentVersionHash string `protobuf:"bytes,1,opt,name=agent_version_hash,json=agentVersionHash,proto3" json:"agent_version_hash,omitempty"`
+	// First UTC day in the window with a grade of this version, as
+	// YYYY-MM-DD.
+	FirstDate string `protobuf:"bytes,2,opt,name=first_date,json=firstDate,proto3" json:"first_date,omitempty"`
+	// Last UTC day in the window with a grade of this version, as
+	// YYYY-MM-DD.
+	LastDate string `protobuf:"bytes,3,opt,name=last_date,json=lastDate,proto3" json:"last_date,omitempty"`
+	// The version's grades.
+	Summary       *QualitySummary `protobuf:"bytes,4,opt,name=summary,proto3" json:"summary,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QualityVersion) Reset() {
+	*x = QualityVersion{}
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QualityVersion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QualityVersion) ProtoMessage() {}
+
+func (x *QualityVersion) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QualityVersion.ProtoReflect.Descriptor instead.
+func (*QualityVersion) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *QualityVersion) GetAgentVersionHash() string {
+	if x != nil {
+		return x.AgentVersionHash
+	}
+	return ""
+}
+
+func (x *QualityVersion) GetFirstDate() string {
+	if x != nil {
+		return x.FirstDate
+	}
+	return ""
+}
+
+func (x *QualityVersion) GetLastDate() string {
+	if x != nil {
+		return x.LastDate
+	}
+	return ""
+}
+
+func (x *QualityVersion) GetSummary() *QualitySummary {
+	if x != nil {
+		return x.Summary
+	}
+	return nil
+}
+
+// ListFlaggedScoresByAgentRequest lists the failed grades of one agent's
+// runs in one organization that the caller can open.
+type ListFlaggedScoresByAgentRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization whose runs are listed. The caller must be able to view it.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// ID of the agent whose runs are listed. The caller must be able to view
+	// it.
+	AgentId string `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	// How many days to look back, ending today, from 1 to 90. Zero looks back
+	// 30. Days are UTC.
+	Days int32 `protobuf:"varint,3,opt,name=days,proto3" json:"days,omitempty"`
+	// The most scores to return, at most 100; zero returns them all.
+	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous response's next_page_token, to continue that list; every
+	// other field must equal that request's, or the call is refused.
+	PageToken     string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFlaggedScoresByAgentRequest) Reset() {
+	*x = ListFlaggedScoresByAgentRequest{}
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFlaggedScoresByAgentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFlaggedScoresByAgentRequest) ProtoMessage() {}
+
+func (x *ListFlaggedScoresByAgentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_score_v1_io_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFlaggedScoresByAgentRequest.ProtoReflect.Descriptor instead.
+func (*ListFlaggedScoresByAgentRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ListFlaggedScoresByAgentRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *ListFlaggedScoresByAgentRequest) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *ListFlaggedScoresByAgentRequest) GetDays() int32 {
+	if x != nil {
+		return x.Days
+	}
+	return 0
+}
+
+func (x *ListFlaggedScoresByAgentRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListFlaggedScoresByAgentRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_score_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_score_v1_io_proto_rawDesc = "" +
@@ -231,11 +845,56 @@ const file_ai_stigmer_agentic_score_v1_io_proto_rawDesc = "" +
 	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\"D\n" +
 	"\x1aListScoresBySessionRequest\x12&\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\"f\n" +
+	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\"\x8e\x01\n" +
 	"\tScoreList\x12\x1f\n" +
 	"\vtotal_count\x18\x01 \x01(\x05R\n" +
 	"totalCount\x128\n" +
-	"\x05items\x18\x02 \x03(\v2\".ai.stigmer.agentic.score.v1.ScoreR\x05itemsB\x8b\x02\n" +
+	"\x05items\x18\x02 \x03(\v2\".ai.stigmer.agentic.score.v1.ScoreR\x05items\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\"|\n" +
+	"\x1cGetAgentQualityReportRequest\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\"\n" +
+	"\bagent_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1d\n" +
+	"\x04days\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18Z(\x00R\x04days\"\x93\x02\n" +
+	"\x12AgentQualityReport\x12\x1b\n" +
+	"\tfrom_date\x18\x01 \x01(\tR\bfromDate\x12\x17\n" +
+	"\ato_date\x18\x02 \x01(\tR\x06toDate\x12A\n" +
+	"\x05total\x18\x03 \x01(\v2+.ai.stigmer.agentic.score.v1.QualitySummaryR\x05total\x12;\n" +
+	"\x04days\x18\x04 \x03(\v2'.ai.stigmer.agentic.score.v1.QualityDayR\x04days\x12G\n" +
+	"\bversions\x18\x05 \x03(\v2+.ai.stigmer.agentic.score.v1.QualityVersionR\bversions\"h\n" +
+	"\x0eQualitySummary\x12\x12\n" +
+	"\x04runs\x18\x01 \x01(\x05R\x04runs\x12B\n" +
+	"\ametrics\x18\x02 \x03(\v2(.ai.stigmer.agentic.score.v1.MetricTallyR\ametrics\"\x84\x02\n" +
+	"\vMetricTally\x12\x16\n" +
+	"\x06metric\x18\x01 \x01(\tR\x06metric\x12+\n" +
+	"\x11evaluator_version\x18\x02 \x01(\tR\x10evaluatorVersion\x12\x16\n" +
+	"\x06passed\x18\x03 \x01(\x05R\x06passed\x12\x16\n" +
+	"\x06failed\x18\x04 \x01(\x05R\x06failed\x12\x1d\n" +
+	"\n" +
+	"not_graded\x18\x05 \x01(\x05R\tnotGraded\x12\x18\n" +
+	"\apending\x18\x06 \x01(\x05R\apending\x12G\n" +
+	"\bcriteria\x18\a \x03(\v2+.ai.stigmer.agentic.score.v1.CriterionTallyR\bcriteria\"{\n" +
+	"\x0eCriterionTally\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
+	"\x06passed\x18\x02 \x01(\x05R\x06passed\x12\x16\n" +
+	"\x06failed\x18\x03 \x01(\x05R\x06failed\x12%\n" +
+	"\x0enot_applicable\x18\x04 \x01(\x05R\rnotApplicable\"g\n" +
+	"\n" +
+	"QualityDay\x12\x12\n" +
+	"\x04date\x18\x01 \x01(\tR\x04date\x12E\n" +
+	"\asummary\x18\x02 \x01(\v2+.ai.stigmer.agentic.score.v1.QualitySummaryR\asummary\"\xc1\x01\n" +
+	"\x0eQualityVersion\x12,\n" +
+	"\x12agent_version_hash\x18\x01 \x01(\tR\x10agentVersionHash\x12\x1d\n" +
+	"\n" +
+	"first_date\x18\x02 \x01(\tR\tfirstDate\x12\x1b\n" +
+	"\tlast_date\x18\x03 \x01(\tR\blastDate\x12E\n" +
+	"\asummary\x18\x04 \x01(\v2+.ai.stigmer.agentic.score.v1.QualitySummaryR\asummary\"\xc4\x01\n" +
+	"\x1fListFlaggedScoresByAgentRequest\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\"\n" +
+	"\bagent_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1d\n" +
+	"\x04days\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18Z(\x00R\x04days\x12$\n" +
+	"\tpage_size\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tR\tpageTokenB\x8b\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.score.v1B\aIoProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
 
 var (
@@ -250,21 +909,36 @@ func file_ai_stigmer_agentic_score_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_score_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_score_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_agentic_score_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ai_stigmer_agentic_score_v1_io_proto_goTypes = []any{
-	(*ScoreId)(nil),                    // 0: ai.stigmer.agentic.score.v1.ScoreId
-	(*ListScoresByRunRequest)(nil),     // 1: ai.stigmer.agentic.score.v1.ListScoresByRunRequest
-	(*ListScoresBySessionRequest)(nil), // 2: ai.stigmer.agentic.score.v1.ListScoresBySessionRequest
-	(*ScoreList)(nil),                  // 3: ai.stigmer.agentic.score.v1.ScoreList
-	(*Score)(nil),                      // 4: ai.stigmer.agentic.score.v1.Score
+	(*ScoreId)(nil),                         // 0: ai.stigmer.agentic.score.v1.ScoreId
+	(*ListScoresByRunRequest)(nil),          // 1: ai.stigmer.agentic.score.v1.ListScoresByRunRequest
+	(*ListScoresBySessionRequest)(nil),      // 2: ai.stigmer.agentic.score.v1.ListScoresBySessionRequest
+	(*ScoreList)(nil),                       // 3: ai.stigmer.agentic.score.v1.ScoreList
+	(*GetAgentQualityReportRequest)(nil),    // 4: ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest
+	(*AgentQualityReport)(nil),              // 5: ai.stigmer.agentic.score.v1.AgentQualityReport
+	(*QualitySummary)(nil),                  // 6: ai.stigmer.agentic.score.v1.QualitySummary
+	(*MetricTally)(nil),                     // 7: ai.stigmer.agentic.score.v1.MetricTally
+	(*CriterionTally)(nil),                  // 8: ai.stigmer.agentic.score.v1.CriterionTally
+	(*QualityDay)(nil),                      // 9: ai.stigmer.agentic.score.v1.QualityDay
+	(*QualityVersion)(nil),                  // 10: ai.stigmer.agentic.score.v1.QualityVersion
+	(*ListFlaggedScoresByAgentRequest)(nil), // 11: ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest
+	(*Score)(nil),                           // 12: ai.stigmer.agentic.score.v1.Score
 }
 var file_ai_stigmer_agentic_score_v1_io_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.score.v1.ScoreList.items:type_name -> ai.stigmer.agentic.score.v1.Score
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	12, // 0: ai.stigmer.agentic.score.v1.ScoreList.items:type_name -> ai.stigmer.agentic.score.v1.Score
+	6,  // 1: ai.stigmer.agentic.score.v1.AgentQualityReport.total:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
+	9,  // 2: ai.stigmer.agentic.score.v1.AgentQualityReport.days:type_name -> ai.stigmer.agentic.score.v1.QualityDay
+	10, // 3: ai.stigmer.agentic.score.v1.AgentQualityReport.versions:type_name -> ai.stigmer.agentic.score.v1.QualityVersion
+	7,  // 4: ai.stigmer.agentic.score.v1.QualitySummary.metrics:type_name -> ai.stigmer.agentic.score.v1.MetricTally
+	8,  // 5: ai.stigmer.agentic.score.v1.MetricTally.criteria:type_name -> ai.stigmer.agentic.score.v1.CriterionTally
+	6,  // 6: ai.stigmer.agentic.score.v1.QualityDay.summary:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
+	6,  // 7: ai.stigmer.agentic.score.v1.QualityVersion.summary:type_name -> ai.stigmer.agentic.score.v1.QualitySummary
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_score_v1_io_proto_init() }
@@ -279,7 +953,7 @@ func file_ai_stigmer_agentic_score_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_score_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_score_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

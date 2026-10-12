@@ -13,6 +13,21 @@ message ScoreStatus {
   // Why the run could not be graded, when state is not graded.
   string not_graded_reason = 2;
 
+  // ID of the agent the scored run ran, copied from the run when the score
+  // is created. Empty for a run of the built-in assistant.
+  //
+  // @internal
+  // Stamped by the create chain's StampScoredRun step from the run's
+  // status.agent_id, after the reserved-label guard; a client cannot supply
+  // status, and an update keeps it. The score list index keys an agent's
+  // scores on it, so an agent's quality report reads one agent's rows.
+  string agent_id = 3;
+
+  // Content hash of the agent version the scored run ran, copied from the
+  // run when the score is created. Unique only within its agent; empty when
+  // agent_id is empty or the agent had no recorded version.
+  string agent_version_hash = 4;
+
   // Standard audit information (created_at, updated_at, created_by, etc.)
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 }

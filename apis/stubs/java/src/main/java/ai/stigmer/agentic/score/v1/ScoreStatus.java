@@ -34,6 +34,8 @@ private static final long serialVersionUID = 0L;
   private ScoreStatus() {
     state_ = 0;
     notGradedReason_ = "";
+    agentId_ = "";
+    agentVersionHash_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -128,6 +130,106 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int AGENT_ID_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object agentId_ = "";
+  /**
+   * <pre>
+   * ID of the agent the scored run ran, copied from the run when the score
+   * is created. Empty for a run of the built-in assistant.
+   * </pre>
+   *
+   * <code>string agent_id = 3 [json_name = "agentId"];</code>
+   * @return The agentId.
+   */
+  @java.lang.Override
+  public java.lang.String getAgentId() {
+    java.lang.Object ref = agentId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      agentId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * ID of the agent the scored run ran, copied from the run when the score
+   * is created. Empty for a run of the built-in assistant.
+   * </pre>
+   *
+   * <code>string agent_id = 3 [json_name = "agentId"];</code>
+   * @return The bytes for agentId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getAgentIdBytes() {
+    java.lang.Object ref = agentId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      agentId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int AGENT_VERSION_HASH_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object agentVersionHash_ = "";
+  /**
+   * <pre>
+   * Content hash of the agent version the scored run ran, copied from the
+   * run when the score is created. Unique only within its agent; empty when
+   * agent_id is empty or the agent had no recorded version.
+   * </pre>
+   *
+   * <code>string agent_version_hash = 4 [json_name = "agentVersionHash"];</code>
+   * @return The agentVersionHash.
+   */
+  @java.lang.Override
+  public java.lang.String getAgentVersionHash() {
+    java.lang.Object ref = agentVersionHash_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      agentVersionHash_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Content hash of the agent version the scored run ran, copied from the
+   * run when the score is created. Unique only within its agent; empty when
+   * agent_id is empty or the agent had no recorded version.
+   * </pre>
+   *
+   * <code>string agent_version_hash = 4 [json_name = "agentVersionHash"];</code>
+   * @return The bytes for agentVersionHash.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getAgentVersionHashBytes() {
+    java.lang.Object ref = agentVersionHash_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      agentVersionHash_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   public static final int AUDIT_FIELD_NUMBER = 99;
   private ai.stigmer.commons.apiresource.ApiResourceAudit audit_;
   /**
@@ -186,6 +288,12 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(notGradedReason_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, notGradedReason_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, agentId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentVersionHash_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, agentVersionHash_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -204,6 +312,12 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(notGradedReason_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, notGradedReason_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, agentId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentVersionHash_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, agentVersionHash_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -227,6 +341,10 @@ private static final long serialVersionUID = 0L;
     if (state_ != other.state_) return false;
     if (!getNotGradedReason()
         .equals(other.getNotGradedReason())) return false;
+    if (!getAgentId()
+        .equals(other.getAgentId())) return false;
+    if (!getAgentVersionHash()
+        .equals(other.getAgentVersionHash())) return false;
     if (hasAudit() != other.hasAudit()) return false;
     if (hasAudit()) {
       if (!getAudit()
@@ -247,6 +365,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + state_;
     hash = (37 * hash) + NOT_GRADED_REASON_FIELD_NUMBER;
     hash = (53 * hash) + getNotGradedReason().hashCode();
+    hash = (37 * hash) + AGENT_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getAgentId().hashCode();
+    hash = (37 * hash) + AGENT_VERSION_HASH_FIELD_NUMBER;
+    hash = (53 * hash) + getAgentVersionHash().hashCode();
     if (hasAudit()) {
       hash = (37 * hash) + AUDIT_FIELD_NUMBER;
       hash = (53 * hash) + getAudit().hashCode();
@@ -394,6 +516,8 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       state_ = 0;
       notGradedReason_ = "";
+      agentId_ = "";
+      agentVersionHash_ = "";
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -438,8 +562,14 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.notGradedReason_ = notGradedReason_;
       }
-      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.agentId_ = agentId_;
+      }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.agentVersionHash_ = agentVersionHash_;
+      }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.audit_ = auditBuilder_ == null
             ? audit_
             : auditBuilder_.build();
@@ -466,6 +596,16 @@ private static final long serialVersionUID = 0L;
       if (!other.getNotGradedReason().isEmpty()) {
         notGradedReason_ = other.notGradedReason_;
         bitField0_ |= 0x00000002;
+        onChanged();
+      }
+      if (!other.getAgentId().isEmpty()) {
+        agentId_ = other.agentId_;
+        bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      if (!other.getAgentVersionHash().isEmpty()) {
+        agentVersionHash_ = other.agentVersionHash_;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       if (other.hasAudit()) {
@@ -507,11 +647,21 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 26: {
+              agentId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 26
+            case 34: {
+              agentVersionHash_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000010;
               break;
             } // case 794
             default: {
@@ -695,6 +845,205 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
+    private java.lang.Object agentId_ = "";
+    /**
+     * <pre>
+     * ID of the agent the scored run ran, copied from the run when the score
+     * is created. Empty for a run of the built-in assistant.
+     * </pre>
+     *
+     * <code>string agent_id = 3 [json_name = "agentId"];</code>
+     * @return The agentId.
+     */
+    public java.lang.String getAgentId() {
+      java.lang.Object ref = agentId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        agentId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * ID of the agent the scored run ran, copied from the run when the score
+     * is created. Empty for a run of the built-in assistant.
+     * </pre>
+     *
+     * <code>string agent_id = 3 [json_name = "agentId"];</code>
+     * @return The bytes for agentId.
+     */
+    public com.google.protobuf.ByteString
+        getAgentIdBytes() {
+      java.lang.Object ref = agentId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        agentId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * ID of the agent the scored run ran, copied from the run when the score
+     * is created. Empty for a run of the built-in assistant.
+     * </pre>
+     *
+     * <code>string agent_id = 3 [json_name = "agentId"];</code>
+     * @param value The agentId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAgentId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      agentId_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ID of the agent the scored run ran, copied from the run when the score
+     * is created. Empty for a run of the built-in assistant.
+     * </pre>
+     *
+     * <code>string agent_id = 3 [json_name = "agentId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAgentId() {
+      agentId_ = getDefaultInstance().getAgentId();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ID of the agent the scored run ran, copied from the run when the score
+     * is created. Empty for a run of the built-in assistant.
+     * </pre>
+     *
+     * <code>string agent_id = 3 [json_name = "agentId"];</code>
+     * @param value The bytes for agentId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAgentIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      agentId_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object agentVersionHash_ = "";
+    /**
+     * <pre>
+     * Content hash of the agent version the scored run ran, copied from the
+     * run when the score is created. Unique only within its agent; empty when
+     * agent_id is empty or the agent had no recorded version.
+     * </pre>
+     *
+     * <code>string agent_version_hash = 4 [json_name = "agentVersionHash"];</code>
+     * @return The agentVersionHash.
+     */
+    public java.lang.String getAgentVersionHash() {
+      java.lang.Object ref = agentVersionHash_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        agentVersionHash_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Content hash of the agent version the scored run ran, copied from the
+     * run when the score is created. Unique only within its agent; empty when
+     * agent_id is empty or the agent had no recorded version.
+     * </pre>
+     *
+     * <code>string agent_version_hash = 4 [json_name = "agentVersionHash"];</code>
+     * @return The bytes for agentVersionHash.
+     */
+    public com.google.protobuf.ByteString
+        getAgentVersionHashBytes() {
+      java.lang.Object ref = agentVersionHash_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        agentVersionHash_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Content hash of the agent version the scored run ran, copied from the
+     * run when the score is created. Unique only within its agent; empty when
+     * agent_id is empty or the agent had no recorded version.
+     * </pre>
+     *
+     * <code>string agent_version_hash = 4 [json_name = "agentVersionHash"];</code>
+     * @param value The agentVersionHash to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAgentVersionHash(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      agentVersionHash_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Content hash of the agent version the scored run ran, copied from the
+     * run when the score is created. Unique only within its agent; empty when
+     * agent_id is empty or the agent had no recorded version.
+     * </pre>
+     *
+     * <code>string agent_version_hash = 4 [json_name = "agentVersionHash"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAgentVersionHash() {
+      agentVersionHash_ = getDefaultInstance().getAgentVersionHash();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Content hash of the agent version the scored run ran, copied from the
+     * run when the score is created. Unique only within its agent; empty when
+     * agent_id is empty or the agent had no recorded version.
+     * </pre>
+     *
+     * <code>string agent_version_hash = 4 [json_name = "agentVersionHash"];</code>
+     * @param value The bytes for agentVersionHash to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAgentVersionHashBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      agentVersionHash_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+
     private ai.stigmer.commons.apiresource.ApiResourceAudit audit_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceAudit, ai.stigmer.commons.apiresource.ApiResourceAudit.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditOrBuilder> auditBuilder_;
@@ -707,7 +1056,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the audit field is set.
      */
     public boolean hasAudit() {
-      return ((bitField0_ & 0x00000004) != 0);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <pre>
@@ -740,7 +1089,7 @@ private static final long serialVersionUID = 0L;
       } else {
         auditBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -758,7 +1107,7 @@ private static final long serialVersionUID = 0L;
       } else {
         auditBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -771,7 +1120,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeAudit(ai.stigmer.commons.apiresource.ApiResourceAudit value) {
       if (auditBuilder_ == null) {
-        if (((bitField0_ & 0x00000004) != 0) &&
+        if (((bitField0_ & 0x00000010) != 0) &&
           audit_ != null &&
           audit_ != ai.stigmer.commons.apiresource.ApiResourceAudit.getDefaultInstance()) {
           getAuditBuilder().mergeFrom(value);
@@ -782,7 +1131,7 @@ private static final long serialVersionUID = 0L;
         auditBuilder_.mergeFrom(value);
       }
       if (audit_ != null) {
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       return this;
@@ -795,7 +1144,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public Builder clearAudit() {
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000010);
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -812,7 +1161,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceAudit.Builder getAuditBuilder() {
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000010;
       onChanged();
       return internalGetAuditFieldBuilder().getBuilder();
     }

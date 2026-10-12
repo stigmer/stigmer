@@ -8,11 +8,15 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ScoreStatus(_message.Message):
-    __slots__ = ("state", "not_graded_reason", "audit")
+    __slots__ = ("state", "not_graded_reason", "agent_id", "agent_version_hash", "audit")
     STATE_FIELD_NUMBER: _ClassVar[int]
     NOT_GRADED_REASON_FIELD_NUMBER: _ClassVar[int]
+    AGENT_ID_FIELD_NUMBER: _ClassVar[int]
+    AGENT_VERSION_HASH_FIELD_NUMBER: _ClassVar[int]
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     state: _enum_pb2.ScoreState
     not_graded_reason: str
+    agent_id: str
+    agent_version_hash: str
     audit: _status_pb2.ApiResourceAudit
-    def __init__(self, state: _Optional[_Union[_enum_pb2.ScoreState, str]] = ..., not_graded_reason: _Optional[str] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
+    def __init__(self, state: _Optional[_Union[_enum_pb2.ScoreState, str]] = ..., not_graded_reason: _Optional[str] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
