@@ -49,7 +49,6 @@ const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
 const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
 const ModelCatalogPage = lazy(() => import("./pages/settings/ModelCatalogPage"));
-const CursorAccountsPage = lazy(() => import("./pages/settings/CursorAccountsPage"));
 const LicensesPage = lazy(() => import("./pages/settings/LicensesPage"));
 const PlansPage = lazy(() => import("./pages/settings/PlansPage"));
 
@@ -291,14 +290,6 @@ const routes: RouteObject[] = [
                 element: (
                   <LazyPage>
                     <ModelCatalogPage />
-                  </LazyPage>
-                ),
-              },
-              {
-                path: "cursor-accounts",
-                element: (
-                  <LazyPage>
-                    <CursorAccountsPage />
                   </LazyPage>
                 ),
               },

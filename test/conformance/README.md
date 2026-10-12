@@ -283,6 +283,23 @@ an org is just a unique slug. There is no CI lane for the cloud targets in this
 repository: the cloud composition's own repository runs them and keeps the
 readouts.
 
+**Provider keys, and `CURSOR_API_KEY`.** Stigmer Cloud serves every run on
+the organization's own provider keys and refuses a run whose organization
+holds no key for its provider at create, so the targets key a tenancy as an
+admin would (`keyTenancy`, `src/targets/cloud.ts`): the fixture Anthropic and
+OpenAI keys (`CONFORMANCE_PROVIDER_KEYS`, whose save check the fake LLM
+provider answers) always, and the organization's Cursor key only when the
+invoking shell exports `CURSOR_API_KEY`, the name the runner's direct mode and
+the open-source live lanes read. There is no fixture Cursor key: the cloud
+checks a Cursor key with Cursor itself when it is saved, so it must be a real
+user API key or team service-account key on a paid Cursor plan, and every
+keyed tenancy makes one check call to Cursor. Without it the arms that create
+a Cursor run on the cloud target skip with that reason
+(`CapabilityFlags.cursorRunsAdmitted`); with it they run, and none of them
+sends a Cursor model request (the one that starts a turn is refused before
+its first model call). The local targets ask for no provider key and admit
+Cursor runs either way.
+
 **The direct-login arms** (`direct-login.conformance.test.ts`)
 drive the lane a console, desktop, CLI or MCP client actually rides: the raw
 access token the PLATFORM'S OWN identity tenant mints, verified and resolved

@@ -13,6 +13,8 @@
  *     never mutated;
  *   - the field rule reads the contract's spelling (`org`, `*_org`,
  *     `orgs`) and the annotation, and is safe on recursive message types;
+ *     its list arm is pinned on the fixture below, since no contract
+ *     message holds a repeated `orgs` today;
  *   - the walk reaches every shape the rule allows, over a fixture service
  *     built from a descriptor here, since no served method's input holds
  *     them today: a repeated `orgs`, an `org` inside the values of a map,
@@ -45,7 +47,6 @@ import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organizat
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import { CursorAccountSchema } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/cursor_account_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { RpcAuthorizationConfigSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/authorization_config_pb";
 import { config as rpcAuthorizationConfig } from "@stigmer/protos/ai/stigmer/commons/rpc/method_options_pb";
@@ -210,7 +211,10 @@ describe("the field rule, from the contract", () => {
     const fields = (schema: { fields: Parameters<typeof namesOrganization>[0][] }) =>
       schema.fields.filter(namesOrganization).map((f) => f.name);
     expect(fields(ApiResourceReferenceSchema)).toEqual(["org"]);
-    expect(fields(CursorAccountSchema)).toContain("orgs");
+    expect(
+      fields(fixtureService().holder),
+      "a repeated string named orgs; a map and a message field are not",
+    ).toEqual(["orgs"]);
   });
 
   it("lists an input's organization fields at any depth, and the annotation of the Organization service", () => {

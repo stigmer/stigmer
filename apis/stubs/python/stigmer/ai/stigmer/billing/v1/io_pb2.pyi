@@ -75,7 +75,7 @@ class AuthorizeRunResponse(_message.Message):
     def __init__(self, authorized: bool = ..., reservation_id: _Optional[str] = ..., reserved_micros: _Optional[int] = ..., available_balance_micros: _Optional[int] = ..., denial_reason: _Optional[str] = ...) -> None: ...
 
 class RecordLlmCallUsageInput(_message.Message):
-    __slots__ = ("run_id", "sequence", "call_id", "provider", "resolved_model", "requested_model", "tokens", "usage_status", "provider_request_id", "http_status_code", "streaming", "finish_reason", "proxy_timing", "provider_usage_json", "harness", "cursor_account_id", "cursor_key_id", "cursor_key_source", "served_service_tier", "metered_run", "provider_key_source")
+    __slots__ = ("run_id", "sequence", "call_id", "provider", "resolved_model", "requested_model", "tokens", "usage_status", "provider_request_id", "http_status_code", "streaming", "finish_reason", "proxy_timing", "provider_usage_json", "harness", "served_service_tier", "metered_run", "provider_key_source")
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
     SEQUENCE_FIELD_NUMBER: _ClassVar[int]
     CALL_ID_FIELD_NUMBER: _ClassVar[int]
@@ -91,9 +91,6 @@ class RecordLlmCallUsageInput(_message.Message):
     PROXY_TIMING_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_USAGE_JSON_FIELD_NUMBER: _ClassVar[int]
     HARNESS_FIELD_NUMBER: _ClassVar[int]
-    CURSOR_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
-    CURSOR_KEY_ID_FIELD_NUMBER: _ClassVar[int]
-    CURSOR_KEY_SOURCE_FIELD_NUMBER: _ClassVar[int]
     SERVED_SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
     METERED_RUN_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_KEY_SOURCE_FIELD_NUMBER: _ClassVar[int]
@@ -112,13 +109,10 @@ class RecordLlmCallUsageInput(_message.Message):
     proxy_timing: _usage_pb2.ProxyTiming
     provider_usage_json: str
     harness: str
-    cursor_account_id: str
-    cursor_key_id: str
-    cursor_key_source: _usage_pb2.CursorKeySource
     served_service_tier: str
     metered_run: MeteredRun
     provider_key_source: _usage_pb2.ProviderKeySource
-    def __init__(self, run_id: _Optional[str] = ..., sequence: _Optional[int] = ..., call_id: _Optional[str] = ..., provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., requested_model: _Optional[str] = ..., tokens: _Optional[_Union[_usage_pb2.TokenUsage, _Mapping]] = ..., usage_status: _Optional[_Union[_usage_pb2.UsageCompletionStatus, str]] = ..., provider_request_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., streaming: bool = ..., finish_reason: _Optional[str] = ..., proxy_timing: _Optional[_Union[_usage_pb2.ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., harness: _Optional[str] = ..., cursor_account_id: _Optional[str] = ..., cursor_key_id: _Optional[str] = ..., cursor_key_source: _Optional[_Union[_usage_pb2.CursorKeySource, str]] = ..., served_service_tier: _Optional[str] = ..., metered_run: _Optional[_Union[MeteredRun, _Mapping]] = ..., provider_key_source: _Optional[_Union[_usage_pb2.ProviderKeySource, str]] = ...) -> None: ...
+    def __init__(self, run_id: _Optional[str] = ..., sequence: _Optional[int] = ..., call_id: _Optional[str] = ..., provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., requested_model: _Optional[str] = ..., tokens: _Optional[_Union[_usage_pb2.TokenUsage, _Mapping]] = ..., usage_status: _Optional[_Union[_usage_pb2.UsageCompletionStatus, str]] = ..., provider_request_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., streaming: bool = ..., finish_reason: _Optional[str] = ..., proxy_timing: _Optional[_Union[_usage_pb2.ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., harness: _Optional[str] = ..., served_service_tier: _Optional[str] = ..., metered_run: _Optional[_Union[MeteredRun, _Mapping]] = ..., provider_key_source: _Optional[_Union[_usage_pb2.ProviderKeySource, str]] = ...) -> None: ...
 
 class MeteredRun(_message.Message):
     __slots__ = ("session_id", "pinned_model", "requested_service_tier", "requested_thinking_mode")

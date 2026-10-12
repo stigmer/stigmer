@@ -193,18 +193,6 @@ public enum IamPermission
   can_manage_model_pricing(32),
   /**
    * <pre>
-   * Platform-level permission to manage Cursor accounts: the managed
-   * Cursor teams (admin keys, member execution keys, org assignments)
-   * that back the cursor harness. A human operator action, gated to
-   * platform operators like can_manage_model_pricing — key material and
-   * per-member spend are platform-internal, never org-visible.
-   * </pre>
-   *
-   * <code>can_manage_cursor_accounts = 35;</code>
-   */
-  can_manage_cursor_accounts(35),
-  /**
-   * <pre>
    * Resource-level permission to participate in an agent channel's
    * conversations: reply to customers as the business, take over and
    * hand back the control token, and clear the attention flag.
@@ -513,18 +501,6 @@ public enum IamPermission
   public static final int can_manage_model_pricing_VALUE = 32;
   /**
    * <pre>
-   * Platform-level permission to manage Cursor accounts: the managed
-   * Cursor teams (admin keys, member execution keys, org assignments)
-   * that back the cursor harness. A human operator action, gated to
-   * platform operators like can_manage_model_pricing — key material and
-   * per-member spend are platform-internal, never org-visible.
-   * </pre>
-   *
-   * <code>can_manage_cursor_accounts = 35;</code>
-   */
-  public static final int can_manage_cursor_accounts_VALUE = 35;
-  /**
-   * <pre>
    * Resource-level permission to participate in an agent channel's
    * conversations: reply to customers as the business, take over and
    * hand back the control token, and clear the attention flag.
@@ -703,7 +679,6 @@ public enum IamPermission
       case 54: return can_create_agent_channel;
       case 31: return can_create_channel_app;
       case 32: return can_manage_model_pricing;
-      case 35: return can_manage_cursor_accounts;
       case 36: return can_participate;
       case 37: return can_write_reserved_labels;
       case 40: return can_create_plugin;

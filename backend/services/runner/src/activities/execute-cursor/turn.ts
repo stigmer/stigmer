@@ -134,7 +134,7 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
       }
     };
 
-    outcome = await streamAndSettle({ input, sink, config, engine, gate, prompt, rows, streamState });
+    outcome = await streamAndSettle({ input, sink, engine, gate, prompt, rows, streamState });
     return outcome;
   } catch (err) {
     outcome = await classifyThrown(err, input, config, engine);
@@ -261,7 +261,6 @@ async function classifyThrown(err: unknown, input: TurnInput, config: CursorAdap
       capturedRejection: getCapturedRejection(executionId),
       isResumedHandle: false,
       fallbackContext,
-      proxyMode: !!config.proxyEndpoint,
     });
     clearCapturedRejection(executionId);
     return { kind: "failed", surface: "internal", message: formatClassifiedError(classified), cause: err };

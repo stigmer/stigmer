@@ -4,7 +4,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * ProviderKeyCommandController saves and removes an organization's own LLM
+ * ProviderKeyCommandController saves and removes an organization's own model
  * provider keys.
  * Provider keys are not a standard API Resource, so there is no
  * api_resource_kind annotation. Every write authorizes against the
@@ -143,7 +143,7 @@ public final class ProviderKeyCommandControllerGrpc {
 
   /**
    * <pre>
-   * ProviderKeyCommandController saves and removes an organization's own LLM
+   * ProviderKeyCommandController saves and removes an organization's own model
    * provider keys.
    * Provider keys are not a standard API Resource, so there is no
    * api_resource_kind annotation. Every write authorizes against the
@@ -184,7 +184,7 @@ public final class ProviderKeyCommandControllerGrpc {
   /**
    * Base class for the server implementation of the service ProviderKeyCommandController.
    * <pre>
-   * ProviderKeyCommandController saves and removes an organization's own LLM
+   * ProviderKeyCommandController saves and removes an organization's own model
    * provider keys.
    * Provider keys are not a standard API Resource, so there is no
    * api_resource_kind annotation. Every write authorizes against the
@@ -203,7 +203,7 @@ public final class ProviderKeyCommandControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service ProviderKeyCommandController.
    * <pre>
-   * ProviderKeyCommandController saves and removes an organization's own LLM
+   * ProviderKeyCommandController saves and removes an organization's own model
    * provider keys.
    * Provider keys are not a standard API Resource, so there is no
    * api_resource_kind annotation. Every write authorizes against the
@@ -257,7 +257,7 @@ public final class ProviderKeyCommandControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service ProviderKeyCommandController.
    * <pre>
-   * ProviderKeyCommandController saves and removes an organization's own LLM
+   * ProviderKeyCommandController saves and removes an organization's own model
    * provider keys.
    * Provider keys are not a standard API Resource, so there is no
    * api_resource_kind annotation. Every write authorizes against the
@@ -309,7 +309,7 @@ public final class ProviderKeyCommandControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service ProviderKeyCommandController.
    * <pre>
-   * ProviderKeyCommandController saves and removes an organization's own LLM
+   * ProviderKeyCommandController saves and removes an organization's own model
    * provider keys.
    * Provider keys are not a standard API Resource, so there is no
    * api_resource_kind annotation. Every write authorizes against the
@@ -361,7 +361,7 @@ public final class ProviderKeyCommandControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ProviderKeyCommandController.
    * <pre>
-   * ProviderKeyCommandController saves and removes an organization's own LLM
+   * ProviderKeyCommandController saves and removes an organization's own model
    * provider keys.
    * Provider keys are not a standard API Resource, so there is no
    * api_resource_kind annotation. Every write authorizes against the

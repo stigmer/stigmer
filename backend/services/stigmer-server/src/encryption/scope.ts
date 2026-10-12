@@ -96,9 +96,10 @@ export class EncryptionScope {
   }
 
   /**
-   * A located platform-scoped scope (e.g. CursorAccount in the cloud
-   * composition): the KV path root is `platform/<kind>/<id>` and the KEK
-   * is the reserved PLATFORM_TENANT Transit key.
+   * A located platform-scoped scope (e.g. the runner payload keys in the
+   * cloud composition, kind `runnerpayloadkey` keyed by identity account):
+   * the KV path root is `platform/<kind>/<id>` and the KEK is the reserved
+   * PLATFORM_TENANT Transit key.
    */
   static forPlatformResource(kind: string, id: string): EncryptionScope {
     validateLocation(kind, id);

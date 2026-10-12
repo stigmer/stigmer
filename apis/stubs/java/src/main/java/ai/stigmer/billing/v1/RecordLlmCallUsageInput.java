@@ -50,9 +50,6 @@ private static final long serialVersionUID = 0L;
     finishReason_ = "";
     providerUsageJson_ = "";
     harness_ = "";
-    cursorAccountId_ = "";
-    cursorKeyId_ = "";
-    cursorKeySource_ = 0;
     servedServiceTier_ = "";
     providerKeySource_ = 0;
   }
@@ -653,134 +650,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int CURSOR_ACCOUNT_ID_FIELD_NUMBER = 15;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object cursorAccountId_ = "";
-  /**
-   * <pre>
-   * Cursor serving identity (cursor harness only): which managed
-   * CursorAccount / member key the proxy actually injected upstream for
-   * this call. Reported by the proxy from its key resolution so the
-   * stored record can never disagree with the wire — the billing handler
-   * stamps these verbatim and performs no pin lookup. Identifiers only,
-   * never key material. Empty for native-harness calls.
-   * </pre>
-   *
-   * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
-   * @return The cursorAccountId.
-   */
-  @java.lang.Override
-  public java.lang.String getCursorAccountId() {
-    java.lang.Object ref = cursorAccountId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      cursorAccountId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Cursor serving identity (cursor harness only): which managed
-   * CursorAccount / member key the proxy actually injected upstream for
-   * this call. Reported by the proxy from its key resolution so the
-   * stored record can never disagree with the wire — the billing handler
-   * stamps these verbatim and performs no pin lookup. Identifiers only,
-   * never key material. Empty for native-harness calls.
-   * </pre>
-   *
-   * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
-   * @return The bytes for cursorAccountId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getCursorAccountIdBytes() {
-    java.lang.Object ref = cursorAccountId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      cursorAccountId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int CURSOR_KEY_ID_FIELD_NUMBER = 16;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object cursorKeyId_ = "";
-  /**
-   * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
-   * @return The cursorKeyId.
-   */
-  @java.lang.Override
-  public java.lang.String getCursorKeyId() {
-    java.lang.Object ref = cursorKeyId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      cursorKeyId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
-   * @return The bytes for cursorKeyId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getCursorKeyIdBytes() {
-    java.lang.Object ref = cursorKeyId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      cursorKeyId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int CURSOR_KEY_SOURCE_FIELD_NUMBER = 17;
-  private int cursorKeySource_ = 0;
-  /**
-   * <pre>
-   * Which credential served this call (cursor harness only). The
-   * CursorAccount store is the only credential source, so a current
-   * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
-   * caller.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
-   * @return The enum numeric value on the wire for cursorKeySource.
-   */
-  @java.lang.Override public int getCursorKeySourceValue() {
-    return cursorKeySource_;
-  }
-  /**
-   * <pre>
-   * Which credential served this call (cursor harness only). The
-   * CursorAccount store is the only credential source, so a current
-   * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
-   * caller.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
-   * @return The cursorKeySource.
-   */
-  @java.lang.Override public ai.stigmer.agentic.run.v1.CursorKeySource getCursorKeySource() {
-    ai.stigmer.agentic.run.v1.CursorKeySource result = ai.stigmer.agentic.run.v1.CursorKeySource.forNumber(cursorKeySource_);
-    return result == null ? ai.stigmer.agentic.run.v1.CursorKeySource.UNRECOGNIZED : result;
-  }
-
   public static final int SERVED_SERVICE_TIER_FIELD_NUMBER = 18;
   @SuppressWarnings("serial")
   private volatile java.lang.Object servedServiceTier_ = "";
@@ -853,12 +722,10 @@ private static final long serialVersionUID = 0L;
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
    * mode against what the wire served; it performs NO run lookup of
-   * its own (the same rule as cursor_account_id above: the proxy holds the
-   * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the run — a run found in neither store — in
-   * which case the record
-   * carries an empty session and the requested-vs-billed reconciliation
-   * is skipped.
+   * its own (the proxy holds the fact, reports it, the handler stamps it
+   * verbatim). Absent when the proxy could not resolve the run — a run
+   * found in neither store — in which case the record carries an empty
+   * session and the requested-vs-billed reconciliation is skipped.
    * </pre>
    *
    * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
@@ -875,12 +742,10 @@ private static final long serialVersionUID = 0L;
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
    * mode against what the wire served; it performs NO run lookup of
-   * its own (the same rule as cursor_account_id above: the proxy holds the
-   * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the run — a run found in neither store — in
-   * which case the record
-   * carries an empty session and the requested-vs-billed reconciliation
-   * is skipped.
+   * its own (the proxy holds the fact, reports it, the handler stamps it
+   * verbatim). Absent when the proxy could not resolve the run — a run
+   * found in neither store — in which case the record carries an empty
+   * session and the requested-vs-billed reconciliation is skipped.
    * </pre>
    *
    * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
@@ -897,12 +762,10 @@ private static final long serialVersionUID = 0L;
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
    * mode against what the wire served; it performs NO run lookup of
-   * its own (the same rule as cursor_account_id above: the proxy holds the
-   * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the run — a run found in neither store — in
-   * which case the record
-   * carries an empty session and the requested-vs-billed reconciliation
-   * is skipped.
+   * its own (the proxy holds the fact, reports it, the handler stamps it
+   * verbatim). Absent when the proxy could not resolve the run — a run
+   * found in neither store — in which case the record carries an empty
+   * session and the requested-vs-billed reconciliation is skipped.
    * </pre>
    *
    * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
@@ -917,11 +780,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whose provider credential the proxy injected upstream for this call,
-   * stamped verbatim onto the usage record (the same rule as
-   * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
-   * organization's own provider key served the call: it is recorded and
-   * priced for visibility, and never debited. UNSPECIFIED from a proxy
-   * that predates the field, read as the platform's key.
+   * stamped verbatim onto the usage record (the proxy holds the fact).
+   * ORGANIZATION means the organization's own provider key served the
+   * call: it is recorded and priced for visibility, and never debited.
+   * PLATFORM means a connection the platform provides served it.
+   * UNSPECIFIED from a proxy that predates the field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -933,11 +796,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whose provider credential the proxy injected upstream for this call,
-   * stamped verbatim onto the usage record (the same rule as
-   * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
-   * organization's own provider key served the call: it is recorded and
-   * priced for visibility, and never debited. UNSPECIFIED from a proxy
-   * that predates the field, read as the platform's key.
+   * stamped verbatim onto the usage record (the proxy holds the fact).
+   * ORGANIZATION means the organization's own provider key served the
+   * call: it is recorded and priced for visibility, and never debited.
+   * PLATFORM means a connection the platform provides served it.
+   * UNSPECIFIED from a proxy that predates the field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -1003,15 +866,6 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harness_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 14, harness_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorAccountId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 15, cursorAccountId_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorKeyId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 16, cursorKeyId_);
-    }
-    if (cursorKeySource_ != ai.stigmer.agentic.run.v1.CursorKeySource.CURSOR_KEY_SOURCE_UNSPECIFIED.getNumber()) {
-      output.writeEnum(17, cursorKeySource_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(servedServiceTier_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 18, servedServiceTier_);
@@ -1082,16 +936,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harness_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(14, harness_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorAccountId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(15, cursorAccountId_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorKeyId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(16, cursorKeyId_);
-    }
-    if (cursorKeySource_ != ai.stigmer.agentic.run.v1.CursorKeySource.CURSOR_KEY_SOURCE_UNSPECIFIED.getNumber()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeEnumSize(17, cursorKeySource_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(servedServiceTier_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(18, servedServiceTier_);
     }
@@ -1156,11 +1000,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getProviderUsageJson())) return false;
     if (!getHarness()
         .equals(other.getHarness())) return false;
-    if (!getCursorAccountId()
-        .equals(other.getCursorAccountId())) return false;
-    if (!getCursorKeyId()
-        .equals(other.getCursorKeyId())) return false;
-    if (cursorKeySource_ != other.cursorKeySource_) return false;
     if (!getServedServiceTier()
         .equals(other.getServedServiceTier())) return false;
     if (hasMeteredRun() != other.hasMeteredRun()) return false;
@@ -1215,12 +1054,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getProviderUsageJson().hashCode();
     hash = (37 * hash) + HARNESS_FIELD_NUMBER;
     hash = (53 * hash) + getHarness().hashCode();
-    hash = (37 * hash) + CURSOR_ACCOUNT_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getCursorAccountId().hashCode();
-    hash = (37 * hash) + CURSOR_KEY_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getCursorKeyId().hashCode();
-    hash = (37 * hash) + CURSOR_KEY_SOURCE_FIELD_NUMBER;
-    hash = (53 * hash) + cursorKeySource_;
     hash = (37 * hash) + SERVED_SERVICE_TIER_FIELD_NUMBER;
     hash = (53 * hash) + getServedServiceTier().hashCode();
     if (hasMeteredRun()) {
@@ -1403,9 +1236,6 @@ private static final long serialVersionUID = 0L;
       }
       providerUsageJson_ = "";
       harness_ = "";
-      cursorAccountId_ = "";
-      cursorKeyId_ = "";
-      cursorKeySource_ = 0;
       servedServiceTier_ = "";
       meteredRun_ = null;
       if (meteredRunBuilder_ != null) {
@@ -1499,24 +1329,15 @@ private static final long serialVersionUID = 0L;
         result.harness_ = harness_;
       }
       if (((from_bitField0_ & 0x00008000) != 0)) {
-        result.cursorAccountId_ = cursorAccountId_;
-      }
-      if (((from_bitField0_ & 0x00010000) != 0)) {
-        result.cursorKeyId_ = cursorKeyId_;
-      }
-      if (((from_bitField0_ & 0x00020000) != 0)) {
-        result.cursorKeySource_ = cursorKeySource_;
-      }
-      if (((from_bitField0_ & 0x00040000) != 0)) {
         result.servedServiceTier_ = servedServiceTier_;
       }
-      if (((from_bitField0_ & 0x00080000) != 0)) {
+      if (((from_bitField0_ & 0x00010000) != 0)) {
         result.meteredRun_ = meteredRunBuilder_ == null
             ? meteredRun_
             : meteredRunBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x00100000) != 0)) {
+      if (((from_bitField0_ & 0x00020000) != 0)) {
         result.providerKeySource_ = providerKeySource_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -1597,22 +1418,9 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00004000;
         onChanged();
       }
-      if (!other.getCursorAccountId().isEmpty()) {
-        cursorAccountId_ = other.cursorAccountId_;
-        bitField0_ |= 0x00008000;
-        onChanged();
-      }
-      if (!other.getCursorKeyId().isEmpty()) {
-        cursorKeyId_ = other.cursorKeyId_;
-        bitField0_ |= 0x00010000;
-        onChanged();
-      }
-      if (other.cursorKeySource_ != 0) {
-        setCursorKeySourceValue(other.getCursorKeySourceValue());
-      }
       if (!other.getServedServiceTier().isEmpty()) {
         servedServiceTier_ = other.servedServiceTier_;
-        bitField0_ |= 0x00040000;
+        bitField0_ |= 0x00008000;
         onChanged();
       }
       if (other.hasMeteredRun()) {
@@ -1721,31 +1529,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00004000;
               break;
             } // case 114
-            case 122: {
-              cursorAccountId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00008000;
-              break;
-            } // case 122
-            case 130: {
-              cursorKeyId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00010000;
-              break;
-            } // case 130
-            case 136: {
-              cursorKeySource_ = input.readEnum();
-              bitField0_ |= 0x00020000;
-              break;
-            } // case 136
             case 146: {
               servedServiceTier_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00040000;
+              bitField0_ |= 0x00008000;
               break;
             } // case 146
             case 154: {
               input.readMessage(
                   internalGetMeteredRunFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00080000;
+              bitField0_ |= 0x00010000;
               break;
             } // case 154
             case 162: {
@@ -1755,7 +1548,7 @@ private static final long serialVersionUID = 0L;
             } // case 162
             case 168: {
               providerKeySource_ = input.readEnum();
-              bitField0_ |= 0x00100000;
+              bitField0_ |= 0x00020000;
               break;
             } // case 168
             default: {
@@ -3140,282 +2933,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object cursorAccountId_ = "";
-    /**
-     * <pre>
-     * Cursor serving identity (cursor harness only): which managed
-     * CursorAccount / member key the proxy actually injected upstream for
-     * this call. Reported by the proxy from its key resolution so the
-     * stored record can never disagree with the wire — the billing handler
-     * stamps these verbatim and performs no pin lookup. Identifiers only,
-     * never key material. Empty for native-harness calls.
-     * </pre>
-     *
-     * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
-     * @return The cursorAccountId.
-     */
-    public java.lang.String getCursorAccountId() {
-      java.lang.Object ref = cursorAccountId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        cursorAccountId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Cursor serving identity (cursor harness only): which managed
-     * CursorAccount / member key the proxy actually injected upstream for
-     * this call. Reported by the proxy from its key resolution so the
-     * stored record can never disagree with the wire — the billing handler
-     * stamps these verbatim and performs no pin lookup. Identifiers only,
-     * never key material. Empty for native-harness calls.
-     * </pre>
-     *
-     * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
-     * @return The bytes for cursorAccountId.
-     */
-    public com.google.protobuf.ByteString
-        getCursorAccountIdBytes() {
-      java.lang.Object ref = cursorAccountId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        cursorAccountId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Cursor serving identity (cursor harness only): which managed
-     * CursorAccount / member key the proxy actually injected upstream for
-     * this call. Reported by the proxy from its key resolution so the
-     * stored record can never disagree with the wire — the billing handler
-     * stamps these verbatim and performs no pin lookup. Identifiers only,
-     * never key material. Empty for native-harness calls.
-     * </pre>
-     *
-     * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
-     * @param value The cursorAccountId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorAccountId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      cursorAccountId_ = value;
-      bitField0_ |= 0x00008000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Cursor serving identity (cursor harness only): which managed
-     * CursorAccount / member key the proxy actually injected upstream for
-     * this call. Reported by the proxy from its key resolution so the
-     * stored record can never disagree with the wire — the billing handler
-     * stamps these verbatim and performs no pin lookup. Identifiers only,
-     * never key material. Empty for native-harness calls.
-     * </pre>
-     *
-     * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCursorAccountId() {
-      cursorAccountId_ = getDefaultInstance().getCursorAccountId();
-      bitField0_ = (bitField0_ & ~0x00008000);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Cursor serving identity (cursor harness only): which managed
-     * CursorAccount / member key the proxy actually injected upstream for
-     * this call. Reported by the proxy from its key resolution so the
-     * stored record can never disagree with the wire — the billing handler
-     * stamps these verbatim and performs no pin lookup. Identifiers only,
-     * never key material. Empty for native-harness calls.
-     * </pre>
-     *
-     * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
-     * @param value The bytes for cursorAccountId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorAccountIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      cursorAccountId_ = value;
-      bitField0_ |= 0x00008000;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object cursorKeyId_ = "";
-    /**
-     * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
-     * @return The cursorKeyId.
-     */
-    public java.lang.String getCursorKeyId() {
-      java.lang.Object ref = cursorKeyId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        cursorKeyId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
-     * @return The bytes for cursorKeyId.
-     */
-    public com.google.protobuf.ByteString
-        getCursorKeyIdBytes() {
-      java.lang.Object ref = cursorKeyId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        cursorKeyId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
-     * @param value The cursorKeyId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorKeyId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      cursorKeyId_ = value;
-      bitField0_ |= 0x00010000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCursorKeyId() {
-      cursorKeyId_ = getDefaultInstance().getCursorKeyId();
-      bitField0_ = (bitField0_ & ~0x00010000);
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
-     * @param value The bytes for cursorKeyId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorKeyIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      cursorKeyId_ = value;
-      bitField0_ |= 0x00010000;
-      onChanged();
-      return this;
-    }
-
-    private int cursorKeySource_ = 0;
-    /**
-     * <pre>
-     * Which credential served this call (cursor harness only). The
-     * CursorAccount store is the only credential source, so a current
-     * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
-     * caller.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
-     * @return The enum numeric value on the wire for cursorKeySource.
-     */
-    @java.lang.Override public int getCursorKeySourceValue() {
-      return cursorKeySource_;
-    }
-    /**
-     * <pre>
-     * Which credential served this call (cursor harness only). The
-     * CursorAccount store is the only credential source, so a current
-     * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
-     * caller.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
-     * @param value The enum numeric value on the wire for cursorKeySource to set.
-     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorKeySourceValue(int value) {
-      cursorKeySource_ = value;
-      bitField0_ |= 0x00020000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Which credential served this call (cursor harness only). The
-     * CursorAccount store is the only credential source, so a current
-     * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
-     * caller.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
-     * @return The cursorKeySource.
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.run.v1.CursorKeySource getCursorKeySource() {
-      ai.stigmer.agentic.run.v1.CursorKeySource result = ai.stigmer.agentic.run.v1.CursorKeySource.forNumber(cursorKeySource_);
-      return result == null ? ai.stigmer.agentic.run.v1.CursorKeySource.UNRECOGNIZED : result;
-    }
-    /**
-     * <pre>
-     * Which credential served this call (cursor harness only). The
-     * CursorAccount store is the only credential source, so a current
-     * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
-     * caller.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
-     * @param value The cursorKeySource to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorKeySource(ai.stigmer.agentic.run.v1.CursorKeySource value) {
-      if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00020000;
-      cursorKeySource_ = value.getNumber();
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Which credential served this call (cursor harness only). The
-     * CursorAccount store is the only credential source, so a current
-     * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
-     * caller.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCursorKeySource() {
-      bitField0_ = (bitField0_ & ~0x00020000);
-      cursorKeySource_ = 0;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object servedServiceTier_ = "";
     /**
      * <pre>
@@ -3495,7 +3012,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       servedServiceTier_ = value;
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -3517,7 +3034,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearServedServiceTier() {
       servedServiceTier_ = getDefaultInstance().getServedServiceTier();
-      bitField0_ = (bitField0_ & ~0x00040000);
+      bitField0_ = (bitField0_ & ~0x00008000);
       onChanged();
       return this;
     }
@@ -3543,7 +3060,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       servedServiceTier_ = value;
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -3558,19 +3075,17 @@ private static final long serialVersionUID = 0L;
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
      * mode against what the wire served; it performs NO run lookup of
-     * its own (the same rule as cursor_account_id above: the proxy holds the
-     * fact, reports it, the handler stamps it verbatim). Absent when the
-     * proxy could not resolve the run — a run found in neither store — in
-     * which case the record
-     * carries an empty session and the requested-vs-billed reconciliation
-     * is skipped.
+     * its own (the proxy holds the fact, reports it, the handler stamps it
+     * verbatim). Absent when the proxy could not resolve the run — a run
+     * found in neither store — in which case the record carries an empty
+     * session and the requested-vs-billed reconciliation is skipped.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
      * @return Whether the meteredRun field is set.
      */
     public boolean hasMeteredRun() {
-      return ((bitField0_ & 0x00080000) != 0);
+      return ((bitField0_ & 0x00010000) != 0);
     }
     /**
      * <pre>
@@ -3579,12 +3094,10 @@ private static final long serialVersionUID = 0L;
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
      * mode against what the wire served; it performs NO run lookup of
-     * its own (the same rule as cursor_account_id above: the proxy holds the
-     * fact, reports it, the handler stamps it verbatim). Absent when the
-     * proxy could not resolve the run — a run found in neither store — in
-     * which case the record
-     * carries an empty session and the requested-vs-billed reconciliation
-     * is skipped.
+     * its own (the proxy holds the fact, reports it, the handler stamps it
+     * verbatim). Absent when the proxy could not resolve the run — a run
+     * found in neither store — in which case the record carries an empty
+     * session and the requested-vs-billed reconciliation is skipped.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
@@ -3604,12 +3117,10 @@ private static final long serialVersionUID = 0L;
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
      * mode against what the wire served; it performs NO run lookup of
-     * its own (the same rule as cursor_account_id above: the proxy holds the
-     * fact, reports it, the handler stamps it verbatim). Absent when the
-     * proxy could not resolve the run — a run found in neither store — in
-     * which case the record
-     * carries an empty session and the requested-vs-billed reconciliation
-     * is skipped.
+     * its own (the proxy holds the fact, reports it, the handler stamps it
+     * verbatim). Absent when the proxy could not resolve the run — a run
+     * found in neither store — in which case the record carries an empty
+     * session and the requested-vs-billed reconciliation is skipped.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
@@ -3623,7 +3134,7 @@ private static final long serialVersionUID = 0L;
       } else {
         meteredRunBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00080000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -3634,12 +3145,10 @@ private static final long serialVersionUID = 0L;
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
      * mode against what the wire served; it performs NO run lookup of
-     * its own (the same rule as cursor_account_id above: the proxy holds the
-     * fact, reports it, the handler stamps it verbatim). Absent when the
-     * proxy could not resolve the run — a run found in neither store — in
-     * which case the record
-     * carries an empty session and the requested-vs-billed reconciliation
-     * is skipped.
+     * its own (the proxy holds the fact, reports it, the handler stamps it
+     * verbatim). Absent when the proxy could not resolve the run — a run
+     * found in neither store — in which case the record carries an empty
+     * session and the requested-vs-billed reconciliation is skipped.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
@@ -3651,7 +3160,7 @@ private static final long serialVersionUID = 0L;
       } else {
         meteredRunBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00080000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -3662,19 +3171,17 @@ private static final long serialVersionUID = 0L;
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
      * mode against what the wire served; it performs NO run lookup of
-     * its own (the same rule as cursor_account_id above: the proxy holds the
-     * fact, reports it, the handler stamps it verbatim). Absent when the
-     * proxy could not resolve the run — a run found in neither store — in
-     * which case the record
-     * carries an empty session and the requested-vs-billed reconciliation
-     * is skipped.
+     * its own (the proxy holds the fact, reports it, the handler stamps it
+     * verbatim). Absent when the proxy could not resolve the run — a run
+     * found in neither store — in which case the record carries an empty
+     * session and the requested-vs-billed reconciliation is skipped.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
      */
     public Builder mergeMeteredRun(ai.stigmer.billing.v1.MeteredRun value) {
       if (meteredRunBuilder_ == null) {
-        if (((bitField0_ & 0x00080000) != 0) &&
+        if (((bitField0_ & 0x00010000) != 0) &&
           meteredRun_ != null &&
           meteredRun_ != ai.stigmer.billing.v1.MeteredRun.getDefaultInstance()) {
           getMeteredRunBuilder().mergeFrom(value);
@@ -3685,7 +3192,7 @@ private static final long serialVersionUID = 0L;
         meteredRunBuilder_.mergeFrom(value);
       }
       if (meteredRun_ != null) {
-        bitField0_ |= 0x00080000;
+        bitField0_ |= 0x00010000;
         onChanged();
       }
       return this;
@@ -3697,18 +3204,16 @@ private static final long serialVersionUID = 0L;
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
      * mode against what the wire served; it performs NO run lookup of
-     * its own (the same rule as cursor_account_id above: the proxy holds the
-     * fact, reports it, the handler stamps it verbatim). Absent when the
-     * proxy could not resolve the run — a run found in neither store — in
-     * which case the record
-     * carries an empty session and the requested-vs-billed reconciliation
-     * is skipped.
+     * its own (the proxy holds the fact, reports it, the handler stamps it
+     * verbatim). Absent when the proxy could not resolve the run — a run
+     * found in neither store — in which case the record carries an empty
+     * session and the requested-vs-billed reconciliation is skipped.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
      */
     public Builder clearMeteredRun() {
-      bitField0_ = (bitField0_ & ~0x00080000);
+      bitField0_ = (bitField0_ & ~0x00010000);
       meteredRun_ = null;
       if (meteredRunBuilder_ != null) {
         meteredRunBuilder_.dispose();
@@ -3724,18 +3229,16 @@ private static final long serialVersionUID = 0L;
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
      * mode against what the wire served; it performs NO run lookup of
-     * its own (the same rule as cursor_account_id above: the proxy holds the
-     * fact, reports it, the handler stamps it verbatim). Absent when the
-     * proxy could not resolve the run — a run found in neither store — in
-     * which case the record
-     * carries an empty session and the requested-vs-billed reconciliation
-     * is skipped.
+     * its own (the proxy holds the fact, reports it, the handler stamps it
+     * verbatim). Absent when the proxy could not resolve the run — a run
+     * found in neither store — in which case the record carries an empty
+     * session and the requested-vs-billed reconciliation is skipped.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
      */
     public ai.stigmer.billing.v1.MeteredRun.Builder getMeteredRunBuilder() {
-      bitField0_ |= 0x00080000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return internalGetMeteredRunFieldBuilder().getBuilder();
     }
@@ -3746,12 +3249,10 @@ private static final long serialVersionUID = 0L;
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
      * mode against what the wire served; it performs NO run lookup of
-     * its own (the same rule as cursor_account_id above: the proxy holds the
-     * fact, reports it, the handler stamps it verbatim). Absent when the
-     * proxy could not resolve the run — a run found in neither store — in
-     * which case the record
-     * carries an empty session and the requested-vs-billed reconciliation
-     * is skipped.
+     * its own (the proxy holds the fact, reports it, the handler stamps it
+     * verbatim). Absent when the proxy could not resolve the run — a run
+     * found in neither store — in which case the record carries an empty
+     * session and the requested-vs-billed reconciliation is skipped.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
@@ -3771,12 +3272,10 @@ private static final long serialVersionUID = 0L;
      * credential, before reporting. The billing handler stamps these facts
      * onto the usage record and reconciles the requested tier and thinking
      * mode against what the wire served; it performs NO run lookup of
-     * its own (the same rule as cursor_account_id above: the proxy holds the
-     * fact, reports it, the handler stamps it verbatim). Absent when the
-     * proxy could not resolve the run — a run found in neither store — in
-     * which case the record
-     * carries an empty session and the requested-vs-billed reconciliation
-     * is skipped.
+     * its own (the proxy holds the fact, reports it, the handler stamps it
+     * verbatim). Absent when the proxy could not resolve the run — a run
+     * found in neither store — in which case the record carries an empty
+     * session and the requested-vs-billed reconciliation is skipped.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
@@ -3799,11 +3298,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whose provider credential the proxy injected upstream for this call,
-     * stamped verbatim onto the usage record (the same rule as
-     * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
-     * organization's own provider key served the call: it is recorded and
-     * priced for visibility, and never debited. UNSPECIFIED from a proxy
-     * that predates the field, read as the platform's key.
+     * stamped verbatim onto the usage record (the proxy holds the fact).
+     * ORGANIZATION means the organization's own provider key served the
+     * call: it is recorded and priced for visibility, and never debited.
+     * PLATFORM means a connection the platform provides served it.
+     * UNSPECIFIED from a proxy that predates the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -3815,11 +3314,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whose provider credential the proxy injected upstream for this call,
-     * stamped verbatim onto the usage record (the same rule as
-     * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
-     * organization's own provider key served the call: it is recorded and
-     * priced for visibility, and never debited. UNSPECIFIED from a proxy
-     * that predates the field, read as the platform's key.
+     * stamped verbatim onto the usage record (the proxy holds the fact).
+     * ORGANIZATION means the organization's own provider key served the
+     * call: it is recorded and priced for visibility, and never debited.
+     * PLATFORM means a connection the platform provides served it.
+     * UNSPECIFIED from a proxy that predates the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -3829,18 +3328,18 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setProviderKeySourceValue(int value) {
       providerKeySource_ = value;
-      bitField0_ |= 0x00100000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
     /**
      * <pre>
      * Whose provider credential the proxy injected upstream for this call,
-     * stamped verbatim onto the usage record (the same rule as
-     * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
-     * organization's own provider key served the call: it is recorded and
-     * priced for visibility, and never debited. UNSPECIFIED from a proxy
-     * that predates the field, read as the platform's key.
+     * stamped verbatim onto the usage record (the proxy holds the fact).
+     * ORGANIZATION means the organization's own provider key served the
+     * call: it is recorded and priced for visibility, and never debited.
+     * PLATFORM means a connection the platform provides served it.
+     * UNSPECIFIED from a proxy that predates the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -3854,11 +3353,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whose provider credential the proxy injected upstream for this call,
-     * stamped verbatim onto the usage record (the same rule as
-     * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
-     * organization's own provider key served the call: it is recorded and
-     * priced for visibility, and never debited. UNSPECIFIED from a proxy
-     * that predates the field, read as the platform's key.
+     * stamped verbatim onto the usage record (the proxy holds the fact).
+     * ORGANIZATION means the organization's own provider key served the
+     * call: it is recorded and priced for visibility, and never debited.
+     * PLATFORM means a connection the platform provides served it.
+     * UNSPECIFIED from a proxy that predates the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -3867,7 +3366,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setProviderKeySource(ai.stigmer.agentic.run.v1.ProviderKeySource value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00100000;
+      bitField0_ |= 0x00020000;
       providerKeySource_ = value.getNumber();
       onChanged();
       return this;
@@ -3875,18 +3374,18 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whose provider credential the proxy injected upstream for this call,
-     * stamped verbatim onto the usage record (the same rule as
-     * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
-     * organization's own provider key served the call: it is recorded and
-     * priced for visibility, and never debited. UNSPECIFIED from a proxy
-     * that predates the field, read as the platform's key.
+     * stamped verbatim onto the usage record (the proxy holds the fact).
+     * ORGANIZATION means the organization's own provider key served the
+     * call: it is recorded and priced for visibility, and never debited.
+     * PLATFORM means a connection the platform provides served it.
+     * UNSPECIFIED from a proxy that predates the field.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
      * @return This builder for chaining.
      */
     public Builder clearProviderKeySource() {
-      bitField0_ = (bitField0_ & ~0x00100000);
+      bitField0_ = (bitField0_ & ~0x00020000);
       providerKeySource_ = 0;
       onChanged();
       return this;

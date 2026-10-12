@@ -6,7 +6,10 @@
 // arm that pins the edition's refusal (the Unimplemented answer a billing or
 // proxy RPC gives on the empty composition) and run arms against a surface
 // the server does not have. Constructing a target boots nothing — its flags
-// are class fields — so this runs in the unit arms with no server.
+// are class fields — so this runs in the unit arms with no server. The one
+// flag every open-source target sets true, because the edition lacks a gate,
+// is pinned beside them: a Cursor run is admitted, since no provider key is
+// asked for.
 import { describe, expect, it } from "vitest";
 
 import type { CapabilityFlags } from "../target";
@@ -38,6 +41,10 @@ describe("the open-source targets' capability flags", () => {
   it.each(targets.map((t) => [t.name, t] as const))("%s claims no surface only the hosted edition serves", (_name, target) => {
     const claimed = HOSTED_ONLY.filter((flag) => target.capabilities[flag]);
     expect(claimed).toEqual([]);
+  });
+
+  it.each(targets.map((t) => [t.name, t] as const))("%s admits a Cursor run at create: open source asks no provider key", (_name, target) => {
+    expect(target.capabilities.cursorRunsAdmitted).toBe(true);
   });
 
   it("the Postgres twins inherit their in-memory targets' flags exactly", () => {

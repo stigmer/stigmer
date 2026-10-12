@@ -302,73 +302,6 @@ public interface RecordLlmCallUsageInputOrBuilder extends
 
   /**
    * <pre>
-   * Cursor serving identity (cursor harness only): which managed
-   * CursorAccount / member key the proxy actually injected upstream for
-   * this call. Reported by the proxy from its key resolution so the
-   * stored record can never disagree with the wire — the billing handler
-   * stamps these verbatim and performs no pin lookup. Identifiers only,
-   * never key material. Empty for native-harness calls.
-   * </pre>
-   *
-   * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
-   * @return The cursorAccountId.
-   */
-  java.lang.String getCursorAccountId();
-  /**
-   * <pre>
-   * Cursor serving identity (cursor harness only): which managed
-   * CursorAccount / member key the proxy actually injected upstream for
-   * this call. Reported by the proxy from its key resolution so the
-   * stored record can never disagree with the wire — the billing handler
-   * stamps these verbatim and performs no pin lookup. Identifiers only,
-   * never key material. Empty for native-harness calls.
-   * </pre>
-   *
-   * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
-   * @return The bytes for cursorAccountId.
-   */
-  com.google.protobuf.ByteString
-      getCursorAccountIdBytes();
-
-  /**
-   * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
-   * @return The cursorKeyId.
-   */
-  java.lang.String getCursorKeyId();
-  /**
-   * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
-   * @return The bytes for cursorKeyId.
-   */
-  com.google.protobuf.ByteString
-      getCursorKeyIdBytes();
-
-  /**
-   * <pre>
-   * Which credential served this call (cursor harness only). The
-   * CursorAccount store is the only credential source, so a current
-   * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
-   * caller.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
-   * @return The enum numeric value on the wire for cursorKeySource.
-   */
-  int getCursorKeySourceValue();
-  /**
-   * <pre>
-   * Which credential served this call (cursor harness only). The
-   * CursorAccount store is the only credential source, so a current
-   * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
-   * caller.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
-   * @return The cursorKeySource.
-   */
-  ai.stigmer.agentic.run.v1.CursorKeySource getCursorKeySource();
-
-  /**
-   * <pre>
    * Provider-reported service tier that actually served this call
    * (native harness, stigmer/stigmer#361): Anthropic reports it in the
    * response usage ("standard" | "priority" | "batch"), OpenAI at the
@@ -410,12 +343,10 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
    * mode against what the wire served; it performs NO run lookup of
-   * its own (the same rule as cursor_account_id above: the proxy holds the
-   * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the run — a run found in neither store — in
-   * which case the record
-   * carries an empty session and the requested-vs-billed reconciliation
-   * is skipped.
+   * its own (the proxy holds the fact, reports it, the handler stamps it
+   * verbatim). Absent when the proxy could not resolve the run — a run
+   * found in neither store — in which case the record carries an empty
+   * session and the requested-vs-billed reconciliation is skipped.
    * </pre>
    *
    * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
@@ -429,12 +360,10 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
    * mode against what the wire served; it performs NO run lookup of
-   * its own (the same rule as cursor_account_id above: the proxy holds the
-   * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the run — a run found in neither store — in
-   * which case the record
-   * carries an empty session and the requested-vs-billed reconciliation
-   * is skipped.
+   * its own (the proxy holds the fact, reports it, the handler stamps it
+   * verbatim). Absent when the proxy could not resolve the run — a run
+   * found in neither store — in which case the record carries an empty
+   * session and the requested-vs-billed reconciliation is skipped.
    * </pre>
    *
    * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
@@ -448,12 +377,10 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * credential, before reporting. The billing handler stamps these facts
    * onto the usage record and reconciles the requested tier and thinking
    * mode against what the wire served; it performs NO run lookup of
-   * its own (the same rule as cursor_account_id above: the proxy holds the
-   * fact, reports it, the handler stamps it verbatim). Absent when the
-   * proxy could not resolve the run — a run found in neither store — in
-   * which case the record
-   * carries an empty session and the requested-vs-billed reconciliation
-   * is skipped.
+   * its own (the proxy holds the fact, reports it, the handler stamps it
+   * verbatim). Absent when the proxy could not resolve the run — a run
+   * found in neither store — in which case the record carries an empty
+   * session and the requested-vs-billed reconciliation is skipped.
    * </pre>
    *
    * <code>.ai.stigmer.billing.v1.MeteredRun metered_run = 19 [json_name = "meteredRun"];</code>
@@ -463,11 +390,11 @@ public interface RecordLlmCallUsageInputOrBuilder extends
   /**
    * <pre>
    * Whose provider credential the proxy injected upstream for this call,
-   * stamped verbatim onto the usage record (the same rule as
-   * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
-   * organization's own provider key served the call: it is recorded and
-   * priced for visibility, and never debited. UNSPECIFIED from a proxy
-   * that predates the field, read as the platform's key.
+   * stamped verbatim onto the usage record (the proxy holds the fact).
+   * ORGANIZATION means the organization's own provider key served the
+   * call: it is recorded and priced for visibility, and never debited.
+   * PLATFORM means a connection the platform provides served it.
+   * UNSPECIFIED from a proxy that predates the field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>
@@ -477,11 +404,11 @@ public interface RecordLlmCallUsageInputOrBuilder extends
   /**
    * <pre>
    * Whose provider credential the proxy injected upstream for this call,
-   * stamped verbatim onto the usage record (the same rule as
-   * cursor_key_source: the proxy holds the fact). ORGANIZATION means the
-   * organization's own provider key served the call: it is recorded and
-   * priced for visibility, and never debited. UNSPECIFIED from a proxy
-   * that predates the field, read as the platform's key.
+   * stamped verbatim onto the usage record (the proxy holds the fact).
+   * ORGANIZATION means the organization's own provider key served the
+   * call: it is recorded and priced for visibility, and never debited.
+   * PLATFORM means a connection the platform provides served it.
+   * UNSPECIFIED from a proxy that predates the field.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21 [json_name = "providerKeySource"];</code>

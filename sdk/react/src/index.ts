@@ -1400,33 +1400,6 @@ export type {
   ModelCatalogConsoleProps,
 } from "./model-catalog/index.js";
 
-// Cursor accounts — platform-operator management of managed Cursor teams
-// (admin keys, member execution keys, org assignments, roster/spend)
-export {
-  useCursorAccounts,
-  useCursorAccountView,
-  useUpsertCursorAccount,
-  useDeleteCursorAccount,
-  useCursorMemberKeyActions,
-  useSyncCursorAccount,
-  CursorAccountsConsole,
-  CursorAccountEditor,
-  CursorAccountsAccessNotice,
-} from "./cursor-accounts/index.js";
-export type {
-  UseCursorAccountsReturn,
-  UseCursorAccountViewReturn,
-  UseUpsertCursorAccountReturn,
-  DeleteCursorAccountInput,
-  UseDeleteCursorAccountReturn,
-  AddCursorMemberKeyInput,
-  RemoveCursorMemberKeyInput,
-  UseCursorMemberKeyActionsReturn,
-  UseSyncCursorAccountReturn,
-  CursorAccountsConsoleProps,
-  CursorAccountEditorProps,
-} from "./cursor-accounts/index.js";
-
 // Licenses — platform-operator issuing of Stigmer licenses: the renewal
 // calendar, the issue form and the signed ticket (gated on can_issue_license)
 export {

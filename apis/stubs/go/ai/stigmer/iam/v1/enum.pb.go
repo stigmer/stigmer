@@ -85,12 +85,6 @@ const (
 	// can_execute_billing_ops (the machine account's internal billing
 	// pipeline).
 	IamPermission_can_manage_model_pricing IamPermission = 32
-	// Platform-level permission to manage Cursor accounts: the managed
-	// Cursor teams (admin keys, member execution keys, org assignments)
-	// that back the cursor harness. A human operator action, gated to
-	// platform operators like can_manage_model_pricing — key material and
-	// per-member spend are platform-internal, never org-visible.
-	IamPermission_can_manage_cursor_accounts IamPermission = 35
 	// Resource-level permission to participate in an agent channel's
 	// conversations: reply to customers as the business, take over and
 	// hand back the control token, and clear the attention flag.
@@ -172,7 +166,6 @@ var (
 		54: "can_create_agent_channel",
 		31: "can_create_channel_app",
 		32: "can_manage_model_pricing",
-		35: "can_manage_cursor_accounts",
 		36: "can_participate",
 		37: "can_write_reserved_labels",
 		40: "can_create_plugin",
@@ -213,7 +206,6 @@ var (
 		"can_create_agent_channel":    54,
 		"can_create_channel_app":      31,
 		"can_manage_model_pricing":    32,
-		"can_manage_cursor_accounts":  35,
 		"can_participate":             36,
 		"can_write_reserved_labels":   37,
 		"can_create_plugin":           40,
@@ -438,7 +430,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1\x1a google/protobuf/descriptor.proto\"R\n" +
 	"\vIamRoleMeta\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription*\xe3\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription*\xe5\n" +
 	"\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
@@ -466,8 +458,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x16can_create_agent_share\x10\x1e\x12\x1c\n" +
 	"\x18can_create_agent_channel\x106\x12\x1a\n" +
 	"\x16can_create_channel_app\x10\x1f\x12\x1c\n" +
-	"\x18can_manage_model_pricing\x10 \x12\x1e\n" +
-	"\x1acan_manage_cursor_accounts\x10#\x12\x13\n" +
+	"\x18can_manage_model_pricing\x10 \x12\x13\n" +
 	"\x0fcan_participate\x10$\x12\x1d\n" +
 	"\x19can_write_reserved_labels\x10%\x12\x15\n" +
 	"\x11can_create_plugin\x10(\x12\x14\n" +
@@ -482,7 +473,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\acan_use\x105\x12\x13\n" +
 	"\x0fcan_manage_keys\x107\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x16\x10\x16\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b&\x10&\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x1acan_view_provider_standing*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*\xb7\x04\n" +
+	"\"\x04\b#\x10#\"\x04\b&\x10&\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x1acan_manage_cursor_accounts*\x1acan_view_provider_standing*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*\xb7\x04\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12U\n" +
 	"\x05owner\x10\x01\x1aJ\x8a\xc4,F\n" +

@@ -12,8 +12,7 @@ public interface MeteredRunOrBuilder extends
 
   /**
    * <pre>
-   * The session the run belongs to. The provider reconciler matches
-   * Cursor conversations to sessions through the usage record's session.
+   * The session the run belongs to, stamped onto the usage record.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -22,8 +21,7 @@ public interface MeteredRunOrBuilder extends
   java.lang.String getSessionId();
   /**
    * <pre>
-   * The session the run belongs to. The provider reconciler matches
-   * Cursor conversations to sessions through the usage record's session.
+   * The session the run belongs to, stamped onto the usage record.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>

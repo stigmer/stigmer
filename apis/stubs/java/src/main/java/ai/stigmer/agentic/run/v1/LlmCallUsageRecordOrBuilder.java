@@ -362,54 +362,6 @@ public interface LlmCallUsageRecordOrBuilder extends
       getHarnessBytes();
 
   /**
-   * <pre>
-   * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-   * Which managed CursorAccount / member key actually served this call,
-   * threaded through the proxy payload from the key resolution that
-   * injected the upstream credential (RecordLlmCallUsageInput carries the
-   * same identity — the record states what was sent on the wire, never an
-   * after-the-fact pin lookup). Identifiers only, never key material.
-   * Empty for the native harness and for records written before the
-   * serving identity was threaded through. Lets provider reconciliation
-   * attribute conversations across per-account Cursor ledgers.
-   * </pre>
-   *
-   * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
-   * @return The cursorAccountId.
-   */
-  java.lang.String getCursorAccountId();
-  /**
-   * <pre>
-   * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-   * Which managed CursorAccount / member key actually served this call,
-   * threaded through the proxy payload from the key resolution that
-   * injected the upstream credential (RecordLlmCallUsageInput carries the
-   * same identity — the record states what was sent on the wire, never an
-   * after-the-fact pin lookup). Identifiers only, never key material.
-   * Empty for the native harness and for records written before the
-   * serving identity was threaded through. Lets provider reconciliation
-   * attribute conversations across per-account Cursor ledgers.
-   * </pre>
-   *
-   * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
-   * @return The bytes for cursorAccountId.
-   */
-  com.google.protobuf.ByteString
-      getCursorAccountIdBytes();
-
-  /**
-   * <code>string cursor_key_id = 39 [json_name = "cursorKeyId"];</code>
-   * @return The cursorKeyId.
-   */
-  java.lang.String getCursorKeyId();
-  /**
-   * <code>string cursor_key_id = 39 [json_name = "cursorKeyId"];</code>
-   * @return The bytes for cursorKeyId.
-   */
-  com.google.protobuf.ByteString
-      getCursorKeyIdBytes();
-
-  /**
    * <code>int32 http_status_code = 40 [json_name = "httpStatusCode"];</code>
    * @return The httpStatusCode.
    */
@@ -441,34 +393,10 @@ public interface LlmCallUsageRecordOrBuilder extends
 
   /**
    * <pre>
-   * Which credential class served this call (cursor harness only).
-   * UNSPECIFIED on native-harness records and on records written before
-   * this field existed (their cursor_account_id semantics are the legacy
-   * pin-derived stamp).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 43 [json_name = "cursorKeySource"];</code>
-   * @return The enum numeric value on the wire for cursorKeySource.
-   */
-  int getCursorKeySourceValue();
-  /**
-   * <pre>
-   * Which credential class served this call (cursor harness only).
-   * UNSPECIFIED on native-harness records and on records written before
-   * this field existed (their cursor_account_id semantics are the legacy
-   * pin-derived stamp).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 43 [json_name = "cursorKeySource"];</code>
-   * @return The cursorKeySource.
-   */
-  ai.stigmer.agentic.run.v1.CursorKeySource getCursorKeySource();
-
-  /**
-   * <pre>
    * Whose provider credential served this call. ORGANIZATION marks a call on
-   * the organization's own key, which is metered and never charged.
-   * UNSPECIFIED on records written before this field existed.
+   * the organization's own key, which is metered and never charged;
+   * PLATFORM marks a call served by a connection the platform provides.
+   * UNSPECIFIED marks a record written before this field existed.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -478,8 +406,9 @@ public interface LlmCallUsageRecordOrBuilder extends
   /**
    * <pre>
    * Whose provider credential served this call. ORGANIZATION marks a call on
-   * the organization's own key, which is metered and never charged.
-   * UNSPECIFIED on records written before this field existed.
+   * the organization's own key, which is metered and never charged;
+   * PLATFORM marks a call served by a connection the platform provides.
+   * UNSPECIFIED marks a record written before this field existed.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>

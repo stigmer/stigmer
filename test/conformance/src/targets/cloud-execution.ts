@@ -190,8 +190,9 @@ export class CloudExecutionTarget implements TargetProfile {
   }
 
   // Every tenancy this target provisions can run: it holds the fixture
-  // provider keys, as an organization whose admin pasted them does. No
-  // credit is seeded; a native run spends none.
+  // provider keys (and the run's real Cursor key, when one is supplied), as
+  // an organization whose admin pasted them does. No credit is seeded; no
+  // run spends any.
   async provisionTenancy(): Promise<TenancyContext> {
     const context = await this.cloud.provisionTenancy();
     await this.keyTenancy(context.org);

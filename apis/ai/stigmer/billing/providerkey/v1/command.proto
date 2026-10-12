@@ -6,7 +6,7 @@ import "ai/stigmer/billing/providerkey/v1/api.proto";
 import "ai/stigmer/billing/providerkey/v1/io.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
-// ProviderKeyCommandController saves and removes an organization's own LLM
+// ProviderKeyCommandController saves and removes an organization's own model
 // provider keys.
 //
 // Provider keys are not a standard API Resource, so there is no
