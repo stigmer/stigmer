@@ -148,7 +148,14 @@ type SessionSpec struct {
 	//
 	// The agent's tool lists govern a conversation's plugins like its own: an
 	// agent whose tools list does not name a plugin's server cannot use it.
-	Plugins       []*apiresource.ApiResourceReference `protobuf:"bytes,19,rep,name=plugins,proto3" json:"plugins,omitempty"`
+	Plugins []*apiresource.ApiResourceReference `protobuf:"bytes,19,rep,name=plugins,proto3" json:"plugins,omitempty"`
+	// Whether each turn's file edits are offered for review, Keep or Undo,
+	// after the turn. Off unless the caller sets it. Review never makes a
+	// turn wait: the edits are applied as the agent makes them, each stays
+	// until it is undone, and whatever is undecided when the next message is
+	// sent is kept. A turn in a workspace that cannot record its edits asks
+	// before each file write instead.
+	FileReview    bool `protobuf:"varint,20,opt,name=file_review,json=fileReview,proto3" json:"file_review,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -274,11 +281,18 @@ func (x *SessionSpec) GetPlugins() []*apiresource.ApiResourceReference {
 	return nil
 }
 
+func (x *SessionSpec) GetFileReview() bool {
+	if x != nil {
+		return x.FileReview
+	}
+	return false
+}
+
 var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xd1\v\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xf2\v\n" +
 	"\vSessionSpec\x12\xbb\x01\n" +
 	"\tagent_ref\x18\x0e \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBh\xbaHa\xba\x01^\n" +
 	"\x16session_agent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xe0\x85,(R\bagentRef\x12\x18\n" +
@@ -299,7 +313,9 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12(\n" +
 	"\x10include_my_vault\x18\x12 \x01(\bR\x0eincludeMyVault\x12\xb9\x01\n" +
 	"\aplugins\x18\x13 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBi\xbaHb\x92\x01_\"]\xba\x01Z\n" +
-	"\x14session_plugins.kind\x121plugins must reference resources with kind=plugin\x1a\x0fthis.kind == 58\xe0\x85,:R\aplugins\x1a;\n" +
+	"\x14session_plugins.kind\x121plugins must reference resources with kind=plugin\x1a\x0fthis.kind == 58\xe0\x85,:R\aplugins\x12\x1f\n" +
+	"\vfile_review\x18\x14 \x01(\bR\n" +
+	"fileReview\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02J\x04\b\a\x10\bJ\x04\b\x10\x10\x11J\x04\b\x11\x10\x12R\x11agent_instance_idR\x11mcp_server_usagesR\asecretsR\vconnectionsB\x99\x02\n" +

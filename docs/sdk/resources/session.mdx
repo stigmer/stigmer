@@ -81,6 +81,7 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`updateSubject`](#updatesubject) | Set the session subject. | |
 | [`delete`](#delete) | Delete a session. | |
 | [`appendEvents`](#appendevents) | Append a run's events to its session's log. | |
+| [`reviewFileChanges`](#reviewfilechanges) | Keep or undo the file changes a turn made, or one of its files. | |
 | [`streamEvents`](#streamevents) | Stream a session's events as they are appended. | Server |
 
 ### get
@@ -371,6 +372,7 @@ const session = await stigmer.session.apply({
   vaults: [],
   includeMyVault: false,
   plugins: [],
+  fileReview: false,
 });
 ```
 </Tab>
@@ -394,6 +396,7 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
   Vaults:                []stigmer.ResourceRef{},
   IncludeMyVault:        false,
   Plugins:               []stigmer.ResourceRef{},
+  FileReview:            false,
 })
 ```
 </Tab>
@@ -417,6 +420,7 @@ session = client.sessions.apply(SessionInput(
     vaults=[],
     include_my_vault=False,
     plugins=[],
+    file_review=False,
 ))
 ```
 </Tab>
@@ -440,6 +444,7 @@ Session session = client.sessions().apply(SessionInput.builder()
     .vaults(List.of())
     .includeMyVault(false)
     .plugins(List.of())
+    .fileReview(false)
     .build());
 ```
 </Tab>
@@ -474,6 +479,7 @@ const session = await stigmer.session.create({
   vaults: [],
   includeMyVault: false,
   plugins: [],
+  fileReview: false,
 });
 ```
 </Tab>
@@ -497,6 +503,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
   Vaults:                []stigmer.ResourceRef{},
   IncludeMyVault:        false,
   Plugins:               []stigmer.ResourceRef{},
+  FileReview:            false,
 })
 ```
 </Tab>
@@ -520,6 +527,7 @@ session = client.sessions.create(SessionInput(
     vaults=[],
     include_my_vault=False,
     plugins=[],
+    file_review=False,
 ))
 ```
 </Tab>
@@ -543,6 +551,7 @@ Session session = client.sessions().create(SessionInput.builder()
     .vaults(List.of())
     .includeMyVault(false)
     .plugins(List.of())
+    .fileReview(false)
     .build());
 ```
 </Tab>
@@ -577,6 +586,7 @@ const session = await stigmer.session.update({
   vaults: [],
   includeMyVault: false,
   plugins: [],
+  fileReview: false,
 });
 ```
 </Tab>
@@ -600,6 +610,7 @@ session, err := client.Session.Update(ctx, &stigmer.SessionInput{
   Vaults:                []stigmer.ResourceRef{},
   IncludeMyVault:        false,
   Plugins:               []stigmer.ResourceRef{},
+  FileReview:            false,
 })
 ```
 </Tab>
@@ -623,6 +634,7 @@ session = client.sessions.update(SessionInput(
     vaults=[],
     include_my_vault=False,
     plugins=[],
+    file_review=False,
 ))
 ```
 </Tab>
@@ -646,6 +658,7 @@ Session session = client.sessions().update(SessionInput.builder()
     .vaults(List.of())
     .includeMyVault(false)
     .plugins(List.of())
+    .fileReview(false)
     .build());
 ```
 </Tab>
@@ -788,6 +801,75 @@ AppendSessionEventsResponse appendSessionEventsResponse = client.sessions().appe
 
 **Returns**: [`AppendSessionEventsResponse`](#appendsessioneventsresponse)
 
+### reviewFileChanges
+
+Keep or undo the file changes a turn made, or one of its files.
+
+In a conversation with file review on (SessionSpec.file_review), each turn's file edits are applied as the agent makes them and listed in a stigmer.file_review.changes event. They can be decided until the conversation's next message is sent; then whatever is undecided is kept. Keep records the choice. Undo puts the file back as it was before the turn: at once when the turn has ended (the reply names the turn that does it), else when the turn's next step starts. The decision is appended as a stigmer.file_review.decided event.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const reviewFileChangesResponse = await stigmer.session.reviewFileChanges({
+  sessionId: "...",
+  changeSetId: "...",
+  scope: "...",
+  fileChangeId: "...",
+  action: "...",
+  expectedDigest: "...",
+  reason: "...",
+  acknowledgeUnreviewable: false,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+reviewFileChangesResponse, err := client.Session.ReviewFileChanges(ctx, &stigmer.ReviewFileChangesInput{
+  SessionId:               "...",
+  ChangeSetId:             "...",
+  Scope:                   "...",
+  FileChangeId:            "...",
+  Action:                  "...",
+  ExpectedDigest:          "...",
+  Reason:                  "...",
+  AcknowledgeUnreviewable: false,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+review_file_changes_response = client.sessions.review_file_changes(ReviewFileChangesInput(
+    session_id="...",
+    change_set_id="...",
+    scope="...",
+    file_change_id="...",
+    action="...",
+    expected_digest="...",
+    reason="...",
+    acknowledge_unreviewable=False,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ReviewFileChangesResponse reviewFileChangesResponse = client.sessions().reviewFileChanges(ReviewFileChangesInput.builder()
+    .sessionId("...")
+    .changeSetId("...")
+    .scope("...")
+    .fileChangeId("...")
+    .action("...")
+    .expectedDigest("...")
+    .reason("...")
+    .acknowledgeUnreviewable(false)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ReviewFileChangesInput`](#reviewfilechangesinput)
+
+**Returns**: [`ReviewFileChangesResponse`](#reviewfilechangesresponse)
+
 ### streamEvents
 
 > **Server Streaming** — This method returns a stream of updates, not a single response.
@@ -861,6 +943,7 @@ Input for creating or updating a Session.
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets this conversation's runs use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of the listed vaults." },
     plugins: { type: "ResourceRef[]", description: "Plugins this conversation uses, each whole, besides its agent's: their skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
+    fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn." },
   }}
 />
 
@@ -932,6 +1015,33 @@ UpdateSessionSubjectRequest sets the conversation title for a session.
   type={{
     id: { type: "string", description: "Session ID to update.", required: true },
     subject: { type: "string", description: "New subject value." },
+  }}
+/>
+
+### ReviewFileChangesInput
+
+ReviewFileChangesInput keeps or undoes a turn's file changes, or one of its files.
+
+<TypeTable
+  type={{
+    sessionId: { type: "string", description: "The conversation." },
+    changeSetId: { type: "string", description: "The change set, as its stigmer.file_review.changes event names it." },
+    scope: { type: "string", description: "change_set (every file of the set) or file (the one file_change_id)." },
+    fileChangeId: { type: "string", description: "The file to decide, when scope is file." },
+    action: { type: "string", description: "keep or undo." },
+    expectedDigest: { type: "string", description: "The digest of what the person saw: the file's digest for scope file, the set's aggregate_digest for scope change_set." },
+    reason: { type: "string", description: "An optional reason, kept with the decision." },
+    acknowledgeUnreviewable: { type: "boolean", description: "Set on a keep to keep a binary change consciously: its bytes can be put back, but it has no text diff to show." },
+  }}
+/>
+
+### ReviewFileChangesResponse
+
+ReviewFileChangesResponse answers a recorded decision.
+
+<TypeTable
+  type={{
+    reconcileRunId: { type: "string", description: "The turn started to put undone files back now, when the decision was an undo on a turn that had ended; empty otherwise, or when no turn could be started then (the next turn puts them back before its agent runs)." },
   }}
 />
 

@@ -59,6 +59,16 @@ public enum FileDecisionOrigin
    * <code>FILE_DECISION_ORIGIN_POLICY_EVAL_TRY = 3;</code>
    */
   FILE_DECISION_ORIGIN_POLICY_EVAL_TRY(3),
+  /**
+   * <pre>
+   * Platform policy kept what was still undecided in the set because the
+   * conversation's next message was sent: review lasts until then, and the
+   * next turn built on the kept files. The decision's actor is "policy".
+   * </pre>
+   *
+   * <code>FILE_DECISION_ORIGIN_POLICY_NEXT_TURN = 4;</code>
+   */
+  FILE_DECISION_ORIGIN_POLICY_NEXT_TURN(4),
   UNRECOGNIZED(-1),
   ;
 
@@ -110,6 +120,16 @@ public enum FileDecisionOrigin
    * <code>FILE_DECISION_ORIGIN_POLICY_EVAL_TRY = 3;</code>
    */
   public static final int FILE_DECISION_ORIGIN_POLICY_EVAL_TRY_VALUE = 3;
+  /**
+   * <pre>
+   * Platform policy kept what was still undecided in the set because the
+   * conversation's next message was sent: review lasts until then, and the
+   * next turn built on the kept files. The decision's actor is "policy".
+   * </pre>
+   *
+   * <code>FILE_DECISION_ORIGIN_POLICY_NEXT_TURN = 4;</code>
+   */
+  public static final int FILE_DECISION_ORIGIN_POLICY_NEXT_TURN_VALUE = 4;
 
 
   public final int getNumber() {
@@ -140,6 +160,7 @@ public enum FileDecisionOrigin
       case 1: return FILE_DECISION_ORIGIN_USER;
       case 2: return FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND;
       case 3: return FILE_DECISION_ORIGIN_POLICY_EVAL_TRY;
+      case 4: return FILE_DECISION_ORIGIN_POLICY_NEXT_TURN;
       default: return null;
     }
   }

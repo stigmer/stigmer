@@ -641,6 +641,7 @@ const run = await stigmer.run.create({
   supersedesRunId: "...",
   conversationCatchup: {},
   pluginEvalCase: {},
+  reconcileFileReview: false,
 });
 ```
 </Tab>
@@ -667,6 +668,7 @@ run, err := client.Run.Create(ctx, &stigmer.RunInput{
   SupersedesRunId:        "...",
   ConversationCatchup:    &stigmer.ConversationCatchupInput{},
   PluginEvalCase:         &stigmer.PluginEvalCaseContextInput{},
+  ReconcileFileReview:    false,
 })
 ```
 </Tab>
@@ -693,6 +695,7 @@ run = client.runs.create(RunInput(
     supersedes_run_id="...",
     conversation_catchup=None,
     plugin_eval_case=None,
+    reconcile_file_review=False,
 ))
 ```
 </Tab>
@@ -719,6 +722,7 @@ Run run = client.runs().create(RunInput.builder()
     .supersedesRunId("...")
     .conversationCatchup(null)
     .pluginEvalCase(null)
+    .reconcileFileReview(false)
     .build());
 ```
 </Tab>
@@ -756,6 +760,7 @@ const run = await stigmer.run.update({
   supersedesRunId: "...",
   conversationCatchup: {},
   pluginEvalCase: {},
+  reconcileFileReview: false,
 });
 ```
 </Tab>
@@ -782,6 +787,7 @@ run, err := client.Run.Update(ctx, &stigmer.RunInput{
   SupersedesRunId:        "...",
   ConversationCatchup:    &stigmer.ConversationCatchupInput{},
   PluginEvalCase:         &stigmer.PluginEvalCaseContextInput{},
+  ReconcileFileReview:    false,
 })
 ```
 </Tab>
@@ -808,6 +814,7 @@ run = client.runs.update(RunInput(
     supersedes_run_id="...",
     conversation_catchup=None,
     plugin_eval_case=None,
+    reconcile_file_review=False,
 ))
 ```
 </Tab>
@@ -834,6 +841,7 @@ Run run = client.runs().update(RunInput.builder()
     .supersedesRunId("...")
     .conversationCatchup(null)
     .pluginEvalCase(null)
+    .reconcileFileReview(false)
     .build());
 ```
 </Tab>
@@ -1335,6 +1343,7 @@ Input for creating or updating a Run.
     supersedesRunId: { type: "string", description: "ID of the run this one supersedes via edit-and-resubmit (optional)." },
     conversationCatchup: { type: "ConversationCatchupInput", description: "Conversation events the agent has not yet seen, composed by the platform for this turn (optional).", typeDescriptionLink: "#conversationcatchupinput" },
     pluginEvalCase: { type: "PluginEvalCaseContextInput", description: "What a plugin-eval case gives this try beyond its message: a starting folder, reference folders, an earlier conversation, variables and MCP stand-ins.", typeDescriptionLink: "#pluginevalcasecontextinput" },
+    reconcileFileReview: { type: "boolean", description: "Set on a turn that only puts back the files a person undid after an earlier turn ended: it runs no model and carries no message." },
   }}
 />
 
@@ -1357,6 +1366,7 @@ SessionSpec defines the configurable properties of a session.
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets this conversation's runs use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of the listed vaults." },
     plugins: { type: "ResourceRef[]", description: "Plugins this conversation uses, each whole, besides its agent's: their skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
+    fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn." },
   }}
 />
 
@@ -2776,6 +2786,7 @@ FileDecisionOrigin records which authority authored a FileDecision: a human revi
 | `FILE_DECISION_ORIGIN_USER` | A human reviewer decided via SubmitFileDecision. |
 | `FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND` | Platform policy auto-kept the set because every mutation in its turn came from commands the human explicitly authorized (per-command approval, APPROVE_ALL category lease, or spec.auto_approve_all) — consent verified against server-authored approval records before authoring. |
 | `FILE_DECISION_ORIGIN_POLICY_EVAL_TRY` | Platform policy kept the set because its run is a plugin eval's try: a try's edits apply as they do in Claude Code's evals, and nobody reviews a try. |
+| `FILE_DECISION_ORIGIN_POLICY_NEXT_TURN` | Platform policy kept what was still undecided in the set because the conversation's next message was sent: review lasts until then, and the next turn built on the kept files. |
 
 ### FileReviewEventType
 

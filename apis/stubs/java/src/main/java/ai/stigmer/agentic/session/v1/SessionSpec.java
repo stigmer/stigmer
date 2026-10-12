@@ -985,6 +985,26 @@ java.lang.String defaultValue) {
     return plugins_.get(index);
   }
 
+  public static final int FILE_REVIEW_FIELD_NUMBER = 20;
+  private boolean fileReview_ = false;
+  /**
+   * <pre>
+   * Whether each turn's file edits are offered for review, Keep or Undo,
+   * after the turn. Off unless the caller sets it. Review never makes a
+   * turn wait: the edits are applied as the agent makes them, each stays
+   * until it is undone, and whatever is undecided when the next message is
+   * sent is kept. A turn in a workspace that cannot record its edits asks
+   * before each file write instead.
+   * </pre>
+   *
+   * <code>bool file_review = 20 [json_name = "fileReview"];</code>
+   * @return The fileReview.
+   */
+  @java.lang.Override
+  public boolean getFileReview() {
+    return fileReview_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1040,6 +1060,9 @@ java.lang.String defaultValue) {
     }
     for (int i = 0; i < plugins_.size(); i++) {
       output.writeMessage(19, plugins_.get(i));
+    }
+    if (fileReview_ != false) {
+      output.writeBool(20, fileReview_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1130,6 +1153,10 @@ java.lang.String defaultValue) {
           }
           size += 2 * count;
         }
+    if (fileReview_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(20, fileReview_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1171,6 +1198,8 @@ java.lang.String defaultValue) {
         != other.getIncludeMyVault()) return false;
     if (!getPluginsList()
         .equals(other.getPluginsList())) return false;
+    if (getFileReview()
+        != other.getFileReview()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1223,6 +1252,9 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + PLUGINS_FIELD_NUMBER;
       hash = (53 * hash) + getPluginsList().hashCode();
     }
+    hash = (37 * hash) + FILE_REVIEW_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getFileReview());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1432,6 +1464,7 @@ java.lang.String defaultValue) {
         pluginsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00001000);
+      fileReview_ = false;
       return this;
     }
 
@@ -1537,6 +1570,9 @@ java.lang.String defaultValue) {
       }
       if (((from_bitField0_ & 0x00000800) != 0)) {
         result.includeMyVault_ = includeMyVault_;
+      }
+      if (((from_bitField0_ & 0x00002000) != 0)) {
+        result.fileReview_ = fileReview_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1695,6 +1731,9 @@ java.lang.String defaultValue) {
           }
         }
       }
+      if (other.getFileReview() != false) {
+        setFileReview(other.getFileReview());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1824,6 +1863,11 @@ java.lang.String defaultValue) {
               }
               break;
             } // case 154
+            case 160: {
+              fileReview_ = input.readBool();
+              bitField0_ |= 0x00002000;
+              break;
+            } // case 160
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -4886,6 +4930,65 @@ java.lang.String defaultValue) {
         plugins_ = null;
       }
       return pluginsBuilder_;
+    }
+
+    private boolean fileReview_ ;
+    /**
+     * <pre>
+     * Whether each turn's file edits are offered for review, Keep or Undo,
+     * after the turn. Off unless the caller sets it. Review never makes a
+     * turn wait: the edits are applied as the agent makes them, each stays
+     * until it is undone, and whatever is undecided when the next message is
+     * sent is kept. A turn in a workspace that cannot record its edits asks
+     * before each file write instead.
+     * </pre>
+     *
+     * <code>bool file_review = 20 [json_name = "fileReview"];</code>
+     * @return The fileReview.
+     */
+    @java.lang.Override
+    public boolean getFileReview() {
+      return fileReview_;
+    }
+    /**
+     * <pre>
+     * Whether each turn's file edits are offered for review, Keep or Undo,
+     * after the turn. Off unless the caller sets it. Review never makes a
+     * turn wait: the edits are applied as the agent makes them, each stays
+     * until it is undone, and whatever is undecided when the next message is
+     * sent is kept. A turn in a workspace that cannot record its edits asks
+     * before each file write instead.
+     * </pre>
+     *
+     * <code>bool file_review = 20 [json_name = "fileReview"];</code>
+     * @param value The fileReview to set.
+     * @return This builder for chaining.
+     */
+    public Builder setFileReview(boolean value) {
+
+      fileReview_ = value;
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether each turn's file edits are offered for review, Keep or Undo,
+     * after the turn. Off unless the caller sets it. Review never makes a
+     * turn wait: the edits are applied as the agent makes them, each stays
+     * until it is undone, and whatever is undecided when the next message is
+     * sent is kept. A turn in a workspace that cannot record its edits asks
+     * before each file write instead.
+     * </pre>
+     *
+     * <code>bool file_review = 20 [json_name = "fileReview"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearFileReview() {
+      bitField0_ = (bitField0_ & ~0x00002000);
+      fileReview_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionSpec)

@@ -8,7 +8,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { SessionIdSchema, UpdateSessionSubjectRequestSchema, AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, type UpdateSessionSubjectRequest, type AppendSessionEventsInput, type AppendSessionEventsResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionIdSchema, UpdateSessionSubjectRequestSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, type UpdateSessionSubjectRequest, type ReviewFileChangesInput, type ReviewFileChangesResponse, type AppendSessionEventsInput, type AppendSessionEventsResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -47,6 +47,12 @@ export class SessionClient {
   async updateSubject(input: UpdateSessionSubjectRequest): Promise<Session> {
     try {
       return await this.command.updateSubject(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async reviewFileChanges(input: ReviewFileChangesInput): Promise<ReviewFileChangesResponse> {
+    try {
+      return await this.command.reviewFileChanges(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -128,6 +134,7 @@ export interface SessionInput {
   vaults?: ResourceRef[];
   includeMyVault?: boolean;
   plugins?: ResourceRef[];
+  fileReview?: boolean;
 }
 
 /** SDK input type for WorkspaceEntry. */
@@ -222,6 +229,7 @@ export function buildSessionProto(input: SessionInput): Session {
       vaults,
       includeMyVault: input.includeMyVault,
       plugins,
+      fileReview: input.fileReview,
     })),
   }) as Session;
 }
@@ -295,5 +303,6 @@ export function toSessionUpdateInput(resource: Session): SessionInput {
     vaults: toResourceRefInputs(spec.vaults),
     includeMyVault: spec.includeMyVault || undefined,
     plugins: toResourceRefInputs(spec.plugins),
+    fileReview: spec.fileReview || undefined,
   };
 }

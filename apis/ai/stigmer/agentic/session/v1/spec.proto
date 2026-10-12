@@ -241,4 +241,16 @@ message SessionSpec {
       expression: "this.kind == 58"
     }
   ];
+
+  // Whether each turn's file edits are offered for review, Keep or Undo,
+  // after the turn. Off unless the caller sets it. Review never makes a
+  // turn wait: the edits are applied as the agent makes them, each stays
+  // until it is undone, and whatever is undecided when the next message is
+  // sent is kept. A turn in a workspace that cannot record its edits asks
+  // before each file write instead.
+  //
+  // @internal
+  // Read by the runner at each turn's start. A plugin eval's try records
+  // its edits whatever this says: its graders read them.
+  bool file_review = 20;
 }

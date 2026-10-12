@@ -11,7 +11,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SessionEvent(_message.Message):
-    __slots__ = ("seq", "session_id", "run_id", "thread_id", "user_message", "session_status_running", "session_status_idle", "session_error", "agent_message", "agent_thinking", "agent_tool_use", "agent_tool_result", "agent_mcp_tool_use", "agent_mcp_tool_result", "session_thread_created", "session_thread_status_running", "session_thread_status_idle", "agent_thread_message_sent", "agent_thread_message_received", "agent_thread_context_compacted", "stigmer_agent_thinking", "stigmer_permission_asked", "stigmer_harness_note", "stigmer_agent_structured_output", "stigmer_memory_recalled")
+    __slots__ = ("seq", "session_id", "run_id", "thread_id", "user_message", "session_status_running", "session_status_idle", "session_error", "agent_message", "agent_thinking", "agent_tool_use", "agent_tool_result", "agent_mcp_tool_use", "agent_mcp_tool_result", "session_thread_created", "session_thread_status_running", "session_thread_status_idle", "agent_thread_message_sent", "agent_thread_message_received", "agent_thread_context_compacted", "stigmer_agent_thinking", "stigmer_permission_asked", "stigmer_harness_note", "stigmer_agent_structured_output", "stigmer_memory_recalled", "stigmer_file_review_changes", "stigmer_file_review_decided", "stigmer_file_review_reconciled")
     SEQ_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
@@ -37,6 +37,9 @@ class SessionEvent(_message.Message):
     STIGMER_HARNESS_NOTE_FIELD_NUMBER: _ClassVar[int]
     STIGMER_AGENT_STRUCTURED_OUTPUT_FIELD_NUMBER: _ClassVar[int]
     STIGMER_MEMORY_RECALLED_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_FILE_REVIEW_CHANGES_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_FILE_REVIEW_DECIDED_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_FILE_REVIEW_RECONCILED_FIELD_NUMBER: _ClassVar[int]
     seq: int
     session_id: str
     run_id: str
@@ -62,7 +65,10 @@ class SessionEvent(_message.Message):
     stigmer_harness_note: StigmerHarnessNoteEvent
     stigmer_agent_structured_output: StigmerAgentStructuredOutputEvent
     stigmer_memory_recalled: StigmerMemoryRecalledEvent
-    def __init__(self, seq: _Optional[int] = ..., session_id: _Optional[str] = ..., run_id: _Optional[str] = ..., thread_id: _Optional[str] = ..., user_message: _Optional[_Union[UserMessageEvent, _Mapping]] = ..., session_status_running: _Optional[_Union[SessionStatusRunningEvent, _Mapping]] = ..., session_status_idle: _Optional[_Union[SessionStatusIdleEvent, _Mapping]] = ..., session_error: _Optional[_Union[SessionErrorEvent, _Mapping]] = ..., agent_message: _Optional[_Union[AgentMessageEvent, _Mapping]] = ..., agent_thinking: _Optional[_Union[AgentThinkingEvent, _Mapping]] = ..., agent_tool_use: _Optional[_Union[AgentToolUseEvent, _Mapping]] = ..., agent_tool_result: _Optional[_Union[AgentToolResultEvent, _Mapping]] = ..., agent_mcp_tool_use: _Optional[_Union[AgentMcpToolUseEvent, _Mapping]] = ..., agent_mcp_tool_result: _Optional[_Union[AgentMcpToolResultEvent, _Mapping]] = ..., session_thread_created: _Optional[_Union[SessionThreadCreatedEvent, _Mapping]] = ..., session_thread_status_running: _Optional[_Union[SessionThreadStatusRunningEvent, _Mapping]] = ..., session_thread_status_idle: _Optional[_Union[SessionThreadStatusIdleEvent, _Mapping]] = ..., agent_thread_message_sent: _Optional[_Union[AgentThreadMessageSentEvent, _Mapping]] = ..., agent_thread_message_received: _Optional[_Union[AgentThreadMessageReceivedEvent, _Mapping]] = ..., agent_thread_context_compacted: _Optional[_Union[AgentThreadContextCompactedEvent, _Mapping]] = ..., stigmer_agent_thinking: _Optional[_Union[StigmerAgentThinkingEvent, _Mapping]] = ..., stigmer_permission_asked: _Optional[_Union[StigmerPermissionAskedEvent, _Mapping]] = ..., stigmer_harness_note: _Optional[_Union[StigmerHarnessNoteEvent, _Mapping]] = ..., stigmer_agent_structured_output: _Optional[_Union[StigmerAgentStructuredOutputEvent, _Mapping]] = ..., stigmer_memory_recalled: _Optional[_Union[StigmerMemoryRecalledEvent, _Mapping]] = ...) -> None: ...
+    stigmer_file_review_changes: StigmerFileReviewChangesEvent
+    stigmer_file_review_decided: StigmerFileReviewDecidedEvent
+    stigmer_file_review_reconciled: StigmerFileReviewReconciledEvent
+    def __init__(self, seq: _Optional[int] = ..., session_id: _Optional[str] = ..., run_id: _Optional[str] = ..., thread_id: _Optional[str] = ..., user_message: _Optional[_Union[UserMessageEvent, _Mapping]] = ..., session_status_running: _Optional[_Union[SessionStatusRunningEvent, _Mapping]] = ..., session_status_idle: _Optional[_Union[SessionStatusIdleEvent, _Mapping]] = ..., session_error: _Optional[_Union[SessionErrorEvent, _Mapping]] = ..., agent_message: _Optional[_Union[AgentMessageEvent, _Mapping]] = ..., agent_thinking: _Optional[_Union[AgentThinkingEvent, _Mapping]] = ..., agent_tool_use: _Optional[_Union[AgentToolUseEvent, _Mapping]] = ..., agent_tool_result: _Optional[_Union[AgentToolResultEvent, _Mapping]] = ..., agent_mcp_tool_use: _Optional[_Union[AgentMcpToolUseEvent, _Mapping]] = ..., agent_mcp_tool_result: _Optional[_Union[AgentMcpToolResultEvent, _Mapping]] = ..., session_thread_created: _Optional[_Union[SessionThreadCreatedEvent, _Mapping]] = ..., session_thread_status_running: _Optional[_Union[SessionThreadStatusRunningEvent, _Mapping]] = ..., session_thread_status_idle: _Optional[_Union[SessionThreadStatusIdleEvent, _Mapping]] = ..., agent_thread_message_sent: _Optional[_Union[AgentThreadMessageSentEvent, _Mapping]] = ..., agent_thread_message_received: _Optional[_Union[AgentThreadMessageReceivedEvent, _Mapping]] = ..., agent_thread_context_compacted: _Optional[_Union[AgentThreadContextCompactedEvent, _Mapping]] = ..., stigmer_agent_thinking: _Optional[_Union[StigmerAgentThinkingEvent, _Mapping]] = ..., stigmer_permission_asked: _Optional[_Union[StigmerPermissionAskedEvent, _Mapping]] = ..., stigmer_harness_note: _Optional[_Union[StigmerHarnessNoteEvent, _Mapping]] = ..., stigmer_agent_structured_output: _Optional[_Union[StigmerAgentStructuredOutputEvent, _Mapping]] = ..., stigmer_memory_recalled: _Optional[_Union[StigmerMemoryRecalledEvent, _Mapping]] = ..., stigmer_file_review_changes: _Optional[_Union[StigmerFileReviewChangesEvent, _Mapping]] = ..., stigmer_file_review_decided: _Optional[_Union[StigmerFileReviewDecidedEvent, _Mapping]] = ..., stigmer_file_review_reconciled: _Optional[_Union[StigmerFileReviewReconciledEvent, _Mapping]] = ...) -> None: ...
 
 class UserMessageEvent(_message.Message):
     __slots__ = ("id", "content", "processed_at")
@@ -349,6 +355,78 @@ class EventPreview(_message.Message):
     id: str
     type: str
     def __init__(self, id: _Optional[str] = ..., type: _Optional[str] = ...) -> None: ...
+
+class StigmerFileReviewChangesEvent(_message.Message):
+    __slots__ = ("id", "processed_at", "change_set_id", "files", "aggregate_digest")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
+    CHANGE_SET_ID_FIELD_NUMBER: _ClassVar[int]
+    FILES_FIELD_NUMBER: _ClassVar[int]
+    AGGREGATE_DIGEST_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    processed_at: str
+    change_set_id: str
+    files: _containers.RepeatedCompositeFieldContainer[StigmerFileReviewChange]
+    aggregate_digest: str
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., change_set_id: _Optional[str] = ..., files: _Optional[_Iterable[_Union[StigmerFileReviewChange, _Mapping]]] = ..., aggregate_digest: _Optional[str] = ...) -> None: ...
+
+class StigmerFileReviewChange(_message.Message):
+    __slots__ = ("file_change_id", "path", "previous_path", "change", "digest", "lines_added", "lines_removed", "reviewable")
+    FILE_CHANGE_ID_FIELD_NUMBER: _ClassVar[int]
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    PREVIOUS_PATH_FIELD_NUMBER: _ClassVar[int]
+    CHANGE_FIELD_NUMBER: _ClassVar[int]
+    DIGEST_FIELD_NUMBER: _ClassVar[int]
+    LINES_ADDED_FIELD_NUMBER: _ClassVar[int]
+    LINES_REMOVED_FIELD_NUMBER: _ClassVar[int]
+    REVIEWABLE_FIELD_NUMBER: _ClassVar[int]
+    file_change_id: str
+    path: str
+    previous_path: str
+    change: str
+    digest: str
+    lines_added: int
+    lines_removed: int
+    reviewable: str
+    def __init__(self, file_change_id: _Optional[str] = ..., path: _Optional[str] = ..., previous_path: _Optional[str] = ..., change: _Optional[str] = ..., digest: _Optional[str] = ..., lines_added: _Optional[int] = ..., lines_removed: _Optional[int] = ..., reviewable: _Optional[str] = ...) -> None: ...
+
+class StigmerFileReviewDecidedEvent(_message.Message):
+    __slots__ = ("id", "processed_at", "change_set_id", "scope", "file_change_id", "action", "expected_digest", "origin", "reason")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
+    CHANGE_SET_ID_FIELD_NUMBER: _ClassVar[int]
+    SCOPE_FIELD_NUMBER: _ClassVar[int]
+    FILE_CHANGE_ID_FIELD_NUMBER: _ClassVar[int]
+    ACTION_FIELD_NUMBER: _ClassVar[int]
+    EXPECTED_DIGEST_FIELD_NUMBER: _ClassVar[int]
+    ORIGIN_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    processed_at: str
+    change_set_id: str
+    scope: str
+    file_change_id: str
+    action: str
+    expected_digest: str
+    origin: str
+    reason: str
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., change_set_id: _Optional[str] = ..., scope: _Optional[str] = ..., file_change_id: _Optional[str] = ..., action: _Optional[str] = ..., expected_digest: _Optional[str] = ..., origin: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class StigmerFileReviewReconciledEvent(_message.Message):
+    __slots__ = ("id", "processed_at", "change_set_id", "undone_paths", "failure", "failure_detail")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
+    CHANGE_SET_ID_FIELD_NUMBER: _ClassVar[int]
+    UNDONE_PATHS_FIELD_NUMBER: _ClassVar[int]
+    FAILURE_FIELD_NUMBER: _ClassVar[int]
+    FAILURE_DETAIL_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    processed_at: str
+    change_set_id: str
+    undone_paths: _containers.RepeatedScalarFieldContainer[str]
+    failure: str
+    failure_detail: str
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., change_set_id: _Optional[str] = ..., undone_paths: _Optional[_Iterable[str]] = ..., failure: _Optional[str] = ..., failure_detail: _Optional[str] = ...) -> None: ...
 
 class EventDelta(_message.Message):
     __slots__ = ("delta", "event_id")

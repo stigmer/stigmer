@@ -202,6 +202,7 @@ export interface RunInput {
   supersedesRunId?: string;
   conversationCatchup?: ConversationCatchupInput;
   pluginEvalCase?: PluginEvalCaseContextInput;
+  reconcileFileReview?: boolean;
 }
 
 /** SDK input type for SessionSpec. */
@@ -219,6 +220,7 @@ export interface SessionSpecInput {
   vaults?: ResourceRef[];
   includeMyVault?: boolean;
   plugins?: ResourceRef[];
+  fileReview?: boolean;
 }
 
 /** SDK input type for WorkspaceEntry. */
@@ -358,6 +360,7 @@ function buildSessionSpecProto(input: SessionSpecInput) {
   if (input.vaults) msg.vaults = input.vaults.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   if (input.includeMyVault !== undefined) msg.includeMyVault = input.includeMyVault;
   if (input.plugins) msg.plugins = input.plugins.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 58 }));
+  if (input.fileReview !== undefined) msg.fileReview = input.fileReview;
   return msg;
 }
 
@@ -448,6 +451,7 @@ export function buildRunProto(input: RunInput): Run {
     supersedesRunId: input.supersedesRunId,
     conversationCatchup,
     pluginEvalCase,
+    reconcileFileReview: input.reconcileFileReview,
   }));
   if (input.sessionId) {
     spec.target = { case: "sessionId", value: input.sessionId };
@@ -515,6 +519,7 @@ function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
     vaults: toResourceRefInputs(msg.vaults),
     includeMyVault: msg.includeMyVault || undefined,
     plugins: toResourceRefInputs(msg.plugins),
+    fileReview: msg.fileReview || undefined,
   };
 }
 
@@ -626,5 +631,6 @@ export function toRunUpdateInput(resource: Run): RunInput {
     supersedesRunId: spec.supersedesRunId || undefined,
     conversationCatchup: spec.conversationCatchup ? toConversationCatchupInput(spec.conversationCatchup) : undefined,
     pluginEvalCase: spec.pluginEvalCase ? toPluginEvalCaseContextInput(spec.pluginEvalCase) : undefined,
+    reconcileFileReview: spec.reconcileFileReview || undefined,
   };
 }

@@ -52,7 +52,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "to\0322ai/stigmer/commons/apiresource/field" +
       "_options.proto\032\'ai/stigmer/commons/apire" +
       "source/io.proto\032\033buf/validate/validate.p" +
-      "roto\"\321\013\n\013SessionSpec\022\273\001\n\tagent_ref\030\016 \001(\013" +
+      "roto\"\362\013\n\013SessionSpec\022\273\001\n\tagent_ref\030\016 \001(\013" +
       "24.ai.stigmer.commons.apiresource.ApiRes" +
       "ourceReferenceBh\272Ha\272\001^\n\026session_agent_re" +
       "f.kind\0223agent_ref must reference a resou" +
@@ -85,15 +85,16 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ns.apiresource.ApiResourceReferenceBi\272Hb" +
       "\222\001_\"]\272\001Z\n\024session_plugins.kind\0221plugins " +
       "must reference resources with kind=plugi" +
-      "n\032\017this.kind == 58\340\205,:R\007plugins\032;\n\rMetad" +
-      "ataEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(" +
-      "\tR\005value:\0028\001J\004\010\001\020\002J\004\010\007\020\010J\004\010\020\020\021J\004\010\021\020\022R\021ag" +
-      "ent_instance_idR\021mcp_server_usagesR\007secr" +
-      "etsR\013connectionsB\244\001B\tSpecProtoP\001\242\002\004ASAS\252" +
-      "\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\Sti" +
-      "gmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Age" +
-      "ntic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigme" +
-      "r::Agentic::Session::V1b\006proto3"
+      "n\032\017this.kind == 58\340\205,:R\007plugins\022\037\n\013file_" +
+      "review\030\024 \001(\010R\nfileReview\032;\n\rMetadataEntr" +
+      "y\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005valu" +
+      "e:\0028\001J\004\010\001\020\002J\004\010\007\020\010J\004\010\020\020\021J\004\010\021\020\022R\021agent_ins" +
+      "tance_idR\021mcp_server_usagesR\007secretsR\013co" +
+      "nnectionsB\244\001B\tSpecProtoP\001\242\002\004ASAS\252\002\035Ai.St" +
+      "igmer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Ag" +
+      "entic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Se" +
+      "ssion\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agen" +
+      "tic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -109,7 +110,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionSpec_descriptor,
-        new java.lang.String[] { "AgentRef", "Subject", "HarnessStateId", "HarnessStateIdHistory", "Metadata", "WorkspaceEntries", "SkillRefs", "Harness", "CursorMode", "ExecutionTarget", "Vaults", "IncludeMyVault", "Plugins", });
+        new java.lang.String[] { "AgentRef", "Subject", "HarnessStateId", "HarnessStateIdHistory", "Metadata", "WorkspaceEntries", "SkillRefs", "Harness", "CursorMode", "ExecutionTarget", "Vaults", "IncludeMyVault", "Plugins", "FileReview", });
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_descriptor =
       internal_static_ai_stigmer_agentic_session_v1_SessionSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_fieldAccessorTable = new
