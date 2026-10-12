@@ -142,7 +142,8 @@ describe.skipIf(!RUN)("the agent user, in a container shaped as every runner shi
       expect(agent[path]?.ok, `${path}: ${JSON.stringify(agent[path])}`).toBe(false);
     }
     expect(agent.ownEnvironment).not.toContain(CANARY);
-    expect(agent.ownEnvironment, "the collector's login, even when named for passthrough").not.toContain('"OTEL_EXPORTER_OTLP_HEADERS"');
+    // As a key: the passthrough setting's own value is that name.
+    expect(agent.ownEnvironment, "the collector's login, even when named for passthrough").not.toContain('"OTEL_EXPORTER_OTLP_HEADERS":');
     expect(agent.runnerKillsAgent, "the runner ends a host that will not exit").toBe("SIGKILL");
   }, 180_000);
 
