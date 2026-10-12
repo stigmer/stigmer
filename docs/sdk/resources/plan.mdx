@@ -294,8 +294,7 @@ The commercial terms of a plan.
 
 <TypeTable
   type={{
-    monthlyMinimumMicros: { type: "number", description: "The least a subscription plan bills per month, in micro-USD." },
-    usageShareBasisPoints: { type: "number", description: "The share of monthly usage a subscription plan bills when it exceeds the minimum, in basis points." },
+    monthlyMinimumMicros: { type: "number", description: "The plan's monthly fee: what a subscription plan bills per month, in micro-USD." },
     perExtraOrgMicros: { type: "number", description: "What a subscription plan bills per month for each child organization beyond the ones its entitlements include, in micro-USD." },
     annualPriceMicros: { type: "number", description: "What a license plan invoices for a one-year term, in micro-USD." },
   }}
@@ -362,7 +361,7 @@ The instrument a plan is bought through.
 
 | Value | Description |
 |-------|-------------|
-| `subscription` | Bought as a Subscription by an organization on Stigmer Cloud, billed monthly against usage. |
+| `subscription` | Bought as a Subscription by an organization on Stigmer Cloud, invoiced a flat fee each month. |
 | `license` | Bought as a License by a self-hosting customer, invoiced for a term. |
 
 ### Feature

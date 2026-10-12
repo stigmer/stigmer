@@ -36,42 +36,14 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n ai/stigmer/billing/v1/enum.proto\022\025ai.s" +
-      "tigmer.billing.v1*\266\002\n\017LedgerEntryType\022!\n" +
-      "\035ledger_entry_type_unspecified\020\000\022\023\n\017purc" +
-      "hase_credit\020\001\022\026\n\022promotional_credit\020\002\022\017\n" +
-      "\013usage_debit\020\003\022\024\n\020reservation_hold\020\004\022\027\n\023" +
-      "reservation_release\020\005\022\025\n\021adjustment_cred" +
-      "it\020\006\022\024\n\020adjustment_debit\020\007\022\023\n\017refund_rev" +
-      "ersal\020\010\022\020\n\014dispute_hold\020\t\022\023\n\017dispute_rel" +
-      "ease\020\n\022\020\n\014expiry_debit\020\013\022\030\n\024auto_recharg" +
-      "e_credit\020\014*D\n\nLedgerView\022\033\n\027ledger_view_" +
-      "unspecified\020\000\022\031\n\025ledger_view_statement\020\001" +
-      "*d\n\017CreditGrantKind\022!\n\035credit_grant_kind" +
-      "_unspecified\020\000\022\r\n\tpurchased\020\001\022\017\n\013promoti" +
-      "onal\020\002\022\016\n\nadjustment\020\003*\225\001\n\024BillingAccoun" +
-      "tStatus\022&\n\"billing_account_status_unspec" +
-      "ified\020\000\022\032\n\026billing_account_active\020\001\022\035\n\031b" +
-      "illing_account_suspended\020\002\022\032\n\026billing_ac" +
-      "count_closed\020\003*\236\001\n\021ReservationStatus\022\"\n\036" +
-      "reservation_status_unspecified\020\000\022\026\n\022rese" +
-      "rvation_active\020\001\022\031\n\025reservation_finalize" +
-      "d\020\002\022\027\n\023reservation_expired\020\003\022\031\n\025reservat" +
-      "ion_cancelled\020\004*o\n\020RunBillingSignal\022\"\n\036r" +
-      "un_billing_signal_unspecified\020\000\022\020\n\014conti" +
-      "nue_run\020\001\022\027\n\023low_balance_warning\020\002\022\014\n\010st" +
-      "op_run\020\003*\263\001\n\024CreditPurchaseStatus\022&\n\"cre" +
-      "dit_purchase_status_unspecified\020\000\022\033\n\027cre" +
-      "dit_purchase_pending\020\001\022\035\n\031credit_purchas" +
-      "e_completed\020\002\022\032\n\026credit_purchase_failed\020" +
-      "\003\022\033\n\027credit_purchase_expired\020\004*\227\001\n\027AutoR" +
-      "echargeEventStatus\022*\n&auto_recharge_even" +
-      "t_status_unspecified\020\000\022\031\n\025auto_recharge_" +
-      "pending\020\001\022\033\n\027auto_recharge_succeeded\020\002\022\030" +
-      "\n\024auto_recharge_failed\020\003B\202\001B\tEnumProtoP\001" +
-      "\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stig" +
-      "mer\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\G" +
-      "PBMetadata\352\002\030Ai::Stigmer::Billing::V1b\006p" +
-      "roto3"
+      "tigmer.billing.v1*\225\001\n\024BillingAccountStat" +
+      "us\022&\n\"billing_account_status_unspecified" +
+      "\020\000\022\032\n\026billing_account_active\020\001\022\035\n\031billin" +
+      "g_account_suspended\020\002\022\032\n\026billing_account" +
+      "_closed\020\003B\202\001B\tEnumProtoP\001\242\002\003ASB\252\002\025Ai.Sti" +
+      "gmer.Billing.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342" +
+      "\002!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\352\002\030Ai" +
+      "::Stigmer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

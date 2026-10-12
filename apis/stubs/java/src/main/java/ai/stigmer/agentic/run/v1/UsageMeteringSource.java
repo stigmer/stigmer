@@ -37,7 +37,7 @@ public enum UsageMeteringSource
   USAGE_METERING_SOURCE_RUNNER_PROVIDER_REPORTED_OSS(2),
   /**
    * <pre>
-   * Estimate from tokenizer/preflight/local accounting. Never billing-authoritative in cloud mode.
+   * Estimate from tokenizer/preflight/local accounting. Never metering-authoritative in cloud mode.
    * </pre>
    *
    * <code>USAGE_METERING_SOURCE_ESTIMATED = 3;</code>
@@ -93,7 +93,7 @@ public enum UsageMeteringSource
   public static final int USAGE_METERING_SOURCE_RUNNER_PROVIDER_REPORTED_OSS_VALUE = 2;
   /**
    * <pre>
-   * Estimate from tokenizer/preflight/local accounting. Never billing-authoritative in cloud mode.
+   * Estimate from tokenizer/preflight/local accounting. Never metering-authoritative in cloud mode.
    * </pre>
    *
    * <code>USAGE_METERING_SOURCE_ESTIMATED = 3;</code>

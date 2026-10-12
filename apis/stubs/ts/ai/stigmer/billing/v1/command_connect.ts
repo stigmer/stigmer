@@ -3,10 +3,9 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeRunInput, AuthorizeRunResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, CreatePaymentMethodSetupSessionInput, CreatePaymentMethodSetupSessionResponse, FinalizeRunInput, FinalizeRunResponse, GetOrCreateBillingAccountInput, GrantCreditsInput, RearmForRecoveryInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
+import { CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreatePaymentMethodSetupSessionInput, CreatePaymentMethodSetupSessionResponse, GetOrCreateBillingAccountInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { CreditLedgerEntry } from "./credit_pbjs";
 import { ModelPricingBaseline } from "./model_pricing_baseline_pbjs";
 
 /**
@@ -14,8 +13,8 @@ import { ModelPricingBaseline } from "./model_pricing_baseline_pbjs";
  *
  * Billing is not a standard API Resource — there is no api_resource_kind annotation.
  * An organization's own billing RPCs authorize against the organization
- * resource kind; the credit mutations, the execution pipeline and the
- * model catalog authorize against the static platform target.
+ * resource kind; the usage meter and the model catalog authorize against
+ * the static platform target.
  *
  *
  * @generated from service ai.stigmer.billing.v1.BillingCommandController
@@ -36,53 +35,10 @@ export const BillingCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Manually adjust an org's credit balance.
-     * Produces an immutable ledger entry for audit. Requires can_manage_credits
-     * on the platform: a platform operator or a credit issuer.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.adjustCredits
-     */
-    adjustCredits: {
-      name: "adjustCredits",
-      I: AdjustCreditsInput,
-      O: CreditLedgerEntry,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
-     * Produces an immutable promotional_credit ledger entry for audit.
-     *
-     * The grant burns before adjustment and purchased credits. When expires_at
-     * is set, any remainder unconsumed at that time is removed from the balance
-     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
-     * Idempotent: replaying an applied idempotency key returns the original
-     * entry, even after the expiry has passed. Requires can_manage_credits on
-     * the platform, as adjustCredits does.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.grantCredits
-     */
-    grantCredits: {
-      name: "grantCredits",
-      I: GrantCreditsInput,
-      O: CreditLedgerEntry,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Reserve credits before starting a run.
-     * Returns authorization status and reservation details.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.authorizeRun
-     */
-    authorizeRun: {
-      name: "authorizeRun",
-      I: AuthorizeRunInput,
-      O: AuthorizeRunResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Record a single LLM call's usage for billing.
-     * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the run's reservation.
+     * Record a single LLM call's usage.
+     * Resolves the call against the model catalog and inserts an immutable
+     * LlmCallUsageRecord: what the call was (tokens, model, harness, served
+     * tier and thinking mode, whose key served it), never what it cost.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage
      */
@@ -93,54 +49,13 @@ export const BillingCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Settle billing for a completed run.
-     * Releases unused reservation credits and produces the final billing record.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.finalizeRun
-     */
-    finalizeRun: {
-      name: "finalizeRun",
-      I: FinalizeRunInput,
-      O: FinalizeRunResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Re-arm a settled reservation so a failed run can be recovered.
-     * The one sanctioned path past the settled-reservation latch: re-runs
-     * the affordability check, transfers a fresh hold, and rotates the
-     * reservation id as the fence against settles still in flight from the
-     * terminated run. Returns the same shape as authorizeRun, with
-     * the rotated reservation id.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.rearmForRecovery
-     */
-    rearmForRecovery: {
-      name: "rearmForRecovery",
-      I: RearmForRecoveryInput,
-      O: AuthorizeRunResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Create a Stripe Checkout Session to purchase a credit pack.
-     * Returns a checkout URL for the client to redirect the user.
-     *
-     * The caller's email is resolved server-side for Stripe Customer creation.
-     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.createCreditCheckoutSession
-     */
-    createCreditCheckoutSession: {
-      name: "createCreditCheckoutSession",
-      I: CreateCreditCheckoutSessionInput,
-      O: CreateCreditCheckoutSessionResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
      * Open a Stripe Customer Portal session for payment method management.
      * Returns a portal URL for the client to redirect the user.
      *
-     * Requires an existing Stripe Customer (created during first credit purchase).
-     * The portal allows users to add, update, or remove saved payment methods.
+     * Requires an existing Stripe Customer (created by
+     * createPaymentMethodSetupSession on first use). The portal allows users
+     * to add, update, or remove saved payment methods and to read the
+     * invoices Stripe sends.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.createBillingPortalSession
      */
@@ -155,11 +70,10 @@ export const BillingCommandController = {
      * method without charging it. Returns a URL for the client to redirect
      * the user.
      *
-     * This is how an organization that has never bought credit gets a card
-     * on file (the billing portal needs an existing Stripe Customer, which
+     * This is how an organization gets a card on file for its plan's
+     * invoices (the billing portal needs an existing Stripe Customer, which
      * this call creates on first use). The saved card becomes the account's
-     * default payment method through the payment_method.attached webhook,
-     * the same path a card saved at credit checkout takes.
+     * default payment method through the payment_method.attached webhook.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.createPaymentMethodSetupSession
      */
@@ -170,26 +84,11 @@ export const BillingCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Configure automatic credit recharge for an organization.
-     * Returns the updated BillingAccount with the new config applied.
-     *
-     * Enabling requires an active account with a saved payment method.
-     * Disabling preserves the threshold/amount/cap for easy re-enablement.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.setAutoRechargeConfig
-     */
-    setAutoRechargeConfig: {
-      name: "setAutoRechargeConfig",
-      I: SetAutoRechargeConfigInput,
-      O: BillingAccount,
-      kind: MethodKind.Unary,
-    },
-    /**
      * Create or revise one model registry baseline entry (catalog + list
      * prices). Append-only: an existing ACTIVE document for the same
      * (model_id, provider, harness) key is superseded, never mutated. The
-     * registry is rebuilt immediately, so the revision reaches billing and
-     * every published price surface atomically.
+     * registry is rebuilt immediately, so the revision reaches the usage
+     * meter, run admission and the published registry atomically.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.upsertModelPricingBaseline
      */

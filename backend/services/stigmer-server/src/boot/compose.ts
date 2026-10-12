@@ -1094,7 +1094,7 @@ export async function composeServer(
   // Grading: a completed run's run-health score, written by the grading
   // workflow on its own queue (temporal/grading/). The observer starts it
   // and runs after every extension's observer, so the hosted edition's
-  // billing settle and channel nudge keep their timing; the score writes
+  // own observers (its channel nudge) keep their timing; the score writes
   // and the run-delete cascade ride the in-process lane as the server,
   // resolved lazily for the boot-ordering reason the run worker's are.
   const gradingTemporalConfig = newGradingConfigFromEnv();

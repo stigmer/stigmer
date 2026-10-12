@@ -6,7 +6,7 @@
 //
 // Lanes and what this file asserts:
 //   llm          — relay on the organization's own provider key, the
-//                  keyless refusal, usage landing in the ledger, scope
+//                  keyless refusal, usage landing on the meter, scope
 //                  authorization, verbatim relay of upstream errors marked as
 //                  the organization's key, mid-stream abort, hop-by-hop
 //                  header hygiene
@@ -66,10 +66,10 @@ const ORGANIZATION_PROVIDER_KEY_SENTINEL = "STIGMER_ORGANIZATION_PROVIDER_KEY";
 // the run supplies a real Cursor key (cursorRunsAdmitted), keyTenancy saves it
 // too.
 async function keyedOrg(): Promise<TenancyContext> {
-  if (target.provisionUnfundedTenancy === undefined || target.keyTenancy === undefined) {
+  if (target.provisionKeylessTenancy === undefined || target.keyTenancy === undefined) {
     throw new Error(`target ${target.name} declares sideChannelProxy but lacks the provider-key seams`);
   }
-  const context = await target.provisionUnfundedTenancy();
+  const context = await target.provisionKeylessTenancy();
   fixtures.defer(() => target.cleanupTenancy(context));
   await target.keyTenancy(context.org);
   return context;
@@ -222,7 +222,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       expect((upstream?.body as { stream_options?: { include_usage?: boolean } }).stream_options?.include_usage).toBe(true);
     });
 
-    it("[proxy.llm.usage.anthropic-sse-usage-lands-in-ledger] [proxy.llm.usage.openai-final-chunk-usage-lands] usage extracted from both providers' wire lands on the org's usage report", async () => {
+    it("[proxy.llm.usage.anthropic-sse-usage-lands] [proxy.llm.usage.openai-final-chunk-usage-lands] usage extracted from both providers' wire lands on the org's usage report", async () => {
       const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       const before = await usageReport(org);

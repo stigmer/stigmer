@@ -3,14 +3,16 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { BillingUsageReportResponse, CreditLedgerResponse, CustomerModelPricingResponse, GetBillingAccountInput, GetBillingUsageReportInput, GetCreditBalanceInput, GetCreditLedgerInput, GetCustomerModelPricingInput, GetRunBillingSignalInput, GetRunBillingSignalResponse, ListModelPricingBaselinesInput, ModelPricingBaselinesResponse, PreviewAuthorizationInput, PreviewAuthorizationResponse } from "./io_pbjs";
-import { BillingAccount, CreditBalance } from "./billing_account_pbjs";
+import { BillingUsageReportResponse, GetBillingAccountInput, GetBillingUsageReportInput, ListModelPricingBaselinesInput, ModelPricingBaselinesResponse } from "./io_pbjs";
+import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * BillingQueryController handles read operations for the billing bounded context.
  *
- * All RPCs authorize against the organization resource kind with can_view_billing.
+ * An organization's own reads authorize against the organization resource
+ * kind with can_view_billing; the model catalog's operator read authorizes
+ * against the static platform target.
  *
  * @generated from service ai.stigmer.billing.v1.BillingQueryController
  */
@@ -29,29 +31,9 @@ export const BillingQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Retrieve the credit balance breakdown for an organization.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getCreditBalance
-     */
-    getCreditBalance: {
-      name: "getCreditBalance",
-      I: GetCreditBalanceInput,
-      O: CreditBalance,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Retrieve paginated credit ledger entries with optional filters.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getCreditLedger
-     */
-    getCreditLedger: {
-      name: "getCreditLedger",
-      I: GetCreditLedgerInput,
-      O: CreditLedgerResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Retrieve an aggregated billing usage report for a date range.
+     * Count an organization's metered LLM calls and runs in a date range,
+     * with the calls broken down by model and harness. A count, never an
+     * amount: the meter records what each call was, not what it cost.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getBillingUsageReport
      */
@@ -62,23 +44,11 @@ export const BillingQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Retrieve the customer-facing model price list with markup applied.
-     * Returns prices for all models, organized by harness and cost tier.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getCustomerModelPricing
-     */
-    getCustomerModelPricing: {
-      name: "getCustomerModelPricing",
-      I: GetCustomerModelPricingInput,
-      O: CustomerModelPricingResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
      * Retrieve the model registry baseline catalog (ACTIVE documents, or the
      * full append-only revision history when include_history is set).
      *
-     * Operator surface: exposes raw provider rates (pre-markup) and revision
-     * provenance, so it is platform-gated, not org-gated.
+     * Operator surface: exposes the providers' list prices with their
+     * revision provenance, so it is platform-gated, not org-gated.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.listModelPricingBaselines
      */
@@ -86,35 +56,6 @@ export const BillingQueryController = {
       name: "listModelPricingBaselines",
       I: ListModelPricingBaselinesInput,
       O: ModelPricingBaselinesResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Preview whether an organization can fund a run, without writing
-     * a reservation. The read-only twin of BillingCommandController's
-     * authorizeRun: both ride the same server-side affordability
-     * predicate (start threshold, negative allowance, default cap), so a
-     * synchronous preflight refusal and the authoritative reservation can
-     * never drift.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.previewAuthorization
-     */
-    previewAuthorization: {
-      name: "previewAuthorization",
-      I: PreviewAuthorizationInput,
-      O: PreviewAuthorizationResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Retrieve the current billing control signal for a run in progress
-     * (continue / low-balance warning / stop), derived from the run's
-     * reservation headroom and the billing account's status.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getRunBillingSignal
-     */
-    getRunBillingSignal: {
-      name: "getRunBillingSignal",
-      I: GetRunBillingSignalInput,
-      O: GetRunBillingSignalResponse,
       kind: MethodKind.Unary,
     },
   }

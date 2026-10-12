@@ -6,8 +6,8 @@ import { CONSOLE_URL } from "../../config";
 
 /**
  * Billing settings. The Tauri webview cannot host Stripe's pages (its
- * origin is not a web address Stripe can return to), so checkout, card
- * setup and the billing portal open in the system browser. Stripe returns
+ * origin is not a web address Stripe can return to), so card setup and
+ * the billing portal open in the system browser. Stripe returns
  * to the web console's public desktop bridge (`/desktop/billing`), which
  * needs no web sign-in and reopens the app through
  * `stigmer://billing/return`; `useDesktopBillingReturn` routes here with
@@ -22,10 +22,6 @@ const redirect: BillingRedirect = {
 export default function BillingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const checkoutSuccess = useMemo(
-    () => searchParams.get("checkout") === "success",
-    [searchParams],
-  );
   const resumePlanId = useMemo(
     () =>
       searchParams.get("setup") === "success"
@@ -40,8 +36,6 @@ export default function BillingPage() {
 
   return (
     <BillingSection
-      checkoutSuccess={checkoutSuccess}
-      onDismissCheckoutSuccess={clearQuery}
       resumePlanId={resumePlanId}
       onResumeHandled={clearQuery}
       redirect={redirect}

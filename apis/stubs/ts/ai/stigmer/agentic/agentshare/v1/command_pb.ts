@@ -36,8 +36,9 @@ export const AgentShareCommandController: GenService<{
   /**
    * Create an agent share.
    *
-   * Enabling a share is a billing-affecting decision: conversations over
-   * the hosted link consume the sharing organization's credits.
+   * Enabling a share is a spending decision: conversations over the hosted
+   * link call models on the sharing organization's own provider keys, and
+   * the providers bill the organization for them.
    *
    * @generated from rpc ai.stigmer.agentic.agentshare.v1.AgentShareCommandController.create
    */

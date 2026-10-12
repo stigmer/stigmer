@@ -92,8 +92,8 @@
  *     them, not as final: for a new conversation, CreateSessionIfNeeded
  *     resolves them again, after the slot, when an author's save landed
  *     between the turn's two reads of its agent. A gate step that must
- *     judge the settings the turn runs with (a spend reservation sized by
- *     the model, say) reads them after the session exists, not here.
+ *     judge the settings the turn runs with (a provider-key check on the
+ *     turn's model, say) reads them after the session exists, not here.
  */
 import type { DescMessage } from "@bufbuild/protobuf";
 

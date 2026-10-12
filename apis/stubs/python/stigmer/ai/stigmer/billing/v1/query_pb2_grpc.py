@@ -9,7 +9,9 @@ from ai.stigmer.billing.v1 import io_pb2 as ai_dot_stigmer_dot_billing_dot_v1_do
 class BillingQueryControllerStub(object):
     """BillingQueryController handles read operations for the billing bounded context.
 
-    All RPCs authorize against the organization resource kind with can_view_billing.
+    An organization's own reads authorize against the organization resource
+    kind with can_view_billing; the model catalog's operator read authorizes
+    against the static platform target.
     """
 
     def __init__(self, channel):
@@ -23,47 +25,24 @@ class BillingQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetBillingAccountInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.FromString,
                 _registered_method=True)
-        self.getCreditBalance = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingQueryController/getCreditBalance',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetCreditBalanceInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.CreditBalance.FromString,
-                _registered_method=True)
-        self.getCreditLedger = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingQueryController/getCreditLedger',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetCreditLedgerInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreditLedgerResponse.FromString,
-                _registered_method=True)
         self.getBillingUsageReport = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingQueryController/getBillingUsageReport',
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetBillingUsageReportInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.BillingUsageReportResponse.FromString,
-                _registered_method=True)
-        self.getCustomerModelPricing = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingQueryController/getCustomerModelPricing',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetCustomerModelPricingInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CustomerModelPricingResponse.FromString,
                 _registered_method=True)
         self.listModelPricingBaselines = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingQueryController/listModelPricingBaselines',
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ListModelPricingBaselinesInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingBaselinesResponse.FromString,
                 _registered_method=True)
-        self.previewAuthorization = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingQueryController/previewAuthorization',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationResponse.FromString,
-                _registered_method=True)
-        self.getRunBillingSignal = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingQueryController/getRunBillingSignal',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetRunBillingSignalInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetRunBillingSignalResponse.FromString,
-                _registered_method=True)
 
 
 class BillingQueryControllerServicer(object):
     """BillingQueryController handles read operations for the billing bounded context.
 
-    All RPCs authorize against the organization resource kind with can_view_billing.
+    An organization's own reads authorize against the organization resource
+    kind with can_view_billing; the model catalog's operator read authorizes
+    against the static platform target.
     """
 
     def getBillingAccount(self, request, context):
@@ -73,30 +52,10 @@ class BillingQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def getCreditBalance(self, request, context):
-        """Retrieve the credit balance breakdown for an organization.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def getCreditLedger(self, request, context):
-        """Retrieve paginated credit ledger entries with optional filters.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def getBillingUsageReport(self, request, context):
-        """Retrieve an aggregated billing usage report for a date range.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def getCustomerModelPricing(self, request, context):
-        """Retrieve the customer-facing model price list with markup applied.
-        Returns prices for all models, organized by harness and cost tier.
+        """Count an organization's metered LLM calls and runs in a date range,
+        with the calls broken down by model and harness. A count, never an
+        amount: the meter records what each call was, not what it cost.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -106,29 +65,8 @@ class BillingQueryControllerServicer(object):
         """Retrieve the model registry baseline catalog (ACTIVE documents, or the
         full append-only revision history when include_history is set).
 
-        Operator surface: exposes raw provider rates (pre-markup) and revision
-        provenance, so it is platform-gated, not org-gated.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def previewAuthorization(self, request, context):
-        """Preview whether an organization can fund a run, without writing
-        a reservation. The read-only twin of BillingCommandController's
-        authorizeRun: both ride the same server-side affordability
-        predicate (start threshold, negative allowance, default cap), so a
-        synchronous preflight refusal and the authoritative reservation can
-        never drift.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def getRunBillingSignal(self, request, context):
-        """Retrieve the current billing control signal for a run in progress
-        (continue / low-balance warning / stop), derived from the run's
-        reservation headroom and the billing account's status.
+        Operator surface: exposes the providers' list prices with their
+        revision provenance, so it is platform-gated, not org-gated.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -142,40 +80,15 @@ def add_BillingQueryControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetBillingAccountInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.SerializeToString,
             ),
-            'getCreditBalance': grpc.unary_unary_rpc_method_handler(
-                    servicer.getCreditBalance,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetCreditBalanceInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.CreditBalance.SerializeToString,
-            ),
-            'getCreditLedger': grpc.unary_unary_rpc_method_handler(
-                    servicer.getCreditLedger,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetCreditLedgerInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreditLedgerResponse.SerializeToString,
-            ),
             'getBillingUsageReport': grpc.unary_unary_rpc_method_handler(
                     servicer.getBillingUsageReport,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetBillingUsageReportInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.BillingUsageReportResponse.SerializeToString,
             ),
-            'getCustomerModelPricing': grpc.unary_unary_rpc_method_handler(
-                    servicer.getCustomerModelPricing,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetCustomerModelPricingInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CustomerModelPricingResponse.SerializeToString,
-            ),
             'listModelPricingBaselines': grpc.unary_unary_rpc_method_handler(
                     servicer.listModelPricingBaselines,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ListModelPricingBaselinesInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingBaselinesResponse.SerializeToString,
-            ),
-            'previewAuthorization': grpc.unary_unary_rpc_method_handler(
-                    servicer.previewAuthorization,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationResponse.SerializeToString,
-            ),
-            'getRunBillingSignal': grpc.unary_unary_rpc_method_handler(
-                    servicer.getRunBillingSignal,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetRunBillingSignalInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetRunBillingSignalResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -188,7 +101,9 @@ def add_BillingQueryControllerServicer_to_server(servicer, server):
 class BillingQueryController(object):
     """BillingQueryController handles read operations for the billing bounded context.
 
-    All RPCs authorize against the organization resource kind with can_view_billing.
+    An organization's own reads authorize against the organization resource
+    kind with can_view_billing; the model catalog's operator read authorizes
+    against the static platform target.
     """
 
     @staticmethod
@@ -208,60 +123,6 @@ class BillingQueryController(object):
             '/ai.stigmer.billing.v1.BillingQueryController/getBillingAccount',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetBillingAccountInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def getCreditBalance(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingQueryController/getCreditBalance',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetCreditBalanceInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.CreditBalance.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def getCreditLedger(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingQueryController/getCreditLedger',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetCreditLedgerInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreditLedgerResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -300,33 +161,6 @@ class BillingQueryController(object):
             _registered_method=True)
 
     @staticmethod
-    def getCustomerModelPricing(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingQueryController/getCustomerModelPricing',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetCustomerModelPricingInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CustomerModelPricingResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
     def listModelPricingBaselines(request,
             target,
             options=(),
@@ -343,60 +177,6 @@ class BillingQueryController(object):
             '/ai.stigmer.billing.v1.BillingQueryController/listModelPricingBaselines',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ListModelPricingBaselinesInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingBaselinesResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def previewAuthorization(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingQueryController/previewAuthorization',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.PreviewAuthorizationResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def getRunBillingSignal(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingQueryController/getRunBillingSignal',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetRunBillingSignalInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetRunBillingSignalResponse.FromString,
             options,
             channel_credentials,
             insecure,

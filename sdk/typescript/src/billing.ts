@@ -5,42 +5,21 @@ import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/qu
 import {
   GetOrCreateBillingAccountInputSchema,
   GetBillingAccountInputSchema,
-  GetCreditBalanceInputSchema,
-  AdjustCreditsInputSchema,
-  GrantCreditsInputSchema,
-  GetCreditLedgerInputSchema,
-  CreateCreditCheckoutSessionInputSchema,
   CreateBillingPortalSessionInputSchema,
   CreatePaymentMethodSetupSessionInputSchema,
-  SetAutoRechargeConfigInputSchema,
   GetBillingUsageReportInputSchema,
-  GetCustomerModelPricingInputSchema,
   UpsertModelPricingBaselineInputSchema,
   RetireModelPricingBaselineInputSchema,
   ListModelPricingBaselinesInputSchema,
-  type CreateCreditCheckoutSessionResponse,
   type CreateBillingPortalSessionResponse,
   type CreatePaymentMethodSetupSessionResponse,
-  type CreditLedgerResponse,
   type BillingUsageReportResponse,
-  type CustomerModelPricingResponse,
   type ModelPricingBaselinesResponse,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
-import type { CreditLedgerEntry } from "@stigmer/protos/ai/stigmer/billing/v1/credit_pb";
 import type { ModelPricingBaseline } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
-import type { BillingAccount, CreditBalance } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
-import type { LedgerEntryType, LedgerView } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
-import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
+import type { BillingAccount } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { wrapError } from "./gen/errors.js";
-
-/** Parameters for creating a Stripe Checkout Session. */
-export interface CreateCheckoutSessionParams {
-  readonly org: string;
-  readonly packId: string;
-  readonly successUrl: string;
-  readonly cancelUrl: string;
-}
 
 /** Parameters for creating a Stripe Billing Portal session. */
 export interface CreateBillingPortalSessionParams {
@@ -55,71 +34,11 @@ export interface CreatePaymentMethodSetupSessionParams {
   readonly cancelUrl: string;
 }
 
-/** Parameters for configuring auto-recharge. */
-export interface SetAutoRechargeConfigParams {
-  readonly org: string;
-  readonly enabled: boolean;
-  readonly thresholdMicros: bigint;
-  readonly rechargeAmountMicros: bigint;
-  readonly monthlyCapMicros: bigint;
-}
-
-/** Parameters for a manual credit adjustment. */
-export interface AdjustCreditsParams {
-  readonly org: string;
-  /** Positive to add credits, negative to remove. */
-  readonly amountMicros: bigint;
-  /** Human-readable reason recorded on the ledger entry (audit trail). */
-  readonly reason: string;
-  /** Client-supplied deduplication key to prevent double-processing. */
-  readonly idempotencyKey: string;
-}
-
-/** Parameters for a promotional credit grant. */
-export interface GrantCreditsParams {
-  readonly org: string;
-  /** Amount to grant. Must be positive; grants never remove credits. */
-  readonly amountMicros: bigint;
-  /**
-   * When the grant expires (use-it-or-lose-it). Omit for a grant that never
-   * expires. Precision is whole seconds; sub-second precision is discarded.
-   */
-  readonly expiresAt?: Date;
-  /** Human-readable reason recorded on the ledger entry (audit trail). */
-  readonly reason: string;
-  /** Client-supplied deduplication key to prevent double-processing. */
-  readonly idempotencyKey: string;
-}
-
-/** Parameters for querying the credit ledger. */
-export interface GetCreditLedgerParams {
-  readonly org: string;
-  /** Pagination: `{ num, size }` where `num` is the 0-based page number. */
-  readonly page?: { readonly num: number; readonly size: number };
-  readonly typeFilter?: LedgerEntryType[];
-  /** Filter to entries on or after this timestamp. */
-  readonly startTime?: Date;
-  /** Filter to entries on or before this timestamp. */
-  readonly endTime?: Date;
-  /**
-   * Server-resolved ledger slice. When set to `LedgerView.statement`, the
-   * server returns only customer-facing money-movement entry types and
-   * excludes internal mechanics (per-call usage debits, reservation
-   * holds/releases). Defaults to the full ledger.
-   */
-  readonly view?: LedgerView;
-}
-
 /** Parameters for querying the billing usage report. */
 export interface GetBillingUsageReportParams {
   readonly org: string;
   readonly startTime: Date;
   readonly endTime: Date;
-}
-
-/** Parameters for querying customer model pricing. */
-export interface GetCustomerModelPricingParams {
-  readonly org?: string;
 }
 
 /** Parameters for creating or revising a model registry baseline entry. */
@@ -155,11 +74,11 @@ export interface ListModelPricingBaselinesParams {
 /**
  * Client for the billing bounded context.
  *
- * Wraps the user-facing billing RPCs: account provisioning,
- * balance queries, ledger history, and credit purchases via
- * Stripe Checkout. Internal execution-billing RPCs (authorize,
- * report, finalize) are not exposed — they are called only by
- * the Temporal workflow and agent runner.
+ * Wraps the user-facing billing RPCs: the organization's billing
+ * account (its Stripe customer), the Stripe portal and card setup
+ * sessions, the usage meter's call and run counts, and the
+ * platform operator's model catalog. The proxy's metering write
+ * (`recordLlmCallUsage`) is not exposed; only the server calls it.
  */
 export class BillingClient {
   private readonly command: Client<typeof BillingCommandController>;
@@ -197,116 +116,6 @@ export class BillingClient {
     }
   }
 
-  /** Retrieve the credit balance breakdown for an organization. */
-  async getCreditBalance(org: string): Promise<CreditBalance> {
-    try {
-      return await this.query.getCreditBalance(
-        create(GetCreditBalanceInputSchema, { org }),
-      );
-    } catch (e) {
-      throw wrapError(e);
-    }
-  }
-
-  /**
-   * Manually adjust an organization's credit balance.
-   *
-   * Positive `amountMicros` adds credits, negative removes them. The
-   * adjustment is recorded as a ledger entry with the supplied reason; the
-   * idempotency key deduplicates retries. Requires `can_manage_credits` on
-   * the platform: a platform operator, or an identity Stigmer has made a
-   * credit issuer. Owning the organization is not enough.
-   */
-  async adjustCredits(params: AdjustCreditsParams): Promise<CreditLedgerEntry> {
-    try {
-      return await this.command.adjustCredits(
-        create(AdjustCreditsInputSchema, {
-          org: params.org,
-          amountMicros: params.amountMicros,
-          reason: params.reason,
-          idempotencyKey: params.idempotencyKey,
-        }),
-      );
-    } catch (e) {
-      throw wrapError(e);
-    }
-  }
-
-  /**
-   * Grant promotional credits to an organization, optionally expiring
-   * (use-it-or-lose-it).
-   *
-   * The grant burns before adjustment and purchased credits. When
-   * `expiresAt` is set, any remainder unconsumed at that time is removed
-   * from the balance by the platform's grant-expiry sweep. Idempotent:
-   * replaying an applied idempotency key returns the original ledger entry,
-   * even after the expiry has passed. Requires `can_manage_credits` on the
-   * platform, as `adjustCredits` does.
-   */
-  async grantCredits(params: GrantCreditsParams): Promise<CreditLedgerEntry> {
-    try {
-      return await this.command.grantCredits(
-        create(GrantCreditsInputSchema, {
-          org: params.org,
-          amountMicros: params.amountMicros,
-          reason: params.reason,
-          idempotencyKey: params.idempotencyKey,
-          ...(params.expiresAt && { expiresAt: timestampFromDate(params.expiresAt) }),
-        }),
-      );
-    } catch (e) {
-      throw wrapError(e);
-    }
-  }
-
-  /** Retrieve paginated credit ledger entries with optional filters. */
-  async getCreditLedger(params: GetCreditLedgerParams): Promise<CreditLedgerResponse> {
-    try {
-      return await this.query.getCreditLedger(
-        create(GetCreditLedgerInputSchema, {
-          org: params.org,
-          ...(params.page && {
-            page: create(PageInfoSchema, {
-              num: params.page.num,
-              size: params.page.size,
-            }),
-          }),
-          ...(params.typeFilter?.length && { typeFilter: params.typeFilter }),
-          ...(params.startTime && { startTime: timestampFromDate(params.startTime) }),
-          ...(params.endTime && { endTime: timestampFromDate(params.endTime) }),
-          ...(params.view !== undefined && { view: params.view }),
-        }),
-      );
-    } catch (e) {
-      throw wrapError(e);
-    }
-  }
-
-  /**
-   * Create a Stripe Checkout Session to purchase a credit pack.
-   *
-   * Returns the Stripe-hosted checkout URL. The caller should
-   * redirect the user to `checkoutUrl` to complete payment.
-   * Credits are provisioned asynchronously via webhook after
-   * payment succeeds.
-   */
-  async createCreditCheckoutSession(
-    params: CreateCheckoutSessionParams,
-  ): Promise<CreateCreditCheckoutSessionResponse> {
-    try {
-      return await this.command.createCreditCheckoutSession(
-        create(CreateCreditCheckoutSessionInputSchema, {
-          org: params.org,
-          packId: params.packId,
-          successUrl: params.successUrl,
-          cancelUrl: params.cancelUrl,
-        }),
-      );
-    } catch (e) {
-      throw wrapError(e);
-    }
-  }
-
   /**
    * Create a Stripe Billing Portal session for payment method management.
    *
@@ -334,9 +143,9 @@ export class BillingClient {
    * charging it.
    *
    * Returns the Stripe-hosted setup URL. The caller should redirect the
-   * user to `setupUrl`. This is how an organization that has never
-   * bought credit puts a card on file; the saved card becomes the
-   * account's default via webhook.
+   * user to `setupUrl`. This is how an organization puts a card on
+   * file for its plan's invoices; the saved card becomes the account's
+   * default via webhook.
    */
   async createPaymentMethodSetupSession(
     params: CreatePaymentMethodSetupSessionParams,
@@ -355,37 +164,11 @@ export class BillingClient {
   }
 
   /**
-   * Configure automatic credit recharge for an organization.
+   * Retrieve an aggregated usage report for a date range.
    *
-   * When enabled, the billing system charges the account's saved
-   * payment method whenever the available balance drops below the
-   * configured threshold. Returns the updated BillingAccount.
-   */
-  async setAutoRechargeConfig(
-    params: SetAutoRechargeConfigParams,
-  ): Promise<BillingAccount> {
-    try {
-      return await this.command.setAutoRechargeConfig(
-        create(SetAutoRechargeConfigInputSchema, {
-          org: params.org,
-          enabled: params.enabled,
-          thresholdMicros: params.thresholdMicros,
-          rechargeAmountMicros: params.rechargeAmountMicros,
-          monthlyCapMicros: params.monthlyCapMicros,
-        }),
-      );
-    } catch (e) {
-      throw wrapError(e);
-    }
-  }
-
-  /**
-   * Retrieve an aggregated billing usage report for a date range.
-   *
-   * Returns total provider cost, total billable amount, run
-   * and LLM call counts, and a per-model breakdown with cost tier
-   * attribution. Data is sourced from the `llm_call_usage_record`
-   * collection (proxy-observed, tamper-proof).
+   * Returns the run and LLM call counts, and a per-model breakdown
+   * of call counts by model and harness. Data is sourced from the
+   * `llm_call_usage_record` collection (proxy-observed, tamper-proof).
    */
   async getBillingUsageReport(
     params: GetBillingUsageReportParams,
@@ -404,36 +187,12 @@ export class BillingClient {
   }
 
   /**
-   * Retrieve the customer-facing model price list with markup applied.
-   *
-   * Returns per-million-token prices for all billable models, with
-   * the active billing policy markup already factored in. These are
-   * the prices the customer pays, organized by harness and cost tier.
-   *
-   * Pass `org` to resolve org-specific policy overrides (future).
-   * Omit for default pricing.
-   */
-  async getCustomerModelPricing(
-    params?: GetCustomerModelPricingParams,
-  ): Promise<CustomerModelPricingResponse> {
-    try {
-      return await this.query.getCustomerModelPricing(
-        create(GetCustomerModelPricingInputSchema, {
-          org: params?.org ?? "",
-        }),
-      );
-    } catch (e) {
-      throw wrapError(e);
-    }
-  }
-
-  /**
    * Retrieve the model registry baseline catalog: ACTIVE entries by
    * default, or the full append-only revision history with
    * `includeHistory`.
    *
    * Platform-operator surface (`can_manage_model_pricing` on
-   * `platform:stigmer`): rates are raw provider prices, pre-markup.
+   * `platform:stigmer`): rates are the providers' list prices.
    */
   async listModelPricingBaselines(
     params?: ListModelPricingBaselinesParams,

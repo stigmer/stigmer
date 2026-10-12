@@ -894,9 +894,9 @@ func (ToolCallStreamingSource) EnumDescriptor() ([]byte, []int) {
 // update and acts accordingly.
 //
 // Signal sources are opaque to the runner — the platform may set STOP due
-// to credit exhaustion, an admin kill, a user-configured budget cap, or any
-// future enforcement mechanism. The runner does not know or care about the
-// source; it only reacts to the signal value.
+// to an admin kill, a user-configured budget cap, or any other enforcement
+// mechanism. The runner does not know or care about the source; it only
+// reacts to the signal value.
 type RunControlSignal int32
 
 const (
@@ -905,8 +905,8 @@ const (
 	// Run must stop gracefully. The runner should block further tool
 	// calls and give the model one final turn to produce a summary.
 	RunControlSignal_RUN_CONTROL_SIGNAL_STOP RunControlSignal = 1
-	// Informational warning (e.g. low credit balance). The runner logs the
-	// warning and continues the run.
+	// Informational warning (e.g. a budget cap nearly reached). The runner
+	// logs the warning and continues the run.
 	RunControlSignal_RUN_CONTROL_SIGNAL_WARNING RunControlSignal = 2
 )
 

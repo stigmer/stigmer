@@ -280,9 +280,10 @@ public final class AgentChannelCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent channel.
-     * Connecting an agent to a channel is a billing-affecting decision:
-     * conversations arriving over the channel consume the connection-owning
-     * organization's credits.
+     * Connecting an agent to a channel is a spending decision: conversations
+     * arriving over the channel call models on the connection-owning
+     * organization's own provider keys, and the providers bill the
+     * organization for them.
      * </pre>
      */
     default void create(ai.stigmer.agentic.agentchannel.v1.AgentChannel request,
@@ -414,9 +415,10 @@ public final class AgentChannelCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent channel.
-     * Connecting an agent to a channel is a billing-affecting decision:
-     * conversations arriving over the channel consume the connection-owning
-     * organization's credits.
+     * Connecting an agent to a channel is a spending decision: conversations
+     * arriving over the channel call models on the connection-owning
+     * organization's own provider keys, and the providers bill the
+     * organization for them.
      * </pre>
      */
     public void create(ai.stigmer.agentic.agentchannel.v1.AgentChannel request,
@@ -538,9 +540,10 @@ public final class AgentChannelCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent channel.
-     * Connecting an agent to a channel is a billing-affecting decision:
-     * conversations arriving over the channel consume the connection-owning
-     * organization's credits.
+     * Connecting an agent to a channel is a spending decision: conversations
+     * arriving over the channel call models on the connection-owning
+     * organization's own provider keys, and the providers bill the
+     * organization for them.
      * </pre>
      */
     public ai.stigmer.agentic.agentchannel.v1.AgentChannel create(ai.stigmer.agentic.agentchannel.v1.AgentChannel request) throws io.grpc.StatusException {
@@ -657,9 +660,10 @@ public final class AgentChannelCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent channel.
-     * Connecting an agent to a channel is a billing-affecting decision:
-     * conversations arriving over the channel consume the connection-owning
-     * organization's credits.
+     * Connecting an agent to a channel is a spending decision: conversations
+     * arriving over the channel call models on the connection-owning
+     * organization's own provider keys, and the providers bill the
+     * organization for them.
      * </pre>
      */
     public ai.stigmer.agentic.agentchannel.v1.AgentChannel create(ai.stigmer.agentic.agentchannel.v1.AgentChannel request) {
@@ -777,9 +781,10 @@ public final class AgentChannelCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent channel.
-     * Connecting an agent to a channel is a billing-affecting decision:
-     * conversations arriving over the channel consume the connection-owning
-     * organization's credits.
+     * Connecting an agent to a channel is a spending decision: conversations
+     * arriving over the channel call models on the connection-owning
+     * organization's own provider keys, and the providers bill the
+     * organization for them.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.AgentChannel> create(

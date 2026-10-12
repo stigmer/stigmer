@@ -146,8 +146,9 @@ export type AgentShareMessages = Message<"ai.stigmer.agentic.agentshare.v1.Agent
   rateLimited: string;
 
   /**
-   * Shown when the share cannot serve the conversation — the org's credits
-   * are exhausted or the agent's tools are not ready (fails closed).
+   * Shown when the share cannot serve the conversation — the organization
+   * holds no provider key for the agent's model or the agent's tools are
+   * not ready (fails closed).
    *
    * @generated from field: string unavailable = 2;
    */

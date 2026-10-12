@@ -374,23 +374,6 @@ private static final long serialVersionUID = 0L;
     return lastUsedAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : lastUsedAt_;
   }
 
-  public static final int IN_USE_FIELD_NUMBER = 8;
-  private boolean inUse_ = false;
-  /**
-   * <pre>
-   * No longer used: always true. Every plan serves calls on the
-   * organization's own key, and list never returns a parent's key the
-   * organization's own key shadows. Kept because it is a wire field.
-   * </pre>
-   *
-   * <code>bool in_use = 8 [json_name = "inUse"];</code>
-   * @return The inUse.
-   */
-  @java.lang.Override
-  public boolean getInUse() {
-    return inUse_;
-  }
-
   public static final int INHERITED_FROM_ORG_FIELD_NUMBER = 9;
   @SuppressWarnings("serial")
   private volatile java.lang.Object inheritedFromOrg_ = "";
@@ -530,9 +513,6 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(7, getLastUsedAt());
     }
-    if (inUse_ != false) {
-      output.writeBool(8, inUse_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(inheritedFromOrg_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, inheritedFromOrg_);
     }
@@ -571,10 +551,6 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(7, getLastUsedAt());
-    }
-    if (inUse_ != false) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(8, inUse_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(inheritedFromOrg_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, inheritedFromOrg_);
@@ -620,8 +596,6 @@ private static final long serialVersionUID = 0L;
       if (!getLastUsedAt()
           .equals(other.getLastUsedAt())) return false;
     }
-    if (getInUse()
-        != other.getInUse()) return false;
     if (!getInheritedFromOrg()
         .equals(other.getInheritedFromOrg())) return false;
     if (!getBaseUrl()
@@ -657,9 +631,6 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + LAST_USED_AT_FIELD_NUMBER;
       hash = (53 * hash) + getLastUsedAt().hashCode();
     }
-    hash = (37 * hash) + IN_USE_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getInUse());
     hash = (37 * hash) + INHERITED_FROM_ORG_FIELD_NUMBER;
     hash = (53 * hash) + getInheritedFromOrg().hashCode();
     hash = (37 * hash) + BASE_URL_FIELD_NUMBER;
@@ -846,7 +817,6 @@ private static final long serialVersionUID = 0L;
         lastUsedAtBuilder_.dispose();
         lastUsedAtBuilder_ = null;
       }
-      inUse_ = false;
       inheritedFromOrg_ = "";
       baseUrl_ = "";
       return this;
@@ -914,12 +884,9 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000004;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.inUse_ = inUse_;
-      }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.inheritedFromOrg_ = inheritedFromOrg_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.baseUrl_ = baseUrl_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -966,17 +933,14 @@ private static final long serialVersionUID = 0L;
       if (other.hasLastUsedAt()) {
         mergeLastUsedAt(other.getLastUsedAt());
       }
-      if (other.getInUse() != false) {
-        setInUse(other.getInUse());
-      }
       if (!other.getInheritedFromOrg().isEmpty()) {
         inheritedFromOrg_ = other.inheritedFromOrg_;
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       if (!other.getBaseUrl().isEmpty()) {
         baseUrl_ = other.baseUrl_;
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1046,19 +1010,14 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
-            case 64: {
-              inUse_ = input.readBool();
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 64
             case 74: {
               inheritedFromOrg_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 74
             case 82: {
               baseUrl_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 82
             default: {
@@ -1895,56 +1854,6 @@ private static final long serialVersionUID = 0L;
       return lastUsedAtBuilder_;
     }
 
-    private boolean inUse_ ;
-    /**
-     * <pre>
-     * No longer used: always true. Every plan serves calls on the
-     * organization's own key, and list never returns a parent's key the
-     * organization's own key shadows. Kept because it is a wire field.
-     * </pre>
-     *
-     * <code>bool in_use = 8 [json_name = "inUse"];</code>
-     * @return The inUse.
-     */
-    @java.lang.Override
-    public boolean getInUse() {
-      return inUse_;
-    }
-    /**
-     * <pre>
-     * No longer used: always true. Every plan serves calls on the
-     * organization's own key, and list never returns a parent's key the
-     * organization's own key shadows. Kept because it is a wire field.
-     * </pre>
-     *
-     * <code>bool in_use = 8 [json_name = "inUse"];</code>
-     * @param value The inUse to set.
-     * @return This builder for chaining.
-     */
-    public Builder setInUse(boolean value) {
-
-      inUse_ = value;
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * No longer used: always true. Every plan serves calls on the
-     * organization's own key, and list never returns a parent's key the
-     * organization's own key shadows. Kept because it is a wire field.
-     * </pre>
-     *
-     * <code>bool in_use = 8 [json_name = "inUse"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearInUse() {
-      bitField0_ = (bitField0_ & ~0x00000080);
-      inUse_ = false;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object inheritedFromOrg_ = "";
     /**
      * <pre>
@@ -2006,7 +1915,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       inheritedFromOrg_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2022,7 +1931,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearInheritedFromOrg() {
       inheritedFromOrg_ = getDefaultInstance().getInheritedFromOrg();
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       onChanged();
       return this;
     }
@@ -2042,7 +1951,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       inheritedFromOrg_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2111,7 +2020,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       baseUrl_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -2128,7 +2037,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearBaseUrl() {
       baseUrl_ = getDefaultInstance().getBaseUrl();
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       onChanged();
       return this;
     }
@@ -2149,7 +2058,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       baseUrl_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }

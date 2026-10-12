@@ -124,8 +124,7 @@ export function PaymentMethodCard({
         <div className="stg:mt-2">
           <p className="stg:text-xs stg:text-muted-foreground">
             No payment method on file. A saved card is needed to subscribe to
-            a plan or turn on auto-recharge; buying a credit pack also saves
-            one.
+            a plan; each period&apos;s invoice is charged to it.
           </p>
           {onAdd && (
             <button

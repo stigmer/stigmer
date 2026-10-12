@@ -6,8 +6,7 @@ import { Button } from "../button/index.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import {
   formatChildOrgs,
-  formatMonthlyMinimum,
-  explainUsageShare,
+  formatMonthlyFee,
   offeredFeatures,
 } from "./plan-features.js";
 import { planMove, type PlanMove, type PlanStanding } from "./plan-state.js";
@@ -60,7 +59,6 @@ export function PlanPicker({
       <PlanOption
         name="Free"
         price="$0/month"
-        detail="Usage is paid from credits."
         features={["Channels", "Sharing", "Unlimited members"]}
         current={standing.kind === "free"}
         action={canManage && freeMove !== null ? { label: "Move to Free", move: freeMove } : undefined}
@@ -74,8 +72,7 @@ export function PlanPicker({
           <PlanOption
             key={plan.metadata?.id ?? plan.metadata?.slug}
             name={plan.metadata?.name ?? ""}
-            price={formatMonthlyMinimum(plan.spec?.terms)}
-            detail={explainUsageShare(plan.spec?.terms)}
+            price={formatMonthlyFee(plan.spec?.terms)}
             features={[
               ...offeredFeatures(plan.spec?.entitlements).map((feature) => feature.label),
               ...(managed === "" ? [] : [managed]),
@@ -108,7 +105,6 @@ export function PlanPicker({
 function PlanOption({
   name,
   price,
-  detail,
   features,
   current,
   action,
@@ -117,7 +113,6 @@ function PlanOption({
 }: {
   readonly name: string;
   readonly price: string;
-  readonly detail: string;
   readonly features: readonly string[];
   readonly current: boolean;
   readonly action?: { readonly label: string; readonly move: PlanMove };
@@ -136,7 +131,6 @@ function PlanOption({
         <p className="stg:text-sm stg:font-medium stg:text-foreground">{name}</p>
         <p className="stg:text-xs stg:tabular-nums stg:text-foreground">{price}</p>
       </div>
-      {detail !== "" && <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">{detail}</p>}
       <ul className={cn(UNSTYLED_LIST, "stg:mt-2 stg:space-y-0.5 stg:text-xs stg:text-muted-foreground")}>
         {features.map((feature) => (
           <li key={feature}>{feature}</li>

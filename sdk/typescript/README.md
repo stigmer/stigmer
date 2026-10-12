@@ -57,7 +57,7 @@ Every resource type has a typed client accessible as a property on the `Stigmer`
 | `skill`              | Skill              |
 | `vault`              | Vault              |
 | `search`             | Cross-resource search |
-| `billing`            | Billing (credits, ledger, Stripe) |
+| `billing`            | Billing (account, Stripe, usage counts, model catalog) |
 
 A vault's entries are written through its entry calls, not through `create`
 or `update`: `stigmer.vault.setSecrets`, `setConnection`, `removeSecrets` and
@@ -66,22 +66,29 @@ name, description and external id while keeping the entries as stored.
 
 ### Billing
 
-Credit balance queries, ledger history, and manual credit adjustments for an
-organization. Queries require `can_view_billing` on the org and the org's own
-billing commands require `can_manage_billing`. Adding or removing credits
-without a purchase (`adjustCredits`, `grantCredits`) requires
-`can_manage_credits` on the platform, held by platform operators and by the
-funding identities Stigmer makes credit issuers:
+An organization's billing account (its Stripe customer), the Stripe portal
+and card setup sessions, and the usage meter's run and call counts. Queries
+require `can_view_billing` on the org and the org's own billing commands
+require `can_manage_billing`. The model catalog calls
+(`listModelPricingBaselines`, `upsertModelPricingBaseline`,
+`retireModelPricingBaseline`) require `can_manage_model_pricing` on the
+platform:
 
 ```typescript
-const balance = await stigmer.billing.getCreditBalance(org);
+const account = await stigmer.billing.getBillingAccount(org);
 
-const entry = await stigmer.billing.adjustCredits({
+const { setupUrl } = await stigmer.billing.createPaymentMethodSetupSession({
   org,
-  amountMicros: 25_000_000n, // +$25.00
-  reason: "support credit for an outage",
-  idempotencyKey: `support-${org}-2026-09`,
+  successUrl: "https://example.com/billing?setup=success",
+  cancelUrl: "https://example.com/billing",
 });
+
+const report = await stigmer.billing.getBillingUsageReport({
+  org,
+  startTime: new Date("2026-10-01T00:00:00Z"),
+  endTime: new Date("2026-11-01T00:00:00Z"),
+});
+console.log(report.runCount, report.llmCallCount);
 ```
 
 ### Common operations

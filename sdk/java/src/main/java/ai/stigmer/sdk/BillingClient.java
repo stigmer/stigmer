@@ -1,72 +1,52 @@
 package ai.stigmer.sdk;
 
-import ai.stigmer.billing.v1.AdjustCreditsInput;
 import ai.stigmer.billing.v1.BillingAccount;
 import ai.stigmer.billing.v1.BillingCommandControllerGrpc;
 import ai.stigmer.billing.v1.BillingQueryControllerGrpc;
 import ai.stigmer.billing.v1.BillingUsageReportResponse;
 import ai.stigmer.billing.v1.CreateBillingPortalSessionInput;
 import ai.stigmer.billing.v1.CreateBillingPortalSessionResponse;
-import ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput;
-import ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse;
 import ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput;
 import ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse;
-import ai.stigmer.billing.v1.CreditBalance;
-import ai.stigmer.billing.v1.CreditLedgerEntry;
-import ai.stigmer.billing.v1.CreditLedgerResponse;
-import ai.stigmer.billing.v1.CustomerModelPricingResponse;
 import ai.stigmer.billing.v1.GetBillingAccountInput;
 import ai.stigmer.billing.v1.GetBillingUsageReportInput;
-import ai.stigmer.billing.v1.GetCreditBalanceInput;
-import ai.stigmer.billing.v1.GetCreditLedgerInput;
-import ai.stigmer.billing.v1.GetCustomerModelPricingInput;
 import ai.stigmer.billing.v1.GetOrCreateBillingAccountInput;
-import ai.stigmer.billing.v1.GrantCreditsInput;
-import ai.stigmer.billing.v1.LedgerEntryType;
-import ai.stigmer.billing.v1.LedgerView;
 import ai.stigmer.billing.v1.ListModelPricingBaselinesInput;
 import ai.stigmer.billing.v1.ModelPricingBaseline;
 import ai.stigmer.billing.v1.ModelPricingBaselinesResponse;
 import ai.stigmer.billing.v1.RetireModelPricingBaselineInput;
-import ai.stigmer.billing.v1.SetAutoRechargeConfigInput;
 import ai.stigmer.billing.v1.UpsertModelPricingBaselineInput;
-import ai.stigmer.commons.rpc.PageInfo;
-import ai.stigmer.sdk.gen.Page;
 import ai.stigmer.sdk.gen.StigmerException;
 import com.google.protobuf.Timestamp;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Objects;
 
 /**
  * Client for the billing bounded context.
  *
- * <p>Wraps the user-facing billing RPCs: account provisioning, balance
- * queries, ledger history, manual credit adjustments, credit purchases via
- * Stripe Checkout, and the platform-operator pricing surfaces. Internal
- * run-billing RPCs (authorize, report, finalize) are not exposed —
- * they are called only by the Temporal workflow and agent runner.
+ * <p>Wraps the user-facing billing RPCs: the organization's billing account
+ * (its Stripe customer), the Stripe portal and card setup sessions, the
+ * usage meter's call and run counts, and the platform-operator pricing
+ * surfaces. The proxy's metering write ({@code recordLlmCallUsage}) is not
+ * exposed; only the server calls it.
  *
  * <p>Billing is not an API Resource: RPCs authorize against the owning
  * organization ({@code can_view_billing} for queries,
- * {@code can_manage_billing} for the organization's own commands). The
- * credit mutations ({@code adjustCredits}, {@code grantCredits}) require
- * {@code can_manage_credits} on the platform, and the model-catalog
- * methods ({@code can_manage_model_pricing}) require platform-operator
- * privileges.
+ * {@code can_manage_billing} for the organization's own commands), and the
+ * model-catalog methods ({@code can_manage_model_pricing}) require
+ * platform-operator privileges.
  *
  * <pre>{@code
- * CreditBalance balance = client.billing().getCreditBalance(org);
+ * BillingAccount account = client.billing().getBillingAccount(org);
  *
- * CreditLedgerEntry entry = client.billing().adjustCredits(
- *     BillingClient.AdjustCreditsParams.builder()
+ * BillingUsageReportResponse report = client.billing().getBillingUsageReport(
+ *     BillingClient.GetBillingUsageReportParams.builder()
  *         .org(org)
- *         .amountMicros(25_000_000L) // +$25.00
- *         .reason("initial tenant funding")
- *         .idempotencyKey("fund-" + org)
+ *         .startTime(Instant.parse("2026-10-01T00:00:00Z"))
+ *         .endTime(Instant.parse("2026-11-01T00:00:00Z"))
  *         .build());
  * }</pre>
  */
@@ -80,7 +60,7 @@ public final class BillingClient {
         this.query = BillingQueryControllerGrpc.newBlockingStub(channel);
     }
 
-    // -- Account & balance ------------------------------------------------------
+    // -- Account & usage --------------------------------------------------------
 
     /**
      * Provisions or retrieves the billing account for an organization.
@@ -111,67 +91,11 @@ public final class BillingClient {
         }
     }
 
-    /** Retrieves the credit balance breakdown for an organization. */
-    public CreditBalance getCreditBalance(String org) {
-        Objects.requireNonNull(org, "org is required");
-        try {
-            return query.getCreditBalance(GetCreditBalanceInput.newBuilder()
-                    .setOrg(org)
-                    .build());
-        } catch (StatusRuntimeException e) {
-            throw StigmerException.wrap(e);
-        }
-    }
-
     /**
-     * Manually adjusts an organization's credit balance.
+     * Retrieves an aggregated usage report for a date range.
      *
-     * <p>Produces an immutable ledger entry for audit. Requires
-     * {@code can_manage_credits} on the platform: a platform operator, or an
-     * identity Stigmer has made a credit issuer. Owning the organization is
-     * not enough.
-     */
-    public CreditLedgerEntry adjustCredits(AdjustCreditsParams params) {
-        try {
-            return command.adjustCredits(params.toProto());
-        } catch (StatusRuntimeException e) {
-            throw StigmerException.wrap(e);
-        }
-    }
-
-    /**
-     * Grants promotional credits to an organization, optionally expiring
-     * (use-it-or-lose-it).
-     *
-     * <p>The grant burns before adjustment and purchased credits. When an
-     * expiry is set, any remainder unconsumed at that time is removed from
-     * the balance by the platform's grant-expiry sweep. Idempotent: replaying
-     * an applied idempotency key returns the original ledger entry, even
-     * after the expiry has passed. Requires {@code can_manage_credits} on
-     * the platform, as {@link #adjustCredits} does.
-     */
-    public CreditLedgerEntry grantCredits(GrantCreditsParams params) {
-        try {
-            return command.grantCredits(params.toProto());
-        } catch (StatusRuntimeException e) {
-            throw StigmerException.wrap(e);
-        }
-    }
-
-    /** Retrieves paginated credit ledger entries with optional filters. */
-    public CreditLedgerResponse getCreditLedger(GetCreditLedgerParams params) {
-        try {
-            return query.getCreditLedger(params.toProto());
-        } catch (StatusRuntimeException e) {
-            throw StigmerException.wrap(e);
-        }
-    }
-
-    /**
-     * Retrieves an aggregated billing usage report for a date range.
-     *
-     * <p>Returns total provider cost, total billable amount, run and
-     * LLM call counts, and a per-model breakdown with cost tier attribution.
+     * <p>Returns the run and LLM call counts, and a per-model breakdown of
+     * call counts by model and harness.
      */
     public BillingUsageReportResponse getBillingUsageReport(GetBillingUsageReportParams params) {
         try {
@@ -184,27 +108,12 @@ public final class BillingClient {
     // -- Stripe integration -------------------------------------------------------
 
     /**
-     * Creates a Stripe Checkout Session to purchase a credit pack.
-     *
-     * <p>Returns the Stripe-hosted checkout URL; redirect the user there to
-     * complete payment. Credits are provisioned asynchronously via webhook
-     * after payment succeeds.
-     */
-    public CreateCreditCheckoutSessionResponse createCreditCheckoutSession(
-            CreateCreditCheckoutSessionParams params) {
-        try {
-            return command.createCreditCheckoutSession(params.toProto());
-        } catch (StatusRuntimeException e) {
-            throw StigmerException.wrap(e);
-        }
-    }
-
-    /**
      * Creates a Stripe Customer Portal session for payment method management.
      *
      * <p>Returns the Stripe-hosted portal URL; redirect the user there to
      * add, update, or remove saved payment methods. Requires an existing
-     * Stripe Customer (created during the first credit purchase).
+     * Stripe Customer (created when the organization first saves a card
+     * through {@link #createPaymentMethodSetupSession}).
      */
     public CreateBillingPortalSessionResponse createBillingPortalSession(
             CreateBillingPortalSessionParams params) {
@@ -220,7 +129,7 @@ public final class BillingClient {
      * charging it.
      *
      * <p>Returns the Stripe-hosted setup URL; redirect the user there. This is
-     * how an organization that has never bought credit puts a card on file.
+     * how an organization puts a card on file for its plan's invoices.
      */
     public CreatePaymentMethodSetupSessionResponse createPaymentMethodSetupSession(
             CreatePaymentMethodSetupSessionParams params) {
@@ -231,45 +140,7 @@ public final class BillingClient {
         }
     }
 
-    /**
-     * Configures automatic credit recharge for an organization.
-     *
-     * <p>When enabled, the billing system charges the account's saved payment
-     * method whenever the available balance drops below the configured
-     * threshold. Returns the updated {@link BillingAccount}.
-     */
-    public BillingAccount setAutoRechargeConfig(SetAutoRechargeConfigParams params) {
-        try {
-            return command.setAutoRechargeConfig(params.toProto());
-        } catch (StatusRuntimeException e) {
-            throw StigmerException.wrap(e);
-        }
-    }
-
     // -- Model pricing ------------------------------------------------------------
-
-    /** Retrieves the customer-facing model price list with default pricing. */
-    public CustomerModelPricingResponse getCustomerModelPricing() {
-        return getCustomerModelPricing("");
-    }
-
-    /**
-     * Retrieves the customer-facing model price list with markup applied.
-     *
-     * <p>Returns per-million-token prices for all billable models, organized
-     * by harness and cost tier. Pass an org ID to resolve org-specific policy
-     * overrides; pass an empty string for default pricing.
-     */
-    public CustomerModelPricingResponse getCustomerModelPricing(String org) {
-        Objects.requireNonNull(org, "org must not be null (use \"\" for default pricing)");
-        try {
-            return query.getCustomerModelPricing(GetCustomerModelPricingInput.newBuilder()
-                    .setOrg(org)
-                    .build());
-        } catch (StatusRuntimeException e) {
-            throw StigmerException.wrap(e);
-        }
-    }
 
     /** Retrieves the model registry baseline catalog (ACTIVE entries only). */
     public ModelPricingBaselinesResponse listModelPricingBaselines() {
@@ -330,263 +201,9 @@ public final class BillingClient {
                 .build();
     }
 
-    // -- AdjustCreditsParams ------------------------------------------------------
-
-    /** Parameters for manually adjusting an organization's credit balance. */
-    public static final class AdjustCreditsParams {
-        final String org;
-        final long amountMicros;
-        final String reason;
-        final String idempotencyKey;
-
-        private AdjustCreditsParams(Builder builder) {
-            this.org = builder.org;
-            this.amountMicros = builder.amountMicros;
-            this.reason = builder.reason;
-            this.idempotencyKey = builder.idempotencyKey;
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        AdjustCreditsInput toProto() {
-            return AdjustCreditsInput.newBuilder()
-                    .setOrg(org)
-                    .setAmountMicros(amountMicros)
-                    .setReason(reason)
-                    .setIdempotencyKey(idempotencyKey)
-                    .build();
-        }
-
-        public static final class Builder {
-            private String org;
-            private long amountMicros;
-            private String reason;
-            private String idempotencyKey;
-
-            private Builder() {}
-
-            /** Organization ID whose balance to adjust (required). */
-            public Builder org(String org) {
-                this.org = Objects.requireNonNull(org);
-                return this;
-            }
-
-            /** Micro-USD to adjust by: positive adds credits, negative removes. */
-            public Builder amountMicros(long amountMicros) {
-                this.amountMicros = amountMicros;
-                return this;
-            }
-
-            /** Human-readable reason for the adjustment, recorded in the audit trail (required). */
-            public Builder reason(String reason) {
-                this.reason = Objects.requireNonNull(reason);
-                return this;
-            }
-
-            /** Client-supplied deduplication key to prevent double-processing (required). */
-            public Builder idempotencyKey(String idempotencyKey) {
-                this.idempotencyKey = Objects.requireNonNull(idempotencyKey);
-                return this;
-            }
-
-            public AdjustCreditsParams build() {
-                Objects.requireNonNull(org, "org is required");
-                Objects.requireNonNull(reason, "reason is required");
-                Objects.requireNonNull(idempotencyKey, "idempotencyKey is required");
-                return new AdjustCreditsParams(this);
-            }
-        }
-    }
-
-    // -- GrantCreditsParams -------------------------------------------------------
-
-    /** Parameters for granting promotional credits to an organization. */
-    public static final class GrantCreditsParams {
-        final String org;
-        final long amountMicros;
-        final Instant expiresAt;
-        final String reason;
-        final String idempotencyKey;
-
-        private GrantCreditsParams(Builder builder) {
-            this.org = builder.org;
-            this.amountMicros = builder.amountMicros;
-            this.expiresAt = builder.expiresAt;
-            this.reason = builder.reason;
-            this.idempotencyKey = builder.idempotencyKey;
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        GrantCreditsInput toProto() {
-            GrantCreditsInput.Builder req = GrantCreditsInput.newBuilder()
-                    .setOrg(org)
-                    .setAmountMicros(amountMicros)
-                    .setReason(reason)
-                    .setIdempotencyKey(idempotencyKey);
-            if (expiresAt != null) {
-                req.setExpiresAt(protoTimestamp(expiresAt));
-            }
-            return req.build();
-        }
-
-        public static final class Builder {
-            private String org;
-            private long amountMicros;
-            private Instant expiresAt;
-            private String reason;
-            private String idempotencyKey;
-
-            private Builder() {}
-
-            /** Organization ID to grant credits to (required). */
-            public Builder org(String org) {
-                this.org = Objects.requireNonNull(org);
-                return this;
-            }
-
-            /** Micro-USD to grant. Must be positive; grants never remove credits. */
-            public Builder amountMicros(long amountMicros) {
-                this.amountMicros = amountMicros;
-                return this;
-            }
-
-            /**
-             * When the grant expires (use-it-or-lose-it). Omit for a grant that
-             * never expires. Precision is whole seconds; sub-second precision
-             * is discarded.
-             */
-            public Builder expiresAt(Instant expiresAt) {
-                this.expiresAt = expiresAt;
-                return this;
-            }
-
-            /** Human-readable reason for the grant, recorded in the audit trail (required). */
-            public Builder reason(String reason) {
-                this.reason = Objects.requireNonNull(reason);
-                return this;
-            }
-
-            /** Client-supplied deduplication key to prevent double-processing (required). */
-            public Builder idempotencyKey(String idempotencyKey) {
-                this.idempotencyKey = Objects.requireNonNull(idempotencyKey);
-                return this;
-            }
-
-            public GrantCreditsParams build() {
-                Objects.requireNonNull(org, "org is required");
-                Objects.requireNonNull(reason, "reason is required");
-                Objects.requireNonNull(idempotencyKey, "idempotencyKey is required");
-                return new GrantCreditsParams(this);
-            }
-        }
-    }
-
-    // -- GetCreditLedgerParams ----------------------------------------------------
-
-    /** Parameters for querying the credit ledger. */
-    public static final class GetCreditLedgerParams {
-        final String org;
-        final Page page;
-        final List<LedgerEntryType> typeFilter;
-        final LedgerView view;
-        final Instant startTime;
-        final Instant endTime;
-
-        private GetCreditLedgerParams(Builder builder) {
-            this.org = builder.org;
-            this.page = builder.page;
-            this.typeFilter = builder.typeFilter;
-            this.view = builder.view;
-            this.startTime = builder.startTime;
-            this.endTime = builder.endTime;
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        GetCreditLedgerInput toProto() {
-            GetCreditLedgerInput.Builder req = GetCreditLedgerInput.newBuilder()
-                    .setOrg(org)
-                    .addAllTypeFilter(typeFilter);
-            if (page != null) {
-                req.setPage(PageInfo.newBuilder()
-                        .setNum(page.getNum())
-                        .setSize(page.getSize())
-                        .build());
-            }
-            if (view != null) {
-                req.setView(view);
-            }
-            if (startTime != null) {
-                req.setStartTime(protoTimestamp(startTime));
-            }
-            if (endTime != null) {
-                req.setEndTime(protoTimestamp(endTime));
-            }
-            return req.build();
-        }
-
-        public static final class Builder {
-            private String org;
-            private Page page;
-            private List<LedgerEntryType> typeFilter = List.of();
-            private LedgerView view;
-            private Instant startTime;
-            private Instant endTime;
-
-            private Builder() {}
-
-            /** Organization ID whose ledger to query (required). */
-            public Builder org(String org) {
-                this.org = Objects.requireNonNull(org);
-                return this;
-            }
-
-            /** Pagination parameters. */
-            public Builder page(Page page) {
-                this.page = page;
-                return this;
-            }
-
-            /** Filter to specific entry types. Empty means all types. */
-            public Builder typeFilter(List<LedgerEntryType> typeFilter) {
-                this.typeFilter = Objects.requireNonNull(typeFilter);
-                return this;
-            }
-
-            /**
-             * Server-resolved ledger slice. {@link LedgerView#ledger_view_statement}
-             * returns only customer-facing money-movement entries and excludes
-             * internal mechanics (per-call usage debits, reservation
-             * holds/releases). Defaults to the full ledger.
-             */
-            public Builder view(LedgerView view) {
-                this.view = view;
-                return this;
-            }
-
-            /** Filter to entries on or after this instant. */
-            public Builder startTime(Instant startTime) {
-                this.startTime = startTime;
-                return this;
-            }
-
-            /** Filter to entries on or before this instant. */
-            public Builder endTime(Instant endTime) {
-                this.endTime = endTime;
-                return this;
-            }
-
-            public GetCreditLedgerParams build() {
-                Objects.requireNonNull(org, "org is required");
-                return new GetCreditLedgerParams(this);
-            }
-        }
-    }
-
     // -- GetBillingUsageReportParams ------------------------------------------------
 
-    /** Parameters for querying the aggregated billing usage report. */
+    /** Parameters for querying the aggregated usage report. */
     public static final class GetBillingUsageReportParams {
         final String org;
         final Instant startTime;
@@ -638,75 +255,6 @@ public final class BillingClient {
                 Objects.requireNonNull(startTime, "startTime is required");
                 Objects.requireNonNull(endTime, "endTime is required");
                 return new GetBillingUsageReportParams(this);
-            }
-        }
-    }
-
-    // -- CreateCreditCheckoutSessionParams --------------------------------------------
-
-    /** Parameters for creating a Stripe Checkout Session. */
-    public static final class CreateCreditCheckoutSessionParams {
-        final String org;
-        final String packId;
-        final String successUrl;
-        final String cancelUrl;
-
-        private CreateCreditCheckoutSessionParams(Builder builder) {
-            this.org = builder.org;
-            this.packId = builder.packId;
-            this.successUrl = builder.successUrl;
-            this.cancelUrl = builder.cancelUrl;
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        CreateCreditCheckoutSessionInput toProto() {
-            return CreateCreditCheckoutSessionInput.newBuilder()
-                    .setOrg(org)
-                    .setPackId(packId)
-                    .setSuccessUrl(successUrl)
-                    .setCancelUrl(cancelUrl)
-                    .build();
-        }
-
-        public static final class Builder {
-            private String org;
-            private String packId;
-            private String successUrl;
-            private String cancelUrl;
-
-            private Builder() {}
-
-            /** Organization purchasing the credits (required). */
-            public Builder org(String org) {
-                this.org = Objects.requireNonNull(org);
-                return this;
-            }
-
-            /** Credit pack to purchase, e.g. "starter", "growth", "team" (required). */
-            public Builder packId(String packId) {
-                this.packId = Objects.requireNonNull(packId);
-                return this;
-            }
-
-            /** URL to redirect to after successful payment (required). */
-            public Builder successUrl(String successUrl) {
-                this.successUrl = Objects.requireNonNull(successUrl);
-                return this;
-            }
-
-            /** URL to redirect to if the user cancels checkout (required). */
-            public Builder cancelUrl(String cancelUrl) {
-                this.cancelUrl = Objects.requireNonNull(cancelUrl);
-                return this;
-            }
-
-            public CreateCreditCheckoutSessionParams build() {
-                Objects.requireNonNull(org, "org is required");
-                Objects.requireNonNull(packId, "packId is required");
-                Objects.requireNonNull(successUrl, "successUrl is required");
-                Objects.requireNonNull(cancelUrl, "cancelUrl is required");
-                return new CreateCreditCheckoutSessionParams(this);
             }
         }
     }
@@ -812,82 +360,6 @@ public final class BillingClient {
                 Objects.requireNonNull(successUrl, "successUrl is required");
                 Objects.requireNonNull(cancelUrl, "cancelUrl is required");
                 return new CreatePaymentMethodSetupSessionParams(this);
-            }
-        }
-    }
-
-    // -- SetAutoRechargeConfigParams --------------------------------------------------
-
-    /** Parameters for configuring automatic credit recharge. */
-    public static final class SetAutoRechargeConfigParams {
-        final String org;
-        final boolean enabled;
-        final long thresholdMicros;
-        final long rechargeAmountMicros;
-        final long monthlyCapMicros;
-
-        private SetAutoRechargeConfigParams(Builder builder) {
-            this.org = builder.org;
-            this.enabled = builder.enabled;
-            this.thresholdMicros = builder.thresholdMicros;
-            this.rechargeAmountMicros = builder.rechargeAmountMicros;
-            this.monthlyCapMicros = builder.monthlyCapMicros;
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        SetAutoRechargeConfigInput toProto() {
-            return SetAutoRechargeConfigInput.newBuilder()
-                    .setOrg(org)
-                    .setEnabled(enabled)
-                    .setThresholdMicros(thresholdMicros)
-                    .setRechargeAmountMicros(rechargeAmountMicros)
-                    .setMonthlyCapMicros(monthlyCapMicros)
-                    .build();
-        }
-
-        public static final class Builder {
-            private String org;
-            private boolean enabled;
-            private long thresholdMicros;
-            private long rechargeAmountMicros;
-            private long monthlyCapMicros;
-
-            private Builder() {}
-
-            /** Organization to configure (required). */
-            public Builder org(String org) {
-                this.org = Objects.requireNonNull(org);
-                return this;
-            }
-
-            /** Whether to enable auto-recharge. Disabling preserves the other settings. */
-            public Builder enabled(boolean enabled) {
-                this.enabled = enabled;
-                return this;
-            }
-
-            /** Trigger recharge when available balance drops below this micro-USD amount. */
-            public Builder thresholdMicros(long thresholdMicros) {
-                this.thresholdMicros = thresholdMicros;
-                return this;
-            }
-
-            /** Fixed micro-USD amount to charge per recharge event. */
-            public Builder rechargeAmountMicros(long rechargeAmountMicros) {
-                this.rechargeAmountMicros = rechargeAmountMicros;
-                return this;
-            }
-
-            /** Maximum total auto-recharge spend per calendar month, in micro-USD. */
-            public Builder monthlyCapMicros(long monthlyCapMicros) {
-                this.monthlyCapMicros = monthlyCapMicros;
-                return this;
-            }
-
-            public SetAutoRechargeConfigParams build() {
-                Objects.requireNonNull(org, "org is required");
-                return new SetAutoRechargeConfigParams(this);
             }
         }
     }

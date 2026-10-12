@@ -84,7 +84,7 @@ The Harness you choose depends on what your Agent needs to do.
 | **Model availability**      | All supported providers                                               | Cursor-served models only                                                    |
 | **Tool capabilities**       | MCP servers from your plugins + built-in web fetch                    | MCP servers + Cursor's built-in coding tools                                 |
 | **Checkpoints**             | Full Stigmer pause/resume                                             | Cursor-managed state                                                         |
-| **Platform commission**     | None — runs on your provider key, billed by the provider              | None — runs on your Cursor key, billed by Cursor                             |
+| **Who bills model calls**   | Your provider, on your Organization's key                             | Cursor, on your Organization's Cursor key                                    |
 | **Cursor Token Rate**       | None                                                                  | Small per-token fee on non-Auto models                                       |
 | **Engine context per call** | Stigmer's system prompt and tool schemas, cached after the first call | Cursor's own engine context, cached at Cursor's discretion                   |
 | **Prompt caching**          | Full control (explicit breakpoints)                                   | Automatic and opaque                                                         |
@@ -119,7 +119,7 @@ after the fact.
 
 Both harnesses feed into the same Stigmer pipeline. The difference is which
 runtime processes the Agent's turns — the rest of the system (streaming,
-approval flows, billing, usage tracking) works the same regardless of Harness.
+approval flows, usage tracking, cost caps) works the same regardless of Harness.
 
 ```mermaid
 flowchart LR
@@ -127,7 +127,7 @@ flowchart LR
   R --> D{Harness?}
   D -->|Native| EG["Native Runtime"]
   D -->|Cursor| EC["Cursor Runtime"]
-  EG --> P["Streaming / HITL / Billing"]
+  EG --> P["Streaming / HITL / Usage"]
   EC --> P
 ```
 
@@ -177,9 +177,9 @@ a Cursor-served model implicitly sets the Harness to Cursor for that Session.
 
 ## Cost considerations
 
-Neither harness carries a platform commission: both run on your own keys. Cost
-differences come from three places: the Cursor Token Rate, engine context per
-call, and prompt caching.
+Stigmer charges nothing per call on either harness: both run on your own keys.
+Cost differences come from three places: the Cursor Token Rate, engine context
+per call, and prompt caching.
 
 - **Cursor Token Rate** — most Cursor models add a small per-token fee (Cursor's
   own charge, billed by Cursor on your Cursor key's plan). Native models never

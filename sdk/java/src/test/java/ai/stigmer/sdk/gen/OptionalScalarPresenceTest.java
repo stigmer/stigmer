@@ -59,7 +59,6 @@ class OptionalScalarPresenceTest {
 
         assertTrue(terms.hasAnnualPriceMicros());
         assertFalse(terms.hasMonthlyMinimumMicros());
-        assertFalse(terms.hasUsageShareBasisPoints());
         assertFalse(terms.hasPerExtraOrgMicros());
     }
 

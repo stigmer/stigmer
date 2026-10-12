@@ -330,8 +330,8 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // the SDK never reports the variant that actually served the call
   // (verified against the billing ledger, #357). A mismatch here means the
   // SDK rewrote our selection (contract change), not variant drift; the
-  // authoritative requested-vs-billed reconciliation is the cloud billing
-  // handler's pricing_variant mismatch metric.
+  // authoritative requested-vs-billed check is the cloud usage meter's
+  // pricing_variant mismatch metric.
   const echoedSelection = result.model;
   if (echoedSelection) {
     const idMatches = echoedSelection.id === engine.validatedModel;

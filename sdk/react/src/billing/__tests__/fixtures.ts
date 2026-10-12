@@ -44,7 +44,7 @@ function plan(
     spec: create(PlanSpecSchema, {
       instrument: PlanInstrument.subscription,
       entitlements: extra.entitlements ?? { features: [Feature.channels, Feature.sharing, Feature.teams] },
-      terms: extra.terms ?? { monthlyMinimumMicros: minimum * USD, usageShareBasisPoints: 1_000 },
+      terms: extra.terms ?? { monthlyMinimumMicros: minimum * USD },
       description: extra.description ?? "",
     }),
     status: { lifecycle: retired ? PlanLifecycle.retired : PlanLifecycle.active },
@@ -58,7 +58,7 @@ export const BUSINESS = plan("pln_business", "Business", 499n, {
     features: [Feature.byo_provider_keys, Feature.channels, Feature.sharing, Feature.teams, Feature.child_orgs],
     limits: { includedChildOrgs: 5 },
   },
-  terms: { monthlyMinimumMicros: 499n * USD, usageShareBasisPoints: 1_000, perExtraOrgMicros: 25n * USD },
+  terms: { monthlyMinimumMicros: 499n * USD, perExtraOrgMicros: 25n * USD },
 });
 export const RETIRED = plan("pln_team_2026", "Team 2026", 79n, {}, true);
 
@@ -77,13 +77,8 @@ export const TEAM_ESTIMATE: PeriodEstimate = create(PeriodEstimateSchema, {
   planId: "pln_team",
   periodStart: timestampFromDate(PERIOD_START),
   periodEnd: timestampFromDate(PERIOD_END),
-  providerCostMicros: 80n * USD,
-  commissionCollectedMicros: 8n * USD,
-  lines: [
-    { kind: PeriodEstimateLineKind.plan, amountMicros: 99n * USD },
-    { kind: PeriodEstimateLineKind.commission_credit, amountMicros: -8n * USD },
-  ],
-  totalMicros: 91n * USD,
+  lines: [{ kind: PeriodEstimateLineKind.plan, amountMicros: 99n * USD }],
+  totalMicros: 99n * USD,
 });
 
 /** A Stigmer Cloud refusal with its ErrorInfo reason, as the SDK throws it. */

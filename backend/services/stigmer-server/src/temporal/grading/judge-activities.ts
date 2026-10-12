@@ -2,7 +2,7 @@
  * The AI judge's activities, run by the grading workflow after run health
  * (workflows/grade-run.ts): plan, start, poll, record. The judge is an
  * ordinary run of the runner's built-in judge (domain/score/judge/
- * judge-run.ts), so its billing, its credit refusal and its cost cap are
+ * judge-run.ts), so its admission, its refusals and its cost cap are
  * the run's own; what these activities add is the per-agent switch, the
  * sample, the monthly budget, and the score.
  *
@@ -87,7 +87,6 @@ import {
   JUDGE_LIMIT_REACHED_REASON,
   JUDGE_NOT_FINISHED_REASON,
   JUDGE_NOT_STARTED_REASON,
-  JUDGE_OUT_OF_CREDIT_REASON,
   JUDGE_RUN_FAILED_REASON,
   JUDGE_UNREADABLE_REASON,
 } from "../../domain/score/constants.js";
@@ -427,9 +426,9 @@ async function storedEnd(
 
 /**
  * The start's answer to a refused create. A capacity refusal is thrown for
- * the workflow's retry policy; a credit refusal is the hosted edition's
- * billing gate, whose every denial is FAILED_PRECONDITION naming credits;
- * a lost race finds the winner.
+ * the workflow's retry policy; a lost race finds the winner; any other
+ * refusal (an organization with no key for the judge's model among them)
+ * leaves the run not graded, "the judge could not start".
  */
 async function startRefusal(
   deps: JudgeActivityDeps,
@@ -453,16 +452,12 @@ async function startRefusal(
     case Code.NotFound:
     case Code.InvalidArgument:
     case Code.Unauthenticated: {
-      const failure: JudgeFailure =
-        error.code === Code.FailedPrecondition && /credit/i.test(error.rawMessage)
-          ? "out-of-credit"
-          : "not-started";
       deps.logger.warn("the judge run's create was refused", {
         runId,
         code: Code[error.code],
         reason: error.rawMessage,
       });
-      return { kind: "refused", failure };
+      return { kind: "refused", failure: "not-started" };
     }
     default:
       throw error;
@@ -521,7 +516,6 @@ function verdictScore(
 const FAILURE_REASONS: Readonly<Record<Exclude<JudgeFailure, "">, string>> = {
   busy: JUDGE_BUSY_REASON,
   "cannot-act": JUDGE_CANNOT_ACT_REASON,
-  "out-of-credit": JUDGE_OUT_OF_CREDIT_REASON,
   "not-started": JUDGE_NOT_STARTED_REASON,
   "not-finished": JUDGE_NOT_FINISHED_REASON,
 };

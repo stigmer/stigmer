@@ -53,10 +53,6 @@
 // AI judge (stigmer#2105).
 //
 // Out of scope here, with the reason:
-//   - a credit refusal ending the eval `out_of_credit`: open source meters
-//     no credit (`billingGates`), so it is pinned by the eval workflow's
-//     tests on a Temporal test server
-//     (backend/services/stigmer-server/src/temporal/evals/__tests__/workflows.temporal.test.ts);
 //   - a plugin hook reading a secret from the eval's vaults: the credential
 //     resolver's eval branch is pinned by its unit tests
 //     (backend/services/stigmer-server/src/domain/vault/__tests__/resolve.test.ts), since a

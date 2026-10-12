@@ -157,7 +157,7 @@ export function getCursorModelPricingForVariant(
   if (fast) return fast;
   console.warn(
     `Requested fast-variant pricing for "${model}" but the registry prices no fast variant — ` +
-    `estimating at base rates (billing reconciliation remains authoritative)`,
+    `estimating at base rates (the proxy's usage record remains authoritative)`,
   );
   return base;
 }

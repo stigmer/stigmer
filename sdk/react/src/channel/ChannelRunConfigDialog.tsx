@@ -66,7 +66,7 @@ export interface ChannelRunConfigDialogProps {
  * explicit reset to the platform defaults (`run_config` absent). Untouched
  * variant switches keep what was stored — an explicit choice stays
  * explicit, an unset one stays off the wire; unspecified-vs-explicit is a
- * load-bearing ledger distinction (#357).
+ * load-bearing usage-record distinction (#357).
  *
  * Built on the native `<dialog>` element, matching the SDK's modal
  * convention. Most hosts mount it via {@link AgentChannelsPanel}'s
@@ -335,7 +335,7 @@ function buildRunConfig(
   // Otherwise carried only when the person actively chose the variant AND
   // pinned a model (both are per-model; the server refuses them without
   // one). An untouched switch stays absent — unspecified-vs-explicit is a
-  // load-bearing ledger distinction (#357/#772).
+  // load-bearing usage-record distinction (#357/#772).
   const tier =
     sameModel && serviceTier === (fromProtoServiceTier(storedTier) ?? "standard")
       ? storedTier

@@ -477,8 +477,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object costTier_ = "";
   /**
    * <pre>
-   * Pricing bracket: "economy", "standard", or "premium". Billing policy
-   * markup resolution keys on (harness, cost_tier).
+   * Pricing bracket: "economy", "standard", or "premium". A coarse price
+   * class for pickers; the runner picks an economy model for its own
+   * small tasks, such as titling a session.
    * </pre>
    *
    * <code>string cost_tier = 9 [json_name = "costTier", (.buf.validate.field) = { ... }</code>
@@ -499,8 +500,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Pricing bracket: "economy", "standard", or "premium". Billing policy
-   * markup resolution keys on (harness, cost_tier).
+   * Pricing bracket: "economy", "standard", or "premium". A coarse price
+   * class for pickers; the runner picks an economy model for its own
+   * small tasks, such as titling a session.
    * </pre>
    *
    * <code>string cost_tier = 9 [json_name = "costTier", (.buf.validate.field) = { ... }</code>
@@ -2843,8 +2845,9 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     private java.lang.Object costTier_ = "";
     /**
      * <pre>
-     * Pricing bracket: "economy", "standard", or "premium". Billing policy
-     * markup resolution keys on (harness, cost_tier).
+     * Pricing bracket: "economy", "standard", or "premium". A coarse price
+     * class for pickers; the runner picks an economy model for its own
+     * small tasks, such as titling a session.
      * </pre>
      *
      * <code>string cost_tier = 9 [json_name = "costTier", (.buf.validate.field) = { ... }</code>
@@ -2864,8 +2867,9 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Pricing bracket: "economy", "standard", or "premium". Billing policy
-     * markup resolution keys on (harness, cost_tier).
+     * Pricing bracket: "economy", "standard", or "premium". A coarse price
+     * class for pickers; the runner picks an economy model for its own
+     * small tasks, such as titling a session.
      * </pre>
      *
      * <code>string cost_tier = 9 [json_name = "costTier", (.buf.validate.field) = { ... }</code>
@@ -2886,8 +2890,9 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Pricing bracket: "economy", "standard", or "premium". Billing policy
-     * markup resolution keys on (harness, cost_tier).
+     * Pricing bracket: "economy", "standard", or "premium". A coarse price
+     * class for pickers; the runner picks an economy model for its own
+     * small tasks, such as titling a session.
      * </pre>
      *
      * <code>string cost_tier = 9 [json_name = "costTier", (.buf.validate.field) = { ... }</code>
@@ -2904,8 +2909,9 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Pricing bracket: "economy", "standard", or "premium". Billing policy
-     * markup resolution keys on (harness, cost_tier).
+     * Pricing bracket: "economy", "standard", or "premium". A coarse price
+     * class for pickers; the runner picks an economy model for its own
+     * small tasks, such as titling a session.
      * </pre>
      *
      * <code>string cost_tier = 9 [json_name = "costTier", (.buf.validate.field) = { ... }</code>
@@ -2919,8 +2925,9 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Pricing bracket: "economy", "standard", or "premium". Billing policy
-     * markup resolution keys on (harness, cost_tier).
+     * Pricing bracket: "economy", "standard", or "premium". A coarse price
+     * class for pickers; the runner picks an economy model for its own
+     * small tasks, such as titling a session.
      * </pre>
      *
      * <code>string cost_tier = 9 [json_name = "costTier", (.buf.validate.field) = { ... }</code>

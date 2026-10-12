@@ -31,12 +31,11 @@ export interface UsePeriodEstimateReturn {
  * Data hook that estimates what an organization's current subscription
  * period will be invoiced.
  *
- * The estimate is the invoice the period would close with if no further
- * usage occurred: the plan's minimum for the whole period (or its share of
- * the period's provider cost, whichever is greater), less the commission
- * already collected on tokens, plus child organizations beyond those
- * included. The server rates it by the same rule the monthly close
- * invoices by, so it agrees with the invoice to the cent.
+ * The estimate is the invoice the period would close with if nothing else
+ * changed: the plan's monthly fee for the whole period, plus the child
+ * organizations beyond those included. The server rates it by the same
+ * rule the monthly close invoices by, so it agrees with the invoice to the
+ * cent.
  *
  * The server answers NOT_FOUND when nothing is live to invoice (Free, or a
  * child organization), so enable it only while a subscription is live.

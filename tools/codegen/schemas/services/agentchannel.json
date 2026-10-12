@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
           "outputType": "AgentChannel",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
-          "description": "Create an agent channel.\n\n Connecting an agent to a channel is a billing-affecting decision:\n conversations arriving over the channel consume the connection-owning\n organization's credits."
+          "description": "Create an agent channel.\n\n Connecting an agent to a channel is a spending decision: conversations\n arriving over the channel call models on the connection-owning\n organization's own provider keys, and the providers bill the\n organization for them."
         },
         {
           "name": "Update",

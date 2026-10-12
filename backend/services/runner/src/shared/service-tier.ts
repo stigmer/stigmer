@@ -69,7 +69,7 @@ export function toOpenAiServiceTier(tier: EffectiveServiceTier): "default" | "pr
  * has purchased. FAST maps to "auto" — Anthropic's priority tier is
  * PURCHASED capacity, and "auto" means "use it when available"; the
  * response's `usage.service_tier` reports what actually served, which is
- * what billing reconciles against. FAST is unreachable until a registry
+ * what the usage record stores as the billed tier. FAST is unreachable until a registry
  * entry prices it (and the platform buys priority capacity — the #361
  * half-2 hold).
  */

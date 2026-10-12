@@ -58,8 +58,8 @@ export type EvaluatorStatus = Message<"ai.stigmer.agentic.evaluator.v1.Evaluator
   /**
    * Why the most recent run picked for grading could not be graded.
    *
-   * For example "spending limit reached" or "out of credit". Empty when
-   * the most recent grade succeeded.
+   * For example "spending limit reached". Empty when the most recent grade
+   * succeeded.
    *
    * @generated from field: string last_not_graded_reason = 6;
    */

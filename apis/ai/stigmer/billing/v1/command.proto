@@ -3,7 +3,6 @@ syntax = "proto3";
 package ai.stigmer.billing.v1;
 
 import "ai/stigmer/billing/v1/billing_account.proto";
-import "ai/stigmer/billing/v1/credit.proto";
 import "ai/stigmer/billing/v1/io.proto";
 import "ai/stigmer/billing/v1/model_pricing_baseline.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
@@ -12,16 +11,17 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 //
 // Billing is not a standard API Resource — there is no api_resource_kind annotation.
 // An organization's own billing RPCs authorize against the organization
-// resource kind; the credit mutations, the execution pipeline and the
-// model catalog authorize against the static platform target.
+// resource kind; the usage meter and the model catalog authorize against
+// the static platform target.
 //
 service BillingCommandController {
   // Provision or retrieve the billing account for an organization.
   // Idempotent: creates the account on first call, returns existing on subsequent calls.
   //
   // @internal
-  // Called during org creation or first billing interaction.
-  // Initializes balance to zero with default thresholds.
+  // The server provisions every organization's account when the
+  // organization is created; this call finds it, or creates one for an
+  // organization that predates that step.
   rpc getOrCreateBillingAccount(GetOrCreateBillingAccountInput) returns (BillingAccount) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
@@ -29,54 +29,10 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage billing for this organization";
   }
 
-  // Manually adjust an org's credit balance.
-  // Produces an immutable ledger entry for audit. Requires can_manage_credits
-  // on the platform: a platform operator or a credit issuer.
-  //
-  // @internal
-  // Checked on platform:stigmer, never on the organization: credit made
-  // without a purchase is the platform's decision, and every person owns an
-  // organization. org names the wallet; an org with no billing account
-  // is NOT_FOUND.
-  rpc adjustCredits(AdjustCreditsInput) returns (CreditLedgerEntry) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
-    option (ai.stigmer.commons.rpc.config).permission = can_manage_credits;
-    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
-    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators and credit issuers can adjust credits";
-  }
-
-  // Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
-  // Produces an immutable promotional_credit ledger entry for audit.
-  //
-  // The grant burns before adjustment and purchased credits. When expires_at
-  // is set, any remainder unconsumed at that time is removed from the balance
-  // by the platform's grant-expiry sweep (an expiry_debit ledger entry).
-  // Idempotent: replaying an applied idempotency key returns the original
-  // entry, even after the expiry has passed. Requires can_manage_credits on
-  // the platform, as adjustCredits does.
-  rpc grantCredits(GrantCreditsInput) returns (CreditLedgerEntry) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
-    option (ai.stigmer.commons.rpc.config).permission = can_manage_credits;
-    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
-    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators and credit issuers can grant credits";
-  }
-
-  // Reserve credits before starting a run.
-  // Returns authorization status and reservation details.
-  //
-  // @internal
-  // Called by the Temporal workflow before dispatching to the agent runner.
-  // The runner must not start if authorized is false.
-  rpc authorizeRun(AuthorizeRunInput) returns (AuthorizeRunResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
-    option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
-    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
-    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
-  }
-
-  // Record a single LLM call's usage for billing.
-  // Computes cost server-side from the model registry, inserts an immutable
-  // LlmCallUsageRecord, and debits credits from the run's reservation.
+  // Record a single LLM call's usage.
+  // Resolves the call against the model catalog and inserts an immutable
+  // LlmCallUsageRecord: what the call was (tokens, model, harness, served
+  // tier and thinking mode, whose key served it), never what it cost.
   //
   // @internal
   // Called by the proxy after each LLM SSE stream completes.
@@ -88,52 +44,13 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
   }
 
-  // Settle billing for a completed run.
-  // Releases unused reservation credits and produces the final billing record.
-  //
-  // @internal
-  // Called by the Temporal workflow after the agent runner completes.
-  rpc finalizeRun(FinalizeRunInput) returns (FinalizeRunResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
-    option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
-    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
-    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
-  }
-
-  // Re-arm a settled reservation so a failed run can be recovered.
-  // The one sanctioned path past the settled-reservation latch: re-runs
-  // the affordability check, transfers a fresh hold, and rotates the
-  // reservation id as the fence against settles still in flight from the
-  // terminated run. Returns the same shape as authorizeRun, with
-  // the rotated reservation id.
-  //
-  // @internal
-  // Called by the recover pipeline after workflow termination, before
-  // re-launch side effects.
-  rpc rearmForRecovery(RearmForRecoveryInput) returns (AuthorizeRunResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
-    option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
-    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
-    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
-  }
-
-  // Create a Stripe Checkout Session to purchase a credit pack.
-  // Returns a checkout URL for the client to redirect the user.
-  //
-  // The caller's email is resolved server-side for Stripe Customer creation.
-  // Credits are provisioned asynchronously via the checkout.session.completed webhook.
-  rpc createCreditCheckoutSession(CreateCreditCheckoutSessionInput) returns (CreateCreditCheckoutSessionResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to purchase credits for this organization";
-  }
-
   // Open a Stripe Customer Portal session for payment method management.
   // Returns a portal URL for the client to redirect the user.
   //
-  // Requires an existing Stripe Customer (created during first credit purchase).
-  // The portal allows users to add, update, or remove saved payment methods.
+  // Requires an existing Stripe Customer (created by
+  // createPaymentMethodSetupSession on first use). The portal allows users
+  // to add, update, or remove saved payment methods and to read the
+  // invoices Stripe sends.
   rpc createBillingPortalSession(CreateBillingPortalSessionInput) returns (CreateBillingPortalSessionResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
@@ -145,11 +62,10 @@ service BillingCommandController {
   // method without charging it. Returns a URL for the client to redirect
   // the user.
   //
-  // This is how an organization that has never bought credit gets a card
-  // on file (the billing portal needs an existing Stripe Customer, which
+  // This is how an organization gets a card on file for its plan's
+  // invoices (the billing portal needs an existing Stripe Customer, which
   // this call creates on first use). The saved card becomes the account's
-  // default payment method through the payment_method.attached webhook,
-  // the same path a card saved at credit checkout takes.
+  // default payment method through the payment_method.attached webhook.
   rpc createPaymentMethodSetupSession(CreatePaymentMethodSetupSessionInput) returns (CreatePaymentMethodSetupSessionResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
@@ -157,23 +73,11 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage billing for this organization";
   }
 
-  // Configure automatic credit recharge for an organization.
-  // Returns the updated BillingAccount with the new config applied.
-  //
-  // Enabling requires an active account with a saved payment method.
-  // Disabling preserves the threshold/amount/cap for easy re-enablement.
-  rpc setAutoRechargeConfig(SetAutoRechargeConfigInput) returns (BillingAccount) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage auto-recharge for this organization";
-  }
-
   // Create or revise one model registry baseline entry (catalog + list
   // prices). Append-only: an existing ACTIVE document for the same
   // (model_id, provider, harness) key is superseded, never mutated. The
-  // registry is rebuilt immediately, so the revision reaches billing and
-  // every published price surface atomically.
+  // registry is rebuilt immediately, so the revision reaches the usage
+  // meter, run admission and the published registry atomically.
   rpc upsertModelPricingBaseline(UpsertModelPricingBaselineInput) returns (ModelPricingBaseline) {
     option (ai.stigmer.commons.rpc.config).resource_kind = platform;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_model_pricing;

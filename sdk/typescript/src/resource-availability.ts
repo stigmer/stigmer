@@ -26,8 +26,8 @@
  *   still a compile error here; the runtime fallback is for the wire.
  *
  * `DeploymentMode` answers a TIER question ("is this kind served here?").
- * Sites that use it to ask a FACILITY question ("does this server have a
- * wallet?") compare `=== "cloud"` deliberately and say which facility they
+ * Sites that use it to ask a FACILITY question ("does this server have
+ * Stripe billing?") compare `=== "cloud"` deliberately and say which facility they
  * mean; see the React SDK's deployment-mode consumers.
  */
 import {

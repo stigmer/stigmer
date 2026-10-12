@@ -83,7 +83,7 @@ export class LocalExecutionTarget implements TargetProfile {
     // boundary).
     billingGates: false,
     // The cloud-capability surfaces: absent by the same boundary, as on local.
-    billingLedger: false,
+    billingEngine: false,
     billingPlans: false,
     sideChannelProxy: false,
     publicLane: false,

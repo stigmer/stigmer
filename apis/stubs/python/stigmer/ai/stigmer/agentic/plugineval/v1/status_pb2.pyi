@@ -25,7 +25,6 @@ class PluginEvalPartialReason(int, metaclass=_enum_type_wrapper.EnumTypeWrapper)
     __slots__ = ()
     plugin_eval_partial_reason_unspecified: _ClassVar[PluginEvalPartialReason]
     plugin_eval_partial_reason_cost_ceiling: _ClassVar[PluginEvalPartialReason]
-    plugin_eval_partial_reason_out_of_credit: _ClassVar[PluginEvalPartialReason]
     plugin_eval_partial_reason_cancelled: _ClassVar[PluginEvalPartialReason]
 
 class PluginEvalTryState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -43,7 +42,6 @@ plugin_eval_phase_partial: PluginEvalPhase
 plugin_eval_phase_failed: PluginEvalPhase
 plugin_eval_partial_reason_unspecified: PluginEvalPartialReason
 plugin_eval_partial_reason_cost_ceiling: PluginEvalPartialReason
-plugin_eval_partial_reason_out_of_credit: PluginEvalPartialReason
 plugin_eval_partial_reason_cancelled: PluginEvalPartialReason
 plugin_eval_try_state_unspecified: PluginEvalTryState
 plugin_eval_try_state_pending: PluginEvalTryState

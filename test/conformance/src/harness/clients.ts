@@ -80,7 +80,7 @@ export interface ConformanceClients {
   // The billing engine's two controllers. Cloud-only by the edition
   // boundary: the local OSS targets route neither, so every call answers
   // Unimplemented there — the boundary the billing suite pins where
-  // `billingLedger` is false.
+  // `billingEngine` is false.
   billingCommand: Client<typeof BillingCommandController>;
   billingQuery: Client<typeof BillingQueryController>;
   // An organization's own provider keys, which every native run on the

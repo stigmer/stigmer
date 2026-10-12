@@ -63,7 +63,7 @@ import type { RunOutcomeResult } from "../../temporal/schedule/run-starter.js";
 /**
  * The owner's switch is off. OSS has no blueprint-access layer, so the
  * refusal here is pure contract parity: cloud MUST refuse (a
- * disabled-schedule run would die mid-execution after billing side
+ * disabled-schedule run would die mid-execution after its side
  * effects), and the two editions must not diverge on a refusal
  * a user can observe. Consoles turn the dead end into a one-click
  * "Enable & run now".

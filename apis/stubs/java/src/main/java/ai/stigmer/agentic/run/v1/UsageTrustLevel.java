@@ -21,7 +21,8 @@ public enum UsageTrustLevel
   USAGE_TRUST_LEVEL_UNSPECIFIED(0),
   /**
    * <pre>
-   * Billing-authoritative: safe to debit credits from.
+   * The proxy's own measurement of the provider-reported usage: the
+   * metering source of truth.
    * </pre>
    *
    * <code>USAGE_TRUST_LEVEL_BILLING_AUTHORITY = 1;</code>
@@ -29,7 +30,7 @@ public enum UsageTrustLevel
   USAGE_TRUST_LEVEL_BILLING_AUTHORITY(1),
   /**
    * <pre>
-   * Server-observed but not billing (e.g., proxy timing).
+   * Server-observed but not the metered usage (e.g., proxy timing).
    * </pre>
    *
    * <code>USAGE_TRUST_LEVEL_SERVER_OBSERVED = 2;</code>
@@ -37,7 +38,7 @@ public enum UsageTrustLevel
   USAGE_TRUST_LEVEL_SERVER_OBSERVED(2),
   /**
    * <pre>
-   * Display-only: runner-reported, never used for billing.
+   * Display-only: runner-reported, never used for metering.
    * </pre>
    *
    * <code>USAGE_TRUST_LEVEL_DISPLAY_ONLY = 3;</code>
@@ -61,7 +62,8 @@ public enum UsageTrustLevel
   public static final int USAGE_TRUST_LEVEL_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Billing-authoritative: safe to debit credits from.
+   * The proxy's own measurement of the provider-reported usage: the
+   * metering source of truth.
    * </pre>
    *
    * <code>USAGE_TRUST_LEVEL_BILLING_AUTHORITY = 1;</code>
@@ -69,7 +71,7 @@ public enum UsageTrustLevel
   public static final int USAGE_TRUST_LEVEL_BILLING_AUTHORITY_VALUE = 1;
   /**
    * <pre>
-   * Server-observed but not billing (e.g., proxy timing).
+   * Server-observed but not the metered usage (e.g., proxy timing).
    * </pre>
    *
    * <code>USAGE_TRUST_LEVEL_SERVER_OBSERVED = 2;</code>
@@ -77,7 +79,7 @@ public enum UsageTrustLevel
   public static final int USAGE_TRUST_LEVEL_SERVER_OBSERVED_VALUE = 2;
   /**
    * <pre>
-   * Display-only: runner-reported, never used for billing.
+   * Display-only: runner-reported, never used for metering.
    * </pre>
    *
    * <code>USAGE_TRUST_LEVEL_DISPLAY_ONLY = 3;</code>

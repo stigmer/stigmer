@@ -45,8 +45,7 @@
 //
 // Out of scope here, with the reason: the grading itself (votes, timeouts,
 // scaffolds, mocks, a try kept from the plugin's evals/), which the agent
-// eval shares with the plugin eval and the plugin eval execution suite pins;
-// and a credit refusal, which open source does not meter.
+// eval shares with the plugin eval and the plugin eval execution suite pins.
 //
 // Every eval here runs one try at a time (concurrency 1), so the scripted
 // turns are consumed in the matrix's order: the agent's plugins in order,

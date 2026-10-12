@@ -2,16 +2,16 @@
 // Domain: conformance harness (cloud-capability fixtures).
 //
 // Outbound: the server under test is booted with its Stripe API base pointed
-// at this fixture, so the purchase money path — customer create, checkout
-// session create, billing-portal session create, the auto-recharge
-// PaymentIntent create, the default-payment-method reads and customer updates
-// the webhook handlers make — lands here instead of api.stripe.com. Every
+// at this fixture, so the card-on-file path — customer create, the setup-mode
+// checkout session create, billing-portal session create, the
+// default-payment-method reads and customer updates the webhook handlers
+// make — lands here instead of api.stripe.com. Every
 // request is captured with its form-encoded params and its Idempotency-Key
 // header (a carve-out: idempotency keys must be identical between the
 // editions). Ids are unique for the whole run — a run nonce plus a counter
 // that `reset()` deliberately does NOT rewind: Java pins stripe_customer_id
 // unique across billing accounts, so a fixture that re-minted `cus_..._0001`
-// after every test would make the second org's checkout fail on that
+// after every test would make the second org's customer create fail on that
 // constraint (the first hermetic run found exactly this).
 //
 // Inbound: `signedEvent` builds a Stripe event envelope and its
@@ -21,8 +21,9 @@
 // contract (also a carve-out) is asserted end to end: a wrong secret, a stale
 // timestamp or a tampered payload must be refused with 400 "Invalid signature".
 //
-// Why not stripe-mock: it mints static ids (two tests' sessions collide on
-// the purchase lookup) and captures nothing (idempotency keys unassertable).
+// Why not stripe-mock: it mints static ids (two tests' customers collide on
+// the account's unique customer id) and captures nothing (idempotency keys
+// unassertable).
 //
 // The api_version trap: the retired Java handlers read event data through
 // `getDataObjectDeserializer().getObject()`, which answered EMPTY unless the
@@ -79,13 +80,6 @@ export class FakeStripeApi {
   // Customers this fixture created, so a retrieve/update answers the shape
   // Java expects; payment methods are minted on first retrieve.
   private readonly customers = new Map<string, Record<string, unknown>>();
-  // Checkout Sessions and PaymentIntents this fixture created, so the
-  // reconciliation sweep's reads (GET /v1/checkout/sessions/{id},
-  // GET /v1/payment_intents/{id}) answer the object as last minted — status
-  // `open` / `processing` — instead of an unhandled 404 that would turn every
-  // sweep run red.
-  private readonly checkoutSessions = new Map<string, Record<string, unknown>>();
-  private readonly paymentIntents = new Map<string, Record<string, unknown>>();
 
   async start(): Promise<void> {
     this.server = createServer((req, res) => {
@@ -122,8 +116,6 @@ export class FakeStripeApi {
     this.captured = [];
     this.failures = [];
     this.customers.clear();
-    this.checkoutSessions.clear();
-    this.paymentIntents.clear();
   }
 
   private nextId(prefix: string): string {
@@ -205,24 +197,7 @@ export class FakeStripeApi {
         url: `https://checkout.stripe.test/c/pay/${id}`,
         metadata: metadataOf(params),
       };
-      this.checkoutSessions.set(id, session);
       return { status: 200, id, body: session };
-    }
-    // The reconciliation sweep's reads: a session or intent this
-    // fixture minted answers as it was minted (still `open` / `processing`,
-    // so the sweep leaves the row alone — Java's SKIPPED arm); an id the
-    // fixture never issued is Stripe's resource_missing.
-    const sessionMatch = /^\/v1\/checkout\/sessions\/([^/]+)$/.exec(path);
-    if (method === "GET" && sessionMatch !== null) {
-      const id = sessionMatch[1] ?? "";
-      const session = this.checkoutSessions.get(id);
-      return session === undefined ? stripeNotFound(`No such checkout.session: '${id}'`) : { status: 200, id, body: session };
-    }
-    const intentMatch = /^\/v1\/payment_intents\/([^/]+)$/.exec(path);
-    if (method === "GET" && intentMatch !== null) {
-      const id = intentMatch[1] ?? "";
-      const intent = this.paymentIntents.get(id);
-      return intent === undefined ? stripeNotFound(`No such payment_intent: '${id}'`) : { status: 200, id, body: intent };
     }
     if (method === "POST" && path === "/v1/billing_portal/sessions") {
       const id = this.nextId("bps");
@@ -239,23 +214,6 @@ export class FakeStripeApi {
           url: `https://billing.stripe.test/p/session/${id}`,
         },
       };
-    }
-    if (method === "POST" && path === "/v1/payment_intents") {
-      const id = this.nextId("pi");
-      const intent = {
-        id,
-        object: "payment_intent",
-        created: now,
-        livemode: false,
-        amount: Number(params["amount"] ?? "0"),
-        currency: params["currency"] ?? "usd",
-        customer: params["customer"] ?? null,
-        payment_method: params["payment_method"] ?? null,
-        status: "processing",
-        metadata: metadataOf(params),
-      };
-      this.paymentIntents.set(id, intent);
-      return { status: 200, id, body: intent };
     }
     const pmMatch = /^\/v1\/payment_methods\/([^/]+)$/.exec(path);
     if (method === "GET" && pmMatch !== null) {
@@ -315,7 +273,7 @@ export interface StripeEvent {
 }
 
 // The envelope Stripe posts. `dataObject` must carry its own `object` field
-// (`checkout.session`, `payment_intent`, ...) — stripe-java dispatches on it.
+// (`customer`, `payment_method`, ...) — stripe-java dispatches on it.
 export function stripeEvent(type: string, dataObject: Record<string, unknown>, options: StripeEventOptions = {}): StripeEvent {
   return {
     id: options.id ?? `evt_conf_${Math.random().toString(36).slice(2, 14)}`,

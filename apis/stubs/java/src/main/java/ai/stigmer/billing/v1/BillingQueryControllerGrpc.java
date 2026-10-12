@@ -5,7 +5,9 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * BillingQueryController handles read operations for the billing bounded context.
- * All RPCs authorize against the organization resource kind with can_view_billing.
+ * An organization's own reads authorize against the organization resource
+ * kind with can_view_billing; the model catalog's operator read authorizes
+ * against the static platform target.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -47,68 +49,6 @@ public final class BillingQueryControllerGrpc {
     return getGetBillingAccountMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetCreditBalanceInput,
-      ai.stigmer.billing.v1.CreditBalance> getGetCreditBalanceMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getCreditBalance",
-      requestType = ai.stigmer.billing.v1.GetCreditBalanceInput.class,
-      responseType = ai.stigmer.billing.v1.CreditBalance.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetCreditBalanceInput,
-      ai.stigmer.billing.v1.CreditBalance> getGetCreditBalanceMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetCreditBalanceInput, ai.stigmer.billing.v1.CreditBalance> getGetCreditBalanceMethod;
-    if ((getGetCreditBalanceMethod = BillingQueryControllerGrpc.getGetCreditBalanceMethod) == null) {
-      synchronized (BillingQueryControllerGrpc.class) {
-        if ((getGetCreditBalanceMethod = BillingQueryControllerGrpc.getGetCreditBalanceMethod) == null) {
-          BillingQueryControllerGrpc.getGetCreditBalanceMethod = getGetCreditBalanceMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.GetCreditBalanceInput, ai.stigmer.billing.v1.CreditBalance>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getCreditBalance"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.GetCreditBalanceInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.CreditBalance.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingQueryControllerMethodDescriptorSupplier("getCreditBalance"))
-              .build();
-        }
-      }
-    }
-    return getGetCreditBalanceMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetCreditLedgerInput,
-      ai.stigmer.billing.v1.CreditLedgerResponse> getGetCreditLedgerMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getCreditLedger",
-      requestType = ai.stigmer.billing.v1.GetCreditLedgerInput.class,
-      responseType = ai.stigmer.billing.v1.CreditLedgerResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetCreditLedgerInput,
-      ai.stigmer.billing.v1.CreditLedgerResponse> getGetCreditLedgerMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetCreditLedgerInput, ai.stigmer.billing.v1.CreditLedgerResponse> getGetCreditLedgerMethod;
-    if ((getGetCreditLedgerMethod = BillingQueryControllerGrpc.getGetCreditLedgerMethod) == null) {
-      synchronized (BillingQueryControllerGrpc.class) {
-        if ((getGetCreditLedgerMethod = BillingQueryControllerGrpc.getGetCreditLedgerMethod) == null) {
-          BillingQueryControllerGrpc.getGetCreditLedgerMethod = getGetCreditLedgerMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.GetCreditLedgerInput, ai.stigmer.billing.v1.CreditLedgerResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getCreditLedger"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.GetCreditLedgerInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.CreditLedgerResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingQueryControllerMethodDescriptorSupplier("getCreditLedger"))
-              .build();
-        }
-      }
-    }
-    return getGetCreditLedgerMethod;
-  }
-
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetBillingUsageReportInput,
       ai.stigmer.billing.v1.BillingUsageReportResponse> getGetBillingUsageReportMethod;
 
@@ -140,37 +80,6 @@ public final class BillingQueryControllerGrpc {
     return getGetBillingUsageReportMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetCustomerModelPricingInput,
-      ai.stigmer.billing.v1.CustomerModelPricingResponse> getGetCustomerModelPricingMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getCustomerModelPricing",
-      requestType = ai.stigmer.billing.v1.GetCustomerModelPricingInput.class,
-      responseType = ai.stigmer.billing.v1.CustomerModelPricingResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetCustomerModelPricingInput,
-      ai.stigmer.billing.v1.CustomerModelPricingResponse> getGetCustomerModelPricingMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetCustomerModelPricingInput, ai.stigmer.billing.v1.CustomerModelPricingResponse> getGetCustomerModelPricingMethod;
-    if ((getGetCustomerModelPricingMethod = BillingQueryControllerGrpc.getGetCustomerModelPricingMethod) == null) {
-      synchronized (BillingQueryControllerGrpc.class) {
-        if ((getGetCustomerModelPricingMethod = BillingQueryControllerGrpc.getGetCustomerModelPricingMethod) == null) {
-          BillingQueryControllerGrpc.getGetCustomerModelPricingMethod = getGetCustomerModelPricingMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.GetCustomerModelPricingInput, ai.stigmer.billing.v1.CustomerModelPricingResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getCustomerModelPricing"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.GetCustomerModelPricingInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.CustomerModelPricingResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingQueryControllerMethodDescriptorSupplier("getCustomerModelPricing"))
-              .build();
-        }
-      }
-    }
-    return getGetCustomerModelPricingMethod;
-  }
-
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.ListModelPricingBaselinesInput,
       ai.stigmer.billing.v1.ModelPricingBaselinesResponse> getListModelPricingBaselinesMethod;
 
@@ -200,68 +109,6 @@ public final class BillingQueryControllerGrpc {
       }
     }
     return getListModelPricingBaselinesMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.PreviewAuthorizationInput,
-      ai.stigmer.billing.v1.PreviewAuthorizationResponse> getPreviewAuthorizationMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "previewAuthorization",
-      requestType = ai.stigmer.billing.v1.PreviewAuthorizationInput.class,
-      responseType = ai.stigmer.billing.v1.PreviewAuthorizationResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.PreviewAuthorizationInput,
-      ai.stigmer.billing.v1.PreviewAuthorizationResponse> getPreviewAuthorizationMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.PreviewAuthorizationInput, ai.stigmer.billing.v1.PreviewAuthorizationResponse> getPreviewAuthorizationMethod;
-    if ((getPreviewAuthorizationMethod = BillingQueryControllerGrpc.getPreviewAuthorizationMethod) == null) {
-      synchronized (BillingQueryControllerGrpc.class) {
-        if ((getPreviewAuthorizationMethod = BillingQueryControllerGrpc.getPreviewAuthorizationMethod) == null) {
-          BillingQueryControllerGrpc.getPreviewAuthorizationMethod = getPreviewAuthorizationMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.PreviewAuthorizationInput, ai.stigmer.billing.v1.PreviewAuthorizationResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "previewAuthorization"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.PreviewAuthorizationInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.PreviewAuthorizationResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingQueryControllerMethodDescriptorSupplier("previewAuthorization"))
-              .build();
-        }
-      }
-    }
-    return getPreviewAuthorizationMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetRunBillingSignalInput,
-      ai.stigmer.billing.v1.GetRunBillingSignalResponse> getGetRunBillingSignalMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "getRunBillingSignal",
-      requestType = ai.stigmer.billing.v1.GetRunBillingSignalInput.class,
-      responseType = ai.stigmer.billing.v1.GetRunBillingSignalResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetRunBillingSignalInput,
-      ai.stigmer.billing.v1.GetRunBillingSignalResponse> getGetRunBillingSignalMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetRunBillingSignalInput, ai.stigmer.billing.v1.GetRunBillingSignalResponse> getGetRunBillingSignalMethod;
-    if ((getGetRunBillingSignalMethod = BillingQueryControllerGrpc.getGetRunBillingSignalMethod) == null) {
-      synchronized (BillingQueryControllerGrpc.class) {
-        if ((getGetRunBillingSignalMethod = BillingQueryControllerGrpc.getGetRunBillingSignalMethod) == null) {
-          BillingQueryControllerGrpc.getGetRunBillingSignalMethod = getGetRunBillingSignalMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.GetRunBillingSignalInput, ai.stigmer.billing.v1.GetRunBillingSignalResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getRunBillingSignal"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.GetRunBillingSignalInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.GetRunBillingSignalResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingQueryControllerMethodDescriptorSupplier("getRunBillingSignal"))
-              .build();
-        }
-      }
-    }
-    return getGetRunBillingSignalMethod;
   }
 
   /**
@@ -326,7 +173,9 @@ public final class BillingQueryControllerGrpc {
   /**
    * <pre>
    * BillingQueryController handles read operations for the billing bounded context.
-   * All RPCs authorize against the organization resource kind with can_view_billing.
+   * An organization's own reads authorize against the organization resource
+   * kind with can_view_billing; the model catalog's operator read authorizes
+   * against the static platform target.
    * </pre>
    */
   public interface AsyncService {
@@ -343,27 +192,9 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Retrieve the credit balance breakdown for an organization.
-     * </pre>
-     */
-    default void getCreditBalance(ai.stigmer.billing.v1.GetCreditBalanceInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditBalance> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetCreditBalanceMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Retrieve paginated credit ledger entries with optional filters.
-     * </pre>
-     */
-    default void getCreditLedger(ai.stigmer.billing.v1.GetCreditLedgerInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetCreditLedgerMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Retrieve an aggregated billing usage report for a date range.
+     * Count an organization's metered LLM calls and runs in a date range,
+     * with the calls broken down by model and harness. A count, never an
+     * amount: the meter records what each call was, not what it cost.
      * </pre>
      */
     default void getBillingUsageReport(ai.stigmer.billing.v1.GetBillingUsageReportInput request,
@@ -373,53 +204,15 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Retrieve the customer-facing model price list with markup applied.
-     * Returns prices for all models, organized by harness and cost tier.
-     * </pre>
-     */
-    default void getCustomerModelPricing(ai.stigmer.billing.v1.GetCustomerModelPricingInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CustomerModelPricingResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetCustomerModelPricingMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
      * Retrieve the model registry baseline catalog (ACTIVE documents, or the
      * full append-only revision history when include_history is set).
-     * Operator surface: exposes raw provider rates (pre-markup) and revision
-     * provenance, so it is platform-gated, not org-gated.
+     * Operator surface: exposes the providers' list prices with their
+     * revision provenance, so it is platform-gated, not org-gated.
      * </pre>
      */
     default void listModelPricingBaselines(ai.stigmer.billing.v1.ListModelPricingBaselinesInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingBaselinesResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListModelPricingBaselinesMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Preview whether an organization can fund a run, without writing
-     * a reservation. The read-only twin of BillingCommandController's
-     * authorizeRun: both ride the same server-side affordability
-     * predicate (start threshold, negative allowance, default cap), so a
-     * synchronous preflight refusal and the authoritative reservation can
-     * never drift.
-     * </pre>
-     */
-    default void previewAuthorization(ai.stigmer.billing.v1.PreviewAuthorizationInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.PreviewAuthorizationResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getPreviewAuthorizationMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Retrieve the current billing control signal for a run in progress
-     * (continue / low-balance warning / stop), derived from the run's
-     * reservation headroom and the billing account's status.
-     * </pre>
-     */
-    default void getRunBillingSignal(ai.stigmer.billing.v1.GetRunBillingSignalInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.GetRunBillingSignalResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetRunBillingSignalMethod(), responseObserver);
     }
   }
 
@@ -427,7 +220,9 @@ public final class BillingQueryControllerGrpc {
    * Base class for the server implementation of the service BillingQueryController.
    * <pre>
    * BillingQueryController handles read operations for the billing bounded context.
-   * All RPCs authorize against the organization resource kind with can_view_billing.
+   * An organization's own reads authorize against the organization resource
+   * kind with can_view_billing; the model catalog's operator read authorizes
+   * against the static platform target.
    * </pre>
    */
   public static abstract class BillingQueryControllerImplBase
@@ -442,7 +237,9 @@ public final class BillingQueryControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service BillingQueryController.
    * <pre>
    * BillingQueryController handles read operations for the billing bounded context.
-   * All RPCs authorize against the organization resource kind with can_view_billing.
+   * An organization's own reads authorize against the organization resource
+   * kind with can_view_billing; the model catalog's operator read authorizes
+   * against the static platform target.
    * </pre>
    */
   public static final class BillingQueryControllerStub
@@ -471,29 +268,9 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Retrieve the credit balance breakdown for an organization.
-     * </pre>
-     */
-    public void getCreditBalance(ai.stigmer.billing.v1.GetCreditBalanceInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditBalance> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetCreditBalanceMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Retrieve paginated credit ledger entries with optional filters.
-     * </pre>
-     */
-    public void getCreditLedger(ai.stigmer.billing.v1.GetCreditLedgerInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetCreditLedgerMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Retrieve an aggregated billing usage report for a date range.
+     * Count an organization's metered LLM calls and runs in a date range,
+     * with the calls broken down by model and harness. A count, never an
+     * amount: the meter records what each call was, not what it cost.
      * </pre>
      */
     public void getBillingUsageReport(ai.stigmer.billing.v1.GetBillingUsageReportInput request,
@@ -504,22 +281,10 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Retrieve the customer-facing model price list with markup applied.
-     * Returns prices for all models, organized by harness and cost tier.
-     * </pre>
-     */
-    public void getCustomerModelPricing(ai.stigmer.billing.v1.GetCustomerModelPricingInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CustomerModelPricingResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetCustomerModelPricingMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
      * Retrieve the model registry baseline catalog (ACTIVE documents, or the
      * full append-only revision history when include_history is set).
-     * Operator surface: exposes raw provider rates (pre-markup) and revision
-     * provenance, so it is platform-gated, not org-gated.
+     * Operator surface: exposes the providers' list prices with their
+     * revision provenance, so it is platform-gated, not org-gated.
      * </pre>
      */
     public void listModelPricingBaselines(ai.stigmer.billing.v1.ListModelPricingBaselinesInput request,
@@ -527,42 +292,15 @@ public final class BillingQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getListModelPricingBaselinesMethod(), getCallOptions()), request, responseObserver);
     }
-
-    /**
-     * <pre>
-     * Preview whether an organization can fund a run, without writing
-     * a reservation. The read-only twin of BillingCommandController's
-     * authorizeRun: both ride the same server-side affordability
-     * predicate (start threshold, negative allowance, default cap), so a
-     * synchronous preflight refusal and the authoritative reservation can
-     * never drift.
-     * </pre>
-     */
-    public void previewAuthorization(ai.stigmer.billing.v1.PreviewAuthorizationInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.PreviewAuthorizationResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getPreviewAuthorizationMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Retrieve the current billing control signal for a run in progress
-     * (continue / low-balance warning / stop), derived from the run's
-     * reservation headroom and the billing account's status.
-     * </pre>
-     */
-    public void getRunBillingSignal(ai.stigmer.billing.v1.GetRunBillingSignalInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.GetRunBillingSignalResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGetRunBillingSignalMethod(), getCallOptions()), request, responseObserver);
-    }
   }
 
   /**
    * A stub to allow clients to do synchronous rpc calls to service BillingQueryController.
    * <pre>
    * BillingQueryController handles read operations for the billing bounded context.
-   * All RPCs authorize against the organization resource kind with can_view_billing.
+   * An organization's own reads authorize against the organization resource
+   * kind with can_view_billing; the model catalog's operator read authorizes
+   * against the static platform target.
    * </pre>
    */
   public static final class BillingQueryControllerBlockingV2Stub
@@ -590,27 +328,9 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Retrieve the credit balance breakdown for an organization.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.CreditBalance getCreditBalance(ai.stigmer.billing.v1.GetCreditBalanceInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetCreditBalanceMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Retrieve paginated credit ledger entries with optional filters.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.CreditLedgerResponse getCreditLedger(ai.stigmer.billing.v1.GetCreditLedgerInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetCreditLedgerMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Retrieve an aggregated billing usage report for a date range.
+     * Count an organization's metered LLM calls and runs in a date range,
+     * with the calls broken down by model and harness. A count, never an
+     * amount: the meter records what each call was, not what it cost.
      * </pre>
      */
     public ai.stigmer.billing.v1.BillingUsageReportResponse getBillingUsageReport(ai.stigmer.billing.v1.GetBillingUsageReportInput request) throws io.grpc.StatusException {
@@ -620,53 +340,15 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Retrieve the customer-facing model price list with markup applied.
-     * Returns prices for all models, organized by harness and cost tier.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.CustomerModelPricingResponse getCustomerModelPricing(ai.stigmer.billing.v1.GetCustomerModelPricingInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetCustomerModelPricingMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Retrieve the model registry baseline catalog (ACTIVE documents, or the
      * full append-only revision history when include_history is set).
-     * Operator surface: exposes raw provider rates (pre-markup) and revision
-     * provenance, so it is platform-gated, not org-gated.
+     * Operator surface: exposes the providers' list prices with their
+     * revision provenance, so it is platform-gated, not org-gated.
      * </pre>
      */
     public ai.stigmer.billing.v1.ModelPricingBaselinesResponse listModelPricingBaselines(ai.stigmer.billing.v1.ListModelPricingBaselinesInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getListModelPricingBaselinesMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Preview whether an organization can fund a run, without writing
-     * a reservation. The read-only twin of BillingCommandController's
-     * authorizeRun: both ride the same server-side affordability
-     * predicate (start threshold, negative allowance, default cap), so a
-     * synchronous preflight refusal and the authoritative reservation can
-     * never drift.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.PreviewAuthorizationResponse previewAuthorization(ai.stigmer.billing.v1.PreviewAuthorizationInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getPreviewAuthorizationMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Retrieve the current billing control signal for a run in progress
-     * (continue / low-balance warning / stop), derived from the run's
-     * reservation headroom and the billing account's status.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.GetRunBillingSignalResponse getRunBillingSignal(ai.stigmer.billing.v1.GetRunBillingSignalInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGetRunBillingSignalMethod(), getCallOptions(), request);
     }
   }
 
@@ -674,7 +356,9 @@ public final class BillingQueryControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service BillingQueryController.
    * <pre>
    * BillingQueryController handles read operations for the billing bounded context.
-   * All RPCs authorize against the organization resource kind with can_view_billing.
+   * An organization's own reads authorize against the organization resource
+   * kind with can_view_billing; the model catalog's operator read authorizes
+   * against the static platform target.
    * </pre>
    */
   public static final class BillingQueryControllerBlockingStub
@@ -702,27 +386,9 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Retrieve the credit balance breakdown for an organization.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.CreditBalance getCreditBalance(ai.stigmer.billing.v1.GetCreditBalanceInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetCreditBalanceMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Retrieve paginated credit ledger entries with optional filters.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.CreditLedgerResponse getCreditLedger(ai.stigmer.billing.v1.GetCreditLedgerInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetCreditLedgerMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Retrieve an aggregated billing usage report for a date range.
+     * Count an organization's metered LLM calls and runs in a date range,
+     * with the calls broken down by model and harness. A count, never an
+     * amount: the meter records what each call was, not what it cost.
      * </pre>
      */
     public ai.stigmer.billing.v1.BillingUsageReportResponse getBillingUsageReport(ai.stigmer.billing.v1.GetBillingUsageReportInput request) {
@@ -732,53 +398,15 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Retrieve the customer-facing model price list with markup applied.
-     * Returns prices for all models, organized by harness and cost tier.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.CustomerModelPricingResponse getCustomerModelPricing(ai.stigmer.billing.v1.GetCustomerModelPricingInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetCustomerModelPricingMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Retrieve the model registry baseline catalog (ACTIVE documents, or the
      * full append-only revision history when include_history is set).
-     * Operator surface: exposes raw provider rates (pre-markup) and revision
-     * provenance, so it is platform-gated, not org-gated.
+     * Operator surface: exposes the providers' list prices with their
+     * revision provenance, so it is platform-gated, not org-gated.
      * </pre>
      */
     public ai.stigmer.billing.v1.ModelPricingBaselinesResponse listModelPricingBaselines(ai.stigmer.billing.v1.ListModelPricingBaselinesInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getListModelPricingBaselinesMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Preview whether an organization can fund a run, without writing
-     * a reservation. The read-only twin of BillingCommandController's
-     * authorizeRun: both ride the same server-side affordability
-     * predicate (start threshold, negative allowance, default cap), so a
-     * synchronous preflight refusal and the authoritative reservation can
-     * never drift.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.PreviewAuthorizationResponse previewAuthorization(ai.stigmer.billing.v1.PreviewAuthorizationInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getPreviewAuthorizationMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Retrieve the current billing control signal for a run in progress
-     * (continue / low-balance warning / stop), derived from the run's
-     * reservation headroom and the billing account's status.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.GetRunBillingSignalResponse getRunBillingSignal(ai.stigmer.billing.v1.GetRunBillingSignalInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGetRunBillingSignalMethod(), getCallOptions(), request);
     }
   }
 
@@ -786,7 +414,9 @@ public final class BillingQueryControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service BillingQueryController.
    * <pre>
    * BillingQueryController handles read operations for the billing bounded context.
-   * All RPCs authorize against the organization resource kind with can_view_billing.
+   * An organization's own reads authorize against the organization resource
+   * kind with can_view_billing; the model catalog's operator read authorizes
+   * against the static platform target.
    * </pre>
    */
   public static final class BillingQueryControllerFutureStub
@@ -815,29 +445,9 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Retrieve the credit balance breakdown for an organization.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreditBalance> getCreditBalance(
-        ai.stigmer.billing.v1.GetCreditBalanceInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetCreditBalanceMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Retrieve paginated credit ledger entries with optional filters.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreditLedgerResponse> getCreditLedger(
-        ai.stigmer.billing.v1.GetCreditLedgerInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetCreditLedgerMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Retrieve an aggregated billing usage report for a date range.
+     * Count an organization's metered LLM calls and runs in a date range,
+     * with the calls broken down by model and harness. A count, never an
+     * amount: the meter records what each call was, not what it cost.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.BillingUsageReportResponse> getBillingUsageReport(
@@ -848,22 +458,10 @@ public final class BillingQueryControllerGrpc {
 
     /**
      * <pre>
-     * Retrieve the customer-facing model price list with markup applied.
-     * Returns prices for all models, organized by harness and cost tier.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CustomerModelPricingResponse> getCustomerModelPricing(
-        ai.stigmer.billing.v1.GetCustomerModelPricingInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetCustomerModelPricingMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
      * Retrieve the model registry baseline catalog (ACTIVE documents, or the
      * full append-only revision history when include_history is set).
-     * Operator surface: exposes raw provider rates (pre-markup) and revision
-     * provenance, so it is platform-gated, not org-gated.
+     * Operator surface: exposes the providers' list prices with their
+     * revision provenance, so it is platform-gated, not org-gated.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.ModelPricingBaselinesResponse> listModelPricingBaselines(
@@ -871,45 +469,11 @@ public final class BillingQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getListModelPricingBaselinesMethod(), getCallOptions()), request);
     }
-
-    /**
-     * <pre>
-     * Preview whether an organization can fund a run, without writing
-     * a reservation. The read-only twin of BillingCommandController's
-     * authorizeRun: both ride the same server-side affordability
-     * predicate (start threshold, negative allowance, default cap), so a
-     * synchronous preflight refusal and the authoritative reservation can
-     * never drift.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.PreviewAuthorizationResponse> previewAuthorization(
-        ai.stigmer.billing.v1.PreviewAuthorizationInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getPreviewAuthorizationMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Retrieve the current billing control signal for a run in progress
-     * (continue / low-balance warning / stop), derived from the run's
-     * reservation headroom and the billing account's status.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.GetRunBillingSignalResponse> getRunBillingSignal(
-        ai.stigmer.billing.v1.GetRunBillingSignalInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGetRunBillingSignalMethod(), getCallOptions()), request);
-    }
   }
 
   private static final int METHODID_GET_BILLING_ACCOUNT = 0;
-  private static final int METHODID_GET_CREDIT_BALANCE = 1;
-  private static final int METHODID_GET_CREDIT_LEDGER = 2;
-  private static final int METHODID_GET_BILLING_USAGE_REPORT = 3;
-  private static final int METHODID_GET_CUSTOMER_MODEL_PRICING = 4;
-  private static final int METHODID_LIST_MODEL_PRICING_BASELINES = 5;
-  private static final int METHODID_PREVIEW_AUTHORIZATION = 6;
-  private static final int METHODID_GET_RUN_BILLING_SIGNAL = 7;
+  private static final int METHODID_GET_BILLING_USAGE_REPORT = 1;
+  private static final int METHODID_LIST_MODEL_PRICING_BASELINES = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -932,33 +496,13 @@ public final class BillingQueryControllerGrpc {
           serviceImpl.getBillingAccount((ai.stigmer.billing.v1.GetBillingAccountInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingAccount>) responseObserver);
           break;
-        case METHODID_GET_CREDIT_BALANCE:
-          serviceImpl.getCreditBalance((ai.stigmer.billing.v1.GetCreditBalanceInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditBalance>) responseObserver);
-          break;
-        case METHODID_GET_CREDIT_LEDGER:
-          serviceImpl.getCreditLedger((ai.stigmer.billing.v1.GetCreditLedgerInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerResponse>) responseObserver);
-          break;
         case METHODID_GET_BILLING_USAGE_REPORT:
           serviceImpl.getBillingUsageReport((ai.stigmer.billing.v1.GetBillingUsageReportInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingUsageReportResponse>) responseObserver);
           break;
-        case METHODID_GET_CUSTOMER_MODEL_PRICING:
-          serviceImpl.getCustomerModelPricing((ai.stigmer.billing.v1.GetCustomerModelPricingInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CustomerModelPricingResponse>) responseObserver);
-          break;
         case METHODID_LIST_MODEL_PRICING_BASELINES:
           serviceImpl.listModelPricingBaselines((ai.stigmer.billing.v1.ListModelPricingBaselinesInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingBaselinesResponse>) responseObserver);
-          break;
-        case METHODID_PREVIEW_AUTHORIZATION:
-          serviceImpl.previewAuthorization((ai.stigmer.billing.v1.PreviewAuthorizationInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.PreviewAuthorizationResponse>) responseObserver);
-          break;
-        case METHODID_GET_RUN_BILLING_SIGNAL:
-          serviceImpl.getRunBillingSignal((ai.stigmer.billing.v1.GetRunBillingSignalInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.GetRunBillingSignalResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -986,20 +530,6 @@ public final class BillingQueryControllerGrpc {
               ai.stigmer.billing.v1.BillingAccount>(
                 service, METHODID_GET_BILLING_ACCOUNT)))
         .addMethod(
-          getGetCreditBalanceMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.GetCreditBalanceInput,
-              ai.stigmer.billing.v1.CreditBalance>(
-                service, METHODID_GET_CREDIT_BALANCE)))
-        .addMethod(
-          getGetCreditLedgerMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.GetCreditLedgerInput,
-              ai.stigmer.billing.v1.CreditLedgerResponse>(
-                service, METHODID_GET_CREDIT_LEDGER)))
-        .addMethod(
           getGetBillingUsageReportMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
@@ -1007,33 +537,12 @@ public final class BillingQueryControllerGrpc {
               ai.stigmer.billing.v1.BillingUsageReportResponse>(
                 service, METHODID_GET_BILLING_USAGE_REPORT)))
         .addMethod(
-          getGetCustomerModelPricingMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.GetCustomerModelPricingInput,
-              ai.stigmer.billing.v1.CustomerModelPricingResponse>(
-                service, METHODID_GET_CUSTOMER_MODEL_PRICING)))
-        .addMethod(
           getListModelPricingBaselinesMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
               ai.stigmer.billing.v1.ListModelPricingBaselinesInput,
               ai.stigmer.billing.v1.ModelPricingBaselinesResponse>(
                 service, METHODID_LIST_MODEL_PRICING_BASELINES)))
-        .addMethod(
-          getPreviewAuthorizationMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.PreviewAuthorizationInput,
-              ai.stigmer.billing.v1.PreviewAuthorizationResponse>(
-                service, METHODID_PREVIEW_AUTHORIZATION)))
-        .addMethod(
-          getGetRunBillingSignalMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.GetRunBillingSignalInput,
-              ai.stigmer.billing.v1.GetRunBillingSignalResponse>(
-                service, METHODID_GET_RUN_BILLING_SIGNAL)))
         .build();
   }
 
@@ -1083,13 +592,8 @@ public final class BillingQueryControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new BillingQueryControllerFileDescriptorSupplier())
               .addMethod(getGetBillingAccountMethod())
-              .addMethod(getGetCreditBalanceMethod())
-              .addMethod(getGetCreditLedgerMethod())
               .addMethod(getGetBillingUsageReportMethod())
-              .addMethod(getGetCustomerModelPricingMethod())
               .addMethod(getListModelPricingBaselinesMethod())
-              .addMethod(getPreviewAuthorizationMethod())
-              .addMethod(getGetRunBillingSignalMethod())
               .build();
         }
       }

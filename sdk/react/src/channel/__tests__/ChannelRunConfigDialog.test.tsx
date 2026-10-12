@@ -42,7 +42,7 @@ afterEach(cleanup);
  * on: `max_tool_rounds` (the operator knob this editor never renders)
  * survives every save verbatim, an all-empty draft clears the block
  * ("empty = inherit"), and untouched variant switches stay off the wire
- * (the #357/#772 unspecified-vs-explicit ledger distinction).
+ * (the #357/#772 unspecified-vs-explicit usage-record distinction).
  */
 
 const MODELS: ModelInfo[] = [
@@ -201,7 +201,7 @@ describe("ChannelRunConfigDialog", () => {
     const input = apply.mock.calls[0][0] as AgentChannelInput;
     expect(input.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
     // The untouched tier stays absent — never stamped as an explicit
-    // STANDARD by a save (#357 ledger distinction).
+    // STANDARD by a save (#357 usage-record distinction).
     expect(input.runConfig?.serviceTier).toBeUndefined();
   });
 

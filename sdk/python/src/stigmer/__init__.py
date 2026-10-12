@@ -10,16 +10,11 @@ Usage::
 """
 
 from ._billing import (
-    AdjustCreditsParams,
     BillingClient,
     CreateBillingPortalSessionParams,
-    CreateCheckoutSessionParams,
     CreatePaymentMethodSetupSessionParams,
     GetBillingUsageReportParams,
-    GetCreditLedgerParams,
-    GrantCreditsParams,
     RetireModelPricingBaselineParams,
-    SetAutoRechargeConfigParams,
     UpsertModelPricingBaselineParams,
 )
 from ._client import StigmerClient
@@ -100,16 +95,11 @@ __all__ = [
     # Runner adapter
     "RunnerAdapter",
     # Billing
-    "AdjustCreditsParams",
     "BillingClient",
     "CreateBillingPortalSessionParams",
-    "CreateCheckoutSessionParams",
     "CreatePaymentMethodSetupSessionParams",
     "GetBillingUsageReportParams",
-    "GetCreditLedgerParams",
-    "GrantCreditsParams",
     "RetireModelPricingBaselineParams",
-    "SetAutoRechargeConfigParams",
     "UpsertModelPricingBaselineParams",
     # GitHub
     "GitHubClient",

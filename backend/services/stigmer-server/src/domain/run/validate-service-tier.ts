@@ -18,8 +18,8 @@
  *     entry on the engine the conversation runs prices a "fast" variant: a
  *     fast price listed under the other engine would select a tier this
  *     turn can never apply. A tier the registry cannot price
- *     would trip billing's undercharge guard — selection and billability
- *     are coupled by construction.
+ *     would leave the run's cost estimate, and so its cost cap, blind to
+ *     it — selection and pricing are coupled by construction.
  *
  * A refusal names the layer that chose the tier and, when they differ, the
  * one that chose the model. Positioned directly after ResolveRunConfig,

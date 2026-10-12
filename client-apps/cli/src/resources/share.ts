@@ -307,14 +307,14 @@ function describeOutcome(
     // Embeds serve anonymous guests, which org-members-only shares refuse
     // by design — no snippet to print.
     result.hint(`Only signed-in members of ${orgLabel} can chat. Access ends when they leave the organization.`);
-    result.hint(`Members chat on ${orgLabel}'s credits.`);
+    result.hint(`Members chat on ${orgLabel}'s own provider keys.`);
   } else {
     const snippetSection = result.addSection("Embed on your site");
     for (const line of buildEmbedSnippet(options.appOrigin, shareId, publicLinkToken).split("\n")) {
       snippetSection.item(line);
     }
 
-    result.hint(`Visitors chat on ${orgLabel}'s credits.`);
+    result.hint(`Visitors chat on ${orgLabel}'s own provider keys.`);
     result.hint("Public links can be forwarded and indexed by search engines.");
     if (options.resetLink === true) {
       result.hint("Re-share the new link with the people who should keep access.");

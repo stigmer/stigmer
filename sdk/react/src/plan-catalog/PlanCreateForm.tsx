@@ -31,7 +31,7 @@ export interface PlanCreateFormProps {
 
 /**
  * Adds a subscription plan to the catalog: its name and handle, its
- * monthly minimum and usage share, its features, and the child
+ * monthly fee, its features, and the child
  * organizations it includes. The form states before submitting that a
  * plan's terms are final: a change of terms is a new plan, and the old
  * one is retired.
@@ -78,7 +78,7 @@ export function PlanCreateForm({ onCreated, onCancel }: PlanCreateFormProps) {
           />
           {fieldError("slug")}
         </Field>
-        <Field label="Monthly minimum (USD)" required>
+        <Field label="Monthly fee (USD)" required>
           <input
             className={INPUT_CLASSES}
             inputMode="decimal"
@@ -86,15 +86,6 @@ export function PlanCreateForm({ onCreated, onCancel }: PlanCreateFormProps) {
             onChange={(e) => set("monthlyMinimumUsd", e.target.value)}
           />
           {fieldError("monthlyMinimumUsd")}
-        </Field>
-        <Field label="Usage share (% of provider cost)" required>
-          <input
-            className={INPUT_CLASSES}
-            inputMode="decimal"
-            value={draft.usageSharePercent}
-            onChange={(e) => set("usageSharePercent", e.target.value)}
-          />
-          {fieldError("usageSharePercent")}
         </Field>
       </div>
 

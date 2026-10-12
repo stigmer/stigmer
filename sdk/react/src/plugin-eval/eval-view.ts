@@ -276,8 +276,6 @@ export function partialLabel(reason: PluginEvalPartialReason): string {
   switch (reason) {
     case PluginEvalPartialReason.cost_ceiling:
       return "cost limit reached";
-    case PluginEvalPartialReason.out_of_credit:
-      return "out of credit";
     case PluginEvalPartialReason.cancelled:
       return "cancelled";
     case PluginEvalPartialReason.unspecified:

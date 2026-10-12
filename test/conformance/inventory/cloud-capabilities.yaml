@@ -37,9 +37,14 @@
 # `debris` row records a behavior deliberately not carried forward, so the
 # cut stays visible, and a `debris-candidate` row awaits that decision.
 #
-# The counts the rows were reconciled against: 21 billing RPCs (13 command
-# + 8 query), 5 gate steps + 2 status hooks, 7 Stripe handlers over 8 event
-# strings, 4 billing schedule ids from 4 starters.
+# The counts the rows were reconciled against: 9 billing RPCs (6 command
+# + 3 query), 2 gate steps (account provisioning at organization create and
+# provider-key admission at run create) and no status hook, 2 Stripe handlers
+# over 2 event strings (customer.updated, payment_method.attached; the
+# subscription engine's invoice handlers carry no rows here), 1 billing
+# schedule id. The `debris` rows of the prepaid credit wallet (its gates,
+# hook, Stripe events, sweeps, unit tables and public price list) each name
+# the row that covers what took its place.
 
 
 rows:
@@ -47,18 +52,18 @@ rows:
   # BILLING — the RPC surface (BillingCommandController, BillingQueryController)
   # ===========================================================================
 
-  # --- account and balance reads (org lanes, can_view_billing) ---------------
-  - id: billing.rpc.get-billing-account.owner-reads-zero-balance-account
+  # --- account reads and the usage report (org lanes, can_view_billing) ------
+  - id: billing.rpc.get-billing-account.owner-reads-active-account
     surface: billing
     lane: >-
       rpc.getBillingAccount
     behavior: >-
-      After an organization create, the org owner's getBillingAccount returns the account the create provisioned for that org with status active, a zero balance and the default thresholds.
+      After an organization create, the org owner's getBillingAccount returns the account the create provisioned for that org with status active, no Stripe customer and no card on file.
     class: behavior
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org]
+    needs: [keyless-org]
   - id: billing.rpc.get-billing-account.unknown-org-not-found
     surface: billing
     lane: >-
@@ -82,76 +87,31 @@ rows:
     disposition: conformance
     observability: launcher
     caller: outsider
-    needs: [unfunded-org]
-  - id: billing.rpc.get-credit-balance.reflects-adjustments
-    surface: billing
-    lane: >-
-      rpc.getCreditBalance
-    behavior: >-
-      getCreditBalance returns the CreditBalance whose available micros equal the sum of adjustments and grants applied to the account, in *_micros integer columns.
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [funded-org]
-  - id: billing.rpc.get-credit-balance.outsider-permission-denied
-    surface: billing
-    lane: >-
-      rpc.getCreditBalance
-    behavior: >-
-      An outsider's getCreditBalance answers PERMISSION_DENIED "unauthorized to view billing for this organization".
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: outsider
-    needs: [unfunded-org]
-  - id: billing.rpc.get-credit-ledger.lists-entries-newest-first-with-shape
-    surface: billing
-    lane: >-
-      rpc.getCreditLedger
-    behavior: >-
-      getCreditLedger lists the org's ledger entries with entry type, amount_micros, balance-after, reason, source and idempotency key populated for every adjustment and grant made, paginated as the proto declares.
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [funded-org]
+    needs: [keyless-org]
   - id: billing.rpc.get-billing-usage-report.shape-and-empty-org
     surface: billing
     lane: >-
       rpc.getBillingUsageReport
     behavior: >-
-      getBillingUsageReport for an org with no usage returns an empty report with the proto's aggregate fields present and zero; after proxied usage lands it lists per-call usage with model, tokens and cost micros.
+      getBillingUsageReport for an org with no usage answers run_count and llm_call_count 0 and an empty model breakdown; once calls are recorded against the org's runs the counts move and the breakdown counts each model's calls (billing.rpc.record-llm-call-usage.records-calls-and-unknown-models, proxy.llm.usage.*). A count, never an amount.
     class: carve-out
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [funded-org, fake-llm-upstream, agent-execution]
-  - id: billing.rpc.get-customer-model-pricing.applies-policy-markup
-    surface: billing
-    lane: >-
-      rpc.getCustomerModelPricing
-    behavior: >-
-      getCustomerModelPricing returns the org's effective per-model prices with the billing policy's markup applied and the *_micros_per_million fields populated for every model the baseline carries a policy for.
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [unfunded-org]
+    needs: [keyless-org]
 
-  # --- the account (org lane, can_manage_billing) and the credit mutations
-  # (platform lane, can_manage_credits: an operator or a credit issuer) --------
+  # --- the account (org lane, can_manage_billing) ----------------------------
   - id: billing.rpc.get-or-create-billing-account.idempotent-for-existing
     surface: billing
     lane: >-
       rpc.getOrCreateBillingAccount
     behavior: >-
-      getOrCreateBillingAccount on an org that already has an account returns that same account (same id, same balance) without creating a second one.
+      getOrCreateBillingAccount on an org that already has an account returns that same account (same id, same status) without creating a second one.
     class: behavior
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org]
+    needs: [keyless-org]
   - id: billing.rpc.get-or-create-billing-account.member-without-manage-denied
     surface: billing
     lane: >-
@@ -162,187 +122,9 @@ rows:
     disposition: conformance
     observability: launcher
     caller: outsider
-    needs: [unfunded-org]
-  - id: billing.rpc.adjust-credits.positive-and-negative-move-balance
-    surface: billing
-    lane: >-
-      rpc.adjustCredits
-    behavior: >-
-      adjustCredits by a caller holding can_manage_credits on the platform, with a positive then a negative amount_micros, returns a ledger entry each time and the balance reflects both, with the reason and source recorded on the entries.
-    class: behavior
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [unfunded-org]
-  - id: billing.rpc.adjust-credits.zero-amount-invalid-argument
-    surface: billing
-    lane: >-
-      rpc.adjustCredits
-    behavior: >-
-      adjustCredits with amount_micros 0 answers INVALID_ARGUMENT "amount_micros must be non-zero".
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [unfunded-org]
-  - id: billing.rpc.adjust-credits.idempotency-key-replays-once
-    surface: billing
-    lane: >-
-      rpc.adjustCredits
-    behavior: >-
-      Two adjustCredits calls with the same idempotency_key apply the amount once — the second returns the original entry and the balance moves once.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [unfunded-org]
-  - id: billing.rpc.adjust-credits.outsider-permission-denied
-    surface: billing
-    lane: >-
-      rpc.adjustCredits
-    behavior: >-
-      An outsider's adjustCredits answers PERMISSION_DENIED "only platform operators and credit issuers can adjust credits".
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: outsider
-    needs: [unfunded-org]
-  - id: billing.rpc.adjust-credits.owner-permission-denied
-    surface: billing
-    lane: >-
-      rpc.adjustCredits
-    behavior: >-
-      The org's own owner's adjustCredits answers PERMISSION_DENIED "only platform operators and credit issuers can adjust credits" and the balance does not move: owning an organization never lets anyone add credit to it.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [unfunded-org]
-  - id: billing.rpc.adjust-credits.no-billing-account-not-found
-    surface: billing
-    lane: >-
-      rpc.adjustCredits
-    behavior: >-
-      adjustCredits by a credit issuer on an org id with no billing account answers NOT_FOUND "No billing account for <org>" and writes nothing.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [none]
-  - id: billing.rpc.grant-credits.grants-with-expiry
-    surface: billing
-    lane: >-
-      rpc.grantCredits
-    behavior: >-
-      grantCredits with a positive amount_micros and an expiry records a grant entry, raises the balance, and the grant's expiry is visible on the ledger entry.
-    class: behavior
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [unfunded-org]
-  - id: billing.rpc.grant-credits.non-positive-invalid-argument
-    surface: billing
-    lane: >-
-      rpc.grantCredits
-    behavior: >-
-      grantCredits with amount_micros <= 0 answers INVALID_ARGUMENT "amount_micros must be positive".
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [unfunded-org]
-  - id: billing.rpc.grant-credits.owner-permission-denied
-    surface: billing
-    lane: >-
-      rpc.grantCredits
-    behavior: >-
-      The org's own owner's grantCredits answers PERMISSION_DENIED "only platform operators and credit issuers can grant credits" and the balance does not move.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [unfunded-org]
-  - id: billing.rpc.grant-credits.no-billing-account-not-found
-    surface: billing
-    lane: >-
-      rpc.grantCredits
-    behavior: >-
-      grantCredits by a credit issuer on an org id with no billing account answers NOT_FOUND "No billing account for <org>" and writes nothing.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [none]
-  - id: billing.rpc.grant-credits.outsider-permission-denied
-    surface: billing
-    lane: >-
-      rpc.grantCredits
-    behavior: >-
-      An outsider's grantCredits answers PERMISSION_DENIED "only platform operators and credit issuers can grant credits".
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: outsider
-    needs: [unfunded-org]
+    needs: [keyless-org]
 
-  # --- purchases and Stripe-facing org lanes ---------------------------------
-  - id: billing.rpc.create-credit-checkout-session.creates-customer-and-session
-    surface: billing
-    lane: >-
-      rpc.createCreditCheckoutSession
-    behavior: >-
-      createCreditCheckoutSession for a known pack ensures a Stripe customer (POST /v1/customers with name = org id and metadata stigmer_org_id), creates a checkout session (POST /v1/checkout/sessions, mode payment, one line item at the pack's price in cents, metadata stigmer_org_id / stigmer_purchase_id / stigmer_pack_id / stigmer_credits_micros) and returns the session URL, the purchase id and the session id.
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [unfunded-org, fake-stripe]
-  - id: billing.rpc.create-credit-checkout-session.reuses-existing-customer
-    surface: billing
-    lane: >-
-      rpc.createCreditCheckoutSession
-    behavior: >-
-      A second createCreditCheckoutSession for the same org does not create a second Stripe customer — the fake sees exactly one POST /v1/customers across both calls.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [unfunded-org, fake-stripe]
-  - id: billing.rpc.create-credit-checkout-session.unknown-pack-invalid-argument
-    surface: billing
-    lane: >-
-      rpc.createCreditCheckoutSession
-    behavior: >-
-      createCreditCheckoutSession with a pack id the catalog does not know answers INVALID_ARGUMENT and makes no Stripe call.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [unfunded-org, fake-stripe]
-  - id: billing.rpc.create-credit-checkout-session.stripe-failure-surfaces
-    surface: billing
-    lane: >-
-      rpc.createCreditCheckoutSession
-    behavior: >-
-      When Stripe refuses the session create (the fake fails the next /v1/checkout/sessions call), the RPC fails with a non-OK status and no purchase is left completed — the pending row does not grant credits.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [unfunded-org, fake-stripe]
-    note: >-
-      The contract asserted is "no credits granted, error surfaced".
-  - id: billing.rpc.create-credit-checkout-session.outsider-permission-denied
-    surface: billing
-    lane: >-
-      rpc.createCreditCheckoutSession
-    behavior: >-
-      An outsider's createCreditCheckoutSession answers PERMISSION_DENIED "unauthorized to purchase credits for this organization".
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: outsider
-    needs: [unfunded-org]
+  # --- the card on file: Stripe-facing org lanes -----------------------------
   - id: billing.rpc.create-billing-portal-session.returns-portal-url
     surface: billing
     lane: >-
@@ -353,29 +135,29 @@ rows:
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org, fake-stripe]
+    needs: [keyless-org, fake-stripe]
   - id: billing.rpc.create-billing-portal-session.no-customer-failed-precondition
     surface: billing
     lane: >-
       rpc.createBillingPortalSession
     behavior: >-
-      For an org that never purchased (no Stripe customer), createBillingPortalSession answers FAILED_PRECONDITION and makes no Stripe call.
+      For an org that never saved a card (no Stripe customer), createBillingPortalSession answers FAILED_PRECONDITION and makes no Stripe call.
     class: adversarial
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org, fake-stripe]
+    needs: [keyless-org, fake-stripe]
   - id: billing.rpc.create-payment-method-setup-session.creates-customer-and-setup-session
     surface: billing
     lane: >-
       rpc.createPaymentMethodSetupSession
     behavior: >-
-      For an org that never purchased, createPaymentMethodSetupSession ensures a Stripe customer (POST /v1/customers, once across calls), creates a checkout session in setup mode for that customer (POST /v1/checkout/sessions, mode setup, the given success and cancel URLs) and returns its URL and id. Nothing is charged and no purchase is recorded.
+      For an org with no Stripe customer, createPaymentMethodSetupSession ensures one (POST /v1/customers with name = org id and metadata stigmer_org_id, once across calls, recorded as the account's stripe_customer_id), creates a checkout session in setup mode for that customer (POST /v1/checkout/sessions, mode setup, the given success and cancel URLs) and returns its URL and id. Nothing is charged.
     class: behavior
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org, fake-stripe]
+    needs: [keyless-org, fake-stripe]
   - id: billing.rpc.create-payment-method-setup-session.outsider-permission-denied
     surface: billing
     lane: >-
@@ -386,7 +168,7 @@ rows:
     disposition: conformance
     observability: launcher
     caller: outsider
-    needs: [unfunded-org, fake-stripe]
+    needs: [keyless-org, fake-stripe]
 
   # --- the plan catalog and subscriptions (cloud_only kinds; no Java) ---------
   - id: billing.rpc.plan-list.buyable-rows-only
@@ -394,7 +176,7 @@ rows:
     lane: >-
       rpc.Plan.list
     behavior: >-
-      Plan list (no include_retired) answers at least one plan, every one active, under a pln_ id with a slug and a set instrument, each subscription plan naming a monthly minimum; get by id answers the same row to any signed-in caller, an outsider included.
+      Plan list (no include_retired) answers at least one plan, every one active, under a pln_ id with a slug and a set instrument, each subscription plan naming its monthly fee (monthly_minimum_micros); get by id answers the same row to any signed-in caller, an outsider included.
     class: behavior
     disposition: conformance
     observability: launcher
@@ -421,7 +203,7 @@ rows:
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org]
+    needs: [keyless-org]
   - id: billing.rpc.change-plan.requires-payment-method
     surface: billing
     lane: >-
@@ -432,7 +214,7 @@ rows:
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org, fake-stripe]
+    needs: [keyless-org, fake-stripe]
   - id: billing.rpc.get-period-estimate.not-found-on-free
     surface: billing
     lane: >-
@@ -443,7 +225,7 @@ rows:
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org]
+    needs: [keyless-org]
   - id: billing.rpc.subscription.outsider-permission-denied
     surface: billing
     lane: >-
@@ -454,7 +236,7 @@ rows:
     disposition: conformance
     observability: launcher
     caller: outsider
-    needs: [unfunded-org, outsider]
+    needs: [keyless-org, outsider]
   - id: billing.rpc.oss-boundary.every-plan-rpc-unimplemented
     surface: billing
     lane: >-
@@ -466,142 +248,30 @@ rows:
     observability: none
     caller: primary
     needs: [none]
-  - id: billing.rpc.set-auto-recharge-config.persists-and-validates
-    surface: billing
-    lane: >-
-      rpc.setAutoRechargeConfig
-    behavior: >-
-      setAutoRechargeConfig persists the threshold, top-up and monthly-cap amounts onto the account (visible on getBillingAccount) whether enabling or disabling; disabling still refuses a negative amount INVALID_ARGUMENT; enabling requires a saved payment method FIRST (FAILED_PRECONDITION "A saved payment method is required to enable auto-recharge. Purchase a credit pack first.") and then validates the amounts in order — threshold positive, amount positive, cap at least the amount — each INVALID_ARGUMENT with the engine's copy; a refused enable changes nothing.
-    class: behavior
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [unfunded-org, fake-stripe]
-    note: >-
-      Auto-recharge is a live product surface: the console renders AutoRechargeCard and the SDKs expose setAutoRechargeConfig. The arm needs the fake Stripe because the only way an account gets a saved card from outside is the payment_method.attached webhook. The NOT_FOUND branch for an org without an account is unreachable black-box (every org create provisions an account; a foreign org is PERMISSION_DENIED first).
-  - id: billing.rpc.set-auto-recharge-config.outsider-permission-denied
-    surface: billing
-    lane: >-
-      rpc.setAutoRechargeConfig
-    behavior: >-
-      An outsider's setAutoRechargeConfig answers PERMISSION_DENIED "unauthorized to manage auto-recharge for this organization".
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: outsider
-    needs: [unfunded-org]
 
-  # --- engine lanes (platform can_execute_billing_ops) -----------------------
+  # --- the usage meter (platform can_execute_billing_ops) --------------------
   - id: billing.rpc.engine-lanes.ordinary-caller-permission-denied
-    surface: billing
-    lane: >-
-      rpc.authorizeExecution
-    behavior: >-
-      Each of the six engine RPCs (authorizeExecution, finalizeExecution, rearmForRecovery, recordLlmCallUsage, previewAuthorization, getExecutionBillingSignal) answers PERMISSION_DENIED "only platform operators can execute billing operations" to an org owner who is not a platform operator.
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: primary
-    needs: [unfunded-org]
-  - id: billing.rpc.preview-authorization.reasons-for-unfunded-and-funded
-    surface: billing
-    lane: >-
-      rpc.previewAuthorization
-    behavior: >-
-      previewAuthorization answers not-authorized with reason "Insufficient credits to start execution" for a zero-balance org and authorized for a funded one; an org without an account answers "No billing account for this organization".
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [unfunded-org, funded-org]
-  - id: billing.rpc.authorize-execution.reserves-and-latches
-    surface: billing
-    lane: >-
-      rpc.authorizeExecution
-    behavior: >-
-      authorizeExecution for a funded org and a fresh execution id returns authorized with a reservation id; a second authorizeExecution for the same execution id returns the same reservation (idempotent), never a second hold.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [funded-org]
-  - id: billing.rpc.authorize-execution.denied-when-unfunded
-    surface: billing
-    lane: >-
-      rpc.authorizeExecution
-    behavior: >-
-      authorizeExecution for a zero-balance org returns not-authorized with denial reason "Insufficient credits to start execution" and creates no reservation.
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [unfunded-org]
-  - id: billing.rpc.authorize-execution.concurrent-reserves-one-hold
-    surface: billing
-    lane: >-
-      rpc.authorizeExecution
-    behavior: >-
-      Concurrent authorizeExecution calls for the same execution id (fired without awaiting) leave exactly one reservation and one hold on the balance.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [funded-org]
-  - id: billing.rpc.finalize-execution.settles-and-is-idempotent
-    surface: billing
-    lane: >-
-      rpc.finalizeExecution
-    behavior: >-
-      finalizeExecution on an authorized execution settles the reservation (the hold is released, the balance reflects the recorded usage) and a second finalizeExecution for the same execution is a no-op — the balance moves once.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [funded-org]
-  - id: billing.rpc.finalize-execution.unknown-execution-failed-precondition
-    surface: billing
-    lane: >-
-      rpc.finalizeExecution
-    behavior: >-
-      finalizeExecution for an execution that was never authorized answers FAILED_PRECONDITION.
-    class: adversarial
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [funded-org]
-  - id: billing.rpc.rearm-for-recovery.rotates-reservation-past-settled-latch
-    surface: billing
-    lane: >-
-      rpc.rearmForRecovery
-    behavior: >-
-      rearmForRecovery on a settled execution mints a new reservation id (different from the original) and authorizes when the org is funded; on an unfunded org it answers not-authorized with the denial reason.
-    class: behavior
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [funded-org]
-  - id: billing.rpc.get-execution-billing-signal.unspecified-when-no-reservation
-    surface: billing
-    lane: >-
-      rpc.getExecutionBillingSignal
-    behavior: >-
-      getExecutionBillingSignal for an execution with no reservation answers UNSPECIFIED with an empty reason; for an authorized execution on a healthy balance it answers UNSPECIFIED; when the balance is exhausted it answers STOP with reason "Credit balance exhausted"; when low, WARNING with "Credit balance is low".
-    class: carve-out
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [funded-org]
-  - id: billing.rpc.record-llm-call-usage.records-cost-and-marks-price-not-found
     surface: billing
     lane: >-
       rpc.recordLlmCallUsage
     behavior: >-
-      recordLlmCallUsage for an authorized execution records a usage row (visible on getBillingUsageReport) with cost computed from the model's price; a model with no price records the row with cost status PRICE_NOT_FOUND instead of failing.
+      recordLlmCallUsage, the usage meter's write and the one engine RPC, answers PERMISSION_DENIED "only platform operators can execute billing operations" to an org owner who is not a platform operator.
+    class: carve-out
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [none]
+  - id: billing.rpc.record-llm-call-usage.records-calls-and-unknown-models
+    surface: billing
+    lane: >-
+      rpc.recordLlmCallUsage
+    behavior: >-
+      recordLlmCallUsage by the platform operator for two calls on one existing run answers a fresh usage_record_id for each, and the run's organization's getBillingUsageReport counts them (llm_call_count 2, run_count 1, the model breakdown's call counts summing to 2); a model the catalog has no entry for is recorded the same way instead of failing. The record says what the call was, never a price.
     class: behavior
     disposition: conformance
     observability: launcher
     caller: operator
-    needs: [funded-org]
+    needs: [keyed-org, agent-execution]
     note: >-
       The composition deduplicates a report on RecordLlmCallUsageInput.call_id when the caller sends one, falling back to sequence when it does not, so a restarted proxy's legitimate calls are never dropped as duplicates. This row's arm sends no call_id; the call_id path is pinned by the hosted edition's own suites.
 
@@ -648,7 +318,7 @@ rows:
     lane: >-
       rpc.getBillingAccount
     behavior: >-
-      On a target where billingLedger is false (the local OSS server), every one of the 21 billing RPCs answers Unimplemented — the edition boundary (billing is Cloud only) as an observable contract.
+      On a target where billingEngine is false (the local OSS server), every one of the 9 billing RPCs answers Unimplemented — the edition boundary (billing is Cloud only) as an observable contract.
     class: carve-out
     disposition: conformance
     observability: none
@@ -660,17 +330,17 @@ rows:
   # ===========================================================================
   # BILLING — gate steps and status hooks, observed through agent executions
   # ===========================================================================
-  - id: billing.gate.provision-account.org-create-provisions-zero-balance
+  - id: billing.gate.provision-account.org-create-provisions-account
     surface: billing
     lane: >-
       gate.provisionBillingAccount
     behavior: >-
-      Creating an organization provisions its billing account at zero balance in the same call — getBillingAccount succeeds immediately after the create without any billing RPC having been called.
+      Creating an organization provisions its billing account (status active) in the same call — getBillingAccount succeeds immediately after the create without any billing RPC having been called.
     class: behavior
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org]
+    needs: [keyless-org]
   - id: billing.gate.reserve.unfunded-execution-denied
     surface: billing
     lane: >-
@@ -678,12 +348,12 @@ rows:
     behavior: >-
       The reserve step, asked to reserve for an agent-execution create in a zero-balance org, refuses it synchronously: FAILED_PRECONDITION with the engine's denial reason verbatim ("Insufficient credits to start execution"), and no execution resource exists afterwards.
     class: carve-out
-    disposition: unit
+    disposition: debris
     observability: none
     caller: primary
     needs: [unfunded-org, agent-execution]
     note: >-
-      No run draws credit any more: every run is served on the organization's own provider key (a native run on its Anthropic or OpenAI key, a Cursor run on its Cursor key), so no create reserves and no run reaches this step from outside; the hosted edition's own unit arms on the gate carry this row.
+      Debris: no run draws credit, so no create reserves and there is no balance to refuse it on. Run admission asks only whether the organization holds a key for the run's provider (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
   - id: billing.gate.provider-key.keyless-run-refused
     surface: billing
     lane: >-
@@ -694,7 +364,7 @@ rows:
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org, agent-execution]
+    needs: [keyless-org, agent-execution]
     note: >-
       Asserted by suites-execution/run-admission.conformance.test.ts. Guests and channel users get their own copy with no ErrorInfo (the visitor refusal sets); conformance cannot mint those callers, so the hosted edition's unit arms carry their wording.
   - id: billing.gate.provider-key.keyless-cursor-run-refused
@@ -707,20 +377,20 @@ rows:
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org, agent-execution]
+    needs: [keyless-org, agent-execution]
     note: >-
       Asserted by suites-execution/run-admission.conformance.test.ts on an org that holds no key at all: the harness names the provider, so no catalog lookup is involved. The keyed half needs a real Cursor key, because the key is checked with Cursor at save; the Cursor execution arms run on one when the run supplies CURSOR_API_KEY.
-  - id: billing.gate.provider-key.keyed-run-completes-without-credit
+  - id: billing.gate.provider-key.keyed-run-completes
     surface: billing
     lane: >-
       gate.providerKey
     behavior: >-
-      The same org, once it saves its provider keys, runs a native execution to completion with a zero credit balance, and its available balance does not move and nothing stays reserved.
+      The same org, once it saves its provider keys, runs a native execution to completion: the provider bills the organization directly.
     class: behavior
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [unfunded-org, keyed-org, agent-execution]
+    needs: [keyless-org, keyed-org, agent-execution]
     note: >-
       The second arm of suites-execution/run-admission.conformance.test.ts.
   - id: billing.gate.provider-key.reconcile-turn-needs-no-key
@@ -728,7 +398,7 @@ rows:
     lane: >-
       gate.providerKey
     behavior: >-
-      An undo of a finished turn's file changes, in an org that holds no provider key any more, still starts the reconcile turn (a run with reconcile_file_review set, which asks no model) and it puts the file back and completes; the provider-key and credit gates pass such a run.
+      An undo of a finished turn's file changes, in an org that holds no provider key any more, still starts the reconcile turn (a run with reconcile_file_review set, which asks no model) and it puts the file back and completes; the provider-key gate passes such a run.
     class: behavior
     disposition: conformance
     observability: launcher
@@ -743,12 +413,12 @@ rows:
     behavior: >-
       Funding the SAME org that was just denied lets its next execution run — the denial was credit-driven (the negative control).
     class: behavior
-    disposition: unit
+    disposition: debris
     observability: none
     caller: primary
     needs: [unfunded-org, agent-execution]
     note: >-
-      No run draws credit any more: every run is served on the organization's own provider key (a native run on its Anthropic or OpenAI key, a Cursor run on its Cursor key), so no create reserves and no run reaches this step from outside; the hosted edition's own unit arms on the gate carry this row.
+      Debris: there is no credit to fund, so no denial for funding to clear. The negative control is the provider-key pair: the org refused for holding no key runs once it saves one (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyed-run-completes).
   - id: billing.gate.reserve.funded-execution-holds-then-settles
     surface: billing
     lane: >-
@@ -756,12 +426,12 @@ rows:
     behavior: >-
       An execution that holds a reservation settles it when it completes — after completion the balance reflects the metered usage and no reservation remains held (a second execution reserves afresh).
     class: behavior
-    disposition: unit
+    disposition: debris
     observability: none
     caller: primary
     needs: [funded-org, agent-execution]
     note: >-
-      No run draws credit any more: every run is served on the organization's own provider key (a native run on its Anthropic or OpenAI key, a Cursor run on its Cursor key), so no create reserves and no run reaches this step from outside; the hosted edition's own unit arms on the gate carry this row.
+      Debris: no run holds a reservation or settles against a balance; a run on the organization's own key is billed by its provider directly (billing.gate.provider-key.keyed-run-completes).
   - id: billing.hook.status-signal.update-status-carries-stop-when-exhausted
     surface: billing
     lane: >-
@@ -769,12 +439,12 @@ rows:
     behavior: >-
       The runner's updateStatus reply on a running execution carries execution_control_signal UNSPECIFIED on a healthy balance, WARNING with signal_reason "Credit balance is low" once the balance falls under the warning threshold, and STOP with "Credit balance exhausted" once exhausted.
     class: carve-out
-    disposition: unit
+    disposition: debris
     observability: none
     caller: runner-token
     needs: [funded-org, agent-execution]
     note: >-
-      The runner's updateStatus reply is not observable by the suite (the embedded runner owns that call); the signal semantics are pinned through getExecutionBillingSignal and the decorator field by the hosted edition's own unit arms. The thresholds are driven by adjustCredits (negative) between status updates; the runner-class credential is the execution target's embedded runner or an operator-minted runner token.
+      Debris: there is no balance to fall low or run out, so the billing unit registers no status hook and the runner's updateStatus reply carries no billing signal; RunControlSignal stays a generic mechanism. A run whose organization holds no key is refused before it starts (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
   - id: billing.gate.approval-signal.stop-refuses-approval
     surface: billing
     lane: >-
@@ -782,12 +452,12 @@ rows:
     behavior: >-
       submitApproval on an execution whose billing signal is STOP answers FAILED_PRECONDITION "Insufficient credits to continue this execution. Please add credits before acting on this approval, or cancel the execution."; a non-billed execution's approval is unaffected.
     class: carve-out
-    disposition: unit
+    disposition: debris
     observability: none
     caller: primary
     needs: [funded-org, agent-execution]
     note: >-
-      No run draws credit any more: every run is served on the organization's own provider key (a native run on its Anthropic or OpenAI key, a Cursor run on its Cursor key), so no create reserves and no run reaches this step from outside; the hosted edition's own unit arms on the gate carry this row.
+      Debris: no execution carries a billing STOP, so an approval asks nothing of billing. The provider-key gate at create is the only billing question a run meets (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
   - id: billing.gate.rearm.recover-refused-when-unfunded
     surface: billing
     lane: >-
@@ -795,12 +465,12 @@ rows:
     behavior: >-
       recover on a failed execution whose org has since been drained answers FAILED_PRECONDITION "Insufficient credits to recover this execution: Insufficient credits to start execution"; with funds the recover re-arms and relaunches.
     class: carve-out
-    disposition: unit
+    disposition: debris
     observability: none
     caller: primary
     needs: [funded-org, agent-execution]
     note: >-
-      No run draws credit any more: every run is served on the organization's own provider key (a native run on its Anthropic or OpenAI key, a Cursor run on its Cursor key), so no create reserves and no run reaches this step from outside; the hosted edition's own unit arms on the gate carry this row.
+      Debris: a recover holds no reservation to re-arm and no balance to refuse it on; the recovered run runs on the organization's own provider keys like any run (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyed-run-completes).
   - id: billing.gate.visitor-preflight.schedule-fire-refused-when-unfunded
     surface: billing
     lane: >-
@@ -821,12 +491,12 @@ rows:
     behavior: >-
       When the billing engine errors during authorization, the execution fails closed with status.error "Billing service unavailable" and the system message "Execution could not start due to a billing system error. Please try again."
     class: carve-out
-    disposition: unit
+    disposition: debris
     observability: none
     caller: none
     needs: [none]
     note: >-
-      Not inducible from outside on a hermetic Java (the engine is in-process); the composition's gates.ts BILLING_UNAVAILABLE_COPY unit arm carries it.
+      Debris: run admission reserves nothing, so no billing engine is asked and none can fail mid-admission; admission asks only for the organization's provider key (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
 
   # ===========================================================================
   # BILLING — the Stripe webhook (POST /webhook/stripe)
@@ -906,10 +576,12 @@ rows:
     behavior: >-
       A signed checkout.session.completed whose session id is a pending purchase grants the pack's credits (a ledger entry with source stripe and idempotency key purchase_<purchaseId>), raises the balance by credits_granted_micros, and the purchase reads completed.
     class: carve-out
-    disposition: conformance
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
+    note: >-
+      Debris: Stigmer sells no credit, so a credit pack's checkout has nothing to grant; runs use the organization's own provider keys and plans are invoiced as flat fees. The checkout.session.* events are unhandled and acknowledged 200 with no effect (billing.stripe.unhandled-event.ignored-200).
   - id: billing.stripe.checkout-completed.replay-same-event-id-grants-once
     surface: billing
     lane: >-
@@ -917,10 +589,12 @@ rows:
     behavior: >-
       Posting the same checkout.session.completed (same event id) twice answers 200 both times and grants the credits once — the event dedup (insertIfAbsent) holds.
     class: adversarial
-    disposition: conformance
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
+    note: >-
+      Debris: Stigmer sells no credit, so a credit pack's checkout has nothing to grant; runs use the organization's own provider keys and plans are invoiced as flat fees. The checkout.session.* events are unhandled and acknowledged 200 with no effect (billing.stripe.unhandled-event.ignored-200).
   - id: billing.stripe.checkout-completed.different-event-same-session-grants-once
     surface: billing
     lane: >-
@@ -928,10 +602,12 @@ rows:
     behavior: >-
       A second checkout.session.completed with a NEW event id for an already-completed session grants nothing more — the purchase's completed status is the latch.
     class: adversarial
-    disposition: conformance
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
+    note: >-
+      Debris: Stigmer sells no credit, so a credit pack's checkout has nothing to grant; runs use the organization's own provider keys and plans are invoiced as flat fees. The checkout.session.* events are unhandled and acknowledged 200 with no effect (billing.stripe.unhandled-event.ignored-200).
   - id: billing.stripe.checkout-completed.async-payment-succeeded-same-handler
     surface: billing
     lane: >-
@@ -939,10 +615,12 @@ rows:
     behavior: >-
       checkout.session.async_payment_succeeded grants exactly as checkout.session.completed does.
     class: behavior
-    disposition: conformance
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
+    note: >-
+      Debris: Stigmer sells no credit, so a credit pack's checkout has nothing to grant; runs use the organization's own provider keys and plans are invoiced as flat fees. The checkout.session.* events are unhandled and acknowledged 200 with no effect (billing.stripe.unhandled-event.ignored-200).
   - id: billing.stripe.checkout-completed.unknown-session-200-no-effect
     surface: billing
     lane: >-
@@ -950,10 +628,12 @@ rows:
     behavior: >-
       checkout.session.completed for a session id no purchase knows answers 200 (the event is marked failed internally) and grants nothing.
     class: adversarial
-    disposition: conformance
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: anonymous
     needs: [fake-stripe]
+    note: >-
+      Debris: Stigmer sells no credit, so a credit pack's checkout has nothing to grant; runs use the organization's own provider keys and plans are invoiced as flat fees. The checkout.session.* events are unhandled and acknowledged 200 with no effect (billing.stripe.unhandled-event.ignored-200).
   - id: billing.stripe.checkout-failed.pending-purchase-becomes-failed
     surface: billing
     lane: >-
@@ -961,10 +641,12 @@ rows:
     behavior: >-
       checkout.session.async_payment_failed on a pending purchase marks it failed and grants nothing.
     class: behavior
-    disposition: conformance
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
+    note: >-
+      Debris: Stigmer sells no credit, so a credit pack's checkout has nothing to grant; runs use the organization's own provider keys and plans are invoiced as flat fees. The checkout.session.* events are unhandled and acknowledged 200 with no effect (billing.stripe.unhandled-event.ignored-200).
   - id: billing.stripe.checkout-expired.pending-purchase-becomes-expired
     surface: billing
     lane: >-
@@ -972,23 +654,23 @@ rows:
     behavior: >-
       checkout.session.expired on a pending purchase marks it expired and grants nothing; a later checkout.session.completed for that session does not grant.
     class: behavior
-    disposition: conformance
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
     note: >-
-      Purchase status is not exposed by an RPC; the observable is "no grant" on the ledger.
+      Debris: Stigmer sells no credit, so a credit pack's checkout has nothing to grant; runs use the organization's own provider keys and plans are invoiced as flat fees. The checkout.session.* events are unhandled and acknowledged 200 with no effect (billing.stripe.unhandled-event.ignored-200).
   - id: billing.stripe.unhandled-event.ignored-200
     surface: billing
     lane: >-
       stripe.webhook
     behavior: >-
-      A signed event of a type Java does not handle (e.g. invoice.paid) answers 200 and has no effect.
+      A signed event of a type the server does not handle — checkout.session.completed, .async_payment_succeeded, .async_payment_failed and .expired (a credit pack's checkout), payment_intent.succeeded and .payment_failed (an off-session top-up), charge.refunded — answers 200 "ok", leaves the account unchanged and makes no Stripe call.
     class: behavior
     disposition: conformance
     observability: launcher
     caller: anonymous
-    needs: [fake-stripe]
+    needs: [keyless-org, fake-stripe]
   - id: billing.stripe.api-version.mismatch-silently-no-ops
     surface: billing
     lane: >-
@@ -1012,9 +694,9 @@ rows:
     disposition: conformance
     observability: launcher
     caller: anonymous
-    needs: [unfunded-org, fake-stripe]
+    needs: [keyless-org, fake-stripe]
     note: >-
-      Carried with auto-recharge, which it serves. The fake's card carries exp_month and exp_year (FAKE_CARD).
+      The card it records is the one the plan's invoices are charged to. The fake's card carries exp_month and exp_year (FAKE_CARD).
       The webhook claims the event id before this handler runs; a handler failure marks the claim failed and answers 500, so Stripe's redelivery is admitted again rather than skipped as a duplicate, and every money handler is idempotent underneath the claim.
   - id: billing.stripe.payment-method-attached.sets-default-when-none
     surface: billing
@@ -1026,9 +708,9 @@ rows:
     disposition: conformance
     observability: launcher
     caller: anonymous
-    needs: [unfunded-org, fake-stripe]
+    needs: [keyless-org, fake-stripe]
     note: >-
-      Carried with auto-recharge, which it serves. It is also how every auto-recharge arm gives its org a saved card.
+      The card it records is the one the plan's invoices are charged to.
       The same claim-then-process admission as customer.updated: a handler failure re-admits the redelivery.
   - id: billing.stripe.payment-intent-succeeded.recharge-provisions-credits
     surface: billing
@@ -1037,12 +719,12 @@ rows:
     behavior: >-
       payment_intent.succeeded carrying metadata stigmer_recharge_event_id provisions the recharge's credits exactly once — an auto_recharge_credit ledger entry under idempotency key auto_recharge_<event_id>, the balance up by the recharge amount; the same event replayed or a fresh event for the same recharge grants nothing more; without the metadata (a checkout's intent) or naming a recharge Java never created the event is a silent 200.
     class: behavior
-    disposition: conformance
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
     note: >-
-      Auto-recharge is a live product surface. The trigger runs after every usage debit inside recordLlmCallUsage and compares the available balance with the account's own threshold_micros, as the proto's contract says ("when available balance drops below this amount"), so the operator's engine RPCs are the only black-box way to reach it. The arm drives the whole journey as the platform operator and polls the fake for the PaymentIntent.
+      Debris: there is no prepaid balance to top up, so no off-session top-up is charged and no PaymentIntent is created; a saved card pays the plan's invoices. The payment_intent.* events are unhandled and acknowledged 200 with no effect (billing.stripe.unhandled-event.ignored-200).
   - id: billing.stripe.payment-intent-failed.recharge-compensated
     surface: billing
     lane: >-
@@ -1050,12 +732,12 @@ rows:
     behavior: >-
       payment_intent.payment_failed carrying stigmer_recharge_event_id marks the recharge FAILED and releases its monthly-cap slot (current_month_charged_micros back down by the amount) with no grant; with the recharge no longer pending, the next debit past the threshold triggers a fresh recharge under a new event id.
     class: behavior
-    disposition: conformance
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: anonymous
     needs: [unfunded-org, fake-stripe]
     note: >-
-      The arm proves the release is real by re-triggering, not by reading the counter alone. The month-rollover guard on the release depends on wall-clock time and is a `unit` concern.
+      Debris: there is no prepaid balance to top up, so no off-session top-up is charged and no PaymentIntent is created; a saved card pays the plan's invoices. The payment_intent.* events are unhandled and acknowledged 200 with no effect (billing.stripe.unhandled-event.ignored-200).
   - id: billing.stripe.outbound.idempotency-key-on-recharge-payment-intent
     surface: billing
     lane: >-
@@ -1063,29 +745,29 @@ rows:
     behavior: >-
       The auto-recharge PaymentIntent create carries Idempotency-Key auto_recharge_<event_id> (the event's own key) and the shape Java sends — amount in cents (micros / 10_000), currency usd, the saved payment method, the org's customer, off_session=true, confirm=true, metadata stigmer_org_id / stigmer_recharge_event_id / stigmer_credits_micros — and the month's slot is claimed (current_month_charged_micros) before any money moves.
     class: carve-out
-    disposition: conformance
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: none
     needs: [fake-stripe]
     note: >-
-      A carve-out: the key must be byte-identical across editions so a retry can never charge twice.
+      Debris: there is no prepaid balance to top up, so no off-session top-up is charged and no PaymentIntent is created; a saved card pays the plan's invoices. The payment_intent.* events are unhandled and acknowledged 200 with no effect (billing.stripe.unhandled-event.ignored-200).
 
   # ===========================================================================
-  # BILLING — workers, schedules, notifier (Temporal vocabulary is a carve-out)
+  # BILLING — workers and schedules (Temporal vocabulary is a carve-out)
   # ===========================================================================
-  - id: billing.worker.schedule-ids.four-byte-pinned
+  - id: billing.worker.schedule-ids.one-byte-pinned
     surface: billing
     lane: >-
       worker
     behavior: >-
-      The billing workers own exactly these Temporal schedule ids — reservation-expiry, grant-expiry, billing-usage-repricing, billing-reconciliation — and the byte-pinned workflow types billing/grant-expiry, billing/reservation-expiry, billing/reconciliation, billing/usage-repricing. Java ran them on one queue each (reservation_expiry, grant_expiry, usage_repricing, billing_reconciliation); the composition runs them on ONE composition-own queue, cloud-billing — the queue is server vocabulary, never a wire artifact.
+      The billing workers own exactly one Temporal schedule id — billing-subscription-periods — and its byte-pinned workflow type billing/subscription-periods, run on ONE composition-own queue, cloud-billing (the queue is server vocabulary, never a wire artifact). At boot the worker removes the schedules of sweeps it does not run, grant-expiry, reservation-expiry, billing-reconciliation and billing-usage-repricing among them, since a schedule whose workflow no worker serves fails every tick.
     class: carve-out
     disposition: unit
     observability: none
     caller: none
     needs: [none]
     note: >-
-      The composition keeps these ids (and types) by name; its billing workers' model is the list of record.
+      The composition keeps the id (and type) by name; its billing workers' model is the list of record, and its retired-schedule list names what boot removes.
   - id: billing.worker.reservation-expiry.releases-stale-holds
     surface: billing
     lane: >-
@@ -1093,10 +775,12 @@ rows:
     behavior: >-
       The reservation-expiry sweep releases holds whose executions never settled, restoring the balance.
     class: behavior
-    disposition: unit
+    disposition: debris
     observability: none
     caller: none
     needs: [none]
+    note: >-
+      Debris: no run holds a reservation, so there is no stale hold to release; the worker removes the reservation-expiry schedule at boot (billing.worker.schedule-ids.one-byte-pinned).
   - id: billing.worker.grant-expiry.expires-grants
     surface: billing
     lane: >-
@@ -1104,10 +788,12 @@ rows:
     behavior: >-
       The grant-expiry sweep removes expired grants from the available balance.
     class: behavior
-    disposition: unit
+    disposition: debris
     observability: none
     caller: none
     needs: [none]
+    note: >-
+      Debris: no organization holds a credit grant, so none expires; the worker removes the grant-expiry schedule at boot (billing.worker.schedule-ids.one-byte-pinned).
   - id: billing.worker.usage-repricing.reprices-price-not-found-rows
     surface: billing
     lane: >-
@@ -1115,10 +801,12 @@ rows:
     behavior: >-
       The usage-repricing sweep re-rates usage rows recorded with PRICE_NOT_FOUND once a price exists.
     class: behavior
-    disposition: unit
+    disposition: debris
     observability: none
     caller: none
     needs: [none]
+    note: >-
+      Debris: the meter records what a call was and never a price, so no row waits for one; a model the catalog lacks is recorded as it is (billing.rpc.record-llm-call-usage.records-calls-and-unknown-models), and the worker removes the billing-usage-repricing schedule at boot (billing.worker.schedule-ids.one-byte-pinned).
   - id: billing.worker.reconciliation.detects-drift
     surface: billing
     lane: >-
@@ -1126,10 +814,12 @@ rows:
     behavior: >-
       The billing reconciliation sweep is the money-IN backstop: a PENDING credit purchase older than the stale threshold is settled from its Stripe Checkout Session (complete+paid grants under the webhook's own key, expired marks expired, open is left; one with no session is marked failed past the orphan threshold), and a PENDING auto-recharge event is settled from its PaymentIntent or re-driven under its original idempotency key (compensated past the 20 h ceiling or without a saved card).
     class: behavior
-    disposition: unit
+    disposition: debris
     observability: none
     caller: none
     needs: [none]
+    note: >-
+      Debris: no credit is sold and no top-up is charged, so there is no pending purchase or top-up for the backstop to settle from Stripe; the worker removes the billing-reconciliation schedule at boot (billing.worker.schedule-ids.one-byte-pinned).
 
   # --- pure-logic tables the hosted billing engine carries -------------------
   - id: billing.unit.micros-arithmetic
@@ -1150,10 +840,12 @@ rows:
     behavior: >-
       Rating a usage record (input/output/cache tokens x model price, harness and tier policy) matches Java's UsageRatingService table.
     class: carve-out
-    disposition: unit
+    disposition: debris
     observability: none
     caller: none
     needs: [none]
+    note: >-
+      Debris: the meter never prices a call, so there is nothing to rate; it resolves each call against the model catalog for the harness, model and variant it records (billing.unit.cursor-model-resolver, billing.rpc.record-llm-call-usage.records-calls-and-unknown-models).
   - id: billing.unit.signal-thresholds
     surface: billing
     lane: >-
@@ -1161,10 +853,12 @@ rows:
     behavior: >-
       determineSignal(account, headroom) maps balance and thresholds to stop_execution / low_balance_warning / continue exactly as Java's table.
     class: carve-out
-    disposition: unit
+    disposition: debris
     observability: none
     caller: none
     needs: [none]
+    note: >-
+      Debris: there is no balance to map to a signal, so no run is ever warned or stopped for money (billing.hook.status-signal.update-status-carries-stop-when-exhausted).
   - id: billing.unit.ledger-view-classifier
     surface: billing
     lane: >-
@@ -1172,10 +866,12 @@ rows:
     behavior: >-
       Ledger entries classify into the console's view categories exactly as Java's LedgerViewClassifier table.
     class: carve-out
-    disposition: unit
+    disposition: debris
     observability: none
     caller: none
     needs: [none]
+    note: >-
+      Debris: there is no credit ledger for the console to classify; the Billing page shows the plan, the card on file and the invoices Stripe sends (billing.rpc.create-payment-method-setup-session.creates-customer-and-setup-session, billing.rpc.create-billing-portal-session.returns-portal-url).
   - id: billing.unit.model-registry-document-codec-and-embedded-registry
     surface: billing
     lane: >-
@@ -1187,12 +883,12 @@ rows:
     observability: none
     caller: none
     needs: [none]
-  - id: billing.unit.cursor-model-pricing-resolver
+  - id: billing.unit.cursor-model-resolver
     surface: billing
     lane: >-
       unit
     behavior: >-
-      Cursor model ids resolve to pricing entries (aliases, variants, unknown → fallback) exactly as Java's table.
+      Cursor model ids resolve to model catalog entries (aliases, variants, unknown → fallback) — the harness, base model and variant the meter records — exactly as Java's table.
     class: behavior
     disposition: unit
     observability: none
@@ -1205,10 +901,12 @@ rows:
     behavior: >-
       The credit pack catalog (ids, prices, credits) and the billing policy seed match Java's tables.
     class: carve-out
-    disposition: unit
+    disposition: debris
     observability: none
     caller: none
     needs: [none]
+    note: >-
+      Debris: Stigmer sells no credit pack and marks up no price, so there is no pack catalog and no billing policy to seed; the model catalog's own seed, the providers' list prices, stays (billing.unit.model-registry-document-codec-and-embedded-registry).
 
   # ===========================================================================
   # PROXY — the llm lane (/v1/proxy/llm/{provider}/**)
@@ -1235,12 +933,12 @@ rows:
     observability: launcher
     caller: primary
     needs: [fake-llm-upstream, keyed-org, agent-execution]
-  - id: proxy.llm.usage.anthropic-sse-usage-lands-in-ledger
+  - id: proxy.llm.usage.anthropic-sse-usage-lands
     surface: proxy
     lane: >-
       llm
     behavior: >-
-      After an Anthropic stream whose message_start/message_delta carry input and output tokens, the execution's org shows a usage row with those tokens on getBillingUsageReport (metered because the scope named an execution).
+      After an Anthropic stream whose message_start/message_delta carry input and output tokens, the execution's org's getBillingUsageReport counts the call (llm_call_count and run_count move; metered because the scope named an execution).
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1251,7 +949,7 @@ rows:
     lane: >-
       llm
     behavior: >-
-      After an OpenAI stream whose final chunk carries usage, the usage row lands with prompt and completion tokens; a plain-JSON (non-stream) completion's usage lands too.
+      After an OpenAI stream whose final chunk carries usage, the call is counted on the org's usage report; a plain-JSON (non-stream) completion's call is counted too.
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1847,10 +1545,12 @@ rows:
     behavior: >-
       GET /api/v1/public/model-pricing answers {"entries":[...]} where every entry carries modelId, displayName, provider, harness, costTier, inputPriceMicrosPerMillion, outputPriceMicrosPerMillion, cacheCreationPriceMicrosPerMillion, cacheReadPriceMicrosPerMillion, pricingPolicyId, markupBasisPoints and variants; entries are sorted by harness, costTier, provider, modelId; models without a policy are absent.
     class: carve-out
-    disposition: conformance
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: anonymous
     needs: [none]
+    note: >-
+      Debris: Stigmer marks up no model price, so there is no customer price list to publish; the providers' list prices reach every reader in the model registry document (public.model-registry.anonymous-json-cacheable).
   - id: public.model-pricing.site-reads-entries
     surface: public
     lane: >-
@@ -1858,10 +1558,12 @@ rows:
     behavior: >-
       The marketing site's PricingPage fetches ${cloudApiUrl}/api/v1/public/model-pricing and reads data.entries — the field the composition must keep.
     class: carve-out
-    disposition: conformance
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: anonymous
     needs: [none]
+    note: >-
+      Debris: the endpoint the page read is gone with the marked-up price list; stigmer.ai's pricing page renders its tables only when that fetch succeeds, and the public lane serves the model registry (public.model-registry.anonymous-json-cacheable).
   - id: public.leads.valid-submission-201-and-discord-embed
     surface: public
     lane: >-
@@ -2001,7 +1703,7 @@ rows:
   - id: public.edge.public-paths-anonymous
     surface: public
     lane: >-
-      public.model-pricing
+      public.model-registry
     behavior: >-
       /api/v1/public/** is reachable with no credential at all (permitAll) while /v1/proxy/** on the same listener is not.
     class: behavior
@@ -2025,7 +1727,7 @@ rows:
 #
 # Billing-side series that proxy reports FEED (stigmer.billing.usage.
 # metered_execution, .service_tier.mismatch, .thinking.mismatch,
-# .pricing.price_not_found, .repricing.still_unpriced) are the billing rows.
+# .pricing.price_not_found) are the billing rows.
 metrics:
   # ---- proxy ---------------------------------------------------------------
   - name: stigmer.proxy.cursor.connect.streams_metered
@@ -2169,11 +1871,12 @@ metrics:
     note: >-
       Counted refusals of Java's second-client writes to the composition's cursor tables. The composition is now the only writer, so the gate retired with Java.
   # ---- billing -------------------------------------------------------------
-  # The Java service emitted 18 distinct stigmer.billing.* names. Seventeen
-  # are billing-emitted and ported under the same names onto the
-  # composition's lazy-instrument idiom (counters, and three polled gauges);
-  # every counter whose alert needs a series before its first increment is
-  # pre-registered at zero on unit boot. The eighteenth is not billing's — see its note.
+  # The stigmer.billing.* names the Java service emitted. Those whose
+  # mechanism the composition still runs are ported under the same names onto
+  # its lazy-instrument idiom; every counter whose alert needs a series before
+  # its first increment is pre-registered at zero on unit boot. The rest are
+  # dropped, each with its reason; stigmer.billing.model_pin.unknown was never
+  # billing's — see its note.
   - name: stigmer.billing.pricing.baseline_fallback
     surface: billing
     disposition: ported
@@ -2182,6 +1885,8 @@ metrics:
     surface: billing
     disposition: ported
     alerts: [billing-price-not-found]
+    note: >-
+      A call whose model the catalog has no entry for. The meter prices nothing, but the catalog's list prices are what every runner's per-run cost cap reads, so a missing entry is a model no run can cap.
   - name: stigmer.billing.service_tier.mismatch
     surface: billing
     disposition: ported
@@ -2195,22 +1900,29 @@ metrics:
     disposition: ported
   - name: stigmer.billing.repricing.still_unpriced
     surface: billing
-    disposition: ported
-    alerts: [billing-repricing-still-unpriced]
+    disposition: dropped
+    note: >-
+      The meter records what a call was and never a price, so no usage row waits to be repriced; the repricing sweep, this gauge and its alert retired with the price on the record.
   - name: stigmer.billing.auto_recharge.rejected
     surface: billing
-    disposition: ported
-    alerts: [billing-auto-recharge-rejected]
+    disposition: dropped
+    note: >-
+      There is no prepaid balance to top up, so no off-session top-up is charged; the counter and its alert retired with auto-recharge.
   - name: stigmer.billing.auto_recharge.late_success_repair
     surface: billing
-    disposition: ported
-    alerts: [billing-auto-recharge-late-success-repair]
+    disposition: dropped
+    note: >-
+      There is no prepaid balance to top up, so no off-session top-up is charged; the counter and its alert retired with auto-recharge.
   - name: stigmer.billing.auto_recharge.gate_skipped
     surface: billing
-    disposition: ported
+    disposition: dropped
+    note: >-
+      There is no prepaid balance to top up, so no off-session top-up is charged; the counter retired with auto-recharge.
   - name: stigmer.billing.auto_recharge.reconciled
     surface: billing
-    disposition: ported
+    disposition: dropped
+    note: >-
+      There is no prepaid balance to top up, so no off-session top-up is charged; the counter retired with auto-recharge.
   - name: stigmer.billing.model_pin.unknown
     surface: billing
     disposition: dropped

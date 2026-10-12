@@ -95,8 +95,6 @@ const (
 	PluginEvalPartialReason_plugin_eval_partial_reason_unspecified PluginEvalPartialReason = 0
 	// The eval's spending limit was reached.
 	PluginEvalPartialReason_plugin_eval_partial_reason_cost_ceiling PluginEvalPartialReason = 1
-	// The organization ran out of credit.
-	PluginEvalPartialReason_plugin_eval_partial_reason_out_of_credit PluginEvalPartialReason = 2
 	// Someone cancelled the eval.
 	PluginEvalPartialReason_plugin_eval_partial_reason_cancelled PluginEvalPartialReason = 3
 )
@@ -106,14 +104,12 @@ var (
 	PluginEvalPartialReason_name = map[int32]string{
 		0: "plugin_eval_partial_reason_unspecified",
 		1: "plugin_eval_partial_reason_cost_ceiling",
-		2: "plugin_eval_partial_reason_out_of_credit",
 		3: "plugin_eval_partial_reason_cancelled",
 	}
 	PluginEvalPartialReason_value = map[string]int32{
-		"plugin_eval_partial_reason_unspecified":   0,
-		"plugin_eval_partial_reason_cost_ceiling":  1,
-		"plugin_eval_partial_reason_out_of_credit": 2,
-		"plugin_eval_partial_reason_cancelled":     3,
+		"plugin_eval_partial_reason_unspecified":  0,
+		"plugin_eval_partial_reason_cost_ceiling": 1,
+		"plugin_eval_partial_reason_cancelled":    3,
 	}
 )
 
@@ -728,8 +724,8 @@ type PluginEvalTry struct {
 	// The try's score from 0 to 1 when graded: the weighted share of its
 	// scored checks that passed.
 	Score float64 `protobuf:"fixed64,5,opt,name=score,proto3" json:"score,omitempty"`
-	// Why the try produced no score, as in "platform busy" or "out of
-	// credit"; empty when graded.
+	// Why the try produced no score, as in "platform busy"; empty when
+	// graded.
 	NotGradedReason string `protobuf:"bytes,6,opt,name=not_graded_reason,json=notGradedReason,proto3" json:"not_graded_reason,omitempty"`
 	// The run's own failure, when it had one, as in "timed out after 300s".
 	Error string `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
@@ -1081,12 +1077,11 @@ const file_ai_stigmer_agentic_plugineval_v1_status_proto_rawDesc = "" +
 	"\x19plugin_eval_phase_running\x10\x02\x12\x1f\n" +
 	"\x1bplugin_eval_phase_completed\x10\x03\x12\x1d\n" +
 	"\x19plugin_eval_phase_partial\x10\x04\x12\x1c\n" +
-	"\x18plugin_eval_phase_failed\x10\x05*\xca\x01\n" +
+	"\x18plugin_eval_phase_failed\x10\x05*\xcc\x01\n" +
 	"\x17PluginEvalPartialReason\x12*\n" +
 	"&plugin_eval_partial_reason_unspecified\x10\x00\x12+\n" +
-	"'plugin_eval_partial_reason_cost_ceiling\x10\x01\x12,\n" +
-	"(plugin_eval_partial_reason_out_of_credit\x10\x02\x12(\n" +
-	"$plugin_eval_partial_reason_cancelled\x10\x03*\xc9\x01\n" +
+	"'plugin_eval_partial_reason_cost_ceiling\x10\x01\x12(\n" +
+	"$plugin_eval_partial_reason_cancelled\x10\x03\"\x04\b\x02\x10\x02*(plugin_eval_partial_reason_out_of_credit*\xc9\x01\n" +
 	"\x12PluginEvalTryState\x12%\n" +
 	"!plugin_eval_try_state_unspecified\x10\x00\x12!\n" +
 	"\x1dplugin_eval_try_state_pending\x10\x01\x12!\n" +

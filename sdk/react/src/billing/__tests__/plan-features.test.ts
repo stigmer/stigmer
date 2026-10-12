@@ -1,6 +1,6 @@
 // What a plan shows: only the features Cloud offers today, in contract
-// order (a feature listed ahead of its gate is left out), its price and
-// usage share, and its child organizations; every period day in UTC; and
+// order (a feature listed ahead of its gate is left out), its monthly fee
+// and its child organizations; every period day in UTC; and
 // which plans are offered, cheapest first, with what a switch gives up.
 
 import { describe, expect, it } from "vitest";
@@ -10,12 +10,10 @@ import { PlanTermsSchema } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec
 import { EntitlementsSchema, Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import {
   buyablePlans,
-  explainUsageShare,
   featuresLost,
   formatChildOrgs,
-  formatMonthlyMinimum,
+  formatMonthlyFee,
   formatPeriodDay,
-  formatUsageShare,
   lowestPlanWith,
   offeredFeatures,
 } from "../plan-features";
@@ -43,27 +41,13 @@ describe("offeredFeatures", () => {
 describe("plan terms", () => {
   const terms = create(PlanTermsSchema, {
     monthlyMinimumMicros: 499n * USD,
-    usageShareBasisPoints: 1_000,
     perExtraOrgMicros: 25n * USD,
   });
 
-  it("reads the minimum and the usage share with the commission rule", () => {
-    expect(formatMonthlyMinimum(terms)).toBe("$499.00/month");
-    expect(formatUsageShare(terms)).toBe(
-      "or 10% of provider cost, whichever is greater; the commission already paid on tokens counts toward it",
-    );
-    expect(formatUsageShare(create(PlanTermsSchema, { usageShareBasisPoints: 1_250 }))).toMatch(/^or 12\.50%/);
-    expect(formatUsageShare(create(PlanTermsSchema))).toBe("");
-  });
-
-  it("explains the share to a customer, with the spend from which the plan costs nothing extra", () => {
-    expect(explainUsageShare(terms)).toBe(
-      "Usage is still paid from credits. The 10% commission on it counts toward the minimum, so from $4990.00 a month in provider costs the plan costs nothing extra.",
-    );
-    expect(explainUsageShare(create(PlanTermsSchema, { monthlyMinimumMicros: 99n * USD, usageShareBasisPoints: 1_000 }))).toMatch(
-      /from \$990\.00 a month/,
-    );
-    expect(explainUsageShare(create(PlanTermsSchema))).toBe("");
+  it("reads the monthly fee", () => {
+    expect(formatMonthlyFee(terms)).toBe("$499.00/month");
+    expect(formatMonthlyFee(create(PlanTermsSchema, { monthlyMinimumMicros: 99n * USD }))).toBe("$99.00/month");
+    expect(formatMonthlyFee(undefined)).toBe("$0.00/month");
   });
 
   it("reads the included child organizations and the fee beyond, only when the plan admits them", () => {

@@ -172,8 +172,8 @@ export interface CapabilityFlags {
   // Run admission gates run here: an agent-execution create is admitted on
   // the organization's own provider keys before any work happens, and an
   // organization holding no key for the run's provider is refused at create
-  // with FAILED_PRECONDITION, before any execution exists. No run draws
-  // credit: every run is served on the organization's own key.
+  // with FAILED_PRECONDITION, before any execution exists. Every run is
+  // served on the organization's own key.
   //
   // True for cloud: the composition's create-chain gate refuses the create
   // RPC itself.
@@ -282,12 +282,12 @@ export interface CapabilityFlags {
   // the edition sentence, never INTERNAL; where false, the suite PINS that
   // refusal on all four lanes.
   authorizationQueries: boolean;
-  // The billing LEDGER is served here: the 23 RPCs of BillingCommandController
-  // and BillingQueryController (accounts, balances, ledger, usage reports,
-  // pricing, the engine lanes), the Stripe webhook at POST /webhook/stripe,
-  // and the workers' observable effects. Distinct from `billingGates` (the
-  // execution-time credit gates), which a target could in principle serve
-  // through a remote engine without owning the ledger.
+  // The billing ENGINE is served here: the 9 RPCs of BillingCommandController
+  // and BillingQueryController (the organization's billing account and its
+  // Stripe customer, the usage meter and its counts, the model catalog's
+  // operator lanes) and the Stripe webhook at POST /webhook/stripe. Distinct
+  // from `billingGates` (run admission on the organization's provider keys),
+  // which a target could in principle serve without owning the engine.
   //
   // True for cloud, whose composition serves the billing engine natively.
   //
@@ -296,17 +296,17 @@ export interface CapabilityFlags {
   // Where false, the suite PINS that answer (the versionTagging
   // posture): the boundary is an observable contract the SDK relies on, not
   // an absence to skip past.
-  billingLedger: boolean;
+  billingEngine: boolean;
   // The plan catalog and subscriptions are served here: PlanCommandController
   // and PlanQueryController (the catalog an organization subscribes against),
   // SubscriptionCommandController and SubscriptionQueryController (the
   // organization's binding to a plan and the entitlements it derives). A flag
   // of its own because the four controllers are separate kinds from the
-  // ledger's 23 RPCs: a target can own the ledger and not the plan engine,
-  // as the Cloud did until the engine landed.
+  // billing engine's 9 RPCs: a target can own the engine and not the plans,
+  // as the Cloud did until the subscription engine landed.
   //
   // True for cloud. False for the local OSS targets by the same edition
-  // boundary as the ledger (the kinds are cloud_only): OSS routes none of the
+  // boundary as the billing engine (the kinds are cloud_only): OSS routes none of the
   // four controllers, and where false the suite pins Unimplemented on each
   // RPC.
   billingPlans: boolean;
@@ -317,7 +317,7 @@ export interface CapabilityFlags {
   // ruled debris — no caller, stigmer#992), the authenticated
   // /v1/proxy/model-registry, and the /health probe — with
   // scope-header authorization against FGA and usage extracted from the wire
-  // into the billing ledger.
+  // onto the usage meter.
   //
   // True for cloud, whose composition serves the lanes in-process (never a
   // skip: the flag states the edition's contract, and the lane's address
@@ -329,7 +329,7 @@ export interface CapabilityFlags {
   // skip there.
   sideChannelProxy: boolean;
   // The public REST lane the marketing site calls without credentials:
-  // GET /api/v1/public/model-registry, GET /api/v1/public/model-pricing,
+  // GET /api/v1/public/model-registry and
   // POST /api/v1/public/leads/contact-sales — with the contact-sales
   // validation copy and limits as a site-facing contract (a byte-pinned
   // carve-out) and the Discord lead notifier's fail-loud posture.
@@ -631,19 +631,13 @@ export interface TargetProfile {
   provisionTenancy(): Promise<TenancyContext>;
   cleanupTenancy(context: TenancyContext): Promise<void>;
 
-  // Tenancy WITHOUT the execution-credit seed or provider keys: the org
-  // exists (and on cloud its billing account exists at the zero balance an
-  // org create provisions), but nothing is added — the precondition the
-  // billing ledger and run-admission suites start from. Present only on
-  // billingGates targets; elsewhere provisionTenancy is already bare by
-  // construction and those suites skip. cleanupTenancy releases it.
-  provisionUnfundedTenancy?(): Promise<TenancyContext>;
-
-  // Seed the org's billing account with the target's standard credit
-  // allowance, for the suites that move or read a balance. A native run
-  // needs no credit: it runs on the organization's own provider key.
-  // Present only on billingGates targets.
-  fundTenancy?(org: string): Promise<void>;
+  // Tenancy WITHOUT provider keys: the org exists (and on cloud its billing
+  // account exists, as an org create provisions it), but no key is saved —
+  // the precondition the billing engine and run-admission suites start from.
+  // Present only on billingGates targets; elsewhere provisionTenancy is
+  // already bare by construction and those suites skip. cleanupTenancy
+  // releases it.
+  provisionKeylessTenancy?(): Promise<TenancyContext>;
 
   // Save an Anthropic and an OpenAI key on the org, as an admin pastes them
   // in the console, and a Cursor key when the run supplies one
@@ -655,14 +649,6 @@ export interface TargetProfile {
   // targets); elsewhere a run needs none, and callers write
   // `keyTenancy?.(org)`.
   keyTenancy?(org: string): Promise<void>;
-
-  // The clients that may add or remove an org's credits without a purchase
-  // (can_manage_credits on the platform, which owning the org never
-  // confers): the suites that move a funded org's balance between two
-  // observations drive them. Present only on billingGates targets; throws
-  // with the missing credential's name when the target was set up without
-  // one. Valid only after setup().
-  creditIssuer?(): ConformanceClients;
 
   // The programmable mock LLM proxy backing agent-execution runs. Present only on
   // execution targets that provision an engine + mock; absent on CRUD/cloud

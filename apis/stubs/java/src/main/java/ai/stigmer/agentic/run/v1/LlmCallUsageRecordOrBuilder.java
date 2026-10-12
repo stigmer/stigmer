@@ -128,10 +128,8 @@ public interface LlmCallUsageRecordOrBuilder extends
   /**
    * <pre>
    * The call's identity as the reporting proxy minted it (RecordLlmCallUsageInput.call_id),
-   * stamped verbatim. The durable link from a ledger usage_debit
-   * (CreditLedgerSource.llm_call_id) back to this record, and what every later
-   * debit of this record — the live one and the repricing sweep's — keys on.
-   * Empty for records whose reporter sent no call id; those key on sequence.
+   * stamped verbatim; the idempotency key is built on it. Empty for records
+   * whose reporter sent no call id; those key on sequence.
    * </pre>
    *
    * <code>string call_id = 9 [json_name = "callId"];</code>
@@ -141,10 +139,8 @@ public interface LlmCallUsageRecordOrBuilder extends
   /**
    * <pre>
    * The call's identity as the reporting proxy minted it (RecordLlmCallUsageInput.call_id),
-   * stamped verbatim. The durable link from a ledger usage_debit
-   * (CreditLedgerSource.llm_call_id) back to this record, and what every later
-   * debit of this record — the live one and the repricing sweep's — keys on.
-   * Empty for records whose reporter sent no call id; those key on sequence.
+   * stamped verbatim; the idempotency key is built on it. Empty for records
+   * whose reporter sent no call id; those key on sequence.
    * </pre>
    *
    * <code>string call_id = 9 [json_name = "callId"];</code>
@@ -252,16 +248,6 @@ public interface LlmCallUsageRecordOrBuilder extends
    * @return The usageStatus.
    */
   ai.stigmer.agentic.run.v1.UsageCompletionStatus getUsageStatus();
-
-  /**
-   * <pre>
-   * Whether this record should produce a billing debit.
-   * </pre>
-   *
-   * <code>bool is_billable = 23 [json_name = "isBillable"];</code>
-   * @return The isBillable.
-   */
-  boolean getIsBillable();
 
   /**
    * <pre>
@@ -422,8 +408,8 @@ public interface LlmCallUsageRecordOrBuilder extends
    * mirroring service_tier's convention: cursor harness derives it from the
    * resolved wire id's variant suffix; empty when the wire carries no
    * evidence — never guessed. Thinking is per-token price-neutral
-   * (ledger-verified, stigmer/stigmer#772), so this field feeds the
-   * requested-vs-billed consumption-drift reconciliation, not pricing.
+   * (stigmer/stigmer#772), so this field feeds the requested-vs-billed
+   * consumption-drift reconciliation.
    * </pre>
    *
    * <code>string thinking = 44 [json_name = "thinking"];</code>
@@ -436,8 +422,8 @@ public interface LlmCallUsageRecordOrBuilder extends
    * mirroring service_tier's convention: cursor harness derives it from the
    * resolved wire id's variant suffix; empty when the wire carries no
    * evidence — never guessed. Thinking is per-token price-neutral
-   * (ledger-verified, stigmer/stigmer#772), so this field feeds the
-   * requested-vs-billed consumption-drift reconciliation, not pricing.
+   * (stigmer/stigmer#772), so this field feeds the requested-vs-billed
+   * consumption-drift reconciliation.
    * </pre>
    *
    * <code>string thinking = 44 [json_name = "thinking"];</code>
@@ -472,33 +458,6 @@ public interface LlmCallUsageRecordOrBuilder extends
    * <code>.ai.stigmer.agentic.run.v1.TokenUsage tokens = 50 [json_name = "tokens"];</code>
    */
   ai.stigmer.agentic.run.v1.TokenUsageOrBuilder getTokensOrBuilder();
-
-  /**
-   * <pre>
-   * ─── Cost ───────────────────────────────────────────────────────────────────
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.CostStamp cost = 51 [json_name = "cost"];</code>
-   * @return Whether the cost field is set.
-   */
-  boolean hasCost();
-  /**
-   * <pre>
-   * ─── Cost ───────────────────────────────────────────────────────────────────
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.CostStamp cost = 51 [json_name = "cost"];</code>
-   * @return The cost.
-   */
-  ai.stigmer.agentic.run.v1.CostStamp getCost();
-  /**
-   * <pre>
-   * ─── Cost ───────────────────────────────────────────────────────────────────
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.CostStamp cost = 51 [json_name = "cost"];</code>
-   */
-  ai.stigmer.agentic.run.v1.CostStampOrBuilder getCostOrBuilder();
 
   /**
    * <pre>
@@ -551,33 +510,6 @@ public interface LlmCallUsageRecordOrBuilder extends
    */
   com.google.protobuf.ByteString
       getProviderUsageJsonBytes();
-
-  /**
-   * <pre>
-   * ─── Billing Handoff ────────────────────────────────────────────────────────
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.BillingLink billing = 80 [json_name = "billing"];</code>
-   * @return Whether the billing field is set.
-   */
-  boolean hasBilling();
-  /**
-   * <pre>
-   * ─── Billing Handoff ────────────────────────────────────────────────────────
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.BillingLink billing = 80 [json_name = "billing"];</code>
-   * @return The billing.
-   */
-  ai.stigmer.agentic.run.v1.BillingLink getBilling();
-  /**
-   * <pre>
-   * ─── Billing Handoff ────────────────────────────────────────────────────────
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.BillingLink billing = 80 [json_name = "billing"];</code>
-   */
-  ai.stigmer.agentic.run.v1.BillingLinkOrBuilder getBillingOrBuilder();
 
   /**
    * <pre>

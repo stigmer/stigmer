@@ -26,8 +26,8 @@ public enum PlanInstrument
   plan_instrument_unspecified(0),
   /**
    * <pre>
-   * Bought as a Subscription by an organization on Stigmer Cloud, billed
-   * monthly against usage.
+   * Bought as a Subscription by an organization on Stigmer Cloud, invoiced
+   * a flat fee each month.
    * </pre>
    *
    * <code>subscription = 1;</code>
@@ -59,8 +59,8 @@ public enum PlanInstrument
   public static final int plan_instrument_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Bought as a Subscription by an organization on Stigmer Cloud, billed
-   * monthly against usage.
+   * Bought as a Subscription by an organization on Stigmer Cloud, invoiced
+   * a flat fee each month.
    * </pre>
    *
    * <code>subscription = 1;</code>

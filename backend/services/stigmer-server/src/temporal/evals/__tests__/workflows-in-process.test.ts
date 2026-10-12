@@ -12,7 +12,7 @@
  * in flight; the cost ceiling checked before
  * each cell, each child capped at an equal share of what is left for the
  * children that may run at once, within what the running caps leave (never
- * below the floor); a credit refusal
+ * below the floor); a try the run's own refusal left not graded never
  * stopping new cells; a child that fails recorded as not graded with what
  * its run spent, which the ceiling counts, even when the eval's cancel
  * lands during that spend read; a cancellation recording every
@@ -28,7 +28,7 @@
  *
  * The case: start, wait, grade, three votes per AI-graded check, record;
  * the deadline stopping the run and grading what it produced; each start
- * refusal answered (credit, cannot act, the run's own, busy past the
+ * refusal answered (cannot act, the run's own, busy past the
  * retries, busy found deeper in the failure's causes, any other failure
  * as not started); an unexpected error of the workflow's own failed as a
  * non-retryable ApplicationFailure, a Temporal failure of its own as is;
@@ -63,7 +63,6 @@ import {
   GRADE_TRY_ACTIVITY_NAME,
   GRADING_FAILED_REASON,
   LOAD_SUITE_ACTIVITY_NAME,
-  OUT_OF_CREDIT_REASON,
   PLATFORM_BUSY_REASON,
   PLUGIN_EVAL_BUSY_FAILURE_TYPE,
   PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
@@ -170,7 +169,6 @@ function result(overrides: Partial<TryResult> = {}): TryResult {
     error: "",
     costUsd: 0.1,
     durationSeconds: 1,
-    outOfCredit: false,
     ...overrides,
   };
 }
@@ -186,6 +184,10 @@ function cells(count: number): SuiteCell[] {
 }
 
 const NO_SPEND: TrySpend = { sessionId: "", runId: "", costUsd: 0 };
+
+/** Admission's refusal of a run whose organization has no key for its model. */
+const KEYLESS_COPY =
+  "This organization has no Anthropic key for model 'claude-sonnet-4-5', so the run was not started. An admin can add one in Settings → Provider keys.";
 
 function suite(plan: unknown, spend: TrySpend = NO_SPEND) {
   const recorded: Array<{ cell: SuiteCell; result: TryResult }> = [];
@@ -262,7 +264,7 @@ describe("the suite workflow", () => {
     expect(finished).toEqual([{ phase: "partial", reason: "cost_ceiling" }]);
   });
 
-  it("stops new cells when the organization's credit refuses a try", async () => {
+  it("runs on past a try a FAILED_PRECONDITION refusal left not graded, and ends completed", async () => {
     const { recorded, finished } = suite({
       kind: "run",
       org: "acme",
@@ -274,16 +276,13 @@ describe("the suite workflow", () => {
     seam.child = async () => {
       calls++;
       return calls === 2
-        ? result({
-            state: "not-graded",
-            notGradedReason: OUT_OF_CREDIT_REASON,
-            outOfCredit: true,
-          })
+        ? result({ state: "not-graded", notGradedReason: KEYLESS_COPY })
         : result();
     };
     await runPluginEval({ evalId: "pev_1" });
-    expect(recorded).toHaveLength(2);
-    expect(finished).toEqual([{ phase: "partial", reason: "out_of_credit" }]);
+    expect(recorded).toHaveLength(4);
+    expect(recorded[1]?.result.notGradedReason).toBe(KEYLESS_COPY);
+    expect(finished).toEqual([{ phase: "completed" }]);
   });
 
   it("records a child that fails outright as a try not graded", async () => {
@@ -1290,20 +1289,6 @@ describe("the case workflow", () => {
   it("answers each start refusal without a score", async () => {
     caseScript({
       [START_TRY_ACTIVITY_NAME]: vi.fn(() =>
-        Promise.resolve({
-          kind: "refused",
-          failure: "out-of-credit",
-          reason: OUT_OF_CREDIT_REASON,
-        }),
-      ),
-    });
-    expect(await runCase(INPUT)).toMatchObject({
-      state: "not-graded",
-      notGradedReason: OUT_OF_CREDIT_REASON,
-      outOfCredit: true,
-    });
-    caseScript({
-      [START_TRY_ACTIVITY_NAME]: vi.fn(() =>
         Promise.resolve({ kind: "refused", failure: "cannot-act", reason: "" }),
       ),
     });
@@ -1325,13 +1310,15 @@ describe("the case workflow", () => {
         Promise.resolve({
           kind: "refused",
           failure: "not-started",
-          reason: "model 'x' needs a key",
+          reason: KEYLESS_COPY,
         }),
       ),
     });
-    expect((await runCase(INPUT)).notGradedReason).toBe(
-      "model 'x' needs a key",
-    );
+    expect(await runCase(INPUT)).toMatchObject({
+      state: "not-graded",
+      notGradedReason: KEYLESS_COPY,
+      costUsd: 0,
+    });
     caseScript({
       [START_TRY_ACTIVITY_NAME]: vi.fn(() => Promise.reject(busyFailure())),
     });
@@ -1735,7 +1722,7 @@ describe("the case workflow", () => {
         .fn()
         .mockImplementationOnce(() => Promise.reject(busyFailure()))
         .mockImplementationOnce(() =>
-          Promise.resolve({ kind: "failed", reason: OUT_OF_CREDIT_REASON }),
+          Promise.resolve({ kind: "failed", reason: KEYLESS_COPY }),
         )
         .mockImplementationOnce(() => Promise.reject(new Error("broken"))),
     });
@@ -1744,7 +1731,7 @@ describe("the case workflow", () => {
     expect(activities[RECORD_SCORE_ACTIVITY_NAME]!.mock.calls[0]![3]).toEqual([
       [
         { kind: "failed", reason: PLATFORM_BUSY_REASON },
-        { kind: "failed", reason: OUT_OF_CREDIT_REASON },
+        { kind: "failed", reason: KEYLESS_COPY },
         { kind: "failed", reason: "the judge could not start" },
       ],
       [],

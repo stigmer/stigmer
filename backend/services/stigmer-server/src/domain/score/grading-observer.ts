@@ -1,7 +1,8 @@
 /**
  * The grading observer: the core's own run-status observer
- * (extensions/status-hooks.ts), composed after every extension's so the
- * hosted edition's billing settle and channel nudge keep their timing. On
+ * (extensions/status-hooks.ts), composed after every extension's so an
+ * edition's own observers (the hosted edition's channel nudge) keep their
+ * timing. On
  * a run's move to COMPLETED it starts the grading workflow
  * (temporal/grading/) for that run, and nothing else: the run's own
  * workflow stays byte-identical.
