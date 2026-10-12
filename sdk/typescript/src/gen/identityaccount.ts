@@ -165,7 +165,7 @@ function buildIdentityAccountPreferencesProto(input: IdentityAccountPreferencesI
 }
 
 export function buildIdentityAccountProto(input: IdentityAccountInput): IdentityAccount {
-  const identityProviderRef = (input.identityProviderRef?.slug || input.identityProviderRef?.org) ? create(ApiResourceReferenceSchema, input.identityProviderRef) : undefined;
+  const identityProviderRef = (input.identityProviderRef?.slug || input.identityProviderRef?.org) ? create(ApiResourceReferenceSchema, { ...input.identityProviderRef, kind: 21 }) : undefined;
   const preferences = input.preferences ? buildIdentityAccountPreferencesProto(input.preferences) : undefined;
   return Object.assign(create(IdentityAccountSchema), {
     apiVersion: "iam.stigmer.ai/v1",

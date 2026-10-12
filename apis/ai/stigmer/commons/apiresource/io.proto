@@ -100,9 +100,23 @@ message RenameInput {
   ];
 }
 
-// Generic reference to any API resource by org and slug.
+// Generic reference to any API resource.
 // Used across resources to reference other resources (e.g., Vault, Agent, Skill).
-// Canonical format: "org/slug" (e.g., "acme/web-search", "acme/my-agent").
+// Canonical written format: "org/slug" (e.g., "acme/web-search", "acme/my-agent").
+//
+// A reference has three forms:
+// - Written: by name (org and slug), by id, or by both. A write that carries
+//   both must have them agree, or it is refused naming both. A name is
+//   resolved to its resource's id when the referring resource is written.
+// - Stored: org (the organization's id), kind, id and version. The slug is
+//   not stored, so a reference keeps pointing at the resource it meant when
+//   that resource is renamed, and never at a new resource that takes its old
+//   name after it is deleted.
+// - Returned: as stored, with slug filled with the resource's current name.
+//   A reference whose resource was deleted is returned with an empty slug.
+//
+// The kind a reference names is the kind its field declares
+// (reference_kind); a reference that carries another kind is refused.
 //
 // Every reference in a resource's spec is checked when the resource is
 // written: the target must exist, and a target in another organization
@@ -112,6 +126,12 @@ message RenameInput {
 // what a person can run they can also read. A reference that fails the
 // check is refused at write, never at run.
 message ApiResourceReference {
+  option (buf.validate.message).cel = {
+    id: "reference.id_or_slug"
+    message: "a reference names its resource by id or by slug"
+    expression: "this.id != '' || this.slug != ''"
+  };
+
   // Organization that owns the referenced resource, by slug or id.
   //
   // When non-empty: an organization slug (lowercase alphanumeric with hyphens,
@@ -139,8 +159,11 @@ message ApiResourceReference {
   // Format: lowercase alphanumeric with hyphens, must start with a letter
   // and end with a letter or digit (e.g., "web-search", "code-reviewer").
   // Length: 2-63 characters.
+  //
+  // Written to name the resource; never stored; returned filled with the
+  // resource's current name, empty when the resource was deleted.
   string slug = 3 [
-    (buf.validate.field).required = true,
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
     (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*[a-z0-9]$",
     (buf.validate.field).string.min_len = 2,
     (buf.validate.field).string.max_len = 63
@@ -162,4 +185,9 @@ message ApiResourceReference {
   // - version: "v1.0"       → Use version tagged as "v1.0"
   // - version: "abc123..."  → Use exact version with this hash (immutable)
   string version = 4 [(buf.validate.field).string.pattern = "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"];
+
+  // The referenced resource's id: what a stored reference holds. Optional
+  // on write, where the slug may name the resource instead; an id no
+  // resource of the kind holds answers as a missing resource.
+  string id = 5;
 }

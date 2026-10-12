@@ -47,40 +47,43 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n,ai/stigmer/iam/identityaccount/v1/spec" +
       ".proto\022!ai.stigmer.iam.identityaccount.v" +
-      "1\032\'ai/stigmer/commons/apiresource/io.pro" +
-      "to\032,ai/stigmer/iam/identityaccount/v1/en" +
-      "um.proto\032\033buf/validate/validate.proto\"\221\004" +
-      "\n\023IdentityAccountSpec\022\035\n\006idp_id\030\001 \001(\tB\006\272" +
-      "H\003\310\001\001R\005idpId\022\024\n\005email\030\002 \001(\tR\005email\022\035\n\nfi" +
-      "rst_name\030\003 \001(\tR\tfirstName\022\033\n\tlast_name\030\004" +
-      " \001(\tR\010lastName\022\037\n\013picture_url\030\005 \001(\tR\npic" +
-      "tureUrl\022,\n\022is_machine_account\030\006 \001(\010R\020isM" +
-      "achineAccount\022o\n\021provisioning_mode\030\007 \001(\016" +
-      "2B.ai.stigmer.iam.identityaccount.v1.Ide" +
-      "ntityAccountProvisioningModeR\020provisioni" +
-      "ngMode\022h\n\025identity_provider_ref\030\010 \001(\01324." +
-      "ai.stigmer.commons.apiresource.ApiResour" +
-      "ceReferenceR\023identityProviderRef\022_\n\013pref" +
-      "erences\030\t \001(\0132=.ai.stigmer.iam.identitya" +
-      "ccount.v1.IdentityAccountPreferencesR\013pr" +
-      "eferences\"\343\002\n\032IdentityAccountPreferences" +
-      "\0223\n\020standing_context\030\001 \001(\tB\010\272H\005r\003\030\320\017R\017st" +
-      "andingContext\022A\n\017default_harness\030\002 \001(\tB\030" +
-      "\272H\025r\020R\006nativeR\006cursor\330\001\001R\016defaultHarness" +
-      "\0229\n\024default_native_model\030\003 \001(\tB\007\272H\004r\002\030dR" +
-      "\022defaultNativeModel\0229\n\024default_cursor_mo" +
-      "del\030\004 \001(\tB\007\272H\004r\002\030dR\022defaultCursorModel\022%" +
-      "\n\016memory_enabled\030\005 \001(\010R\rmemoryEnabled\0220\n" +
-      "\024default_auto_approve\030\006 \001(\010R\022defaultAuto" +
-      "ApproveB\264\001B\tSpecProtoP\001\242\002\004ASII\252\002!Ai.Stig" +
-      "mer.Iam.Identityaccount.V1\312\002!Ai\\Stigmer\\" +
-      "Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer\\Iam\\" +
-      "Identityaccount\\V1\\GPBMetadata\352\002%Ai::Sti" +
-      "gmer::Iam::Identityaccount::V1b\006proto3"
+      "1\0322ai/stigmer/commons/apiresource/field_" +
+      "options.proto\032\'ai/stigmer/commons/apires" +
+      "ource/io.proto\032,ai/stigmer/iam/identitya" +
+      "ccount/v1/enum.proto\032\033buf/validate/valid" +
+      "ate.proto\"\227\004\n\023IdentityAccountSpec\022\035\n\006idp" +
+      "_id\030\001 \001(\tB\006\272H\003\310\001\001R\005idpId\022\024\n\005email\030\002 \001(\tR" +
+      "\005email\022\035\n\nfirst_name\030\003 \001(\tR\tfirstName\022\033\n" +
+      "\tlast_name\030\004 \001(\tR\010lastName\022\037\n\013picture_ur" +
+      "l\030\005 \001(\tR\npictureUrl\022,\n\022is_machine_accoun" +
+      "t\030\006 \001(\010R\020isMachineAccount\022o\n\021provisionin" +
+      "g_mode\030\007 \001(\0162B.ai.stigmer.iam.identityac" +
+      "count.v1.IdentityAccountProvisioningMode" +
+      "R\020provisioningMode\022n\n\025identity_provider_" +
+      "ref\030\010 \001(\01324.ai.stigmer.commons.apiresour" +
+      "ce.ApiResourceReferenceB\004\340\205,\025R\023identityP" +
+      "roviderRef\022_\n\013preferences\030\t \001(\0132=.ai.sti" +
+      "gmer.iam.identityaccount.v1.IdentityAcco" +
+      "untPreferencesR\013preferences\"\343\002\n\032Identity" +
+      "AccountPreferences\0223\n\020standing_context\030\001" +
+      " \001(\tB\010\272H\005r\003\030\320\017R\017standingContext\022A\n\017defau" +
+      "lt_harness\030\002 \001(\tB\030\272H\025r\020R\006nativeR\006cursor\330" +
+      "\001\001R\016defaultHarness\0229\n\024default_native_mod" +
+      "el\030\003 \001(\tB\007\272H\004r\002\030dR\022defaultNativeModel\0229\n" +
+      "\024default_cursor_model\030\004 \001(\tB\007\272H\004r\002\030dR\022de" +
+      "faultCursorModel\022%\n\016memory_enabled\030\005 \001(\010" +
+      "R\rmemoryEnabled\0220\n\024default_auto_approve\030" +
+      "\006 \001(\010R\022defaultAutoApproveB\264\001B\tSpecProtoP" +
+      "\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.Identityaccoun" +
+      "t.V1\312\002!Ai\\Stigmer\\Iam\\Identityaccount\\V1" +
+      "\342\002-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPB" +
+      "Metadata\352\002%Ai::Stigmer::Iam::Identityacc" +
+      "ount::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.iam.identityaccount.v1.EnumProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
@@ -98,11 +101,13 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_iam_identityaccount_v1_IdentityAccountPreferences_descriptor,
         new java.lang.String[] { "StandingContext", "DefaultHarness", "DefaultNativeModel", "DefaultCursorModel", "MemoryEnabled", "DefaultAutoApprove", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.iam.identityaccount.v1.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
+    registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.referenceKind);
     registry.add(build.buf.validate.ValidateProto.field);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);

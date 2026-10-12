@@ -83,6 +83,9 @@ public interface ApiResourceReferenceOrBuilder extends
    * Format: lowercase alphanumeric with hyphens, must start with a letter
    * and end with a letter or digit (e.g., "web-search", "code-reviewer").
    * Length: 2-63 characters.
+   *
+   * Written to name the resource; never stored; returned filled with the
+   * resource's current name, empty when the resource was deleted.
    * </pre>
    *
    * <code>string slug = 3 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -95,6 +98,9 @@ public interface ApiResourceReferenceOrBuilder extends
    * Format: lowercase alphanumeric with hyphens, must start with a letter
    * and end with a letter or digit (e.g., "web-search", "code-reviewer").
    * Length: 2-63 characters.
+   *
+   * Written to name the resource; never stored; returned filled with the
+   * resource's current name, empty when the resource was deleted.
    * </pre>
    *
    * <code>string slug = 3 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -150,4 +156,28 @@ public interface ApiResourceReferenceOrBuilder extends
    */
   com.google.protobuf.ByteString
       getVersionBytes();
+
+  /**
+   * <pre>
+   * The referenced resource's id: what a stored reference holds. Optional
+   * on write, where the slug may name the resource instead; an id no
+   * resource of the kind holds answers as a missing resource.
+   * </pre>
+   *
+   * <code>string id = 5 [json_name = "id"];</code>
+   * @return The id.
+   */
+  java.lang.String getId();
+  /**
+   * <pre>
+   * The referenced resource's id: what a stored reference holds. Optional
+   * on write, where the slug may name the resource instead; an id no
+   * resource of the kind holds answers as a missing resource.
+   * </pre>
+   *
+   * <code>string id = 5 [json_name = "id"];</code>
+   * @return The bytes for id.
+   */
+  com.google.protobuf.ByteString
+      getIdBytes();
 }

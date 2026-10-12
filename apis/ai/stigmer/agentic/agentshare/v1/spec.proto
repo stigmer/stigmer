@@ -58,12 +58,7 @@ message AgentShareSpec {
   // against slug-reuse rebind.
   ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [
     (ai.stigmer.commons.apiresource.reference_kind) = agent,
-    (buf.validate.field).required = true,
-    (buf.validate.field).cel = {
-      id: "agent_ref.kind"
-      message: "agent_ref must reference a resource with kind=agent"
-      expression: "this.kind == 40"
-    }
+    (buf.validate.field).required = true
   ];
 
   // Whether hosted-chat access for the configured audience is enabled.
@@ -153,12 +148,7 @@ message AgentShareSpec {
   // by the message-level CEL rule: members' runs use their own vaults.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 8 [
     (ai.stigmer.commons.apiresource.reference_kind) = vault,
-    (buf.validate.field).repeated.max_items = 20,
-    (buf.validate.field).repeated.items.cel = {
-      id: "vaults.kind"
-      message: "vaults must reference resources with kind=vault"
-      expression: "this.kind == 59"
-    }
+    (buf.validate.field).repeated.max_items = 20
   ];
 
   // Per-turn model choice and run bounds for guest conversations on this

@@ -124,7 +124,7 @@ private static final long serialVersionUID = 0L;
    * Reference to the IdentityProvider that the federated account belongs to.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
    * @return Whether the identityProviderRef field is set.
    */
   @java.lang.Override
@@ -136,7 +136,7 @@ private static final long serialVersionUID = 0L;
    * Reference to the IdentityProvider that the federated account belongs to.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
    * @return The identityProviderRef.
    */
   @java.lang.Override
@@ -148,7 +148,7 @@ private static final long serialVersionUID = 0L;
    * Reference to the IdentityProvider that the federated account belongs to.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
    */
   @java.lang.Override
   public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder() {
@@ -970,7 +970,7 @@ private static final long serialVersionUID = 0L;
      * Reference to the IdentityProvider that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
      * @return Whether the identityProviderRef field is set.
      */
     public boolean hasIdentityProviderRef() {
@@ -981,7 +981,7 @@ private static final long serialVersionUID = 0L;
      * Reference to the IdentityProvider that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
      * @return The identityProviderRef.
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef() {
@@ -996,7 +996,7 @@ private static final long serialVersionUID = 0L;
      * Reference to the IdentityProvider that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
      */
     public Builder setIdentityProviderRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (identityProviderRefBuilder_ == null) {
@@ -1016,7 +1016,7 @@ private static final long serialVersionUID = 0L;
      * Reference to the IdentityProvider that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
      */
     public Builder setIdentityProviderRef(
         ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
@@ -1034,7 +1034,7 @@ private static final long serialVersionUID = 0L;
      * Reference to the IdentityProvider that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
      */
     public Builder mergeIdentityProviderRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (identityProviderRefBuilder_ == null) {
@@ -1059,7 +1059,7 @@ private static final long serialVersionUID = 0L;
      * Reference to the IdentityProvider that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
      */
     public Builder clearIdentityProviderRef() {
       bitField0_ = (bitField0_ & ~0x00000002);
@@ -1076,7 +1076,7 @@ private static final long serialVersionUID = 0L;
      * Reference to the IdentityProvider that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getIdentityProviderRefBuilder() {
       bitField0_ |= 0x00000002;
@@ -1088,7 +1088,7 @@ private static final long serialVersionUID = 0L;
      * Reference to the IdentityProvider that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder() {
       if (identityProviderRefBuilder_ != null) {
@@ -1103,7 +1103,7 @@ private static final long serialVersionUID = 0L;
      * Reference to the IdentityProvider that the federated account belongs to.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 

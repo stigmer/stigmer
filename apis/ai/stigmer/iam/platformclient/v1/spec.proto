@@ -129,12 +129,7 @@ message PlatformClientSpec {
   // create. Edits apply to the next run.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 13 [
     (ai.stigmer.commons.apiresource.reference_kind) = vault,
-    (buf.validate.field).repeated.max_items = 20,
-    (buf.validate.field).repeated.items.cel = {
-      id: "vaults.kind"
-      message: "vaults must reference resources with kind=vault"
-      expression: "this.kind == 59"
-    }
+    (buf.validate.field).repeated.max_items = 20
   ];
 
   // Whether mintUserToken creates an identity account for a user_id that has
