@@ -481,7 +481,8 @@ type ApiResourceReference struct {
 	Version string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
 	// The referenced resource's id: what a stored reference holds. Optional
 	// on write, where the slug may name the resource instead; an id no
-	// resource of the kind holds answers as a missing resource.
+	// resource of the kind holds answers as a missing resource. At most 64
+	// characters.
 	Id            string `protobuf:"bytes,5,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -584,13 +585,13 @@ const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
 	"\vRenameInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"resourceId\x12;\n" +
-	"\x04slug\x18\x02 \x01(\tB'\xbaH$\xc8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\"\xc3\x03\n" +
+	"\x04slug\x18\x02 \x01(\tB'\xbaH$\xc8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\"\xcc\x03\n" +
 	"\x14ApiResourceReference\x12J\n" +
 	"\x03org\x18\x01 \x01(\tB8\xbaH5r3\x18?2/^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[0-9a-z]{26}$R\x03org\x12S\n" +
 	"\x04kind\x18\x02 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12;\n" +
 	"\x04slug\x18\x03 \x01(\tB'\xbaH$\xd8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12M\n" +
-	"\aversion\x18\x04 \x01(\tB3\xbaH0r.2,^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\aversion\x12\x0e\n" +
-	"\x02id\x18\x05 \x01(\tR\x02id:n\xbaHk\x1ai\n" +
+	"\aversion\x18\x04 \x01(\tB3\xbaH0r.2,^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\aversion\x12\x17\n" +
+	"\x02id\x18\x05 \x01(\tB\a\xbaH\x04r\x02\x18@R\x02id:n\xbaHk\x1ai\n" +
 	"\x14reference.id_or_slug\x12/a reference names its resource by id or by slug\x1a this.id != '' || this.slug != ''B\x92\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\aIoProtoP\x01ZGgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
