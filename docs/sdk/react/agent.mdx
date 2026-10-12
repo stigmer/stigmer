@@ -567,7 +567,7 @@ All visual properties flow through `--stgm-*` design tokens.
     defaultTab: { type: "string", description: "Default active tab ID when in uncontrolled mode." },
     editable: { type: "boolean", description: "When `true`, fields on the detail view become click-to-edit. Each field saves independently via `stigmer.agent.update()`." },
     onAgentClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when an agent this agent lists as a subagent is selected, in its Subagents section or its dependency graph. The host owns the route to that agent's page; without it the rows are not links." },
-    onNavigateToRun: { type: "(runId: string) => void", description: "Called with a run id when the user opens one of an eval's tries from the Evals tab; the host owns the route. Tries are listed without links when omitted." },
+    onNavigateToRun: { type: "(runId: string) => void", description: "Called with a run id when the user opens one of an eval's tries from the Evals tab, or a flagged run from the Quality tab; the host owns the route. Tries and flagged runs are listed without links when omitted." },
     onPluginClick: { type: "(ref: { org: string; slug: string }) => void", description: "Called when a plugin is selected: one the agent lists in its Plugins section or its dependency graph, or the one named in the \"installed by a plugin\" notice. The host owns the route to the plugin's page. The notice shows when this resource carries a live plugin's label, and `editable` is then narrowed to `false`: the server refuses a client edit of a plugin's resource, so no edit form is offered." },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the agent resource has been fetched successfully. Provides the resource display name for use cases like breadcrumbs, document titles, or analytics — without requiring the consumer to also call useAgent.  Not called on error or not-found states." },
     onResourceUpdated: { type: "(agent: Agent) => void", description: "Called after a successful inline field save with the updated agent. Consumers can use this to refresh breadcrumbs, sync URL state, etc." },
@@ -684,7 +684,10 @@ if (agent) console.log(`Selected: ${agent.org}/${agent.slug}`);
 
 ### AgentQualityTab
 
-The agent's Quality tab: AI grading switched on or off, how many runs it
+The agent's Quality tab. On top, how the agent's runs went in the active
+organization over the last 7, 30 or 90 days
+([`AgentQualityReportView`](/docs/sdk/react/score#agentqualityreportview)): pass rates, daily trends, a table by
+agent version and the flagged runs. Below it, AI grading switched on or off, how many runs it
 grades ("one in N runs"), the monthly limit in estimated model spend, the
 judge's model, and this month's spend and counts, with the reason the
 last run picked for grading was not graded.
@@ -702,6 +705,8 @@ All visual properties flow through `--stgm-*` tokens.
     agent: { type: "Agent", description: "The agent whose AI grading the tab shows and configures.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
     className: { type: "string", description: "Additional CSS class names for the root element." },
     editable: { type: "boolean", description: "When `true`, the settings can be changed. The server still asks for edit access on the agent; a refusal is shown as an error." },
+    onNavigateToRun: { type: "(runId: string) => void", description: "Called with a run id when the person opens a flagged run; the host owns the route. Flagged runs are listed without links when omitted." },
+    onOpenEval: { type: "(evalId: string) => void", description: "Called with an agent eval's id when the person opens a version's latest eval from the report; `AgentDetailView` opens its Evals tab on it." },
   }}
 />
 

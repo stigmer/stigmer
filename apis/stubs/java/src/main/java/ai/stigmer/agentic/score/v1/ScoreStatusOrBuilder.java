@@ -51,6 +51,52 @@ public interface ScoreStatusOrBuilder extends
 
   /**
    * <pre>
+   * ID of the agent the scored run ran, copied from the run when the score
+   * is created. Empty for a run of the built-in assistant.
+   * </pre>
+   *
+   * <code>string agent_id = 3 [json_name = "agentId"];</code>
+   * @return The agentId.
+   */
+  java.lang.String getAgentId();
+  /**
+   * <pre>
+   * ID of the agent the scored run ran, copied from the run when the score
+   * is created. Empty for a run of the built-in assistant.
+   * </pre>
+   *
+   * <code>string agent_id = 3 [json_name = "agentId"];</code>
+   * @return The bytes for agentId.
+   */
+  com.google.protobuf.ByteString
+      getAgentIdBytes();
+
+  /**
+   * <pre>
+   * Content hash of the agent version the scored run ran, copied from the
+   * run when the score is created. Unique only within its agent; empty when
+   * agent_id is empty or the agent had no recorded version.
+   * </pre>
+   *
+   * <code>string agent_version_hash = 4 [json_name = "agentVersionHash"];</code>
+   * @return The agentVersionHash.
+   */
+  java.lang.String getAgentVersionHash();
+  /**
+   * <pre>
+   * Content hash of the agent version the scored run ran, copied from the
+   * run when the score is created. Unique only within its agent; empty when
+   * agent_id is empty or the agent had no recorded version.
+   * </pre>
+   *
+   * <code>string agent_version_hash = 4 [json_name = "agentVersionHash"];</code>
+   * @return The bytes for agentVersionHash.
+   */
+  com.google.protobuf.ByteString
+      getAgentVersionHashBytes();
+
+  /**
+   * <pre>
    * Standard audit information (created_at, updated_at, created_by, etc.)
    * </pre>
    *

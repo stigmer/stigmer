@@ -157,8 +157,8 @@ export interface AgentDetailViewProps {
   readonly buildShareUrl?: (shareId: string) => string;
   /**
    * Called with a run id when the user opens one of an eval's tries from
-   * the Evals tab; the host owns the route. Tries are listed without links
-   * when omitted.
+   * the Evals tab, or a flagged run from the Quality tab; the host owns the
+   * route. Tries and flagged runs are listed without links when omitted.
    */
   readonly onNavigateToRun?: (runId: string) => void;
   /** Additional CSS classes for the root container. */
@@ -284,6 +284,10 @@ export function AgentDetailView({
   );
 
   const clearSaveError = useCallback(() => setSaveError(null), []);
+
+  // The eval the Quality tab's version table last opened: the Evals tab
+  // mounts on it.
+  const [openEvalId, setOpenEvalId] = useState<string | null>(null);
 
   const { tree, isEmpty: noDeps } = useDependencyGraph({
     agentName: agent?.metadata?.name || agent?.metadata?.slug || slug,
@@ -444,7 +448,17 @@ export function AgentDetailView({
   } else if (effectiveActiveTab === "quality") {
     // Grading is the agent's setting, not its definition: a plugin-managed
     // agent offers it too, so the host's edit flag applies unfiltered.
-    tabContent = <AgentQualityTab agent={agent} editable={editableProp} />;
+    tabContent = (
+      <AgentQualityTab
+        agent={agent}
+        editable={editableProp}
+        onNavigateToRun={onNavigateToRun}
+        onOpenEval={(evalId) => {
+          setOpenEvalId(evalId);
+          effectiveOnTabChange(EVALS_TAB.id);
+        }}
+      />
+    );
   } else if (effectiveActiveTab === "evals") {
     // Running the agent's plugins' cases is not an edit of its definition:
     // the tab gates its own form on can_edit, a plugin-managed agent included.
@@ -452,6 +466,7 @@ export function AgentDetailView({
       <AgentEvalsTab
         agent={agent}
         onNavigateToRun={onNavigateToRun}
+        initialEvalId={openEvalId ?? undefined}
         onOpenPlugins={() => effectiveOnTabChange(OVERVIEW_TAB.id)}
       />
     );

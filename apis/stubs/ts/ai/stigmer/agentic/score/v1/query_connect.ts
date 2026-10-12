@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ListScoresByRunRequest, ListScoresBySessionRequest, ScoreId, ScoreList } from "./io_pbjs";
+import { AgentQualityReport, GetAgentQualityReportRequest, ListFlaggedScoresByAgentRequest, ListScoresByRunRequest, ListScoresBySessionRequest, ScoreId, ScoreList } from "./io_pbjs";
 import { Score } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -45,6 +45,37 @@ export const ScoreQueryController = {
     listBySession: {
       name: "listBySession",
       I: ListScoresBySessionRequest,
+      O: ScoreList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get how one agent's runs in an organization went: grades counted in
+     * total, per day and per agent version.
+     *
+     * Counts every run of the agent in the organization, including runs the
+     * caller cannot open, and returns no text from any of them. Requires
+     * can_view on the organization named in org and on the agent.
+     *
+     * @generated from rpc ai.stigmer.agentic.score.v1.ScoreQueryController.getAgentQualityReport
+     */
+    getAgentQualityReport: {
+      name: "getAgentQualityReport",
+      I: GetAgentQualityReportRequest,
+      O: AgentQualityReport,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List the failed grades of one agent's runs in an organization, newest
+     * first: a failed health check, a failed judge verdict or a thumbs down.
+     *
+     * Lists only the runs the caller can open. Requires can_view on the
+     * organization named in org and on the agent.
+     *
+     * @generated from rpc ai.stigmer.agentic.score.v1.ScoreQueryController.listFlaggedByAgent
+     */
+    listFlaggedByAgent: {
+      name: "listFlaggedByAgent",
+      I: ListFlaggedScoresByAgentRequest,
       O: ScoreList,
       kind: MethodKind.Unary,
     },

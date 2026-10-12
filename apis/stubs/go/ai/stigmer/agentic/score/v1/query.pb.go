@@ -26,31 +26,40 @@ var File_ai_stigmer_agentic_score_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_score_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/score/v1/query.proto\x12\x1bai.stigmer.agentic.score.v1\x1a%ai/stigmer/agentic/score/v1/api.proto\x1a$ai/stigmer/agentic/score/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xeb\x03\n" +
+	"'ai/stigmer/agentic/score/v1/query.proto\x12\x1bai.stigmer.agentic.score.v1\x1a%ai/stigmer/agentic/score/v1/api.proto\x1a$ai/stigmer/agentic/score/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe5\x06\n" +
 	"\x14ScoreQueryController\x12{\n" +
 	"\x03get\x12$.ai.stigmer.agentic.score.v1.ScoreId\x1a\".ai.stigmer.agentic.score.v1.Score\"*¸\x18&\b\x01\x10=\"\x05value*\x19unauthorized to get score\x12\x9e\x01\n" +
 	"\tlistByRun\x123.ai.stigmer.agentic.score.v1.ListScoresByRunRequest\x1a&.ai.stigmer.agentic.score.v1.ScoreList\"4¸\x180\b\x01\x10)\"\x06run_id*\"unauthorized to list scores of run\x12\xae\x01\n" +
 	"\rlistBySession\x127.ai.stigmer.agentic.score.v1.ListScoresBySessionRequest\x1a&.ai.stigmer.agentic.score.v1.ScoreList\"<¸\x188\b\x01\x10*\"\n" +
-	"session_id*&unauthorized to list scores of session\x1a\x04\xa0\xff+=B\x8c\x02\n" +
+	"session_id*&unauthorized to list scores of session\x12\xbd\x01\n" +
+	"\x15getAgentQualityReport\x129.ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest\x1a/.ai.stigmer.agentic.score.v1.AgentQualityReport\"8¸\x184\b\x01\x10\x1e\"\x03org*)unauthorized to view agent quality report\x12\xb7\x01\n" +
+	"\x12listFlaggedByAgent\x12<.ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest\x1a&.ai.stigmer.agentic.score.v1.ScoreList\";¸\x187\b\x01\x10\x1e\"\x03org*,unauthorized to list flagged scores of agent\x1a\x04\xa0\xff+=B\x8c\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.score.v1B\n" +
 	"QueryProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_score_v1_query_proto_goTypes = []any{
-	(*ScoreId)(nil),                    // 0: ai.stigmer.agentic.score.v1.ScoreId
-	(*ListScoresByRunRequest)(nil),     // 1: ai.stigmer.agentic.score.v1.ListScoresByRunRequest
-	(*ListScoresBySessionRequest)(nil), // 2: ai.stigmer.agentic.score.v1.ListScoresBySessionRequest
-	(*Score)(nil),                      // 3: ai.stigmer.agentic.score.v1.Score
-	(*ScoreList)(nil),                  // 4: ai.stigmer.agentic.score.v1.ScoreList
+	(*ScoreId)(nil),                         // 0: ai.stigmer.agentic.score.v1.ScoreId
+	(*ListScoresByRunRequest)(nil),          // 1: ai.stigmer.agentic.score.v1.ListScoresByRunRequest
+	(*ListScoresBySessionRequest)(nil),      // 2: ai.stigmer.agentic.score.v1.ListScoresBySessionRequest
+	(*GetAgentQualityReportRequest)(nil),    // 3: ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest
+	(*ListFlaggedScoresByAgentRequest)(nil), // 4: ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest
+	(*Score)(nil),                           // 5: ai.stigmer.agentic.score.v1.Score
+	(*ScoreList)(nil),                       // 6: ai.stigmer.agentic.score.v1.ScoreList
+	(*AgentQualityReport)(nil),              // 7: ai.stigmer.agentic.score.v1.AgentQualityReport
 }
 var file_ai_stigmer_agentic_score_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.score.v1.ScoreQueryController.get:input_type -> ai.stigmer.agentic.score.v1.ScoreId
 	1, // 1: ai.stigmer.agentic.score.v1.ScoreQueryController.listByRun:input_type -> ai.stigmer.agentic.score.v1.ListScoresByRunRequest
 	2, // 2: ai.stigmer.agentic.score.v1.ScoreQueryController.listBySession:input_type -> ai.stigmer.agentic.score.v1.ListScoresBySessionRequest
-	3, // 3: ai.stigmer.agentic.score.v1.ScoreQueryController.get:output_type -> ai.stigmer.agentic.score.v1.Score
-	4, // 4: ai.stigmer.agentic.score.v1.ScoreQueryController.listByRun:output_type -> ai.stigmer.agentic.score.v1.ScoreList
-	4, // 5: ai.stigmer.agentic.score.v1.ScoreQueryController.listBySession:output_type -> ai.stigmer.agentic.score.v1.ScoreList
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	3, // 3: ai.stigmer.agentic.score.v1.ScoreQueryController.getAgentQualityReport:input_type -> ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest
+	4, // 4: ai.stigmer.agentic.score.v1.ScoreQueryController.listFlaggedByAgent:input_type -> ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest
+	5, // 5: ai.stigmer.agentic.score.v1.ScoreQueryController.get:output_type -> ai.stigmer.agentic.score.v1.Score
+	6, // 6: ai.stigmer.agentic.score.v1.ScoreQueryController.listByRun:output_type -> ai.stigmer.agentic.score.v1.ScoreList
+	6, // 7: ai.stigmer.agentic.score.v1.ScoreQueryController.listBySession:output_type -> ai.stigmer.agentic.score.v1.ScoreList
+	7, // 8: ai.stigmer.agentic.score.v1.ScoreQueryController.getAgentQualityReport:output_type -> ai.stigmer.agentic.score.v1.AgentQualityReport
+	6, // 9: ai.stigmer.agentic.score.v1.ScoreQueryController.listFlaggedByAgent:output_type -> ai.stigmer.agentic.score.v1.ScoreList
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

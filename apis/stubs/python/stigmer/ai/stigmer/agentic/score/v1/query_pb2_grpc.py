@@ -31,6 +31,16 @@ class ScoreQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.ListScoresBySessionRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.ScoreList.FromString,
                 _registered_method=True)
+        self.getAgentQualityReport = channel.unary_unary(
+                '/ai.stigmer.agentic.score.v1.ScoreQueryController/getAgentQualityReport',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.GetAgentQualityReportRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.AgentQualityReport.FromString,
+                _registered_method=True)
+        self.listFlaggedByAgent = channel.unary_unary(
+                '/ai.stigmer.agentic.score.v1.ScoreQueryController/listFlaggedByAgent',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.ListFlaggedScoresByAgentRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.ScoreList.FromString,
+                _registered_method=True)
 
 
 class ScoreQueryControllerServicer(object):
@@ -58,6 +68,29 @@ class ScoreQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getAgentQualityReport(self, request, context):
+        """Get how one agent's runs in an organization went: grades counted in
+        total, per day and per agent version.
+
+        Counts every run of the agent in the organization, including runs the
+        caller cannot open, and returns no text from any of them. Requires
+        can_view on the organization named in org and on the agent.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def listFlaggedByAgent(self, request, context):
+        """List the failed grades of one agent's runs in an organization, newest
+        first: a failed health check, a failed judge verdict or a thumbs down.
+
+        Lists only the runs the caller can open. Requires can_view on the
+        organization named in org and on the agent.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ScoreQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -74,6 +107,16 @@ def add_ScoreQueryControllerServicer_to_server(servicer, server):
             'listBySession': grpc.unary_unary_rpc_method_handler(
                     servicer.listBySession,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.ListScoresBySessionRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.ScoreList.SerializeToString,
+            ),
+            'getAgentQualityReport': grpc.unary_unary_rpc_method_handler(
+                    servicer.getAgentQualityReport,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.GetAgentQualityReportRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.AgentQualityReport.SerializeToString,
+            ),
+            'listFlaggedByAgent': grpc.unary_unary_rpc_method_handler(
+                    servicer.listFlaggedByAgent,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.ListFlaggedScoresByAgentRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.ScoreList.SerializeToString,
             ),
     }
@@ -158,6 +201,60 @@ class ScoreQueryController(object):
             target,
             '/ai.stigmer.agentic.score.v1.ScoreQueryController/listBySession',
             ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.ListScoresBySessionRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.ScoreList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getAgentQualityReport(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.score.v1.ScoreQueryController/getAgentQualityReport',
+            ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.GetAgentQualityReportRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.AgentQualityReport.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listFlaggedByAgent(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.score.v1.ScoreQueryController/listFlaggedByAgent',
+            ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.ListFlaggedScoresByAgentRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_score_dot_v1_dot_io__pb2.ScoreList.FromString,
             options,
             channel_credentials,

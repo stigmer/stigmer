@@ -29,6 +29,13 @@ type ScoreStatus struct {
 	State ScoreState `protobuf:"varint,1,opt,name=state,proto3,enum=ai.stigmer.agentic.score.v1.ScoreState" json:"state,omitempty"`
 	// Why the run could not be graded, when state is not graded.
 	NotGradedReason string `protobuf:"bytes,2,opt,name=not_graded_reason,json=notGradedReason,proto3" json:"not_graded_reason,omitempty"`
+	// ID of the agent the scored run ran, copied from the run when the score
+	// is created. Empty for a run of the built-in assistant.
+	AgentId string `protobuf:"bytes,3,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	// Content hash of the agent version the scored run ran, copied from the
+	// run when the score is created. Unique only within its agent; empty when
+	// agent_id is empty or the agent had no recorded version.
+	AgentVersionHash string `protobuf:"bytes,4,opt,name=agent_version_hash,json=agentVersionHash,proto3" json:"agent_version_hash,omitempty"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -79,6 +86,20 @@ func (x *ScoreStatus) GetNotGradedReason() string {
 	return ""
 }
 
+func (x *ScoreStatus) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *ScoreStatus) GetAgentVersionHash() string {
+	if x != nil {
+		return x.AgentVersionHash
+	}
+	return ""
+}
+
 func (x *ScoreStatus) GetAudit() *apiresource.ApiResourceAudit {
 	if x != nil {
 		return x.Audit
@@ -90,10 +111,12 @@ var File_ai_stigmer_agentic_score_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_score_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/score/v1/status.proto\x12\x1bai.stigmer.agentic.score.v1\x1a&ai/stigmer/agentic/score/v1/enum.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\xc0\x01\n" +
+	"(ai/stigmer/agentic/score/v1/status.proto\x12\x1bai.stigmer.agentic.score.v1\x1a&ai/stigmer/agentic/score/v1/enum.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\x89\x02\n" +
 	"\vScoreStatus\x12=\n" +
 	"\x05state\x18\x01 \x01(\x0e2'.ai.stigmer.agentic.score.v1.ScoreStateR\x05state\x12*\n" +
-	"\x11not_graded_reason\x18\x02 \x01(\tR\x0fnotGradedReason\x12F\n" +
+	"\x11not_graded_reason\x18\x02 \x01(\tR\x0fnotGradedReason\x12\x19\n" +
+	"\bagent_id\x18\x03 \x01(\tR\aagentId\x12,\n" +
+	"\x12agent_version_hash\x18\x04 \x01(\tR\x10agentVersionHash\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x8f\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.score.v1B\vStatusProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/score/v1;scorev1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Score.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Score\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Score::V1b\x06proto3"
 

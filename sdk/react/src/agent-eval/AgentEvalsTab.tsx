@@ -88,6 +88,11 @@ export interface AgentEvalsTabProps {
    * agent attaches none. `AgentDetailView` opens its Overview tab.
    */
   readonly onOpenPlugins?: () => void;
+  /**
+   * The eval opened when the tab mounts, as when the Quality tab's version
+   * table links one; the newest when omitted.
+   */
+  readonly initialEvalId?: string;
   /** Additional CSS class names for the root element. */
   readonly className?: string;
 }
@@ -105,6 +110,7 @@ export function AgentEvalsTab({
   agent,
   onNavigateToRun,
   onOpenPlugins,
+  initialEvalId,
   className,
 }: AgentEvalsTabProps) {
   const meta = agent.metadata;
@@ -121,7 +127,9 @@ export function AgentEvalsTab({
     { fail: "closed" },
   );
   const { evals, isLoading, error, refetch } = useAgentEvals(agentId);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(
+    initialEvalId ?? null,
+  );
   const shown = selected ?? evals[0]?.metadata?.id ?? null;
 
   return (
