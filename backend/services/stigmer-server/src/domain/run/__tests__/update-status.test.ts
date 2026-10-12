@@ -14,7 +14,10 @@
  * And the agent a turn ran (status.agent_id, agent_version_hash) is the
  * create pipeline's stamp alone: no status write, the runner's or the
  * platform's, changes it. And the files a plugin-eval try's graders read
- * (plugin_eval_files) are kept on a try's run only.
+ * (plugin_eval_files) are kept on a try's run only. And what a run loaded
+ * (loaded_versions) is merged by union over (id, version), never replaced,
+ * and an entry with no id is refused by the shared validator the transport's
+ * protovalidate interceptor runs, before any merge.
  * These exercise applyUpdateStatusMerge directly on a clone — mirroring
  * the freshly-loaded resource the merge mutates in place inside the
  * updateResource write lock.
@@ -36,6 +39,7 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 
@@ -43,6 +47,7 @@ import { createLogger } from "../../../boot/logger.js";
 import { findToolCallInExecution } from "../submit-approval.js";
 import { CANCEL_STOP_ROW, PAUSE_STOP_ROW } from "../platform-rows.js";
 import { applyUpdateStatusMerge } from "../update-status.js";
+import { validator } from "../../../pipeline/steps/validation.js";
 import type { StatusWriter } from "../update-status.js";
 
 const silentLogger = createLogger({
@@ -461,6 +466,74 @@ describe("the files a plugin-eval try's graders read (plugin_eval_files)", () =>
       pluginEvalFiles: files,
     });
     expect(merged.status?.pluginEvalFiles).toBeUndefined();
+  });
+});
+
+describe("what a run loaded (loaded_versions)", () => {
+  const v1 = "1".repeat(64);
+  const v2 = "2".repeat(64);
+  const digest = "d".repeat(64);
+  const skillAt = (version: string, slug = "") => ({ org: "org_a", kind: ApiResourceKind.skill, id: "skl_1", slug, version });
+  const plugin = { org: "org_a", kind: ApiResourceKind.plugin, id: "plg_1", version: digest };
+  const write = (loaded?: MessageInitShape<typeof RunStatusSchema>["loadedVersions"]) => ({
+    phase: RunPhase.RUN_IN_PROGRESS,
+    messages: [{ content: "m1" }],
+    loadedVersions: loaded,
+  });
+  const pairs = (run: Run) => ({
+    skills: run.status?.loadedVersions?.skills.map((r) => [r.id, r.version]),
+    plugins: run.status?.loadedVersions?.plugins.map((r) => [r.id, r.version]),
+  });
+
+  it("stores the first write in its stored form: the list's kind, no slug", () => {
+    const merged = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS, "m1"), write({
+      skills: [{ ...skillAt(v1, "refunds"), kind: ApiResourceKind.agent }],
+      plugins: [plugin],
+    }));
+    const [skill] = merged.status?.loadedVersions?.skills ?? [];
+    expect([skill?.org, skill?.kind, skill?.id, skill?.slug, skill?.version]).toEqual(["org_a", ApiResourceKind.skill, "skl_1", "", v1]);
+    expect(pairs(merged).plugins).toEqual([["plg_1", digest]]);
+  });
+
+  it("adds nothing on a resend, and keeps the list across a write without it", () => {
+    const first = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS, "m1"), write({ skills: [skillAt(v1)], plugins: [plugin] }));
+    const resent = runBuildStep(first, write({ skills: [skillAt(v1)], plugins: [plugin] }));
+    expect(pairs(resent)).toEqual({ skills: [["skl_1", v1]], plugins: [["plg_1", digest]] });
+    const without = runBuildStep(resent, write());
+    expect(pairs(without)).toEqual({ skills: [["skl_1", v1]], plugins: [["plg_1", digest]] });
+  });
+
+  it("appends a moved version after the one before, in the order sent, and never removes one", () => {
+    const first = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS, "m1"), write({ skills: [skillAt(v1)], plugins: [plugin] }));
+    const resumed = runBuildStep(first, write({
+      skills: [skillAt(v2), { org: "org_a", kind: ApiResourceKind.skill, id: "skl_2", version: v1 }],
+      plugins: [],
+    }));
+    expect(pairs(resumed)).toEqual({
+      skills: [["skl_1", v1], ["skl_1", v2], ["skl_2", v1]],
+      plugins: [["plg_1", digest]],
+    });
+  });
+
+  it("refuses an entry with no id at the boundary, in either list", () => {
+    const ruleIds = (loaded: MessageInitShape<typeof RunStatusSchema>["loadedVersions"]) => {
+      const result = validator().validate(
+        RunUpdateStatusInputSchema,
+        create(RunUpdateStatusInputSchema, { runId: "run_1", status: write(loaded) }),
+      );
+      if (result.kind === "error") {
+        throw result.error;
+      }
+      return result.kind === "valid" ? [] : result.error.violations.map((v) => v.ruleId);
+    };
+    expect(ruleIds({ skills: [{ ...skillAt(v1), id: "" }] })).toContain("loaded_versions.skill_id");
+    expect(ruleIds({ plugins: [{ ...plugin, id: "" }] })).toContain("loaded_versions.plugin_id");
+    expect(ruleIds({ skills: [skillAt(v1)], plugins: [plugin] }).filter((id) => id.startsWith("loaded_versions."))).toEqual([]);
+  });
+
+  it("leaves a run with no list untouched by a write without one, the platform's included", () => {
+    const merged = runBuildStep(existingWith(RunPhase.RUN_IN_PROGRESS, "m1"), write(), "platform");
+    expect(merged.status?.loadedVersions).toBeUndefined();
   });
 });
 

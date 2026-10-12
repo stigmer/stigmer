@@ -16,6 +16,11 @@
  * its `skills:` names, and a plugin whose archive cannot be mounted
  * contributes none, warned.
  *
+ * Beside the skills, the phase returns what it loaded for the run's record:
+ * each root skill that mounted, by id at its version hash. A failed or
+ * hidden skill is not listed, nor is a plugin's skill (its plugin's digest
+ * names it).
+ *
  * The control-plane client is doubled at its module boundary with scripted
  * skills; `HOME` is the hermetic environment's, so the mounts land under a
  * temp platform dir and nothing touches the developer's `~/.stigmer`.
@@ -133,7 +138,7 @@ describe("mountSkills: the root's skills", () => {
   it("resolves the root's merged refs under one label, and none of a saved subagent's", async () => {
     const { client, fetches } = skillClient(["alpha", "beta"]);
     const { deps, labels } = depsWith(client, sessionId);
-    const skills = await mountSkills(deps, {
+    const { skills, loaded } = await mountSkills(deps, {
       blueprint: blueprintWith(["alpha"], ["beta"]),
       sessionId,
       primaryDir,
@@ -145,12 +150,13 @@ describe("mountSkills: the root's skills", () => {
     expect(skills.bySubAgent.size, "a saved subagent's skills are its own context's").toBe(0);
     expect(fetches).toEqual(["alpha"]);
     expect(labels, "one label for the whole phase").toEqual(["Resolving skills"]);
+    expect(loaded.map((r) => [r.org, r.id, r.version]), "the root's skill by id at its version").toEqual([["kit-org", "skill-alpha", "hash-alpha"]]);
   });
 
   it("a failing root ref is warned and skipped, never thrown", async () => {
     const { client } = skillClient(["beta"]);
     const { deps } = depsWith(client, sessionId);
-    const skills = await mountSkills(deps, {
+    const { skills, loaded } = await mountSkills(deps, {
       blueprint: blueprintWith(["missing", "beta"]),
       sessionId,
       primaryDir,
@@ -158,12 +164,13 @@ describe("mountSkills: the root's skills", () => {
       toolScope: ToolScope.unrestricted(),
     });
     expect(skills.root.map((s) => s.name)).toEqual(["beta"]);
+    expect(loaded.map((r) => r.id), "a skill that did not mount is not listed").toEqual(["skill-beta"]);
   });
 
   it("a turn that denies Skill fetches and mounts no skill, so no prompt can list one", async () => {
     const { client, fetches } = skillClient(["alpha"]);
     const { deps } = depsWith(client, sessionId);
-    const skills = await mountSkills(deps, {
+    const { skills, loaded } = await mountSkills(deps, {
       blueprint: blueprintWith(["alpha"]),
       sessionId,
       primaryDir,
@@ -171,6 +178,7 @@ describe("mountSkills: the root's skills", () => {
       toolScope: ToolScope.ofMain([{ owner: "The turn", lists: { tools: [], disallowedTools: ["Skill"] } }]),
     });
     expect(skills.root).toEqual([]);
+    expect(loaded, "a hidden skill is not loaded").toEqual([]);
     expect(skills.bySubAgent.size).toBe(0);
     expect(fetches).toEqual([]);
   });
@@ -178,7 +186,7 @@ describe("mountSkills: the root's skills", () => {
   it("an allow-list that omits Skill keeps the root's skills", async () => {
     const { client, fetches } = skillClient(["alpha"]);
     const { deps } = depsWith(client, sessionId);
-    const skills = await mountSkills(deps, {
+    const { skills } = await mountSkills(deps, {
       blueprint: blueprintWith(["alpha"]),
       sessionId,
       primaryDir,
@@ -242,7 +250,7 @@ describe("mountSkills: a plugin's skills", () => {
 
   it("renders each as <plugin>:<skill> at its SKILL.md inside the mounted archive", async () => {
     const { deps } = depsWith(pluginClient(), sessionId);
-    const skills = await mountSkills(deps, { blueprint: pluginBlueprint(kitPlugin()), sessionId, primaryDir, subAgents: false, toolScope: ToolScope.unrestricted() });
+    const { skills } = await mountSkills(deps, { blueprint: pluginBlueprint(kitPlugin()), sessionId, primaryDir, subAgents: false, toolScope: ToolScope.unrestricted() });
     expect(skills.root).toEqual([
       {
         name: "kit:triage",
@@ -260,15 +268,16 @@ describe("mountSkills: a plugin's skills", () => {
 
   it("gives a plugin's agent only the skills its skills: names", async () => {
     const { deps } = depsWith(pluginClient(), sessionId);
-    const skills = await mountSkills(deps, { blueprint: pluginBlueprint(kitPlugin()), sessionId, primaryDir, subAgents: true, toolScope: ToolScope.unrestricted() });
+    const { skills, loaded } = await mountSkills(deps, { blueprint: pluginBlueprint(kitPlugin()), sessionId, primaryDir, subAgents: true, toolScope: ToolScope.unrestricted() });
     expect(skills.root.map((s) => s.name)).toEqual(["kit:triage", "kit:release"]);
+    expect(loaded, "a plugin's skills are named by its digest, not listed").toEqual([]);
     expect([...skills.bySubAgent.keys()]).toEqual(["kit:reviewer"]);
     expect(skills.bySubAgent.get("kit:reviewer")!.map((s) => s.name)).toEqual(["kit:triage"]);
   });
 
   it("hides a plugin's skills, the root's and its agents', when the turn's lists deny Skill", async () => {
     const { deps } = depsWith(pluginClient(), sessionId);
-    const skills = await mountSkills(deps, {
+    const { skills } = await mountSkills(deps, {
       blueprint: pluginBlueprint(kitPlugin()),
       sessionId,
       primaryDir,
@@ -282,7 +291,7 @@ describe("mountSkills: a plugin's skills", () => {
   it("a plugin whose archive cannot be mounted contributes no skills, warned", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const { deps } = depsWith(pluginClient(), sessionId);
-    const skills = await mountSkills(deps, { blueprint: pluginBlueprint(kitPlugin("0".repeat(64))), sessionId, primaryDir, subAgents: true, toolScope: ToolScope.unrestricted() });
+    const { skills } = await mountSkills(deps, { blueprint: pluginBlueprint(kitPlugin("0".repeat(64))), sessionId, primaryDir, subAgents: true, toolScope: ToolScope.unrestricted() });
     expect(skills.root).toEqual([]);
     expect(skills.bySubAgent.size).toBe(0);
     expect(warn.mock.calls.some(([line]) => String(line).includes("the skills of plugin 'kit' are missing this turn"))).toBe(true);

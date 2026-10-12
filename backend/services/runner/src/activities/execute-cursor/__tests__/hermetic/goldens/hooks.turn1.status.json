@@ -99,5 +99,15 @@
   "fileChangeProgress": {
     "changeSetId": "aex_hermetic_0001:0",
     "capturedAt": "2026-01-01T00:00:01.000Z"
+  },
+  "loadedVersions": {
+    "plugins": [
+      {
+        "org": "hermetic-org",
+        "kind": "plugin",
+        "version": "6aa6b643d95fbe90e7664eb90603aceebf3deec22eff2bc6abc54a0d357169b8",
+        "id": "plg_safety"
+      }
+    ]
   }
 }

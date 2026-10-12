@@ -6,7 +6,8 @@
  *   extracted artifact, hash-keyed cache — see shared/skill-mount.ts)
  * - Uses a platform-managed directory outside the workspace
  * - Ensures the workspace `.stigmer` symlink (see workspace/stigmer-link.ts)
- * - Returns metadata for prompt injection
+ * - Returns metadata for prompt injection, each beside a reference to the
+ *   exact version mounted (the run's record of what it loaded)
  *
  * A turn-runtime phase (`harness/turn-context.ts` `mountSkills`): it reads
  * the control plane, which only the runtime holds, and writes under the
@@ -28,8 +29,11 @@
 
 import { agentFs } from "./agent-fs.js";
 import { join } from "node:path";
+import { create } from "@bufbuild/protobuf";
 import type { StigmerClient } from "../client/stigmer-client.js";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { getPlatformDir } from "./workspace/platform-dir.js";
 import {
   SKILLS_SUBDIR,
@@ -44,6 +48,16 @@ export interface SkillMetadata {
   name: string;
   description: string;
   path: string;
+}
+
+/**
+ * One mounted skill: what the prompt renders, and the skill by id at the
+ * version hash mounted (empty for a skill whose last version failed to
+ * archive). A skill that did not mount yields neither.
+ */
+export interface ResolvedSkill {
+  readonly metadata: SkillMetadata;
+  readonly loaded: ApiResourceReference;
 }
 
 export interface SkillResolverOptions {
@@ -62,7 +76,7 @@ export async function resolveSkills(
   client: StigmerClient,
   skillRefs: ApiResourceReference[],
   options: SkillResolverOptions,
-): Promise<SkillMetadata[]> {
+): Promise<ResolvedSkill[]> {
   console.log(
     `[resolveSkills] sessionId=${options.sessionId}, ` +
     `primaryWorkspaceDir=${options.primaryWorkspaceDir ?? "(undefined)"}, ` +
@@ -81,7 +95,7 @@ export async function resolveSkills(
     `[resolveSkills] symlink created: ${join(options.primaryWorkspaceDir, STIGMER_LOCAL_STATE_DIR)} -> ${platformDir}`,
   );
 
-  const results: SkillMetadata[] = [];
+  const results: ResolvedSkill[] = [];
 
   for (const ref of skillRefs) {
     try {
@@ -101,9 +115,18 @@ export async function resolveSkills(
         description: spec.description || `Skill: ${name}`,
         path: join(STIGMER_LOCAL_STATE_DIR, SKILLS_SUBDIR, name, "SKILL.md"),
       };
+      const resolved: ResolvedSkill = {
+        metadata: meta,
+        loaded: create(ApiResourceReferenceSchema, {
+          org: skill.metadata?.org ?? "",
+          kind: ApiResourceKind.skill,
+          id: skill.metadata?.id ?? "",
+          version: versionHash,
+        }),
+      };
 
       if (versionHash !== "" && (await mountIsFresh(skillDir, versionHash, wantsArtifact))) {
-        results.push(meta);
+        results.push(resolved);
         console.log(
           `[resolveSkills] mount cache hit: ${name} (version ${versionHash.slice(0, 12)}) — skipping artifact transfer`,
         );
@@ -127,7 +150,7 @@ export async function resolveSkills(
       }
 
       await writeSkillMount(skill, skillDir, artifactBytes);
-      results.push(meta);
+      results.push(resolved);
       console.log(`[resolveSkills] wrote skill: ${name} -> ${meta.path}`);
     } catch (err) {
       console.warn(

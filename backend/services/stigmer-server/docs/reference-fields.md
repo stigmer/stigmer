@@ -120,6 +120,8 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.GetSessionUsageReportInput.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.session_id` | stamped id |
+| `ai.stigmer.agentic.run.v1.LoadedVersions.plugins` | stamped reference |
+| `ai.stigmer.agentic.run.v1.LoadedVersions.skills` | stamped reference |
 | `ai.stigmer.agentic.run.v1.PendingApproval.mcp_server_slug` | not a resource: an MCP server's tool-name segment, plugin_<plugin>_<server> |
 | `ai.stigmer.agentic.run.v1.PluginEvalCaseContext.plugin_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RecalledMemoryFact.memory_id` | stamped id |

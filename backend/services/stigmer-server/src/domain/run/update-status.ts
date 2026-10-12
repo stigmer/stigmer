@@ -35,12 +35,18 @@
  * and keeps streaming IN_PROGRESS until then, and without the latch its
  * stragglers un-pause the execution and Resume finds nothing to resume.
  *
+ * loaded_versions is the one field merged by union rather than replaced:
+ * every attempt of a turn resolves its skills and plugins again, so a turn
+ * resumed after a pause may load a newer version than it started on, and a
+ * run that ran two versions of one skill must say both.
+ *
  * Broadcast rides in-memory channels.
  */
 import { create } from "@bufbuild/protobuf";
 
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
+  LoadedVersionsSchema,
   RunSchema,
   RunStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -56,6 +62,8 @@ import type {
 import { UpdateStatusResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
@@ -634,10 +642,60 @@ export function applyUpdateStatusMerge(
     status.pluginEvalFiles = requestStatus.pluginEvalFiles;
   }
 
+  // Merge loaded_versions: runner-owned, sent with every write of a turn
+  // attempt. A union over (id, version), never a replace: a resumed attempt
+  // that loads a moved head adds the version it ran beside the one before,
+  // and a resend of the same list adds nothing.
+  if (requestStatus.loadedVersions !== undefined) {
+    const loaded = status.loadedVersions ?? create(LoadedVersionsSchema);
+    loaded.skills = unionReferences(
+      loaded.skills,
+      requestStatus.loadedVersions.skills,
+      ApiResourceKind.skill,
+    );
+    loaded.plugins = unionReferences(
+      loaded.plugins,
+      requestStatus.loadedVersions.plugins,
+      ApiResourceKind.plugin,
+    );
+    status.loadedVersions = loaded;
+  }
+
   logger.debug("Merged status fields", {
     executionId: input.runId,
     phase: RunPhase[status.phase],
     messagesCount: status.messages.length,
     pendingApprovalsCount: status.pendingApprovals.length,
   });
+}
+
+/**
+ * The stored list followed by every incoming entry whose (id, version) it
+ * does not hold, in the order sent. Stored entries are never removed or
+ * reordered. Each appended entry takes its stored form: the list's kind,
+ * no slug (the response interceptor names it).
+ */
+function unionReferences(
+  stored: readonly ApiResourceReference[],
+  incoming: readonly ApiResourceReference[],
+  kind: ApiResourceKind,
+): ApiResourceReference[] {
+  const merged = [...stored];
+  const held = new Set(stored.map((ref) => `${ref.id}@${ref.version}`));
+  for (const ref of incoming) {
+    const key = `${ref.id}@${ref.version}`;
+    if (held.has(key)) {
+      continue;
+    }
+    held.add(key);
+    merged.push(
+      create(ApiResourceReferenceSchema, {
+        org: ref.org,
+        kind,
+        id: ref.id,
+        version: ref.version,
+      }),
+    );
+  }
+  return merged;
 }
