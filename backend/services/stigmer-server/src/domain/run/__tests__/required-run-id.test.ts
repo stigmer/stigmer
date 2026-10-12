@@ -124,8 +124,7 @@ const ENTRY_POINTS: ReadonlyArray<
           authorizer: newPermissiveSingleTeamAuthorizer(),
           broker: untouchable("broker"),
           sessionEventBroker: new SessionEventBroker(silentLogger),
-          engineState: untouchable("engineState"),
-          statusObservers: [],
+          reconcileTurns: untouchable("reconcileTurns"),
         },
         create(SubmitFileDecisionInputSchema, {
           runId: "",

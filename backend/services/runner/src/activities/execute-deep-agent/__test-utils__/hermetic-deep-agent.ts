@@ -388,6 +388,8 @@ export function continueDeepAgentScenario(
 }
 
 export interface DeepAgentTurnOptions {
+  /** The run to invoke; the record's execution when omitted (a reconcile turn names its own, `ExecutionRecord.startReconcileTurn`). */
+  readonly executionId?: string;
   /** The HITL cycle index (0 on the first turn); mints the change-set id. */
   readonly turnSeq?: number;
   /** Overrides the production thread id ({@link FIXTURE.threadId}) — only to stage the empty-id edge. */
@@ -411,7 +413,7 @@ export async function runDeepAgentTurn(
   const threadId = options.threadId ?? FIXTURE.threadId;
   const turnSeq = options.turnSeq ?? 0;
   const input: ExecuteActivityInput = {
-    execution_id: scenario.record.executionId,
+    execution_id: options.executionId ?? scenario.record.executionId,
     thread_id: threadId,
     turn_seq: turnSeq,
   };

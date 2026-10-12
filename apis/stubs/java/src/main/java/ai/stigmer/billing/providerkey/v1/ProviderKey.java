@@ -7,18 +7,24 @@ package ai.stigmer.billing.providerkey.v1;
 
 /**
  * <pre>
- * An organization's own LLM provider key, as every caller sees it: the key
+ * An organization's own model provider key, as every caller sees it: the key
  * itself never leaves the server, only which provider it is for, a hint to
  * tell two keys apart, and who saved it and when.
  *
  * An organization holds at most one key per provider, where the provider
  * names the wire protocol: "anthropic" is Anthropic's API or any endpoint
- * that speaks it, "openai" is OpenAI's API or any endpoint that speaks it.
+ * that speaks it, "openai" is OpenAI's API or any endpoint that speaks it,
+ * and "cursor" is Cursor, which serves the cursor harness. A Cursor key is
+ * a Cursor user API key or a team service-account API key (Cursor's SDK
+ * refuses Team Admin keys); Cursor bills it to that user's plan or to the
+ * team, and it takes no base URL.
+ *
  * The Stigmer Cloud proxy serves every one of the organization's calls to
- * that provider on this key, on every plan, and on no other: a run whose
- * model needs a provider the organization holds no key for is refused with
- * FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED. The provider bills the
- * organization directly, and Stigmer meters the calls without charging them.
+ * that provider on this key, on every plan, and on no other: a run that
+ * needs a provider the organization holds no key for (by its model, or a
+ * cursor-harness run needing "cursor") is refused with FAILED_PRECONDITION,
+ * reason PROVIDER_KEY_REQUIRED. The provider bills the organization
+ * directly, and Stigmer meters the calls without charging them.
  *
  * Provider keys are not an API resource. They are keyed by organization and
  * provider, and they authorize against the organization, as billing does.
@@ -125,8 +131,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object provider_ = "";
   /**
    * <pre>
-   * The provider the key is for: "anthropic" or "openai", the proxy's own
-   * provider names.
+   * The provider the key is for: "anthropic", "openai" or "cursor", the
+   * proxy's own provider names.
    * </pre>
    *
    * <code>string provider = 2 [json_name = "provider"];</code>
@@ -147,8 +153,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The provider the key is for: "anthropic" or "openai", the proxy's own
-   * provider names.
+   * The provider the key is for: "anthropic", "openai" or "cursor", the
+   * proxy's own provider names.
    * </pre>
    *
    * <code>string provider = 2 [json_name = "provider"];</code>
@@ -444,7 +450,7 @@ private static final long serialVersionUID = 0L;
    * The endpoint the key is used against, as the provider's own SDK takes
    * it as its base URL; empty means the provider's own API. For example
    * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
-   * gateway. Always empty on an inherited row.
+   * gateway. Always empty on an inherited row and on a Cursor key.
    * </pre>
    *
    * <code>string base_url = 10 [json_name = "baseUrl"];</code>
@@ -468,7 +474,7 @@ private static final long serialVersionUID = 0L;
    * The endpoint the key is used against, as the provider's own SDK takes
    * it as its base URL; empty means the provider's own API. For example
    * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
-   * gateway. Always empty on an inherited row.
+   * gateway. Always empty on an inherited row and on a Cursor key.
    * </pre>
    *
    * <code>string base_url = 10 [json_name = "baseUrl"];</code>
@@ -757,18 +763,24 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * An organization's own LLM provider key, as every caller sees it: the key
+   * An organization's own model provider key, as every caller sees it: the key
    * itself never leaves the server, only which provider it is for, a hint to
    * tell two keys apart, and who saved it and when.
    *
    * An organization holds at most one key per provider, where the provider
    * names the wire protocol: "anthropic" is Anthropic's API or any endpoint
-   * that speaks it, "openai" is OpenAI's API or any endpoint that speaks it.
+   * that speaks it, "openai" is OpenAI's API or any endpoint that speaks it,
+   * and "cursor" is Cursor, which serves the cursor harness. A Cursor key is
+   * a Cursor user API key or a team service-account API key (Cursor's SDK
+   * refuses Team Admin keys); Cursor bills it to that user's plan or to the
+   * team, and it takes no base URL.
+   *
    * The Stigmer Cloud proxy serves every one of the organization's calls to
-   * that provider on this key, on every plan, and on no other: a run whose
-   * model needs a provider the organization holds no key for is refused with
-   * FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED. The provider bills the
-   * organization directly, and Stigmer meters the calls without charging them.
+   * that provider on this key, on every plan, and on no other: a run that
+   * needs a provider the organization holds no key for (by its model, or a
+   * cursor-harness run needing "cursor") is refused with FAILED_PRECONDITION,
+   * reason PROVIDER_KEY_REQUIRED. The provider bills the organization
+   * directly, and Stigmer meters the calls without charging them.
    *
    * Provider keys are not an API resource. They are keyed by organization and
    * provider, and they authorize against the organization, as billing does.
@@ -1161,8 +1173,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object provider_ = "";
     /**
      * <pre>
-     * The provider the key is for: "anthropic" or "openai", the proxy's own
-     * provider names.
+     * The provider the key is for: "anthropic", "openai" or "cursor", the
+     * proxy's own provider names.
      * </pre>
      *
      * <code>string provider = 2 [json_name = "provider"];</code>
@@ -1182,8 +1194,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The provider the key is for: "anthropic" or "openai", the proxy's own
-     * provider names.
+     * The provider the key is for: "anthropic", "openai" or "cursor", the
+     * proxy's own provider names.
      * </pre>
      *
      * <code>string provider = 2 [json_name = "provider"];</code>
@@ -1204,8 +1216,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The provider the key is for: "anthropic" or "openai", the proxy's own
-     * provider names.
+     * The provider the key is for: "anthropic", "openai" or "cursor", the
+     * proxy's own provider names.
      * </pre>
      *
      * <code>string provider = 2 [json_name = "provider"];</code>
@@ -1222,8 +1234,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The provider the key is for: "anthropic" or "openai", the proxy's own
-     * provider names.
+     * The provider the key is for: "anthropic", "openai" or "cursor", the
+     * proxy's own provider names.
      * </pre>
      *
      * <code>string provider = 2 [json_name = "provider"];</code>
@@ -1237,8 +1249,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The provider the key is for: "anthropic" or "openai", the proxy's own
-     * provider names.
+     * The provider the key is for: "anthropic", "openai" or "cursor", the
+     * proxy's own provider names.
      * </pre>
      *
      * <code>string provider = 2 [json_name = "provider"];</code>
@@ -2041,7 +2053,7 @@ private static final long serialVersionUID = 0L;
      * The endpoint the key is used against, as the provider's own SDK takes
      * it as its base URL; empty means the provider's own API. For example
      * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
-     * gateway. Always empty on an inherited row.
+     * gateway. Always empty on an inherited row and on a Cursor key.
      * </pre>
      *
      * <code>string base_url = 10 [json_name = "baseUrl"];</code>
@@ -2064,7 +2076,7 @@ private static final long serialVersionUID = 0L;
      * The endpoint the key is used against, as the provider's own SDK takes
      * it as its base URL; empty means the provider's own API. For example
      * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
-     * gateway. Always empty on an inherited row.
+     * gateway. Always empty on an inherited row and on a Cursor key.
      * </pre>
      *
      * <code>string base_url = 10 [json_name = "baseUrl"];</code>
@@ -2088,7 +2100,7 @@ private static final long serialVersionUID = 0L;
      * The endpoint the key is used against, as the provider's own SDK takes
      * it as its base URL; empty means the provider's own API. For example
      * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
-     * gateway. Always empty on an inherited row.
+     * gateway. Always empty on an inherited row and on a Cursor key.
      * </pre>
      *
      * <code>string base_url = 10 [json_name = "baseUrl"];</code>
@@ -2108,7 +2120,7 @@ private static final long serialVersionUID = 0L;
      * The endpoint the key is used against, as the provider's own SDK takes
      * it as its base URL; empty means the provider's own API. For example
      * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
-     * gateway. Always empty on an inherited row.
+     * gateway. Always empty on an inherited row and on a Cursor key.
      * </pre>
      *
      * <code>string base_url = 10 [json_name = "baseUrl"];</code>
@@ -2125,7 +2137,7 @@ private static final long serialVersionUID = 0L;
      * The endpoint the key is used against, as the provider's own SDK takes
      * it as its base URL; empty means the provider's own API. For example
      * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
-     * gateway. Always empty on an inherited row.
+     * gateway. Always empty on an inherited row and on a Cursor key.
      * </pre>
      *
      * <code>string base_url = 10 [json_name = "baseUrl"];</code>

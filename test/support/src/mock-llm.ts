@@ -297,13 +297,14 @@ export class MockLlmProxy {
   // failure use a non-retryable status (default 400); a 5xx instead stalls the
   // execution in IN_PROGRESS for over a minute of AsyncCaller backoff before
   // failing — the proxy's `x-should-retry: false` header stops the provider
-  // SDK's own retries, not LangChain's — so an arm that scripts a 5xx (the
-  // platform-capacity 503 the attribution suite carries) budgets for it. The
+  // SDK's own retries, not LangChain's — so an arm that scripts a 5xx budgets
+  // for it. The
   // deep-agent activity runs with MaximumAttempts:1, so the first thrown error
   // becomes a terminal RUN_FAILED with no Temporal retry.
   //
   // `headers` and `body` let an arm script the provider's failure byte-exact —
-  // the raw Anthropic billing envelope, the platform's capacity rewrite — so the
+  // the raw Anthropic billing envelope, the cloud proxy's organization-key
+  // marking — so the
   // runner's attribution of WHO failed is asserted on the real shapes.
   enqueueError(status = 400, opts: EnqueueErrorOptions = {}): this {
     this.queue.push({

@@ -26,7 +26,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// ProviderKeyQueryController reads an organization's own LLM provider keys,
+// ProviderKeyQueryController reads an organization's own model provider keys,
 // never their secrets.
 //
 // Authorizes against the organization with can_view_billing, the permission
@@ -59,7 +59,7 @@ func (c *providerKeyQueryControllerClient) List(ctx context.Context, in *ListPro
 // All implementations should embed UnimplementedProviderKeyQueryControllerServer
 // for forward compatibility.
 //
-// ProviderKeyQueryController reads an organization's own LLM provider keys,
+// ProviderKeyQueryController reads an organization's own model provider keys,
 // never their secrets.
 //
 // Authorizes against the organization with can_view_billing, the permission

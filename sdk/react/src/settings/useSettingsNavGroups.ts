@@ -76,11 +76,6 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
     "can_manage_model_pricing",
     { fail: "closed" },
   );
-  const cursorAccounts = useCheckPermission(
-    PLATFORM_RESOURCE,
-    "can_manage_cursor_accounts",
-    { fail: "closed" },
-  );
   const licenses = useCheckPermission(
     PLATFORM_RESOURCE,
     "can_issue_license",
@@ -93,7 +88,6 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
   );
 
   const pricingAllowed = pricing.allowed;
-  const cursorAccountsAllowed = cursorAccounts.allowed;
   const licensesAllowed = licenses.allowed;
   const plansAllowed = plans.allowed;
   const serviceAccountsAllowed = serviceAccounts.allowed;
@@ -108,7 +102,6 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
   return useMemo(() => {
     const verdicts: Record<string, boolean> = {
       can_manage_model_pricing: pricingAllowed,
-      can_manage_cursor_accounts: cursorAccountsAllowed,
       can_issue_license: licensesAllowed,
       can_manage_plans: plansAllowed,
     };
@@ -148,7 +141,6 @@ export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
   }, [
     baseGroups,
     pricingAllowed,
-    cursorAccountsAllowed,
     licensesAllowed,
     plansAllowed,
     serviceAccountsAllowed,

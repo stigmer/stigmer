@@ -15,18 +15,24 @@ export const file_ai_stigmer_billing_providerkey_v1_api: GenFile = /*@__PURE__*/
   fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEiogIKC1Byb3ZpZGVyS2V5EgsKA29yZxgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIQCghrZXlfaGludBgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGaW5fdXNlGAggASgIEhoKEmluaGVyaXRlZF9mcm9tX29yZxgJIAEoCRIQCghiYXNlX3VybBgKIAEoCWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
- * An organization's own LLM provider key, as every caller sees it: the key
+ * An organization's own model provider key, as every caller sees it: the key
  * itself never leaves the server, only which provider it is for, a hint to
  * tell two keys apart, and who saved it and when.
  *
  * An organization holds at most one key per provider, where the provider
  * names the wire protocol: "anthropic" is Anthropic's API or any endpoint
- * that speaks it, "openai" is OpenAI's API or any endpoint that speaks it.
+ * that speaks it, "openai" is OpenAI's API or any endpoint that speaks it,
+ * and "cursor" is Cursor, which serves the cursor harness. A Cursor key is
+ * a Cursor user API key or a team service-account API key (Cursor's SDK
+ * refuses Team Admin keys); Cursor bills it to that user's plan or to the
+ * team, and it takes no base URL.
+ *
  * The Stigmer Cloud proxy serves every one of the organization's calls to
- * that provider on this key, on every plan, and on no other: a run whose
- * model needs a provider the organization holds no key for is refused with
- * FAILED_PRECONDITION, reason PROVIDER_KEY_REQUIRED. The provider bills the
- * organization directly, and Stigmer meters the calls without charging them.
+ * that provider on this key, on every plan, and on no other: a run that
+ * needs a provider the organization holds no key for (by its model, or a
+ * cursor-harness run needing "cursor") is refused with FAILED_PRECONDITION,
+ * reason PROVIDER_KEY_REQUIRED. The provider bills the organization
+ * directly, and Stigmer meters the calls without charging them.
  *
  * Provider keys are not an API resource. They are keyed by organization and
  * provider, and they authorize against the organization, as billing does.
@@ -42,8 +48,8 @@ export type ProviderKey = Message<"ai.stigmer.billing.providerkey.v1.ProviderKey
   org: string;
 
   /**
-   * The provider the key is for: "anthropic" or "openai", the proxy's own
-   * provider names.
+   * The provider the key is for: "anthropic", "openai" or "cursor", the
+   * proxy's own provider names.
    *
    * @generated from field: string provider = 2;
    */
@@ -105,7 +111,7 @@ export type ProviderKey = Message<"ai.stigmer.billing.providerkey.v1.ProviderKey
    * The endpoint the key is used against, as the provider's own SDK takes
    * it as its base URL; empty means the provider's own API. For example
    * "https://gateway.example.com/openai/v1" for an OpenAI-compatible
-   * gateway. Always empty on an inherited row.
+   * gateway. Always empty on an inherited row and on a Cursor key.
    *
    * @generated from field: string base_url = 10;
    */

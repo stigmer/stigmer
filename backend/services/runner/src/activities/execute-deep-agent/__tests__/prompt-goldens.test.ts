@@ -194,6 +194,8 @@ function everythingInput(shape: EverythingShape): TurnInput {
       dirs: ["/ws"],
       primaryDir: "/ws",
       gitWorkspace: false,
+      captureSubstrate: false,
+      fileReview: false,
       captureMode: false,
       changeSetId: `${executionId}:0`,
       provision: { workspaceDirs: ["/ws"], provisionResults: [...PROVISION_RESULTS], workspaceBackend: mockWorkspaceBackend() },

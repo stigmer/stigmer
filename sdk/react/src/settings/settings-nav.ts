@@ -14,7 +14,6 @@ import {
   Link,
   ListChecks,
   MessageSquare,
-  MousePointerClick,
   Plug,
   Scale,
   ShieldCheck,
@@ -192,12 +191,6 @@ export const PLATFORM_SETTINGS_NAV_GROUP: SettingsNavGroup = {
       label: "Model catalog",
       icon: Scale,
       requiredPermission: "can_manage_model_pricing",
-    },
-    {
-      href: "/settings/cursor-accounts",
-      label: "Cursor Accounts",
-      icon: MousePointerClick,
-      requiredPermission: "can_manage_cursor_accounts",
     },
     {
       href: "/settings/licenses",

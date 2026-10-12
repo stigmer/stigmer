@@ -19,12 +19,10 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 export const AGENTCHANNEL_API_VERSION = "agentic.stigmer.ai/v1";
 export const AGENTCHANNEL_KIND = "AgentChannel";
 
-// The default model pin every channel fixture carries. Cloud REQUIRES a
-// pinned model on channel writes (its channel execution profile serves the
-// Cursor harness, where an unpinned run would bill as Auto —
-// stigmer/stigmer#362); OSS merely validates a pin that is present. One
-// registry-valid pin keeps every fixture accepted by both editions; the
-// pin-REQUIRED divergence itself is pinned two-armed in the suite.
+// The default model pin every channel fixture carries: a registry-valid
+// pin both editions accept at write (a pin is validated against every
+// engine's catalog, since a channel names no engine). Whether an unpinned
+// channel is stored is pinned in the suite itself.
 export const CHANNEL_FIXTURE_MODEL = "composer-2.5";
 
 export interface SlackAgentChannelOptions {

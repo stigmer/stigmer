@@ -19,7 +19,7 @@
           "argsPreview": "{\"path\":\"notes.md\",\"content\":\"# Notes\\n\\nA fixture file.\\n\\nReviewed by the hermetic run.\\n\"}",
           "toolKind": "TOOL_KIND_FILE_EDIT",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "policyEngineVersion": "hooks-1",
+          "policyEngineVersion": "hooks-2",
           "fileChangeSetId": "aex_hermetic_0001:0"
         }
       ]
@@ -30,8 +30,9 @@
       "timestamp": "2026-01-01T00:00:07.000Z"
     }
   ],
-  "phase": "RUN_WAITING_FOR_APPROVAL",
+  "phase": "RUN_COMPLETED",
   "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:09.000Z",
   "streamingUsage": {
     "inputTokens": "2400",
     "outputTokens": "70",

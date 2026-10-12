@@ -706,4 +706,19 @@ java.lang.String defaultValue);
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getPluginsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Whether each turn's file edits are offered for review, Keep or Undo,
+   * after the turn. Off unless the caller sets it. Review never makes a
+   * turn wait: the edits are applied as the agent makes them, each stays
+   * until it is undone, and whatever is undecided when the next message is
+   * sent is kept. A turn in a workspace that cannot record its edits asks
+   * before each file write instead.
+   * </pre>
+   *
+   * <code>bool file_review = 20 [json_name = "fileReview"];</code>
+   * @return The fileReview.
+   */
+  boolean getFileReview();
 }

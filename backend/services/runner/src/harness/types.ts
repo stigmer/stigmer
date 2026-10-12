@@ -190,7 +190,23 @@ export interface TurnWorkspace {
   readonly primaryDir: string;
   /** True when `primaryDir` is a git work tree: selects the git-diff capture substrate over CAS. */
   readonly gitWorkspace: boolean;
-  /** Apply-then-review capture (true) or the classic deny-gate (false); see `shared/filereview/capture.ts` `deriveCaptureMode`. */
+  /**
+   * Whether the workspace can capture file edits at all (a git tree, or storage
+   * for CAS): the input to the secret-path rule, whatever review says; see
+   * `shared/filereview/capture.ts` `deriveCaptureSubstrate`.
+   */
+  readonly captureSubstrate: boolean;
+  /**
+   * Whether this turn's file edits are offered for review after it: the
+   * session's `file_review` switch, or a plugin-eval try. Off, a built-in
+   * write or delete flows and nothing is captured.
+   */
+  readonly fileReview: boolean;
+  /**
+   * Apply-then-review capture runs this turn: review is on and the workspace
+   * has a substrate. Review on without a substrate is the classic deny-gate;
+   * see `shared/filereview/capture.ts` `deriveCaptureMode`.
+   */
   readonly captureMode: boolean;
   /** `${executionId}:${turnSeq}`: the deterministic id of the change set this turn may produce. */
   readonly changeSetId: string;

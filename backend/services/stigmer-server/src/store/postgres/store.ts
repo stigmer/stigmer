@@ -486,10 +486,14 @@ export class PostgresStore implements Store {
       const outcome = write(
         previous,
         sessionId === ""
-          ? { othersWorking: 0, latestStateType: undefined }
+          ? { othersWorking: 0, latestStateType: undefined, runOfNewestType: undefined }
           : {
               othersWorking: await this.countOthersWorking(client, declaration, id, scope.workingKey, sessionId),
               latestStateType: await latestOfTypes(client, sessionId, scope.stateEventTypes),
+              runOfNewestType:
+                scope.runOfNewestType === undefined
+                  ? undefined
+                  : await runOfNewestOfType(client, sessionId, scope.runOfNewestType),
             },
       );
       if (sessionId === "" && outcome.events.length > 0) {
@@ -2469,6 +2473,20 @@ async function latestOfTypes(
     }
   }
   return newest?.type;
+}
+
+/** The run of the session's newest event of `type`; undefined when it has none. */
+async function runOfNewestOfType(
+  client: PoolClient,
+  sessionId: string,
+  type: string,
+): Promise<string | undefined> {
+  const result = await client.query(
+    `SELECT run_id FROM session_events WHERE session_id = $1 AND type = $2 ORDER BY seq DESC LIMIT 1`,
+    [sessionId, type],
+  );
+  const row = result.rows[0] as { run_id: string } | undefined;
+  return row?.run_id;
 }
 
 /** Appends drafts after the session's newest event, under the caller's session lock. */

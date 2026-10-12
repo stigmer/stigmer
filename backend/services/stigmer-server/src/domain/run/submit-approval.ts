@@ -17,9 +17,9 @@
  * race surfaces as Internal, exactly Go's closure error). Idempotency: a
  * repeated identical submit is a no-op answering current state.
  *
- * The approvalGateResolved signal fires ONLY when the unified HITL gate
- * fully clears — no pending approval AND no change set awaiting review.
- * With the engine disconnected the signal is skipped with a
+ * The approvalGateResolved signal fires ONLY when the HITL gate fully
+ * clears — no pending approval (filereview/gate.ts; file review never
+ * holds a turn). With the engine disconnected the signal is skipped with a
  * WARN and the decision still persists (Go's nil-creator arm).
  */
 import { create } from "@bufbuild/protobuf";
@@ -70,7 +70,7 @@ import { deriveLeaseScope, sameLeaseScope } from "./approval/lease-scope.js";
 import { projectPendingApprovals } from "./approval/project.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
 import { EngineWorkflowNotFoundError } from "./engine.js";
-import { countAwaitingReview } from "./filereview/gate.js";
+import { gateResolved } from "./filereview/gate.js";
 import { notifyStatusObservers } from "./status-observers.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
 import { overwriteRunAppendingEvents } from "../session/events/run-writes.js";
@@ -338,22 +338,16 @@ export async function submitApproval(
         const execution = ctx.get(TARGET_RESOURCE_KEY) as Run;
         const executionId = execution.metadata?.id ?? "";
         const pendingRemaining = execution.status?.pendingApprovals.length ?? 0;
-        const awaitingReview = countAwaitingReview(
-          execution.status?.fileChangeSets ?? [],
-        );
 
-        // The HITL gate is unified: a turn resumes only when BOTH
-        // sub-gates clear. Clearing the last approval while file review is
-        // still pending must NOT resume the turn. REJECT is not special:
-        // it resolves exactly one gate, like SKIP.
-        if (!(pendingRemaining === 0 && awaitingReview === 0)) {
+        // The turn resumes only once every pending approval is decided.
+        // REJECT is not special: it resolves exactly one call, like SKIP.
+        if (execution.status !== undefined && !gateResolved(execution.status)) {
           deps.logger.info(
             "Approval recorded, HITL gate not yet resolved — waiting",
             {
               executionId,
               toolCallId: ctx.input.toolCallId,
               pendingApprovalsRemaining: pendingRemaining,
-              changeSetsAwaitingReview: awaitingReview,
             },
           );
           return;
@@ -471,7 +465,7 @@ async function reconcileStaleExecution(
     executionId,
   });
 
-  // Notify site 4 of 5 (status-observers.ts): the reconcile's →FAILED stamp
+  // Notify site 4 of 4 (status-observers.ts): the reconcile's →FAILED stamp
   // is a persisted terminal transition.
   await notifyStatusObservers(
     deps,

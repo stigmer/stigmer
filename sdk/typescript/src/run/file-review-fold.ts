@@ -1,20 +1,19 @@
 // Framework-agnostic fold of the file-review event ledger into FileChangeSets.
 //
 // The server persists an append-only `file_review_event_stream` ledger on the
-// run status and computes `file_change_sets` as its projection. That
-// server projection is phase-aware: it is nil for a TERMINAL run (a dead
-// run has no *actionable* review). Settled/historical display therefore
-// cannot read the projection — it must fold the always-preserved ledger itself.
+// run status and computes `file_change_sets` as its projection, for a
+// finished run too: a turn never waits for review, and its edits stay
+// decidable after it ends. A status read without the projection (an older
+// server that emptied it for a terminal run, or a trimmed status) is
+// displayed by folding the always-preserved ledger here.
 //
 // `foldFileReviewEventStream` is the TypeScript port of the Go projector
 // `ProjectFileChangeSets` (backend/services/stigmer-server/pkg/domain/
 // agentexecution/filereview/project.go), and its Java mirror
-// `FileChangeSetProjector`. It is byte-for-byte identical to them EXCEPT it does
-// not apply the terminal-phase gate — that is the whole point of the client-side
-// fold (it must render settled sets for a terminal run). Every other rule
-// (first-seen change-set ordering, last-writer-wins scalars, decision
-// accumulation, wholesale change replacement, sticky terminal status) matches
-// the server exactly, so live and settled views agree.
+// `FileChangeSetProjector`. Every rule (first-seen change-set ordering,
+// last-writer-wins scalars, decision accumulation, wholesale change
+// replacement, sticky terminal status) matches the server exactly, so live
+// and settled views agree.
 //
 // Parity is not maintained by discipline: the shared cross-edition corpus at
 // apis/testdata/hitl/file-review/*.json — already replayed by the Go and Java
@@ -43,12 +42,10 @@ import {
  * Folds a file-review event ledger into its list of {@link FileChangeSet}s,
  * grouped by `change_set_id` in first-seen order.
  *
- * This is the display fold: unlike the server projection it does NOT collapse to
- * an empty list for a terminal run, so a completed/failed/cancelled
- * run still yields its settled sets for read-only display. For the LIVE
- * (actionable) view, prefer the server-computed `status.file_change_sets`
- * projection (it is structurally shared across stream frames); this fold is the
- * settled/terminal complement — see {@link displayFileChangeSets}.
+ * This is the display fold, the server projection's twin: a status that
+ * carries no projection still yields its sets. Prefer the server-computed
+ * `status.file_change_sets` when present (it is structurally shared across
+ * stream frames) — see {@link displayFileChangeSets}.
  *
  * The fold is a faithful port of the Go/Java projector: scalar and snapshot
  * fields are last-writer-wins, `decisions` accumulate, `changes` are replaced
@@ -89,17 +86,14 @@ export function foldFileReviewEventStream(
  * The single read seam for displaying a run's file change sets.
  *
  * Returns the server-computed `status.file_change_sets` projection when it is
- * present (a LIVE run — the projection is structurally shared across
- * stream frames, so consumers keep stable references and streaming re-renders
- * stay scoped to the actively-changing card), and otherwise folds the ledger
- * (a TERMINAL run — the server projects nil there, but the ledger is
- * preserved). The fold therefore never runs on the streaming hot path; it only
- * reconstructs the settled sets a dead run would otherwise not display.
+ * present (the projection is structurally shared across stream frames, so
+ * consumers keep stable references and streaming re-renders stay scoped to
+ * the actively-changing card), and otherwise folds the ledger (a status read
+ * without the projection; the ledger is always preserved).
  *
- * The two branches are equivalent by construction for a non-terminal run
- * (the fold minus its terminal gate IS the server projection — locked by the
- * corpus parity test), so this accessor is a single consistent source whichever
- * branch it takes.
+ * The two branches are equivalent by construction (the fold IS the server
+ * projection — locked by the corpus parity test), so this accessor is a
+ * single consistent source whichever branch it takes.
  *
  * @param status - The run status, or `undefined`.
  * @returns The change sets to display, or an empty array when there are none.

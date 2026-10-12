@@ -5,7 +5,8 @@
  * and asserts the runner's {@link toolUseEventId} agrees with every vector:
  * the id a reader that answers a tool use derives from the call id it
  * holds is the id the runner wrote. Also pins that every derived id fits
- * the contract's pattern with each suffix appended.
+ * the contract's pattern with each suffix appended, and the two file-review
+ * ids each change set derives (`fileReview`).
  */
 
 import { readFileSync } from "node:fs";
@@ -14,6 +15,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   EVENT_ID_PATTERN,
+  fileReviewChangesEventId,
+  fileReviewReconciledEventId,
   permissionAskedEventId,
   scopeEventPrefix,
   thinkingEventId,
@@ -34,7 +37,15 @@ interface IdVector {
 const vectorsPath = fileURLToPath(
   new URL("../../../../../../../apis/testdata/session-events/ids/vectors.json", import.meta.url),
 );
-const corpus = JSON.parse(readFileSync(vectorsPath, "utf-8")) as { vectors: IdVector[] };
+interface FileReviewIdVector {
+  readonly name: string;
+  readonly changeSetId: string;
+  readonly changesId: string;
+  readonly decidedEventId: string;
+  readonly reconciledId: string;
+}
+
+const corpus = JSON.parse(readFileSync(vectorsPath, "utf-8")) as { vectors: IdVector[]; fileReview: FileReviewIdVector[] };
 
 describe("session event id vector corpus", () => {
   it("has vectors", () => {
@@ -58,5 +69,18 @@ describe("session event id vector corpus", () => {
     ]) {
       expect(id).toMatch(EVENT_ID_PATTERN);
     }
+  });
+});
+
+describe("file-review event id vector corpus", () => {
+  it("has vectors", () => {
+    expect(corpus.fileReview.length).toBeGreaterThan(0);
+  });
+
+  it.each(corpus.fileReview)("$name", ({ changeSetId, changesId, decidedEventId, reconciledId }) => {
+    expect(fileReviewChangesEventId(changeSetId)).toBe(changesId);
+    expect(fileReviewReconciledEventId(changeSetId, decidedEventId)).toBe(reconciledId);
+    expect(changesId).toMatch(EVENT_ID_PATTERN);
+    expect(reconciledId).toMatch(EVENT_ID_PATTERN);
   });
 });

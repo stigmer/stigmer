@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInQKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCSJgChNMaXN0U2Vzc2lvbnNSZXF1ZXN0EhoKCXBhZ2Vfc2l6ZRgBIAEoBUIHukgEGgIoABISCgpwYWdlX3Rva2VuGAIgASgJEgwKBHRhZ3MYAyADKAkSCwoDb3JnGAQgASgJImYKGkxpc3RTZXNzaW9uc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiagocTGlzdFNlc3Npb25zQnlDaGFubmVsUmVxdWVzdBIaCgpjaGFubmVsX2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiQgobVXBkYXRlU2Vzc2lvblN1YmplY3RSZXF1ZXN0EhIKAmlkGAEgASgJQga6SAPIAQESDwoHc3ViamVjdBgCIAEoCSKvAgoYTGlzdFNlc3Npb25FdmVudHNSZXF1ZXN0EhoKCnNlc3Npb25faWQYASABKAlCBrpIA8gBARIdCglwYWdlX3NpemUYAiABKAVCCrpIBxoFGOgHKAASEgoKcGFnZV90b2tlbhgDIAEoCRIiCgVvcmRlchgEIAEoCUITukgQ2AEBcgtSA2FzY1IEZGVzYxIyCgV0eXBlcxgFIAMoCUIjukggkgEdEEAiGXIXMhVeW2Etel9dKyhcLlthLXpfXSspKyQSFQoNY3JlYXRlZF9hdF9ndBgGIAEoCRIWCg5jcmVhdGVkX2F0X2d0ZRgHIAEoCRIVCg1jcmVhdGVkX2F0X2x0GAggASgJEhYKDmNyZWF0ZWRfYXRfbHRlGAkgASgJEg4KBnJ1bl9pZBgKIAEoCSJoChBTZXNzaW9uRXZlbnRMaXN0EjsKBmV2ZW50cxgBIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25FdmVudBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkixwEKGlN0cmVhbVNlc3Npb25FdmVudHNSZXF1ZXN0EhoKCnNlc3Npb25faWQYASABKAlCBrpIA8gBARJeCgxldmVudF9kZWx0YXMYAiADKAlCSLpIRZIBQhADGAEiPHI6Ug1hZ2VudC5tZXNzYWdlUg5hZ2VudC50aGlua2luZ1IZc3RpZ21lci50b29sX291dHB1dF9kZWx0YRIfCglhZnRlcl9zZXEYAyABKANCB7pIBCICKABIAIgBAUIMCgpfYWZ0ZXJfc2VxIv4CChtTdHJlYW1TZXNzaW9uRXZlbnRzUmVzcG9uc2USPAoFZXZlbnQYASABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXZlbnRIABJRCgtldmVudF9zdGFydBgCIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV2ZW50U3RhcnRCD/KFLAtldmVudF9zdGFydEgAElEKC2V2ZW50X2RlbHRhGAMgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuRXZlbnREZWx0YUIP8oUsC2V2ZW50X2RlbHRhSAAScgoZc3RpZ21lcl90b29sX291dHB1dF9kZWx0YRgEIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlRvb2xPdXRwdXREZWx0YUId8oUsGXN0aWdtZXIudG9vbF9vdXRwdXRfZGVsdGFIAEIHCgVmcmFtZSLBAgoTU2Vzc2lvbkV2ZW50UHJldmlldxJRCgtldmVudF9zdGFydBgBIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV2ZW50U3RhcnRCD/KFLAtldmVudF9zdGFydEgAElEKC2V2ZW50X2RlbHRhGAIgASgLMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuRXZlbnREZWx0YUIP8oUsC2V2ZW50X2RlbHRhSAAScgoZc3RpZ21lcl90b29sX291dHB1dF9kZWx0YRgDIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlRvb2xPdXRwdXREZWx0YUId8oUsGXN0aWdtZXIudG9vbF9vdXRwdXRfZGVsdGFIAEIQCgdwcmV2aWV3EgW6SAIIASLLAQoYQXBwZW5kU2Vzc2lvbkV2ZW50c0lucHV0EhYKBnJ1bl9pZBgBIAEoCUIGukgDyAEBEkYKBmV2ZW50cxgCIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25FdmVudEIJukgGkgEDEOgHEk8KCHByZXZpZXdzGAMgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkV2ZW50UHJldmlld0IJukgGkgEDEOgHIloKG0FwcGVuZFNlc3Npb25FdmVudHNSZXNwb25zZRI7CgZldmVudHMYASADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXZlbnRiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_event, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInQKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uEhcKD25leHRfcGFnZV90b2tlbhgDIAEoCSJgChNMaXN0U2Vzc2lvbnNSZXF1ZXN0EhoKCXBhZ2Vfc2l6ZRgBIAEoBUIHukgEGgIoABISCgpwYWdlX3Rva2VuGAIgASgJEgwKBHRhZ3MYAyADKAkSCwoDb3JnGAQgASgJImYKGkxpc3RTZXNzaW9uc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiagocTGlzdFNlc3Npb25zQnlDaGFubmVsUmVxdWVzdBIaCgpjaGFubmVsX2lkGAEgASgJQga6SAPIAQESGgoJcGFnZV9zaXplGAIgASgFQge6SAQaAigAEhIKCnBhZ2VfdG9rZW4YAyABKAkiQgobVXBkYXRlU2Vzc2lvblN1YmplY3RSZXF1ZXN0EhIKAmlkGAEgASgJQga6SAPIAQESDwoHc3ViamVjdBgCIAEoCSKqAwoWUmV2aWV3RmlsZUNoYW5nZXNJbnB1dBIbCgpzZXNzaW9uX2lkGAEgASgJQge6SARyAhABEh4KDWNoYW5nZV9zZXRfaWQYAiABKAlCB7pIBHICEAESJgoFc2NvcGUYAyABKAlCF7pIFHISUgpjaGFuZ2Vfc2V0UgRmaWxlEhYKDmZpbGVfY2hhbmdlX2lkGAQgASgJEiEKBmFjdGlvbhgFIAEoCUIRukgOcgxSBGtlZXBSBHVuZG8SIAoPZXhwZWN0ZWRfZGlnZXN0GAYgASgJQge6SARyAhABEhgKBnJlYXNvbhgHIAEoCUIIukgFcgMY0A8SIAoYYWNrbm93bGVkZ2VfdW5yZXZpZXdhYmxlGAggASgIOpEBukiNARqKAQoicmV2aWV3X2ZpbGVfY2hhbmdlcy5maWxlX2NoYW5nZV9pZBItZmlsZV9jaGFuZ2VfaWQgaXMgcmVxdWlyZWQgd2hlbiBzY29wZSBpcyBmaWxlGjV0aGlzLnNjb3BlICE9ICdmaWxlJyB8fCBzaXplKHRoaXMuZmlsZV9jaGFuZ2VfaWQpID4gMCI1ChlSZXZpZXdGaWxlQ2hhbmdlc1Jlc3BvbnNlEhgKEHJlY29uY2lsZV9ydW5faWQYASABKAkirwIKGExpc3RTZXNzaW9uRXZlbnRzUmVxdWVzdBIaCgpzZXNzaW9uX2lkGAEgASgJQga6SAPIAQESHQoJcGFnZV9zaXplGAIgASgFQgq6SAcaBRjoBygAEhIKCnBhZ2VfdG9rZW4YAyABKAkSIgoFb3JkZXIYBCABKAlCE7pIENgBAXILUgNhc2NSBGRlc2MSMgoFdHlwZXMYBSADKAlCI7pIIJIBHRBAIhlyFzIVXlthLXpfXSsoXC5bYS16X10rKSskEhUKDWNyZWF0ZWRfYXRfZ3QYBiABKAkSFgoOY3JlYXRlZF9hdF9ndGUYByABKAkSFQoNY3JlYXRlZF9hdF9sdBgIIAEoCRIWCg5jcmVhdGVkX2F0X2x0ZRgJIAEoCRIOCgZydW5faWQYCiABKAkiaAoQU2Vzc2lvbkV2ZW50TGlzdBI7CgZldmVudHMYASADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXZlbnQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIscBChpTdHJlYW1TZXNzaW9uRXZlbnRzUmVxdWVzdBIaCgpzZXNzaW9uX2lkGAEgASgJQga6SAPIAQESXgoMZXZlbnRfZGVsdGFzGAIgAygJQki6SEWSAUIQAxgBIjxyOlINYWdlbnQubWVzc2FnZVIOYWdlbnQudGhpbmtpbmdSGXN0aWdtZXIudG9vbF9vdXRwdXRfZGVsdGESHwoJYWZ0ZXJfc2VxGAMgASgDQge6SAQiAigASACIAQFCDAoKX2FmdGVyX3NlcSL+AgobU3RyZWFtU2Vzc2lvbkV2ZW50c1Jlc3BvbnNlEjwKBWV2ZW50GAEgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkV2ZW50SAASUQoLZXZlbnRfc3RhcnQYAiABKAsyKS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FdmVudFN0YXJ0Qg/yhSwLZXZlbnRfc3RhcnRIABJRCgtldmVudF9kZWx0YRgDIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV2ZW50RGVsdGFCD/KFLAtldmVudF9kZWx0YUgAEnIKGXN0aWdtZXJfdG9vbF9vdXRwdXRfZGVsdGEYBCABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Ub29sT3V0cHV0RGVsdGFCHfKFLBlzdGlnbWVyLnRvb2xfb3V0cHV0X2RlbHRhSABCBwoFZnJhbWUiwQIKE1Nlc3Npb25FdmVudFByZXZpZXcSUQoLZXZlbnRfc3RhcnQYASABKAsyKS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FdmVudFN0YXJ0Qg/yhSwLZXZlbnRfc3RhcnRIABJRCgtldmVudF9kZWx0YRgCIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV2ZW50RGVsdGFCD/KFLAtldmVudF9kZWx0YUgAEnIKGXN0aWdtZXJfdG9vbF9vdXRwdXRfZGVsdGEYAyABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Ub29sT3V0cHV0RGVsdGFCHfKFLBlzdGlnbWVyLnRvb2xfb3V0cHV0X2RlbHRhSABCEAoHcHJldmlldxIFukgCCAEiywEKGEFwcGVuZFNlc3Npb25FdmVudHNJbnB1dBIWCgZydW5faWQYASABKAlCBrpIA8gBARJGCgZldmVudHMYAiADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXZlbnRCCbpIBpIBAxDoBxJPCghwcmV2aWV3cxgDIAMoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25FdmVudFByZXZpZXdCCbpIBpIBAxDoByJaChtBcHBlbmRTZXNzaW9uRXZlbnRzUmVzcG9uc2USOwoGZXZlbnRzGAEgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkV2ZW50YgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_event, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
  * SessionId wraps a session identifier.
@@ -244,6 +244,105 @@ export const UpdateSessionSubjectRequestSchema: GenMessage<UpdateSessionSubjectR
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 6);
 
 /**
+ * ReviewFileChangesInput keeps or undoes a turn's file changes, or one of
+ * its files.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.ReviewFileChangesInput
+ */
+export type ReviewFileChangesInput = Message<"ai.stigmer.agentic.session.v1.ReviewFileChangesInput"> & {
+  /**
+   * The conversation.
+   *
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * The change set, as its stigmer.file_review.changes event names it.
+   *
+   * @generated from field: string change_set_id = 2;
+   */
+  changeSetId: string;
+
+  /**
+   * change_set (every file of the set) or file (the one file_change_id).
+   *
+   * @generated from field: string scope = 3;
+   */
+  scope: string;
+
+  /**
+   * The file to decide, when scope is file.
+   *
+   * @generated from field: string file_change_id = 4;
+   */
+  fileChangeId: string;
+
+  /**
+   * keep or undo.
+   *
+   * @generated from field: string action = 5;
+   */
+  action: string;
+
+  /**
+   * The digest of what the person saw: the file's digest for scope file,
+   * the set's aggregate_digest for scope change_set. A decision against a
+   * change that differs is refused.
+   *
+   * @generated from field: string expected_digest = 6;
+   */
+  expectedDigest: string;
+
+  /**
+   * An optional reason, kept with the decision.
+   *
+   * @generated from field: string reason = 7;
+   */
+  reason: string;
+
+  /**
+   * Set on a keep to keep a binary change consciously: its bytes can be
+   * put back, but it has no text diff to show. Ignored on an undo, and
+   * never relaxes expected_digest.
+   *
+   * @generated from field: bool acknowledge_unreviewable = 8;
+   */
+  acknowledgeUnreviewable: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.ReviewFileChangesInput.
+ * Use `create(ReviewFileChangesInputSchema)` to create a new message.
+ */
+export const ReviewFileChangesInputSchema: GenMessage<ReviewFileChangesInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 7);
+
+/**
+ * ReviewFileChangesResponse answers a recorded decision.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.ReviewFileChangesResponse
+ */
+export type ReviewFileChangesResponse = Message<"ai.stigmer.agentic.session.v1.ReviewFileChangesResponse"> & {
+  /**
+   * The turn started to put undone files back now, when the decision was
+   * an undo on a turn that had ended; empty otherwise, or when no turn
+   * could be started then (the next turn puts them back before its agent
+   * runs).
+   *
+   * @generated from field: string reconcile_run_id = 1;
+   */
+  reconcileRunId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.ReviewFileChangesResponse.
+ * Use `create(ReviewFileChangesResponseSchema)` to create a new message.
+ */
+export const ReviewFileChangesResponseSchema: GenMessage<ReviewFileChangesResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 8);
+
+/**
  * ListSessionEventsRequest pages through one session's event log.
  *
  * @generated from message ai.stigmer.agentic.session.v1.ListSessionEventsRequest
@@ -327,7 +426,7 @@ export type ListSessionEventsRequest = Message<"ai.stigmer.agentic.session.v1.Li
  * Use `create(ListSessionEventsRequestSchema)` to create a new message.
  */
 export const ListSessionEventsRequestSchema: GenMessage<ListSessionEventsRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_io, 7);
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 9);
 
 /**
  * SessionEventList is one page of a session's events.
@@ -356,7 +455,7 @@ export type SessionEventList = Message<"ai.stigmer.agentic.session.v1.SessionEve
  * Use `create(SessionEventListSchema)` to create a new message.
  */
 export const SessionEventListSchema: GenMessage<SessionEventList> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_io, 8);
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 10);
 
 /**
  * StreamSessionEventsRequest opens a live stream of one session's events.
@@ -396,7 +495,7 @@ export type StreamSessionEventsRequest = Message<"ai.stigmer.agentic.session.v1.
  * Use `create(StreamSessionEventsRequestSchema)` to create a new message.
  */
 export const StreamSessionEventsRequestSchema: GenMessage<StreamSessionEventsRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_io, 9);
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 11);
 
 /**
  * StreamSessionEventsResponse is one frame of a session's event stream: a
@@ -450,7 +549,7 @@ export type StreamSessionEventsResponse = Message<"ai.stigmer.agentic.session.v1
  * Use `create(StreamSessionEventsResponseSchema)` to create a new message.
  */
 export const StreamSessionEventsResponseSchema: GenMessage<StreamSessionEventsResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_io, 10);
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 12);
 
 /**
  * SessionEventPreview is one live preview frame a runner sends with its
@@ -496,7 +595,7 @@ export type SessionEventPreview = Message<"ai.stigmer.agentic.session.v1.Session
  * Use `create(SessionEventPreviewSchema)` to create a new message.
  */
 export const SessionEventPreviewSchema: GenMessage<SessionEventPreview> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_io, 11);
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 13);
 
 /**
  * AppendSessionEventsInput appends a run's events to its session's log.
@@ -534,7 +633,7 @@ export type AppendSessionEventsInput = Message<"ai.stigmer.agentic.session.v1.Ap
  * Use `create(AppendSessionEventsInputSchema)` to create a new message.
  */
 export const AppendSessionEventsInputSchema: GenMessage<AppendSessionEventsInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_io, 12);
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 14);
 
 /**
  * AppendSessionEventsResponse says where each event of the request sits in
@@ -558,5 +657,5 @@ export type AppendSessionEventsResponse = Message<"ai.stigmer.agentic.session.v1
  * Use `create(AppendSessionEventsResponseSchema)` to create a new message.
  */
 export const AppendSessionEventsResponseSchema: GenMessage<AppendSessionEventsResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_io, 13);
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 15);
 

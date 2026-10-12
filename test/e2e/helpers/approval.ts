@@ -127,12 +127,15 @@ export async function seedGatedSession(
   const agentId = agent.metadata!.id;
 
   // The session names its agent by reference; the server pins the agent's
-  // current version on the session's status.
+  // current version on the session's status. File review is on, as on every
+  // conversation the console starts: on the file-gate stack, where nothing
+  // can capture an edit, that is what makes a write ask before it runs.
   const session = await client.session.create({
     name: `e2e-approval-session-${stamp}`,
     org,
     agentRef: { org, slug: agent.metadata!.slug },
     harness: Harness.NATIVE,
+    fileReview: true,
   });
   const sessionId = session.metadata!.id;
 
@@ -243,12 +246,15 @@ export async function seedToolRunSession(
   const agentId = agent.metadata!.id;
 
   // The session names its agent by reference; the server pins the agent's
-  // current version on the session's status.
+  // current version on the session's status. File review is on, as on every
+  // conversation the console starts: on the capture stack each write is
+  // offered for Keep or Undo once the turn ends.
   const session = await client.session.create({
     name: `e2e-toolrun-session-${stamp}`,
     org,
     agentRef: { org, slug: agent.metadata!.slug },
     harness: Harness.NATIVE,
+    fileReview: true,
   });
   const sessionId = session.metadata!.id;
 
@@ -451,41 +457,43 @@ export function approvalPeekBar(page: Page): Locator {
 
 /** The session-scoped auto-approve indicator (shown after APPROVE_ALL). */
 /**
- * The file-review card's bulk "Keep all" decision button. On a
- * capture-substrate stack, flowed file writes pause the run at the review
- * boundary (apply-then-review — even under `auto_approve_all`, by design:
- * capture is gate-independent), and this is the real UI that resolves it.
+ * The file-review dock's bulk "Keep all" decision button. On a
+ * capture-substrate stack, a session with file review on applies every write
+ * during the turn (apply-then-review — even under `auto_approve_all`, by
+ * design: capture is gate-independent), the turn ends, and the dock offers its
+ * edits; this is the real UI that keeps them.
  */
 export function fileReviewApproveButton(page: Page): Locator {
   return page.locator('[data-cursor-target="file-review-approve"]');
 }
 
+/** The dock's bulk "Undo" decision button: puts every file of the set back. */
+export function fileReviewRejectButton(page: Page): Locator {
+  return page.locator('[data-cursor-target="file-review-reject"]');
+}
+
 /**
- * Drive a seeded write-bearing run through its review boundary to settled:
- * wait for the apply-then-review pause, open the session, resolve the review
- * with the card's bulk "Keep all", and wait for the terminal phase. Returns
- * with the page ON the session, showing the settled timeline. Shared by the
- * disclosure and file-review specs — the canonical way a capture-stack write
- * run reaches RUN_COMPLETED.
+ * Drive a seeded write-bearing run to a settled review: wait for the turn to
+ * end (review never holds it), open the session, keep its edits with the
+ * dock's bulk "Keep all", and wait for the dock to leave. Returns with the
+ * page ON the session, showing the settled timeline. Shared by the disclosure
+ * and file-review specs — the canonical way a capture-stack write run reaches
+ * a settled timeline.
  */
 export async function settleThroughFileReview(
   page: Page,
   client: Stigmer,
   seeded: SeededGatedRun,
 ): Promise<void> {
-  await awaitRunPhase(
-    client,
-    seeded.runId,
-    RunPhase.RUN_WAITING_FOR_APPROVAL,
-  );
-  await page.goto(`/sessions/${seeded.sessionId}`);
-  await fileReviewApproveButton(page).click({ timeout: 30_000 });
   const phase = await awaitRunTerminal(client, seeded.runId);
   if (phase !== RunPhase.RUN_COMPLETED) {
     throw new Error(
-      `review-resolved run should complete, got ${RunPhase[phase]}`,
+      `a write-bearing run should complete before its review, got ${RunPhase[phase]}`,
     );
   }
+  await page.goto(`/sessions/${seeded.sessionId}`);
+  await fileReviewApproveButton(page).click({ timeout: 30_000 });
+  await fileReviewApproveButton(page).waitFor({ state: "detached", timeout: 30_000 });
 }
 
 export function autoApproveIndicator(page: Page): Locator {

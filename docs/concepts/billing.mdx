@@ -1,9 +1,9 @@
 ---
 title: Billing
 description:
-  How Stigmer Cloud billing works — model calls on your own provider keys,
-  prepaid credits for Cursor runs, run reservations, automatic recharge, and
-  balance management.
+  How Stigmer Cloud billing works — model calls and Cursor runs on your own
+  provider keys, the prepaid credit wallet, run reservations, automatic
+  recharge, and balance management.
 ---
 
 ## Overview
@@ -16,10 +16,10 @@ calls and charges nothing for them. A run whose model needs a provider with no
 key is refused before it starts. See
 [Model provider keys](/docs/guides/integrations/model-provider-keys).
 
-Cursor-harness runs still run on Stigmer's Cursor accounts and are paid from a
-**prepaid credit wallet**: you purchase credits before running them, and each
-Cursor call is metered and debited from your balance in real time. The rest of
-this page describes that wallet.
+Cursor-harness runs work the same way: they run on your Organization's own
+Cursor key, saved in **Settings → Provider keys**, and Cursor bills your
+Organization directly on that key's plan. No run draws on the **prepaid credit
+wallet** the rest of this page describes.
 
 - **1 credit = $0.01 USD** (10,000 micro-USD internally)
 - Credits are dollar-denominated — no abstract unit conversion
@@ -41,8 +41,8 @@ months from purchase.
 
 ## How pricing works
 
-A native call on your own key costs you only what your provider bills you. Each
-Cursor call has a cost based on three factors:
+A call on your own key, native or Cursor, costs you only what your provider
+bills you. A call the wallet meters has a cost based on three factors:
 
 1. **Model** — different models have different per-token rates
 2. **Token count** — input tokens, output tokens, cache writes, and cache reads
@@ -63,38 +63,25 @@ see current rates on the [pricing page](https://stigmer.ai/pricing) or via the
 
 ### Platform commission
 
-Stigmer applies a flat **10% commission** on top of provider rates for Cursor
-calls. Native calls run on your own key and carry none:
+Stigmer adds no commission to model calls. Native and Cursor calls both run on
+your own keys:
 
-| Harness | Commission | What you pay                                     |
-| ------- | ---------- | ------------------------------------------------ |
-| Native  | None       | Your provider's own rate, billed by the provider |
-| Cursor  | 10%        | Provider rate × 1.10, from your credits          |
-
-The commission covers the operational stack Stigmer runs around every Cursor
-call: the proxy, cache-aware metering, cost caps, and run lifecycle management.
-For example, if a model's provider input rate is $3.00 per million tokens, a
-Cursor call pays $3.30 per million input tokens.
+| Harness | Commission | What you pay                                           |
+| ------- | ---------- | ------------------------------------------------------ |
+| Native  | None       | Your provider's own rate, billed by the provider       |
+| Cursor  | None       | Cursor's own rate, billed by Cursor to your key's plan |
 
 ### Cursor Token Rate
 
 Cursor-harness models can carry one cost the native harness does not: the
 **Cursor Token Rate**. On Cursor Teams plans, Cursor charges a small per-token
-fee on top of the underlying model price for non-Auto requests. Stigmer pays
-that fee and folds it into the model's cost base _before_ the 10% commission, so
-the price you see already includes it:
-
-```
-billable_per_token = (provider_rate + cursor_token_rate) × 1.10
-```
-
-The Cursor Token Rate is zero for exempt Cursor models (Auto and the Composer
-pool), which are priced as `provider_rate × 1.10`.
+fee on top of the underlying model price for non-Auto requests. Cursor bills it
+to the plan of the key the run uses; Stigmer adds nothing to it. Exempt Cursor
+models (Auto and the Composer pool) carry no Cursor Token Rate.
 
 Rates on the [pricing page](https://stigmer.ai/pricing) and the
-`getCustomerModelPricing` API already include the commission and any Cursor
-Token Rate — you always see the final price you pay. Pricing is versioned and
-only affects future usage; historical charges are immutable.
+`getCustomerModelPricing` API are versioned and only affect future usage;
+historical charges are immutable.
 
 ### Where the model catalog and prices live
 
@@ -116,11 +103,10 @@ refresh entirely.
 
 ## Optimizing your costs
 
-Most of what you spend is provider token cost: on native runs it is your own
-provider bill, and on Cursor runs Stigmer's commission is a flat 10% on top. The
-biggest savings come from sending fewer tokens, reusing cached ones, and
-matching the model and harness to the job. The levers below are ordered by
-impact.
+Most of what you spend is provider token cost, on your own provider bill: your
+model provider's for native runs, Cursor's for Cursor runs. The biggest savings
+come from sending fewer tokens, reusing cached ones, and matching the model and
+harness to the job. The levers below are ordered by impact.
 
 ### Reuse the prompt with caching
 
@@ -141,12 +127,12 @@ across turns.
 
 ### Pick the harness for the job
 
-Native runs carry no Stigmer charge at all, so harness choice is about
+Neither harness carries a Stigmer charge, so harness choice is about
 **capability and cost**:
 
 | If you need…                                | Prefer | Why                                                            |
 | ------------------------------------------- | ------ | -------------------------------------------------------------- |
-| The lowest cost on a given model            | Native | Your provider's own rate, with no commission or token rate     |
+| The lowest cost on a given model            | Native | Your provider's own rate, with no Cursor token rate            |
 | The widest model catalog or a cheaper model | Native | All supported providers; downgrade the model for simple tasks  |
 | Built-in coding tools (edit, shell, search) | Cursor | The tooling is worth the added per-call context and token rate |
 
@@ -178,25 +164,16 @@ conversation length:
 
 ### Set budget guardrails
 
-Stigmer caps Cursor spend automatically so a runaway Agent cannot drain your
-balance (native runs spend on your own provider account, so set budgets there
-too):
-
-- Each Cursor run **reserves** budget up front and stops when the balance is
-  exhausted — see [Run billing lifecycle](#run-billing-lifecycle).
-- `low_balance_warning` then `stop_run` signals tell the Agent to wrap up as the
-  balance runs down — see
-  [Low balance and stop behavior](#low-balance-and-stop-behavior).
-- [Automatic recharge](#automatic-recharge) with a **monthly cap** keeps you
-  topped up without unbounded spend.
-- A per-message cost cap (`max_cost_usd` in an Agent's
-  [run settings](/docs/concepts/agents#run-settings)) stops one message once its
-  estimated cost reaches the cap.
+Every run spends on your own provider accounts (Anthropic, OpenAI or Cursor), so
+set budgets there. Within Stigmer, a per-message cost cap (`max_cost_usd` in an
+Agent's [run settings](/docs/concepts/agents#run-settings)) stops one message
+once its estimated cost reaches the cap.
 
 ## Run billing lifecycle
 
-When a Cursor run happens on Stigmer Cloud, billing follows a four-phase
-lifecycle. A native run reserves and debits nothing: it runs on your own key.
+When a run reserves credits on Stigmer Cloud, billing follows a four-phase
+lifecycle. No run does: native and Cursor runs both run on your Organization's
+own keys, and reserve and debit nothing.
 
 ### 1. Authorization
 

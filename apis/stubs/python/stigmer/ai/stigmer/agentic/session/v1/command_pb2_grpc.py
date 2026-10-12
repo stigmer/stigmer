@@ -36,6 +36,11 @@ class SessionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionSubjectRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
                 _registered_method=True)
+        self.reviewFileChanges = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionCommandController/reviewFileChanges',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ReviewFileChangesInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ReviewFileChangesResponse.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.session.v1.SessionCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionId.SerializeToString,
@@ -79,6 +84,36 @@ class SessionCommandControllerServicer(object):
         This is a targeted update that modifies only the subject field,
         leaving other session fields untouched. Use this instead of the full
         update RPC when you only need to change the session subject.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def reviewFileChanges(self, request, context):
+        """Keep or undo the file changes a turn made, or one of its files.
+
+        In a conversation with file review on (SessionSpec.file_review), each
+        turn's file edits are applied as the agent makes them and listed in a
+        stigmer.file_review.changes event. They can be decided until the
+        conversation's next message is sent; then whatever is undecided is
+        kept. Keep records the choice. Undo puts the file back as it was
+        before the turn: at once when the turn has ended (the reply names the
+        turn that does it), else when the turn's next step starts. The
+        decision is appended as a stigmer.file_review.decided event.
+
+        ## Error Conditions
+
+        - NOT_FOUND: the change set is not one of this conversation's
+        - FAILED_PRECONDITION: the conversation has moved on (a later message
+        was sent), the change was already decided the other way (a decision
+        is final), the file is not in the change set, or a keep of a change
+        that cannot be shown whole without acknowledge_unreviewable
+        - INVALID_ARGUMENT: expected_digest does not match the change
+
+        ## Idempotency
+
+        The same decision sent again records nothing new and starts no second
+        turn.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -133,6 +168,11 @@ def add_SessionCommandControllerServicer_to_server(servicer, server):
                     servicer.updateSubject,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionSubjectRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.SerializeToString,
+            ),
+            'reviewFileChanges': grpc.unary_unary_rpc_method_handler(
+                    servicer.reviewFileChanges,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ReviewFileChangesInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ReviewFileChangesResponse.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
@@ -254,6 +294,33 @@ class SessionCommandController(object):
             '/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionSubjectRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def reviewFileChanges(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionCommandController/reviewFileChanges',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ReviewFileChangesInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ReviewFileChangesResponse.FromString,
             options,
             channel_credentials,
             insecure,

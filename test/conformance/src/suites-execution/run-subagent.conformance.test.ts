@@ -32,7 +32,9 @@
 //   - the parent pinned its subagent at save: an edit to the subagent
 //     reaches a new conversation only once the parent is saved again;
 //   - on the Cursor engine, a subagent that brings its own tool lists is
-//     refused at turn start with one sentence;
+//     refused at turn start with one sentence, before any model call
+//     (CapabilityFlags.cursorRunsAdmitted: on the cloud target the run needs
+//     a real Cursor key, though the refusal spends nothing on it);
 //   - a hosted conversation whose subagent uses a local program (a stdio MCP
 //     server) is refused at run create, naming the plugin and the server,
 //     gated on CapabilityFlags.cloudTargetRefusesLocalPrograms (no target
@@ -83,6 +85,7 @@ import {
 } from "../support/runs";
 import { STIGMER_STDIO_SERVER, stigmerMcpPlugin } from "../support/stigmer-mcp-stdio";
 import { createTarget, type TargetProfile } from "../targets";
+import { CURSOR_KEY_SKIP_REASON } from "../targets/cloud";
 
 // The built-in delegation tool the native engine binds when a turn has
 // subagents.
@@ -557,10 +560,9 @@ describe("Run — the parent pinned its subagent at save", () => {
 });
 
 describe("Run — the Cursor engine and a subagent's own configuration", () => {
-  it("a Cursor turn whose subagent brings its own tool lists is refused at turn start with one sentence", async () => {
+  it("a Cursor turn whose subagent brings its own tool lists is refused at turn start with one sentence", async (ctx) => {
+    if (!collectionTarget.capabilities.cursorRunsAdmitted) return ctx.skip(CURSOR_KEY_SKIP_REASON);
     const { org } = await target.provisionTenancy();
-    // A Cursor run still reserves credit where the target bills one.
-    await target.fundTenancy?.(org);
     const { agent, subagents } = await parentWith(org, [{ name: uniqueName("listed"), disallowedTools: ["Bash"] }]);
     const name = subagents[0]!.metadata!.slug;
 

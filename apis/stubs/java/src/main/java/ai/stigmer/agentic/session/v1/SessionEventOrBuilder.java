@@ -650,5 +650,89 @@ public interface SessionEventOrBuilder extends
    */
   ai.stigmer.agentic.session.v1.StigmerMemoryRecalledEventOrBuilder getStigmerMemoryRecalledOrBuilder();
 
+  /**
+   * <pre>
+   * The files a turn changed, offered for review (the session asked for
+   * file review).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+   * @return Whether the stigmerFileReviewChanges field is set.
+   */
+  boolean hasStigmerFileReviewChanges();
+  /**
+   * <pre>
+   * The files a turn changed, offered for review (the session asked for
+   * file review).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+   * @return The stigmerFileReviewChanges.
+   */
+  ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent getStigmerFileReviewChanges();
+  /**
+   * <pre>
+   * The files a turn changed, offered for review (the session asked for
+   * file review).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEvent stigmer_file_review_changes = 105 [json_name = "stigmerFileReviewChanges", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.changes"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerFileReviewChangesEventOrBuilder getStigmerFileReviewChangesOrBuilder();
+
+  /**
+   * <pre>
+   * A turn's file changes, or one of its files, were kept or undone.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+   * @return Whether the stigmerFileReviewDecided field is set.
+   */
+  boolean hasStigmerFileReviewDecided();
+  /**
+   * <pre>
+   * A turn's file changes, or one of its files, were kept or undone.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+   * @return The stigmerFileReviewDecided.
+   */
+  ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent getStigmerFileReviewDecided();
+  /**
+   * <pre>
+   * A turn's file changes, or one of its files, were kept or undone.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEvent stigmer_file_review_decided = 106 [json_name = "stigmerFileReviewDecided", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.decided"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerFileReviewDecidedEventOrBuilder getStigmerFileReviewDecidedOrBuilder();
+
+  /**
+   * <pre>
+   * The files that were undone were put back.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+   * @return Whether the stigmerFileReviewReconciled field is set.
+   */
+  boolean hasStigmerFileReviewReconciled();
+  /**
+   * <pre>
+   * The files that were undone were put back.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+   * @return The stigmerFileReviewReconciled.
+   */
+  ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent getStigmerFileReviewReconciled();
+  /**
+   * <pre>
+   * The files that were undone were put back.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEventOrBuilder getStigmerFileReviewReconciledOrBuilder();
+
   ai.stigmer.agentic.session.v1.SessionEvent.EventCase getEventCase();
 }

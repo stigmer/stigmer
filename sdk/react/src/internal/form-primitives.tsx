@@ -3,8 +3,9 @@
 import { cn } from "@stigmer/theme";
 
 // ---------------------------------------------------------------------------
-// Shared form primitives for the operator consoles (model-catalog
-// editors and search inputs, cursor-accounts editor and key forms).
+// Shared form primitives: the input and field styling of the operator
+// consoles (model catalog, licenses, plans) and the team and plugin forms,
+// and the bare button class of attachment and file surfaces.
 // Internal — never exported from the package barrel.
 // ---------------------------------------------------------------------------
 

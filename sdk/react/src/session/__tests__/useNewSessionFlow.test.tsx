@@ -386,6 +386,19 @@ describe("useNewSessionFlow", () => {
       expect(execInput.sessionId).toBeUndefined();
     });
 
+    it("turns file review on for the conversation it starts", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      // The console shows each turn's edits with Keep and Undo after the
+      // turn, so every conversation it starts asks for review.
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.fileReview).toBe(true);
+    });
+
     it("passes harness in the sessionSpec", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
@@ -1136,12 +1149,14 @@ describe("useNewSessionFlow", () => {
       const opts = {
         ...defaultOptions(),
         audience: "guest" as const,
-        accountDefaults: { harness: "native" as const, nativeModel: "gpt-5.3", cursorModel: "composer-2.5" },
+        accountDefaults: { harness: "cursor" as const, nativeModel: "gpt-5.3", cursorModel: "composer-2.5" },
       };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: seedWrapper() });
 
-      // Platform share policy: cursor harness, no client model.
-      expect(result.current.harness).toBe("cursor");
+      // Platform share policy: the account's engine and models never seed a
+      // guest; the flow's local harness stays the platform default, and the
+      // create names neither (the shared agent's own apply).
+      expect(result.current.harness).toBe("native");
       expect(result.current.modelId).toBeUndefined();
     });
   });
@@ -1226,14 +1241,22 @@ describe("useNewSessionFlow", () => {
       expect(opts.onError).toHaveBeenCalled();
     });
 
-    it("always uses the cursor harness, ignoring a stored Console choice", () => {
+    it("names no engine, ignoring a stored Console choice: the shared agent's engine applies", async () => {
       // A browser previously used in the Console must not leak its stored
       // harness into a share/embed session.
-      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
       const opts = { ...defaultOptions(), audience: "guest" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
-      expect(result.current.harness).toBe("cursor");
+      act(() => {
+        result.current.setAgentRef({ org: "acme", slug: "support-bot" });
+        result.current.setResolution({ mode: "direct" });
+      });
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.harness).toBeUndefined();
     });
 
     it("never inherits the host approval default — guests get platform policy (#302)", async () => {
@@ -1254,15 +1277,23 @@ describe("useNewSessionFlow", () => {
       expect(execInput.autoApproveAll).toBeUndefined();
     });
 
-    it("ignores the embedder's defaultHarness — guests get platform policy", () => {
+    it("ignores the embedder's defaultHarness — guests get platform policy", async () => {
       const opts = {
         ...defaultOptions(),
         audience: "guest" as const,
-        defaultHarness: "native" as const,
+        defaultHarness: "cursor" as const,
       };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
-      expect(result.current.harness).toBe("cursor");
+      act(() => {
+        result.current.setAgentRef({ org: "acme", slug: "support-bot" });
+        result.current.setResolution({ mode: "direct" });
+      });
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.harness).toBeUndefined();
     });
 
     it("does not restore a stored model — modelId stays undefined", () => {
@@ -1285,7 +1316,7 @@ describe("useNewSessionFlow", () => {
       expect(localStorage.getItem(STORAGE_KEY_MODEL_CURSOR)).toBeNull();
     });
 
-    it("submits with the cursor harness and NO model (server resolves Auto)", async () => {
+    it("submits with NO engine and NO model: the shared agent's own apply", async () => {
       // Stored values simulate a Console-used browser: neither may leak.
       localStorage.setItem(STORAGE_KEY_HARNESS, "native");
       localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, DEFAULT_CURSOR_MODEL_ID);
@@ -1301,9 +1332,11 @@ describe("useNewSessionFlow", () => {
       });
 
       const execInput = mockCreateExecution.mock.calls[0][0];
-      expect(execInput.sessionSpec.harness).toBe("cursor");
-      // Omitted model = cursor's Auto ("default") in the runner. If this ever
-      // carries a value, guest follow-ups would silently pin to it via
+      // Omitted engine = the engine the shared agent names, native when it
+      // names none (the server's session-agent resolution).
+      expect(execInput.sessionSpec.harness).toBeUndefined();
+      // Omitted model = the agent's own default. If this ever carries a
+      // value, guest follow-ups would silently pin to it via
       // lastExecModelId in useSessionPageFlow.
       expect(execInput.modelName).toBeUndefined();
     });

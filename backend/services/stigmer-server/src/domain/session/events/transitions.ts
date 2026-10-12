@@ -24,8 +24,10 @@
  * its own yet: the requires_action idle names the tool uses that wait, and
  * those events come from the runner.
  *
- *   created .................. user.message; then running if the session
- *                              did not read running
+ *   created .................. user.message (none for a reconcile turn,
+ *                              `spec.reconcile_file_review`, which has no
+ *                              message); then running if the session did
+ *                              not read running
  *   the session stops working  session.status_idle (end_turn); when this
  *                              run just FAILED, retries_exhausted; when it
  *                              just stopped on its budget (the cost cap or
@@ -90,7 +92,10 @@ export function sessionEventsForTransition(
   const id = (): string => generateId(SESSION_EVENT_ID_PREFIX);
 
   const events: SessionEvent[] = [];
-  if (transition.kind === "create") {
+  // A reconcile turn carries no message: the person's act is the decided
+  // event before it, and the conversation's newest turn stays the one
+  // whose files are reviewed.
+  if (transition.kind === "create" && transition.run.spec?.reconcileFileReview !== true) {
     events.push(
       event({
         case: "userMessage",

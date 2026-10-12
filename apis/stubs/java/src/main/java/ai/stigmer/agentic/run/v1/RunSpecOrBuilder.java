@@ -136,9 +136,10 @@ public interface RunSpecOrBuilder extends
    * <pre>
    * User input message that triggers this run.
    * Each run represents one user message and the agent's response.
+   * Required unless reconcile_file_review is set.
    * </pre>
    *
-   * <code>string message = 3 [json_name = "message", (.buf.validate.field) = { ... }</code>
+   * <code>string message = 3 [json_name = "message"];</code>
    * @return The message.
    */
   java.lang.String getMessage();
@@ -146,9 +147,10 @@ public interface RunSpecOrBuilder extends
    * <pre>
    * User input message that triggers this run.
    * Each run represents one user message and the agent's response.
+   * Required unless reconcile_file_review is set.
    * </pre>
    *
-   * <code>string message = 3 [json_name = "message", (.buf.validate.field) = { ... }</code>
+   * <code>string message = 3 [json_name = "message"];</code>
    * @return The bytes for message.
    */
   com.google.protobuf.ByteString
@@ -879,6 +881,18 @@ public interface RunSpecOrBuilder extends
    * <code>.ai.stigmer.agentic.run.v1.PluginEvalCaseContext plugin_eval_case = 25 [json_name = "pluginEvalCase"];</code>
    */
   ai.stigmer.agentic.run.v1.PluginEvalCaseContextOrBuilder getPluginEvalCaseOrBuilder();
+
+  /**
+   * <pre>
+   * Set on a turn that only puts back the files a person undid after an
+   * earlier turn ended: it runs no model and carries no message. The
+   * server starts one when an undo is decided on a finished turn.
+   * </pre>
+   *
+   * <code>bool reconcile_file_review = 26 [json_name = "reconcileFileReview"];</code>
+   * @return The reconcileFileReview.
+   */
+  boolean getReconcileFileReview();
 
   ai.stigmer.agentic.run.v1.RunSpec.TargetCase getTargetCase();
 }

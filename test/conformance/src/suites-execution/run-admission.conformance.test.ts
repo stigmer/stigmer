@@ -6,20 +6,28 @@
 // validation.
 //
 // The hosted edition serves every model call on a key the organization
-// owns and never on one of its own, so a native run is admitted on a key and
-// on nothing else, and spends no credit:
+// owns and never on one of its own, so a run is admitted on a key and on
+// nothing else, and spends no credit:
 //   - an organization with no key for the run's model's provider is refused
 //     synchronously at create, FAILED_PRECONDITION with ErrorInfo reason
 //     PROVIDER_KEY_REQUIRED naming the provider and the model, and nothing
 //     reaches a model;
+//   - a Cursor run is refused the same way when the organization holds no
+//     Cursor key: the engine names the provider, and a run on Auto names no
+//     model, so the copy names none;
 //   - the same organization, once it saves its keys, runs to completion with
 //     no credit at all, and its balance does not move: the provider bills the
 //     organization directly.
+//
+// The keyed half is native only: a Cursor key is checked with Cursor itself
+// at save, so no fixture can stand in for one, and a keyed Cursor run would
+// reach Cursor.
 //
 // Skipped on the local OSS targets: no provider-key gate exists there (a
 // self-hosted runner calls its providers with the operator's own keys).
 import { Code } from "@connectrpc/connect";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -95,6 +103,28 @@ describe.skipIf(!billingEnabled)(
       expect(info?.metadata["model"], "the refusal names the model the run would have used").not.toBe("");
       expect(err.rawMessage).toMatch(/^This organization has no (Anthropic|OpenAI) key for model '.+', so the run was not started\./);
       expect(err.rawMessage).toContain("An admin can add one in Settings → Provider keys.");
+      expect(mock.remaining()).toBe(0);
+    });
+
+    it("[billing.gate.provider-key.keyless-cursor-run-refused] a Cursor run of an organization with no Cursor key is refused at create with PROVIDER_KEY_REQUIRED naming Cursor, and nothing reaches a model", async () => {
+      const { org } = await provisionBare();
+      const agentRef = await provisionAgent(org);
+
+      const err = await expectGrpcCode(
+        () =>
+          clients.agentExecutionCommand.create(
+            makeAgentExecution({ org, name: uniqueName("aex-cursor"), agentRef, sessionSpec: { harness: Harness.CURSOR } }),
+          ),
+        Code.FailedPrecondition,
+        "keyless Cursor create",
+      );
+      const [info] = err.findDetails(ErrorInfoSchema);
+      expect(info?.reason).toBe("PROVIDER_KEY_REQUIRED");
+      expect(info?.metadata["org"]).toBe(org);
+      expect(info?.metadata["provider"]).toBe("cursor");
+      expect(err.rawMessage).toBe(
+        "This organization has no Cursor key, so the run was not started. An admin can add one in Settings → Provider keys.",
+      );
       expect(mock.remaining()).toBe(0);
     });
 

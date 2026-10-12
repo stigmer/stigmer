@@ -676,14 +676,14 @@ rows:
     lane: >-
       gate.reserve
     behavior: >-
-      A Cursor agent-execution create in a zero-balance org is refused synchronously: FAILED_PRECONDITION with the engine's denial reason verbatim ("Insufficient credits to start execution"), and no execution resource exists afterwards.
+      The reserve step, asked to reserve for an agent-execution create in a zero-balance org, refuses it synchronously: FAILED_PRECONDITION with the engine's denial reason verbatim ("Insufficient credits to start execution"), and no execution resource exists afterwards.
     class: carve-out
     disposition: unit
     observability: none
     caller: primary
     needs: [unfunded-org, agent-execution]
     note: >-
-      Since every native run is served on the organization's own provider key, a native run reserves and spends no credit, and only Cursor runs still draw on the wallet; conformance cannot drive a Cursor run, so the hosted edition's own unit arms on the gate carry this row until the wallet itself is removed.
+      No run draws credit any more: every run is served on the organization's own provider key (a native run on its Anthropic or OpenAI key, a Cursor run on its Cursor key), so no create reserves and no run reaches this step from outside; the hosted edition's own unit arms on the gate carry this row.
   - id: billing.gate.provider-key.keyless-run-refused
     surface: billing
     lane: >-
@@ -697,6 +697,19 @@ rows:
     needs: [unfunded-org, agent-execution]
     note: >-
       Asserted by suites-execution/run-admission.conformance.test.ts. Guests and channel users get their own copy with no ErrorInfo (the visitor refusal sets); conformance cannot mint those callers, so the hosted edition's unit arms carry their wording.
+  - id: billing.gate.provider-key.keyless-cursor-run-refused
+    surface: billing
+    lane: >-
+      gate.providerKey
+    behavior: >-
+      A Cursor agent-execution create in an org holding no Cursor key (its own or its parent organization's) is refused synchronously after the request's own validation: FAILED_PRECONDITION with ErrorInfo reason PROVIDER_KEY_REQUIRED and metadata org and provider "cursor", the copy "This organization has no Cursor key, so the run was not started. An admin can add one in Settings → Provider keys." for a run on Auto (the copy names the model when the run names one), and nothing reaches a model.
+    class: carve-out
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [unfunded-org, agent-execution]
+    note: >-
+      Asserted by suites-execution/run-admission.conformance.test.ts on an org that holds no key at all: the harness names the provider, so no catalog lookup is involved. The keyed half needs a real Cursor key, because the key is checked with Cursor at save; the Cursor execution arms run on one when the run supplies CURSOR_API_KEY.
   - id: billing.gate.provider-key.keyed-run-completes-without-credit
     surface: billing
     lane: >-
@@ -710,6 +723,19 @@ rows:
     needs: [unfunded-org, keyed-org, agent-execution]
     note: >-
       The second arm of suites-execution/run-admission.conformance.test.ts.
+  - id: billing.gate.provider-key.reconcile-turn-needs-no-key
+    surface: billing
+    lane: >-
+      gate.providerKey
+    behavior: >-
+      An undo of a finished turn's file changes, in an org that holds no provider key any more, still starts the reconcile turn (a run with reconcile_file_review set, which asks no model) and it puts the file back and completes; the provider-key and credit gates pass such a run.
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [keyed-org, agent-execution, git-workspace]
+    note: >-
+      Asserted by suites-execution/run-file-review.conformance.test.ts, which removes the org's keys after the turn that edited the file.
   - id: billing.gate.reserve.funding-clears-denial
     surface: billing
     lane: >-
@@ -722,20 +748,20 @@ rows:
     caller: primary
     needs: [unfunded-org, agent-execution]
     note: >-
-      Since every native run is served on the organization's own provider key, a native run reserves and spends no credit, and only Cursor runs still draw on the wallet; conformance cannot drive a Cursor run, so the hosted edition's own unit arms on the gate carry this row until the wallet itself is removed.
+      No run draws credit any more: every run is served on the organization's own provider key (a native run on its Anthropic or OpenAI key, a Cursor run on its Cursor key), so no create reserves and no run reaches this step from outside; the hosted edition's own unit arms on the gate carry this row.
   - id: billing.gate.reserve.funded-execution-holds-then-settles
     surface: billing
     lane: >-
       gate.reserve
     behavior: >-
-      A funded org's Cursor execution that completes settles its reservation — after completion the balance reflects the metered usage and no reservation remains held (a second execution reserves afresh).
+      An execution that holds a reservation settles it when it completes — after completion the balance reflects the metered usage and no reservation remains held (a second execution reserves afresh).
     class: behavior
     disposition: unit
     observability: none
     caller: primary
     needs: [funded-org, agent-execution]
     note: >-
-      Since every native run is served on the organization's own provider key, a native run reserves and spends no credit, and only Cursor runs still draw on the wallet; conformance cannot drive a Cursor run, so the hosted edition's own unit arms on the gate carry this row until the wallet itself is removed.
+      No run draws credit any more: every run is served on the organization's own provider key (a native run on its Anthropic or OpenAI key, a Cursor run on its Cursor key), so no create reserves and no run reaches this step from outside; the hosted edition's own unit arms on the gate carry this row.
   - id: billing.hook.status-signal.update-status-carries-stop-when-exhausted
     surface: billing
     lane: >-
@@ -761,7 +787,7 @@ rows:
     caller: primary
     needs: [funded-org, agent-execution]
     note: >-
-      Since every native run is served on the organization's own provider key, a native run reserves and spends no credit, and only Cursor runs still draw on the wallet; conformance cannot drive a Cursor run, so the hosted edition's own unit arms on the gate carry this row until the wallet itself is removed.
+      No run draws credit any more: every run is served on the organization's own provider key (a native run on its Anthropic or OpenAI key, a Cursor run on its Cursor key), so no create reserves and no run reaches this step from outside; the hosted edition's own unit arms on the gate carry this row.
   - id: billing.gate.rearm.recover-refused-when-unfunded
     surface: billing
     lane: >-
@@ -774,7 +800,7 @@ rows:
     caller: primary
     needs: [funded-org, agent-execution]
     note: >-
-      Since every native run is served on the organization's own provider key, a native run reserves and spends no credit, and only Cursor runs still draw on the wallet; conformance cannot drive a Cursor run, so the hosted edition's own unit arms on the gate carry this row until the wallet itself is removed.
+      No run draws credit any more: every run is served on the organization's own provider key (a native run on its Anthropic or OpenAI key, a Cursor run on its Cursor key), so no create reserves and no run reaches this step from outside; the hosted edition's own unit arms on the gate carry this row.
   - id: billing.gate.visitor-preflight.schedule-fire-refused-when-unfunded
     surface: billing
     lane: >-
@@ -782,12 +808,12 @@ rows:
     behavior: >-
       A schedule-fired execution create in a zero-balance org is refused FAILED_PRECONDITION "The organization cannot fund a scheduled run right now." before any side effect; guest and channel callers get their own per-surface copy (GuestRefusal / ChannelLimitReason.UNAVAILABLE).
     class: carve-out
-    disposition: smoke
-    observability: launcher
+    disposition: debris
+    observability: none
     caller: none
     needs: [unfunded-org]
     note: >-
-      Conformance cannot mint guest, channel or schedule callers (schedule fires ride the scheduleFireCaller driver). The composition's VisitorBillingPreflight unit arms pin the copy; the live smoke covers the schedule lane.
+      Debris: no run draws credit, so a visitor's or a schedule's run has nothing to fund. The preflight asked only about Cursor runs, the last runs that spent credit, and went when they moved to the organization's own Cursor key. A run whose organization holds no key for its provider is refused by provider-key admission instead (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
   - id: billing.gate.reserve.billing-unavailable-fails-closed
     surface: billing
     lane: >-
@@ -1280,7 +1306,7 @@ rows:
     caller: primary
     needs: [fake-llm-upstream, keyed-org, agent-execution]
     note: >-
-      Observed by removing the org's key after its run was admitted: the proxy is the backstop for every call run admission could not see (a sub-agent on another provider, a key removed mid-run). An unscoped call has no organization to serve and is refused the same way; production requires the scope header, so the conformance edge refuses it earlier (proxy.llm.scope.missing-scope-header-403-when-required).
+      Observed by removing the org's key after its run was admitted: the proxy is the backstop for every call run admission could not see (a sub-agent on another provider, a key removed mid-run). An unscoped call has no organization to serve; every lane requires the scope header, so the edge refuses it earlier (proxy.llm.scope.missing-scope-header-403-when-required).
   - id: proxy.llm.scope.foreign-execution-403
     surface: proxy
     lane: >-
@@ -1297,14 +1323,14 @@ rows:
     lane: >-
       llm
     behavior: >-
-      With require-scope-header true (production), a call carrying no scope header answers 403.
+      A call carrying no scope header answers 403.
     class: adversarial
     disposition: conformance
     observability: launcher
     caller: primary
     needs: [fake-llm-upstream]
     note: >-
-      The hosted edition's conformance environment boots the proxy with STIGMER_PROXY_REQUIRE_SCOPE_HEADER=true, production's default.
+      Every proxy lane requires the scope header; there is no setting that lets a call name no execution. The id keeps its old wording, from when the requirement was a setting.
   - id: proxy.llm.authn.no-bearer-401
     surface: proxy
     lane: >-
@@ -1363,7 +1389,7 @@ rows:
     caller: primary
     needs: [fake-llm-upstream, agent-execution]
     note: >-
-      Debris: the LLM lane serves no call on a platform key, so no upstream failure is the platform's to rewrite; every failure is the organization's key's (proxy.llm.upstream.organization-key-failures-relayed-marked). The Cursor lanes keep their own platform-error rewrite until they run on the organization's own Cursor key.
+      Debris: the LLM lane serves no call on a platform key, so no upstream failure is the platform's to rewrite; every failure is the organization's key's (proxy.llm.upstream.organization-key-failures-relayed-marked). The Cursor lanes rewrite nothing either: they serve every call on the organization's own Cursor key, so Cursor's own error is the organization's.
   - id: proxy.llm.upstream.platform-billing-rewritten-503
     surface: proxy
     lane: >-
@@ -1376,7 +1402,7 @@ rows:
     caller: primary
     needs: [fake-llm-upstream, agent-execution]
     note: >-
-      Debris: the LLM lane serves no call on a platform key, so no upstream failure is the platform's to rewrite; every failure is the organization's key's (proxy.llm.upstream.organization-key-failures-relayed-marked). The Cursor lanes keep their own platform-error rewrite until they run on the organization's own Cursor key.
+      Debris: the LLM lane serves no call on a platform key, so no upstream failure is the platform's to rewrite; every failure is the organization's key's (proxy.llm.upstream.organization-key-failures-relayed-marked). The Cursor lanes rewrite nothing either: they serve every call on the organization's own Cursor key, so Cursor's own error is the organization's.
   - id: proxy.llm.upstream.organization-key-failures-relayed-marked
     surface: proxy
     lane: >-
@@ -1443,53 +1469,57 @@ rows:
     lane: >-
       cursor
     behavior: >-
-      A scoped Cursor call naming an execution the caller cannot can_edit answers 403 before key selection.
+      A scoped Cursor call naming an execution the caller cannot can_edit answers 403 before the organization's Cursor key is looked up.
     class: adversarial
     disposition: conformance
     observability: launcher
     caller: outsider
     needs: [agent-execution]
-  - id: proxy.cursor.pool-exhausted-503-connect-body
+  - id: proxy.cursor.provider-key-required-403
     surface: proxy
     lane: >-
       cursor
     behavior: >-
-      With no CursorAccount available for the org, an authorized scoped call answers 503 with a Connect-shaped JSON body {"code":"unavailable","message":...} and touches no upstream.
+      An authorized scoped call for an execution whose organization holds no Cursor key (its own or its parent organization's) answers 403 with a Connect-shaped JSON body {"code":"permission_denied","message":...} whose message carries the sentinel STIGMER_PROVIDER_KEY_REQUIRED and tells an admin to add one in Settings → Provider keys, and touches no upstream; no call is ever served on a Cursor key of Stigmer's own.
     class: carve-out
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [funded-org, agent-execution]
+    needs: [keyed-org, agent-execution]
+    note: >-
+      The org holds the fixture Anthropic and OpenAI keys, so its native run is admitted, and no Cursor key. A failed key lookup answers 503 instead (retryable); the hosted edition's own unit arms carry that branch.
   - id: proxy.cursor.relay.sse-and-connect-usage
     surface: proxy
     lane: >-
       cursor
     behavior: >-
-      A scoped Cursor call with a selected key relays to https://{host} and meters usage from SSE (CursorUsageExtractor) or Connect application/proto (ConnectCursorUsageExtractor, TurnEndedUpdate scan).
+      A scoped Cursor call on the organization's own Cursor key relays to https://{host} with the key as Bearer and meters usage from SSE (CursorUsageExtractor) or Connect application/proto (ConnectCursorUsageExtractor, TurnEndedUpdate scan), recorded as the organization's key's usage and never charged.
     class: behavior
     disposition: smoke
     observability: none
     caller: none
     needs: [none]
     note: >-
-      The relay cannot be faked (hardcoded https + allow-list; sealed CursorAccount rows), so a live runner smoke proves it. The extractors are `unit` rows below.
-  - id: proxy.cursor.metadata-paths-unscoped
+      The relay cannot be faked (hardcoded https + allow-list, and the key is checked with Cursor at save), so a live runner smoke on a real Cursor key proves it. The extractors are `unit` rows below.
+  - id: proxy.cursor.metadata-paths-scoped
     surface: proxy
     lane: >-
       cursor
     behavior: >-
-      GET /v1/proxy/cursor/api.cursor.com/v1/models and /v1/me need no scope header (metadata paths) but still need authentication and a key.
+      GET /v1/proxy/cursor/api.cursor.com/v1/models and /v1/me need a scope header like every other Cursor call and are served on the execution's organization's own Cursor key; the model list is cached per organization that owns the serving key.
     class: behavior
     disposition: smoke
     observability: none
     caller: none
     needs: [none]
+    note: >-
+      A served call reaches Cursor itself, so a live runner smoke on a real Cursor key proves it; the refusal of a call naming no execution is the shared edge's (proxy.llm.scope.missing-scope-header-403-when-required).
   - id: proxy.cursor-bidi.missing-token-refused-stream
     surface: proxy
     lane: >-
       cursor-bidi
     behavior: >-
-      A Connect stream opened on the bidi port with no x-stigmer-auth, authorization or x-api-key is reset with REFUSED_STREAM.
+      A Connect stream opened on the bidi port with no x-stigmer-auth is reset with REFUSED_STREAM, even when it carries a valid Stigmer token in authorization or x-api-key: the stream's Stigmer credential is x-stigmer-auth alone, and its authorization is the Cursor access token it forwards.
     class: adversarial
     disposition: conformance
     observability: launcher
@@ -1524,7 +1554,7 @@ rows:
     lane: >-
       cursor-bidi
     behavior: >-
-      An authorized stream is relayed over TLS h2 to api2.cursor.sh with the selected key, per-turn usage is extracted from Connect end-stream envelopes, and team usage-limit trailers are rewritten.
+      An authorized stream is relayed over TLS h2 to api2.cursor.sh with the Cursor SDK's own access token (exchanged from the organization's Cursor key on the REST lane) forwarded unchanged, per-turn usage is extracted from Connect end-stream envelopes, and Cursor's own end-stream errors reach the runner unchanged.
     class: behavior
     disposition: smoke
     observability: none
@@ -1730,10 +1760,12 @@ rows:
     behavior: >-
       PlatformProviderErrorClassifier (Anthropic billing 400 text, OpenAI 429 insufficient_quota, 401/403) and CursorPlatformErrorClassifier (end-stream trailer rewrite) classify exactly as Java's tables.
     class: behavior
-    disposition: unit
+    disposition: debris
     observability: none
     caller: none
     needs: [none]
+    note: >-
+      Debris: both classifiers rewrote a failure on a key of the platform's own as the platform's. No lane serves a call on such a key, so every failure is the organization's key's and is relayed marked as such (proxy.llm.upstream.organization-key-failures-relayed-marked).
   - id: proxy.unit.call-sequencer-and-reporter
     surface: proxy
     lane: >-
@@ -1750,7 +1782,7 @@ rows:
     lane: >-
       unit
     behavior: >-
-      Cursor model id normalization, the Connect model extractor and the per-key model-list cache behave as Java's tables.
+      Cursor model id normalization, the Connect model extractor and the model-list cache, keyed by the organization that owns the serving Cursor key, behave as Java's tables.
     class: behavior
     disposition: unit
     observability: none
@@ -1761,20 +1793,20 @@ rows:
     lane: >-
       unit
     behavior: >-
-      Cursor key selection (dedicated vs pool, health monitor on upstream auth failure) and the execution-context source chain (local store, composition authority, caching, chained) behave as Java's tables.
+      The execution-context source chain (local store, composition authority, caching, chained) behaves as Java's tables.
     class: behavior
     disposition: unit
     observability: none
     caller: none
     needs: [none]
     note: >-
-      The composition-authority source retired with the Java service: in process, the proxy reads executions from its own store.
+      The composition-authority source retired with the Java service: in process, the proxy reads executions from its own store. Cursor key selection (dedicated account, pool, session pins, health monitor) retired when the Cursor lanes moved to the organization's own Cursor key, read like any provider key; the id keeps its old wording.
   - id: proxy.unit.metric-names
     surface: proxy
     lane: >-
       unit
     behavior: >-
-      The proxy emits stigmer.proxy.cursor.connect.streams_metered, turns_extracted, zero_usage_streams and the PlatformProviderErrorMetrics / CursorPlatformErrorMetrics counters under their Java names.
+      The proxy emits stigmer.proxy.cursor.connect.streams_metered, turns_extracted and zero_usage_streams under their Java names.
     class: carve-out
     disposition: unit
     observability: none
@@ -2023,27 +2055,34 @@ metrics:
     disposition: ported
   - name: stigmer.proxy.cursor.platform_provider_errors
     surface: proxy
-    disposition: ported
-    alerts: [cursor-platform-provider-errors]
+    disposition: dropped
+    note: >-
+      The bidi lane no longer rewrites Cursor's usage-limit end-stream as the platform's: every call runs on the organization's own Cursor key, so Cursor's error is the organization's. The counter and its alert retired with the rewrite.
   - name: stigmer.proxy.cursor.key_selection_rejected
     surface: proxy
-    disposition: ported
-    alerts: [cursor-key-selection-rejected]
+    disposition: dropped
+    note: >-
+      The Cursor lanes serve every call on the organization's own Cursor key, so there is no pool of Stigmer's Cursor accounts to select a key from or refuse a call for; the counter and its alert retired with the pool.
   - name: stigmer.proxy.cursor.key_selection_soft_drained
     surface: proxy
-    disposition: ported
-    alerts: [cursor-pool-soft-drained]
+    disposition: dropped
+    note: >-
+      The Cursor lanes serve every call on the organization's own Cursor key, so there is no pool of Stigmer's Cursor accounts to drain; the counter and its alert retired with the pool.
   - name: stigmer.proxy.cursor.key_selection_served_guard_tripped
     surface: proxy
-    disposition: ported
-    alerts: [cursor-guard-tripped-serving]
+    disposition: dropped
+    note: >-
+      The Cursor lanes serve every call on the organization's own Cursor key, so there is no pool of Stigmer's Cursor accounts to guard; the counter and its alert retired with the pool.
   - name: stigmer.proxy.cursor.session_repinned
     surface: proxy
-    disposition: ported
+    disposition: dropped
+    note: >-
+      An organization holds one Cursor key, so every turn of a session already runs on the same key; the session pin and its counter retired with the pool.
   - name: stigmer.proxy.cursor.key_health_reactive_syncs
     surface: proxy
-    disposition: ported
-    alerts: [cursor-key-health-reactive-syncs]
+    disposition: dropped
+    note: >-
+      The Cursor lanes serve every call on the organization's own Cursor key, so there is no pool of Stigmer's Cursor accounts to re-sync on an upstream refusal; the counter and its alert retired with the pool.
   - name: stigmer.proxy.llm.platform_provider_errors
     surface: proxy
     disposition: dropped
@@ -2104,10 +2143,9 @@ metrics:
       The WAL directory's size in bytes (sum over pg_ls_waldir()), which needs the pg_monitor role — granted to stigmer_app by hand on 2026-07-29 and carried by the composition's connections as the same role. Probed inside the same poll but on its own terms, as Java does: a failure sits out the next 15 polls and warns once with the GRANT to run, the last good value stays observed through the window, and only a probe that has never succeeded is absent. The rule's threshold is 80 % of max_wal_size (1024 MB), a production fact the rule carries.
   - name: stigmer.cursor.account_default.drift
     surface: platform
-    disposition: ported
-    alerts: [cursor-account-default-drift]
+    disposition: dropped
     note: >-
-      Per Cursor team account, how many models' dashboard-controlled default variant carries the priced fast parameter (0 = the declared posture holds), observed as a gauge by the composition's cursoraccount/drift-metrics.ts from the sync workflow's drift audit. A gauge, not a counter, as Java chose: the audit is a periodic posture read on the sync cadence, and a counter's rate would blink out between passes. Not pre-registered — a zero for an account never audited would read as "clean"; an account appears after its first audit and holds its last value between passes (a deleted account keeps its last value until the next restart, Java's accepted posture). A disabled drift check or an account with no enabled member key records nothing.
+      Watched the default speed variant of Stigmer's own Cursor team accounts. Cursor runs on the organization's own Cursor key, billed by Cursor to that organization, so there is no platform account to audit; the gauge, its sync and its alert retired with the pool.
   - name: stigmer.sandbox.pool.target
     surface: platform
     disposition: ported

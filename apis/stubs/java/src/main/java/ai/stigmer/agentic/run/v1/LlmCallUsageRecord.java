@@ -64,11 +64,8 @@ private static final long serialVersionUID = 0L;
     serviceTier_ = "";
     providerRequestId_ = "";
     harness_ = "";
-    cursorAccountId_ = "";
-    cursorKeyId_ = "";
     finishReason_ = "";
     errorCode_ = "";
-    cursorKeySource_ = 0;
     providerKeySource_ = 0;
     thinking_ = "";
     providerUsageJson_ = "";
@@ -867,108 +864,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int CURSOR_ACCOUNT_ID_FIELD_NUMBER = 38;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object cursorAccountId_ = "";
-  /**
-   * <pre>
-   * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-   * Which managed CursorAccount / member key actually served this call,
-   * threaded through the proxy payload from the key resolution that
-   * injected the upstream credential (RecordLlmCallUsageInput carries the
-   * same identity — the record states what was sent on the wire, never an
-   * after-the-fact pin lookup). Identifiers only, never key material.
-   * Empty for the native harness and for records written before the
-   * serving identity was threaded through. Lets provider reconciliation
-   * attribute conversations across per-account Cursor ledgers.
-   * </pre>
-   *
-   * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
-   * @return The cursorAccountId.
-   */
-  @java.lang.Override
-  public java.lang.String getCursorAccountId() {
-    java.lang.Object ref = cursorAccountId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      cursorAccountId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-   * Which managed CursorAccount / member key actually served this call,
-   * threaded through the proxy payload from the key resolution that
-   * injected the upstream credential (RecordLlmCallUsageInput carries the
-   * same identity — the record states what was sent on the wire, never an
-   * after-the-fact pin lookup). Identifiers only, never key material.
-   * Empty for the native harness and for records written before the
-   * serving identity was threaded through. Lets provider reconciliation
-   * attribute conversations across per-account Cursor ledgers.
-   * </pre>
-   *
-   * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
-   * @return The bytes for cursorAccountId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getCursorAccountIdBytes() {
-    java.lang.Object ref = cursorAccountId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      cursorAccountId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int CURSOR_KEY_ID_FIELD_NUMBER = 39;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object cursorKeyId_ = "";
-  /**
-   * <code>string cursor_key_id = 39 [json_name = "cursorKeyId"];</code>
-   * @return The cursorKeyId.
-   */
-  @java.lang.Override
-  public java.lang.String getCursorKeyId() {
-    java.lang.Object ref = cursorKeyId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      cursorKeyId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <code>string cursor_key_id = 39 [json_name = "cursorKeyId"];</code>
-   * @return The bytes for cursorKeyId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getCursorKeyIdBytes() {
-    java.lang.Object ref = cursorKeyId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      cursorKeyId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
   public static final int HTTP_STATUS_CODE_FIELD_NUMBER = 40;
   private int httpStatusCode_ = 0;
   /**
@@ -1058,45 +953,14 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int CURSOR_KEY_SOURCE_FIELD_NUMBER = 43;
-  private int cursorKeySource_ = 0;
-  /**
-   * <pre>
-   * Which credential class served this call (cursor harness only).
-   * UNSPECIFIED on native-harness records and on records written before
-   * this field existed (their cursor_account_id semantics are the legacy
-   * pin-derived stamp).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 43 [json_name = "cursorKeySource"];</code>
-   * @return The enum numeric value on the wire for cursorKeySource.
-   */
-  @java.lang.Override public int getCursorKeySourceValue() {
-    return cursorKeySource_;
-  }
-  /**
-   * <pre>
-   * Which credential class served this call (cursor harness only).
-   * UNSPECIFIED on native-harness records and on records written before
-   * this field existed (their cursor_account_id semantics are the legacy
-   * pin-derived stamp).
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 43 [json_name = "cursorKeySource"];</code>
-   * @return The cursorKeySource.
-   */
-  @java.lang.Override public ai.stigmer.agentic.run.v1.CursorKeySource getCursorKeySource() {
-    ai.stigmer.agentic.run.v1.CursorKeySource result = ai.stigmer.agentic.run.v1.CursorKeySource.forNumber(cursorKeySource_);
-    return result == null ? ai.stigmer.agentic.run.v1.CursorKeySource.UNRECOGNIZED : result;
-  }
-
   public static final int PROVIDER_KEY_SOURCE_FIELD_NUMBER = 45;
   private int providerKeySource_ = 0;
   /**
    * <pre>
    * Whose provider credential served this call. ORGANIZATION marks a call on
-   * the organization's own key, which is metered and never charged.
-   * UNSPECIFIED on records written before this field existed.
+   * the organization's own key, which is metered and never charged;
+   * PLATFORM marks a call served by a connection the platform provides.
+   * UNSPECIFIED marks a record written before this field existed.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -1108,8 +972,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whose provider credential served this call. ORGANIZATION marks a call on
-   * the organization's own key, which is metered and never charged.
-   * UNSPECIFIED on records written before this field existed.
+   * the organization's own key, which is metered and never charged;
+   * PLATFORM marks a call served by a connection the platform provides.
+   * UNSPECIFIED marks a record written before this field existed.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -1657,12 +1522,6 @@ java.lang.String defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harness_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 37, harness_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorAccountId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 38, cursorAccountId_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorKeyId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 39, cursorKeyId_);
-    }
     if (httpStatusCode_ != 0) {
       output.writeInt32(40, httpStatusCode_);
     }
@@ -1671,9 +1530,6 @@ java.lang.String defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(errorCode_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 42, errorCode_);
-    }
-    if (cursorKeySource_ != ai.stigmer.agentic.run.v1.CursorKeySource.CURSOR_KEY_SOURCE_UNSPECIFIED.getNumber()) {
-      output.writeEnum(43, cursorKeySource_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(thinking_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 44, thinking_);
@@ -1788,12 +1644,6 @@ java.lang.String defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harness_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(37, harness_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorAccountId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(38, cursorAccountId_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorKeyId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(39, cursorKeyId_);
-    }
     if (httpStatusCode_ != 0) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(40, httpStatusCode_);
@@ -1803,10 +1653,6 @@ java.lang.String defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(errorCode_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(42, errorCode_);
-    }
-    if (cursorKeySource_ != ai.stigmer.agentic.run.v1.CursorKeySource.CURSOR_KEY_SOURCE_UNSPECIFIED.getNumber()) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeEnumSize(43, cursorKeySource_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(thinking_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(44, thinking_);
@@ -1904,17 +1750,12 @@ java.lang.String defaultValue) {
         .equals(other.getProviderRequestId())) return false;
     if (!getHarness()
         .equals(other.getHarness())) return false;
-    if (!getCursorAccountId()
-        .equals(other.getCursorAccountId())) return false;
-    if (!getCursorKeyId()
-        .equals(other.getCursorKeyId())) return false;
     if (getHttpStatusCode()
         != other.getHttpStatusCode()) return false;
     if (!getFinishReason()
         .equals(other.getFinishReason())) return false;
     if (!getErrorCode()
         .equals(other.getErrorCode())) return false;
-    if (cursorKeySource_ != other.cursorKeySource_) return false;
     if (providerKeySource_ != other.providerKeySource_) return false;
     if (!getThinking()
         .equals(other.getThinking())) return false;
@@ -2005,18 +1846,12 @@ java.lang.String defaultValue) {
     hash = (53 * hash) + getProviderRequestId().hashCode();
     hash = (37 * hash) + HARNESS_FIELD_NUMBER;
     hash = (53 * hash) + getHarness().hashCode();
-    hash = (37 * hash) + CURSOR_ACCOUNT_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getCursorAccountId().hashCode();
-    hash = (37 * hash) + CURSOR_KEY_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getCursorKeyId().hashCode();
     hash = (37 * hash) + HTTP_STATUS_CODE_FIELD_NUMBER;
     hash = (53 * hash) + getHttpStatusCode();
     hash = (37 * hash) + FINISH_REASON_FIELD_NUMBER;
     hash = (53 * hash) + getFinishReason().hashCode();
     hash = (37 * hash) + ERROR_CODE_FIELD_NUMBER;
     hash = (53 * hash) + getErrorCode().hashCode();
-    hash = (37 * hash) + CURSOR_KEY_SOURCE_FIELD_NUMBER;
-    hash = (53 * hash) + cursorKeySource_;
     hash = (37 * hash) + PROVIDER_KEY_SOURCE_FIELD_NUMBER;
     hash = (53 * hash) + providerKeySource_;
     hash = (37 * hash) + THINKING_FIELD_NUMBER;
@@ -2261,12 +2096,9 @@ java.lang.String defaultValue) {
       serviceTier_ = "";
       providerRequestId_ = "";
       harness_ = "";
-      cursorAccountId_ = "";
-      cursorKeyId_ = "";
       httpStatusCode_ = 0;
       finishReason_ = "";
       errorCode_ = "";
-      cursorKeySource_ = 0;
       providerKeySource_ = 0;
       thinking_ = "";
       tokens_ = null;
@@ -2398,46 +2230,49 @@ java.lang.String defaultValue) {
         result.harness_ = harness_;
       }
       if (((from_bitField0_ & 0x00200000) != 0)) {
-        result.cursorAccountId_ = cursorAccountId_;
-      }
-      if (((from_bitField0_ & 0x00400000) != 0)) {
-        result.cursorKeyId_ = cursorKeyId_;
-      }
-      if (((from_bitField0_ & 0x00800000) != 0)) {
         result.httpStatusCode_ = httpStatusCode_;
       }
-      if (((from_bitField0_ & 0x01000000) != 0)) {
+      if (((from_bitField0_ & 0x00400000) != 0)) {
         result.finishReason_ = finishReason_;
       }
-      if (((from_bitField0_ & 0x02000000) != 0)) {
+      if (((from_bitField0_ & 0x00800000) != 0)) {
         result.errorCode_ = errorCode_;
       }
-      if (((from_bitField0_ & 0x04000000) != 0)) {
-        result.cursorKeySource_ = cursorKeySource_;
-      }
-      if (((from_bitField0_ & 0x08000000) != 0)) {
+      if (((from_bitField0_ & 0x01000000) != 0)) {
         result.providerKeySource_ = providerKeySource_;
       }
-      if (((from_bitField0_ & 0x10000000) != 0)) {
+      if (((from_bitField0_ & 0x02000000) != 0)) {
         result.thinking_ = thinking_;
       }
-      if (((from_bitField0_ & 0x20000000) != 0)) {
+      if (((from_bitField0_ & 0x04000000) != 0)) {
         result.tokens_ = tokensBuilder_ == null
             ? tokens_
             : tokensBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x40000000) != 0)) {
+      if (((from_bitField0_ & 0x08000000) != 0)) {
         result.cost_ = costBuilder_ == null
             ? cost_
             : costBuilder_.build();
         to_bitField0_ |= 0x00000008;
       }
-      if (((from_bitField0_ & 0x80000000) != 0)) {
+      if (((from_bitField0_ & 0x10000000) != 0)) {
         result.proxyTiming_ = proxyTimingBuilder_ == null
             ? proxyTiming_
             : proxyTimingBuilder_.build();
         to_bitField0_ |= 0x00000010;
+      }
+      if (((from_bitField0_ & 0x20000000) != 0)) {
+        result.providerUsageJson_ = providerUsageJson_;
+      }
+      if (((from_bitField0_ & 0x40000000) != 0)) {
+        result.billing_ = billingBuilder_ == null
+            ? billing_
+            : billingBuilder_.build();
+        to_bitField0_ |= 0x00000020;
+      }
+      if (((from_bitField0_ & 0x80000000) != 0)) {
+        result.org_ = org_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -2445,26 +2280,12 @@ java.lang.String defaultValue) {
     private void buildPartial1(ai.stigmer.agentic.run.v1.LlmCallUsageRecord result) {
       int from_bitField1_ = bitField1_;
       if (((from_bitField1_ & 0x00000001) != 0)) {
-        result.providerUsageJson_ = providerUsageJson_;
-      }
-      int to_bitField0_ = 0;
-      if (((from_bitField1_ & 0x00000002) != 0)) {
-        result.billing_ = billingBuilder_ == null
-            ? billing_
-            : billingBuilder_.build();
-        to_bitField0_ |= 0x00000020;
-      }
-      if (((from_bitField1_ & 0x00000004) != 0)) {
-        result.org_ = org_;
-      }
-      if (((from_bitField1_ & 0x00000008) != 0)) {
         result.sessionId_ = sessionId_;
       }
-      if (((from_bitField1_ & 0x00000010) != 0)) {
+      if (((from_bitField1_ & 0x00000002) != 0)) {
         result.labels_ = internalGetLabels();
         result.labels_.makeImmutable();
       }
-      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -2568,38 +2389,25 @@ java.lang.String defaultValue) {
         bitField0_ |= 0x00100000;
         onChanged();
       }
-      if (!other.getCursorAccountId().isEmpty()) {
-        cursorAccountId_ = other.cursorAccountId_;
-        bitField0_ |= 0x00200000;
-        onChanged();
-      }
-      if (!other.getCursorKeyId().isEmpty()) {
-        cursorKeyId_ = other.cursorKeyId_;
-        bitField0_ |= 0x00400000;
-        onChanged();
-      }
       if (other.getHttpStatusCode() != 0) {
         setHttpStatusCode(other.getHttpStatusCode());
       }
       if (!other.getFinishReason().isEmpty()) {
         finishReason_ = other.finishReason_;
-        bitField0_ |= 0x01000000;
+        bitField0_ |= 0x00400000;
         onChanged();
       }
       if (!other.getErrorCode().isEmpty()) {
         errorCode_ = other.errorCode_;
-        bitField0_ |= 0x02000000;
+        bitField0_ |= 0x00800000;
         onChanged();
-      }
-      if (other.cursorKeySource_ != 0) {
-        setCursorKeySourceValue(other.getCursorKeySourceValue());
       }
       if (other.providerKeySource_ != 0) {
         setProviderKeySourceValue(other.getProviderKeySourceValue());
       }
       if (!other.getThinking().isEmpty()) {
         thinking_ = other.thinking_;
-        bitField0_ |= 0x10000000;
+        bitField0_ |= 0x02000000;
         onChanged();
       }
       if (other.hasTokens()) {
@@ -2613,7 +2421,7 @@ java.lang.String defaultValue) {
       }
       if (!other.getProviderUsageJson().isEmpty()) {
         providerUsageJson_ = other.providerUsageJson_;
-        bitField1_ |= 0x00000001;
+        bitField0_ |= 0x20000000;
         onChanged();
       }
       if (other.hasBilling()) {
@@ -2621,17 +2429,17 @@ java.lang.String defaultValue) {
       }
       if (!other.getOrg().isEmpty()) {
         org_ = other.org_;
-        bitField1_ |= 0x00000004;
+        bitField0_ |= 0x80000000;
         onChanged();
       }
       if (!other.getSessionId().isEmpty()) {
         sessionId_ = other.sessionId_;
-        bitField1_ |= 0x00000008;
+        bitField1_ |= 0x00000001;
         onChanged();
       }
       internalGetMutableLabels().mergeFrom(
           other.internalGetLabels());
-      bitField1_ |= 0x00000010;
+      bitField1_ |= 0x00000002;
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2690,12 +2498,12 @@ java.lang.String defaultValue) {
             } // case 50
             case 58: {
               org_ = input.readStringRequireUtf8();
-              bitField1_ |= 0x00000004;
+              bitField0_ |= 0x80000000;
               break;
             } // case 58
             case 66: {
               sessionId_ = input.readStringRequireUtf8();
-              bitField1_ |= 0x00000008;
+              bitField1_ |= 0x00000001;
               break;
             } // case 66
             case 74: {
@@ -2777,77 +2585,62 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00100000;
               break;
             } // case 298
-            case 306: {
-              cursorAccountId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00200000;
-              break;
-            } // case 306
-            case 314: {
-              cursorKeyId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00400000;
-              break;
-            } // case 314
             case 320: {
               httpStatusCode_ = input.readInt32();
-              bitField0_ |= 0x00800000;
+              bitField0_ |= 0x00200000;
               break;
             } // case 320
             case 330: {
               finishReason_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x01000000;
+              bitField0_ |= 0x00400000;
               break;
             } // case 330
             case 338: {
               errorCode_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x02000000;
+              bitField0_ |= 0x00800000;
               break;
             } // case 338
-            case 344: {
-              cursorKeySource_ = input.readEnum();
-              bitField0_ |= 0x04000000;
-              break;
-            } // case 344
             case 354: {
               thinking_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x10000000;
+              bitField0_ |= 0x02000000;
               break;
             } // case 354
             case 360: {
               providerKeySource_ = input.readEnum();
-              bitField0_ |= 0x08000000;
+              bitField0_ |= 0x01000000;
               break;
             } // case 360
             case 402: {
               input.readMessage(
                   internalGetTokensFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x20000000;
+              bitField0_ |= 0x04000000;
               break;
             } // case 402
             case 410: {
               input.readMessage(
                   internalGetCostFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x40000000;
+              bitField0_ |= 0x08000000;
               break;
             } // case 410
             case 482: {
               input.readMessage(
                   internalGetProxyTimingFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x80000000;
+              bitField0_ |= 0x10000000;
               break;
             } // case 482
             case 562: {
               providerUsageJson_ = input.readStringRequireUtf8();
-              bitField1_ |= 0x00000001;
+              bitField0_ |= 0x20000000;
               break;
             } // case 562
             case 642: {
               input.readMessage(
                   internalGetBillingFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField1_ |= 0x00000002;
+              bitField0_ |= 0x40000000;
               break;
             } // case 642
             case 722: {
@@ -2856,7 +2649,7 @@ java.lang.String defaultValue) {
                   LabelsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableLabels().getMutableMap().put(
                   labels__.getKey(), labels__.getValue());
-              bitField1_ |= 0x00000010;
+              bitField1_ |= 0x00000002;
               break;
             } // case 722
             default: {
@@ -4611,210 +4404,6 @@ java.lang.String defaultValue) {
       return this;
     }
 
-    private java.lang.Object cursorAccountId_ = "";
-    /**
-     * <pre>
-     * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-     * Which managed CursorAccount / member key actually served this call,
-     * threaded through the proxy payload from the key resolution that
-     * injected the upstream credential (RecordLlmCallUsageInput carries the
-     * same identity — the record states what was sent on the wire, never an
-     * after-the-fact pin lookup). Identifiers only, never key material.
-     * Empty for the native harness and for records written before the
-     * serving identity was threaded through. Lets provider reconciliation
-     * attribute conversations across per-account Cursor ledgers.
-     * </pre>
-     *
-     * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
-     * @return The cursorAccountId.
-     */
-    public java.lang.String getCursorAccountId() {
-      java.lang.Object ref = cursorAccountId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        cursorAccountId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-     * Which managed CursorAccount / member key actually served this call,
-     * threaded through the proxy payload from the key resolution that
-     * injected the upstream credential (RecordLlmCallUsageInput carries the
-     * same identity — the record states what was sent on the wire, never an
-     * after-the-fact pin lookup). Identifiers only, never key material.
-     * Empty for the native harness and for records written before the
-     * serving identity was threaded through. Lets provider reconciliation
-     * attribute conversations across per-account Cursor ledgers.
-     * </pre>
-     *
-     * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
-     * @return The bytes for cursorAccountId.
-     */
-    public com.google.protobuf.ByteString
-        getCursorAccountIdBytes() {
-      java.lang.Object ref = cursorAccountId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        cursorAccountId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-     * Which managed CursorAccount / member key actually served this call,
-     * threaded through the proxy payload from the key resolution that
-     * injected the upstream credential (RecordLlmCallUsageInput carries the
-     * same identity — the record states what was sent on the wire, never an
-     * after-the-fact pin lookup). Identifiers only, never key material.
-     * Empty for the native harness and for records written before the
-     * serving identity was threaded through. Lets provider reconciliation
-     * attribute conversations across per-account Cursor ledgers.
-     * </pre>
-     *
-     * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
-     * @param value The cursorAccountId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorAccountId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      cursorAccountId_ = value;
-      bitField0_ |= 0x00200000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-     * Which managed CursorAccount / member key actually served this call,
-     * threaded through the proxy payload from the key resolution that
-     * injected the upstream credential (RecordLlmCallUsageInput carries the
-     * same identity — the record states what was sent on the wire, never an
-     * after-the-fact pin lookup). Identifiers only, never key material.
-     * Empty for the native harness and for records written before the
-     * serving identity was threaded through. Lets provider reconciliation
-     * attribute conversations across per-account Cursor ledgers.
-     * </pre>
-     *
-     * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCursorAccountId() {
-      cursorAccountId_ = getDefaultInstance().getCursorAccountId();
-      bitField0_ = (bitField0_ & ~0x00200000);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-     * Which managed CursorAccount / member key actually served this call,
-     * threaded through the proxy payload from the key resolution that
-     * injected the upstream credential (RecordLlmCallUsageInput carries the
-     * same identity — the record states what was sent on the wire, never an
-     * after-the-fact pin lookup). Identifiers only, never key material.
-     * Empty for the native harness and for records written before the
-     * serving identity was threaded through. Lets provider reconciliation
-     * attribute conversations across per-account Cursor ledgers.
-     * </pre>
-     *
-     * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
-     * @param value The bytes for cursorAccountId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorAccountIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      cursorAccountId_ = value;
-      bitField0_ |= 0x00200000;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object cursorKeyId_ = "";
-    /**
-     * <code>string cursor_key_id = 39 [json_name = "cursorKeyId"];</code>
-     * @return The cursorKeyId.
-     */
-    public java.lang.String getCursorKeyId() {
-      java.lang.Object ref = cursorKeyId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        cursorKeyId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <code>string cursor_key_id = 39 [json_name = "cursorKeyId"];</code>
-     * @return The bytes for cursorKeyId.
-     */
-    public com.google.protobuf.ByteString
-        getCursorKeyIdBytes() {
-      java.lang.Object ref = cursorKeyId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        cursorKeyId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <code>string cursor_key_id = 39 [json_name = "cursorKeyId"];</code>
-     * @param value The cursorKeyId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorKeyId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      cursorKeyId_ = value;
-      bitField0_ |= 0x00400000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>string cursor_key_id = 39 [json_name = "cursorKeyId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCursorKeyId() {
-      cursorKeyId_ = getDefaultInstance().getCursorKeyId();
-      bitField0_ = (bitField0_ & ~0x00400000);
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>string cursor_key_id = 39 [json_name = "cursorKeyId"];</code>
-     * @param value The bytes for cursorKeyId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorKeyIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      cursorKeyId_ = value;
-      bitField0_ |= 0x00400000;
-      onChanged();
-      return this;
-    }
-
     private int httpStatusCode_ ;
     /**
      * <code>int32 http_status_code = 40 [json_name = "httpStatusCode"];</code>
@@ -4832,7 +4421,7 @@ java.lang.String defaultValue) {
     public Builder setHttpStatusCode(int value) {
 
       httpStatusCode_ = value;
-      bitField0_ |= 0x00800000;
+      bitField0_ |= 0x00200000;
       onChanged();
       return this;
     }
@@ -4841,7 +4430,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearHttpStatusCode() {
-      bitField0_ = (bitField0_ & ~0x00800000);
+      bitField0_ = (bitField0_ & ~0x00200000);
       httpStatusCode_ = 0;
       onChanged();
       return this;
@@ -4890,7 +4479,7 @@ java.lang.String defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       finishReason_ = value;
-      bitField0_ |= 0x01000000;
+      bitField0_ |= 0x00400000;
       onChanged();
       return this;
     }
@@ -4900,7 +4489,7 @@ java.lang.String defaultValue) {
      */
     public Builder clearFinishReason() {
       finishReason_ = getDefaultInstance().getFinishReason();
-      bitField0_ = (bitField0_ & ~0x01000000);
+      bitField0_ = (bitField0_ & ~0x00400000);
       onChanged();
       return this;
     }
@@ -4914,7 +4503,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       finishReason_ = value;
-      bitField0_ |= 0x01000000;
+      bitField0_ |= 0x00400000;
       onChanged();
       return this;
     }
@@ -4962,7 +4551,7 @@ java.lang.String defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       errorCode_ = value;
-      bitField0_ |= 0x02000000;
+      bitField0_ |= 0x00800000;
       onChanged();
       return this;
     }
@@ -4972,7 +4561,7 @@ java.lang.String defaultValue) {
      */
     public Builder clearErrorCode() {
       errorCode_ = getDefaultInstance().getErrorCode();
-      bitField0_ = (bitField0_ & ~0x02000000);
+      bitField0_ = (bitField0_ & ~0x00800000);
       onChanged();
       return this;
     }
@@ -4986,94 +4575,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       errorCode_ = value;
-      bitField0_ |= 0x02000000;
-      onChanged();
-      return this;
-    }
-
-    private int cursorKeySource_ = 0;
-    /**
-     * <pre>
-     * Which credential class served this call (cursor harness only).
-     * UNSPECIFIED on native-harness records and on records written before
-     * this field existed (their cursor_account_id semantics are the legacy
-     * pin-derived stamp).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 43 [json_name = "cursorKeySource"];</code>
-     * @return The enum numeric value on the wire for cursorKeySource.
-     */
-    @java.lang.Override public int getCursorKeySourceValue() {
-      return cursorKeySource_;
-    }
-    /**
-     * <pre>
-     * Which credential class served this call (cursor harness only).
-     * UNSPECIFIED on native-harness records and on records written before
-     * this field existed (their cursor_account_id semantics are the legacy
-     * pin-derived stamp).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 43 [json_name = "cursorKeySource"];</code>
-     * @param value The enum numeric value on the wire for cursorKeySource to set.
-     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorKeySourceValue(int value) {
-      cursorKeySource_ = value;
-      bitField0_ |= 0x04000000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Which credential class served this call (cursor harness only).
-     * UNSPECIFIED on native-harness records and on records written before
-     * this field existed (their cursor_account_id semantics are the legacy
-     * pin-derived stamp).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 43 [json_name = "cursorKeySource"];</code>
-     * @return The cursorKeySource.
-     */
-    @java.lang.Override
-    public ai.stigmer.agentic.run.v1.CursorKeySource getCursorKeySource() {
-      ai.stigmer.agentic.run.v1.CursorKeySource result = ai.stigmer.agentic.run.v1.CursorKeySource.forNumber(cursorKeySource_);
-      return result == null ? ai.stigmer.agentic.run.v1.CursorKeySource.UNRECOGNIZED : result;
-    }
-    /**
-     * <pre>
-     * Which credential class served this call (cursor harness only).
-     * UNSPECIFIED on native-harness records and on records written before
-     * this field existed (their cursor_account_id semantics are the legacy
-     * pin-derived stamp).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 43 [json_name = "cursorKeySource"];</code>
-     * @param value The cursorKeySource to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCursorKeySource(ai.stigmer.agentic.run.v1.CursorKeySource value) {
-      if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x04000000;
-      cursorKeySource_ = value.getNumber();
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Which credential class served this call (cursor harness only).
-     * UNSPECIFIED on native-harness records and on records written before
-     * this field existed (their cursor_account_id semantics are the legacy
-     * pin-derived stamp).
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 43 [json_name = "cursorKeySource"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCursorKeySource() {
-      bitField0_ = (bitField0_ & ~0x04000000);
-      cursorKeySource_ = 0;
+      bitField0_ |= 0x00800000;
       onChanged();
       return this;
     }
@@ -5082,8 +4584,9 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Whose provider credential served this call. ORGANIZATION marks a call on
-     * the organization's own key, which is metered and never charged.
-     * UNSPECIFIED on records written before this field existed.
+     * the organization's own key, which is metered and never charged;
+     * PLATFORM marks a call served by a connection the platform provides.
+     * UNSPECIFIED marks a record written before this field existed.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -5095,8 +4598,9 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Whose provider credential served this call. ORGANIZATION marks a call on
-     * the organization's own key, which is metered and never charged.
-     * UNSPECIFIED on records written before this field existed.
+     * the organization's own key, which is metered and never charged;
+     * PLATFORM marks a call served by a connection the platform provides.
+     * UNSPECIFIED marks a record written before this field existed.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -5106,15 +4610,16 @@ java.lang.String defaultValue) {
      */
     public Builder setProviderKeySourceValue(int value) {
       providerKeySource_ = value;
-      bitField0_ |= 0x08000000;
+      bitField0_ |= 0x01000000;
       onChanged();
       return this;
     }
     /**
      * <pre>
      * Whose provider credential served this call. ORGANIZATION marks a call on
-     * the organization's own key, which is metered and never charged.
-     * UNSPECIFIED on records written before this field existed.
+     * the organization's own key, which is metered and never charged;
+     * PLATFORM marks a call served by a connection the platform provides.
+     * UNSPECIFIED marks a record written before this field existed.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -5128,8 +4633,9 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Whose provider credential served this call. ORGANIZATION marks a call on
-     * the organization's own key, which is metered and never charged.
-     * UNSPECIFIED on records written before this field existed.
+     * the organization's own key, which is metered and never charged;
+     * PLATFORM marks a call served by a connection the platform provides.
+     * UNSPECIFIED marks a record written before this field existed.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
@@ -5138,7 +4644,7 @@ java.lang.String defaultValue) {
      */
     public Builder setProviderKeySource(ai.stigmer.agentic.run.v1.ProviderKeySource value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x08000000;
+      bitField0_ |= 0x01000000;
       providerKeySource_ = value.getNumber();
       onChanged();
       return this;
@@ -5146,15 +4652,16 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * Whose provider credential served this call. ORGANIZATION marks a call on
-     * the organization's own key, which is metered and never charged.
-     * UNSPECIFIED on records written before this field existed.
+     * the organization's own key, which is metered and never charged;
+     * PLATFORM marks a call served by a connection the platform provides.
+     * UNSPECIFIED marks a record written before this field existed.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 45 [json_name = "providerKeySource"];</code>
      * @return This builder for chaining.
      */
     public Builder clearProviderKeySource() {
-      bitField0_ = (bitField0_ & ~0x08000000);
+      bitField0_ = (bitField0_ & ~0x01000000);
       providerKeySource_ = 0;
       onChanged();
       return this;
@@ -5230,7 +4737,7 @@ java.lang.String defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       thinking_ = value;
-      bitField0_ |= 0x10000000;
+      bitField0_ |= 0x02000000;
       onChanged();
       return this;
     }
@@ -5249,7 +4756,7 @@ java.lang.String defaultValue) {
      */
     public Builder clearThinking() {
       thinking_ = getDefaultInstance().getThinking();
-      bitField0_ = (bitField0_ & ~0x10000000);
+      bitField0_ = (bitField0_ & ~0x02000000);
       onChanged();
       return this;
     }
@@ -5272,7 +4779,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       thinking_ = value;
-      bitField0_ |= 0x10000000;
+      bitField0_ |= 0x02000000;
       onChanged();
       return this;
     }
@@ -5289,7 +4796,7 @@ java.lang.String defaultValue) {
      * @return Whether the tokens field is set.
      */
     public boolean hasTokens() {
-      return ((bitField0_ & 0x20000000) != 0);
+      return ((bitField0_ & 0x04000000) != 0);
     }
     /**
      * <pre>
@@ -5322,7 +4829,7 @@ java.lang.String defaultValue) {
       } else {
         tokensBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x20000000;
+      bitField0_ |= 0x04000000;
       onChanged();
       return this;
     }
@@ -5340,7 +4847,7 @@ java.lang.String defaultValue) {
       } else {
         tokensBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x20000000;
+      bitField0_ |= 0x04000000;
       onChanged();
       return this;
     }
@@ -5353,7 +4860,7 @@ java.lang.String defaultValue) {
      */
     public Builder mergeTokens(ai.stigmer.agentic.run.v1.TokenUsage value) {
       if (tokensBuilder_ == null) {
-        if (((bitField0_ & 0x20000000) != 0) &&
+        if (((bitField0_ & 0x04000000) != 0) &&
           tokens_ != null &&
           tokens_ != ai.stigmer.agentic.run.v1.TokenUsage.getDefaultInstance()) {
           getTokensBuilder().mergeFrom(value);
@@ -5364,7 +4871,7 @@ java.lang.String defaultValue) {
         tokensBuilder_.mergeFrom(value);
       }
       if (tokens_ != null) {
-        bitField0_ |= 0x20000000;
+        bitField0_ |= 0x04000000;
         onChanged();
       }
       return this;
@@ -5377,7 +4884,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.TokenUsage tokens = 50 [json_name = "tokens"];</code>
      */
     public Builder clearTokens() {
-      bitField0_ = (bitField0_ & ~0x20000000);
+      bitField0_ = (bitField0_ & ~0x04000000);
       tokens_ = null;
       if (tokensBuilder_ != null) {
         tokensBuilder_.dispose();
@@ -5394,7 +4901,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.TokenUsage tokens = 50 [json_name = "tokens"];</code>
      */
     public ai.stigmer.agentic.run.v1.TokenUsage.Builder getTokensBuilder() {
-      bitField0_ |= 0x20000000;
+      bitField0_ |= 0x04000000;
       onChanged();
       return internalGetTokensFieldBuilder().getBuilder();
     }
@@ -5446,7 +4953,7 @@ java.lang.String defaultValue) {
      * @return Whether the cost field is set.
      */
     public boolean hasCost() {
-      return ((bitField0_ & 0x40000000) != 0);
+      return ((bitField0_ & 0x08000000) != 0);
     }
     /**
      * <pre>
@@ -5479,7 +4986,7 @@ java.lang.String defaultValue) {
       } else {
         costBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x40000000;
+      bitField0_ |= 0x08000000;
       onChanged();
       return this;
     }
@@ -5497,7 +5004,7 @@ java.lang.String defaultValue) {
       } else {
         costBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x40000000;
+      bitField0_ |= 0x08000000;
       onChanged();
       return this;
     }
@@ -5510,7 +5017,7 @@ java.lang.String defaultValue) {
      */
     public Builder mergeCost(ai.stigmer.agentic.run.v1.CostStamp value) {
       if (costBuilder_ == null) {
-        if (((bitField0_ & 0x40000000) != 0) &&
+        if (((bitField0_ & 0x08000000) != 0) &&
           cost_ != null &&
           cost_ != ai.stigmer.agentic.run.v1.CostStamp.getDefaultInstance()) {
           getCostBuilder().mergeFrom(value);
@@ -5521,7 +5028,7 @@ java.lang.String defaultValue) {
         costBuilder_.mergeFrom(value);
       }
       if (cost_ != null) {
-        bitField0_ |= 0x40000000;
+        bitField0_ |= 0x08000000;
         onChanged();
       }
       return this;
@@ -5534,7 +5041,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.CostStamp cost = 51 [json_name = "cost"];</code>
      */
     public Builder clearCost() {
-      bitField0_ = (bitField0_ & ~0x40000000);
+      bitField0_ = (bitField0_ & ~0x08000000);
       cost_ = null;
       if (costBuilder_ != null) {
         costBuilder_.dispose();
@@ -5551,7 +5058,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.CostStamp cost = 51 [json_name = "cost"];</code>
      */
     public ai.stigmer.agentic.run.v1.CostStamp.Builder getCostBuilder() {
-      bitField0_ |= 0x40000000;
+      bitField0_ |= 0x08000000;
       onChanged();
       return internalGetCostFieldBuilder().getBuilder();
     }
@@ -5604,7 +5111,7 @@ java.lang.String defaultValue) {
      * @return Whether the proxyTiming field is set.
      */
     public boolean hasProxyTiming() {
-      return ((bitField0_ & 0x80000000) != 0);
+      return ((bitField0_ & 0x10000000) != 0);
     }
     /**
      * <pre>
@@ -5639,7 +5146,7 @@ java.lang.String defaultValue) {
       } else {
         proxyTimingBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x80000000;
+      bitField0_ |= 0x10000000;
       onChanged();
       return this;
     }
@@ -5658,7 +5165,7 @@ java.lang.String defaultValue) {
       } else {
         proxyTimingBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x80000000;
+      bitField0_ |= 0x10000000;
       onChanged();
       return this;
     }
@@ -5672,7 +5179,7 @@ java.lang.String defaultValue) {
      */
     public Builder mergeProxyTiming(ai.stigmer.agentic.run.v1.ProxyTiming value) {
       if (proxyTimingBuilder_ == null) {
-        if (((bitField0_ & 0x80000000) != 0) &&
+        if (((bitField0_ & 0x10000000) != 0) &&
           proxyTiming_ != null &&
           proxyTiming_ != ai.stigmer.agentic.run.v1.ProxyTiming.getDefaultInstance()) {
           getProxyTimingBuilder().mergeFrom(value);
@@ -5683,7 +5190,7 @@ java.lang.String defaultValue) {
         proxyTimingBuilder_.mergeFrom(value);
       }
       if (proxyTiming_ != null) {
-        bitField0_ |= 0x80000000;
+        bitField0_ |= 0x10000000;
         onChanged();
       }
       return this;
@@ -5697,7 +5204,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.ProxyTiming proxy_timing = 60 [json_name = "proxyTiming"];</code>
      */
     public Builder clearProxyTiming() {
-      bitField0_ = (bitField0_ & ~0x80000000);
+      bitField0_ = (bitField0_ & ~0x10000000);
       proxyTiming_ = null;
       if (proxyTimingBuilder_ != null) {
         proxyTimingBuilder_.dispose();
@@ -5715,7 +5222,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.ProxyTiming proxy_timing = 60 [json_name = "proxyTiming"];</code>
      */
     public ai.stigmer.agentic.run.v1.ProxyTiming.Builder getProxyTimingBuilder() {
-      bitField0_ |= 0x80000000;
+      bitField0_ |= 0x10000000;
       onChanged();
       return internalGetProxyTimingFieldBuilder().getBuilder();
     }
@@ -5815,7 +5322,7 @@ java.lang.String defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       providerUsageJson_ = value;
-      bitField1_ |= 0x00000001;
+      bitField0_ |= 0x20000000;
       onChanged();
       return this;
     }
@@ -5830,7 +5337,7 @@ java.lang.String defaultValue) {
      */
     public Builder clearProviderUsageJson() {
       providerUsageJson_ = getDefaultInstance().getProviderUsageJson();
-      bitField1_ = (bitField1_ & ~0x00000001);
+      bitField0_ = (bitField0_ & ~0x20000000);
       onChanged();
       return this;
     }
@@ -5849,7 +5356,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       providerUsageJson_ = value;
-      bitField1_ |= 0x00000001;
+      bitField0_ |= 0x20000000;
       onChanged();
       return this;
     }
@@ -5866,7 +5373,7 @@ java.lang.String defaultValue) {
      * @return Whether the billing field is set.
      */
     public boolean hasBilling() {
-      return ((bitField1_ & 0x00000002) != 0);
+      return ((bitField0_ & 0x40000000) != 0);
     }
     /**
      * <pre>
@@ -5899,7 +5406,7 @@ java.lang.String defaultValue) {
       } else {
         billingBuilder_.setMessage(value);
       }
-      bitField1_ |= 0x00000002;
+      bitField0_ |= 0x40000000;
       onChanged();
       return this;
     }
@@ -5917,7 +5424,7 @@ java.lang.String defaultValue) {
       } else {
         billingBuilder_.setMessage(builderForValue.build());
       }
-      bitField1_ |= 0x00000002;
+      bitField0_ |= 0x40000000;
       onChanged();
       return this;
     }
@@ -5930,7 +5437,7 @@ java.lang.String defaultValue) {
      */
     public Builder mergeBilling(ai.stigmer.agentic.run.v1.BillingLink value) {
       if (billingBuilder_ == null) {
-        if (((bitField1_ & 0x00000002) != 0) &&
+        if (((bitField0_ & 0x40000000) != 0) &&
           billing_ != null &&
           billing_ != ai.stigmer.agentic.run.v1.BillingLink.getDefaultInstance()) {
           getBillingBuilder().mergeFrom(value);
@@ -5941,7 +5448,7 @@ java.lang.String defaultValue) {
         billingBuilder_.mergeFrom(value);
       }
       if (billing_ != null) {
-        bitField1_ |= 0x00000002;
+        bitField0_ |= 0x40000000;
         onChanged();
       }
       return this;
@@ -5954,7 +5461,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.BillingLink billing = 80 [json_name = "billing"];</code>
      */
     public Builder clearBilling() {
-      bitField1_ = (bitField1_ & ~0x00000002);
+      bitField0_ = (bitField0_ & ~0x40000000);
       billing_ = null;
       if (billingBuilder_ != null) {
         billingBuilder_.dispose();
@@ -5971,7 +5478,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.agentic.run.v1.BillingLink billing = 80 [json_name = "billing"];</code>
      */
     public ai.stigmer.agentic.run.v1.BillingLink.Builder getBillingBuilder() {
-      bitField1_ |= 0x00000002;
+      bitField0_ |= 0x40000000;
       onChanged();
       return internalGetBillingFieldBuilder().getBuilder();
     }
@@ -6066,7 +5573,7 @@ java.lang.String defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       org_ = value;
-      bitField1_ |= 0x00000004;
+      bitField0_ |= 0x80000000;
       onChanged();
       return this;
     }
@@ -6080,7 +5587,7 @@ java.lang.String defaultValue) {
      */
     public Builder clearOrg() {
       org_ = getDefaultInstance().getOrg();
-      bitField1_ = (bitField1_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x80000000);
       onChanged();
       return this;
     }
@@ -6098,7 +5605,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       org_ = value;
-      bitField1_ |= 0x00000004;
+      bitField0_ |= 0x80000000;
       onChanged();
       return this;
     }
@@ -6158,7 +5665,7 @@ java.lang.String defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       sessionId_ = value;
-      bitField1_ |= 0x00000008;
+      bitField1_ |= 0x00000001;
       onChanged();
       return this;
     }
@@ -6172,7 +5679,7 @@ java.lang.String defaultValue) {
      */
     public Builder clearSessionId() {
       sessionId_ = getDefaultInstance().getSessionId();
-      bitField1_ = (bitField1_ & ~0x00000008);
+      bitField1_ = (bitField1_ & ~0x00000001);
       onChanged();
       return this;
     }
@@ -6190,7 +5697,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       sessionId_ = value;
-      bitField1_ |= 0x00000008;
+      bitField1_ |= 0x00000001;
       onChanged();
       return this;
     }
@@ -6214,7 +5721,7 @@ java.lang.String defaultValue) {
       if (!labels_.isMutable()) {
         labels_ = labels_.copy();
       }
-      bitField1_ |= 0x00000010;
+      bitField1_ |= 0x00000002;
       onChanged();
       return labels_;
     }
@@ -6294,7 +5801,7 @@ java.lang.String defaultValue) {
       return map.get(key);
     }
     public Builder clearLabels() {
-      bitField1_ = (bitField1_ & ~0x00000010);
+      bitField1_ = (bitField1_ & ~0x00000002);
       internalGetMutableLabels().getMutableMap()
           .clear();
       return this;
@@ -6320,7 +5827,7 @@ java.lang.String defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, java.lang.String>
         getMutableLabels() {
-      bitField1_ |= 0x00000010;
+      bitField1_ |= 0x00000002;
       return internalGetMutableLabels().getMutableMap();
     }
     /**
@@ -6338,7 +5845,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableLabels().getMutableMap()
           .put(key, value);
-      bitField1_ |= 0x00000010;
+      bitField1_ |= 0x00000002;
       return this;
     }
     /**
@@ -6353,7 +5860,7 @@ java.lang.String defaultValue) {
         java.util.Map<java.lang.String, java.lang.String> values) {
       internalGetMutableLabels().getMutableMap()
           .putAll(values);
-      bitField1_ |= 0x00000010;
+      bitField1_ |= 0x00000002;
       return this;
     }
 

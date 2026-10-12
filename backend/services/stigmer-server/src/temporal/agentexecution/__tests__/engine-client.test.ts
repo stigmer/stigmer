@@ -19,7 +19,9 @@
  *     composed provider's capability and bound to the execution with no
  *     clock; the key is ABSENT when the provider lacks the capability
  *     (an edition credentialed another way), when it is keyless, and
- *     when the mint throws — a dispatch never fails on a mint.
+ *     when the mint throws — a dispatch never fails on a mint;
+ *   - a reconcile turn's input carries `reconcile_file_review`, and every
+ *     other run's omits the key.
  */
 import { randomBytes } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -259,6 +261,16 @@ describe("TemporalExecutionEngine.startInvokeWorkflow", () => {
     expect("execution_context_token" in dispatchedInput(startCalls)).toBe(
       false,
     );
+  });
+
+  it("marks a reconcile turn's input, and leaves the key off every other run's (omitempty)", async () => {
+    const reconcile = stubClient();
+    await newEngine(reconcile.client).startInvokeWorkflow(startInput({ reconcileFileReview: true }));
+    expect(dispatchedInput(reconcile.startCalls)["reconcile_file_review"]).toBe(true);
+
+    const message = stubClient();
+    await newEngine(message.client).startInvokeWorkflow(startInput({ reconcileFileReview: false }));
+    expect("reconcile_file_review" in dispatchedInput(message.startCalls)).toBe(false);
   });
 
   it("resolves session routing through dispatch (harness + target in the input)", async () => {

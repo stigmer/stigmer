@@ -23,7 +23,9 @@
  * A judge run (domain/score/judge/judge-run.ts) is never graded: grading
  * the grader would spend a judge on every judge. Nor is a plugin eval's
  * run (domain/plugin-eval/plugin-eval-run.ts): the eval grades its own
- * tries, by the plugin's own checks.
+ * tries, by the plugin's own checks. Nor is a reconcile turn
+ * (`spec.reconcile_file_review`): it runs no model and has no message, so
+ * there is no answer to judge.
  *
  * Proven by __tests__/grading-observer.test.ts.
  */
@@ -81,7 +83,8 @@ export function newGradingObserver(
     if (
       newPhase !== RunPhase.RUN_COMPLETED ||
       isJudgeRun(run) ||
-      isPluginEvalRun(run)
+      isPluginEvalRun(run) ||
+      run.spec?.reconcileFileReview === true
     ) {
       return;
     }

@@ -2249,6 +2249,11 @@
           "name": "FILE_DECISION_ORIGIN_POLICY_EVAL_TRY",
           "number": 3,
           "description": "Platform policy kept the set because its run is a plugin eval's try: a\n try's edits apply as they do in Claude Code's evals, and nobody reviews\n a try. The decision's actor is \"policy\"."
+        },
+        {
+          "name": "FILE_DECISION_ORIGIN_POLICY_NEXT_TURN",
+          "number": 4,
+          "description": "Platform policy kept what was still undecided in the set because the\n conversation's next message was sent: review lasts until then, and the\n next turn built on the kept files. The decision's actor is \"policy\"."
         }
       ]
     },
@@ -4623,7 +4628,8 @@
             "enumValues": [
               "FILE_DECISION_ORIGIN_USER",
               "FILE_DECISION_ORIGIN_POLICY_APPROVED_COMMAND",
-              "FILE_DECISION_ORIGIN_POLICY_EVAL_TRY"
+              "FILE_DECISION_ORIGIN_POLICY_EVAL_TRY",
+              "FILE_DECISION_ORIGIN_POLICY_NEXT_TURN"
             ]
           },
           "description": "Which authority authored this decision: a human reviewer (USER; also the\n reading for UNSPECIFIED pre-origin records) or the approved-command\n auto-keep policy. Audit provenance only — never enforcement, never\n correlation, never folded into any digest. See FileDecisionOrigin.",

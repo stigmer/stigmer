@@ -104,6 +104,12 @@ export interface CursorHookHarnessOptions {
    */
   captureMode?: boolean;
   /**
+   * The turn's file review (default on). Off, the hook ALLOWS a built-in
+   * write or delete to flow unreviewed; the secret-like write block still
+   * applies, keyed on the git substrate.
+   */
+  fileReview?: boolean;
+  /**
    * Initialize the throwaway workspace as a git repo with these gitignore
    * patterns, so capture mode's `git check-ignore` has a real repo to consult.
    */
@@ -181,7 +187,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
   // Capture-mode tests need a real git repo so `git check-ignore` resolves. A
   // non-git test (gitWorkspace:false) deliberately leaves the workspace un-inited
   // so the hook's substrate matches the state's gitWorkspace flag.
-  if ((opts.captureMode || opts.gitignored) && opts.gitWorkspace !== false) {
+  if ((opts.captureMode || opts.fileReview === false || opts.gitignored) && opts.gitWorkspace !== false) {
     execSync("git init -q", { cwd: ws });
     if (opts.gitignored && opts.gitignored.length > 0) {
       writeFileSync(join(ws, ".gitignore"), opts.gitignored.join("\n") + "\n", "utf-8");
@@ -248,6 +254,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
       opts.gitWorkspace ?? true,
       opts.unattendedSkip ?? false,
       toolScope,
+      opts.fileReview ?? true,
     );
     writeFileSync(statePath, JSON.stringify(state), "utf-8");
   }

@@ -4,8 +4,9 @@ import { cn } from "@stigmer/theme";
 import { getErrorReason, getUserMessage } from "@stigmer/sdk";
 
 /**
- * The reason Stigmer Cloud refuses a run whose model needs a provider the
- * organization holds no key for (billing/providerkey/v1/api.proto).
+ * The reason Stigmer Cloud refuses a run that needs a provider the
+ * organization holds no key for: its model's, or Cursor for a run on the
+ * Cursor harness (billing/providerkey/v1/api.proto).
  */
 export const PROVIDER_KEY_REQUIRED = "PROVIDER_KEY_REQUIRED";
 
@@ -16,9 +17,9 @@ export const DEFAULT_PROVIDER_KEYS_HREF = "/settings/provider-keys";
 export interface ProviderKeyRequired {
   /** The organization the run was refused in. */
   readonly org: string;
-  /** The provider it has no key for: `anthropic` or `openai`. */
+  /** The provider it has no key for: `anthropic`, `openai` or `cursor`. */
   readonly provider: string;
-  /** The model the run would have used. */
+  /** The model the run would have used; empty when it names none, as a Cursor run on Auto does. */
   readonly model: string;
 }
 
@@ -40,7 +41,7 @@ export function providerKeyRequired(error: unknown): ProviderKeyRequired | null 
 
 /** Props for {@link ProviderKeyNotice}. */
 export interface ProviderKeyNoticeProps {
-  /** The refusal: its message is the server's own copy, naming the provider and the model. */
+  /** The refusal: its message is the server's own copy, naming the provider, and the model when the run names one. */
   readonly error: Error;
   /** Where the provider keys page is, in the host's routing. Defaults to {@link DEFAULT_PROVIDER_KEYS_HREF}. */
   readonly providerKeysHref?: string;
@@ -49,8 +50,8 @@ export interface ProviderKeyNoticeProps {
 }
 
 /**
- * Says a run was not started because the organization has no key for its
- * model's provider, and where an admin adds one, in place of a bare
+ * Says a run was not started because the organization has no key for the
+ * provider it needs, and where an admin adds one, in place of a bare
  * refusal.
  *
  * @example

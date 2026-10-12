@@ -1,24 +1,28 @@
-// File-review (apply-then-review HITL) helpers for the execution suites.
+// File-review (apply-then-review) helpers for the execution suites.
 // Domain: conformance support (execution engine).
 //
-// A turn that edits files in a git workspace does not gate per tool call: the
-// runner captures the whole delta at the turn boundary and the server projects
-// it onto status.file_change_sets as a FileChangeSet AWAITING_REVIEW while the
-// execution sits in RUN_WAITING_FOR_APPROVAL with ZERO pending_approvals
-// (the two gates are siblings, not one). Decisions go through
-// submitFileDecision at FILE or CHANGE_SET scope, bound to the digest the
-// reviewer saw; the runner reconciles the approved bytes and the ledger records
-// RECONCILED. These helpers are the read-and-decide vocabulary for that
-// lifecycle, the way support/agentexecutions.ts is for the approval gate.
+// File review is the session's choice (spec.file_review, off unless set), and
+// it never makes a turn wait. In a session that asks for it, a turn that
+// edits files in a workspace the runner can capture lets every edit land, ends
+// normally, and leaves its delta on status.file_change_sets as a FileChangeSet
+// AWAITING_REVIEW and in the log as stigmer.file_review.changes. A person then
+// keeps or undoes it, at FILE or CHANGE_SET scope and bound to the digest they
+// saw, through SessionCommandController.reviewFileChanges (or its adapter,
+// RunCommandController.submitFileDecision). A keep only records the decision;
+// an undo on a finished turn starts a reconcile turn that puts the files back
+// and writes stigmer.file_review.reconciled. These helpers are the
+// read-and-decide vocabulary for that lifecycle, the way support/runs.ts is
+// for the approval gate.
 //
 // Correlation is ALWAYS by stable id (change set id, file change id); digests
 // are the enforcement gate the decision carries, never how a change is found
 // (filereview.proto's identity rule). So a decision "by path" here looks the
 // change up by path_after/path_before and then submits ITS id and ITS digest.
 //
-// Ported from the retired Go harness's file_review.go; the wait semantics are
-// its: a set AWAITING_REVIEW resolves the wait, and a terminal phase before one
-// appears fails it with the phase.
+// The review wait (`awaitFileReview`) resolves on the turn's end, never on the
+// set's first appearance: a decision on a turn still working is honoured only
+// by a later turn's start, so an arm that wants its undo reconciled at once
+// decides a finished turn.
 //
 // The mid-run progress wait is different in kind: file_change_progress is a
 // display snapshot the runner captures on its own persist cadence, and a
@@ -32,6 +36,13 @@
 // them in its failure message, because the sequence (say 0 -> 1 -> 3) is the
 // diagnosis a bare timeout hides.
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import type {
+  SessionEvent,
+  StigmerFileReviewChangesEvent,
+  StigmerFileReviewDecidedEvent,
+  StigmerFileReviewReconciledEvent,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import type { ReviewFileChangesResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import {
   FileChangeKind,
   FileChangeSetStatus,
@@ -46,32 +57,22 @@ import type {
   FileChangeSet,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { ConformanceClients } from "../harness/clients";
-import { isTerminalPhase, pollExecution, type PollOptions } from "./runs";
+import { type PollCoreOptions, pollUntil } from "./run-poll";
+import { awaitTerminal, isTerminalPhase, pollExecution, type PollOptions } from "./runs";
 
-// Polls until a change set is offered for review. Fails — with the phase — if
-// the execution ends first (the agent edited nothing, or every edit landed on a
-// path that stays true-paused), so a wrong fixture is a legible failure rather
-// than a timeout.
-export function awaitFileReview(
+// Polls until the turn has ended and returns it, holding a change set offered
+// for review. Fails, with the phase and the sets it holds, when the turn ended
+// with none (the session has review off, the agent edited nothing, or the
+// workspace has nothing to capture with), so a wrong fixture is a legible
+// failure rather than a timeout.
+export async function awaitFileReview(
   clients: ConformanceClients,
   executionId: string,
   opts: PollOptions = {},
 ): Promise<Run> {
-  return pollExecution(
-    clients,
-    executionId,
-    (exec) => {
-      if (findChangeSet(exec, FileChangeSetStatus.AWAITING_REVIEW) !== undefined) return true;
-      if (isTerminalPhase(exec.status?.phase)) {
-        throw new Error(
-          `execution ${executionId} reached terminal phase before any change set was offered for review ` +
-            `(status.error: ${JSON.stringify(exec.status?.error ?? "")})`,
-        );
-      }
-      return false;
-    },
-    { label: "a change set AWAITING_REVIEW", ...opts },
-  );
+  const ended = await awaitTerminal(clients, executionId, opts);
+  requireReviewSet(ended);
+  return ended;
 }
 
 // One row an arm expects a mid-run progress snapshot to converge to: the path
@@ -232,9 +233,11 @@ export interface FileDecisionOptions {
   reason?: string;
 }
 
-// Decides one file, correlating by the change's id and binding to its
-// file_digest. Returns the server's response (the execution as the handler
-// left it) so an arm can assert the projection synchronously.
+// Decides one file through RunCommandController.submitFileDecision, the
+// adapter onto the session's decision method (APPROVE is keep, REJECT is
+// undo), correlating by the change's id and binding to its file_digest.
+// Returns the server's response (the execution as the handler left it) so an
+// arm can assert the projection synchronously.
 export function submitFileDecisionByPath(
   clients: ConformanceClients,
   executionId: string,
@@ -256,7 +259,7 @@ export function submitFileDecisionByPath(
   });
 }
 
-// Decides the whole set, bound to its aggregate_digest.
+// Decides the whole set through the adapter, bound to its aggregate_digest.
 export function submitChangeSetDecision(
   clients: ConformanceClients,
   executionId: string,
@@ -275,9 +278,104 @@ export function submitChangeSetDecision(
   });
 }
 
+// The word reviewFileChanges takes for a decision.
+export type FileReviewAction = "keep" | "undo";
+
+// Keeps or undoes one file through the session's decision method, correlating
+// by the change's id and binding to its file_digest. Returns the server's
+// answer: the reconcile turn an undo on a finished turn started, or "".
+export function reviewFileByPath(
+  clients: ConformanceClients,
+  sessionId: string,
+  set: FileChangeSet,
+  path: string,
+  action: FileReviewAction,
+  opts: FileDecisionOptions = {},
+): Promise<ReviewFileChangesResponse> {
+  const change = requireChangeByPath(set, path);
+  return clients.sessionCommand.reviewFileChanges({
+    sessionId,
+    changeSetId: set.id,
+    scope: "file",
+    fileChangeId: change.id,
+    action,
+    expectedDigest: opts.expectedDigest ?? change.fileDigest,
+    acknowledgeUnreviewable: opts.acknowledgeUnreviewable ?? false,
+    reason: opts.reason ?? "",
+  });
+}
+
+// Keeps or undoes the whole set through the session's decision method, bound
+// to its aggregate_digest.
+export function reviewChangeSet(
+  clients: ConformanceClients,
+  sessionId: string,
+  set: FileChangeSet,
+  action: FileReviewAction,
+  opts: FileDecisionOptions = {},
+): Promise<ReviewFileChangesResponse> {
+  return clients.sessionCommand.reviewFileChanges({
+    sessionId,
+    changeSetId: set.id,
+    scope: "change_set",
+    action,
+    expectedDigest: opts.expectedDigest ?? set.aggregateDigest,
+    acknowledgeUnreviewable: opts.acknowledgeUnreviewable ?? false,
+    reason: opts.reason ?? "",
+  });
+}
+
+// A session's file-review events by type, each list in log order.
+export interface FileReviewLog {
+  readonly changes: StigmerFileReviewChangesEvent[];
+  readonly decided: StigmerFileReviewDecidedEvent[];
+  readonly reconciled: StigmerFileReviewReconciledEvent[];
+}
+
+// Splits a slice of the log into its file-review events; every other type is
+// left out.
+export function fileReviewLogOf(events: readonly SessionEvent[]): FileReviewLog {
+  const log: FileReviewLog = { changes: [], decided: [], reconciled: [] };
+  for (const { event } of events) {
+    if (event.case === "stigmerFileReviewChanges") log.changes.push(event.value);
+    else if (event.case === "stigmerFileReviewDecided") log.decided.push(event.value);
+    else if (event.case === "stigmerFileReviewReconciled") log.reconciled.push(event.value);
+  }
+  return log;
+}
+
+// The session's file-review events, read from its whole log.
+export async function readFileReviewLog(clients: ConformanceClients, sessionId: string): Promise<FileReviewLog> {
+  return fileReviewLogOf((await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000 })).events);
+}
+
+// Polls the session's log until `changeSetId` has its reconciled event and
+// the session is idle again (its newest event is session.status_idle), and
+// returns that event. The undo's own turn and a message turn sent right after
+// it both end idle, so the wait names neither.
+export async function awaitReconciled(
+  clients: ConformanceClients,
+  sessionId: string,
+  changeSetId: string,
+  opts: PollCoreOptions = {},
+): Promise<StigmerFileReviewReconciledEvent> {
+  const reconciledIn = (events: readonly SessionEvent[]) =>
+    fileReviewLogOf(events).reconciled.find((event) => event.changeSetId === changeSetId);
+  const events = await pollUntil(
+    async () => (await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000 })).events,
+    (got) => reconciledIn(got) !== undefined && got.at(-1)?.event.case === "sessionStatusIdle",
+    (last, timeoutMs) =>
+      `session ${sessionId}: change set ${changeSetId} was not reconciled with the session idle within ${timeoutMs}ms ` +
+      `(log: ${JSON.stringify((last ?? []).map((e) => e.event.case))})`,
+    opts,
+  );
+  return reconciledIn(events)!;
+}
+
 // Whether the file-review ledger records `type` for `changeSetId` (any set when
 // omitted). The ledger is the source of truth the projection is derived from,
-// so RECONCILED here is the proof the runner applied the decision.
+// so RECONCILED here is the proof a waiting run applied the decision; a
+// reconcile after the turn writes only the log's reconciled event.
 export function fileReviewStreamHas(
   exec: Run,
   type: FileReviewEventType,
@@ -290,8 +388,8 @@ export function fileReviewStreamHas(
 
 // Who the file-review ledger names as the reviewer of each decision on
 // `changeSetId`: the reviewer_id of every FILE_DECIDED event, in stream order.
-// Read from the append-only stream because file_change_sets is a projection
-// that is empty once the execution is terminal. The server records the
+// Read from the append-only stream, the ledger the projection is folded from.
+// The server records the
 // principal it authorized, the same id it stamps as created_by on what that
 // caller creates, so a suite compares the two without knowing the edition's
 // identity scheme.

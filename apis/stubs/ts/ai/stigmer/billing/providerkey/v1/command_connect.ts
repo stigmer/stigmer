@@ -8,7 +8,7 @@ import { ProviderKey } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
- * ProviderKeyCommandController saves and removes an organization's own LLM
+ * ProviderKeyCommandController saves and removes an organization's own model
  * provider keys.
  *
  * Provider keys are not a standard API Resource, so there is no

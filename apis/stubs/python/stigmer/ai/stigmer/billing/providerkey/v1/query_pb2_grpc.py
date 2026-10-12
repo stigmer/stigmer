@@ -6,7 +6,7 @@ from ai.stigmer.billing.providerkey.v1 import io_pb2 as ai_dot_stigmer_dot_billi
 
 
 class ProviderKeyQueryControllerStub(object):
-    """ProviderKeyQueryController reads an organization's own LLM provider keys,
+    """ProviderKeyQueryController reads an organization's own model provider keys,
     never their secrets.
 
     Authorizes against the organization with can_view_billing, the permission
@@ -27,7 +27,7 @@ class ProviderKeyQueryControllerStub(object):
 
 
 class ProviderKeyQueryControllerServicer(object):
-    """ProviderKeyQueryController reads an organization's own LLM provider keys,
+    """ProviderKeyQueryController reads an organization's own model provider keys,
     never their secrets.
 
     Authorizes against the organization with can_view_billing, the permission
@@ -59,7 +59,7 @@ def add_ProviderKeyQueryControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class ProviderKeyQueryController(object):
-    """ProviderKeyQueryController reads an organization's own LLM provider keys,
+    """ProviderKeyQueryController reads an organization's own model provider keys,
     never their secrets.
 
     Authorizes against the organization with can_view_billing, the permission

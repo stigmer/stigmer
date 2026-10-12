@@ -3,12 +3,14 @@
  * `@cursor/sdk`, the runner's Cursor interceptors bound to the local
  * proxy's Cursor lane with the host's token, trusting the lane only through
  * the `NODE_EXTRA_CA_CERTS` it was started with
- * (`agent-proxy/__tests__/cursor-sdk-wire.test.ts` starts it).
+ * (`agent-proxy/__tests__/cursor-sdk-wire.test.ts` and
+ * `cursor-sdk-key-required.test.ts` start it).
  *
  * argv: the lane's endpoint, the host token, the execution id, the turn's key. It creates
  * one local agent, sends one prompt, and prints one JSON line: the run's
- * result (or the error), and what `NODE_TLS_REJECT_UNAUTHORIZED` reads
- * afterwards.
+ * result (or the error, with a thrown `CursorSdkError`'s code and status,
+ * the fields the runner classifies it by), and what
+ * `NODE_TLS_REJECT_UNAUTHORIZED` reads afterwards.
  */
 
 import { mkdtempSync } from "node:fs";
@@ -24,7 +26,7 @@ const proxyTokenRef = { current: token };
 installFetchInterceptor({ proxyEndpoint: lane, proxyTokenRef });
 installHttp2Interceptor({ proxyEndpoint: lane, proxyTokenRef });
 await assertHttp2ConnectPatched();
-const { Agent } = await import("@cursor/sdk");
+const { Agent, CursorSdkError } = await import("@cursor/sdk");
 
 const outcome = await runWithExecutionContext(executionId, async () => {
   try {
@@ -37,7 +39,8 @@ const outcome = await runWithExecutionContext(executionId, async () => {
     const result = await run.wait();
     return { status: result.status, error: result.error?.message ?? null };
   } catch (err) {
-    return { status: "thrown", error: err instanceof Error ? err.message : String(err) };
+    const sdkError = err instanceof CursorSdkError ? { sdkError: { code: err.code ?? null, status: err.status ?? null } } : {};
+    return { status: "thrown", error: err instanceof Error ? err.message : String(err), ...sdkError };
   }
 }, turnKey);
 console.log(`WIRE ${JSON.stringify({ ...outcome, tlsRejectUnauthorized: process.env.NODE_TLS_REJECT_UNAUTHORIZED ?? null })}`);

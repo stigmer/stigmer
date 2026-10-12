@@ -60,6 +60,7 @@ import {
   ServiceTier,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileChangeSetSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/filereview_pb";
 import {
   SubmitApprovalInputSchema,
   SubmitFileDecisionInputSchema,
@@ -1415,7 +1416,7 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
     };
   }
 
-  it("signals approvalGateResolved exactly once, only when the unified gate clears", async () => {
+  it("signals approvalGateResolved exactly once, only when the gate clears", async () => {
     const id = await seed(
       gatedSeed({
         toolCalls: [
@@ -1452,6 +1453,36 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
         runId: id,
         toolCallId: "tc-write",
         action: ApprovalAction.REJECT,
+      }),
+      testCallerIdentity(),
+    );
+    expect(signalled).toEqual([id]);
+  });
+
+  it("a change set awaiting review never holds the signal: the gate is approvals alone (stigmer#1471)", async () => {
+    const init = gatedSeed();
+    init.status = {
+      ...init.status,
+      fileChangeSets: [
+        create(FileChangeSetSchema, { id: `${init.metadata.id}:0`, status: FileChangeSetStatus.AWAITING_REVIEW }),
+      ],
+    };
+    const id = await seed(init);
+    const signalled: string[] = [];
+    const deps = stubDeps(
+      stubConnectedEngine({
+        signalApprovalGateResolved: async (executionId) => {
+          signalled.push(executionId);
+        },
+      }),
+    );
+
+    await submitApproval(
+      deps,
+      create(SubmitApprovalInputSchema, {
+        runId: id,
+        toolCallId: "tc-1",
+        action: ApprovalAction.APPROVE,
       }),
       testCallerIdentity(),
     );
@@ -1509,7 +1540,7 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
   });
 
   // The reconcile's →FAILED stamp is notify
-  // site 4 of 5 — a terminal transition the update-status chokepoint
+  // site 4 of 4 — a terminal transition the update-status chokepoint
   // never sees.
   it("the stale-workflow reconcile notifies the composed status observers", async () => {
     const id = await seed(
@@ -1564,6 +1595,9 @@ describe("the decider is the authorized caller (direct calls, #1385)", () => {
       engineState: () => ENGINE_DISCONNECTED,
       gateSteps: new Map(),
       statusObservers: [],
+      reconcileTurns: () => {
+        throw new Error("a keep starts no reconcile turn");
+      },
     };
   }
 
@@ -1729,56 +1763,6 @@ describe("submitFileDecision over the wire", () => {
       (c) => c.id === changeSetId,
     );
     expect(csRepeat?.decisions).toHaveLength(1);
-  });
-
-  // The file-review reconcile twin is notify
-  // site 5 of 5.
-  it("the workflow-gone reconcile notifies the composed status observers", async () => {
-    const { init, changeSetId, aggregate } = ledgerSeed();
-    const id = await seed(init);
-    const observed: RunStatusTransition[] = [];
-    const deps = {
-      store: server.store,
-      logger: silentLogger,
-      authorizer: newPermissiveSingleTeamAuthorizer(),
-      broker: server.agentExecutionStreamBroker,
-      sessionEventBroker: server.sessionEventBroker,
-      engineState: () =>
-        ({
-          connected: true,
-          engine: stubConnectedEngine({
-            signalApprovalGateResolved: async (executionId: string) => {
-              throw new EngineWorkflowNotFoundError(executionId);
-            },
-          }),
-        }) as ExecutionEngineState,
-      statusObservers: [
-        (t: RunStatusTransition): void => void observed.push(t),
-      ],
-    };
-
-    // A CHANGE_SET decision resolves the whole gate, so the signal fires
-    // and the vanished workflow triggers the reconcile.
-    await expectCode(
-      () =>
-        submitFileDecision(
-          deps,
-          create(SubmitFileDecisionInputSchema, {
-            runId: id,
-            changeSetId,
-            scope: FileDecisionScope.CHANGE_SET,
-            action: FileDecisionAction.APPROVE,
-            expectedDigest: aggregate,
-          }),
-          testCallerIdentity(),
-        ),
-      Code.FailedPrecondition,
-    );
-    expect(observed).toHaveLength(1);
-    expect(observed[0]?.oldPhase).toBe(
-      RunPhase.RUN_WAITING_FOR_APPROVAL,
-    );
-    expect(observed[0]?.newPhase).toBe(RunPhase.RUN_FAILED);
   });
 
   it("refuses a run with no actionable change sets, naming the run and its phase", async () => {

@@ -34,11 +34,8 @@
       "type": {
         "kind": "string"
       },
-      "description": "User input message that triggers this run.\n Each run represents one user message and the agent's response.",
-      "required": false,
-      "validation": {
-        "minLength": 1
-      }
+      "description": "User input message that triggers this run.\n Each run represents one user message and the agent's response.\n Required unless reconcile_file_review is set.",
+      "required": false
     },
     {
       "name": "RunConfig",
@@ -198,6 +195,16 @@
         "messageType": "PluginEvalCaseContext"
       },
       "description": "What a plugin-eval case gives this try beyond its message: a starting\n folder, reference folders, an earlier conversation, variables and MCP\n stand-ins. Absent on every other run.",
+      "required": false
+    },
+    {
+      "name": "ReconcileFileReview",
+      "jsonName": "reconcileFileReview",
+      "protoField": "reconcile_file_review",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Set on a turn that only puts back the files a person undid after an\n earlier turn ended: it runs no model and carries no message. The\n server starts one when an undo is decided on a finished turn.",
       "required": false
     }
   ]

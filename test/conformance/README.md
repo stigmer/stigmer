@@ -209,9 +209,11 @@ sampled:
 The working agent is also a plugin (`fixtures/working-agent`), whose `evals/`
 suite holds the quality tasks.
 
-A turn that edits files parks for review before it ends. The benchmark
-approves the change set whole at once, stamps when the agent's work was done
-(`review_ready_ms`), and sends the next turn only after the terminal phase.
+The benchmark's sessions leave file review off, so a turn that edits files
+ends on its own and its edits stay. A turn whose session asks for review is
+offered for review when it ends; the benchmark then keeps the change set
+whole, stamps when the agent's work was done (`review_ready_ms`), and sends
+the next turn only after the terminal phase.
 
 Per execution it reads its sources and joins them by execution id:
 - the `subscribe` stream: when the user first saw a token, when the work was
@@ -282,6 +284,23 @@ billing account is provisioned automatically), unlike the local targets where
 an org is just a unique slug. There is no CI lane for the cloud targets in this
 repository: the cloud composition's own repository runs them and keeps the
 readouts.
+
+**Provider keys, and `CURSOR_API_KEY`.** Stigmer Cloud serves every run on
+the organization's own provider keys and refuses a run whose organization
+holds no key for its provider at create, so the targets key a tenancy as an
+admin would (`keyTenancy`, `src/targets/cloud.ts`): the fixture Anthropic and
+OpenAI keys (`CONFORMANCE_PROVIDER_KEYS`, whose save check the fake LLM
+provider answers) always, and the organization's Cursor key only when the
+invoking shell exports `CURSOR_API_KEY`, the name the runner's direct mode and
+the open-source live lanes read. There is no fixture Cursor key: the cloud
+checks a Cursor key with Cursor itself when it is saved, so it must be a real
+user API key or team service-account key on a paid Cursor plan, and every
+keyed tenancy makes one check call to Cursor. Without it the arms that create
+a Cursor run on the cloud target skip with that reason
+(`CapabilityFlags.cursorRunsAdmitted`); with it they run, and none of them
+sends a Cursor model request (the one that starts a turn is refused before
+its first model call). The local targets ask for no provider key and admit
+Cursor runs either way.
 
 **The direct-login arms** (`direct-login.conformance.test.ts`)
 drive the lane a console, desktop, CLI or MCP client actually rides: the raw
@@ -678,9 +697,12 @@ definition, and `sub_agent_runs`), `run-provider-error`
 shapes), `run-structured-output` (what the final message becomes on
 `structured_output`; the fallback's lack of schema validation is deliberately
 NOT pinned, see the file header), `run-file-review` and
-`-file-review-progress` (apply-then-review: 15 decide-and-reconcile arms over a
-harness git workspace, the secret and binary rules, and the mid-run progress
-strip under the runner's capture throttle), `run-memory-selection`
+`-file-review-progress` (apply-then-review in a session that asks for it,
+never a wait: review off and on, keep and undo through `reviewFileChanges` and
+its `submitFileDecision` adapter, the reconcile turn an undo starts, the next
+message closing a turn's review, an unattended write (stigmer#1471), the
+secret and binary rules over a harness git workspace, and the mid-run
+progress strip under the runner's capture throttle), `run-memory-selection`
 (the embedder posture, beside `-memory-retrieval`'s no-embedder one),
 `run-stigmer-mcp-stdio` (a fixture agent on the real
 `stigmer mcp-server` over stdio, the always-on proof of the stdio lane), plus additions to

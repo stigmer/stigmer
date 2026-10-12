@@ -29,9 +29,12 @@ import { readRememberedPluginPicks, rememberPluginPicks } from "../plugin/rememb
 const STORAGE_KEY_HARNESS = "stigmer:session:harness";
 
 /**
- * Platform policy for guest (share/embed) sessions: the cursor harness with
- * the Auto model (an omitted modelName resolves to cursor's "default"/Auto in
- * the runner).
+ * Platform policy for guest (share/embed) sessions: the session names no
+ * engine and the run names no model, so the server starts the conversation
+ * on the engine the shared agent names (native when it names none) and the
+ * run takes the agent's own defaults. A guest runs the agent as its owner
+ * built it, on the organization's own provider keys; nothing a visitor's
+ * browser holds shapes it.
  *
  * This lives CLIENT-side deliberately — it is the only layer that can. The
  * SDK's guest audience covers both public visitors (guest tokens) and org
@@ -40,8 +43,12 @@ const STORAGE_KEY_HARNESS = "stigmer:session:harness";
  * latter from ordinary Console traffic, so share-surface policy must be
  * applied where the surface is known. Server-side guest-token gates own the
  * abuse controls (rate limits, bounded run profile).
+ *
+ * The flow still holds a harness for a guest, the platform default, because
+ * its model registry and pickers read one; a guest surface shows neither,
+ * and the create carries none.
  */
-const GUEST_HARNESS: HarnessOption = "cursor";
+const GUEST_LOCAL_HARNESS: HarnessOption = DEFAULT_HARNESS;
 
 function modelStorageKey(harness: HarnessOption): string {
   return harness === "cursor"
@@ -101,9 +108,10 @@ export interface UseNewSessionFlowOptions {
    * localStorage on explicit change — always takes precedence on
    * subsequent visits.
    *
-   * Ignored for the `"guest"` audience: guest sessions always run the
-   * platform's share-surface policy (cursor harness, Auto model), never an
-   * embedder preference or a stored Console choice.
+   * Ignored for the `"guest"` audience: a guest session runs the shared
+   * agent's own engine and defaults (the guest policy note on
+   * `GUEST_LOCAL_HARNESS`), never an embedder preference or a stored Console
+   * choice.
    *
    * @default DEFAULT_HARNESS ("native")
    */
@@ -367,13 +375,13 @@ export function useNewSessionFlow(
   } = options;
   const isGuest = options.audience === "guest";
   // Guests never inherit account defaults — the platform share policy owns
-  // guest run config (GUEST_HARNESS reasoning), and identity-derived
-  // preferences must never shape a share/embed surface.
+  // guest run config (the guest policy note on GUEST_LOCAL_HARNESS), and
+  // identity-derived preferences must never shape a share/embed surface.
   const accountDefaults = isGuest ? undefined : options.accountDefaults;
-  // Guests never carry a client pin: guest run config is owned by
-  // the server-side share policy (GUEST_HARNESS reasoning). Validated at
-  // render so a statically-wrong pin (fast tier, no model) fails in the
-  // embedder's dev loop, not as the end user's failed send.
+  // Guests never carry a client pin: guest run config is owned by the
+  // server-side share policy (the guest policy note on GUEST_LOCAL_HARNESS).
+  // Validated at render so a statically-wrong pin (fast tier, no model)
+  // fails in the embedder's dev loop, not as the end user's failed send.
   const runConfig = isGuest ? undefined : options.runConfig;
   if (runConfig) assertValidRunConfig(runConfig);
   const pinnedModelName = runConfig?.modelName;
@@ -393,8 +401,8 @@ export function useNewSessionFlow(
   // initializer would silently miss it (the harness seed's late-arrival
   // problem, solved here by derivation instead of a touched-ref effect).
   // Guests inherit neither seed — a share-link visitor is not the operator
-  // either trust judgment covers (the GUEST_HARNESS fixed-platform-policy
-  // reasoning). Carried into the bootstrap create as spec.auto_approve_all,
+  // either trust judgment covers (the guest policy note on
+  // GUEST_LOCAL_HARNESS). Carried into the bootstrap create as spec.auto_approve_all,
   // the whole-run server-side bypass — the created run stays covered even
   // if this tab dies before its first gate.
   const approvalDefaults = useApprovalDefaults();
@@ -406,10 +414,10 @@ export function useNewSessionFlow(
         (approvalDefaults?.autoApproveAll ?? false)));
 
   const [storedHarness, setHarnessRaw] = useState<HarnessOption>(() => {
-    // Guests get the fixed platform policy (see GUEST_HARNESS) and never
+    // Guests follow the guest policy (see GUEST_LOCAL_HARNESS) and never
     // touch localStorage: a browser previously used in the Console must not
     // leak its stored harness into a share/embed session.
-    if (isGuest) return GUEST_HARNESS;
+    if (isGuest) return GUEST_LOCAL_HARNESS;
     if (typeof window === "undefined")
       return accountDefaults?.harness ?? defaultHarness ?? DEFAULT_HARNESS;
     // Only explicit user choices are persisted (see setHarness), so a
@@ -576,7 +584,7 @@ export function useNewSessionFlow(
   // Restore persisted model — only after the registry has loaded so
   // getModel can actually validate the stored ID against live data.
   // Guests skip the restore: modelId stays undefined, the create omits
-  // modelName, and the cursor harness resolves it to Auto — a Console-used
+  // modelName, and the run takes the shared agent's default — a Console-used
   // browser must not leak its stored model into a share/embed session.
   useEffect(() => {
     if (isGuest || isModelsLoading) return;
@@ -639,11 +647,16 @@ export function useNewSessionFlow(
           vaults: vaults?.length ? [...vaults] : undefined,
           // Only an included My vault travels; off is the wire default.
           includeMyVault: includeMyVault || undefined,
+          // The console offers each turn's edits for Keep and Undo after
+          // the turn; every other client leaves review off.
+          fileReview: true,
           // The typed-wins merge happens downstream in useCreateRun;
           // both fields are forwarded verbatim here.
           metadata,
           sessionContext,
-          harness,
+          // A guest's session names no engine: the server starts it on the
+          // engine the shared agent names (the guest policy note).
+          harness: isGuest ? undefined : harness,
           executionTarget,
         };
 

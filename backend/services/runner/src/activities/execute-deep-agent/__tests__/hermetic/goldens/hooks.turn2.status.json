@@ -18,7 +18,7 @@
           "argsPreview": "{\"command\":\"rm -rf build\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
-          "policyEngineVersion": "hooks-1",
+          "policyEngineVersion": "hooks-2",
           "approvalPolicyHook": "safety"
         }
       ]
@@ -41,7 +41,7 @@
           "argsPreview": "{\"command\":\"ls\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
-          "policyEngineVersion": "hooks-1",
+          "policyEngineVersion": "hooks-2",
           "approvalPolicyHook": "safety"
         }
       ]
@@ -69,7 +69,7 @@
           "argsPreview": "{\"command\":\"echo publish\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
-          "policyEngineVersion": "hooks-1",
+          "policyEngineVersion": "hooks-2",
           "approvalPolicyHook": "safety"
         }
       ]
@@ -93,30 +93,6 @@
     "observedAt": "2026-01-01T00:00:04.000Z",
     "requestedServiceTier": "SERVICE_TIER_STANDARD",
     "requestedThinkingMode": "THINKING_MODE_DISABLED"
-  },
-  "fileReviewEventStream": {
-    "runId": "aex_hermetic_0001",
-    "events": [
-      {
-        "eventId": "aex_hermetic_0001:1:aex_hermetic_0001:1:FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
-        "changeSetId": "aex_hermetic_0001:1",
-        "eventType": "FILE_REVIEW_EVENT_TYPE_BASELINE_CAPTURED",
-        "timestamp": "2026-01-01T00:00:03.000Z",
-        "actor": "runner",
-        "baselineCaptured": {
-          "changeSetId": "aex_hermetic_0001:1",
-          "turnId": "aex_hermetic_0001:1",
-          "harnessId": "deep-agent",
-          "baselineSnapshot": {
-            "kind": "SNAPSHOT_KIND_CAS_MANIFEST"
-          }
-        }
-      }
-    ]
-  },
-  "fileChangeProgress": {
-    "changeSetId": "aex_hermetic_0001:1",
-    "capturedAt": "2026-01-01T00:00:03.000Z"
   },
   "loadedVersions": {
     "plugins": [

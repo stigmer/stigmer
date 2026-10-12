@@ -8,16 +8,25 @@ import "buf/validate/validate.proto";
 // Save the organization's key for a provider, replacing any key it holds for
 // that provider.
 message SetProviderKeyInput {
+  option (buf.validate.message).cel = {
+    id: "provider_key.cursor_base_url"
+    message: "a Cursor key takes no base URL; Cursor serves from its own hosts"
+    expression: "this.provider != 'cursor' || this.base_url == ''"
+  };
+
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
   string provider = 2 [(buf.validate.field).string = {
     in: [
       "anthropic",
-      "openai"
+      "openai",
+      "cursor"
     ]
   }];
 
-  // The provider API key. Write-only: no read returns it.
+  // The provider API key. Write-only: no read returns it. For "cursor", a
+  // Cursor user API key or a team service-account API key (Cursor's SDK
+  // refuses Team Admin keys).
   string api_key = 3 [(buf.validate.field).string = {
     min_len: 8
     max_len: 512
@@ -29,7 +38,8 @@ message SetProviderKeyInput {
   // with no credentials, query or fragment, that resolves to a public
   // address; the proxy appends the provider's request path to it, without
   // repeating a trailing /v1. For example
-  // "https://my-resource.openai.azure.com/openai/v1".
+  // "https://my-resource.openai.azure.com/openai/v1". A Cursor key takes
+  // none: Cursor serves from its own hosts.
   string base_url = 4 [
     (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
     (buf.validate.field).string = {
@@ -47,7 +57,8 @@ message DeleteProviderKeyInput {
   string provider = 2 [(buf.validate.field).string = {
     in: [
       "anthropic",
-      "openai"
+      "openai",
+      "cursor"
     ]
   }];
 }

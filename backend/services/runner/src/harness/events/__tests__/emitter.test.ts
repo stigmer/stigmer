@@ -5,8 +5,10 @@
  * terminal write, and narration after it reaches neither the log nor a
  * preview), the rows that are not the runner's to write, the ask's policy
  * source words, the turn-start
- * read, the per-event bound, previews, and what a failed or refused append
- * does. The hermetic event goldens prove the same through the real
+ * read, the per-event bound, previews, what a failed or refused append
+ * does, and the two file-review events the runner writes (a captured
+ * change set's `changes`, once; an undo's `reconciled`, at once and before
+ * the engine's turn begins). The hermetic event goldens prove the same through the real
  * activity on both harnesses.
  */
 
@@ -14,7 +16,16 @@ import { create, toBinary, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it, vi } from "vitest";
 import { RunStatusSchema, type RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
-import { ApprovalPolicySource, ApprovalPolicySourceSchema, MessageType, SubAgentStatus, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import {
+  ApprovalPolicySource,
+  ApprovalPolicySourceSchema,
+  FileChangeKind,
+  FileReviewBlockReason,
+  FileReviewEventType,
+  MessageType,
+  SubAgentStatus,
+  ToolCallStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
@@ -425,3 +436,113 @@ describe("rows the log does not carry, and big batches", () => {
   });
 });
 
+describe("file review", () => {
+  const CHANGE_SET = `${RUN}:3`;
+
+  /** A status whose own ledger captured one change set with every reviewable shape. */
+  function captured(): RunStatus {
+    return status({
+      messages: [{ type: AI, content: "Edited." }],
+      fileReviewEventStream: {
+        events: [
+          {
+            eventId: "e1",
+            changeSetId: CHANGE_SET,
+            eventType: FileReviewEventType.BASELINE_CAPTURED,
+            payload: { case: "baselineCaptured", value: { changeSetId: CHANGE_SET, turnId: CHANGE_SET, harnessId: "unit" } },
+          },
+          {
+            eventId: "e2",
+            changeSetId: CHANGE_SET,
+            eventType: FileReviewEventType.CANDIDATE_CAPTURED,
+            payload: {
+              case: "candidateCaptured",
+              value: {
+                changeSetId: CHANGE_SET,
+                aggregateDigest: "agg",
+                changes: [
+                  { id: `${CHANGE_SET}:a.md`, pathAfter: "a.md", kind: FileChangeKind.ADD, diffComplete: true, fileDigest: "da", linesAdded: 2 },
+                  { id: `${CHANGE_SET}:b.md`, pathBefore: "b.md", pathAfter: "b.md", kind: FileChangeKind.MODIFY, diffComplete: false, fileDigest: "db" },
+                  { id: `${CHANGE_SET}:logo.png`, pathBefore: "logo.png", pathAfter: "logo.png", kind: FileChangeKind.BINARY_CHANGE, diffComplete: false, after: { isBinary: true }, fileDigest: "dl" },
+                  { id: `${CHANGE_SET}:new.md`, pathBefore: "old.md", pathAfter: "new.md", kind: FileChangeKind.RENAME, diffComplete: true, fileDigest: "dn", linesRemoved: 1 },
+                  { id: `${CHANGE_SET}:.env`, pathBefore: ".env", kind: FileChangeKind.DELETE, diffComplete: false, blockedReason: FileReviewBlockReason.SECRET_WITHHELD, fileDigest: "de" },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+
+  it("writes one stigmer.file_review.changes per captured change set, in the log's words, under its derived id", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.flush(captured(), { final: true });
+
+    const changes = log.events.flatMap((event) => (event.event.case === "stigmerFileReviewChanges" ? [event.event.value] : []));
+    expect(changes).toHaveLength(1);
+    expect(changes[0]!.id).toBe(`${RUN}.fr3`);
+    expect(changes[0]!.changeSetId).toBe(CHANGE_SET);
+    expect(changes[0]!.aggregateDigest).toBe("agg");
+    expect(changes[0]!.files.map((f) => [f.path, f.previousPath, f.change, f.reviewable, f.digest, f.linesAdded, f.linesRemoved])).toEqual([
+      ["a.md", "", "added", "complete", "da", 2, 0],
+      ["b.md", "", "modified", "partial", "db", 0, 0],
+      ["logo.png", "", "modified", "binary", "dl", 0, 0],
+      ["new.md", "old.md", "renamed", "complete", "dn", 0, 1],
+      [".env", "", "deleted", "secret", "de", 0, 0],
+    ]);
+    expect(changes[0]!.files[0]!.fileChangeId).toBe(`${CHANGE_SET}:a.md`);
+  });
+
+  it("never writes a change set twice: later writes and a resumed turn that already wrote it send nothing new", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.flush(captured(), { final: false });
+    await e.flush(captured(), { final: true });
+    expect(log.events.filter((event) => event.event.case === "stigmerFileReviewChanges")).toHaveLength(1);
+
+    const resumed = emitter(log);
+    const sent = log.client.appendSessionEvents.mock.calls.length;
+    await resumed.begin({ sessionId: "ses_1", resumed: true, status: create(RunStatusSchema) });
+    await resumed.flush(captured(), { final: true });
+    expect(log.client.appendSessionEvents.mock.calls.length, "nothing new to send").toBe(sent);
+  });
+
+  it("a ledger with no candidate writes no changes event", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    const st = captured();
+    st.fileReviewEventStream!.events.splice(1, 1);
+    await e.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    await e.flush(st, { final: true });
+    expect(log.events.some((event) => event.event.case === "stigmerFileReviewChanges")).toBe(false);
+  });
+
+  it("writes an undo's stigmer.file_review.reconciled at once, before the engine's turn begins, under the undo's own id", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    await e.writeReconciled([
+      { changeSetId: "run_earlier:2", undonePaths: ["a.md"], failure: "", failureDetail: "", decidedEventId: "sevt_fd_1" },
+      { changeSetId: "run_older:0", undonePaths: [], failure: "hash_mismatch", failureDetail: "a.md changed", decidedEventId: "sevt_fd_2" },
+    ]);
+    const reconciled = log.events.flatMap((event) => (event.event.case === "stigmerFileReviewReconciled" ? [event] : []));
+    expect(reconciled.map((event) => event.event.value?.id)).toEqual(["run_earlier.fr2.r.sevt_fd_1", "run_older.fr0.r.sevt_fd_2"]);
+    expect(reconciled.map((event) => event.runId), "written by this run").toEqual([RUN, RUN]);
+    const [first, second] = reconciled.map((event) => (event.event.case === "stigmerFileReviewReconciled" ? event.event.value : undefined));
+    expect([first?.undonePaths, first?.failure]).toEqual([["a.md"], ""]);
+    expect([second?.undonePaths, second?.failure, second?.failureDetail]).toEqual([[], "hash_mismatch", "a.md changed"]);
+  });
+
+  it("writes nothing for no outcome, and retries a transient failure as a terminal write does", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    await e.writeReconciled([]);
+    expect(log.client.appendSessionEvents).not.toHaveBeenCalled();
+    log.answers.push("fail");
+    await e.writeReconciled([{ changeSetId: "run_earlier:2", undonePaths: ["a.md"], failure: "", failureDetail: "", decidedEventId: "sevt_fd_1" }]);
+    expect(log.events.map((event) => event.event.case)).toEqual(["stigmerFileReviewReconciled"]);
+  });
+});

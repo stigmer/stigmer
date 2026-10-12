@@ -174,6 +174,10 @@ export interface UseSessionConversationReturn {
    * appears as another run's `supersedesRunId`) — the edited
    * message stands in the original's place. Superseded records remain in
    * run history surfaces; only the conversation view hides them.
+   *
+   * Excludes reconcile turns too (`spec.reconcileFileReview`): the
+   * message-less run an Undo starts to put files back is not a turn of the
+   * conversation, so it never shows as an empty one.
    */
   readonly completedRuns: readonly Run[];
   /** Currently streaming run (stream or fetch fallback), or null. */
@@ -284,7 +288,13 @@ export interface UseSessionConversationReturn {
   /** Reset every approval error (both {@link approvalErrors} and `approvalError`). */
   readonly clearApprovalError: () => void;
 
-  /** Captured change sets awaiting file review on the active run, empty when none. */
+  /**
+   * Captured change sets awaiting file review on the conversation's newest
+   * turn, whether or not that turn has finished; empty when none. A turn
+   * never waits on review, so its edits stay offered for Keep and Undo
+   * after it ends, until a decision settles them or the next message is
+   * sent (the server keeps what is still undecided then).
+   */
   readonly fileChangeSets: readonly FileChangeSet[];
   /**
    * Mid-run live capture: the transient, non-authoritative snapshot of the
@@ -293,7 +303,11 @@ export interface UseSessionConversationReturn {
    * diff is {@link fileChangeSets}.
    */
   readonly fileChangeProgress: FileChangeProgress | undefined;
-  /** Submit a file-review decision for a change set. The executionId is managed internally. */
+  /**
+   * Submit a file-review decision for a change set of the newest turn
+   * ({@link fileChangeSets}). The run id is managed internally; a decision
+   * on a finished turn re-reads the session's runs so the dock settles.
+   */
   readonly submitFileDecision: (
     changeSetId: string,
     action: FileDecisionAction,
@@ -494,6 +508,10 @@ export function useSessionConversation(
 
   const listActiveId = useMemo(() => {
     for (let i = executions.length - 1; i >= 0; i--) {
+      // A reconcile turn is never streamed as the conversation's active
+      // turn: it has no message to show, and the composer stays open while
+      // it puts the undone files back.
+      if (isReconcileTurn(executions[i])) continue;
       const phase = executions[i].status?.phase;
       if (phase === undefined || !isTerminalPhase(phase)) {
         return executions[i].metadata?.id ?? null;
@@ -584,6 +602,7 @@ export function useSessionConversation(
     return executions.filter((e) => {
       const id = e.metadata?.id ?? "";
       if (activeRunId && id === activeRunId) return false;
+      if (isReconcileTurn(e)) return false;
       return !supersededIds.has(id);
     });
   }, [executions, activeRunId, supersededIds]);
@@ -768,12 +787,25 @@ export function useSessionConversation(
     [activeRunId, rawSubmitApproval],
   );
 
+  // The conversation's newest turn, finished or not: the one whose edits
+  // are offered for review. While a turn is active it is that turn's live
+  // copy; otherwise the newest listed turn, reconcile turns skipped (an
+  // Undo's run is not a turn, and its own status carries no change set).
+  const newestTurnRun = useMemo<Run | null>(() => {
+    if (activeRunId) return activeStreamRun;
+    for (let i = executions.length - 1; i >= 0; i--) {
+      if (!isReconcileTurn(executions[i])) return executions[i];
+    }
+    return null;
+  }, [activeRunId, activeStreamRun, executions]);
+  const newestTurnRunId = newestTurnRun?.metadata?.id ?? null;
+
   const fileChangeSets = useMemo<readonly FileChangeSet[]>(
     () =>
-      (activeStreamRun?.status?.fileChangeSets ?? []).filter(
+      (newestTurnRun?.status?.fileChangeSets ?? []).filter(
         (cs) => cs.status === FileChangeSetStatus.AWAITING_REVIEW,
       ),
-    [activeStreamRun],
+    [newestTurnRun],
   );
 
   // Mid-run live capture: the transient, non-authoritative "N files
@@ -792,10 +824,13 @@ export function useSessionConversation(
       action: FileDecisionAction,
       options?: FileDecisionOptions,
     ): Promise<void> => {
-      if (!activeRunId) return;
-      await rawSubmitFileDecision(activeRunId, changeSetId, action, options);
+      if (!newestTurnRunId) return;
+      await rawSubmitFileDecision(newestTurnRunId, changeSetId, action, options);
+      // A streamed turn delivers its settled sets on the stream; a finished
+      // one streams nothing, so its new projection is read from the list.
+      if (newestTurnRunId !== activeRunId) refetch();
     },
-    [activeRunId, rawSubmitFileDecision],
+    [newestTurnRunId, activeRunId, rawSubmitFileDecision, refetch],
   );
 
   const isLoading = sessionLoading || executionsLoading;
@@ -860,6 +895,14 @@ export function useSessionConversation(
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Whether a run is a reconcile turn: the message-less run the server starts
+ * when an Undo lands on a finished turn, to put the undone files back.
+ */
+function isReconcileTurn(run: Run): boolean {
+  return run.spec?.reconcileFileReview === true;
+}
 
 /**
  * The reference version that moves a conversation to its agent's current

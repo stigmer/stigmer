@@ -158,20 +158,14 @@ message RecordLlmCallUsageInput {
   // When empty, the billing handler falls back to the model pricing registry.
   string harness = 14;
 
-  // Cursor serving identity (cursor harness only): which managed
-  // CursorAccount / member key the proxy actually injected upstream for
-  // this call. Reported by the proxy from its key resolution so the
-  // stored record can never disagree with the wire — the billing handler
-  // stamps these verbatim and performs no pin lookup. Identifiers only,
-  // never key material. Empty for native-harness calls.
-  string cursor_account_id = 15;
-  string cursor_key_id = 16;
-
-  // Which credential served this call (cursor harness only). The
-  // CursorAccount store is the only credential source, so a current
-  // proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
-  // caller.
-  ai.stigmer.agentic.run.v1.CursorKeySource cursor_key_source = 17;
+  // 15, 16 and 17 held cursor_account_id, cursor_key_id and
+  // cursor_key_source: which platform-owned Cursor account and key the
+  // proxy injected upstream. Every Cursor call now runs on the
+  // organization's own Cursor key, so the pool and its attribution were
+  // removed; the numbers and the names are reserved so neither is ever
+  // reused for a different field.
+  reserved 15, 16, 17;
+  reserved "cursor_account_id", "cursor_key_id", "cursor_key_source";
 
   // Provider-reported service tier that actually served this call
   // (native harness, stigmer/stigmer#361): Anthropic reports it in the
@@ -189,20 +183,18 @@ message RecordLlmCallUsageInput {
   // credential, before reporting. The billing handler stamps these facts
   // onto the usage record and reconciles the requested tier and thinking
   // mode against what the wire served; it performs NO run lookup of
-  // its own (the same rule as cursor_account_id above: the proxy holds the
-  // fact, reports it, the handler stamps it verbatim). Absent when the
-  // proxy could not resolve the run — a run found in neither store — in
-  // which case the record
-  // carries an empty session and the requested-vs-billed reconciliation
-  // is skipped.
+  // its own (the proxy holds the fact, reports it, the handler stamps it
+  // verbatim). Absent when the proxy could not resolve the run — a run
+  // found in neither store — in which case the record carries an empty
+  // session and the requested-vs-billed reconciliation is skipped.
   MeteredRun metered_run = 19;
 
   // Whose provider credential the proxy injected upstream for this call,
-  // stamped verbatim onto the usage record (the same rule as
-  // cursor_key_source: the proxy holds the fact). ORGANIZATION means the
-  // organization's own provider key served the call: it is recorded and
-  // priced for visibility, and never debited. UNSPECIFIED from a proxy
-  // that predates the field, read as the platform's key.
+  // stamped verbatim onto the usage record (the proxy holds the fact).
+  // ORGANIZATION means the organization's own provider key served the
+  // call: it is recorded and priced for visibility, and never debited.
+  // PLATFORM means a connection the platform provides served it.
+  // UNSPECIFIED from a proxy that predates the field.
   ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21;
 }
 
@@ -211,8 +203,7 @@ message RecordLlmCallUsageInput {
 // handler that records it. Deliberately narrower than the settings the
 // run resolved: only what metering reconciles or prices against.
 message MeteredRun {
-  // The session the run belongs to. The provider reconciler matches
-  // Cursor conversations to sessions through the usage record's session.
+  // The session the run belongs to, stamped onto the usage record.
   string session_id = 1;
 
   // The model the run resolved (status.run_config.model_name, whichever

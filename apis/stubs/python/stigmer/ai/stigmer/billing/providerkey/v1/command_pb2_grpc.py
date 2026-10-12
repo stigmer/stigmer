@@ -7,7 +7,7 @@ from ai.stigmer.billing.providerkey.v1 import io_pb2 as ai_dot_stigmer_dot_billi
 
 
 class ProviderKeyCommandControllerStub(object):
-    """ProviderKeyCommandController saves and removes an organization's own LLM
+    """ProviderKeyCommandController saves and removes an organization's own model
     provider keys.
 
     Provider keys are not a standard API Resource, so there is no
@@ -35,7 +35,7 @@ class ProviderKeyCommandControllerStub(object):
 
 
 class ProviderKeyCommandControllerServicer(object):
-    """ProviderKeyCommandController saves and removes an organization's own LLM
+    """ProviderKeyCommandController saves and removes an organization's own model
     provider keys.
 
     Provider keys are not a standard API Resource, so there is no
@@ -89,7 +89,7 @@ def add_ProviderKeyCommandControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class ProviderKeyCommandController(object):
-    """ProviderKeyCommandController saves and removes an organization's own LLM
+    """ProviderKeyCommandController saves and removes an organization's own model
     provider keys.
 
     Provider keys are not a standard API Resource, so there is no

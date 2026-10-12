@@ -19,10 +19,17 @@
  *     pause queued while no attempt is running pauses the next attempt
  *     immediately (Go's buffered signal channel semantics).
  *   - HITL loop: while the runner reports WAITING_FOR_APPROVAL, persist
- *     the phase, re-read the unified gate from the DB, and either wait
- *     for approvalGateResolved, re-invoke immediately (decided-awaiting-
- *     reconcile, the approved-command auto-keep race), or fail fast after
- *     MAX_ZERO_GATE_CYCLES empty-gate cycles.
+ *     the phase, re-read the gate (pending approvals) from the DB, and
+ *     either wait for approvalGateResolved or fail fast after
+ *     MAX_ZERO_GATE_CYCLES empty-gate cycles. File review never holds a
+ *     turn (stigmer#1471): a turn with review on ends with its edits
+ *     applied, and its change sets are decided after it.
+ *   - The previous turn's file review closes first: a message turn's
+ *     workflow runs the CloseFileReview local activity before the runner,
+ *     keeping the previous turn's undecided edits now that this message
+ *     was sent. A reconcile turn (`reconcile_file_review`: a run that puts
+ *     back undone files and sends no message) runs neither it nor the
+ *     session-subject generation.
  *   - Bounded auto-recovery: heartbeat-timeout / infra-cancellation /
  *     worker-shutdown (#776) interruptions re-invoke from persisted
  *     checkpoint state with linear backoff, IN_PROGRESS persisted so the
@@ -87,10 +94,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-import {
-  hasDecidedAwaitingReconcile,
-  unresolvedGateCount,
-} from "../../../domain/run/filereview/gate.js";
+import { unresolvedGateCount } from "../../../domain/run/filereview/gate.js";
 import {
   CANCEL_STOP_ROW,
   PAUSE_STOP_ROW,
@@ -100,6 +104,8 @@ import {
   WORKER_SHUTDOWN_STATUS_ERROR,
 } from "../../runner-failure.js";
 import {
+  CLOSE_FILE_REVIEW_ACTIVITY_NAME,
+  CLOSE_FILE_REVIEW_PATCH_ID,
   DEFAULT_ACTIVITY_TASK_QUEUE,
   ENSURE_THREAD_ACTIVITY_NAME,
   EXECUTE_CURSOR_ACTIVITY_NAME,
@@ -130,8 +136,8 @@ const MAX_APPROVAL_CYCLES = 100;
 
 /**
  * Bounds consecutive HITL cycles tolerated with phase=WAITING_FOR_APPROVAL
- * but an EMPTY unified gate and nothing owed a reconcile. Once the
- * runner↔backend finalize contract holds this state is unreachable; if it
+ * but an EMPTY gate. Once the runner↔backend finalize contract holds
+ * this state is unreachable; if it
  * occurs the workflow fails fast rather than tight-looping the full agent
  * activity to MAX_APPROVAL_CYCLES (the production "RUNNING↔WAITING"
  * churn). The small tolerance absorbs a transient read race between the
@@ -321,6 +327,10 @@ interface LocalActivities {
   [LOAD_AGENT_EXECUTION_ACTIVITY_NAME]: (
     executionId: string,
   ) => Promise<JsonValue>;
+  [CLOSE_FILE_REVIEW_ACTIVITY_NAME]: (
+    executionId: string,
+    sessionId: string,
+  ) => Promise<void>;
   [READ_HARNESS_STATE_ID_ACTIVITY_NAME]: (sessionId: string) => Promise<string>;
   [RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: (
     executionId: string,
@@ -355,6 +365,7 @@ export async function invokeAgentExecution(
 
   let flowError: unknown;
   try {
+    await closePreviousFileReview(input);
     if ((input.harness ?? 0) === Harness.CURSOR) {
       await executeCursorFlow(
         input,
@@ -590,12 +601,16 @@ async function executeCursorFlow(
  * GenerateSessionSubject: fire-and-forget, non-blocking (issue #665). The
  * argument shape follows the run credential's presence — see
  * GenerateSessionSubjectInput for why the credential-less dispatch keeps
- * the positional string.
+ * the positional string. A reconcile turn sends no message, so it has
+ * nothing to title the session from and schedules nothing.
  */
 function fireGenerateSessionSubject(
   activityTaskQueue: string,
   input: InvokeAgentExecutionWorkflowInput,
 ): void {
+  if (input.reconcile_file_review === true) {
+    return;
+  }
   const executionId = input.execution_id;
   const runCredential = input.execution_context_token ?? "";
   const argument: GenerateSessionSubjectInput | string =
@@ -613,6 +628,39 @@ function fireGenerateSessionSubject(
       });
     }
   })();
+}
+
+/**
+ * CloseFileReview, first in a message turn's workflow (module header):
+ * the previous turn's still-undecided edits are kept. Non-critical: a
+ * failure is logged and the turn runs, because the previous turn's sets
+ * are already outside the decision window (the decision refuses them once
+ * this message is the newest) and the close only records it. A
+ * cancellation propagates, so the cancellation path runs as for any
+ * other step. A reconcile turn closes nothing: it sends no message, so no
+ * window moved. Behind CLOSE_FILE_REVIEW_PATCH_ID, so a run whose history
+ * predates the step replays without it.
+ */
+async function closePreviousFileReview(
+  input: InvokeAgentExecutionWorkflowInput,
+): Promise<void> {
+  if (input.reconcile_file_review === true || !patched(CLOSE_FILE_REVIEW_PATCH_ID)) {
+    return;
+  }
+  try {
+    await localActivities[CLOSE_FILE_REVIEW_ACTIVITY_NAME](
+      input.execution_id,
+      input.session_id,
+    );
+  } catch (error) {
+    if (isCancellation(error)) {
+      throw error;
+    }
+    log.warn("Closing the previous turn's file review failed (non-critical)", {
+      executionId: input.execution_id,
+      error: errorMessage(error),
+    });
+  }
 }
 
 // ─── The shared pause/recovery loop ─────────────────────────────────────
@@ -835,12 +883,10 @@ interface HitlLoopOptions {
 
 /**
  * Runs the agent activity and re-invokes it while the runner reports
- * WAITING_FOR_APPROVAL. The gate is UNIFIED: pending approvals AND change
- * sets awaiting review — a turn blocked purely on file review must wait
- * for, and resume from, the same approvalGateResolved signal. TurnSeq is
- * the approvalCycle: the runner mints the deterministic change-set id
- * `executionId:turnSeq` from it, so ledger authoring stays idempotent
- * across Temporal retries.
+ * WAITING_FOR_APPROVAL. The gate is pending approvals alone: file review
+ * never holds a turn (filereview/gate.ts). TurnSeq is the approvalCycle:
+ * the runner mints the deterministic change-set id `executionId:turnSeq`
+ * from it, so ledger authoring stays idempotent across Temporal retries.
  */
 async function executeWithHitlLoop(
   options: HitlLoopOptions,
@@ -878,14 +924,12 @@ async function executeWithHitlLoop(
       "Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
     );
 
-    // Re-read the unified gate from the system of record; a load failure
+    // Re-read the gate from the system of record; a load failure
     // defaults to 1 (wait for the signal — failing open would re-invoke
     // against an undecided gate).
     let gateCount: number;
-    let loadedStatus: RunStatus | undefined;
     try {
       const execution = await loadExecution(executionId);
-      loadedStatus = execution.status;
       gateCount = unresolvedGateCount(
         execution.status ?? create(RunStatusSchema),
       );
@@ -894,7 +938,6 @@ async function executeWithHitlLoop(
         "Failed to load execution from DB for gate count (non-fatal, will wait for signal)",
         { executionId, error: errorMessage(error) },
       );
-      loadedStatus = undefined;
       gateCount = 1;
     }
 
@@ -905,39 +948,25 @@ async function executeWithHitlLoop(
     });
 
     if (gateCount === 0) {
-      if (loadedStatus !== undefined && hasDecidedAwaitingReconcile(loadedStatus)) {
-        // LEGITIMATE empty gate: a change set was decided before this
-        // check — the approved-command auto-keep authors its
-        // decision in the same write that folds the candidate (and a
-        // fast human decision can race the check the same way). The
-        // runner is owed a reconcile; re-invoke immediately without
-        // waiting for a signal that already fired or will never come.
-        zeroGateCycles = 0;
-        log.info(
-          "HITL gate resolved before wait (policy auto-keep or early decision) — re-invoking to reconcile",
-          { executionId, cycle: approvalCycle },
-        );
-      } else {
-        // WAITING_FOR_APPROVAL with an empty unified gate and NOTHING
-        // owed a reconcile is an inconsistency the finalize contract
-        // should make impossible. Tolerate a few consecutive occurrences
-        // (transient read race) then fail fast, rather than tight-looping
-        // the full activity to MAX_APPROVAL_CYCLES.
-        zeroGateCycles++;
-        if (zeroGateCycles > MAX_ZERO_GATE_CYCLES) {
-          log.error(
-            "WAITING_FOR_APPROVAL with empty HITL gate across consecutive cycles — failing fast to avoid a tight re-invocation loop",
-            { executionId, cycle: approvalCycle, zeroGateCycles },
-          );
-          throw new Error(
-            `execution stuck in WAITING_FOR_APPROVAL with an empty HITL gate after ${zeroGateCycles} consecutive cycles - gate propagation is broken`,
-          );
-        }
-        log.warn(
-          "HITL gate is empty but phase is WAITING_FOR_APPROVAL — re-invoking (bounded) to resolve inconsistency",
+      // WAITING_FOR_APPROVAL with an empty gate is an inconsistency the
+      // finalize contract should make impossible. Tolerate a few
+      // consecutive occurrences (transient read race) then fail fast,
+      // rather than tight-looping the full activity to
+      // MAX_APPROVAL_CYCLES.
+      zeroGateCycles++;
+      if (zeroGateCycles > MAX_ZERO_GATE_CYCLES) {
+        log.error(
+          "WAITING_FOR_APPROVAL with empty HITL gate across consecutive cycles — failing fast to avoid a tight re-invocation loop",
           { executionId, cycle: approvalCycle, zeroGateCycles },
         );
+        throw new Error(
+          `execution stuck in WAITING_FOR_APPROVAL with an empty HITL gate after ${zeroGateCycles} consecutive cycles - gate propagation is broken`,
+        );
       }
+      log.warn(
+        "HITL gate is empty but phase is WAITING_FOR_APPROVAL — re-invoking (bounded) to resolve inconsistency",
+        { executionId, cycle: approvalCycle, zeroGateCycles },
+      );
     } else {
       zeroGateCycles = 0;
       await signals.consumeApprovalGateResolved();

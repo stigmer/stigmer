@@ -5,7 +5,7 @@ package ai.stigmer.billing.providerkey.v1;
 import "ai/stigmer/billing/providerkey/v1/io.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
-// ProviderKeyQueryController reads an organization's own LLM provider keys,
+// ProviderKeyQueryController reads an organization's own model provider keys,
 // never their secrets.
 //
 // Authorizes against the organization with can_view_billing, the permission

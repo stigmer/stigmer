@@ -25,7 +25,8 @@
  *
  * Custody of the Cursor access token: the exchange is made with the
  * runner's credential (the operator's `CURSOR_API_KEY`, or through the
- * platform's proxy, which adds its key), and the access token that comes
+ * platform's proxy, which adds the organization's key), and the access
+ * token that comes
  * back stays here. The host receives a stand-in, random and worthless
  * elsewhere, shaped so the SDK reads the real token's expiry from it (it
  * decodes the second dot-separated part for `exp`, and assumes thirty

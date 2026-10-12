@@ -11,7 +11,10 @@
 // Tenancy is real here, unlike the local targets: each provisioned scope is an
 // organization created via the production RPC, whose creation grants the
 // primary user ownership (IAM policies) and provisions a zero-balance billing
-// account — sufficient for the Class A (CRUD) domains.
+// account — sufficient for the Class A (CRUD) domains. A run needs the
+// organization's own key for its provider (keyTenancy): the fixture Anthropic
+// and OpenAI keys always, and a Cursor key only when the invoking shell
+// supplies a real one in CURSOR_API_KEY.
 import { createClient } from "@connectrpc/connect";
 import { IamPolicyCommandController } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/command_pb";
 import { ServerEdition } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
@@ -44,12 +47,10 @@ import type {
 } from "./target";
 
 
-// The credit seed for a funded org, mirroring the integration harness's
-// ProvisionTestBillingAccount ($100 in micro-USD): cloud authorizes billing
-// INSIDE the agent-execution workflow (InvokeAgentExecutionWorkflow →
-// ExecutionBillingService) before any work is dispatched, so the zero-balance
-// account an org create provisions — sufficient for Class A CRUD — denies
-// every Class B run with "Insufficient credits to start execution".
+// The credit seed for a funded org ($100 in micro-USD), for the ledger arms
+// that move or read a balance. No run draws credit: every run is served on
+// the organization's own provider key, so a zero-balance org runs as well as
+// a funded one.
 const TENANCY_SEED_CREDITS_MICROS = 100_000_000n;
 
 function requireEnv(name: string): string {
@@ -74,10 +75,32 @@ export const CONFORMANCE_PROVIDER_KEYS: Readonly<Record<"anthropic" | "openai", 
   openai: "sk-conformance-openai-org-key",
 };
 
+/**
+ * The environment variable a real Cursor key is read from: the name the
+ * runner's direct mode and the open-source live lanes read. There is no
+ * fixture Cursor key: the cloud checks a Cursor key with Cursor itself
+ * (`GET /v1/me`) when it is saved, so only a real user API key or team
+ * service-account key on a paid Cursor plan can be saved.
+ */
+export const CURSOR_KEY_ENV = "CURSOR_API_KEY";
+
+/** Why a Cursor arm skips where the target admits no Cursor run. */
+export const CURSOR_KEY_SKIP_REASON =
+  "the cloud target needs CURSOR_API_KEY: a Cursor run on Stigmer Cloud runs on the organization's own Cursor key";
+
+/** The real Cursor key the invoking shell supplies, or undefined. */
+export function conformanceCursorKey(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const key = env[CURSOR_KEY_ENV]?.trim() ?? "";
+  return key === "" ? undefined : key;
+}
+
 export class CloudTarget implements TargetProfile {
   readonly name = "cloud";
   // stigmer-cloud's composition declares `cloud` in its first-party unit.
   readonly edition: ServerEdition = ServerEdition.cloud;
+
+  // Read once, at construction, so the capability below and keyTenancy agree.
+  private readonly cursorKey = conformanceCursorKey();
 
   readonly capabilities: CapabilityFlags = {
     multiTenant: true,
@@ -113,7 +136,8 @@ export class CloudTarget implements TargetProfile {
     // and proactive messaging for real — the OSS refusal pins are gated off
     // here (their full behavior needs live provider workspaces; see target.ts).
     channelMessaging: true,
-    // The composition's billing engine authorizes execution credits natively.
+    // The composition admits every run on the organization's own provider
+    // keys and refuses a keyless one at create.
     billingGates: true,
     // The primary founds PlatformClients and mints their user tokens in the
     // suites that test them; the minting client's contract is enforced on
@@ -148,6 +172,9 @@ export class CloudTarget implements TargetProfile {
     // The readout substrate boots no cloud-mode sandbox lane (target.ts
     // says why the refusal is unobservable here).
     cloudTargetRefusesLocalPrograms: false,
+    // A Cursor run needs the organization's own Cursor key, which only a
+    // real key in CURSOR_API_KEY can provide (target.ts says why).
+    cursorRunsAdmitted: this.cursorKey !== undefined,
   };
 
   private grpcBaseUrl: string | undefined;
@@ -369,10 +396,15 @@ export class CloudTarget implements TargetProfile {
 
   // Saves the fixture keys through the org owner's own ProviderKey.set, the
   // call the console's Provider keys section makes. The key check a save
-  // makes reaches the environment's fake upstream, which answers it.
+  // makes reaches the environment's fake upstream, which answers it. The
+  // real Cursor key, when the run supplies one, is saved the same way with
+  // no base URL; its check reaches Cursor itself.
   async keyTenancy(org: string): Promise<void> {
     for (const [provider, apiKey] of Object.entries(CONFORMANCE_PROVIDER_KEYS)) {
       await this.clients().providerKeyCommand.set({ org, provider, apiKey });
+    }
+    if (this.cursorKey !== undefined) {
+      await this.clients().providerKeyCommand.set({ org, provider: "cursor", apiKey: this.cursorKey });
     }
   }
 

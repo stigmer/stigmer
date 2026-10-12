@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/providerkey/v1/io.proto.
  */
 export const file_ai_stigmer_billing_providerkey_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MSKgAQoTU2V0UHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESKgoIcHJvdmlkZXIYAiABKAlCGLpIFXITUglhbnRocm9waWNSBm9wZW5haRIbCgdhcGlfa2V5GAMgASgJQgq6SAdyBRAIGIAEEioKCGJhc2VfdXJsGAQgASgJQhi6SBXYAQFyEBiAEDoIaHR0cHM6Ly+IAQEiWgoWRGVsZXRlUHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESKgoIcHJvdmlkZXIYAiABKAlCGLpIFXITUglhbnRocm9waWNSBm9wZW5haSItChVMaXN0UHJvdmlkZXJLZXlzSW5wdXQSFAoDb3JnGAEgASgJQge6SARyAhABIlYKFkxpc3RQcm92aWRlcktleXNPdXRwdXQSPAoEa2V5cxgBIAMoCzIuLmFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MS5Qcm92aWRlcktleWIGcHJvdG8z", [file_ai_stigmer_billing_providerkey_v1_api, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuYmlsbGluZy5wcm92aWRlcmtleS52MSLEAgoTU2V0UHJvdmlkZXJLZXlJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESMgoIcHJvdmlkZXIYAiABKAlCILpIHXIbUglhbnRocm9waWNSBm9wZW5haVIGY3Vyc29yEhsKB2FwaV9rZXkYAyABKAlCCrpIB3IFEAgYgAQSKgoIYmFzZV91cmwYBCABKAlCGLpIFdgBAXIQGIAQOghodHRwczovL4gBATqZAbpIlQEakgEKHHByb3ZpZGVyX2tleS5jdXJzb3JfYmFzZV91cmwSQGEgQ3Vyc29yIGtleSB0YWtlcyBubyBiYXNlIFVSTDsgQ3Vyc29yIHNlcnZlcyBmcm9tIGl0cyBvd24gaG9zdHMaMHRoaXMucHJvdmlkZXIgIT0gJ2N1cnNvcicgfHwgdGhpcy5iYXNlX3VybCA9PSAnJyJiChZEZWxldGVQcm92aWRlcktleUlucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQARIyCghwcm92aWRlchgCIAEoCUIgukgdchtSCWFudGhyb3BpY1IGb3BlbmFpUgZjdXJzb3IiLQoVTGlzdFByb3ZpZGVyS2V5c0lucHV0EhQKA29yZxgBIAEoCUIHukgEcgIQASJWChZMaXN0UHJvdmlkZXJLZXlzT3V0cHV0EjwKBGtleXMYASADKAsyLi5haS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEuUHJvdmlkZXJLZXliBnByb3RvMw", [file_ai_stigmer_billing_providerkey_v1_api, file_buf_validate_validate]);
 
 /**
  * Save the organization's key for a provider, replacing any key it holds for
@@ -33,7 +33,9 @@ export type SetProviderKeyInput = Message<"ai.stigmer.billing.providerkey.v1.Set
   provider: string;
 
   /**
-   * The provider API key. Write-only: no read returns it.
+   * The provider API key. Write-only: no read returns it. For "cursor", a
+   * Cursor user API key or a team service-account API key (Cursor's SDK
+   * refuses Team Admin keys).
    *
    * @generated from field: string api_key = 3;
    */
@@ -46,7 +48,8 @@ export type SetProviderKeyInput = Message<"ai.stigmer.billing.providerkey.v1.Set
    * with no credentials, query or fragment, that resolves to a public
    * address; the proxy appends the provider's request path to it, without
    * repeating a trailing /v1. For example
-   * "https://my-resource.openai.azure.com/openai/v1".
+   * "https://my-resource.openai.azure.com/openai/v1". A Cursor key takes
+   * none: Cursor serves from its own hosts.
    *
    * @generated from field: string base_url = 4;
    */

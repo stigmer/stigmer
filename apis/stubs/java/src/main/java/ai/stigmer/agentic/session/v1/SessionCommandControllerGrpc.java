@@ -139,6 +139,37 @@ public final class SessionCommandControllerGrpc {
     return getUpdateSubjectMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ReviewFileChangesInput,
+      ai.stigmer.agentic.session.v1.ReviewFileChangesResponse> getReviewFileChangesMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "reviewFileChanges",
+      requestType = ai.stigmer.agentic.session.v1.ReviewFileChangesInput.class,
+      responseType = ai.stigmer.agentic.session.v1.ReviewFileChangesResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ReviewFileChangesInput,
+      ai.stigmer.agentic.session.v1.ReviewFileChangesResponse> getReviewFileChangesMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ReviewFileChangesInput, ai.stigmer.agentic.session.v1.ReviewFileChangesResponse> getReviewFileChangesMethod;
+    if ((getReviewFileChangesMethod = SessionCommandControllerGrpc.getReviewFileChangesMethod) == null) {
+      synchronized (SessionCommandControllerGrpc.class) {
+        if ((getReviewFileChangesMethod = SessionCommandControllerGrpc.getReviewFileChangesMethod) == null) {
+          SessionCommandControllerGrpc.getReviewFileChangesMethod = getReviewFileChangesMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.ReviewFileChangesInput, ai.stigmer.agentic.session.v1.ReviewFileChangesResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "reviewFileChanges"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.ReviewFileChangesInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.ReviewFileChangesResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("reviewFileChanges"))
+              .build();
+        }
+      }
+    }
+    return getReviewFileChangesMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.SessionId,
       ai.stigmer.agentic.session.v1.Session> getDeleteMethod;
 
@@ -312,6 +343,34 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Keep or undo the file changes a turn made, or one of its files.
+     * In a conversation with file review on (SessionSpec.file_review), each
+     * turn's file edits are applied as the agent makes them and listed in a
+     * stigmer.file_review.changes event. They can be decided until the
+     * conversation's next message is sent; then whatever is undecided is
+     * kept. Keep records the choice. Undo puts the file back as it was
+     * before the turn: at once when the turn has ended (the reply names the
+     * turn that does it), else when the turn's next step starts. The
+     * decision is appended as a stigmer.file_review.decided event.
+     * ## Error Conditions
+     * - NOT_FOUND: the change set is not one of this conversation's
+     * - FAILED_PRECONDITION: the conversation has moved on (a later message
+     *   was sent), the change was already decided the other way (a decision
+     *   is final), the file is not in the change set, or a keep of a change
+     *   that cannot be shown whole without acknowledge_unreviewable
+     * - INVALID_ARGUMENT: expected_digest does not match the change
+     * ## Idempotency
+     * The same decision sent again records nothing new and starts no second
+     * turn.
+     * </pre>
+     */
+    default void reviewFileChanges(ai.stigmer.agentic.session.v1.ReviewFileChangesInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.ReviewFileChangesResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getReviewFileChangesMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a session.
      * Deletion cascades to the session's runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
@@ -423,6 +482,35 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Keep or undo the file changes a turn made, or one of its files.
+     * In a conversation with file review on (SessionSpec.file_review), each
+     * turn's file edits are applied as the agent makes them and listed in a
+     * stigmer.file_review.changes event. They can be decided until the
+     * conversation's next message is sent; then whatever is undecided is
+     * kept. Keep records the choice. Undo puts the file back as it was
+     * before the turn: at once when the turn has ended (the reply names the
+     * turn that does it), else when the turn's next step starts. The
+     * decision is appended as a stigmer.file_review.decided event.
+     * ## Error Conditions
+     * - NOT_FOUND: the change set is not one of this conversation's
+     * - FAILED_PRECONDITION: the conversation has moved on (a later message
+     *   was sent), the change was already decided the other way (a decision
+     *   is final), the file is not in the change set, or a keep of a change
+     *   that cannot be shown whole without acknowledge_unreviewable
+     * - INVALID_ARGUMENT: expected_digest does not match the change
+     * ## Idempotency
+     * The same decision sent again records nothing new and starts no second
+     * turn.
+     * </pre>
+     */
+    public void reviewFileChanges(ai.stigmer.agentic.session.v1.ReviewFileChangesInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.ReviewFileChangesResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getReviewFileChangesMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a session.
      * Deletion cascades to the session's runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
@@ -518,6 +606,34 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Keep or undo the file changes a turn made, or one of its files.
+     * In a conversation with file review on (SessionSpec.file_review), each
+     * turn's file edits are applied as the agent makes them and listed in a
+     * stigmer.file_review.changes event. They can be decided until the
+     * conversation's next message is sent; then whatever is undecided is
+     * kept. Keep records the choice. Undo puts the file back as it was
+     * before the turn: at once when the turn has ended (the reply names the
+     * turn that does it), else when the turn's next step starts. The
+     * decision is appended as a stigmer.file_review.decided event.
+     * ## Error Conditions
+     * - NOT_FOUND: the change set is not one of this conversation's
+     * - FAILED_PRECONDITION: the conversation has moved on (a later message
+     *   was sent), the change was already decided the other way (a decision
+     *   is final), the file is not in the change set, or a keep of a change
+     *   that cannot be shown whole without acknowledge_unreviewable
+     * - INVALID_ARGUMENT: expected_digest does not match the change
+     * ## Idempotency
+     * The same decision sent again records nothing new and starts no second
+     * turn.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.ReviewFileChangesResponse reviewFileChanges(ai.stigmer.agentic.session.v1.ReviewFileChangesInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getReviewFileChangesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete a session.
      * Deletion cascades to the session's runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
@@ -607,6 +723,34 @@ public final class SessionCommandControllerGrpc {
     public ai.stigmer.agentic.session.v1.Session updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateSubjectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Keep or undo the file changes a turn made, or one of its files.
+     * In a conversation with file review on (SessionSpec.file_review), each
+     * turn's file edits are applied as the agent makes them and listed in a
+     * stigmer.file_review.changes event. They can be decided until the
+     * conversation's next message is sent; then whatever is undecided is
+     * kept. Keep records the choice. Undo puts the file back as it was
+     * before the turn: at once when the turn has ended (the reply names the
+     * turn that does it), else when the turn's next step starts. The
+     * decision is appended as a stigmer.file_review.decided event.
+     * ## Error Conditions
+     * - NOT_FOUND: the change set is not one of this conversation's
+     * - FAILED_PRECONDITION: the conversation has moved on (a later message
+     *   was sent), the change was already decided the other way (a decision
+     *   is final), the file is not in the change set, or a keep of a change
+     *   that cannot be shown whole without acknowledge_unreviewable
+     * - INVALID_ARGUMENT: expected_digest does not match the change
+     * ## Idempotency
+     * The same decision sent again records nothing new and starts no second
+     * turn.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.ReviewFileChangesResponse reviewFileChanges(ai.stigmer.agentic.session.v1.ReviewFileChangesInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getReviewFileChangesMethod(), getCallOptions(), request);
     }
 
     /**
@@ -708,6 +852,35 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Keep or undo the file changes a turn made, or one of its files.
+     * In a conversation with file review on (SessionSpec.file_review), each
+     * turn's file edits are applied as the agent makes them and listed in a
+     * stigmer.file_review.changes event. They can be decided until the
+     * conversation's next message is sent; then whatever is undecided is
+     * kept. Keep records the choice. Undo puts the file back as it was
+     * before the turn: at once when the turn has ended (the reply names the
+     * turn that does it), else when the turn's next step starts. The
+     * decision is appended as a stigmer.file_review.decided event.
+     * ## Error Conditions
+     * - NOT_FOUND: the change set is not one of this conversation's
+     * - FAILED_PRECONDITION: the conversation has moved on (a later message
+     *   was sent), the change was already decided the other way (a decision
+     *   is final), the file is not in the change set, or a keep of a change
+     *   that cannot be shown whole without acknowledge_unreviewable
+     * - INVALID_ARGUMENT: expected_digest does not match the change
+     * ## Idempotency
+     * The same decision sent again records nothing new and starts no second
+     * turn.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.ReviewFileChangesResponse> reviewFileChanges(
+        ai.stigmer.agentic.session.v1.ReviewFileChangesInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getReviewFileChangesMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete a session.
      * Deletion cascades to the session's runs. Billing usage
      * records are immutable and unaffected — they carry their own copies of
@@ -743,8 +916,9 @@ public final class SessionCommandControllerGrpc {
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_UPDATE_SUBJECT = 3;
-  private static final int METHODID_DELETE = 4;
-  private static final int METHODID_APPEND_EVENTS = 5;
+  private static final int METHODID_REVIEW_FILE_CHANGES = 4;
+  private static final int METHODID_DELETE = 5;
+  private static final int METHODID_APPEND_EVENTS = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -778,6 +952,10 @@ public final class SessionCommandControllerGrpc {
         case METHODID_UPDATE_SUBJECT:
           serviceImpl.updateSubject((ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session>) responseObserver);
+          break;
+        case METHODID_REVIEW_FILE_CHANGES:
+          serviceImpl.reviewFileChanges((ai.stigmer.agentic.session.v1.ReviewFileChangesInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.ReviewFileChangesResponse>) responseObserver);
           break;
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.agentic.session.v1.SessionId) request,
@@ -833,6 +1011,13 @@ public final class SessionCommandControllerGrpc {
               ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest,
               ai.stigmer.agentic.session.v1.Session>(
                 service, METHODID_UPDATE_SUBJECT)))
+        .addMethod(
+          getReviewFileChangesMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.ReviewFileChangesInput,
+              ai.stigmer.agentic.session.v1.ReviewFileChangesResponse>(
+                service, METHODID_REVIEW_FILE_CHANGES)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -899,6 +1084,7 @@ public final class SessionCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateSubjectMethod())
+              .addMethod(getReviewFileChangesMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getAppendEventsMethod())
               .build();
