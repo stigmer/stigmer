@@ -301,7 +301,7 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Create and manage hosted chat links for an Agent — audience, credits,
+      Create and manage hosted chat links for an Agent — audience, who pays,
       visitor messages, embedding, and credentials.
     medium: screenshot-journey
     why:
@@ -719,16 +719,14 @@ pages:
     medium: none
 
   concepts/billing:
-    fate: split
+    fate: keep
     diataxis: explanation
     teaches:
-      Stigmer Cloud's prepaid credit model — how a call is priced, how
-      runs reserve and release credits, and what reduces spend.
+      Stigmer Cloud's plans and their flat monthly fees, how Stripe invoices
+      them, that every model call runs on the Organization's own provider
+      keys, what the model catalog's list prices are for, and what reduces
+      model spend.
     medium: none
-    why:
-      Split because one page mixes the credit-model explanation with
-      pricing and spend-reduction mechanics that belong nearer the billing
-      guides; the concept survives, the operational halves move out.
 
   guides/self-hosting/overview:
     fate: keep

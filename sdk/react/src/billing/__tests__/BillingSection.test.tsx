@@ -1,20 +1,21 @@
 /**
- * BillingSection buys credits for the active organization: choosing a pack
- * starts a checkout whose input names the organization as `org`. A child
+ * BillingSection is the plan and the card on file for the active
+ * organization, and nothing else: the section renders the plan section and
+ * the payment-method card, with no balance, pack or history. A child
  * organization's plan card is told it is billed to its parent, named when
  * the person belongs to the parent too. The organization context, the
- * billing hooks and the child cards are stubbed; the pack grid is a single
- * button that buys the "growth" pack, and the plan card prints what it is
- * told about the parent.
+ * billing hooks and the child cards are stubbed; the plan card prints what
+ * it is told about the parent, and the payment-method card the organization
+ * it would open the portal for.
  */
 import { create } from "@bufbuild/protobuf";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { BillingAccountSchema, CreditBalanceSchema } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
+import { BillingAccountSchema } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 
-const checkouts = vi.hoisted(() => [] as unknown[]);
+const portals = vi.hoisted(() => [] as string[]);
 
 interface OrgStub {
   metadata: { id: string; name?: string };
@@ -36,7 +37,6 @@ vi.mock("../useBillingAccount.js", () => ({
   useBillingAccount: () => ({
     account: create(BillingAccountSchema, {
       status: BillingAccountStatus.billing_account_active,
-      balance: create(CreditBalanceSchema, {}),
     }),
     isLoading: false,
     error: null,
@@ -44,32 +44,19 @@ vi.mock("../useBillingAccount.js", () => ({
   }),
 }));
 
-vi.mock("../useCreateCheckoutSession.js", () => ({
-  useCreateCheckoutSession: () => ({
-    createSession: async (input: unknown) => {
-      checkouts.push(input);
-      return {};
+vi.mock("../useCreateBillingPortalSession.js", () => ({
+  useCreateBillingPortalSession: () => ({
+    openPortal: async (org: string) => {
+      portals.push(org);
     },
-    isSubmitting: false,
+    isLoading: false,
     error: null,
     clearError: () => {},
   }),
 }));
 
-vi.mock("../useCreateBillingPortalSession.js", () => ({
-  useCreateBillingPortalSession: () => ({ openPortal: async () => {}, isLoading: false, error: null, clearError: () => {} }),
-}));
-
 vi.mock("../useCreatePaymentMethodSetupSession.js", () => ({
   useCreatePaymentMethodSetupSession: () => ({ addPaymentMethod: async () => {}, isLoading: false, error: null, clearError: () => {} }),
-}));
-
-vi.mock("../CreditPackGrid.js", () => ({
-  CreditPackGrid: ({ onPurchase }: { onPurchase: (packId: string) => void }) => (
-    <button type="button" onClick={() => onPurchase("growth")}>
-      Buy growth
-    </button>
-  ),
 }));
 
 vi.mock("../PlanSection.js", () => ({
@@ -79,27 +66,30 @@ vi.mock("../PlanSection.js", () => ({
     </p>
   ),
 }));
-vi.mock("../CreditBalanceCard.js", () => ({ CreditBalanceCard: () => null }));
-vi.mock("../PaymentMethodCard.js", () => ({ PaymentMethodCard: () => null }));
-vi.mock("../AutoRechargeCard.js", () => ({ AutoRechargeCard: () => null }));
-vi.mock("../CreditLedgerTable.js", () => ({ CreditLedgerTable: () => null }));
-vi.mock("../LowBalanceBanner.js", () => ({ LowBalanceBanner: () => null }));
+vi.mock("../PaymentMethodCard.js", () => ({
+  PaymentMethodCard: ({ onManage }: { onManage: () => void }) => (
+    <button type="button" onClick={onManage}>
+      Manage card
+    </button>
+  ),
+}));
 
 import { BillingSection } from "../BillingSection";
 
 afterEach(() => {
   cleanup();
-  checkouts.length = 0;
+  portals.length = 0;
   orgState.activeOrg = undefined;
   orgState.orgs = [];
 });
 
 describe("BillingSection", () => {
-  it("checks out a credit pack for the active organization", async () => {
-    render(<BillingSection redirect={{ returnUrl: "https://console.test/settings/billing" }} />);
-    fireEvent.click(screen.getByRole("button", { name: "Buy growth" }));
-    await waitFor(() => expect(checkouts).toHaveLength(1));
-    expect(checkouts[0]).toMatchObject({ org: "acme", packId: "growth" });
+  it("shows the plan and the card for the active organization, and nothing about credits", () => {
+    const { container } = render(<BillingSection redirect={{ returnUrl: "https://console.test/settings/billing" }} />);
+    expect(screen.getByTestId("plan-billed-to").textContent).toBe("own plan");
+    fireEvent.click(screen.getByRole("button", { name: "Manage card" }));
+    expect(portals).toEqual(["acme"]);
+    expect(container.textContent).not.toMatch(/credit|balance|recharge/i);
   });
 
   it("tells a child organization's plan card it is billed to its parent, by name when the person belongs to the parent", () => {

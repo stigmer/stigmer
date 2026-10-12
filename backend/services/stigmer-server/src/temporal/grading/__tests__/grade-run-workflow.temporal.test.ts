@@ -258,12 +258,12 @@ describe("stigmer/grading/grade-run workflow (TestWorkflowEnvironment)", () => {
   it("records a refused start with its failure, without polling", async (testCtx) => {
     if (!envReady) return testCtx.skip();
     script.plan = { kind: "grade", ticket: TICKET };
-    script.start = { kind: "refused", failure: "out-of-credit" };
-    const handle = await startGradeRun("run_no_credit");
+    script.start = { kind: "refused", failure: "cannot-act" };
+    const handle = await startGradeRun("run_cannot_act");
     await handle.result();
     expect(script.polls).toBe(0);
     expect(script.recordCalls).toEqual([
-      { runId: "run_no_credit", judgeRunId: "", failure: "out-of-credit" },
+      { runId: "run_cannot_act", judgeRunId: "", failure: "cannot-act" },
     ]);
   }, 30_000);
 

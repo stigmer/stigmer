@@ -4,9 +4,6 @@ export type { UseOrgUsageReportReturn } from "./useOrgUsageReport.js";
 export { OrgUsagePanel } from "./OrgUsagePanel.js";
 export type { OrgUsagePanelProps } from "./OrgUsagePanel.js";
 
-export { CreditRunwayIndicator } from "./CreditRunwayIndicator.js";
-export type { CreditRunwayIndicatorProps } from "./CreditRunwayIndicator.js";
-
 export { AgentBreakdownList } from "./AgentBreakdownList.js";
 export type { AgentBreakdownListProps } from "./AgentBreakdownList.js";
 

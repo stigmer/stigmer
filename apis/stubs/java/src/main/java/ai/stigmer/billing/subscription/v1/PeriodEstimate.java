@@ -8,7 +8,7 @@ package ai.stigmer.billing.subscription.v1;
 /**
  * <pre>
  * PeriodEstimate is what an organization's current subscription period
- * would be invoiced at its end if no further usage occurred.
+ * would be invoiced at its end.
  *
  * Money is in micros (1 USD = 1,000,000). Each line is rounded to whole
  * cents the way the invoice rounds it, and total_micros is the sum of the
@@ -183,38 +183,6 @@ private static final long serialVersionUID = 0L;
     return periodEnd_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : periodEnd_;
   }
 
-  public static final int PROVIDER_COST_MICROS_FIELD_NUMBER = 4;
-  private long providerCostMicros_ = 0L;
-  /**
-   * <pre>
-   * What the period's usage has cost in provider charges so far, across
-   * the organization and the child organizations it pays for.
-   * </pre>
-   *
-   * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
-   * @return The providerCostMicros.
-   */
-  @java.lang.Override
-  public long getProviderCostMicros() {
-    return providerCostMicros_;
-  }
-
-  public static final int COMMISSION_COLLECTED_MICROS_FIELD_NUMBER = 5;
-  private long commissionCollectedMicros_ = 0L;
-  /**
-   * <pre>
-   * The commission the wallet has already collected on that usage. It
-   * counts toward the plan's cost instead of adding to it.
-   * </pre>
-   *
-   * <code>int64 commission_collected_micros = 5 [json_name = "commissionCollectedMicros"];</code>
-   * @return The commissionCollectedMicros.
-   */
-  @java.lang.Override
-  public long getCommissionCollectedMicros() {
-    return commissionCollectedMicros_;
-  }
-
   public static final int CHILD_ORG_COUNT_FIELD_NUMBER = 6;
   private int childOrgCount_ = 0;
   /**
@@ -329,12 +297,6 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(3, getPeriodEnd());
     }
-    if (providerCostMicros_ != 0L) {
-      output.writeInt64(4, providerCostMicros_);
-    }
-    if (commissionCollectedMicros_ != 0L) {
-      output.writeInt64(5, commissionCollectedMicros_);
-    }
     if (childOrgCount_ != 0) {
       output.writeInt32(6, childOrgCount_);
     }
@@ -363,14 +325,6 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, getPeriodEnd());
-    }
-    if (providerCostMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(4, providerCostMicros_);
-    }
-    if (commissionCollectedMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(5, commissionCollectedMicros_);
     }
     if (childOrgCount_ != 0) {
       size += com.google.protobuf.CodedOutputStream
@@ -416,10 +370,6 @@ private static final long serialVersionUID = 0L;
       if (!getPeriodEnd()
           .equals(other.getPeriodEnd())) return false;
     }
-    if (getProviderCostMicros()
-        != other.getProviderCostMicros()) return false;
-    if (getCommissionCollectedMicros()
-        != other.getCommissionCollectedMicros()) return false;
     if (getChildOrgCount()
         != other.getChildOrgCount()) return false;
     if (!getLinesList()
@@ -447,12 +397,6 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + PERIOD_END_FIELD_NUMBER;
       hash = (53 * hash) + getPeriodEnd().hashCode();
     }
-    hash = (37 * hash) + PROVIDER_COST_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getProviderCostMicros());
-    hash = (37 * hash) + COMMISSION_COLLECTED_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getCommissionCollectedMicros());
     hash = (37 * hash) + CHILD_ORG_COUNT_FIELD_NUMBER;
     hash = (53 * hash) + getChildOrgCount();
     if (getLinesCount() > 0) {
@@ -562,7 +506,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * PeriodEstimate is what an organization's current subscription period
-   * would be invoiced at its end if no further usage occurred.
+   * would be invoiced at its end.
    *
    * Money is in micros (1 USD = 1,000,000). Each line is rounded to whole
    * cents the way the invoice rounds it, and total_micros is the sum of the
@@ -621,8 +565,6 @@ private static final long serialVersionUID = 0L;
         periodEndBuilder_.dispose();
         periodEndBuilder_ = null;
       }
-      providerCostMicros_ = 0L;
-      commissionCollectedMicros_ = 0L;
       childOrgCount_ = 0;
       if (linesBuilder_ == null) {
         lines_ = java.util.Collections.emptyList();
@@ -630,7 +572,7 @@ private static final long serialVersionUID = 0L;
         lines_ = null;
         linesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000010);
       totalMicros_ = 0L;
       return this;
     }
@@ -666,9 +608,9 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(ai.stigmer.billing.subscription.v1.PeriodEstimate result) {
       if (linesBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0)) {
+        if (((bitField0_ & 0x00000010) != 0)) {
           lines_ = java.util.Collections.unmodifiableList(lines_);
-          bitField0_ = (bitField0_ & ~0x00000040);
+          bitField0_ = (bitField0_ & ~0x00000010);
         }
         result.lines_ = lines_;
       } else {
@@ -695,15 +637,9 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000002;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.providerCostMicros_ = providerCostMicros_;
-      }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.commissionCollectedMicros_ = commissionCollectedMicros_;
-      }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.childOrgCount_ = childOrgCount_;
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.totalMicros_ = totalMicros_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -732,12 +668,6 @@ private static final long serialVersionUID = 0L;
       if (other.hasPeriodEnd()) {
         mergePeriodEnd(other.getPeriodEnd());
       }
-      if (other.getProviderCostMicros() != 0L) {
-        setProviderCostMicros(other.getProviderCostMicros());
-      }
-      if (other.getCommissionCollectedMicros() != 0L) {
-        setCommissionCollectedMicros(other.getCommissionCollectedMicros());
-      }
       if (other.getChildOrgCount() != 0) {
         setChildOrgCount(other.getChildOrgCount());
       }
@@ -745,7 +675,7 @@ private static final long serialVersionUID = 0L;
         if (!other.lines_.isEmpty()) {
           if (lines_.isEmpty()) {
             lines_ = other.lines_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000010);
           } else {
             ensureLinesIsMutable();
             lines_.addAll(other.lines_);
@@ -758,7 +688,7 @@ private static final long serialVersionUID = 0L;
             linesBuilder_.dispose();
             linesBuilder_ = null;
             lines_ = other.lines_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000010);
             linesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetLinesFieldBuilder() : null;
@@ -815,19 +745,9 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
-            case 32: {
-              providerCostMicros_ = input.readInt64();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 32
-            case 40: {
-              commissionCollectedMicros_ = input.readInt64();
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 40
             case 48: {
               childOrgCount_ = input.readInt32();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000008;
               break;
             } // case 48
             case 58: {
@@ -845,7 +765,7 @@ private static final long serialVersionUID = 0L;
             } // case 58
             case 64: {
               totalMicros_ = input.readInt64();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000020;
               break;
             } // case 64
             default: {
@@ -1271,100 +1191,6 @@ private static final long serialVersionUID = 0L;
       return periodEndBuilder_;
     }
 
-    private long providerCostMicros_ ;
-    /**
-     * <pre>
-     * What the period's usage has cost in provider charges so far, across
-     * the organization and the child organizations it pays for.
-     * </pre>
-     *
-     * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
-     * @return The providerCostMicros.
-     */
-    @java.lang.Override
-    public long getProviderCostMicros() {
-      return providerCostMicros_;
-    }
-    /**
-     * <pre>
-     * What the period's usage has cost in provider charges so far, across
-     * the organization and the child organizations it pays for.
-     * </pre>
-     *
-     * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
-     * @param value The providerCostMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setProviderCostMicros(long value) {
-
-      providerCostMicros_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * What the period's usage has cost in provider charges so far, across
-     * the organization and the child organizations it pays for.
-     * </pre>
-     *
-     * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearProviderCostMicros() {
-      bitField0_ = (bitField0_ & ~0x00000008);
-      providerCostMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
-    private long commissionCollectedMicros_ ;
-    /**
-     * <pre>
-     * The commission the wallet has already collected on that usage. It
-     * counts toward the plan's cost instead of adding to it.
-     * </pre>
-     *
-     * <code>int64 commission_collected_micros = 5 [json_name = "commissionCollectedMicros"];</code>
-     * @return The commissionCollectedMicros.
-     */
-    @java.lang.Override
-    public long getCommissionCollectedMicros() {
-      return commissionCollectedMicros_;
-    }
-    /**
-     * <pre>
-     * The commission the wallet has already collected on that usage. It
-     * counts toward the plan's cost instead of adding to it.
-     * </pre>
-     *
-     * <code>int64 commission_collected_micros = 5 [json_name = "commissionCollectedMicros"];</code>
-     * @param value The commissionCollectedMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCommissionCollectedMicros(long value) {
-
-      commissionCollectedMicros_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The commission the wallet has already collected on that usage. It
-     * counts toward the plan's cost instead of adding to it.
-     * </pre>
-     *
-     * <code>int64 commission_collected_micros = 5 [json_name = "commissionCollectedMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCommissionCollectedMicros() {
-      bitField0_ = (bitField0_ & ~0x00000010);
-      commissionCollectedMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
     private int childOrgCount_ ;
     /**
      * <pre>
@@ -1390,7 +1216,7 @@ private static final long serialVersionUID = 0L;
     public Builder setChildOrgCount(int value) {
 
       childOrgCount_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1403,7 +1229,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearChildOrgCount() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000008);
       childOrgCount_ = 0;
       onChanged();
       return this;
@@ -1412,9 +1238,9 @@ private static final long serialVersionUID = 0L;
     private java.util.List<ai.stigmer.billing.subscription.v1.PeriodEstimateLine> lines_ =
       java.util.Collections.emptyList();
     private void ensureLinesIsMutable() {
-      if (!((bitField0_ & 0x00000040) != 0)) {
+      if (!((bitField0_ & 0x00000010) != 0)) {
         lines_ = new java.util.ArrayList<ai.stigmer.billing.subscription.v1.PeriodEstimateLine>(lines_);
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000010;
        }
     }
 
@@ -1608,7 +1434,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearLines() {
       if (linesBuilder_ == null) {
         lines_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000010);
         onChanged();
       } else {
         linesBuilder_.clear();
@@ -1713,7 +1539,7 @@ private static final long serialVersionUID = 0L;
         linesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.billing.subscription.v1.PeriodEstimateLine, ai.stigmer.billing.subscription.v1.PeriodEstimateLine.Builder, ai.stigmer.billing.subscription.v1.PeriodEstimateLineOrBuilder>(
                 lines_,
-                ((bitField0_ & 0x00000040) != 0),
+                ((bitField0_ & 0x00000010) != 0),
                 getParentForChildren(),
                 isClean());
         lines_ = null;
@@ -1746,7 +1572,7 @@ private static final long serialVersionUID = 0L;
     public Builder setTotalMicros(long value) {
 
       totalMicros_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -1759,7 +1585,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearTotalMicros() {
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000020);
       totalMicros_ = 0L;
       onChanged();
       return this;

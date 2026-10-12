@@ -10,14 +10,13 @@ import { listen } from "@tauri-apps/api/event";
 export interface BillingReturnPayload {
   readonly setup?: string | null;
   readonly plan?: string | null;
-  readonly checkout?: string | null;
 }
 
 /**
  * The billing route a return lands on, with the outcome the billing page
  * understands: `?setup=success&plan=<id>` reopens the plan the card was
- * saved for, `?checkout=success` confirms a credit pack. Anything else in
- * the link is dropped; the state itself is read from the server.
+ * saved for. Anything else in the link is dropped; the state itself is
+ * read from the server.
  */
 export function billingReturnPath(payload: BillingReturnPayload): string {
   const query = new URLSearchParams();
@@ -26,9 +25,6 @@ export function billingReturnPath(payload: BillingReturnPayload): string {
     if (payload.plan && /^[A-Za-z0-9_-]{1,64}$/.test(payload.plan)) {
       query.set("plan", payload.plan);
     }
-  }
-  if (payload.checkout === "success") {
-    query.set("checkout", "success");
   }
   const search = query.toString();
   return `/settings/billing${search === "" ? "" : `?${search}`}`;

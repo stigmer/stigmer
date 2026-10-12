@@ -1,4 +1,4 @@
-// Billing ledger conformance — the 21 RPCs of the billing engine and the
+// Billing engine conformance — the 9 RPCs of the billing engine and the
 // Stripe webhook (Class A; no runner). The rows were first read from the
 // retired Java service's behavior, and the composition is held to them.
 // Domain: billing.
@@ -7,57 +7,49 @@
 // `inventory/cloud-capabilities.yaml` row it proves; `npm run inventory:check`
 // fails when a `conformance` row has no test here or a tag names no row.
 //
-// Where `billingLedger` is TRUE (cloud): the org lanes are driven as the org
-// owner (the primary user) and an outsider; the credit mutations as the
-// target's credit issuer (`creditIssuer` — can_manage_credits on the
-// platform, which owning an org never confers), with the owner's and the
-// outsider's refusals pinned; the engine and pricing-admin lanes as the
-// platform operator (`provisionPrivilegedScope` — the FGA model derives
-// can_execute_billing_ops and can_manage_model_pricing from
-// platform#operator) with the ordinary caller's refusal pinned to the proto's
-// own error_msg. The purchase money path runs against the run's fake Stripe
-// (harness/fake-stripe.ts): Java's outbound calls land there, and the suite
-// signs the webhook events it posts back with the secret the server was
-// booted with.
+// Where `billingEngine` is TRUE (cloud): the organization's own lanes (its
+// billing account, its card on file, its usage report) are driven as the org
+// owner (the primary user) and an outsider; the usage meter and model
+// catalog lanes as the platform operator (`provisionPrivilegedScope` — the
+// FGA model derives can_execute_billing_ops and can_manage_model_pricing
+// from platform#operator) with the ordinary caller's refusal pinned to the
+// proto's own error_msg. The card-on-file path runs against the run's fake
+// Stripe (harness/fake-stripe.ts): the server's outbound calls land there,
+// and the suite signs the webhook events it posts back with the secret the
+// server was booted with.
 //
-// Where `billingLedger` is FALSE (the local OSS targets): OSS routes neither
+// Where `billingEngine` is FALSE (the local OSS targets): OSS routes neither
 // billing controller, so every RPC answers Unimplemented — the edition
-// boundary as an observable contract (the versionTagging posture). Pinned once per RPC below.
+// boundary as an observable contract (the versionTagging posture). Pinned
+// once per RPC below.
 //
 // The fixtures are shared across every file in a cloud run
 // (fileParallelism: false), so each block that drives the fake Stripe resets
 // it in its own afterEach — the blocks that never touch Stripe do not pay for
 // a reset they do not need.
-//
-// The auto-recharge rows (a live product surface) need the whole money path
-// in one test: a Stripe customer, a saved payment method, a debit that drops
-// the balance below the recharge threshold, the PaymentIntent the server
-// creates, and the webhook the suite posts back as Stripe. `armRecharge()`
-// below is that journey; the arithmetic that makes the debit cross the
-// threshold is written down there once.
 import { Code } from "@connectrpc/connect";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { LedgerEntryType } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
+import { BillingAccountStatus } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { ModelPricingBaselineStatus } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
-import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/usage_pb";
 import { FixtureTracker } from "../harness/fixtures";
-import { FAKE_CARD, postStripeWebhook, signStripePayload, signedEvent, stripeEvent, type CapturedStripeRequest } from "../harness/fake-stripe";
+import { FAKE_CARD, postStripeWebhook, signStripePayload, signedEvent, stripeEvent } from "../harness/fake-stripe";
 import { expectGrpcCode } from "../contract/errors";
 import { requireCloudFixtures, type CloudFixturesClient } from "../support/cloud-fixtures-client";
-import { pollUntil } from "../support/run-poll";
+import { agentRefOf, makeAgent } from "../support/agents";
+import { makeAgentExecution } from "../support/runs";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import type { ConformanceClients } from "../harness/clients";
 import type { PrivilegedScope, TenancyContext } from "../targets/target";
 
 // Collection-time capability read (the billing-denial / schedule-firing pattern).
-const ledgerServed = createTarget().capabilities.billingLedger;
+const engineServed = createTarget().capabilities.billingEngine;
 
 let target: TargetProfile;
 let clients: ConformanceClients;
 // The run's fixture control client — the fake Stripe's captures and scripted
-// failures. Resolved once the target confirms it serves the ledger (the local
+// failures. Resolved once the target confirms it serves the engine (the local
 // OSS targets publish no fixtures and never reach the Stripe blocks).
 let control: CloudFixturesClient;
 const fixtures = new FixtureTracker();
@@ -66,7 +58,7 @@ beforeAll(async () => {
   target = createTarget();
   await target.setup();
   clients = target.clients();
-  if (ledgerServed) control = requireCloudFixtures();
+  if (engineServed) control = requireCloudFixtures();
 });
 
 afterEach(async () => {
@@ -83,15 +75,9 @@ afterAll(async () => {
 const COPY = {
   viewBilling: "unauthorized to view billing for this organization",
   manageBilling: "unauthorized to manage billing for this organization",
-  adjustCredits: "only platform operators and credit issuers can adjust credits",
-  grantCredits: "only platform operators and credit issuers can grant credits",
-  purchaseCredits: "unauthorized to purchase credits for this organization",
   engineOps: "only platform operators can execute billing operations",
   pricingEdit: "only platform operators can edit the model registry baseline",
   pricingBaselineView: "only platform operators can view the model registry baseline",
-  manageAutoRecharge: "unauthorized to manage auto-recharge for this organization",
-  insufficientCredits: "Insufficient credits to start execution",
-  noAccount: "No billing account for this organization",
 } as const;
 
 // The engine's OWN validation copy — service code, not a proto option, so a
@@ -101,14 +87,6 @@ const COPY = {
 // names the service method the string was first read from, in the retired
 // Java service; the composition carries the same copy.
 const DOMAIN_COPY = {
-  // BillingAccountService.setAutoRechargeConfig (validation runs in this order when enabling)
-  autoRechargeNeedsPaymentMethod: "A saved payment method is required to enable auto-recharge. Purchase a credit pack first.",
-  autoRechargeThresholdPositive: "threshold_micros must be positive when enabling auto-recharge",
-  autoRechargeAmountPositive: "recharge_amount_micros must be positive when enabling auto-recharge",
-  autoRechargeCapAtLeastAmount: "monthly_cap_micros must be at least recharge_amount_micros",
-  autoRechargeThresholdNotNegative: "threshold_micros must not be negative",
-  // SetAutoRechargeConfigHandler / GetBillingAccountHandler: the account lookup precedes every other check
-  noAccountFor: (org: string) => `No billing account for ${org}`,
   // UpsertModelPricingBaselineHandler: variants inherit the base entry's Cursor rate
   variantDeclaresCursorRate: (variant: string) =>
     `Variant '${variant}' declares a Cursor Token Rate — variants inherit the base entry's rate; set it on the base pricing block instead.`,
@@ -117,244 +95,124 @@ const DOMAIN_COPY = {
     `No ACTIVE baseline found for ${modelId}/${provider}/${harness} — it may already be retired, or the key is misspelled.`,
 } as const;
 
-// A Class A billing test needs an org (funded or not), an outsider, and — for
-// the engine lanes — the operator. These wrap the target's affordances with
-// the loud-failure posture: a billingLedger target without them is a target
-// bug, never a skip.
-async function unfundedOrg(): Promise<TenancyContext> {
-  if (target.provisionUnfundedTenancy === undefined) {
-    throw new Error(`target ${target.name} declares billingLedger but provides no provisionUnfundedTenancy()`);
+// A Class A billing test needs an org, an outsider, and — for the meter and
+// catalog lanes — the operator. These wrap the target's affordances with the
+// loud-failure posture: a billingEngine target without them is a target bug,
+// never a skip.
+async function keylessOrg(): Promise<TenancyContext> {
+  if (target.provisionKeylessTenancy === undefined) {
+    throw new Error(`target ${target.name} declares billingEngine but provides no provisionKeylessTenancy()`);
   }
-  const context = await target.provisionUnfundedTenancy();
+  const context = await target.provisionKeylessTenancy();
   fixtures.defer(() => target.cleanupTenancy(context));
   return context;
 }
 
-async function fundedOrg(): Promise<TenancyContext> {
-  const context = await unfundedOrg();
-  if (target.fundTenancy === undefined) {
-    throw new Error(`target ${target.name} declares billingLedger but provides no fundTenancy()`);
+// An org holding the target's provider keys, so a run can be created in it:
+// the meter attributes a call to the organization of the run it names.
+async function keyedOrg(): Promise<TenancyContext> {
+  const context = await keylessOrg();
+  if (target.keyTenancy === undefined) {
+    throw new Error(`target ${target.name} declares billingEngine but provides no keyTenancy()`);
   }
-  await target.fundTenancy(context.org);
+  await target.keyTenancy(context.org);
   return context;
+}
+
+// A real agent execution in the org, owned by the primary: the run a
+// recorded call names, and whose organization the call is counted against.
+async function ownedExecution(org: string): Promise<string> {
+  const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("meter-agent") }));
+  fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+  const execution = await clients.agentExecutionCommand.create(
+    makeAgentExecution({ org, name: uniqueName("meter-exec"), agentRef: agentRefOf(agent) }),
+  );
+  fixtures.defer(() => clients.agentExecutionCommand.delete({ value: execution.metadata!.id }));
+  return execution.metadata!.id;
 }
 
 async function outsider(): Promise<ConformanceClients> {
   if (target.provisionIdentity === undefined) {
-    throw new Error(`target ${target.name} declares billingLedger but provides no provisionIdentity()`);
+    throw new Error(`target ${target.name} declares billingEngine but provides no provisionIdentity()`);
   }
   return target.provisionIdentity();
 }
 
 async function operator(): Promise<PrivilegedScope> {
   if (target.provisionPrivilegedScope === undefined) {
-    throw new Error(`target ${target.name} declares billingLedger but provides no provisionPrivilegedScope()`);
+    throw new Error(`target ${target.name} declares billingEngine but provides no provisionPrivilegedScope()`);
   }
   const scope = await target.provisionPrivilegedScope();
   fixtures.defer(() => scope.cleanup());
   return scope;
 }
 
-// The target's credit issuer: the clients that may add or remove credit
-// without a purchase. A billingLedger target without one is a target bug.
-function issuer(): ConformanceClients {
-  if (target.creditIssuer === undefined) {
-    throw new Error(`target ${target.name} declares billingLedger but provides no creditIssuer()`);
-  }
-  return target.creditIssuer();
-}
-
-// Funds an org AS the given caller, who must own it (the account ensure is
-// the org's own can_manage_billing) and hold can_manage_credits (the credit):
-// the operator funding its own scope org, which the primary user does not
-// own. The amount is a parameter because the auto-recharge journey needs a
-// balance SMALL enough for one debit to trip the low-balance signal.
-async function fundAs(as: ConformanceClients, org: string, amountMicros = 100_000_000n): Promise<void> {
-  await as.billingCommand.getOrCreateBillingAccount({ org });
-  await as.billingCommand.adjustCredits({ org, amountMicros, reason: "conformance operator seed", idempotencyKey: uniqueName("op-seed") });
-}
-
-async function balanceOf(org: string): Promise<bigint> {
-  const balance = await clients.billingQuery.getCreditBalance({ org });
-  return balance.availableMicros;
+// The usage report over the hour around now: every call a test records lands
+// inside it.
+async function usageReport(as: ConformanceClients, org: string) {
+  return as.billingQuery.getBillingUsageReport({
+    org,
+    startTime: timestampFromDate(new Date(Date.now() - 3600_000)),
+    endTime: timestampFromDate(new Date(Date.now() + 3600_000)),
+  });
 }
 
 // ---------------------------------------------------------------------------
-// The Stripe half. Outbound, Java dials the run's fake (harness/fake-stripe.ts)
-// and the suite reads what landed there; inbound, the suite IS Stripe — it
-// authors the event payloads below and signs them with the secret the server
-// was booted with. The fake owns Stripe's response shapes; the suite owns the
-// events it posts, so the builders live here beside the arms that use them.
+// The Stripe half. Outbound, the server dials the run's fake
+// (harness/fake-stripe.ts) and the suite reads what landed there; inbound,
+// the suite IS Stripe — it authors the event payloads below and signs them
+// with the secret the server was booted with. The fake owns Stripe's response
+// shapes; the suite owns the events it posts, so the builders live here
+// beside the arms that use them.
 
 async function post(event: ReturnType<typeof stripeEvent>, options: { secret?: string; timestamp?: number } = {}) {
   const lane = target.stripeWebhook!();
   return postStripeWebhook(lane.baseUrl, signedEvent(event, options.secret ?? lane.signingSecret, options.timestamp));
 }
 
-function checkoutCompleted(sessionId: string, type = "checkout.session.completed", id?: string) {
-  return stripeEvent(type, { id: sessionId, object: "checkout.session", payment_intent: `pi_conf_${sessionId}`, customer: null, payment_status: "paid", status: "complete" }, id === undefined ? {} : { id });
-}
-
-// `customer.updated` carries the customer with its invoice settings; Java
-// reads `invoice_settings.default_payment_method` and, when set, retrieves
-// the payment method from the (fake) API before writing it onto the account.
+// `customer.updated` carries the customer with its invoice settings; the
+// handler reads `invoice_settings.default_payment_method` and, when set,
+// retrieves the payment method from the (fake) API before writing it onto
+// the account.
 function customerUpdated(customerId: string, defaultPaymentMethodId: string | null) {
   return stripeEvent("customer.updated", { id: customerId, object: "customer", invoice_settings: { default_payment_method: defaultPaymentMethodId } });
 }
 
-// `payment_method.attached` carries the payment method itself — Java reads
-// the card from the event, never from the API. `card` defaults to the fake's
-// one card; pass `type: "us_bank_account"` (no card) for the non-card arm.
+// `payment_method.attached` carries the payment method itself — the handler
+// reads the card from the event, never from the API. `card` defaults to the
+// fake's one card; pass `type: "us_bank_account"` (no card) for the non-card
+// arm.
 function paymentMethodAttached(paymentMethodId: string, customerId: string, options: { type?: string; card?: typeof FAKE_CARD | null } = {}) {
   const type = options.type ?? "card";
   const card = options.card === undefined ? (type === "card" ? FAKE_CARD : null) : options.card;
   return stripeEvent("payment_method.attached", { id: paymentMethodId, object: "payment_method", type, customer: customerId, ...(card === null ? {} : { card }) });
 }
 
-// The two PaymentIntent events Java handles for auto-recharge. Java keys on
-// `metadata.stigmer_recharge_event_id`; without it the event is a checkout's
-// PaymentIntent and is deliberately ignored (the purchase path is settled by
-// checkout.session.completed, not by the intent).
-function paymentIntentSucceeded(paymentIntentId: string, rechargeEventId?: string, id?: string) {
-  return stripeEvent("payment_intent.succeeded", { id: paymentIntentId, object: "payment_intent", status: "succeeded", metadata: rechargeMetadata(rechargeEventId) }, id === undefined ? {} : { id });
-}
-
-function paymentIntentPaymentFailed(paymentIntentId: string, rechargeEventId?: string, message = "Your card was declined.") {
-  return stripeEvent("payment_intent.payment_failed", {
-    id: paymentIntentId,
-    object: "payment_intent",
-    status: "requires_payment_method",
-    metadata: rechargeMetadata(rechargeEventId),
-    last_payment_error: { code: "card_declined", message },
-  });
-}
-
-function rechargeMetadata(rechargeEventId: string | undefined): Record<string, string> {
-  return rechargeEventId === undefined ? {} : { stigmer_recharge_event_id: rechargeEventId };
-}
-
-// Java mints the org's Stripe customer on its first checkout; the fake's
-// captured `POST /v1/customers` answer is the id. Customer creation and use
-// must share one test — the fake forgets its customers on reset().
+// The server mints the org's Stripe customer the first time the org saves a
+// card (the setup session); the fake's captured `POST /v1/customers` answer
+// is the id. Customer creation and use must share one test — the fake
+// forgets its customers on reset().
 async function seedStripeCustomer(as: ConformanceClients, org: string): Promise<string> {
-  await as.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
+  await as.billingCommand.createPaymentMethodSetupSession({ org, successUrl: "https://x.test/saved", cancelUrl: "https://x.test/back" });
   const created = (await control.stripe.requests()).filter((r) => r.method === "POST" && r.path === "/v1/customers").at(-1);
   const customerId = created?.response.id;
-  if (customerId === undefined) throw new Error(`seedStripeCustomer(${org}): the checkout created no Stripe customer on the fake`);
+  if (customerId === undefined) throw new Error(`seedStripeCustomer(${org}): the setup session created no Stripe customer on the fake`);
   return customerId;
 }
 
-// The only way an account gets a saved payment method from outside Java is
-// the webhook: Stripe tells Java a method was attached. Returns the id the
-// account now shows; the row's own arm asserts the finer contract.
-async function seedDefaultPaymentMethod(as: ConformanceClients, org: string, customerId: string): Promise<string> {
-  const paymentMethodId = uniqueName("pm_conf");
-  const response = await post(paymentMethodAttached(paymentMethodId, customerId));
-  expect(response.status, `payment_method.attached for ${org}: ${response.body}`).toBe(200);
-  const account = await as.billingQuery.getBillingAccount({ org });
-  expect(account.defaultPaymentMethod?.paymentMethodId, "the attached card is the account's default").toBe(paymentMethodId);
-  return paymentMethodId;
-}
-
-// Java creates the auto-recharge PaymentIntent on a background executor after
-// the debit returns, so the suite polls the fake for the capture rather than
-// reading it once. The timeout message lists what DID land, so a miss says
-// which call Java made instead.
-async function awaitStripeRequest(predicate: (request: CapturedStripeRequest) => boolean, label: string): Promise<CapturedStripeRequest> {
-  const requests = await pollUntil(
-    () => control.stripe.requests(),
-    (captured) => captured.some(predicate),
-    (last, timeoutMs) => `${label}: no matching Stripe request within ${timeoutMs}ms; captured: ${(last ?? []).map((r) => `${r.method} ${r.path}`).join(", ") || "(none)"}`,
-    { timeoutMs: 10_000, pollMs: 100 },
-  );
-  const match = requests.find(predicate);
-  if (match === undefined) throw new Error(`${label}: matched then vanished`);
-  return match;
-}
-
-// The auto-recharge journey, up to the PaymentIntent Java creates.
-//
-// Why these numbers (Java: CreditLedgerService.determineSignal,
-// ExecutionBillingService.reportLlmCallUsage, AutoRechargeService.evaluateAndTrigger):
-//   fund $3 → authorizeRun takes the $1 default hold → available $2.
-//   One priced call (claude-sonnet-4-6/native is seeded at $3/$15 per
-//   million; 100k in + 10k out ≈ $0.45 before policy markup) debits the hold,
-//   leaving ~$0.55 of headroom. The post-debit signal is
-//   available + headroom ≈ $2.55 ≤ the $5 low-balance default → warning, which
-//   is what makes Java evaluate auto-recharge at all. evaluateAndTrigger then
-//   compares available ($2) — NOT the headroom figure — with the threshold
-//   ($5): below, so it claims a slot on the monthly cap ($20 of $40) and hands
-//   the PaymentIntent create to its executor. `usageStatus: COMPLETE` is what
-//   makes the call billable; without it Java records the call and debits
-//   nothing.
-const RECHARGE = {
-  fundMicros: 3_000_000n,
-  thresholdMicros: 5_000_000n,
-  amountMicros: 20_000_000n,
-  capMicros: 40_000_000n,
-  usage: { inputTokens: 100_000n, outputTokens: 10_000n },
-} as const;
-
-interface ArmedRecharge {
-  readonly org: string;
-  readonly customerId: string;
-  readonly paymentMethodId: string;
-  readonly executionId: string;
-  // What Java sent the fake for the recharge.
-  readonly paymentIntent: CapturedStripeRequest;
-  // The id the webhook must carry back for Java to settle this recharge.
-  readonly rechargeEventId: string;
-}
-
-async function armRecharge(op: PrivilegedScope): Promise<ArmedRecharge> {
-  const org = op.context.org;
-  await fundAs(op.clients, org, RECHARGE.fundMicros);
-  const customerId = await seedStripeCustomer(op.clients, org);
-  const paymentMethodId = await seedDefaultPaymentMethod(op.clients, org, customerId);
-  await op.clients.billingCommand.setAutoRechargeConfig({
-    org,
-    enabled: true,
-    thresholdMicros: RECHARGE.thresholdMicros,
-    rechargeAmountMicros: RECHARGE.amountMicros,
-    monthlyCapMicros: RECHARGE.capMicros,
-  });
-  const executionId = uniqueName("exec-recharge");
-  const authorized = await op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" });
-  expect(authorized.authorized, "the $3 org is admitted").toBe(true);
-  await debitOnce(op, executionId, 1);
-  const paymentIntent = await awaitStripeRequest((r) => r.method === "POST" && r.path === "/v1/payment_intents", `auto-recharge PaymentIntent for ${org}`);
-  const rechargeEventId = paymentIntent.params["metadata[stigmer_recharge_event_id]"];
-  if (rechargeEventId === undefined) throw new Error(`the recharge PaymentIntent carries no stigmer_recharge_event_id: ${JSON.stringify(paymentIntent.params)}`);
-  return { org, customerId, paymentMethodId, executionId, paymentIntent, rechargeEventId };
-}
-
-// One billable LLM call on an authorized execution — the debit that trips
-// the signal. `sequence` must be unique per execution.
-async function debitOnce(op: PrivilegedScope, executionId: string, sequence: number): Promise<void> {
-  await op.clients.billingCommand.recordLlmCallUsage({
-    runId: executionId,
-    sequence,
-    provider: "anthropic",
-    resolvedModel: "claude-sonnet-4-6",
-    requestedModel: "claude-sonnet-4-6",
-    harness: "native",
-    tokens: RECHARGE.usage,
-    usageStatus: UsageCompletionStatus.COMPLETE,
-  });
-}
-
-describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balances and the ledger (billingLedger targets)", () => {
-  it("[billing.gate.provision-account.org-create-provisions-zero-balance] [billing.rpc.get-billing-account.owner-reads-zero-balance-account] [rpc:BillingQueryController.getBillingAccount] an organization create provisions an active zero-balance account the owner can read at once", async () => {
-    const { org } = await unfundedOrg();
+describe.skipIf(!engineServed)("Billing engine conformance — the billing account and the usage report (billingEngine targets)", () => {
+  it("[billing.gate.provision-account.org-create-provisions-account] [billing.rpc.get-billing-account.owner-reads-active-account] [rpc:BillingQueryController.getBillingAccount] an organization create provisions an active account the owner can read at once", async () => {
+    const { org } = await keylessOrg();
     const account = await clients.billingQuery.getBillingAccount({ org });
     expect(account.org).toBe(org);
     expect(account.id, "the account carries an id").not.toBe("");
-    expect(account.balance?.availableMicros ?? 0n).toBe(0n);
-    expect(account.balance?.reservedMicros ?? 0n).toBe(0n);
+    expect(account.status).toBe(BillingAccountStatus.billing_account_active);
+    expect(account.stripeCustomerId, "no Stripe customer before the org saves a card").toBe("");
+    expect(account.defaultPaymentMethod, "no card on file").toBeUndefined();
   });
 
-  it("[billing.rpc.get-billing-account.outsider-permission-denied] [billing.rpc.get-credit-balance.outsider-permission-denied] [rpc:BillingQueryController.getBillingAccount] [rpc:BillingQueryController.getCreditBalance] an outsider's reads are refused with the proto's copy", async () => {
-    const { org } = await unfundedOrg();
+  it("[billing.rpc.get-billing-account.outsider-permission-denied] [rpc:BillingQueryController.getBillingAccount] an outsider's read is refused with the proto's copy", async () => {
+    const { org } = await keylessOrg();
     const other = await outsider();
     const denied = await expectGrpcCode(
       () => other.billingQuery.getBillingAccount({ org }),
@@ -362,24 +220,18 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
       "outsider getBillingAccount",
     );
     expect(denied.rawMessage).toBe(COPY.viewBilling);
-    const deniedBalance = await expectGrpcCode(
-      () => other.billingQuery.getCreditBalance({ org }),
-      Code.PermissionDenied,
-      "outsider getCreditBalance",
-    );
-    expect(deniedBalance.rawMessage).toBe(COPY.viewBilling);
   });
 
   it("[billing.rpc.get-or-create-billing-account.idempotent-for-existing] [rpc:BillingCommandController.getOrCreateBillingAccount] getOrCreateBillingAccount returns the existing account, never a second one", async () => {
-    const { org } = await unfundedOrg();
+    const { org } = await keylessOrg();
     const first = await clients.billingQuery.getBillingAccount({ org });
     const again = await clients.billingCommand.getOrCreateBillingAccount({ org });
     expect(again.id).toBe(first.id);
-    expect(again.balance?.availableMicros).toBe(first.balance?.availableMicros);
+    expect(again.status).toBe(first.status);
   });
 
   it("[billing.rpc.get-or-create-billing-account.member-without-manage-denied] [rpc:BillingCommandController.getOrCreateBillingAccount] an outsider's getOrCreateBillingAccount is refused", async () => {
-    const { org } = await unfundedOrg();
+    const { org } = await keylessOrg();
     const other = await outsider();
     const denied = await expectGrpcCode(
       () => other.billingCommand.getOrCreateBillingAccount({ org }),
@@ -389,251 +241,22 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — accounts, balance
     expect(denied.rawMessage).toBe(COPY.manageBilling);
   });
 
-  it("[billing.rpc.adjust-credits.positive-and-negative-move-balance] [billing.rpc.get-credit-balance.reflects-adjustments] [billing.rpc.get-credit-ledger.lists-entries-newest-first-with-shape] [rpc:BillingCommandController.adjustCredits] [rpc:BillingQueryController.getCreditBalance] [rpc:BillingQueryController.getCreditLedger] adjustments move the balance and land on the ledger with their shape", async () => {
-    const { org } = await unfundedOrg();
-    const up = await issuer().billingCommand.adjustCredits({
-      org,
-      amountMicros: 5_000_000n,
-      reason: "conformance credit",
-      idempotencyKey: uniqueName("adj-up"),
-    });
-    expect(up.amountMicros).toBe(5_000_000n);
-    expect(up.balanceAfterMicros).toBe(5_000_000n);
-    expect(up.org).toBe(org);
-    expect(up.entryId).not.toBe("");
-
-    const down = await issuer().billingCommand.adjustCredits({
-      org,
-      amountMicros: -2_000_000n,
-      reason: "conformance debit",
-      idempotencyKey: uniqueName("adj-down"),
-    });
-    expect(down.balanceAfterMicros).toBe(3_000_000n);
-    expect(await balanceOf(org)).toBe(3_000_000n);
-
-    const ledger = await clients.billingQuery.getCreditLedger({ org });
-    const ids = ledger.entries.map((entry) => entry.entryId);
-    expect(ids).toContain(up.entryId);
-    expect(ids).toContain(down.entryId);
-    for (const entry of ledger.entries) {
-      expect(entry.org).toBe(org);
-      expect(entry.idempotencyKey, "every entry carries the idempotency key it was written with").not.toBe("");
-    }
-  });
-
-  it("[billing.rpc.adjust-credits.zero-amount-invalid-argument] [rpc:BillingCommandController.adjustCredits] a zero adjustment is refused INVALID_ARGUMENT with the handler's copy", async () => {
-    const { org } = await unfundedOrg();
-    const refused = await expectGrpcCode(
-      () => issuer().billingCommand.adjustCredits({ org, amountMicros: 0n, reason: "zero", idempotencyKey: uniqueName("zero") }),
-      Code.InvalidArgument,
-      "adjustCredits amount 0",
-    );
-    expect(refused.rawMessage).toBe("amount_micros must be non-zero");
-  });
-
-  it("[billing.rpc.adjust-credits.idempotency-key-replays-once] [rpc:BillingCommandController.adjustCredits] the same idempotency key applies the amount once and returns the original entry", async () => {
-    const { org } = await unfundedOrg();
-    const key = uniqueName("adj-idem");
-    const first = await issuer().billingCommand.adjustCredits({ org, amountMicros: 1_000_000n, reason: "idem", idempotencyKey: key });
-    const replay = await issuer().billingCommand.adjustCredits({ org, amountMicros: 1_000_000n, reason: "idem", idempotencyKey: key });
-    expect(replay.entryId).toBe(first.entryId);
-    expect(await balanceOf(org)).toBe(1_000_000n);
-  });
-
-  it("[billing.rpc.adjust-credits.outsider-permission-denied] [billing.rpc.grant-credits.outsider-permission-denied] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] an outsider's adjust and grant are refused with their own copy", async () => {
-    const { org } = await unfundedOrg();
-    const other = await outsider();
-    const adjust = await expectGrpcCode(
-      () => other.billingCommand.adjustCredits({ org, amountMicros: 1n, reason: "x", idempotencyKey: uniqueName("o") }),
-      Code.PermissionDenied,
-      "outsider adjustCredits",
-    );
-    expect(adjust.rawMessage).toBe(COPY.adjustCredits);
-    const grant = await expectGrpcCode(
-      () => other.billingCommand.grantCredits({ org, amountMicros: 1n, reason: "x", idempotencyKey: uniqueName("og") }),
-      Code.PermissionDenied,
-      "outsider grantCredits",
-    );
-    expect(grant.rawMessage).toBe(COPY.grantCredits);
-  });
-
-  it("[billing.rpc.adjust-credits.owner-permission-denied] [billing.rpc.grant-credits.owner-permission-denied] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] the org's own owner cannot adjust or grant its credits, and the balance does not move", async () => {
-    const { org } = await unfundedOrg();
-    const adjust = await expectGrpcCode(
-      () => clients.billingCommand.adjustCredits({ org, amountMicros: 1_000_000n, reason: "self-funding", idempotencyKey: uniqueName("own") }),
-      Code.PermissionDenied,
-      "owner adjustCredits",
-    );
-    expect(adjust.rawMessage).toBe(COPY.adjustCredits);
-    const grant = await expectGrpcCode(
-      () => clients.billingCommand.grantCredits({ org, amountMicros: 1_000_000n, reason: "self-granting", idempotencyKey: uniqueName("owng") }),
-      Code.PermissionDenied,
-      "owner grantCredits",
-    );
-    expect(grant.rawMessage).toBe(COPY.grantCredits);
-    expect(await balanceOf(org)).toBe(0n);
-  });
-
-  it("[billing.rpc.adjust-credits.no-billing-account-not-found] [billing.rpc.grant-credits.no-billing-account-not-found] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] a credit issuer's adjust and grant on an org with no billing account are NOT_FOUND", async () => {
-    // The platform check names no organization, so the org id is data the
-    // handler must answer for; an org that was never created has no account.
-    const org = uniqueName("no-such-org");
-    const adjust = await expectGrpcCode(
-      () => issuer().billingCommand.adjustCredits({ org, amountMicros: 1_000_000n, reason: "x", idempotencyKey: uniqueName("nf") }),
-      Code.NotFound,
-      "issuer adjustCredits on an org with no account",
-    );
-    expect(adjust.rawMessage).toBe(DOMAIN_COPY.noAccountFor(org));
-    const grant = await expectGrpcCode(
-      () => issuer().billingCommand.grantCredits({ org, amountMicros: 1_000_000n, reason: "x", idempotencyKey: uniqueName("nfg") }),
-      Code.NotFound,
-      "issuer grantCredits on an org with no account",
-    );
-    expect(grant.rawMessage).toBe(DOMAIN_COPY.noAccountFor(org));
-  });
-
-  it("[billing.rpc.grant-credits.grants-with-expiry] [rpc:BillingCommandController.grantCredits] a grant raises the balance and records its expiry", async () => {
-    const { org } = await unfundedOrg();
-    const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000);
-    const grant = await issuer().billingCommand.grantCredits({
-      org,
-      amountMicros: 4_000_000n,
-      expiresAt: timestampFromDate(expiresAt),
-      reason: "conformance grant",
-      idempotencyKey: uniqueName("grant"),
-    });
-    expect(grant.amountMicros).toBe(4_000_000n);
-    expect(await balanceOf(org)).toBe(4_000_000n);
-  });
-
-  it("[billing.rpc.grant-credits.non-positive-invalid-argument] [rpc:BillingCommandController.grantCredits] a non-positive grant is refused INVALID_ARGUMENT", async () => {
-    const { org } = await unfundedOrg();
-    // The proto validates gt 0 and the handler re-checks; either way the
-    // code is INVALID_ARGUMENT — the copy differs by which fired, so only
-    // the code is pinned here.
-    for (const amountMicros of [0n, -1n]) {
-      await expectGrpcCode(
-        () => issuer().billingCommand.grantCredits({ org, amountMicros, reason: "bad", idempotencyKey: uniqueName("bad") }),
-        Code.InvalidArgument,
-        `grantCredits amount ${amountMicros}`,
-      );
-    }
-  });
-
-  it("[billing.rpc.get-billing-usage-report.shape-and-empty-org] [rpc:BillingQueryController.getBillingUsageReport] an org with no usage reports zero everything", async () => {
-    const { org } = await unfundedOrg();
-    const report = await clients.billingQuery.getBillingUsageReport({
-      org,
-      startTime: timestampFromDate(new Date(Date.now() - 3600_000)),
-      endTime: timestampFromDate(new Date(Date.now() + 3600_000)),
-    });
+  it("[billing.rpc.get-billing-usage-report.shape-and-empty-org] [rpc:BillingQueryController.getBillingUsageReport] an org with no usage reports zero runs, zero calls and no model", async () => {
+    const { org } = await keylessOrg();
+    const report = await usageReport(clients, org);
     expect(report.llmCallCount).toBe(0);
     expect(report.runCount).toBe(0);
-    expect(report.totalBillableAmountMicros).toBe(0n);
-    expect(report.totalProviderCostMicros).toBe(0n);
-  });
-
-  it("[billing.rpc.get-customer-model-pricing.applies-policy-markup] [rpc:BillingQueryController.getCustomerModelPricing] the customer pricing lists priced models with the *_micros_per_million fields", async () => {
-    const { org } = await unfundedOrg();
-    const pricing = await clients.billingQuery.getCustomerModelPricing({ org });
-    expect(pricing.entries.length, "the baseline seeds at least one priced model").toBeGreaterThan(0);
-    for (const entry of pricing.entries) {
-      expect(entry.modelId).not.toBe("");
-      expect(entry.inputPriceMicrosPerMillion).toBeGreaterThanOrEqual(0n);
-      expect(entry.outputPriceMicrosPerMillion).toBeGreaterThanOrEqual(0n);
-    }
-  });
-
-  it("[billing.rpc.set-auto-recharge-config.outsider-permission-denied] [rpc:BillingCommandController.setAutoRechargeConfig] an outsider's setAutoRechargeConfig is refused with the proto's copy", async () => {
-    const { org } = await unfundedOrg();
-    const other = await outsider();
-    // Structurally valid and disabled — the refusal must be the authorization's.
-    const denied = await expectGrpcCode(
-      () => other.billingCommand.setAutoRechargeConfig({ org, enabled: false, thresholdMicros: 0n, rechargeAmountMicros: 0n, monthlyCapMicros: 0n }),
-      Code.PermissionDenied,
-      "outsider setAutoRechargeConfig",
-    );
-    expect(denied.rawMessage).toBe(COPY.manageAutoRecharge);
+    expect(report.modelBreakdown).toEqual([]);
   });
 });
 
-describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase money path against the fake Stripe", () => {
+describe.skipIf(!engineServed)("Billing engine conformance — the card on file against the fake Stripe", () => {
   afterEach(async () => {
     await control.stripe.reset();
   });
 
-  it("[billing.rpc.create-credit-checkout-session.creates-customer-and-session] [rpc:BillingCommandController.createCreditCheckoutSession] a checkout creates the Stripe customer and session with the pack's line item and metadata", async () => {
-    const { org } = await unfundedOrg();
-    const created = await clients.billingCommand.createCreditCheckoutSession({
-      org,
-      packId: "starter",
-      successUrl: "https://console.stigmer.test/billing?ok",
-      cancelUrl: "https://console.stigmer.test/billing?cancel",
-    });
-    expect(created.checkoutSessionId).toMatch(/^cs_test_conf_/);
-    expect(created.checkoutUrl).toContain(created.checkoutSessionId);
-    expect(created.purchaseId).not.toBe("");
-
-    const requests = await control.stripe.requests();
-    const customer = requests.find((r) => r.path === "/v1/customers" && r.method === "POST");
-    const session = requests.find((r) => r.path === "/v1/checkout/sessions");
-    expect(customer?.params["name"]).toBe(org);
-    expect(customer?.params["metadata[stigmer_org_id]"]).toBe(org);
-    expect(session?.params["mode"]).toBe("payment");
-    expect(session?.params["customer"]).toBe(customer?.response.id);
-    expect(session?.params["metadata[stigmer_org_id]"]).toBe(org);
-    expect(session?.params["metadata[stigmer_purchase_id]"]).toBe(created.purchaseId);
-    expect(session?.params["metadata[stigmer_pack_id]"]).toBe("starter");
-    expect(session?.params["line_items[0][quantity]"]).toBe("1");
-    expect(session?.params["line_items[0][price_data][currency]"]).toBe("usd");
-    expect(Number(session?.params["line_items[0][price_data][unit_amount]"])).toBeGreaterThan(0);
-  });
-
-  it("[billing.rpc.create-credit-checkout-session.reuses-existing-customer] [rpc:BillingCommandController.createCreditCheckoutSession] a second checkout for the same org creates no second Stripe customer", async () => {
-    const { org } = await unfundedOrg();
-    const input = { org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/cancel" };
-    await clients.billingCommand.createCreditCheckoutSession(input);
-    await clients.billingCommand.createCreditCheckoutSession(input);
-    const customers = (await control.stripe.requests()).filter((r) => r.path === "/v1/customers" && r.method === "POST");
-    expect(customers).toHaveLength(1);
-  });
-
-  it("[billing.rpc.create-credit-checkout-session.unknown-pack-invalid-argument] [rpc:BillingCommandController.createCreditCheckoutSession] an unknown pack is refused INVALID_ARGUMENT before any Stripe call", async () => {
-    const { org } = await unfundedOrg();
-    await expectGrpcCode(
-      () => clients.billingCommand.createCreditCheckoutSession({ org, packId: "no-such-pack", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" }),
-      Code.InvalidArgument,
-      "unknown pack",
-    );
-    expect(await control.stripe.requests()).toEqual([]);
-  });
-
-  it("[billing.rpc.create-credit-checkout-session.stripe-failure-surfaces] [rpc:BillingCommandController.createCreditCheckoutSession] a Stripe refusal surfaces as an error and grants nothing", async () => {
-    const { org } = await unfundedOrg();
-    await control.stripe.failNext({ pathPrefix: "/v1/checkout/sessions", status: 402, code: "card_declined", message: "declined" });
-    let failed = false;
-    try {
-      await clients.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
-    } catch {
-      failed = true;
-    }
-    expect(failed, "the RPC must not succeed when Stripe refused the session").toBe(true);
-    expect(await balanceOf(org)).toBe(0n);
-  });
-
-  it("[billing.rpc.create-credit-checkout-session.outsider-permission-denied] [rpc:BillingCommandController.createCreditCheckoutSession] an outsider cannot purchase for the org", async () => {
-    const { org } = await unfundedOrg();
-    const other = await outsider();
-    const denied = await expectGrpcCode(
-      () => other.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" }),
-      Code.PermissionDenied,
-      "outsider checkout",
-    );
-    expect(denied.rawMessage).toBe(COPY.purchaseCredits);
-  });
-
   it("[billing.rpc.create-billing-portal-session.returns-portal-url] [billing.rpc.create-billing-portal-session.no-customer-failed-precondition] [rpc:BillingCommandController.createBillingPortalSession] the portal needs a Stripe customer, then returns the session URL", async () => {
-    const { org } = await unfundedOrg();
+    const { org } = await keylessOrg();
     await expectGrpcCode(
       () => clients.billingCommand.createBillingPortalSession({ org, returnUrl: "https://x.test/back" }),
       Code.FailedPrecondition,
@@ -641,15 +264,16 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     );
     expect((await control.stripe.requests()).filter((r) => r.path.startsWith("/v1/billing_portal"))).toEqual([]);
 
-    await clients.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
+    const customerId = await seedStripeCustomer(clients, org);
     const portal = await clients.billingCommand.createBillingPortalSession({ org, returnUrl: "https://x.test/back" });
     expect(portal.portalUrl).toMatch(/^https:\/\/billing\.stripe\.test\//);
     const request = (await control.stripe.requests()).find((r) => r.path === "/v1/billing_portal/sessions");
+    expect(request?.params["customer"]).toBe(customerId);
     expect(request?.params["return_url"]).toBe("https://x.test/back");
   });
 
-  it("[billing.rpc.create-payment-method-setup-session.creates-customer-and-setup-session] [rpc:BillingCommandController.createPaymentMethodSetupSession] a setup session saves a card for an org that never purchased, charging nothing", async () => {
-    const { org } = await unfundedOrg();
+  it("[billing.rpc.create-payment-method-setup-session.creates-customer-and-setup-session] [rpc:BillingCommandController.createPaymentMethodSetupSession] a setup session saves a card for the org, charging nothing", async () => {
+    const { org } = await keylessOrg();
     const input = { org, successUrl: "https://x.test/saved", cancelUrl: "https://x.test/back" };
     const first = await clients.billingCommand.createPaymentMethodSetupSession(input);
     expect(first.setupUrl).toMatch(/^https:\/\/checkout\.stripe\.test\//);
@@ -659,17 +283,21 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     const requests = await control.stripe.requests();
     const customers = requests.filter((r) => r.path === "/v1/customers" && r.method === "POST");
     expect(customers, "the customer is created once and reused").toHaveLength(1);
+    expect(customers[0]?.params["name"]).toBe(org);
+    expect(customers[0]?.params["metadata[stigmer_org_id]"]).toBe(org);
     const sessions = requests.filter((r) => r.path === "/v1/checkout/sessions" && r.method === "POST");
     expect(sessions).toHaveLength(2);
     expect(sessions[0]?.params["mode"]).toBe("setup");
-    expect(sessions[0]?.params["customer"]).not.toBeUndefined();
+    expect(sessions[0]?.params["customer"]).toBe(customers[0]?.response.id);
     expect(sessions[0]?.params["success_url"]).toBe("https://x.test/saved");
     expect(sessions[0]?.params["cancel_url"]).toBe("https://x.test/back");
-    expect(await balanceOf(org)).toBe(0n);
+    expect(requests.filter((r) => r.path.startsWith("/v1/payment_intents")), "a setup session charges nothing").toEqual([]);
+    const account = await clients.billingQuery.getBillingAccount({ org });
+    expect(account.stripeCustomerId).toBe(customers[0]?.response.id);
   });
 
   it("[billing.rpc.create-payment-method-setup-session.outsider-permission-denied] [rpc:BillingCommandController.createPaymentMethodSetupSession] an outsider cannot save a card for the org", async () => {
-    const { org } = await unfundedOrg();
+    const { org } = await keylessOrg();
     const other = await outsider();
     const denied = await expectGrpcCode(
       () => other.billingCommand.createPaymentMethodSetupSession({ org, successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" }),
@@ -680,132 +308,11 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect((await control.stripe.requests()).filter((r) => r.path.startsWith("/v1/checkout"))).toEqual([]);
   });
 
-  it("[billing.rpc.set-auto-recharge-config.persists-and-validates] [rpc:BillingCommandController.setAutoRechargeConfig] auto-recharge persists disabled at once, refuses to enable without a saved card, then validates the amounts in the engine's order and persists an enabled configuration", async () => {
-    const { org } = await unfundedOrg();
-    const config = (enabled: boolean, thresholdMicros: bigint, rechargeAmountMicros: bigint, monthlyCapMicros: bigint) => ({ org, enabled, thresholdMicros, rechargeAmountMicros, monthlyCapMicros });
+  // --- the webhook half: the suite is Stripe here (the builders at module
+  // scope), posting the events a saved card produces back to the lane.
 
-    // Disabled writes the amounts as given and reads back at once.
-    const disabled = await clients.billingCommand.setAutoRechargeConfig(config(false, 7_000_000n, 25_000_000n, 50_000_000n));
-    expect(disabled.autoRecharge?.enabled ?? false).toBe(false);
-    expect(disabled.autoRecharge?.thresholdMicros).toBe(7_000_000n);
-    expect(disabled.autoRecharge?.rechargeAmountMicros).toBe(25_000_000n);
-    expect(disabled.autoRecharge?.monthlyCapMicros).toBe(50_000_000n);
-    const readBack = await clients.billingQuery.getBillingAccount({ org });
-    expect(readBack.autoRecharge?.thresholdMicros).toBe(7_000_000n);
-
-    // Disabled still rejects a negative amount.
-    const negative = await expectGrpcCode(() => clients.billingCommand.setAutoRechargeConfig(config(false, -1n, 0n, 0n)), Code.InvalidArgument, "disable with a negative threshold");
-    expect(negative.rawMessage).toBe(DOMAIN_COPY.autoRechargeThresholdNotNegative);
-
-    // Enabling needs a saved card BEFORE the amounts are looked at: a bad
-    // amount without a card is refused for the card, not the amount.
-    const noCard = await expectGrpcCode(() => clients.billingCommand.setAutoRechargeConfig(config(true, 0n, 20_000_000n, 40_000_000n)), Code.FailedPrecondition, "enable without a saved card");
-    expect(noCard.rawMessage).toBe(DOMAIN_COPY.autoRechargeNeedsPaymentMethod);
-
-    // With a card, the amount ladder in the engine's order.
-    const customerId = await seedStripeCustomer(clients, org);
-    await seedDefaultPaymentMethod(clients, org, customerId);
-    const ladder: Array<[string, Parameters<typeof clients.billingCommand.setAutoRechargeConfig>[0], string]> = [
-      ["threshold 0", config(true, 0n, 20_000_000n, 40_000_000n), DOMAIN_COPY.autoRechargeThresholdPositive],
-      ["amount 0", config(true, 5_000_000n, 0n, 40_000_000n), DOMAIN_COPY.autoRechargeAmountPositive],
-      ["cap below amount", config(true, 5_000_000n, 20_000_000n, 19_999_999n), DOMAIN_COPY.autoRechargeCapAtLeastAmount],
-    ];
-    for (const [label, input, copy] of ladder) {
-      const refused = await expectGrpcCode(() => clients.billingCommand.setAutoRechargeConfig(input), Code.InvalidArgument, `enable with ${label}`);
-      expect(refused.rawMessage, label).toBe(copy);
-    }
-    const stillDisabled = await clients.billingQuery.getBillingAccount({ org });
-    expect(stillDisabled.autoRecharge?.enabled ?? false, "a refused enable changes nothing").toBe(false);
-
-    // A cap equal to the amount is the boundary the copy names ("at least").
-    const enabled = await clients.billingCommand.setAutoRechargeConfig(config(true, 5_000_000n, 20_000_000n, 20_000_000n));
-    expect(enabled.autoRecharge?.enabled).toBe(true);
-    expect(enabled.autoRecharge?.thresholdMicros).toBe(5_000_000n);
-    expect(enabled.autoRecharge?.rechargeAmountMicros).toBe(20_000_000n);
-    expect(enabled.autoRecharge?.monthlyCapMicros).toBe(20_000_000n);
-    expect(enabled.autoRecharge?.currentMonthChargedMicros ?? 0n, "enabling claims nothing on the month").toBe(0n);
-    const persisted = await clients.billingQuery.getBillingAccount({ org });
-    expect(persisted.autoRecharge?.enabled).toBe(true);
-    expect(persisted.autoRecharge?.rechargeAmountMicros).toBe(20_000_000n);
-
-    // Disabling again keeps the amounts it is given (the console's "pause" — the proto's "disabling preserves config").
-    const paused = await clients.billingCommand.setAutoRechargeConfig(config(false, 5_000_000n, 20_000_000n, 20_000_000n));
-    expect(paused.autoRecharge?.enabled ?? false).toBe(false);
-    expect(paused.autoRecharge?.rechargeAmountMicros).toBe(20_000_000n);
-  });
-
-  // The webhook half: the suite is Stripe here (the builders at module scope),
-  // posting the events a purchase produces back to the lane.
-  async function purchase(org: string): Promise<{ sessionId: string; creditsMicros: bigint }> {
-    const created = await clients.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x.test/ok", cancelUrl: "https://x.test/c" });
-    const session = (await control.stripe.requests()).find((r) => r.path === "/v1/checkout/sessions");
-    const creditsMicros = BigInt(session?.params["metadata[stigmer_credits_micros]"] ?? "0");
-    expect(creditsMicros).toBeGreaterThan(0n);
-    return { sessionId: created.checkoutSessionId, creditsMicros };
-  }
-
-  it("[billing.stripe.signature.valid-event-accepted-200-ok] [billing.stripe.webhook.anonymous-reachable] [billing.stripe.checkout-completed.grants-credits-and-completes-purchase] a signed checkout.session.completed grants the pack's credits once", async () => {
-    const { org } = await unfundedOrg();
-    const { sessionId, creditsMicros } = await purchase(org);
-    const response = await post(checkoutCompleted(sessionId));
-    expect(response.status).toBe(200);
-    expect(response.body).toBe("ok");
-    expect(await balanceOf(org)).toBe(creditsMicros);
-    const ledger = await clients.billingQuery.getCreditLedger({ org });
-    const grant = ledger.entries.find((entry) => entry.idempotencyKey.startsWith("purchase_"));
-    expect(grant, "the grant entry carries the purchase_<id> idempotency key").toBeDefined();
-    expect(grant?.amountMicros).toBe(creditsMicros);
-  });
-
-  it("[billing.stripe.checkout-completed.replay-same-event-id-grants-once] replaying the same event id answers 200 and grants nothing more", async () => {
-    const { org } = await unfundedOrg();
-    const { sessionId, creditsMicros } = await purchase(org);
-    const event = checkoutCompleted(sessionId);
-    expect((await post(event)).status).toBe(200);
-    expect((await post(event)).status).toBe(200);
-    expect(await balanceOf(org)).toBe(creditsMicros);
-  });
-
-  it("[billing.stripe.checkout-completed.different-event-same-session-grants-once] a new event for an already-completed session grants nothing more", async () => {
-    const { org } = await unfundedOrg();
-    const { sessionId, creditsMicros } = await purchase(org);
-    expect((await post(checkoutCompleted(sessionId))).status).toBe(200);
-    expect((await post(checkoutCompleted(sessionId, "checkout.session.completed", `evt_conf_second_${sessionId}`))).status).toBe(200);
-    expect(await balanceOf(org)).toBe(creditsMicros);
-  });
-
-  it("[billing.stripe.checkout-completed.async-payment-succeeded-same-handler] async_payment_succeeded grants exactly as completed does", async () => {
-    const { org } = await unfundedOrg();
-    const { sessionId, creditsMicros } = await purchase(org);
-    expect((await post(checkoutCompleted(sessionId, "checkout.session.async_payment_succeeded"))).status).toBe(200);
-    expect(await balanceOf(org)).toBe(creditsMicros);
-  });
-
-  it("[billing.stripe.checkout-completed.unknown-session-200-no-effect] a completed event for a session no purchase knows answers 200 and grants nothing", async () => {
-    const { org } = await unfundedOrg();
-    expect((await post(checkoutCompleted("cs_test_conf_unknown"))).status).toBe(200);
-    expect(await balanceOf(org)).toBe(0n);
-  });
-
-  it("[billing.stripe.checkout-failed.pending-purchase-becomes-failed] [billing.stripe.checkout-expired.pending-purchase-becomes-expired] failed and expired sessions grant nothing", async () => {
-    const { org } = await unfundedOrg();
-    const failed = await purchase(org);
-    expect((await post(checkoutCompleted(failed.sessionId, "checkout.session.async_payment_failed"))).status).toBe(200);
-    const expired = await purchase(org);
-    expect((await post(checkoutCompleted(expired.sessionId, "checkout.session.expired"))).status).toBe(200);
-    expect(await balanceOf(org)).toBe(0n);
-  });
-
-  it("[billing.stripe.unhandled-event.ignored-200] an event type Java does not handle answers 200 with no effect", async () => {
-    const { org } = await unfundedOrg();
-    expect((await post(stripeEvent("invoice.paid", { id: "in_conf_1", object: "invoice" }))).status).toBe(200);
-    expect(await balanceOf(org)).toBe(0n);
-  });
-
-  // --- the default-payment-method bookkeeping.
-
-  it("[billing.stripe.payment-method-attached.sets-default-when-none] payment_method.attached becomes the account's default card only when none is set, tells Stripe so, ignores a second card and a non-card, and does nothing for a customer Java does not know", async () => {
-    const { org } = await unfundedOrg();
+  it("[billing.stripe.payment-method-attached.sets-default-when-none] payment_method.attached becomes the account's default card only when none is set, tells Stripe so, ignores a second card and a non-card, and does nothing for a customer the server does not know", async () => {
+    const { org } = await keylessOrg();
     const customerId = await seedStripeCustomer(clients, org);
     expect((await clients.billingQuery.getBillingAccount({ org })).defaultPaymentMethod, "no default before any card").toBeUndefined();
 
@@ -817,7 +324,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(account.defaultPaymentMethod?.last4).toBe(FAKE_CARD.last4);
     expect(account.defaultPaymentMethod?.expMonth).toBe(FAKE_CARD.exp_month);
     expect(account.defaultPaymentMethod?.expYear).toBe(FAKE_CARD.exp_year);
-    // Java also makes the card the customer's default ON STRIPE.
+    // The server also makes the card the customer's default ON STRIPE.
     const customerUpdates = (await control.stripe.requests()).filter((r) => r.method === "POST" && r.path === `/v1/customers/${customerId}`);
     expect(customerUpdates.map((r) => r.params["invoice_settings[default_payment_method]"])).toEqual([first]);
 
@@ -828,7 +335,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect((await control.stripe.requests()).filter((r) => r.method === "POST" && r.path === `/v1/customers/${customerId}`)).toHaveLength(1);
 
     // A non-card method carries no card and is ignored; an unknown customer is a silent 200.
-    const other = await unfundedOrg();
+    const other = await keylessOrg();
     const otherCustomer = await seedStripeCustomer(clients, other.org);
     expect((await post(paymentMethodAttached(uniqueName("pm_conf_bank"), otherCustomer, { type: "us_bank_account" }))).status).toBe(200);
     expect((await clients.billingQuery.getBillingAccount({ org: other.org })).defaultPaymentMethod).toBeUndefined();
@@ -837,14 +344,16 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect(unknown.body).toBe("ok");
   });
 
-  it("[billing.stripe.customer-updated.syncs-default-payment-method] customer.updated with a default payment method makes Java retrieve the card and record it; with none it clears the account's default; an unknown customer is a silent 200", async () => {
-    const { org } = await unfundedOrg();
+  it("[billing.stripe.signature.valid-event-accepted-200-ok] [billing.stripe.webhook.anonymous-reachable] [billing.stripe.customer-updated.syncs-default-payment-method] a signed customer.updated, posted with no bearer, answers 200 ok; with a default payment method the server retrieves the card and records it, with none it clears the account's default, and an unknown customer is a silent 200", async () => {
+    const { org } = await keylessOrg();
     const customerId = await seedStripeCustomer(clients, org);
 
     const paymentMethodId = uniqueName("pm_conf_sync");
-    expect((await post(customerUpdated(customerId, paymentMethodId))).status).toBe(200);
+    const accepted = await post(customerUpdated(customerId, paymentMethodId));
+    expect(accepted.status).toBe(200);
+    expect(accepted.body).toBe("ok");
     const retrieved = (await control.stripe.requests()).find((r) => r.method === "GET" && r.path === `/v1/payment_methods/${paymentMethodId}`);
-    expect(retrieved, "Java retrieves the method Stripe named — the card details are not on the event").toBeDefined();
+    expect(retrieved, "the server retrieves the method Stripe named — the card details are not on the event").toBeDefined();
     const synced = await clients.billingQuery.getBillingAccount({ org });
     expect(synced.defaultPaymentMethod?.paymentMethodId).toBe(paymentMethodId);
     expect(synced.defaultPaymentMethod?.brand).toBe(FAKE_CARD.brand);
@@ -856,7 +365,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect((await post(customerUpdated(customerId, null))).status).toBe(200);
     expect((await clients.billingQuery.getBillingAccount({ org })).defaultPaymentMethod, "a cleared default is gone, not zeroed").toBeUndefined();
 
-    // A customer Java never minted: 200, nothing looked up.
+    // A customer the server never minted: 200, nothing looked up.
     const before = (await control.stripe.requests()).length;
     const unknown = await post(customerUpdated("cus_conf_nobody", uniqueName("pm_conf_stray")));
     expect(unknown.status).toBe(200);
@@ -864,18 +373,46 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     expect((await control.stripe.requests()).length, "no payment-method retrieve for an unknown customer").toBe(before);
   });
 
-  it("[billing.stripe.signature.wrong-secret-400-invalid-signature] [billing.stripe.signature.tampered-payload-400] [billing.stripe.signature.stale-timestamp-400] [billing.stripe.signature.missing-header-400] bad signatures are refused 400 and grant nothing", async () => {
-    const { org } = await unfundedOrg();
-    const { sessionId } = await purchase(org);
+  it("[billing.stripe.unhandled-event.ignored-200] an event type the server does not handle — a credit-pack checkout's and an off-session top-up's among them — answers 200 ok with no effect", async () => {
+    const { org } = await keylessOrg();
+    const customerId = await seedStripeCustomer(clients, org);
+    const session = uniqueName("cs_test_conf_pack");
+    const intent = uniqueName("pi_conf_topup");
+    const packCheckout = { id: session, object: "checkout.session", mode: "payment", customer: customerId, payment_intent: intent, payment_status: "paid", status: "complete", metadata: { stigmer_org_id: org, stigmer_pack_id: "starter" } };
+    const topUp = { id: intent, object: "payment_intent", customer: customerId, status: "succeeded", metadata: { stigmer_org_id: org, stigmer_recharge_event_id: uniqueName("evt-topup") } };
+    const unhandled = [
+      stripeEvent("checkout.session.completed", packCheckout),
+      stripeEvent("checkout.session.async_payment_succeeded", packCheckout),
+      stripeEvent("checkout.session.async_payment_failed", packCheckout),
+      stripeEvent("checkout.session.expired", { ...packCheckout, status: "expired", payment_status: "unpaid" }),
+      stripeEvent("payment_intent.succeeded", topUp),
+      stripeEvent("payment_intent.payment_failed", { ...topUp, status: "requires_payment_method", last_payment_error: { code: "card_declined", message: "Your card was declined." } }),
+      stripeEvent("charge.refunded", { id: uniqueName("ch_conf"), object: "charge", customer: customerId }),
+    ];
+    const before = await clients.billingQuery.getBillingAccount({ org });
+    const outbound = (await control.stripe.requests()).length;
+    for (const event of unhandled) {
+      const response = await post(event);
+      expect(response.status, event.type).toBe(200);
+      expect(response.body, event.type).toBe("ok");
+    }
+    expect((await control.stripe.requests()).length, "no event made the server call Stripe").toBe(outbound);
+    expect(await clients.billingQuery.getBillingAccount({ org }), "the account is unchanged").toEqual(before);
+  });
+
+  it("[billing.stripe.signature.wrong-secret-400-invalid-signature] [billing.stripe.signature.tampered-payload-400] [billing.stripe.signature.stale-timestamp-400] [billing.stripe.signature.missing-header-400] bad signatures are refused 400 and change nothing", async () => {
+    const { org } = await keylessOrg();
+    const customerId = await seedStripeCustomer(clients, org);
+    const paymentMethodId = uniqueName("pm_conf_forged");
     const lane = target.stripeWebhook!();
-    const event = checkoutCompleted(sessionId);
+    const event = customerUpdated(customerId, paymentMethodId);
 
     const wrongSecret = await post(event, { secret: "whsec_not_the_one" });
     expect(wrongSecret.status).toBe(400);
     expect(wrongSecret.body).toBe("Invalid signature");
 
     const signed = signedEvent(event, lane.signingSecret);
-    const tampered = await postStripeWebhook(lane.baseUrl, { payload: signed.payload.replace(sessionId, "cs_test_conf_tampered"), signature: signed.signature });
+    const tampered = await postStripeWebhook(lane.baseUrl, { payload: signed.payload.replace(paymentMethodId, "pm_conf_tampered"), signature: signed.signature });
     expect(tampered.status).toBe(400);
 
     const stale = await post(event, { timestamp: Math.floor(Date.now() / 1000) - 3600 });
@@ -884,26 +421,19 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the purchase mone
     const missing = await fetch(`${lane.baseUrl}/webhook/stripe`, { method: "POST", headers: { "content-type": "application/json" }, body: signStripePayload(JSON.stringify(event), lane.signingSecret).payload });
     expect(missing.status, "no Stripe-Signature header is a bad request").toBe(400);
 
-    expect(await balanceOf(org)).toBe(0n);
+    expect((await control.stripe.requests()).filter((r) => r.path.startsWith("/v1/payment_methods")), "no refused event was acted on").toEqual([]);
+    expect((await clients.billingQuery.getBillingAccount({ org })).defaultPaymentMethod).toBeUndefined();
   });
 });
 
-describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pricing-admin lanes (platform operator)", () => {
-  it("[billing.rpc.engine-lanes.ordinary-caller-permission-denied] [rpc:BillingCommandController.authorizeRun] [rpc:BillingCommandController.finalizeRun] [rpc:BillingCommandController.rearmForRecovery] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingQueryController.getRunBillingSignal] an org owner who is not a platform operator is refused on every engine RPC with the proto's copy", async () => {
-    const { org } = await fundedOrg();
-    const executionId = uniqueName("exec");
-    const lanes: Array<[string, () => Promise<unknown>]> = [
-      ["authorizeRun", () => clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" })],
-      ["finalizeRun", () => clients.billingCommand.finalizeRun({ runId: executionId })],
-      ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ runId: executionId })],
-      ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6" })],
-      ["previewAuthorization", () => clients.billingQuery.previewAuthorization({ org })],
-      ["getRunBillingSignal", () => clients.billingQuery.getRunBillingSignal({ runId: executionId })],
-    ];
-    for (const [name, op] of lanes) {
-      const denied = await expectGrpcCode(op, Code.PermissionDenied, `ordinary caller ${name}`);
-      expect(denied.rawMessage, name).toBe(COPY.engineOps);
-    }
+describe.skipIf(!engineServed)("Billing engine conformance — the usage meter and the model catalog (platform operator)", () => {
+  it("[billing.rpc.engine-lanes.ordinary-caller-permission-denied] [rpc:BillingCommandController.recordLlmCallUsage] an org owner who is not a platform operator is refused on the meter's write with the proto's copy", async () => {
+    const denied = await expectGrpcCode(
+      () => clients.billingCommand.recordLlmCallUsage({ runId: uniqueName("exec"), sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6" }),
+      Code.PermissionDenied,
+      "ordinary caller recordLlmCallUsage",
+    );
+    expect(denied.rawMessage).toBe(COPY.engineOps);
   });
 
   it("[billing.rpc.pricing-admin-lanes.ordinary-caller-permission-denied] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingQueryController.listModelPricingBaselines] an org owner is refused on every pricing-admin RPC with its own copy", async () => {
@@ -935,92 +465,21 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     }
   });
 
-  it("[billing.rpc.preview-authorization.reasons-for-unfunded-and-funded] [billing.rpc.authorize-execution.denied-when-unfunded] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingCommandController.authorizeRun] the operator's preview and authorize deny an unfunded org with the engine's one denial vocabulary and admit a funded one", async (ctx) => {
+  it("[billing.rpc.record-llm-call-usage.records-calls-and-unknown-models] [rpc:BillingCommandController.recordLlmCallUsage] recorded calls land on the run's organization's usage report; a model the catalog lacks is recorded rather than refused", async () => {
     const op = await operator();
-    const unfunded = op.context.org;
-    const preview = await op.clients.billingQuery.previewAuthorization({ org: unfunded });
-    expect(preview.authorized).toBe(false);
-    expect(preview.denialReason).toBe(COPY.insufficientCredits);
-    const denied = await op.clients.billingCommand.authorizeRun({ org: unfunded, runId: uniqueName("exec"), harness: "native" });
-    expect(denied.authorized).toBe(false);
-    expect(denied.denialReason).toBe(COPY.insufficientCredits);
-    expect(denied.reservationId).toBe("");
+    const { org } = await keyedOrg();
+    const runId = await ownedExecution(org);
+    const first = await op.clients.billingCommand.recordLlmCallUsage({ runId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6", requestedModel: "claude-sonnet-4-6", harness: "native" });
+    const second = await op.clients.billingCommand.recordLlmCallUsage({ runId, sequence: 2, provider: "anthropic", resolvedModel: "model-nobody-catalogued", requestedModel: "model-nobody-catalogued", harness: "native" });
+    expect(first.usageRecordId, "the meter mints a record id").not.toBe("");
+    expect(second.usageRecordId).not.toBe(first.usageRecordId);
+    expect(second.isDuplicate).toBe(false);
 
-    await fundAs(op.clients, unfunded);
-    const admitted = await op.clients.billingQuery.previewAuthorization({ org: unfunded });
-    expect(admitted.authorized, ctx.task.name).toBe(true);
-  });
-
-  it("[billing.rpc.authorize-execution.reserves-and-latches] [billing.rpc.authorize-execution.concurrent-reserves-one-hold] [billing.rpc.finalize-execution.settles-and-is-idempotent] [billing.rpc.get-execution-billing-signal.unspecified-when-no-reservation] [rpc:BillingCommandController.authorizeRun] [rpc:BillingCommandController.finalizeRun] [rpc:BillingQueryController.getRunBillingSignal] a funded execution reserves once under concurrency, settles once, and signals only while reserved", async () => {
-    const op = await operator();
-    const org = op.context.org;
-    await fundAs(op.clients, org);
-    const before = (await op.clients.billingQuery.getCreditBalance({ org })).availableMicros;
-    const executionId = uniqueName("exec");
-
-    const noReservation = await op.clients.billingQuery.getRunBillingSignal({ runId: executionId });
-    expect(noReservation.reason).toBe("");
-
-    const results = await Promise.all([
-      op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" }),
-      op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" }),
-      op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" }),
-    ]);
-    for (const result of results) expect(result.authorized).toBe(true);
-    const reservationIds = new Set(results.map((r) => r.reservationId));
-    expect(reservationIds.size, "concurrent authorizes converge on ONE reservation").toBe(1);
-    const held = (await op.clients.billingQuery.getCreditBalance({ org })).reservedMicros;
-    expect(held).toBe(results[0]?.reservedMicros ?? -1n);
-
-    const settled = await op.clients.billingCommand.finalizeRun({ runId: executionId });
-    expect(settled.releasedReservationMicros).toBe(results[0]?.reservedMicros ?? -1n);
-    const afterFirst = await op.clients.billingQuery.getCreditBalance({ org });
-    expect(afterFirst.reservedMicros).toBe(0n);
-    expect(afterFirst.availableMicros, "no usage was recorded, so settling returns the hold in full").toBe(before);
-
-    await op.clients.billingCommand.finalizeRun({ runId: executionId }).catch(() => undefined);
-    const afterSecond = await op.clients.billingQuery.getCreditBalance({ org });
-    expect(afterSecond.availableMicros).toBe(before);
-    expect(afterSecond.reservedMicros).toBe(0n);
-  });
-
-  it("[billing.rpc.finalize-execution.unknown-execution-failed-precondition] [rpc:BillingCommandController.finalizeRun] settling an execution that was never authorized is refused FAILED_PRECONDITION", async () => {
-    const op = await operator();
-    await expectGrpcCode(
-      () => op.clients.billingCommand.finalizeRun({ runId: uniqueName("never-authorized") }),
-      Code.FailedPrecondition,
-      "finalize unknown execution",
-    );
-  });
-
-  it("[billing.rpc.rearm-for-recovery.rotates-reservation-past-settled-latch] [rpc:BillingCommandController.rearmForRecovery] re-arming a settled execution mints a new reservation on a funded org", async () => {
-    const op = await operator();
-    const org = op.context.org;
-    await fundAs(op.clients, org);
-    const executionId = uniqueName("exec");
-    const first = await op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" });
-    await op.clients.billingCommand.finalizeRun({ runId: executionId });
-    const rearmed = await op.clients.billingCommand.rearmForRecovery({ runId: executionId });
-    expect(rearmed.authorized).toBe(true);
-    expect(rearmed.reservationId).not.toBe("");
-    expect(rearmed.reservationId).not.toBe(first.reservationId);
-  });
-
-  it("[billing.rpc.record-llm-call-usage.records-cost-and-marks-price-not-found] [rpc:BillingCommandController.recordLlmCallUsage] recorded usage lands on the org's usage report; an unpriced model records with PRICE_NOT_FOUND rather than failing", async () => {
-    const op = await operator();
-    const org = op.context.org;
-    await fundAs(op.clients, org);
-    const executionId = uniqueName("exec");
-    await op.clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" });
-    await op.clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 1, provider: "anthropic", resolvedModel: "claude-sonnet-4-6", requestedModel: "claude-sonnet-4-6" });
-    await op.clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 2, provider: "anthropic", resolvedModel: "model-nobody-priced", requestedModel: "model-nobody-priced" });
-    const report = await op.clients.billingQuery.getBillingUsageReport({
-      org,
-      startTime: timestampFromDate(new Date(Date.now() - 3600_000)),
-      endTime: timestampFromDate(new Date(Date.now() + 3600_000)),
-    });
+    const report = await usageReport(clients, org);
     expect(report.llmCallCount).toBe(2);
     expect(report.runCount).toBe(1);
+    expect(report.modelBreakdown.reduce((sum, model) => sum + model.callCount, 0), "the breakdown counts every call").toBe(2);
+    for (const model of report.modelBreakdown) expect(model.model, "every breakdown row names its model").not.toBe("");
   });
 
   // --- the model catalog lanes (operator tooling with a console).
@@ -1123,120 +582,22 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
   });
 });
 
-describe.skipIf(!ledgerServed)("Billing ledger conformance — auto-recharge, the operator-driven money path against the fake Stripe", () => {
-  afterEach(async () => {
-    await control.stripe.reset();
-  });
-
-  it("[billing.stripe.outbound.idempotency-key-on-recharge-payment-intent] [billing.stripe.payment-intent-succeeded.recharge-provisions-credits] a debit past the threshold makes Java create the recharge PaymentIntent under its event's idempotency key and claim the month; payment_intent.succeeded then grants the credits exactly once, and a succeeded intent without the recharge metadata grants nothing", async () => {
-    const op = await operator();
-    const { org, customerId, paymentMethodId, paymentIntent, rechargeEventId } = await armRecharge(op);
-    const paymentIntentId = paymentIntent.response.id ?? "";
-    expect(paymentIntentId).toMatch(/^pi_conf_/);
-
-    // What the server sent Stripe: an off-session confirmed charge on the
-    // saved card, keyed so a retry can never charge twice (a carve-out — the
-    // key must be byte-identical across editions).
-    expect(paymentIntent.idempotencyKey).toBe(`auto_recharge_${rechargeEventId}`);
-    expect(paymentIntent.params["amount"], "Stripe wants cents; the engine keeps micros").toBe(String(RECHARGE.amountMicros / 10_000n));
-    expect(paymentIntent.params["currency"]).toBe("usd");
-    expect(paymentIntent.params["customer"]).toBe(customerId);
-    expect(paymentIntent.params["payment_method"]).toBe(paymentMethodId);
-    expect(paymentIntent.params["off_session"]).toBe("true");
-    expect(paymentIntent.params["confirm"]).toBe("true");
-    expect(paymentIntent.params["metadata[stigmer_org_id]"]).toBe(org);
-    expect(paymentIntent.params["metadata[stigmer_credits_micros]"]).toBe(String(RECHARGE.amountMicros));
-
-    // The month's slot is claimed at trigger time, before any money moves.
-    const claimed = await op.clients.billingQuery.getBillingAccount({ org });
-    expect(claimed.autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
-    const before = (await op.clients.billingQuery.getCreditBalance({ org })).availableMicros;
-
-    // A succeeded intent that is not a recharge (a checkout's, say) is ignored;
-    // one naming a recharge Java never created is a silent 200 too.
-    expect((await post(paymentIntentSucceeded(paymentIntentId))).status).toBe(200);
-    expect((await post(paymentIntentSucceeded(paymentIntentId, uniqueName("evt-nobody-created")))).status).toBe(200);
-    expect((await op.clients.billingQuery.getCreditBalance({ org })).availableMicros, "nothing granted without the recharge's own id").toBe(before);
-
-    // The real one: credits land on the ledger under the recharge's key.
-    const settled = paymentIntentSucceeded(paymentIntentId, rechargeEventId);
-    const response = await post(settled);
-    expect(response.status).toBe(200);
-    expect(response.body).toBe("ok");
-    const after = await op.clients.billingQuery.getCreditBalance({ org });
-    expect(after.availableMicros - before).toBe(RECHARGE.amountMicros);
-    const ledger = await op.clients.billingQuery.getCreditLedger({ org });
-    const grant = ledger.entries.find((entry) => entry.idempotencyKey === `auto_recharge_${rechargeEventId}`);
-    expect(grant, "the grant carries the recharge event's idempotency key").toBeDefined();
-    expect(grant?.type).toBe(LedgerEntryType.auto_recharge_credit);
-    expect(grant?.amountMicros).toBe(RECHARGE.amountMicros);
-
-    // Once: the same event replayed, and a fresh event for the same recharge, grant nothing more.
-    expect((await post(settled)).status).toBe(200);
-    expect((await post(paymentIntentSucceeded(paymentIntentId, rechargeEventId))).status).toBe(200);
-    expect((await op.clients.billingQuery.getCreditBalance({ org })).availableMicros).toBe(after.availableMicros);
-    expect((await op.clients.billingQuery.getCreditLedger({ org })).entries.filter((e) => e.type === LedgerEntryType.auto_recharge_credit)).toHaveLength(1);
-  });
-
-  it("[billing.stripe.payment-intent-failed.recharge-compensated] payment_intent.payment_failed releases the month's slot and grants nothing, and the next debit past the threshold is free to trigger a fresh recharge", async () => {
-    const op = await operator();
-    const { org, executionId, paymentIntent, rechargeEventId } = await armRecharge(op);
-    const paymentIntentId = paymentIntent.response.id ?? "";
-    expect((await op.clients.billingQuery.getBillingAccount({ org })).autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
-    const before = (await op.clients.billingQuery.getCreditBalance({ org })).availableMicros;
-
-    const response = await post(paymentIntentPaymentFailed(paymentIntentId, rechargeEventId, "Your card was declined."));
-    expect(response.status).toBe(200);
-    expect(response.body).toBe("ok");
-    const compensated = await op.clients.billingQuery.getBillingAccount({ org });
-    expect(compensated.autoRecharge?.currentMonthChargedMicros ?? 0n, "the failed charge gives its slot back").toBe(0n);
-    expect((await op.clients.billingQuery.getCreditBalance({ org })).availableMicros).toBe(before);
-    expect((await op.clients.billingQuery.getCreditLedger({ org })).entries.some((e) => e.type === LedgerEntryType.auto_recharge_credit), "no grant for a failed charge").toBe(false);
-
-    // The release is real, not cosmetic: with the failed event no longer
-    // pending, the next low-balance debit triggers a NEW recharge under a new
-    // event id and claims the month again.
-    await debitOnce(op, executionId, 2);
-    const second = await awaitStripeRequest(
-      (r) => r.method === "POST" && r.path === "/v1/payment_intents" && r.idempotencyKey !== paymentIntent.idempotencyKey,
-      `second auto-recharge PaymentIntent for ${org}`,
-    );
-    const secondEventId = second.params["metadata[stigmer_recharge_event_id]"];
-    expect(secondEventId).toBeDefined();
-    expect(secondEventId).not.toBe(rechargeEventId);
-    expect(second.idempotencyKey).toBe(`auto_recharge_${secondEventId}`);
-    expect((await op.clients.billingQuery.getBillingAccount({ org })).autoRecharge?.currentMonthChargedMicros).toBe(RECHARGE.amountMicros);
-  });
-});
-
-describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (no billing controllers routed)", () => {
-  it("[billing.rpc.oss-boundary.every-billing-rpc-unimplemented] [rpc:BillingCommandController.getOrCreateBillingAccount] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] [rpc:BillingCommandController.authorizeRun] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingCommandController.finalizeRun] [rpc:BillingCommandController.rearmForRecovery] [rpc:BillingCommandController.createCreditCheckoutSession] [rpc:BillingCommandController.createBillingPortalSession] [rpc:BillingCommandController.createPaymentMethodSetupSession] [rpc:BillingCommandController.setAutoRechargeConfig] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingQueryController.getBillingAccount] [rpc:BillingQueryController.getCreditBalance] [rpc:BillingQueryController.getCreditLedger] [rpc:BillingQueryController.getBillingUsageReport] [rpc:BillingQueryController.getCustomerModelPricing] [rpc:BillingQueryController.listModelPricingBaselines] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingQueryController.getRunBillingSignal] every billing RPC answers Unimplemented where billingLedger is false", async () => {
+describe.skipIf(engineServed)("Billing engine conformance — the OSS boundary (no billing controllers routed)", () => {
+  it("[billing.rpc.oss-boundary.every-billing-rpc-unimplemented] [rpc:BillingCommandController.getOrCreateBillingAccount] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingCommandController.createBillingPortalSession] [rpc:BillingCommandController.createPaymentMethodSetupSession] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingQueryController.getBillingAccount] [rpc:BillingQueryController.getBillingUsageReport] [rpc:BillingQueryController.listModelPricingBaselines] every billing RPC answers Unimplemented where billingEngine is false", async () => {
     const org = uniqueName("org");
     const executionId = uniqueName("exec");
     const lanes: Array<[string, () => Promise<unknown>]> = [
       ["getOrCreateBillingAccount", () => clients.billingCommand.getOrCreateBillingAccount({ org })],
-      ["adjustCredits", () => clients.billingCommand.adjustCredits({ org, amountMicros: 1n, reason: "x", idempotencyKey: "k" })],
-      ["grantCredits", () => clients.billingCommand.grantCredits({ org, amountMicros: 1n, reason: "x", idempotencyKey: "k" })],
-      ["authorizeRun", () => clients.billingCommand.authorizeRun({ org, runId: executionId, harness: "native" })],
       ["recordLlmCallUsage", () => clients.billingCommand.recordLlmCallUsage({ runId: executionId, sequence: 1, provider: "anthropic", resolvedModel: "m" })],
-      ["finalizeRun", () => clients.billingCommand.finalizeRun({ runId: executionId })],
-      ["rearmForRecovery", () => clients.billingCommand.rearmForRecovery({ runId: executionId })],
-      ["createCreditCheckoutSession", () => clients.billingCommand.createCreditCheckoutSession({ org, packId: "starter", successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
       ["createBillingPortalSession", () => clients.billingCommand.createBillingPortalSession({ org, returnUrl: "https://x/back" })],
       ["createPaymentMethodSetupSession", () => clients.billingCommand.createPaymentMethodSetupSession({ org, successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
-      ["setAutoRechargeConfig", () => clients.billingCommand.setAutoRechargeConfig({ org })],
       ["upsertModelPricingBaseline", () => clients.billingCommand.upsertModelPricingBaseline({ baseline: { modelId: "m", provider: "p", harness: "native", displayName: "M", speedTier: "balanced", costTier: "standard", pricing: {} } })],
       ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({ modelId: "m", provider: "p", harness: "native" })],
       ["getBillingAccount", () => clients.billingQuery.getBillingAccount({ org })],
-      ["getCreditBalance", () => clients.billingQuery.getCreditBalance({ org })],
-      ["getCreditLedger", () => clients.billingQuery.getCreditLedger({ org })],
       ["getBillingUsageReport", () => clients.billingQuery.getBillingUsageReport({ org, startTime: timestampFromDate(new Date()), endTime: timestampFromDate(new Date()) })],
-      ["getCustomerModelPricing", () => clients.billingQuery.getCustomerModelPricing({ org })],
       ["listModelPricingBaselines", () => clients.billingQuery.listModelPricingBaselines({})],
-      ["previewAuthorization", () => clients.billingQuery.previewAuthorization({ org })],
-      ["getRunBillingSignal", () => clients.billingQuery.getRunBillingSignal({ runId: executionId })],
     ];
-    expect(lanes, "the 21 RPCs, no more, no fewer").toHaveLength(21);
+    expect(lanes, "the 9 RPCs, no more, no fewer").toHaveLength(9);
     for (const [name, op] of lanes) {
       await expectGrpcCode(op, Code.Unimplemented, `OSS ${name}`);
     }

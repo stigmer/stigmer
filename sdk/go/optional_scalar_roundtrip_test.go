@@ -109,8 +109,8 @@ func TestPlanCreate_SendsThePricesTheCallerSet(t *testing.T) {
 		Name:       "Team",
 		Instrument: planv1.PlanInstrument_subscription,
 		Terms: &PlanTermsInput{
-			MonthlyMinimumMicros:  20_000_000,
-			UsageShareBasisPoints: 1500,
+			MonthlyMinimumMicros: 20_000_000,
+			PerExtraOrgMicros:    25_000_000,
 		},
 	})
 	if err != nil {
@@ -124,13 +124,10 @@ func TestPlanCreate_SendsThePricesTheCallerSet(t *testing.T) {
 	if terms.MonthlyMinimumMicros == nil || terms.GetMonthlyMinimumMicros() != 20_000_000 {
 		t.Errorf("monthly_minimum_micros = %v, want 20000000", terms.MonthlyMinimumMicros)
 	}
-	if terms.UsageShareBasisPoints == nil || terms.GetUsageShareBasisPoints() != 1500 {
-		t.Errorf("usage_share_basis_points = %v, want 1500", terms.UsageShareBasisPoints)
+	if terms.PerExtraOrgMicros == nil || terms.GetPerExtraOrgMicros() != 25_000_000 {
+		t.Errorf("per_extra_org_micros = %v, want 25000000", terms.PerExtraOrgMicros)
 	}
 	if terms.AnnualPriceMicros != nil {
 		t.Errorf("annual_price_micros = %d, want absent on a subscription plan", terms.GetAnnualPriceMicros())
-	}
-	if terms.PerExtraOrgMicros != nil {
-		t.Errorf("per_extra_org_micros = %d, want absent", terms.GetPerExtraOrgMicros())
 	}
 }

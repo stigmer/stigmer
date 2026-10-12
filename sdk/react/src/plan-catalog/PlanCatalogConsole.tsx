@@ -6,8 +6,7 @@ import { getUserMessage, isUnimplemented } from "@stigmer/sdk";
 import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
 import { PlanInstrument } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
 import { PlanLifecycle } from "@stigmer/protos/ai/stigmer/billing/plan/v1/status_pb";
-import { formatCreditBalance } from "../billing/format.js";
-import { formatChildOrgs, formatUsageShare, offeredFeatures } from "../billing/plan-features.js";
+import { formatChildOrgs, formatMonthlyFee, offeredFeatures } from "../billing/plan-features.js";
 import { usePlans } from "../billing/usePlans.js";
 import { Button } from "../button/index.js";
 import { ApiResourceKind, useResourceAvailable } from "../deployment-mode.js";
@@ -176,7 +175,7 @@ function PlanRow({ plan, onRetire, busy }: { readonly plan: Plan; readonly onRet
           <p className="stg:text-xs stg:text-muted-foreground">
             {license
               ? "Issued as a license"
-              : `${formatCreditBalance(terms?.monthlyMinimumMicros ?? BigInt(0))}/month ${formatUsageShare(terms)}`}
+              : formatMonthlyFee(terms)}
           </p>
         </div>
         <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-2">

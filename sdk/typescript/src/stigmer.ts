@@ -27,7 +27,7 @@ type ExecutionTargetOption = StigmerConfig["executionTarget"];
  *
  * On top of the generated resource clients, `Stigmer` adds:
  * - Configuration and transport setup ({@link StigmerConfig})
- * - {@link billing} credit management and Stripe integration client
+ * - {@link billing} billing account, Stripe and model catalog client
  * - Cross-resource {@link search} client
  * - {@link github} OAuth integration client
  * - Kind-agnostic {@link manifest} client for declarative YAML apply

@@ -460,8 +460,8 @@ describe("role enforcement — agent creation: a member's by the organization's 
     const slug = created.metadata!.slug;
     fixtures.defer(() => c.owner.agentCommand.delete({ value: id }).catch(() => undefined));
 
-    // Owning the agent is not enough: a channel spends the organization's
-    // credits on outside traffic, the agent share's admin-level bar.
+    // Owning the agent is not enough: a channel lets outside traffic run on
+    // the organization's own provider keys, the agent share's admin-level bar.
     await expectGrpcCode(
       () => c.member.agentChannelCommand.create(makeSlackAgentChannel(c.org, uniqueName("member-channel"), slug)),
       Code.PermissionDenied,
@@ -1076,15 +1076,6 @@ describe("role enforcement — the platform: no organization role holds a platfo
     const result = await lane.clients.iamPolicyQuery.checkMyPermission({
       resource: ref("platform", "stigmer"),
       relation: "can_manage_plans",
-    });
-    expect(result.isAuthorized).toBe(false);
-  });
-
-  it("[rpc:IamPolicyQueryController.checkMyPermission] checkMyPermission(can_manage_credits, platform:stigmer) is false for an owner — owning an organization never lets anyone make credit", async (ctx) => {
-    const lane = laneOrSkip(ctx);
-    const result = await lane.clients.iamPolicyQuery.checkMyPermission({
-      resource: ref("platform", "stigmer"),
-      relation: "can_manage_credits",
     });
     expect(result.isAuthorized).toBe(false);
   });

@@ -145,7 +145,7 @@
         {
           "name": "subscription",
           "number": 1,
-          "description": "Bought as a Subscription by an organization on Stigmer Cloud, billed\n monthly against usage."
+          "description": "Bought as a Subscription by an organization on Stigmer Cloud, invoiced\n a flat fee each month."
         },
         {
           "name": "license",

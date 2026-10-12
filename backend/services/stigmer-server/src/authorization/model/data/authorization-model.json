@@ -9,18 +9,10 @@
           "can_execute_billing_ops": {},
           "can_grant_access": {},
           "can_issue_license": {},
-          "can_manage_credits": {},
           "can_manage_model_pricing": {},
           "can_manage_plans": {},
           "can_view_access": {},
           "can_write_reserved_labels": {},
-          "credit_issuer": {
-            "directly_related_user_types": [
-              {
-                "type": "identity_account"
-              }
-            ]
-          },
           "operator": {
             "directly_related_user_types": [
               {
@@ -54,22 +46,6 @@
             "relation": "operator"
           }
         },
-        "can_manage_credits": {
-          "union": {
-            "child": [
-              {
-                "computedUserset": {
-                  "relation": "operator"
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "credit_issuer"
-                }
-              }
-            ]
-          }
-        },
         "can_manage_model_pricing": {
           "computedUserset": {
             "relation": "operator"
@@ -89,9 +65,6 @@
           "computedUserset": {
             "relation": "operator"
           }
-        },
-        "credit_issuer": {
-          "this": {}
         },
         "operator": {
           "this": {}

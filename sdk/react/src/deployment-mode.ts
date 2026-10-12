@@ -21,8 +21,8 @@ export const DeploymentModeContext = createContext<DeploymentMode>("cloud");
  * Returns `"local"` for Stigmer (the open-source edition), `"enterprise"`
  * for Stigmer Enterprise and `"cloud"` for Stigmer Cloud. Ask it a TIER
  * question through {@link useResourceAvailable}; a site that compares it to
- * `"cloud"` directly is asking about a cloud-only facility (the wallet,
- * Stigmer-managed compute, the shared platform messaging apps) and should
+ * `"cloud"` directly is asking about a cloud-only facility (plans and
+ * invoices, Stigmer-managed compute, the shared platform messaging apps) and should
  * say which one.
  */
 export function useDeploymentMode(): DeploymentMode {

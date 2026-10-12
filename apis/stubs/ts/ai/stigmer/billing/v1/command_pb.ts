@@ -6,9 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { BillingAccountSchema } from "./billing_account_pb.js";
 import { file_ai_stigmer_billing_v1_billing_account } from "./billing_account_pb.js";
-import type { CreditLedgerEntrySchema } from "./credit_pb.js";
-import { file_ai_stigmer_billing_v1_credit } from "./credit_pb.js";
-import type { AdjustCreditsInputSchema, AuthorizeRunInputSchema, AuthorizeRunResponseSchema, CreateBillingPortalSessionInputSchema, CreateBillingPortalSessionResponseSchema, CreateCreditCheckoutSessionInputSchema, CreateCreditCheckoutSessionResponseSchema, CreatePaymentMethodSetupSessionInputSchema, CreatePaymentMethodSetupSessionResponseSchema, FinalizeRunInputSchema, FinalizeRunResponseSchema, GetOrCreateBillingAccountInputSchema, GrantCreditsInputSchema, RearmForRecoveryInputSchema, RecordLlmCallUsageInputSchema, RecordLlmCallUsageResponseSchema, RetireModelPricingBaselineInputSchema, SetAutoRechargeConfigInputSchema, UpsertModelPricingBaselineInputSchema } from "./io_pb.js";
+import type { CreateBillingPortalSessionInputSchema, CreateBillingPortalSessionResponseSchema, CreatePaymentMethodSetupSessionInputSchema, CreatePaymentMethodSetupSessionResponseSchema, GetOrCreateBillingAccountInputSchema, RecordLlmCallUsageInputSchema, RecordLlmCallUsageResponseSchema, RetireModelPricingBaselineInputSchema, UpsertModelPricingBaselineInputSchema } from "./io_pb.js";
 import { file_ai_stigmer_billing_v1_io } from "./io_pb.js";
 import type { ModelPricingBaselineSchema } from "./model_pricing_baseline_pb.js";
 import { file_ai_stigmer_billing_v1_model_pricing_baseline } from "./model_pricing_baseline_pb.js";
@@ -18,15 +16,15 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../commons/rpc/me
  * Describes the file ai/stigmer/billing/v1/command.proto.
  */
 export const file_ai_stigmer_billing_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2JpbGxpbmcvdjEvY29tbWFuZC5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxMq8UChhCaWxsaW5nQ29tbWFuZENvbnRyb2xsZXISvgEKGWdldE9yQ3JlYXRlQmlsbGluZ0FjY291bnQSNS5haS5zdGlnbWVyLmJpbGxpbmcudjEuR2V0T3JDcmVhdGVCaWxsaW5nQWNjb3VudElucHV0GiUuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkJpbGxpbmdBY2NvdW50IkPCuBg/CBwQHiIDb3JnKjR1bmF1dGhvcml6ZWQgdG8gbWFuYWdlIGJpbGxpbmcgZm9yIHRoaXMgb3JnYW5pemF0aW9uErYBCg1hZGp1c3RDcmVkaXRzEikuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkFkanVzdENyZWRpdHNJbnB1dBooLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRMZWRnZXJFbnRyeSJQwrgYTAguEB8qPW9ubHkgcGxhdGZvcm0gb3BlcmF0b3JzIGFuZCBjcmVkaXQgaXNzdWVycyBjYW4gYWRqdXN0IGNyZWRpdHMyB3N0aWdtZXISswEKDGdyYW50Q3JlZGl0cxIoLmFpLnN0aWdtZXIuYmlsbGluZy52MS5HcmFudENyZWRpdHNJbnB1dBooLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRMZWRnZXJFbnRyeSJPwrgYSwguEB8qPG9ubHkgcGxhdGZvcm0gb3BlcmF0b3JzIGFuZCBjcmVkaXQgaXNzdWVycyBjYW4gZ3JhbnQgY3JlZGl0czIHc3RpZ21lchKwAQoMYXV0aG9yaXplUnVuEiguYWkuc3RpZ21lci5iaWxsaW5nLnYxLkF1dGhvcml6ZVJ1bklucHV0GisuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkF1dGhvcml6ZVJ1blJlc3BvbnNlIknCuBhFCB0QHyo2b25seSBwbGF0Zm9ybSBvcGVyYXRvcnMgY2FuIGV4ZWN1dGUgYmlsbGluZyBvcGVyYXRpb25zMgdzdGlnbWVyEsIBChJyZWNvcmRMbG1DYWxsVXNhZ2USLi5haS5zdGlnbWVyLmJpbGxpbmcudjEuUmVjb3JkTGxtQ2FsbFVzYWdlSW5wdXQaMS5haS5zdGlnbWVyLmJpbGxpbmcudjEuUmVjb3JkTGxtQ2FsbFVzYWdlUmVzcG9uc2UiScK4GEUIHRAfKjZvbmx5IHBsYXRmb3JtIG9wZXJhdG9ycyBjYW4gZXhlY3V0ZSBiaWxsaW5nIG9wZXJhdGlvbnMyB3N0aWdtZXISrQEKC2ZpbmFsaXplUnVuEicuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkZpbmFsaXplUnVuSW5wdXQaKi5haS5zdGlnbWVyLmJpbGxpbmcudjEuRmluYWxpemVSdW5SZXNwb25zZSJJwrgYRQgdEB8qNm9ubHkgcGxhdGZvcm0gb3BlcmF0b3JzIGNhbiBleGVjdXRlIGJpbGxpbmcgb3BlcmF0aW9uczIHc3RpZ21lchK4AQoQcmVhcm1Gb3JSZWNvdmVyeRIsLmFpLnN0aWdtZXIuYmlsbGluZy52MS5SZWFybUZvclJlY292ZXJ5SW5wdXQaKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQXV0aG9yaXplUnVuUmVzcG9uc2UiScK4GEUIHRAfKjZvbmx5IHBsYXRmb3JtIG9wZXJhdG9ycyBjYW4gZXhlY3V0ZSBiaWxsaW5nIG9wZXJhdGlvbnMyB3N0aWdtZXIS2QEKG2NyZWF0ZUNyZWRpdENoZWNrb3V0U2Vzc2lvbhI3LmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVhdGVDcmVkaXRDaGVja291dFNlc3Npb25JbnB1dBo6LmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVhdGVDcmVkaXRDaGVja291dFNlc3Npb25SZXNwb25zZSJFwrgYQQgcEB4iA29yZyo2dW5hdXRob3JpemVkIHRvIHB1cmNoYXNlIGNyZWRpdHMgZm9yIHRoaXMgb3JnYW5pemF0aW9uEtQBChpjcmVhdGVCaWxsaW5nUG9ydGFsU2Vzc2lvbhI2LmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVhdGVCaWxsaW5nUG9ydGFsU2Vzc2lvbklucHV0GjkuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkNyZWF0ZUJpbGxpbmdQb3J0YWxTZXNzaW9uUmVzcG9uc2UiQ8K4GD8IHBAeIgNvcmcqNHVuYXV0aG9yaXplZCB0byBtYW5hZ2UgYmlsbGluZyBmb3IgdGhpcyBvcmdhbml6YXRpb24S4wEKH2NyZWF0ZVBheW1lbnRNZXRob2RTZXR1cFNlc3Npb24SOy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlYXRlUGF5bWVudE1ldGhvZFNldHVwU2Vzc2lvbklucHV0Gj4uYWkuc3RpZ21lci5iaWxsaW5nLnYxLkNyZWF0ZVBheW1lbnRNZXRob2RTZXR1cFNlc3Npb25SZXNwb25zZSJDwrgYPwgcEB4iA29yZyo0dW5hdXRob3JpemVkIHRvIG1hbmFnZSBiaWxsaW5nIGZvciB0aGlzIG9yZ2FuaXphdGlvbhK8AQoVc2V0QXV0b1JlY2hhcmdlQ29uZmlnEjEuYWkuc3RpZ21lci5iaWxsaW5nLnYxLlNldEF1dG9SZWNoYXJnZUNvbmZpZ0lucHV0GiUuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkJpbGxpbmdBY2NvdW50IknCuBhFCBwQHiIDb3JnKjp1bmF1dGhvcml6ZWQgdG8gbWFuYWdlIGF1dG8tcmVjaGFyZ2UgZm9yIHRoaXMgb3JnYW5pemF0aW9uEtIBChp1cHNlcnRNb2RlbFByaWNpbmdCYXNlbGluZRI2LmFpLnN0aWdtZXIuYmlsbGluZy52MS5VcHNlcnRNb2RlbFByaWNpbmdCYXNlbGluZUlucHV0GisuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ0Jhc2VsaW5lIk/CuBhLCCAQHyo8b25seSBwbGF0Zm9ybSBvcGVyYXRvcnMgY2FuIGVkaXQgdGhlIG1vZGVsIHJlZ2lzdHJ5IGJhc2VsaW5lMgdzdGlnbWVyEtIBChpyZXRpcmVNb2RlbFByaWNpbmdCYXNlbGluZRI2LmFpLnN0aWdtZXIuYmlsbGluZy52MS5SZXRpcmVNb2RlbFByaWNpbmdCYXNlbGluZUlucHV0GisuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ0Jhc2VsaW5lIk/CuBhLCCAQHyo8b25seSBwbGF0Zm9ybSBvcGVyYXRvcnMgY2FuIGVkaXQgdGhlIG1vZGVsIHJlZ2lzdHJ5IGJhc2VsaW5lMgdzdGlnbWVyYgZwcm90bzM", [file_ai_stigmer_billing_v1_billing_account, file_ai_stigmer_billing_v1_credit, file_ai_stigmer_billing_v1_io, file_ai_stigmer_billing_v1_model_pricing_baseline, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiNhaS9zdGlnbWVyL2JpbGxpbmcvdjEvY29tbWFuZC5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxMocKChhCaWxsaW5nQ29tbWFuZENvbnRyb2xsZXISvgEKGWdldE9yQ3JlYXRlQmlsbGluZ0FjY291bnQSNS5haS5zdGlnbWVyLmJpbGxpbmcudjEuR2V0T3JDcmVhdGVCaWxsaW5nQWNjb3VudElucHV0GiUuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkJpbGxpbmdBY2NvdW50IkPCuBg/CBwQHiIDb3JnKjR1bmF1dGhvcml6ZWQgdG8gbWFuYWdlIGJpbGxpbmcgZm9yIHRoaXMgb3JnYW5pemF0aW9uEsIBChJyZWNvcmRMbG1DYWxsVXNhZ2USLi5haS5zdGlnbWVyLmJpbGxpbmcudjEuUmVjb3JkTGxtQ2FsbFVzYWdlSW5wdXQaMS5haS5zdGlnbWVyLmJpbGxpbmcudjEuUmVjb3JkTGxtQ2FsbFVzYWdlUmVzcG9uc2UiScK4GEUIHRAfKjZvbmx5IHBsYXRmb3JtIG9wZXJhdG9ycyBjYW4gZXhlY3V0ZSBiaWxsaW5nIG9wZXJhdGlvbnMyB3N0aWdtZXIS1AEKGmNyZWF0ZUJpbGxpbmdQb3J0YWxTZXNzaW9uEjYuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkNyZWF0ZUJpbGxpbmdQb3J0YWxTZXNzaW9uSW5wdXQaOS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlYXRlQmlsbGluZ1BvcnRhbFNlc3Npb25SZXNwb25zZSJDwrgYPwgcEB4iA29yZyo0dW5hdXRob3JpemVkIHRvIG1hbmFnZSBiaWxsaW5nIGZvciB0aGlzIG9yZ2FuaXphdGlvbhLjAQofY3JlYXRlUGF5bWVudE1ldGhvZFNldHVwU2Vzc2lvbhI7LmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVhdGVQYXltZW50TWV0aG9kU2V0dXBTZXNzaW9uSW5wdXQaPi5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlYXRlUGF5bWVudE1ldGhvZFNldHVwU2Vzc2lvblJlc3BvbnNlIkPCuBg/CBwQHiIDb3JnKjR1bmF1dGhvcml6ZWQgdG8gbWFuYWdlIGJpbGxpbmcgZm9yIHRoaXMgb3JnYW5pemF0aW9uEtIBChp1cHNlcnRNb2RlbFByaWNpbmdCYXNlbGluZRI2LmFpLnN0aWdtZXIuYmlsbGluZy52MS5VcHNlcnRNb2RlbFByaWNpbmdCYXNlbGluZUlucHV0GisuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ0Jhc2VsaW5lIk/CuBhLCCAQHyo8b25seSBwbGF0Zm9ybSBvcGVyYXRvcnMgY2FuIGVkaXQgdGhlIG1vZGVsIHJlZ2lzdHJ5IGJhc2VsaW5lMgdzdGlnbWVyEtIBChpyZXRpcmVNb2RlbFByaWNpbmdCYXNlbGluZRI2LmFpLnN0aWdtZXIuYmlsbGluZy52MS5SZXRpcmVNb2RlbFByaWNpbmdCYXNlbGluZUlucHV0GisuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ0Jhc2VsaW5lIk/CuBhLCCAQHyo8b25seSBwbGF0Zm9ybSBvcGVyYXRvcnMgY2FuIGVkaXQgdGhlIG1vZGVsIHJlZ2lzdHJ5IGJhc2VsaW5lMgdzdGlnbWVyYgZwcm90bzM", [file_ai_stigmer_billing_v1_billing_account, file_ai_stigmer_billing_v1_io, file_ai_stigmer_billing_v1_model_pricing_baseline, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * BillingCommandController handles write operations for the billing bounded context.
  *
  * Billing is not a standard API Resource — there is no api_resource_kind annotation.
  * An organization's own billing RPCs authorize against the organization
- * resource kind; the credit mutations, the execution pipeline and the
- * model catalog authorize against the static platform target.
+ * resource kind; the usage meter and the model catalog authorize against
+ * the static platform target.
  *
  *
  * @generated from service ai.stigmer.billing.v1.BillingCommandController
@@ -44,50 +42,10 @@ export const BillingCommandController: GenService<{
     output: typeof BillingAccountSchema;
   },
   /**
-   * Manually adjust an org's credit balance.
-   * Produces an immutable ledger entry for audit. Requires can_manage_credits
-   * on the platform: a platform operator or a credit issuer.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.adjustCredits
-   */
-  adjustCredits: {
-    methodKind: "unary";
-    input: typeof AdjustCreditsInputSchema;
-    output: typeof CreditLedgerEntrySchema;
-  },
-  /**
-   * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
-   * Produces an immutable promotional_credit ledger entry for audit.
-   *
-   * The grant burns before adjustment and purchased credits. When expires_at
-   * is set, any remainder unconsumed at that time is removed from the balance
-   * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
-   * Idempotent: replaying an applied idempotency key returns the original
-   * entry, even after the expiry has passed. Requires can_manage_credits on
-   * the platform, as adjustCredits does.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.grantCredits
-   */
-  grantCredits: {
-    methodKind: "unary";
-    input: typeof GrantCreditsInputSchema;
-    output: typeof CreditLedgerEntrySchema;
-  },
-  /**
-   * Reserve credits before starting a run.
-   * Returns authorization status and reservation details.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.authorizeRun
-   */
-  authorizeRun: {
-    methodKind: "unary";
-    input: typeof AuthorizeRunInputSchema;
-    output: typeof AuthorizeRunResponseSchema;
-  },
-  /**
-   * Record a single LLM call's usage for billing.
-   * Computes cost server-side from the model registry, inserts an immutable
-   * LlmCallUsageRecord, and debits credits from the run's reservation.
+   * Record a single LLM call's usage.
+   * Resolves the call against the model catalog and inserts an immutable
+   * LlmCallUsageRecord: what the call was (tokens, model, harness, served
+   * tier and thinking mode, whose key served it), never what it cost.
    *
    * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage
    */
@@ -97,51 +55,13 @@ export const BillingCommandController: GenService<{
     output: typeof RecordLlmCallUsageResponseSchema;
   },
   /**
-   * Settle billing for a completed run.
-   * Releases unused reservation credits and produces the final billing record.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.finalizeRun
-   */
-  finalizeRun: {
-    methodKind: "unary";
-    input: typeof FinalizeRunInputSchema;
-    output: typeof FinalizeRunResponseSchema;
-  },
-  /**
-   * Re-arm a settled reservation so a failed run can be recovered.
-   * The one sanctioned path past the settled-reservation latch: re-runs
-   * the affordability check, transfers a fresh hold, and rotates the
-   * reservation id as the fence against settles still in flight from the
-   * terminated run. Returns the same shape as authorizeRun, with
-   * the rotated reservation id.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.rearmForRecovery
-   */
-  rearmForRecovery: {
-    methodKind: "unary";
-    input: typeof RearmForRecoveryInputSchema;
-    output: typeof AuthorizeRunResponseSchema;
-  },
-  /**
-   * Create a Stripe Checkout Session to purchase a credit pack.
-   * Returns a checkout URL for the client to redirect the user.
-   *
-   * The caller's email is resolved server-side for Stripe Customer creation.
-   * Credits are provisioned asynchronously via the checkout.session.completed webhook.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.createCreditCheckoutSession
-   */
-  createCreditCheckoutSession: {
-    methodKind: "unary";
-    input: typeof CreateCreditCheckoutSessionInputSchema;
-    output: typeof CreateCreditCheckoutSessionResponseSchema;
-  },
-  /**
    * Open a Stripe Customer Portal session for payment method management.
    * Returns a portal URL for the client to redirect the user.
    *
-   * Requires an existing Stripe Customer (created during first credit purchase).
-   * The portal allows users to add, update, or remove saved payment methods.
+   * Requires an existing Stripe Customer (created by
+   * createPaymentMethodSetupSession on first use). The portal allows users
+   * to add, update, or remove saved payment methods and to read the
+   * invoices Stripe sends.
    *
    * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.createBillingPortalSession
    */
@@ -155,11 +75,10 @@ export const BillingCommandController: GenService<{
    * method without charging it. Returns a URL for the client to redirect
    * the user.
    *
-   * This is how an organization that has never bought credit gets a card
-   * on file (the billing portal needs an existing Stripe Customer, which
+   * This is how an organization gets a card on file for its plan's
+   * invoices (the billing portal needs an existing Stripe Customer, which
    * this call creates on first use). The saved card becomes the account's
-   * default payment method through the payment_method.attached webhook,
-   * the same path a card saved at credit checkout takes.
+   * default payment method through the payment_method.attached webhook.
    *
    * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.createPaymentMethodSetupSession
    */
@@ -169,25 +88,11 @@ export const BillingCommandController: GenService<{
     output: typeof CreatePaymentMethodSetupSessionResponseSchema;
   },
   /**
-   * Configure automatic credit recharge for an organization.
-   * Returns the updated BillingAccount with the new config applied.
-   *
-   * Enabling requires an active account with a saved payment method.
-   * Disabling preserves the threshold/amount/cap for easy re-enablement.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.setAutoRechargeConfig
-   */
-  setAutoRechargeConfig: {
-    methodKind: "unary";
-    input: typeof SetAutoRechargeConfigInputSchema;
-    output: typeof BillingAccountSchema;
-  },
-  /**
    * Create or revise one model registry baseline entry (catalog + list
    * prices). Append-only: an existing ACTIVE document for the same
    * (model_id, provider, harness) key is superseded, never mutated. The
-   * registry is rebuilt immediately, so the revision reaches billing and
-   * every published price surface atomically.
+   * registry is rebuilt immediately, so the revision reaches the usage
+   * meter, run admission and the published registry atomically.
    *
    * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.upsertModelPricingBaseline
    */

@@ -5,8 +5,7 @@ module stigmer
 # ========================================
 # The Stigmer platform itself - the root of all authorization.
 #
-# The platform type defines the `operator` role, and narrow roles for machine
-# lanes that must never hold the whole platform, and gates all platform-level
+# The platform type defines the `operator` role and gates all platform-level
 # capabilities through specific `can_*` permissions. Operator access does NOT
 # propagate transitively to organizations or resources. Instead, each
 # platform-level operation is an explicit permission checked directly
@@ -31,16 +30,6 @@ type platform
     define operator: [identity_account]
 
     # ========================================
-    # CREDIT ISSUER (Role)
-    # ========================================
-    # A funding identity the platform trusts by name: an integrator's
-    # wallet bridge, the platform's own acceptance automation. It holds
-    # can_manage_credits and nothing else here, so a leaked credential can
-    # move money but never act as an operator.
-    # FGA tuple: platform:stigmer#credit_issuer@identity_account:<account_id>
-    define credit_issuer: [identity_account]
-    
-    # ========================================
     # IAM BOOTSTRAP
     # ========================================
     # Permission to create and clean up FGA tuples during resource lifecycle.
@@ -58,7 +47,7 @@ type platform
     # ========================================
     # BILLING OPERATIONS (Internal)
     # ========================================
-    # Permission to execute internal billing operations (authorize, record, finalize).
+    # Permission to execute internal billing operations (recording a metered LLM call).
     # Gates the internal billing RPCs that must only run as the platform machine account.
     # FGA check: identity_account:<caller_id> can_execute_billing_ops platform:stigmer
     define can_execute_billing_ops: operator
@@ -67,7 +56,7 @@ type platform
     # MODEL CATALOG
     # ========================================
     # Permission to edit and read the model catalog: the model pricing
-    # baselines every run's model list and price reads. A human operator
+    # baselines every run's model list and cost cap read. A human operator
     # action, distinct from the machine account's can_execute_billing_ops
     # pipeline.
     # FGA check: identity_account:<caller_id> can_manage_model_pricing platform:stigmer
@@ -114,14 +103,3 @@ type platform
     # can_execute_billing_ops pipeline the way can_manage_model_pricing is.
     # FGA check: identity_account:<caller_id> can_manage_plans platform:stigmer
     define can_manage_plans: operator
-
-    # ========================================
-    # CREDIT MUTATIONS
-    # ========================================
-    # Permission to add or remove an organization's credits without a
-    # purchase: adjustCredits and grantCredits. An operator's support and
-    # corrections, or a credit issuer's funding. Owning an organization never
-    # confers it, because every person owns one and credit made without
-    # money reaching the platform is the platform's decision.
-    # FGA check: identity_account:<caller_id> can_manage_credits platform:stigmer
-    define can_manage_credits: operator or credit_issuer

@@ -7,9 +7,9 @@ description:
 
 Connecting a WhatsApp channel puts your Agent behind a WhatsApp Business number.
 People send a message to that number and the Agent answers right there — with
-your Organization's policies, rate limits, and billing enforced by Stigmer. This
-guide shows you how to connect a number, give the Agent its tool credentials,
-and manage the connection afterward.
+your Organization's policies and rate limits enforced by Stigmer. This guide
+shows you how to connect a number, give the Agent its tool credentials, and
+manage the connection afterward.
 
 <Callout type="info">
   Connecting to WhatsApp requires Stigmer Cloud. On a local backend you can
@@ -33,7 +33,8 @@ You need four things:
 - An Agent in your Organization, and permission to edit it. The Agent's
   visibility doesn't matter — private, organization-visible and child-org-shared
   Agents can all serve a channel.
-- Credits in your Organization — conversations from WhatsApp are billed to it.
+- A [model provider key](/docs/guides/integrations/model-provider-keys) in your
+  Organization for the Agent's model — conversations from WhatsApp run on it.
 
 ## Connect the number
 
@@ -160,11 +161,13 @@ already served through the selected app by one of your Organization's channels.
 
 ## Who pays for WhatsApp conversations
 
-Conversations from WhatsApp use your Organization's credits — for everyone who
-messages the connected number. Stigmer protects your balance automatically:
-messages are rate limited per person and across the channel, and if your
-Organization runs out of credits, the Agent answers with a short unavailable
-message instead of overdrawing your balance.
+Conversations from WhatsApp run on your Organization's own provider keys, for
+everyone who messages the connected number, and your model provider bills them
+to you. Stigmer protects your spend automatically: messages are rate limited per
+person and across the channel, and the Agent's
+[cost cap](/docs/concepts/billing#set-a-cost-cap), if you set one, stops any one
+message at it. If your Organization has no key for the Agent's model, the Agent
+answers that it isn't set up to answer yet, and nothing runs.
 
 ## Review conversations from the console
 

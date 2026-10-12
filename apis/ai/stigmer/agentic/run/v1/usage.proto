@@ -21,7 +21,7 @@ enum UsageMeteringSource {
   // OSS/BYOK mode: runner reports provider response usage directly.
   USAGE_METERING_SOURCE_RUNNER_PROVIDER_REPORTED_OSS = 2;
 
-  // Estimate from tokenizer/preflight/local accounting. Never billing-authoritative in cloud mode.
+  // Estimate from tokenizer/preflight/local accounting. Never metering-authoritative in cloud mode.
   USAGE_METERING_SOURCE_ESTIMATED = 3;
 
   // Reconciliation from provider admin usage/cost reports.
@@ -35,13 +35,14 @@ enum UsageMeteringSource {
 enum UsageTrustLevel {
   USAGE_TRUST_LEVEL_UNSPECIFIED = 0;
 
-  // Billing-authoritative: safe to debit credits from.
+  // The proxy's own measurement of the provider-reported usage: the
+  // metering source of truth.
   USAGE_TRUST_LEVEL_BILLING_AUTHORITY = 1;
 
-  // Server-observed but not billing (e.g., proxy timing).
+  // Server-observed but not the metered usage (e.g., proxy timing).
   USAGE_TRUST_LEVEL_SERVER_OBSERVED = 2;
 
-  // Display-only: runner-reported, never used for billing.
+  // Display-only: runner-reported, never used for metering.
   USAGE_TRUST_LEVEL_DISPLAY_ONLY = 3;
 }
 
@@ -71,49 +72,6 @@ enum UsageCompletionStatus {
   USAGE_COMPLETION_STATUS_CONFLICT = 7;
 }
 
-// Status of the billing debit for a usage record.
-enum BillingDebitStatus {
-  BILLING_DEBIT_STATUS_UNSPECIFIED = 0;
-
-  // No billing applicable (e.g., OSS mode, $0 cost, incomplete usage).
-  BILLING_DEBIT_STATUS_NOT_APPLICABLE = 1;
-
-  // Debit pending (usage written, billing not yet attempted).
-  BILLING_DEBIT_STATUS_PENDING = 2;
-
-  // Credits successfully debited.
-  BILLING_DEBIT_STATUS_DEBITED = 3;
-
-  // Debit failed but retryable (transient error).
-  BILLING_DEBIT_STATUS_FAILED_RETRYABLE = 4;
-
-  // Debit failed terminally (e.g., no reservation found).
-  BILLING_DEBIT_STATUS_FAILED_TERMINAL = 5;
-
-  // Conflict detected (duplicate with different payload).
-  BILLING_DEBIT_STATUS_CONFLICT = 6;
-}
-
-// Status of cost calculation for a usage record.
-enum CostCalculationStatus {
-  COST_CALCULATION_STATUS_UNSPECIFIED = 0;
-
-  // Cost computed from pricing registry at write time.
-  COST_CALCULATION_STATUS_COMPUTED = 1;
-
-  // Cost is an estimate (model not found in registry).
-  COST_CALCULATION_STATUS_ESTIMATED = 2;
-
-  // Model pricing not found; cost is zero.
-  COST_CALCULATION_STATUS_PRICE_NOT_FOUND = 3;
-
-  // Cost was reconciled against provider reports.
-  COST_CALCULATION_STATUS_RECONCILED = 4;
-
-  // Cost was manually adjusted.
-  COST_CALCULATION_STATUS_MANUAL_ADJUSTED = 5;
-}
-
 // Whose provider credential served a proxied LLM call.
 //
 // The proxy picks the key, injects it upstream, and reports the same source
@@ -121,9 +79,7 @@ enum CostCalculationStatus {
 // on the wire.
 //
 // @internal
-// UNSPECIFIED marks a record written before this field existed. Billing
-// reads only ORGANIZATION: such a call is priced for visibility and never
-// debited, and it is outside the plan's usage share.
+// UNSPECIFIED marks a record written before this field existed.
 enum ProviderKeySource {
   PROVIDER_KEY_SOURCE_UNSPECIFIED = 0;
 
@@ -166,73 +122,12 @@ message TokenUsage {
   // Tool-use prompt tokens (Vertex toolUsePromptTokenCount).
   int64 tool_use_prompt_tokens = 7;
 
-  // Audio tokens (future multimodal billing).
+  // Audio tokens (multimodal models).
   int64 audio_input_tokens = 8;
   int64 audio_output_tokens = 9;
 
   // Provider-specific token details not yet normalized.
   map<string, int64> provider_token_details = 20;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PRICING AND COST
-//
-// Stamped at write time for historical accuracy and reproducibility.
-// All amounts in integer micro-USD (1 USD = 1,000,000 micros).
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// Pricing rates snapshot at the time of the LLM call.
-message PricingSnapshot {
-  // Version of the model pricing registry used.
-  string pricing_registry_version = 1;
-
-  // When this pricing became effective.
-  google.protobuf.Timestamp pricing_effective_at = 2;
-
-  // Currency (always "USD" for now).
-  string currency = 3;
-
-  // Provider cost rates (micro-USD per million tokens).
-  int64 input_price_micros_per_million = 10;
-  int64 output_price_micros_per_million = 11;
-  int64 cache_creation_price_micros_per_million = 12;
-  int64 cache_read_price_micros_per_million = 13;
-  int64 reasoning_price_micros_per_million = 14;
-
-  // Cursor Token Rate applied to every billable token on non-Auto Cursor
-  // Teams requests (micro-USD per million tokens). Charged by Cursor on top
-  // of model API pricing; folded into provider_cost_micros for cursor-harness
-  // calls. Zero for native harness and for exempt cursor models (Auto/Composer).
-  int64 cursor_token_rate_micros_per_million = 15;
-
-  // Customer billing policy applied.
-  string markup_policy_version = 30;
-  string cost_tier = 31;
-}
-
-// Cost computation result stamped on each usage record.
-message CostStamp {
-  // Currency (always "USD").
-  string currency = 1;
-
-  // Raw provider cost computed server-side from pricing registry.
-  // For cursor-harness calls this includes the Cursor Token Rate fee
-  // (see cursor_platform_fee_micros for the explicit sub-component).
-  int64 provider_cost_micros = 2;
-
-  // Amount debited from customer credits (after markup policy).
-  int64 customer_billable_amount_micros = 3;
-
-  // How cost was computed.
-  CostCalculationStatus calculation_status = 4;
-
-  // Full pricing snapshot for historical reproducibility.
-  PricingSnapshot pricing = 5;
-
-  // Cursor Token Rate fee charged by Cursor on top of model API pricing,
-  // already included in provider_cost_micros. Surfaced explicitly for audit
-  // and per-call transparency. Zero for native harness and exempt cursor models.
-  int64 cursor_platform_fee_micros = 6;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -271,55 +166,29 @@ message ProxyTiming {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// BILLING LINK
-//
-// Ties the usage record to the billing ledger for audit.
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// Links a usage record to its billing debit in the credit ledger.
-message BillingLink {
-  // Current debit status.
-  BillingDebitStatus debit_status = 1;
-
-  // Run reservation ID (from authorizeRun).
-  string reservation_id = 2;
-
-  // Billing ledger debit ID (from reportLlmCallUsage).
-  string billing_debit_id = 3;
-
-  // When the debit was applied.
-  google.protobuf.Timestamp debited_at = 4;
-
-  // Operational visibility.
-  int32 billing_attempt_count = 5;
-  string last_billing_error = 6;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // LLM CALL USAGE RECORD (Per-Call Authoritative)
 //
 // Immutable metering record for a single LLM provider call. Written by the
-// proxy (cloud) or runner (OSS). Stored in a dedicated MongoDB collection.
-// This is the billing source of truth.
+// proxy (cloud) or runner (OSS). Stored in its own table. This is the
+// metering source of truth: what each call was, never what it cost.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Immutable, billing-authoritative record for a single LLM API call.
+// Immutable, metering-authoritative record for a single LLM API call.
 //
 // Written by the proxy after each SSE stream completes (cloud mode) or by
 // the runner directly (OSS mode). Stored in the `llm_call_usage_record`
-// MongoDB collection, never embedded in the run document.
+// table, never embedded in the run document.
 //
 // ## Lifecycle
 // 1. Proxy observes SSE stream completion and extracts final usage
-// 2. Server inserts LlmCallUsageRecord (idempotent by idempotency_key)
-// 3. Server computes cost and triggers billing debit
-// 4. billing_link.debit_status transitions to DEBITED
+// 2. Server resolves the call against the model catalog (harness, served
+//    tier, thinking mode) and inserts LlmCallUsageRecord (idempotent by
+//    idempotency_key)
 //
 // ## Idempotency
 // Unique on idempotency_key: run_id + the call's identity + metering_source,
 // where the identity is call_id when the reporter supplied one, else sequence.
-// Insert-only; never mutated except for billing_link status transitions and
-// repricing.
+// Insert-only; never mutated.
 message LlmCallUsageRecord {
   // ─── Identity ───────────────────────────────────────────────────────────────
   // Stable unique ID for this record (ULID).
@@ -344,10 +213,8 @@ message LlmCallUsageRecord {
   string canonical_payload_hash = 6;
 
   // The call's identity as the reporting proxy minted it (RecordLlmCallUsageInput.call_id),
-  // stamped verbatim. The durable link from a ledger usage_debit
-  // (CreditLedgerSource.llm_call_id) back to this record, and what every later
-  // debit of this record — the live one and the repricing sweep's — keys on.
-  // Empty for records whose reporter sent no call id; those key on sequence.
+  // stamped verbatim; the idempotency key is built on it. Empty for records
+  // whose reporter sent no call id; those key on sequence.
   string call_id = 9;
 
   // ─── Timestamps ─────────────────────────────────────────────────────────────
@@ -363,8 +230,12 @@ message LlmCallUsageRecord {
   UsageTrustLevel trust_level = 21;
   UsageCompletionStatus usage_status = 22;
 
-  // Whether this record should produce a billing debit.
-  bool is_billable = 23;
+  // 23 held is_billable: whether the call was debited from the
+  // organization's prepaid credit. Calls are metered and never charged, so
+  // the number and the name are reserved so neither is ever reused for a
+  // different field.
+  reserved 23;
+  reserved "is_billable";
 
   // ─── Provider / Request Metadata ────────────────────────────────────────────
   string provider = 30;
@@ -399,15 +270,18 @@ message LlmCallUsageRecord {
   // mirroring service_tier's convention: cursor harness derives it from the
   // resolved wire id's variant suffix; empty when the wire carries no
   // evidence — never guessed. Thinking is per-token price-neutral
-  // (ledger-verified, stigmer/stigmer#772), so this field feeds the
-  // requested-vs-billed consumption-drift reconciliation, not pricing.
+  // (stigmer/stigmer#772), so this field feeds the requested-vs-billed
+  // consumption-drift reconciliation.
   string thinking = 44;
 
   // ─── Token Usage ────────────────────────────────────────────────────────────
   TokenUsage tokens = 50;
 
-  // ─── Cost ───────────────────────────────────────────────────────────────────
-  CostStamp cost = 51;
+  // 51 held cost: the call's price and the pricing snapshot it was
+  // computed from. Calls are metered and never priced, so the number and
+  // the name are reserved so neither is ever reused for a different field.
+  reserved 51;
+  reserved "cost";
 
   // ─── Proxy Timing ──────────────────────────────────────────────────────────
   // Present when metering_source is PROXY_PROVIDER_REPORTED.
@@ -417,8 +291,12 @@ message LlmCallUsageRecord {
   // Compact JSON of provider's raw usage object for audit/debug.
   string provider_usage_json = 70;
 
-  // ─── Billing Handoff ────────────────────────────────────────────────────────
-  BillingLink billing = 80;
+  // 80 held billing: the link from the call to its debit of the
+  // organization's prepaid credit. Calls are metered and never charged, so
+  // the number and the name are reserved so neither is ever reused for a
+  // different field.
+  reserved 80;
+  reserved "billing";
 
   // ─── Scope ──────────────────────────────────────────────────────────────────
   // Denormalized from the run for direct queries by org and session.
@@ -511,11 +389,11 @@ message ModelUsage {
 // during streaming. Updated progressively as turn-ended events arrive.
 //
 // Trust level: DISPLAY_ONLY. This data is reported by the execution worker
-// (which may run on untrusted user machines) and is NOT billing-authoritative.
+// (which may run on untrusted user machines) and is NOT metering-authoritative.
 // Use for real-time UX (session sidebar cost display) only.
 //
-// Billing settlement uses LlmCallUsageRecord from the proxy, for both
-// harnesses.
+// The metered record of each call is LlmCallUsageRecord from the proxy,
+// for both harnesses.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Accumulated token usage from execution worker turn-ended events.

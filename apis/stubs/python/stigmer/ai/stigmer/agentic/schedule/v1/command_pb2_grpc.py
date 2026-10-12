@@ -62,9 +62,9 @@ class ScheduleCommandControllerServicer(object):
     def create(self, request, context):
         """Create a schedule.
 
-        Scheduling an agent is a billing-affecting decision: every fire
-        creates a run that consumes the schedule-owning
-        organization's credits, unattended.
+        Scheduling an agent is a spending decision: every fire creates a run
+        that calls models on the schedule-owning organization's own provider
+        keys, unattended, and the providers bill the organization for them.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

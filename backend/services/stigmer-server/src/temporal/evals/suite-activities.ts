@@ -117,7 +117,6 @@ class SkippedWrite extends Error {}
 
 const PARTIAL_REASONS: Readonly<Record<SuiteStop, PluginEvalPartialReason>> = {
   cost_ceiling: PluginEvalPartialReason.cost_ceiling,
-  out_of_credit: PluginEvalPartialReason.out_of_credit,
   cancelled: PluginEvalPartialReason.cancelled,
 };
 

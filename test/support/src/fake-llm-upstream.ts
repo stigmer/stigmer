@@ -10,7 +10,7 @@
 // adds to OpenAI chat completions. The suites script what the provider says
 // back (a usage-bearing SSE stream, a plain JSON body, a 4xx/5xx with a
 // provider-shaped error, a stream cut mid-way) and then assert both the bytes
-// the proxy relayed and the usage row it recorded in the billing ledger.
+// the proxy relayed and the usage row it recorded on the usage meter.
 //
 // Provider is decided by PATH, since both base URLs point here:
 //   POST /v1/messages          → Anthropic (SSE when `stream: true`, else JSON)

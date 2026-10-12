@@ -4,9 +4,9 @@
 
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
-import type { BillingAccountSchema, CreditBalanceSchema } from "./billing_account_pb.js";
+import type { BillingAccountSchema } from "./billing_account_pb.js";
 import { file_ai_stigmer_billing_v1_billing_account } from "./billing_account_pb.js";
-import type { BillingUsageReportResponseSchema, CreditLedgerResponseSchema, CustomerModelPricingResponseSchema, GetBillingAccountInputSchema, GetBillingUsageReportInputSchema, GetCreditBalanceInputSchema, GetCreditLedgerInputSchema, GetCustomerModelPricingInputSchema, GetRunBillingSignalInputSchema, GetRunBillingSignalResponseSchema, ListModelPricingBaselinesInputSchema, ModelPricingBaselinesResponseSchema, PreviewAuthorizationInputSchema, PreviewAuthorizationResponseSchema } from "./io_pb.js";
+import type { BillingUsageReportResponseSchema, GetBillingAccountInputSchema, GetBillingUsageReportInputSchema, ListModelPricingBaselinesInputSchema, ModelPricingBaselinesResponseSchema } from "./io_pb.js";
 import { file_ai_stigmer_billing_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../commons/rpc/method_options_pb.js";
 
@@ -14,12 +14,14 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../commons/rpc/me
  * Describes the file ai/stigmer/billing/v1/query.proto.
  */
 export const file_ai_stigmer_billing_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiFhaS9zdGlnbWVyL2JpbGxpbmcvdjEvcXVlcnkucHJvdG8SFWFpLnN0aWdtZXIuYmlsbGluZy52MTKfDAoWQmlsbGluZ1F1ZXJ5Q29udHJvbGxlchKsAQoRZ2V0QmlsbGluZ0FjY291bnQSLS5haS5zdGlnbWVyLmJpbGxpbmcudjEuR2V0QmlsbGluZ0FjY291bnRJbnB1dBolLmFpLnN0aWdtZXIuYmlsbGluZy52MS5CaWxsaW5nQWNjb3VudCJBwrgYPQgbEB4iA29yZyoydW5hdXRob3JpemVkIHRvIHZpZXcgYmlsbGluZyBmb3IgdGhpcyBvcmdhbml6YXRpb24SqQEKEGdldENyZWRpdEJhbGFuY2USLC5haS5zdGlnbWVyLmJpbGxpbmcudjEuR2V0Q3JlZGl0QmFsYW5jZUlucHV0GiQuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkNyZWRpdEJhbGFuY2UiQcK4GD0IGxAeIgNvcmcqMnVuYXV0aG9yaXplZCB0byB2aWV3IGJpbGxpbmcgZm9yIHRoaXMgb3JnYW5pemF0aW9uEq4BCg9nZXRDcmVkaXRMZWRnZXISKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuR2V0Q3JlZGl0TGVkZ2VySW5wdXQaKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlZGl0TGVkZ2VyUmVzcG9uc2UiQcK4GD0IGxAeIgNvcmcqMnVuYXV0aG9yaXplZCB0byB2aWV3IGJpbGxpbmcgZm9yIHRoaXMgb3JnYW5pemF0aW9uEsABChVnZXRCaWxsaW5nVXNhZ2VSZXBvcnQSMS5haS5zdGlnbWVyLmJpbGxpbmcudjEuR2V0QmlsbGluZ1VzYWdlUmVwb3J0SW5wdXQaMS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQmlsbGluZ1VzYWdlUmVwb3J0UmVzcG9uc2UiQcK4GD0IGxAeIgNvcmcqMnVuYXV0aG9yaXplZCB0byB2aWV3IGJpbGxpbmcgZm9yIHRoaXMgb3JnYW5pemF0aW9uEsYBChdnZXRDdXN0b21lck1vZGVsUHJpY2luZxIzLmFpLnN0aWdtZXIuYmlsbGluZy52MS5HZXRDdXN0b21lck1vZGVsUHJpY2luZ0lucHV0GjMuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkN1c3RvbWVyTW9kZWxQcmljaW5nUmVzcG9uc2UiQcK4GD0IGxAeIgNvcmcqMnVuYXV0aG9yaXplZCB0byB2aWV3IGJpbGxpbmcgZm9yIHRoaXMgb3JnYW5pemF0aW9uEtkBChlsaXN0TW9kZWxQcmljaW5nQmFzZWxpbmVzEjUuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkxpc3RNb2RlbFByaWNpbmdCYXNlbGluZXNJbnB1dBo0LmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbFByaWNpbmdCYXNlbGluZXNSZXNwb25zZSJPwrgYSwggEB8qPG9ubHkgcGxhdGZvcm0gb3BlcmF0b3JzIGNhbiB2aWV3IHRoZSBtb2RlbCByZWdpc3RyeSBiYXNlbGluZTIHc3RpZ21lchLIAQoUcHJldmlld0F1dGhvcml6YXRpb24SMC5haS5zdGlnbWVyLmJpbGxpbmcudjEuUHJldmlld0F1dGhvcml6YXRpb25JbnB1dBozLmFpLnN0aWdtZXIuYmlsbGluZy52MS5QcmV2aWV3QXV0aG9yaXphdGlvblJlc3BvbnNlIknCuBhFCB0QHyo2b25seSBwbGF0Zm9ybSBvcGVyYXRvcnMgY2FuIGV4ZWN1dGUgYmlsbGluZyBvcGVyYXRpb25zMgdzdGlnbWVyEsUBChNnZXRSdW5CaWxsaW5nU2lnbmFsEi8uYWkuc3RpZ21lci5iaWxsaW5nLnYxLkdldFJ1bkJpbGxpbmdTaWduYWxJbnB1dBoyLmFpLnN0aWdtZXIuYmlsbGluZy52MS5HZXRSdW5CaWxsaW5nU2lnbmFsUmVzcG9uc2UiScK4GEUIHRAfKjZvbmx5IHBsYXRmb3JtIG9wZXJhdG9ycyBjYW4gZXhlY3V0ZSBiaWxsaW5nIG9wZXJhdGlvbnMyB3N0aWdtZXJiBnByb3RvMw", [file_ai_stigmer_billing_v1_billing_account, file_ai_stigmer_billing_v1_io, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiFhaS9zdGlnbWVyL2JpbGxpbmcvdjEvcXVlcnkucHJvdG8SFWFpLnN0aWdtZXIuYmlsbGluZy52MTLmBAoWQmlsbGluZ1F1ZXJ5Q29udHJvbGxlchKsAQoRZ2V0QmlsbGluZ0FjY291bnQSLS5haS5zdGlnbWVyLmJpbGxpbmcudjEuR2V0QmlsbGluZ0FjY291bnRJbnB1dBolLmFpLnN0aWdtZXIuYmlsbGluZy52MS5CaWxsaW5nQWNjb3VudCJBwrgYPQgbEB4iA29yZyoydW5hdXRob3JpemVkIHRvIHZpZXcgYmlsbGluZyBmb3IgdGhpcyBvcmdhbml6YXRpb24SwAEKFWdldEJpbGxpbmdVc2FnZVJlcG9ydBIxLmFpLnN0aWdtZXIuYmlsbGluZy52MS5HZXRCaWxsaW5nVXNhZ2VSZXBvcnRJbnB1dBoxLmFpLnN0aWdtZXIuYmlsbGluZy52MS5CaWxsaW5nVXNhZ2VSZXBvcnRSZXNwb25zZSJBwrgYPQgbEB4iA29yZyoydW5hdXRob3JpemVkIHRvIHZpZXcgYmlsbGluZyBmb3IgdGhpcyBvcmdhbml6YXRpb24S2QEKGWxpc3RNb2RlbFByaWNpbmdCYXNlbGluZXMSNS5haS5zdGlnbWVyLmJpbGxpbmcudjEuTGlzdE1vZGVsUHJpY2luZ0Jhc2VsaW5lc0lucHV0GjQuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsUHJpY2luZ0Jhc2VsaW5lc1Jlc3BvbnNlIk/CuBhLCCAQHyo8b25seSBwbGF0Zm9ybSBvcGVyYXRvcnMgY2FuIHZpZXcgdGhlIG1vZGVsIHJlZ2lzdHJ5IGJhc2VsaW5lMgdzdGlnbWVyYgZwcm90bzM", [file_ai_stigmer_billing_v1_billing_account, file_ai_stigmer_billing_v1_io, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * BillingQueryController handles read operations for the billing bounded context.
  *
- * All RPCs authorize against the organization resource kind with can_view_billing.
+ * An organization's own reads authorize against the organization resource
+ * kind with can_view_billing; the model catalog's operator read authorizes
+ * against the static platform target.
  *
  * @generated from service ai.stigmer.billing.v1.BillingQueryController
  */
@@ -35,27 +37,9 @@ export const BillingQueryController: GenService<{
     output: typeof BillingAccountSchema;
   },
   /**
-   * Retrieve the credit balance breakdown for an organization.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getCreditBalance
-   */
-  getCreditBalance: {
-    methodKind: "unary";
-    input: typeof GetCreditBalanceInputSchema;
-    output: typeof CreditBalanceSchema;
-  },
-  /**
-   * Retrieve paginated credit ledger entries with optional filters.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getCreditLedger
-   */
-  getCreditLedger: {
-    methodKind: "unary";
-    input: typeof GetCreditLedgerInputSchema;
-    output: typeof CreditLedgerResponseSchema;
-  },
-  /**
-   * Retrieve an aggregated billing usage report for a date range.
+   * Count an organization's metered LLM calls and runs in a date range,
+   * with the calls broken down by model and harness. A count, never an
+   * amount: the meter records what each call was, not what it cost.
    *
    * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getBillingUsageReport
    */
@@ -65,22 +49,11 @@ export const BillingQueryController: GenService<{
     output: typeof BillingUsageReportResponseSchema;
   },
   /**
-   * Retrieve the customer-facing model price list with markup applied.
-   * Returns prices for all models, organized by harness and cost tier.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getCustomerModelPricing
-   */
-  getCustomerModelPricing: {
-    methodKind: "unary";
-    input: typeof GetCustomerModelPricingInputSchema;
-    output: typeof CustomerModelPricingResponseSchema;
-  },
-  /**
    * Retrieve the model registry baseline catalog (ACTIVE documents, or the
    * full append-only revision history when include_history is set).
    *
-   * Operator surface: exposes raw provider rates (pre-markup) and revision
-   * provenance, so it is platform-gated, not org-gated.
+   * Operator surface: exposes the providers' list prices with their
+   * revision provenance, so it is platform-gated, not org-gated.
    *
    * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.listModelPricingBaselines
    */
@@ -88,33 +61,6 @@ export const BillingQueryController: GenService<{
     methodKind: "unary";
     input: typeof ListModelPricingBaselinesInputSchema;
     output: typeof ModelPricingBaselinesResponseSchema;
-  },
-  /**
-   * Preview whether an organization can fund a run, without writing
-   * a reservation. The read-only twin of BillingCommandController's
-   * authorizeRun: both ride the same server-side affordability
-   * predicate (start threshold, negative allowance, default cap), so a
-   * synchronous preflight refusal and the authoritative reservation can
-   * never drift.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.previewAuthorization
-   */
-  previewAuthorization: {
-    methodKind: "unary";
-    input: typeof PreviewAuthorizationInputSchema;
-    output: typeof PreviewAuthorizationResponseSchema;
-  },
-  /**
-   * Retrieve the current billing control signal for a run in progress
-   * (continue / low-balance warning / stop), derived from the run's
-   * reservation headroom and the billing account's status.
-   *
-   * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getRunBillingSignal
-   */
-  getRunBillingSignal: {
-    methodKind: "unary";
-    input: typeof GetRunBillingSignalInputSchema;
-    output: typeof GetRunBillingSignalResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_billing_v1_query, 0);

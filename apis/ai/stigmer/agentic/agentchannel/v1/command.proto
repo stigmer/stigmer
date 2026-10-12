@@ -22,16 +22,17 @@ service AgentChannelCommandController {
 
   // Create an agent channel.
   //
-  // Connecting an agent to a channel is a billing-affecting decision:
-  // conversations arriving over the channel consume the connection-owning
-  // organization's credits.
+  // Connecting an agent to a channel is a spending decision: conversations
+  // arriving over the channel call models on the connection-owning
+  // organization's own provider keys, and the providers bill the
+  // organization for them.
   //
   // @internal
   // Authorization: requires can_manage_audience on the REFERENCED AGENT
   // (spec.agent_ref) and can_create_agent_channel on the organization,
   // checked in-handler: the AgentShare create bars, since connecting a
-  // channel broadens who can chat with the agent runtime and spends the
-  // organization's credits. Standard org-scoped create tuples (owner = creator) for the
+  // channel broadens who can chat with the agent runtime and spends on the
+  // organization's own provider keys. Standard org-scoped create tuples (owner = creator) for the
   // channel itself; no visibility tuples (channel admission is app-level).
   // Invariant enforced here: metadata.org must equal spec.agent_ref.org.
   // status.install_state is initialized to pending_install.

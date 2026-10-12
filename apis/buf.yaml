@@ -29,3 +29,43 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request removes the prepaid credit wallet and the plans' usage
+  # share: every run uses the organization's own provider keys, and a plan
+  # is invoiced as a flat monthly fee. It deletes the wallet RPCs of
+  # BillingCommandController and BillingQueryController with
+  # getCustomerModelPricing, credit.proto and policy.proto, the wallet
+  # enums, the usage record's cost stamp and billing link, the billing
+  # account's balance and recharge fields, the usage report's amounts, the
+  # plan terms' usage share, the period estimate's commission, the eval's
+  # out-of-credit reason, the can_manage_credits permission and the provider
+  # key's in_use field; every deleted field and enum value has its number
+  # and name reserved. It is made before launch: the release notes name the
+  # change under Upgrading. This block exists for that one pull request.
+  # While it stays, buf breaking does not report these rules on the listed
+  # files, so the pull request that removes it lands straight after the
+  # merge.
+  ignore_only:
+    FILE_NO_DELETE:
+      - ai/stigmer/billing/v1/credit.proto
+      - ai/stigmer/billing/v1/policy.proto
+    RPC_NO_DELETE:
+      - ai/stigmer/billing/v1/command.proto
+      - ai/stigmer/billing/v1/query.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/run/v1/usage.proto
+      - ai/stigmer/billing/v1/billing_account.proto
+      - ai/stigmer/billing/v1/io.proto
+    ENUM_NO_DELETE:
+      - ai/stigmer/agentic/run/v1/usage.proto
+      - ai/stigmer/billing/v1/enum.proto
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/run/v1/usage.proto
+      - ai/stigmer/billing/plan/v1/spec.proto
+      - ai/stigmer/billing/providerkey/v1/api.proto
+      - ai/stigmer/billing/subscription/v1/io.proto
+      - ai/stigmer/billing/v1/billing_account.proto
+      - ai/stigmer/billing/v1/io.proto
+    ENUM_VALUE_NO_DELETE:
+      - ai/stigmer/agentic/plugineval/v1/status.proto
+      - ai/stigmer/billing/subscription/v1/io.proto
+      - ai/stigmer/iam/v1/enum.proto

@@ -59,7 +59,7 @@ describe("the tag grammar", () => {
   });
 
   it("ignores the cloud-capability row tags and malformed rpc tags", () => {
-    const source = `it("[billing.rpc.adjust-credits.owner-can-adjust] [rpc:agentCommand.create] [rpc:AgentCommandController] [rpc: A.b]")`;
+    const source = `it("[billing.rpc.get-billing-account.owner-can-read] [rpc:agentCommand.create] [rpc:AgentCommandController] [rpc: A.b]")`;
     expect(extractRpcTags(source)).toEqual([]);
   });
 

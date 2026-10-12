@@ -44,7 +44,7 @@ function stored() {
       reservedUsd: 0.25,
       graded: 12,
       notGraded: 1,
-      lastNotGradedReason: "out of credit",
+      lastNotGradedReason: "judge timed out",
     },
   });
 }
@@ -99,7 +99,7 @@ describe("AgentQualityTab", () => {
     expect(oneIn.value).toBe("2");
     expect(screen.getByText("$1.50")).toBeDefined();
     expect(screen.getByText("$0.25")).toBeDefined();
-    expect(screen.getByText("Last not graded: out of credit")).toBeDefined();
+    expect(screen.getByText("Last not graded: judge timed out")).toBeDefined();
     fireEvent.change(screen.getByLabelText("Monthly limit (USD, estimated model spend)"), {
       target: { value: "30" },
     });

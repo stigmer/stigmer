@@ -32,20 +32,10 @@ public final class BillingAccountProto extends com.google.protobuf.GeneratedFile
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_billing_v1_BillingAccount_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_billing_v1_CreditBalance_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_billing_v1_CreditBalance_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_billing_v1_PaymentMethodSummary_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_billing_v1_PaymentMethodSummary_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_billing_v1_AutoRechargeConfig_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_billing_v1_AutoRechargeConfig_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -58,45 +48,27 @@ public final class BillingAccountProto extends com.google.protobuf.GeneratedFile
       "\n+ai/stigmer/billing/v1/billing_account." +
       "proto\022\025ai.stigmer.billing.v1\032 ai/stigmer" +
       "/billing/v1/enum.proto\032\037google/protobuf/" +
-      "timestamp.proto\"\226\005\n\016BillingAccount\022\016\n\002id" +
+      "timestamp.proto\"\355\003\n\016BillingAccount\022\016\n\002id" +
       "\030\001 \001(\tR\002id\022\020\n\003org\030\002 \001(\tR\003org\022C\n\006status\030\003" +
       " \001(\0162+.ai.stigmer.billing.v1.BillingAcco" +
-      "untStatusR\006status\022>\n\007balance\030\004 \001(\0132$.ai." +
-      "stigmer.billing.v1.CreditBalanceR\007balanc" +
-      "e\022N\n\rauto_recharge\030\005 \001(\0132).ai.stigmer.bi" +
-      "lling.v1.AutoRechargeConfigR\014autoRecharg" +
-      "e\022,\n\022stripe_customer_id\030\006 \001(\tR\020stripeCus" +
-      "tomerId\022E\n\037allowed_negative_balance_micr" +
-      "os\030\007 \001(\003R\034allowedNegativeBalanceMicros\022?" +
-      "\n\034low_balance_threshold_micros\030\010 \001(\003R\031lo" +
-      "wBalanceThresholdMicros\022a\n\026default_payme" +
+      "untStatusR\006status\022,\n\022stripe_customer_id\030" +
+      "\006 \001(\tR\020stripeCustomerId\022a\n\026default_payme" +
       "nt_method\030\013 \001(\0132+.ai.stigmer.billing.v1." +
       "PaymentMethodSummaryR\024defaultPaymentMeth" +
       "od\0229\n\ncreated_at\030\t \001(\0132\032.google.protobuf" +
       ".TimestampR\tcreatedAt\0229\n\nupdated_at\030\n \001(" +
       "\0132\032.google.protobuf.TimestampR\tupdatedAt" +
-      "\"\340\001\n\rCreditBalance\022)\n\020available_micros\030\001" +
-      " \001(\003R\017availableMicros\022\'\n\017reserved_micros" +
-      "\030\002 \001(\003R\016reservedMicros\022-\n\022promotional_mi" +
-      "cros\030\003 \001(\003R\021promotionalMicros\022)\n\020purchas" +
-      "ed_micros\030\004 \001(\003R\017purchasedMicros\022!\n\014tota" +
-      "l_micros\030\005 \001(\003R\013totalMicros\"\246\001\n\024PaymentM" +
-      "ethodSummary\022*\n\021payment_method_id\030\001 \001(\tR" +
-      "\017paymentMethodId\022\024\n\005brand\030\002 \001(\tR\005brand\022\024" +
-      "\n\005last4\030\003 \001(\tR\005last4\022\033\n\texp_month\030\004 \001(\005R" +
-      "\010expMonth\022\031\n\010exp_year\030\005 \001(\005R\007expYear\"\243\002\n" +
-      "\022AutoRechargeConfig\022\030\n\007enabled\030\001 \001(\010R\007en" +
-      "abled\022)\n\020threshold_micros\030\002 \001(\003R\017thresho" +
-      "ldMicros\0224\n\026recharge_amount_micros\030\003 \001(\003" +
-      "R\024rechargeAmountMicros\022,\n\022monthly_cap_mi" +
-      "cros\030\004 \001(\003R\020monthlyCapMicros\022?\n\034current_" +
-      "month_charged_micros\030\005 \001(\003R\031currentMonth" +
-      "ChargedMicros\022#\n\rcurrent_month\030\007 \001(\tR\014cu" +
-      "rrentMonthB\214\001B\023BillingAccountProtoP\001\242\002\003A" +
-      "SB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigmer\\" +
-      "Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMe" +
-      "tadata\352\002\030Ai::Stigmer::Billing::V1b\006proto" +
-      "3"
+      "J\004\010\004\020\005J\004\010\005\020\006J\004\010\007\020\010J\004\010\010\020\tR\007balanceR\rauto_" +
+      "rechargeR\037allowed_negative_balance_micro" +
+      "sR\034low_balance_threshold_micros\"\246\001\n\024Paym" +
+      "entMethodSummary\022*\n\021payment_method_id\030\001 " +
+      "\001(\tR\017paymentMethodId\022\024\n\005brand\030\002 \001(\tR\005bra" +
+      "nd\022\024\n\005last4\030\003 \001(\tR\005last4\022\033\n\texp_month\030\004 " +
+      "\001(\005R\010expMonth\022\031\n\010exp_year\030\005 \001(\005R\007expYear" +
+      "B\214\001B\023BillingAccountProtoP\001\242\002\003ASB\252\002\025Ai.St" +
+      "igmer.Billing.V1\312\002\025Ai\\Stigmer\\Billing\\V1" +
+      "\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\352\002\030A" +
+      "i::Stigmer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -109,25 +81,13 @@ public final class BillingAccountProto extends com.google.protobuf.GeneratedFile
     internal_static_ai_stigmer_billing_v1_BillingAccount_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_BillingAccount_descriptor,
-        new java.lang.String[] { "Id", "Org", "Status", "Balance", "AutoRecharge", "StripeCustomerId", "AllowedNegativeBalanceMicros", "LowBalanceThresholdMicros", "DefaultPaymentMethod", "CreatedAt", "UpdatedAt", });
-    internal_static_ai_stigmer_billing_v1_CreditBalance_descriptor =
-      getDescriptor().getMessageType(1);
-    internal_static_ai_stigmer_billing_v1_CreditBalance_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_billing_v1_CreditBalance_descriptor,
-        new java.lang.String[] { "AvailableMicros", "ReservedMicros", "PromotionalMicros", "PurchasedMicros", "TotalMicros", });
+        new java.lang.String[] { "Id", "Org", "Status", "StripeCustomerId", "DefaultPaymentMethod", "CreatedAt", "UpdatedAt", });
     internal_static_ai_stigmer_billing_v1_PaymentMethodSummary_descriptor =
-      getDescriptor().getMessageType(2);
+      getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_billing_v1_PaymentMethodSummary_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_PaymentMethodSummary_descriptor,
         new java.lang.String[] { "PaymentMethodId", "Brand", "Last4", "ExpMonth", "ExpYear", });
-    internal_static_ai_stigmer_billing_v1_AutoRechargeConfig_descriptor =
-      getDescriptor().getMessageType(3);
-    internal_static_ai_stigmer_billing_v1_AutoRechargeConfig_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_billing_v1_AutoRechargeConfig_descriptor,
-        new java.lang.String[] { "Enabled", "ThresholdMicros", "RechargeAmountMicros", "MonthlyCapMicros", "CurrentMonthChargedMicros", "CurrentMonth", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.billing.v1.EnumProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();

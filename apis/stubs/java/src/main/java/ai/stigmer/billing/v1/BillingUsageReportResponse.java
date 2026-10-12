@@ -7,7 +7,8 @@ package ai.stigmer.billing.v1;
 
 /**
  * <pre>
- * BillingUsageReportResponse provides aggregated spend data for the period.
+ * BillingUsageReportResponse counts the metered calls and runs in the
+ * period. It carries no amount: calls are metered, never priced.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.BillingUsageReportResponse}
@@ -53,36 +54,6 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.billing.v1.BillingUsageReportResponse.class, ai.stigmer.billing.v1.BillingUsageReportResponse.Builder.class);
   }
 
-  public static final int TOTAL_PROVIDER_COST_MICROS_FIELD_NUMBER = 1;
-  private long totalProviderCostMicros_ = 0L;
-  /**
-   * <pre>
-   * Total provider cost in the period.
-   * </pre>
-   *
-   * <code>int64 total_provider_cost_micros = 1 [json_name = "totalProviderCostMicros"];</code>
-   * @return The totalProviderCostMicros.
-   */
-  @java.lang.Override
-  public long getTotalProviderCostMicros() {
-    return totalProviderCostMicros_;
-  }
-
-  public static final int TOTAL_BILLABLE_AMOUNT_MICROS_FIELD_NUMBER = 2;
-  private long totalBillableAmountMicros_ = 0L;
-  /**
-   * <pre>
-   * Total amount billed to the customer in the period.
-   * </pre>
-   *
-   * <code>int64 total_billable_amount_micros = 2 [json_name = "totalBillableAmountMicros"];</code>
-   * @return The totalBillableAmountMicros.
-   */
-  @java.lang.Override
-  public long getTotalBillableAmountMicros() {
-    return totalBillableAmountMicros_;
-  }
-
   public static final int RUN_COUNT_FIELD_NUMBER = 3;
   private int runCount_ = 0;
   /**
@@ -118,7 +89,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.billing.v1.ModelBillingBreakdown> modelBreakdown_;
   /**
    * <pre>
-   * Breakdown by model.
+   * Calls in the period, by model and harness.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -129,7 +100,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Breakdown by model.
+   * Calls in the period, by model and harness.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -141,7 +112,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Breakdown by model.
+   * Calls in the period, by model and harness.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -152,7 +123,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Breakdown by model.
+   * Calls in the period, by model and harness.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -163,7 +134,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Breakdown by model.
+   * Calls in the period, by model and harness.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -188,12 +159,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (totalProviderCostMicros_ != 0L) {
-      output.writeInt64(1, totalProviderCostMicros_);
-    }
-    if (totalBillableAmountMicros_ != 0L) {
-      output.writeInt64(2, totalBillableAmountMicros_);
-    }
     if (runCount_ != 0) {
       output.writeInt32(3, runCount_);
     }
@@ -212,14 +177,6 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (totalProviderCostMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(1, totalProviderCostMicros_);
-    }
-    if (totalBillableAmountMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(2, totalBillableAmountMicros_);
-    }
     if (runCount_ != 0) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(3, runCount_);
@@ -252,10 +209,6 @@ private static final long serialVersionUID = 0L;
     }
     ai.stigmer.billing.v1.BillingUsageReportResponse other = (ai.stigmer.billing.v1.BillingUsageReportResponse) obj;
 
-    if (getTotalProviderCostMicros()
-        != other.getTotalProviderCostMicros()) return false;
-    if (getTotalBillableAmountMicros()
-        != other.getTotalBillableAmountMicros()) return false;
     if (getRunCount()
         != other.getRunCount()) return false;
     if (getLlmCallCount()
@@ -273,12 +226,6 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + TOTAL_PROVIDER_COST_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getTotalProviderCostMicros());
-    hash = (37 * hash) + TOTAL_BILLABLE_AMOUNT_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getTotalBillableAmountMicros());
     hash = (37 * hash) + RUN_COUNT_FIELD_NUMBER;
     hash = (53 * hash) + getRunCount();
     hash = (37 * hash) + LLM_CALL_COUNT_FIELD_NUMBER;
@@ -386,7 +333,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * BillingUsageReportResponse provides aggregated spend data for the period.
+   * BillingUsageReportResponse counts the metered calls and runs in the
+   * period. It carries no amount: calls are metered, never priced.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.BillingUsageReportResponse}
@@ -422,8 +370,6 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      totalProviderCostMicros_ = 0L;
-      totalBillableAmountMicros_ = 0L;
       runCount_ = 0;
       llmCallCount_ = 0;
       if (modelBreakdownBuilder_ == null) {
@@ -432,7 +378,7 @@ private static final long serialVersionUID = 0L;
         modelBreakdown_ = null;
         modelBreakdownBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000004);
       return this;
     }
 
@@ -467,9 +413,9 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(ai.stigmer.billing.v1.BillingUsageReportResponse result) {
       if (modelBreakdownBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0)) {
+        if (((bitField0_ & 0x00000004) != 0)) {
           modelBreakdown_ = java.util.Collections.unmodifiableList(modelBreakdown_);
-          bitField0_ = (bitField0_ & ~0x00000010);
+          bitField0_ = (bitField0_ & ~0x00000004);
         }
         result.modelBreakdown_ = modelBreakdown_;
       } else {
@@ -480,15 +426,9 @@ private static final long serialVersionUID = 0L;
     private void buildPartial0(ai.stigmer.billing.v1.BillingUsageReportResponse result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.totalProviderCostMicros_ = totalProviderCostMicros_;
-      }
-      if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.totalBillableAmountMicros_ = totalBillableAmountMicros_;
-      }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
         result.runCount_ = runCount_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
+      if (((from_bitField0_ & 0x00000002) != 0)) {
         result.llmCallCount_ = llmCallCount_;
       }
     }
@@ -505,12 +445,6 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(ai.stigmer.billing.v1.BillingUsageReportResponse other) {
       if (other == ai.stigmer.billing.v1.BillingUsageReportResponse.getDefaultInstance()) return this;
-      if (other.getTotalProviderCostMicros() != 0L) {
-        setTotalProviderCostMicros(other.getTotalProviderCostMicros());
-      }
-      if (other.getTotalBillableAmountMicros() != 0L) {
-        setTotalBillableAmountMicros(other.getTotalBillableAmountMicros());
-      }
       if (other.getRunCount() != 0) {
         setRunCount(other.getRunCount());
       }
@@ -521,7 +455,7 @@ private static final long serialVersionUID = 0L;
         if (!other.modelBreakdown_.isEmpty()) {
           if (modelBreakdown_.isEmpty()) {
             modelBreakdown_ = other.modelBreakdown_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000004);
           } else {
             ensureModelBreakdownIsMutable();
             modelBreakdown_.addAll(other.modelBreakdown_);
@@ -534,7 +468,7 @@ private static final long serialVersionUID = 0L;
             modelBreakdownBuilder_.dispose();
             modelBreakdownBuilder_ = null;
             modelBreakdown_ = other.modelBreakdown_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000004);
             modelBreakdownBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetModelBreakdownFieldBuilder() : null;
@@ -569,24 +503,14 @@ private static final long serialVersionUID = 0L;
             case 0:
               done = true;
               break;
-            case 8: {
-              totalProviderCostMicros_ = input.readInt64();
-              bitField0_ |= 0x00000001;
-              break;
-            } // case 8
-            case 16: {
-              totalBillableAmountMicros_ = input.readInt64();
-              bitField0_ |= 0x00000002;
-              break;
-            } // case 16
             case 24: {
               runCount_ = input.readInt32();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000001;
               break;
             } // case 24
             case 32: {
               llmCallCount_ = input.readInt32();
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000002;
               break;
             } // case 32
             case 42: {
@@ -619,94 +543,6 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private long totalProviderCostMicros_ ;
-    /**
-     * <pre>
-     * Total provider cost in the period.
-     * </pre>
-     *
-     * <code>int64 total_provider_cost_micros = 1 [json_name = "totalProviderCostMicros"];</code>
-     * @return The totalProviderCostMicros.
-     */
-    @java.lang.Override
-    public long getTotalProviderCostMicros() {
-      return totalProviderCostMicros_;
-    }
-    /**
-     * <pre>
-     * Total provider cost in the period.
-     * </pre>
-     *
-     * <code>int64 total_provider_cost_micros = 1 [json_name = "totalProviderCostMicros"];</code>
-     * @param value The totalProviderCostMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setTotalProviderCostMicros(long value) {
-
-      totalProviderCostMicros_ = value;
-      bitField0_ |= 0x00000001;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Total provider cost in the period.
-     * </pre>
-     *
-     * <code>int64 total_provider_cost_micros = 1 [json_name = "totalProviderCostMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearTotalProviderCostMicros() {
-      bitField0_ = (bitField0_ & ~0x00000001);
-      totalProviderCostMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
-    private long totalBillableAmountMicros_ ;
-    /**
-     * <pre>
-     * Total amount billed to the customer in the period.
-     * </pre>
-     *
-     * <code>int64 total_billable_amount_micros = 2 [json_name = "totalBillableAmountMicros"];</code>
-     * @return The totalBillableAmountMicros.
-     */
-    @java.lang.Override
-    public long getTotalBillableAmountMicros() {
-      return totalBillableAmountMicros_;
-    }
-    /**
-     * <pre>
-     * Total amount billed to the customer in the period.
-     * </pre>
-     *
-     * <code>int64 total_billable_amount_micros = 2 [json_name = "totalBillableAmountMicros"];</code>
-     * @param value The totalBillableAmountMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setTotalBillableAmountMicros(long value) {
-
-      totalBillableAmountMicros_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Total amount billed to the customer in the period.
-     * </pre>
-     *
-     * <code>int64 total_billable_amount_micros = 2 [json_name = "totalBillableAmountMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearTotalBillableAmountMicros() {
-      bitField0_ = (bitField0_ & ~0x00000002);
-      totalBillableAmountMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
     private int runCount_ ;
     /**
      * <pre>
@@ -732,7 +568,7 @@ private static final long serialVersionUID = 0L;
     public Builder setRunCount(int value) {
 
       runCount_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
@@ -745,7 +581,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearRunCount() {
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000001);
       runCount_ = 0;
       onChanged();
       return this;
@@ -776,7 +612,7 @@ private static final long serialVersionUID = 0L;
     public Builder setLlmCallCount(int value) {
 
       llmCallCount_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -789,7 +625,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearLlmCallCount() {
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000002);
       llmCallCount_ = 0;
       onChanged();
       return this;
@@ -798,9 +634,9 @@ private static final long serialVersionUID = 0L;
     private java.util.List<ai.stigmer.billing.v1.ModelBillingBreakdown> modelBreakdown_ =
       java.util.Collections.emptyList();
     private void ensureModelBreakdownIsMutable() {
-      if (!((bitField0_ & 0x00000010) != 0)) {
+      if (!((bitField0_ & 0x00000004) != 0)) {
         modelBreakdown_ = new java.util.ArrayList<ai.stigmer.billing.v1.ModelBillingBreakdown>(modelBreakdown_);
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000004;
        }
     }
 
@@ -809,7 +645,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -823,7 +659,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -837,7 +673,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -851,7 +687,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -872,7 +708,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -890,7 +726,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -910,7 +746,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -931,7 +767,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -949,7 +785,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -967,7 +803,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -986,7 +822,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -994,7 +830,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearModelBreakdown() {
       if (modelBreakdownBuilder_ == null) {
         modelBreakdown_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000004);
         onChanged();
       } else {
         modelBreakdownBuilder_.clear();
@@ -1003,7 +839,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -1020,7 +856,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -1031,7 +867,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -1045,7 +881,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -1060,7 +896,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -1071,7 +907,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -1083,7 +919,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Breakdown by model.
+     * Calls in the period, by model and harness.
      * </pre>
      *
      * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -1099,7 +935,7 @@ private static final long serialVersionUID = 0L;
         modelBreakdownBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.billing.v1.ModelBillingBreakdown, ai.stigmer.billing.v1.ModelBillingBreakdown.Builder, ai.stigmer.billing.v1.ModelBillingBreakdownOrBuilder>(
                 modelBreakdown_,
-                ((bitField0_ & 0x00000010) != 0),
+                ((bitField0_ & 0x00000004) != 0),
                 getParentForChildren(),
                 isClean());
         modelBreakdown_ = null;

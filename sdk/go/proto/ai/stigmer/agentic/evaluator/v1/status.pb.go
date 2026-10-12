@@ -37,8 +37,8 @@ type EvaluatorStatus struct {
 	NotGraded int32 `protobuf:"varint,5,opt,name=not_graded,json=notGraded,proto3" json:"not_graded,omitempty"`
 	// Why the most recent run picked for grading could not be graded.
 	//
-	// For example "spending limit reached" or "out of credit". Empty when
-	// the most recent grade succeeded.
+	// For example "spending limit reached". Empty when the most recent grade
+	// succeeded.
 	LastNotGradedReason string `protobuf:"bytes,6,opt,name=last_not_graded_reason,json=lastNotGradedReason,proto3" json:"last_not_graded_reason,omitempty"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`

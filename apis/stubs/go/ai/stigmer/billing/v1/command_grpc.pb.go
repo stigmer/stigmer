@@ -20,16 +20,9 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	BillingCommandController_GetOrCreateBillingAccount_FullMethodName       = "/ai.stigmer.billing.v1.BillingCommandController/getOrCreateBillingAccount"
-	BillingCommandController_AdjustCredits_FullMethodName                   = "/ai.stigmer.billing.v1.BillingCommandController/adjustCredits"
-	BillingCommandController_GrantCredits_FullMethodName                    = "/ai.stigmer.billing.v1.BillingCommandController/grantCredits"
-	BillingCommandController_AuthorizeRun_FullMethodName                    = "/ai.stigmer.billing.v1.BillingCommandController/authorizeRun"
 	BillingCommandController_RecordLlmCallUsage_FullMethodName              = "/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage"
-	BillingCommandController_FinalizeRun_FullMethodName                     = "/ai.stigmer.billing.v1.BillingCommandController/finalizeRun"
-	BillingCommandController_RearmForRecovery_FullMethodName                = "/ai.stigmer.billing.v1.BillingCommandController/rearmForRecovery"
-	BillingCommandController_CreateCreditCheckoutSession_FullMethodName     = "/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession"
 	BillingCommandController_CreateBillingPortalSession_FullMethodName      = "/ai.stigmer.billing.v1.BillingCommandController/createBillingPortalSession"
 	BillingCommandController_CreatePaymentMethodSetupSession_FullMethodName = "/ai.stigmer.billing.v1.BillingCommandController/createPaymentMethodSetupSession"
-	BillingCommandController_SetAutoRechargeConfig_FullMethodName           = "/ai.stigmer.billing.v1.BillingCommandController/setAutoRechargeConfig"
 	BillingCommandController_UpsertModelPricingBaseline_FullMethodName      = "/ai.stigmer.billing.v1.BillingCommandController/upsertModelPricingBaseline"
 	BillingCommandController_RetireModelPricingBaseline_FullMethodName      = "/ai.stigmer.billing.v1.BillingCommandController/retireModelPricingBaseline"
 )
@@ -42,76 +35,39 @@ const (
 //
 // Billing is not a standard API Resource — there is no api_resource_kind annotation.
 // An organization's own billing RPCs authorize against the organization
-// resource kind; the credit mutations, the execution pipeline and the
-// model catalog authorize against the static platform target.
+// resource kind; the usage meter and the model catalog authorize against
+// the static platform target.
 type BillingCommandControllerClient interface {
 	// Provision or retrieve the billing account for an organization.
 	// Idempotent: creates the account on first call, returns existing on subsequent calls.
 	GetOrCreateBillingAccount(ctx context.Context, in *GetOrCreateBillingAccountInput, opts ...grpc.CallOption) (*BillingAccount, error)
-	// Manually adjust an org's credit balance.
-	// Produces an immutable ledger entry for audit. Requires can_manage_credits
-	// on the platform: a platform operator or a credit issuer.
-	AdjustCredits(ctx context.Context, in *AdjustCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error)
-	// Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
-	// Produces an immutable promotional_credit ledger entry for audit.
-	//
-	// The grant burns before adjustment and purchased credits. When expires_at
-	// is set, any remainder unconsumed at that time is removed from the balance
-	// by the platform's grant-expiry sweep (an expiry_debit ledger entry).
-	// Idempotent: replaying an applied idempotency key returns the original
-	// entry, even after the expiry has passed. Requires can_manage_credits on
-	// the platform, as adjustCredits does.
-	GrantCredits(ctx context.Context, in *GrantCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error)
-	// Reserve credits before starting a run.
-	// Returns authorization status and reservation details.
-	AuthorizeRun(ctx context.Context, in *AuthorizeRunInput, opts ...grpc.CallOption) (*AuthorizeRunResponse, error)
-	// Record a single LLM call's usage for billing.
-	// Computes cost server-side from the model registry, inserts an immutable
-	// LlmCallUsageRecord, and debits credits from the run's reservation.
+	// Record a single LLM call's usage.
+	// Resolves the call against the model catalog and inserts an immutable
+	// LlmCallUsageRecord: what the call was (tokens, model, harness, served
+	// tier and thinking mode, whose key served it), never what it cost.
 	RecordLlmCallUsage(ctx context.Context, in *RecordLlmCallUsageInput, opts ...grpc.CallOption) (*RecordLlmCallUsageResponse, error)
-	// Settle billing for a completed run.
-	// Releases unused reservation credits and produces the final billing record.
-	FinalizeRun(ctx context.Context, in *FinalizeRunInput, opts ...grpc.CallOption) (*FinalizeRunResponse, error)
-	// Re-arm a settled reservation so a failed run can be recovered.
-	// The one sanctioned path past the settled-reservation latch: re-runs
-	// the affordability check, transfers a fresh hold, and rotates the
-	// reservation id as the fence against settles still in flight from the
-	// terminated run. Returns the same shape as authorizeRun, with
-	// the rotated reservation id.
-	RearmForRecovery(ctx context.Context, in *RearmForRecoveryInput, opts ...grpc.CallOption) (*AuthorizeRunResponse, error)
-	// Create a Stripe Checkout Session to purchase a credit pack.
-	// Returns a checkout URL for the client to redirect the user.
-	//
-	// The caller's email is resolved server-side for Stripe Customer creation.
-	// Credits are provisioned asynchronously via the checkout.session.completed webhook.
-	CreateCreditCheckoutSession(ctx context.Context, in *CreateCreditCheckoutSessionInput, opts ...grpc.CallOption) (*CreateCreditCheckoutSessionResponse, error)
 	// Open a Stripe Customer Portal session for payment method management.
 	// Returns a portal URL for the client to redirect the user.
 	//
-	// Requires an existing Stripe Customer (created during first credit purchase).
-	// The portal allows users to add, update, or remove saved payment methods.
+	// Requires an existing Stripe Customer (created by
+	// createPaymentMethodSetupSession on first use). The portal allows users
+	// to add, update, or remove saved payment methods and to read the
+	// invoices Stripe sends.
 	CreateBillingPortalSession(ctx context.Context, in *CreateBillingPortalSessionInput, opts ...grpc.CallOption) (*CreateBillingPortalSessionResponse, error)
 	// Create a Stripe Checkout Session in setup mode, which saves a payment
 	// method without charging it. Returns a URL for the client to redirect
 	// the user.
 	//
-	// This is how an organization that has never bought credit gets a card
-	// on file (the billing portal needs an existing Stripe Customer, which
+	// This is how an organization gets a card on file for its plan's
+	// invoices (the billing portal needs an existing Stripe Customer, which
 	// this call creates on first use). The saved card becomes the account's
-	// default payment method through the payment_method.attached webhook,
-	// the same path a card saved at credit checkout takes.
+	// default payment method through the payment_method.attached webhook.
 	CreatePaymentMethodSetupSession(ctx context.Context, in *CreatePaymentMethodSetupSessionInput, opts ...grpc.CallOption) (*CreatePaymentMethodSetupSessionResponse, error)
-	// Configure automatic credit recharge for an organization.
-	// Returns the updated BillingAccount with the new config applied.
-	//
-	// Enabling requires an active account with a saved payment method.
-	// Disabling preserves the threshold/amount/cap for easy re-enablement.
-	SetAutoRechargeConfig(ctx context.Context, in *SetAutoRechargeConfigInput, opts ...grpc.CallOption) (*BillingAccount, error)
 	// Create or revise one model registry baseline entry (catalog + list
 	// prices). Append-only: an existing ACTIVE document for the same
 	// (model_id, provider, harness) key is superseded, never mutated. The
-	// registry is rebuilt immediately, so the revision reaches billing and
-	// every published price surface atomically.
+	// registry is rebuilt immediately, so the revision reaches the usage
+	// meter, run admission and the published registry atomically.
 	UpsertModelPricingBaseline(ctx context.Context, in *UpsertModelPricingBaselineInput, opts ...grpc.CallOption) (*ModelPricingBaseline, error)
 	// Retire one model from the registry catalog. The rebuilt registry drops
 	// it. Kept for audit; the key can be revived by a subsequent upsert.
@@ -136,70 +92,10 @@ func (c *billingCommandControllerClient) GetOrCreateBillingAccount(ctx context.C
 	return out, nil
 }
 
-func (c *billingCommandControllerClient) AdjustCredits(ctx context.Context, in *AdjustCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreditLedgerEntry)
-	err := c.cc.Invoke(ctx, BillingCommandController_AdjustCredits_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingCommandControllerClient) GrantCredits(ctx context.Context, in *GrantCreditsInput, opts ...grpc.CallOption) (*CreditLedgerEntry, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreditLedgerEntry)
-	err := c.cc.Invoke(ctx, BillingCommandController_GrantCredits_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingCommandControllerClient) AuthorizeRun(ctx context.Context, in *AuthorizeRunInput, opts ...grpc.CallOption) (*AuthorizeRunResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AuthorizeRunResponse)
-	err := c.cc.Invoke(ctx, BillingCommandController_AuthorizeRun_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *billingCommandControllerClient) RecordLlmCallUsage(ctx context.Context, in *RecordLlmCallUsageInput, opts ...grpc.CallOption) (*RecordLlmCallUsageResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RecordLlmCallUsageResponse)
 	err := c.cc.Invoke(ctx, BillingCommandController_RecordLlmCallUsage_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingCommandControllerClient) FinalizeRun(ctx context.Context, in *FinalizeRunInput, opts ...grpc.CallOption) (*FinalizeRunResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(FinalizeRunResponse)
-	err := c.cc.Invoke(ctx, BillingCommandController_FinalizeRun_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingCommandControllerClient) RearmForRecovery(ctx context.Context, in *RearmForRecoveryInput, opts ...grpc.CallOption) (*AuthorizeRunResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AuthorizeRunResponse)
-	err := c.cc.Invoke(ctx, BillingCommandController_RearmForRecovery_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingCommandControllerClient) CreateCreditCheckoutSession(ctx context.Context, in *CreateCreditCheckoutSessionInput, opts ...grpc.CallOption) (*CreateCreditCheckoutSessionResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateCreditCheckoutSessionResponse)
-	err := c.cc.Invoke(ctx, BillingCommandController_CreateCreditCheckoutSession_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -220,16 +116,6 @@ func (c *billingCommandControllerClient) CreatePaymentMethodSetupSession(ctx con
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreatePaymentMethodSetupSessionResponse)
 	err := c.cc.Invoke(ctx, BillingCommandController_CreatePaymentMethodSetupSession_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingCommandControllerClient) SetAutoRechargeConfig(ctx context.Context, in *SetAutoRechargeConfigInput, opts ...grpc.CallOption) (*BillingAccount, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BillingAccount)
-	err := c.cc.Invoke(ctx, BillingCommandController_SetAutoRechargeConfig_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -264,76 +150,39 @@ func (c *billingCommandControllerClient) RetireModelPricingBaseline(ctx context.
 //
 // Billing is not a standard API Resource — there is no api_resource_kind annotation.
 // An organization's own billing RPCs authorize against the organization
-// resource kind; the credit mutations, the execution pipeline and the
-// model catalog authorize against the static platform target.
+// resource kind; the usage meter and the model catalog authorize against
+// the static platform target.
 type BillingCommandControllerServer interface {
 	// Provision or retrieve the billing account for an organization.
 	// Idempotent: creates the account on first call, returns existing on subsequent calls.
 	GetOrCreateBillingAccount(context.Context, *GetOrCreateBillingAccountInput) (*BillingAccount, error)
-	// Manually adjust an org's credit balance.
-	// Produces an immutable ledger entry for audit. Requires can_manage_credits
-	// on the platform: a platform operator or a credit issuer.
-	AdjustCredits(context.Context, *AdjustCreditsInput) (*CreditLedgerEntry, error)
-	// Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
-	// Produces an immutable promotional_credit ledger entry for audit.
-	//
-	// The grant burns before adjustment and purchased credits. When expires_at
-	// is set, any remainder unconsumed at that time is removed from the balance
-	// by the platform's grant-expiry sweep (an expiry_debit ledger entry).
-	// Idempotent: replaying an applied idempotency key returns the original
-	// entry, even after the expiry has passed. Requires can_manage_credits on
-	// the platform, as adjustCredits does.
-	GrantCredits(context.Context, *GrantCreditsInput) (*CreditLedgerEntry, error)
-	// Reserve credits before starting a run.
-	// Returns authorization status and reservation details.
-	AuthorizeRun(context.Context, *AuthorizeRunInput) (*AuthorizeRunResponse, error)
-	// Record a single LLM call's usage for billing.
-	// Computes cost server-side from the model registry, inserts an immutable
-	// LlmCallUsageRecord, and debits credits from the run's reservation.
+	// Record a single LLM call's usage.
+	// Resolves the call against the model catalog and inserts an immutable
+	// LlmCallUsageRecord: what the call was (tokens, model, harness, served
+	// tier and thinking mode, whose key served it), never what it cost.
 	RecordLlmCallUsage(context.Context, *RecordLlmCallUsageInput) (*RecordLlmCallUsageResponse, error)
-	// Settle billing for a completed run.
-	// Releases unused reservation credits and produces the final billing record.
-	FinalizeRun(context.Context, *FinalizeRunInput) (*FinalizeRunResponse, error)
-	// Re-arm a settled reservation so a failed run can be recovered.
-	// The one sanctioned path past the settled-reservation latch: re-runs
-	// the affordability check, transfers a fresh hold, and rotates the
-	// reservation id as the fence against settles still in flight from the
-	// terminated run. Returns the same shape as authorizeRun, with
-	// the rotated reservation id.
-	RearmForRecovery(context.Context, *RearmForRecoveryInput) (*AuthorizeRunResponse, error)
-	// Create a Stripe Checkout Session to purchase a credit pack.
-	// Returns a checkout URL for the client to redirect the user.
-	//
-	// The caller's email is resolved server-side for Stripe Customer creation.
-	// Credits are provisioned asynchronously via the checkout.session.completed webhook.
-	CreateCreditCheckoutSession(context.Context, *CreateCreditCheckoutSessionInput) (*CreateCreditCheckoutSessionResponse, error)
 	// Open a Stripe Customer Portal session for payment method management.
 	// Returns a portal URL for the client to redirect the user.
 	//
-	// Requires an existing Stripe Customer (created during first credit purchase).
-	// The portal allows users to add, update, or remove saved payment methods.
+	// Requires an existing Stripe Customer (created by
+	// createPaymentMethodSetupSession on first use). The portal allows users
+	// to add, update, or remove saved payment methods and to read the
+	// invoices Stripe sends.
 	CreateBillingPortalSession(context.Context, *CreateBillingPortalSessionInput) (*CreateBillingPortalSessionResponse, error)
 	// Create a Stripe Checkout Session in setup mode, which saves a payment
 	// method without charging it. Returns a URL for the client to redirect
 	// the user.
 	//
-	// This is how an organization that has never bought credit gets a card
-	// on file (the billing portal needs an existing Stripe Customer, which
+	// This is how an organization gets a card on file for its plan's
+	// invoices (the billing portal needs an existing Stripe Customer, which
 	// this call creates on first use). The saved card becomes the account's
-	// default payment method through the payment_method.attached webhook,
-	// the same path a card saved at credit checkout takes.
+	// default payment method through the payment_method.attached webhook.
 	CreatePaymentMethodSetupSession(context.Context, *CreatePaymentMethodSetupSessionInput) (*CreatePaymentMethodSetupSessionResponse, error)
-	// Configure automatic credit recharge for an organization.
-	// Returns the updated BillingAccount with the new config applied.
-	//
-	// Enabling requires an active account with a saved payment method.
-	// Disabling preserves the threshold/amount/cap for easy re-enablement.
-	SetAutoRechargeConfig(context.Context, *SetAutoRechargeConfigInput) (*BillingAccount, error)
 	// Create or revise one model registry baseline entry (catalog + list
 	// prices). Append-only: an existing ACTIVE document for the same
 	// (model_id, provider, harness) key is superseded, never mutated. The
-	// registry is rebuilt immediately, so the revision reaches billing and
-	// every published price surface atomically.
+	// registry is rebuilt immediately, so the revision reaches the usage
+	// meter, run admission and the published registry atomically.
 	UpsertModelPricingBaseline(context.Context, *UpsertModelPricingBaselineInput) (*ModelPricingBaseline, error)
 	// Retire one model from the registry catalog. The rebuilt registry drops
 	// it. Kept for audit; the key can be revived by a subsequent upsert.
@@ -350,35 +199,14 @@ type UnimplementedBillingCommandControllerServer struct{}
 func (UnimplementedBillingCommandControllerServer) GetOrCreateBillingAccount(context.Context, *GetOrCreateBillingAccountInput) (*BillingAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOrCreateBillingAccount not implemented")
 }
-func (UnimplementedBillingCommandControllerServer) AdjustCredits(context.Context, *AdjustCreditsInput) (*CreditLedgerEntry, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AdjustCredits not implemented")
-}
-func (UnimplementedBillingCommandControllerServer) GrantCredits(context.Context, *GrantCreditsInput) (*CreditLedgerEntry, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GrantCredits not implemented")
-}
-func (UnimplementedBillingCommandControllerServer) AuthorizeRun(context.Context, *AuthorizeRunInput) (*AuthorizeRunResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthorizeRun not implemented")
-}
 func (UnimplementedBillingCommandControllerServer) RecordLlmCallUsage(context.Context, *RecordLlmCallUsageInput) (*RecordLlmCallUsageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RecordLlmCallUsage not implemented")
-}
-func (UnimplementedBillingCommandControllerServer) FinalizeRun(context.Context, *FinalizeRunInput) (*FinalizeRunResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FinalizeRun not implemented")
-}
-func (UnimplementedBillingCommandControllerServer) RearmForRecovery(context.Context, *RearmForRecoveryInput) (*AuthorizeRunResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RearmForRecovery not implemented")
-}
-func (UnimplementedBillingCommandControllerServer) CreateCreditCheckoutSession(context.Context, *CreateCreditCheckoutSessionInput) (*CreateCreditCheckoutSessionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateCreditCheckoutSession not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) CreateBillingPortalSession(context.Context, *CreateBillingPortalSessionInput) (*CreateBillingPortalSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateBillingPortalSession not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) CreatePaymentMethodSetupSession(context.Context, *CreatePaymentMethodSetupSessionInput) (*CreatePaymentMethodSetupSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreatePaymentMethodSetupSession not implemented")
-}
-func (UnimplementedBillingCommandControllerServer) SetAutoRechargeConfig(context.Context, *SetAutoRechargeConfigInput) (*BillingAccount, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetAutoRechargeConfig not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) UpsertModelPricingBaseline(context.Context, *UpsertModelPricingBaselineInput) (*ModelPricingBaseline, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpsertModelPricingBaseline not implemented")
@@ -424,60 +252,6 @@ func _BillingCommandController_GetOrCreateBillingAccount_Handler(srv interface{}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BillingCommandController_AdjustCredits_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AdjustCreditsInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingCommandControllerServer).AdjustCredits(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingCommandController_AdjustCredits_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingCommandControllerServer).AdjustCredits(ctx, req.(*AdjustCreditsInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BillingCommandController_GrantCredits_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GrantCreditsInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingCommandControllerServer).GrantCredits(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingCommandController_GrantCredits_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingCommandControllerServer).GrantCredits(ctx, req.(*GrantCreditsInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BillingCommandController_AuthorizeRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthorizeRunInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingCommandControllerServer).AuthorizeRun(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingCommandController_AuthorizeRun_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingCommandControllerServer).AuthorizeRun(ctx, req.(*AuthorizeRunInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _BillingCommandController_RecordLlmCallUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RecordLlmCallUsageInput)
 	if err := dec(in); err != nil {
@@ -492,60 +266,6 @@ func _BillingCommandController_RecordLlmCallUsage_Handler(srv interface{}, ctx c
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BillingCommandControllerServer).RecordLlmCallUsage(ctx, req.(*RecordLlmCallUsageInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BillingCommandController_FinalizeRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FinalizeRunInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingCommandControllerServer).FinalizeRun(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingCommandController_FinalizeRun_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingCommandControllerServer).FinalizeRun(ctx, req.(*FinalizeRunInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BillingCommandController_RearmForRecovery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RearmForRecoveryInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingCommandControllerServer).RearmForRecovery(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingCommandController_RearmForRecovery_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingCommandControllerServer).RearmForRecovery(ctx, req.(*RearmForRecoveryInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BillingCommandController_CreateCreditCheckoutSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateCreditCheckoutSessionInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingCommandControllerServer).CreateCreditCheckoutSession(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingCommandController_CreateCreditCheckoutSession_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingCommandControllerServer).CreateCreditCheckoutSession(ctx, req.(*CreateCreditCheckoutSessionInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -582,24 +302,6 @@ func _BillingCommandController_CreatePaymentMethodSetupSession_Handler(srv inter
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BillingCommandControllerServer).CreatePaymentMethodSetupSession(ctx, req.(*CreatePaymentMethodSetupSessionInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BillingCommandController_SetAutoRechargeConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetAutoRechargeConfigInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingCommandControllerServer).SetAutoRechargeConfig(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingCommandController_SetAutoRechargeConfig_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingCommandControllerServer).SetAutoRechargeConfig(ctx, req.(*SetAutoRechargeConfigInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -652,32 +354,8 @@ var BillingCommandController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BillingCommandController_GetOrCreateBillingAccount_Handler,
 		},
 		{
-			MethodName: "adjustCredits",
-			Handler:    _BillingCommandController_AdjustCredits_Handler,
-		},
-		{
-			MethodName: "grantCredits",
-			Handler:    _BillingCommandController_GrantCredits_Handler,
-		},
-		{
-			MethodName: "authorizeRun",
-			Handler:    _BillingCommandController_AuthorizeRun_Handler,
-		},
-		{
 			MethodName: "recordLlmCallUsage",
 			Handler:    _BillingCommandController_RecordLlmCallUsage_Handler,
-		},
-		{
-			MethodName: "finalizeRun",
-			Handler:    _BillingCommandController_FinalizeRun_Handler,
-		},
-		{
-			MethodName: "rearmForRecovery",
-			Handler:    _BillingCommandController_RearmForRecovery_Handler,
-		},
-		{
-			MethodName: "createCreditCheckoutSession",
-			Handler:    _BillingCommandController_CreateCreditCheckoutSession_Handler,
 		},
 		{
 			MethodName: "createBillingPortalSession",
@@ -686,10 +364,6 @@ var BillingCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "createPaymentMethodSetupSession",
 			Handler:    _BillingCommandController_CreatePaymentMethodSetupSession_Handler,
-		},
-		{
-			MethodName: "setAutoRechargeConfig",
-			Handler:    _BillingCommandController_SetAutoRechargeConfig_Handler,
 		},
 		{
 			MethodName: "upsertModelPricingBaseline",

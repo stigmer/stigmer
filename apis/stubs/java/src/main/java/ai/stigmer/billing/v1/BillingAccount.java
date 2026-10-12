@@ -9,9 +9,9 @@ package ai.stigmer.billing.v1;
  * <pre>
  * BillingAccount is the billing aggregate for an organization.
  *
- * Exactly one BillingAccount exists per org, auto-provisioned on first
- * billing interaction. It tracks credit balances, Stripe customer mapping,
- * and auto-recharge configuration.
+ * Exactly one BillingAccount exists per org, provisioned when the
+ * organization is created. It is the organization's Stripe customer: the
+ * customer mapping and the card its plan's invoices are charged to.
  *
  * This is not a standard Stigmer API Resource — it has no api_version/kind
  * envelope, no slug, and no blueprint/runtime split. Authorization is scoped
@@ -185,82 +185,6 @@ private static final long serialVersionUID = 0L;
     return result == null ? ai.stigmer.billing.v1.BillingAccountStatus.UNRECOGNIZED : result;
   }
 
-  public static final int BALANCE_FIELD_NUMBER = 4;
-  private ai.stigmer.billing.v1.CreditBalance balance_;
-  /**
-   * <pre>
-   * Real-time credit balance breakdown.
-   * </pre>
-   *
-   * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-   * @return Whether the balance field is set.
-   */
-  @java.lang.Override
-  public boolean hasBalance() {
-    return ((bitField0_ & 0x00000001) != 0);
-  }
-  /**
-   * <pre>
-   * Real-time credit balance breakdown.
-   * </pre>
-   *
-   * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-   * @return The balance.
-   */
-  @java.lang.Override
-  public ai.stigmer.billing.v1.CreditBalance getBalance() {
-    return balance_ == null ? ai.stigmer.billing.v1.CreditBalance.getDefaultInstance() : balance_;
-  }
-  /**
-   * <pre>
-   * Real-time credit balance breakdown.
-   * </pre>
-   *
-   * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.billing.v1.CreditBalanceOrBuilder getBalanceOrBuilder() {
-    return balance_ == null ? ai.stigmer.billing.v1.CreditBalance.getDefaultInstance() : balance_;
-  }
-
-  public static final int AUTO_RECHARGE_FIELD_NUMBER = 5;
-  private ai.stigmer.billing.v1.AutoRechargeConfig autoRecharge_;
-  /**
-   * <pre>
-   * User-configurable automatic recharge settings.
-   * </pre>
-   *
-   * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-   * @return Whether the autoRecharge field is set.
-   */
-  @java.lang.Override
-  public boolean hasAutoRecharge() {
-    return ((bitField0_ & 0x00000002) != 0);
-  }
-  /**
-   * <pre>
-   * User-configurable automatic recharge settings.
-   * </pre>
-   *
-   * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-   * @return The autoRecharge.
-   */
-  @java.lang.Override
-  public ai.stigmer.billing.v1.AutoRechargeConfig getAutoRecharge() {
-    return autoRecharge_ == null ? ai.stigmer.billing.v1.AutoRechargeConfig.getDefaultInstance() : autoRecharge_;
-  }
-  /**
-   * <pre>
-   * User-configurable automatic recharge settings.
-   * </pre>
-   *
-   * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.billing.v1.AutoRechargeConfigOrBuilder getAutoRechargeOrBuilder() {
-    return autoRecharge_ == null ? ai.stigmer.billing.v1.AutoRechargeConfig.getDefaultInstance() : autoRecharge_;
-  }
-
   public static final int STRIPE_CUSTOMER_ID_FIELD_NUMBER = 6;
   @SuppressWarnings("serial")
   private volatile java.lang.Object stripeCustomerId_ = "";
@@ -308,44 +232,13 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int ALLOWED_NEGATIVE_BALANCE_MICROS_FIELD_NUMBER = 7;
-  private long allowedNegativeBalanceMicros_ = 0L;
-  /**
-   * <pre>
-   * Maximum negative balance allowed before hard-stopping runs.
-   * Free orgs: 0. Paid orgs: typically 2_000_000 ($2.00). Enterprise: contract-specific.
-   * </pre>
-   *
-   * <code>int64 allowed_negative_balance_micros = 7 [json_name = "allowedNegativeBalanceMicros"];</code>
-   * @return The allowedNegativeBalanceMicros.
-   */
-  @java.lang.Override
-  public long getAllowedNegativeBalanceMicros() {
-    return allowedNegativeBalanceMicros_;
-  }
-
-  public static final int LOW_BALANCE_THRESHOLD_MICROS_FIELD_NUMBER = 8;
-  private long lowBalanceThresholdMicros_ = 0L;
-  /**
-   * <pre>
-   * Balance threshold that triggers low-balance warnings and notifications.
-   * </pre>
-   *
-   * <code>int64 low_balance_threshold_micros = 8 [json_name = "lowBalanceThresholdMicros"];</code>
-   * @return The lowBalanceThresholdMicros.
-   */
-  @java.lang.Override
-  public long getLowBalanceThresholdMicros() {
-    return lowBalanceThresholdMicros_;
-  }
-
   public static final int DEFAULT_PAYMENT_METHOD_FIELD_NUMBER = 11;
   private ai.stigmer.billing.v1.PaymentMethodSummary defaultPaymentMethod_;
   /**
    * <pre>
-   * Saved payment method for off-session charges and Portal display.
-   * Populated automatically after the first Stripe Checkout purchase or
-   * when the user adds a payment method via the Stripe Customer Portal.
+   * Saved payment method for the plan's invoices and Portal display.
+   * Populated when a card is saved through the setup session or the
+   * Stripe Customer Portal.
    * </pre>
    *
    * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
@@ -353,13 +246,13 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasDefaultPaymentMethod() {
-    return ((bitField0_ & 0x00000004) != 0);
+    return ((bitField0_ & 0x00000001) != 0);
   }
   /**
    * <pre>
-   * Saved payment method for off-session charges and Portal display.
-   * Populated automatically after the first Stripe Checkout purchase or
-   * when the user adds a payment method via the Stripe Customer Portal.
+   * Saved payment method for the plan's invoices and Portal display.
+   * Populated when a card is saved through the setup session or the
+   * Stripe Customer Portal.
    * </pre>
    *
    * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
@@ -371,9 +264,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Saved payment method for off-session charges and Portal display.
-   * Populated automatically after the first Stripe Checkout purchase or
-   * when the user adds a payment method via the Stripe Customer Portal.
+   * Saved payment method for the plan's invoices and Portal display.
+   * Populated when a card is saved through the setup session or the
+   * Stripe Customer Portal.
    * </pre>
    *
    * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
@@ -391,7 +284,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasCreatedAt() {
-    return ((bitField0_ & 0x00000008) != 0);
+    return ((bitField0_ & 0x00000002) != 0);
   }
   /**
    * <code>.google.protobuf.Timestamp created_at = 9 [json_name = "createdAt"];</code>
@@ -417,7 +310,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasUpdatedAt() {
-    return ((bitField0_ & 0x00000010) != 0);
+    return ((bitField0_ & 0x00000004) != 0);
   }
   /**
    * <code>.google.protobuf.Timestamp updated_at = 10 [json_name = "updatedAt"];</code>
@@ -458,28 +351,16 @@ private static final long serialVersionUID = 0L;
     if (status_ != ai.stigmer.billing.v1.BillingAccountStatus.billing_account_status_unspecified.getNumber()) {
       output.writeEnum(3, status_);
     }
-    if (((bitField0_ & 0x00000001) != 0)) {
-      output.writeMessage(4, getBalance());
-    }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      output.writeMessage(5, getAutoRecharge());
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(stripeCustomerId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, stripeCustomerId_);
     }
-    if (allowedNegativeBalanceMicros_ != 0L) {
-      output.writeInt64(7, allowedNegativeBalanceMicros_);
-    }
-    if (lowBalanceThresholdMicros_ != 0L) {
-      output.writeInt64(8, lowBalanceThresholdMicros_);
-    }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(9, getCreatedAt());
     }
-    if (((bitField0_ & 0x00000010) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(10, getUpdatedAt());
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(11, getDefaultPaymentMethod());
     }
     getUnknownFields().writeTo(output);
@@ -501,34 +382,18 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(3, status_);
     }
-    if (((bitField0_ & 0x00000001) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(4, getBalance());
-    }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(5, getAutoRecharge());
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(stripeCustomerId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, stripeCustomerId_);
     }
-    if (allowedNegativeBalanceMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(7, allowedNegativeBalanceMicros_);
-    }
-    if (lowBalanceThresholdMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(8, lowBalanceThresholdMicros_);
-    }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(9, getCreatedAt());
     }
-    if (((bitField0_ & 0x00000010) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(10, getUpdatedAt());
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(11, getDefaultPaymentMethod());
     }
@@ -552,22 +417,8 @@ private static final long serialVersionUID = 0L;
     if (!getOrg()
         .equals(other.getOrg())) return false;
     if (status_ != other.status_) return false;
-    if (hasBalance() != other.hasBalance()) return false;
-    if (hasBalance()) {
-      if (!getBalance()
-          .equals(other.getBalance())) return false;
-    }
-    if (hasAutoRecharge() != other.hasAutoRecharge()) return false;
-    if (hasAutoRecharge()) {
-      if (!getAutoRecharge()
-          .equals(other.getAutoRecharge())) return false;
-    }
     if (!getStripeCustomerId()
         .equals(other.getStripeCustomerId())) return false;
-    if (getAllowedNegativeBalanceMicros()
-        != other.getAllowedNegativeBalanceMicros()) return false;
-    if (getLowBalanceThresholdMicros()
-        != other.getLowBalanceThresholdMicros()) return false;
     if (hasDefaultPaymentMethod() != other.hasDefaultPaymentMethod()) return false;
     if (hasDefaultPaymentMethod()) {
       if (!getDefaultPaymentMethod()
@@ -600,22 +451,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getOrg().hashCode();
     hash = (37 * hash) + STATUS_FIELD_NUMBER;
     hash = (53 * hash) + status_;
-    if (hasBalance()) {
-      hash = (37 * hash) + BALANCE_FIELD_NUMBER;
-      hash = (53 * hash) + getBalance().hashCode();
-    }
-    if (hasAutoRecharge()) {
-      hash = (37 * hash) + AUTO_RECHARGE_FIELD_NUMBER;
-      hash = (53 * hash) + getAutoRecharge().hashCode();
-    }
     hash = (37 * hash) + STRIPE_CUSTOMER_ID_FIELD_NUMBER;
     hash = (53 * hash) + getStripeCustomerId().hashCode();
-    hash = (37 * hash) + ALLOWED_NEGATIVE_BALANCE_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getAllowedNegativeBalanceMicros());
-    hash = (37 * hash) + LOW_BALANCE_THRESHOLD_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getLowBalanceThresholdMicros());
     if (hasDefaultPaymentMethod()) {
       hash = (37 * hash) + DEFAULT_PAYMENT_METHOD_FIELD_NUMBER;
       hash = (53 * hash) + getDefaultPaymentMethod().hashCode();
@@ -729,9 +566,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * BillingAccount is the billing aggregate for an organization.
    *
-   * Exactly one BillingAccount exists per org, auto-provisioned on first
-   * billing interaction. It tracks credit balances, Stripe customer mapping,
-   * and auto-recharge configuration.
+   * Exactly one BillingAccount exists per org, provisioned when the
+   * organization is created. It is the organization's Stripe customer: the
+   * customer mapping and the card its plan's invoices are charged to.
    *
    * This is not a standard Stigmer API Resource — it has no api_version/kind
    * envelope, no slug, and no blueprint/runtime split. Authorization is scoped
@@ -770,8 +607,6 @@ private static final long serialVersionUID = 0L;
     private void maybeForceBuilderInitialization() {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
-        internalGetBalanceFieldBuilder();
-        internalGetAutoRechargeFieldBuilder();
         internalGetDefaultPaymentMethodFieldBuilder();
         internalGetCreatedAtFieldBuilder();
         internalGetUpdatedAtFieldBuilder();
@@ -784,19 +619,7 @@ private static final long serialVersionUID = 0L;
       id_ = "";
       org_ = "";
       status_ = 0;
-      balance_ = null;
-      if (balanceBuilder_ != null) {
-        balanceBuilder_.dispose();
-        balanceBuilder_ = null;
-      }
-      autoRecharge_ = null;
-      if (autoRechargeBuilder_ != null) {
-        autoRechargeBuilder_.dispose();
-        autoRechargeBuilder_ = null;
-      }
       stripeCustomerId_ = "";
-      allowedNegativeBalanceMicros_ = 0L;
-      lowBalanceThresholdMicros_ = 0L;
       defaultPaymentMethod_ = null;
       if (defaultPaymentMethodBuilder_ != null) {
         defaultPaymentMethodBuilder_.dispose();
@@ -854,45 +677,27 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.status_ = status_;
       }
-      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.balance_ = balanceBuilder_ == null
-            ? balance_
-            : balanceBuilder_.build();
-        to_bitField0_ |= 0x00000001;
-      }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.autoRecharge_ = autoRechargeBuilder_ == null
-            ? autoRecharge_
-            : autoRechargeBuilder_.build();
-        to_bitField0_ |= 0x00000002;
-      }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.stripeCustomerId_ = stripeCustomerId_;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.allowedNegativeBalanceMicros_ = allowedNegativeBalanceMicros_;
-      }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.lowBalanceThresholdMicros_ = lowBalanceThresholdMicros_;
-      }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.defaultPaymentMethod_ = defaultPaymentMethodBuilder_ == null
             ? defaultPaymentMethod_
             : defaultPaymentMethodBuilder_.build();
-        to_bitField0_ |= 0x00000004;
+        to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.createdAt_ = createdAtBuilder_ == null
             ? createdAt_
             : createdAtBuilder_.build();
-        to_bitField0_ |= 0x00000008;
+        to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.updatedAt_ = updatedAtBuilder_ == null
             ? updatedAt_
             : updatedAtBuilder_.build();
-        to_bitField0_ |= 0x00000010;
+        to_bitField0_ |= 0x00000004;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -922,22 +727,10 @@ private static final long serialVersionUID = 0L;
       if (other.status_ != 0) {
         setStatusValue(other.getStatusValue());
       }
-      if (other.hasBalance()) {
-        mergeBalance(other.getBalance());
-      }
-      if (other.hasAutoRecharge()) {
-        mergeAutoRecharge(other.getAutoRecharge());
-      }
       if (!other.getStripeCustomerId().isEmpty()) {
         stripeCustomerId_ = other.stripeCustomerId_;
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000008;
         onChanged();
-      }
-      if (other.getAllowedNegativeBalanceMicros() != 0L) {
-        setAllowedNegativeBalanceMicros(other.getAllowedNegativeBalanceMicros());
-      }
-      if (other.getLowBalanceThresholdMicros() != 0L) {
-        setLowBalanceThresholdMicros(other.getLowBalanceThresholdMicros());
       }
       if (other.hasDefaultPaymentMethod()) {
         mergeDefaultPaymentMethod(other.getDefaultPaymentMethod());
@@ -989,54 +782,30 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 24
-            case 34: {
-              input.readMessage(
-                  internalGetBalanceFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 34
-            case 42: {
-              input.readMessage(
-                  internalGetAutoRechargeFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 42
             case 50: {
               stripeCustomerId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000008;
               break;
             } // case 50
-            case 56: {
-              allowedNegativeBalanceMicros_ = input.readInt64();
-              bitField0_ |= 0x00000040;
-              break;
-            } // case 56
-            case 64: {
-              lowBalanceThresholdMicros_ = input.readInt64();
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 64
             case 74: {
               input.readMessage(
                   internalGetCreatedAtFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000020;
               break;
             } // case 74
             case 82: {
               input.readMessage(
                   internalGetUpdatedAtFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000040;
               break;
             } // case 82
             case 90: {
               input.readMessage(
                   internalGetDefaultPaymentMethodFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000010;
               break;
             } // case 90
             default: {
@@ -1312,320 +1081,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private ai.stigmer.billing.v1.CreditBalance balance_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.billing.v1.CreditBalance, ai.stigmer.billing.v1.CreditBalance.Builder, ai.stigmer.billing.v1.CreditBalanceOrBuilder> balanceBuilder_;
-    /**
-     * <pre>
-     * Real-time credit balance breakdown.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-     * @return Whether the balance field is set.
-     */
-    public boolean hasBalance() {
-      return ((bitField0_ & 0x00000008) != 0);
-    }
-    /**
-     * <pre>
-     * Real-time credit balance breakdown.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-     * @return The balance.
-     */
-    public ai.stigmer.billing.v1.CreditBalance getBalance() {
-      if (balanceBuilder_ == null) {
-        return balance_ == null ? ai.stigmer.billing.v1.CreditBalance.getDefaultInstance() : balance_;
-      } else {
-        return balanceBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Real-time credit balance breakdown.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-     */
-    public Builder setBalance(ai.stigmer.billing.v1.CreditBalance value) {
-      if (balanceBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        balance_ = value;
-      } else {
-        balanceBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Real-time credit balance breakdown.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-     */
-    public Builder setBalance(
-        ai.stigmer.billing.v1.CreditBalance.Builder builderForValue) {
-      if (balanceBuilder_ == null) {
-        balance_ = builderForValue.build();
-      } else {
-        balanceBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Real-time credit balance breakdown.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-     */
-    public Builder mergeBalance(ai.stigmer.billing.v1.CreditBalance value) {
-      if (balanceBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0) &&
-          balance_ != null &&
-          balance_ != ai.stigmer.billing.v1.CreditBalance.getDefaultInstance()) {
-          getBalanceBuilder().mergeFrom(value);
-        } else {
-          balance_ = value;
-        }
-      } else {
-        balanceBuilder_.mergeFrom(value);
-      }
-      if (balance_ != null) {
-        bitField0_ |= 0x00000008;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Real-time credit balance breakdown.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-     */
-    public Builder clearBalance() {
-      bitField0_ = (bitField0_ & ~0x00000008);
-      balance_ = null;
-      if (balanceBuilder_ != null) {
-        balanceBuilder_.dispose();
-        balanceBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Real-time credit balance breakdown.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-     */
-    public ai.stigmer.billing.v1.CreditBalance.Builder getBalanceBuilder() {
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return internalGetBalanceFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Real-time credit balance breakdown.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-     */
-    public ai.stigmer.billing.v1.CreditBalanceOrBuilder getBalanceOrBuilder() {
-      if (balanceBuilder_ != null) {
-        return balanceBuilder_.getMessageOrBuilder();
-      } else {
-        return balance_ == null ?
-            ai.stigmer.billing.v1.CreditBalance.getDefaultInstance() : balance_;
-      }
-    }
-    /**
-     * <pre>
-     * Real-time credit balance breakdown.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.billing.v1.CreditBalance, ai.stigmer.billing.v1.CreditBalance.Builder, ai.stigmer.billing.v1.CreditBalanceOrBuilder> 
-        internalGetBalanceFieldBuilder() {
-      if (balanceBuilder_ == null) {
-        balanceBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.billing.v1.CreditBalance, ai.stigmer.billing.v1.CreditBalance.Builder, ai.stigmer.billing.v1.CreditBalanceOrBuilder>(
-                getBalance(),
-                getParentForChildren(),
-                isClean());
-        balance_ = null;
-      }
-      return balanceBuilder_;
-    }
-
-    private ai.stigmer.billing.v1.AutoRechargeConfig autoRecharge_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.billing.v1.AutoRechargeConfig, ai.stigmer.billing.v1.AutoRechargeConfig.Builder, ai.stigmer.billing.v1.AutoRechargeConfigOrBuilder> autoRechargeBuilder_;
-    /**
-     * <pre>
-     * User-configurable automatic recharge settings.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-     * @return Whether the autoRecharge field is set.
-     */
-    public boolean hasAutoRecharge() {
-      return ((bitField0_ & 0x00000010) != 0);
-    }
-    /**
-     * <pre>
-     * User-configurable automatic recharge settings.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-     * @return The autoRecharge.
-     */
-    public ai.stigmer.billing.v1.AutoRechargeConfig getAutoRecharge() {
-      if (autoRechargeBuilder_ == null) {
-        return autoRecharge_ == null ? ai.stigmer.billing.v1.AutoRechargeConfig.getDefaultInstance() : autoRecharge_;
-      } else {
-        return autoRechargeBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * User-configurable automatic recharge settings.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-     */
-    public Builder setAutoRecharge(ai.stigmer.billing.v1.AutoRechargeConfig value) {
-      if (autoRechargeBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        autoRecharge_ = value;
-      } else {
-        autoRechargeBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * User-configurable automatic recharge settings.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-     */
-    public Builder setAutoRecharge(
-        ai.stigmer.billing.v1.AutoRechargeConfig.Builder builderForValue) {
-      if (autoRechargeBuilder_ == null) {
-        autoRecharge_ = builderForValue.build();
-      } else {
-        autoRechargeBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * User-configurable automatic recharge settings.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-     */
-    public Builder mergeAutoRecharge(ai.stigmer.billing.v1.AutoRechargeConfig value) {
-      if (autoRechargeBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0) &&
-          autoRecharge_ != null &&
-          autoRecharge_ != ai.stigmer.billing.v1.AutoRechargeConfig.getDefaultInstance()) {
-          getAutoRechargeBuilder().mergeFrom(value);
-        } else {
-          autoRecharge_ = value;
-        }
-      } else {
-        autoRechargeBuilder_.mergeFrom(value);
-      }
-      if (autoRecharge_ != null) {
-        bitField0_ |= 0x00000010;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * User-configurable automatic recharge settings.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-     */
-    public Builder clearAutoRecharge() {
-      bitField0_ = (bitField0_ & ~0x00000010);
-      autoRecharge_ = null;
-      if (autoRechargeBuilder_ != null) {
-        autoRechargeBuilder_.dispose();
-        autoRechargeBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * User-configurable automatic recharge settings.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-     */
-    public ai.stigmer.billing.v1.AutoRechargeConfig.Builder getAutoRechargeBuilder() {
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return internalGetAutoRechargeFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * User-configurable automatic recharge settings.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-     */
-    public ai.stigmer.billing.v1.AutoRechargeConfigOrBuilder getAutoRechargeOrBuilder() {
-      if (autoRechargeBuilder_ != null) {
-        return autoRechargeBuilder_.getMessageOrBuilder();
-      } else {
-        return autoRecharge_ == null ?
-            ai.stigmer.billing.v1.AutoRechargeConfig.getDefaultInstance() : autoRecharge_;
-      }
-    }
-    /**
-     * <pre>
-     * User-configurable automatic recharge settings.
-     * </pre>
-     *
-     * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.billing.v1.AutoRechargeConfig, ai.stigmer.billing.v1.AutoRechargeConfig.Builder, ai.stigmer.billing.v1.AutoRechargeConfigOrBuilder> 
-        internalGetAutoRechargeFieldBuilder() {
-      if (autoRechargeBuilder_ == null) {
-        autoRechargeBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.billing.v1.AutoRechargeConfig, ai.stigmer.billing.v1.AutoRechargeConfig.Builder, ai.stigmer.billing.v1.AutoRechargeConfigOrBuilder>(
-                getAutoRecharge(),
-                getParentForChildren(),
-                isClean());
-        autoRecharge_ = null;
-      }
-      return autoRechargeBuilder_;
-    }
-
     private java.lang.Object stripeCustomerId_ = "";
     /**
      * <pre>
@@ -1681,7 +1136,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       stripeCustomerId_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1695,7 +1150,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearStripeCustomerId() {
       stripeCustomerId_ = getDefaultInstance().getStripeCustomerId();
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000008);
       onChanged();
       return this;
     }
@@ -1713,98 +1168,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       stripeCustomerId_ = value;
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-
-    private long allowedNegativeBalanceMicros_ ;
-    /**
-     * <pre>
-     * Maximum negative balance allowed before hard-stopping runs.
-     * Free orgs: 0. Paid orgs: typically 2_000_000 ($2.00). Enterprise: contract-specific.
-     * </pre>
-     *
-     * <code>int64 allowed_negative_balance_micros = 7 [json_name = "allowedNegativeBalanceMicros"];</code>
-     * @return The allowedNegativeBalanceMicros.
-     */
-    @java.lang.Override
-    public long getAllowedNegativeBalanceMicros() {
-      return allowedNegativeBalanceMicros_;
-    }
-    /**
-     * <pre>
-     * Maximum negative balance allowed before hard-stopping runs.
-     * Free orgs: 0. Paid orgs: typically 2_000_000 ($2.00). Enterprise: contract-specific.
-     * </pre>
-     *
-     * <code>int64 allowed_negative_balance_micros = 7 [json_name = "allowedNegativeBalanceMicros"];</code>
-     * @param value The allowedNegativeBalanceMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setAllowedNegativeBalanceMicros(long value) {
-
-      allowedNegativeBalanceMicros_ = value;
-      bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Maximum negative balance allowed before hard-stopping runs.
-     * Free orgs: 0. Paid orgs: typically 2_000_000 ($2.00). Enterprise: contract-specific.
-     * </pre>
-     *
-     * <code>int64 allowed_negative_balance_micros = 7 [json_name = "allowedNegativeBalanceMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearAllowedNegativeBalanceMicros() {
-      bitField0_ = (bitField0_ & ~0x00000040);
-      allowedNegativeBalanceMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
-    private long lowBalanceThresholdMicros_ ;
-    /**
-     * <pre>
-     * Balance threshold that triggers low-balance warnings and notifications.
-     * </pre>
-     *
-     * <code>int64 low_balance_threshold_micros = 8 [json_name = "lowBalanceThresholdMicros"];</code>
-     * @return The lowBalanceThresholdMicros.
-     */
-    @java.lang.Override
-    public long getLowBalanceThresholdMicros() {
-      return lowBalanceThresholdMicros_;
-    }
-    /**
-     * <pre>
-     * Balance threshold that triggers low-balance warnings and notifications.
-     * </pre>
-     *
-     * <code>int64 low_balance_threshold_micros = 8 [json_name = "lowBalanceThresholdMicros"];</code>
-     * @param value The lowBalanceThresholdMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setLowBalanceThresholdMicros(long value) {
-
-      lowBalanceThresholdMicros_ = value;
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Balance threshold that triggers low-balance warnings and notifications.
-     * </pre>
-     *
-     * <code>int64 low_balance_threshold_micros = 8 [json_name = "lowBalanceThresholdMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearLowBalanceThresholdMicros() {
-      bitField0_ = (bitField0_ & ~0x00000080);
-      lowBalanceThresholdMicros_ = 0L;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1814,22 +1178,22 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.billing.v1.PaymentMethodSummary, ai.stigmer.billing.v1.PaymentMethodSummary.Builder, ai.stigmer.billing.v1.PaymentMethodSummaryOrBuilder> defaultPaymentMethodBuilder_;
     /**
      * <pre>
-     * Saved payment method for off-session charges and Portal display.
-     * Populated automatically after the first Stripe Checkout purchase or
-     * when the user adds a payment method via the Stripe Customer Portal.
+     * Saved payment method for the plan's invoices and Portal display.
+     * Populated when a card is saved through the setup session or the
+     * Stripe Customer Portal.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
      * @return Whether the defaultPaymentMethod field is set.
      */
     public boolean hasDefaultPaymentMethod() {
-      return ((bitField0_ & 0x00000100) != 0);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <pre>
-     * Saved payment method for off-session charges and Portal display.
-     * Populated automatically after the first Stripe Checkout purchase or
-     * when the user adds a payment method via the Stripe Customer Portal.
+     * Saved payment method for the plan's invoices and Portal display.
+     * Populated when a card is saved through the setup session or the
+     * Stripe Customer Portal.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
@@ -1844,9 +1208,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Saved payment method for off-session charges and Portal display.
-     * Populated automatically after the first Stripe Checkout purchase or
-     * when the user adds a payment method via the Stripe Customer Portal.
+     * Saved payment method for the plan's invoices and Portal display.
+     * Populated when a card is saved through the setup session or the
+     * Stripe Customer Portal.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
@@ -1860,15 +1224,15 @@ private static final long serialVersionUID = 0L;
       } else {
         defaultPaymentMethodBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Saved payment method for off-session charges and Portal display.
-     * Populated automatically after the first Stripe Checkout purchase or
-     * when the user adds a payment method via the Stripe Customer Portal.
+     * Saved payment method for the plan's invoices and Portal display.
+     * Populated when a card is saved through the setup session or the
+     * Stripe Customer Portal.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
@@ -1880,22 +1244,22 @@ private static final long serialVersionUID = 0L;
       } else {
         defaultPaymentMethodBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Saved payment method for off-session charges and Portal display.
-     * Populated automatically after the first Stripe Checkout purchase or
-     * when the user adds a payment method via the Stripe Customer Portal.
+     * Saved payment method for the plan's invoices and Portal display.
+     * Populated when a card is saved through the setup session or the
+     * Stripe Customer Portal.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
      */
     public Builder mergeDefaultPaymentMethod(ai.stigmer.billing.v1.PaymentMethodSummary value) {
       if (defaultPaymentMethodBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0) &&
+        if (((bitField0_ & 0x00000010) != 0) &&
           defaultPaymentMethod_ != null &&
           defaultPaymentMethod_ != ai.stigmer.billing.v1.PaymentMethodSummary.getDefaultInstance()) {
           getDefaultPaymentMethodBuilder().mergeFrom(value);
@@ -1906,22 +1270,22 @@ private static final long serialVersionUID = 0L;
         defaultPaymentMethodBuilder_.mergeFrom(value);
       }
       if (defaultPaymentMethod_ != null) {
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       return this;
     }
     /**
      * <pre>
-     * Saved payment method for off-session charges and Portal display.
-     * Populated automatically after the first Stripe Checkout purchase or
-     * when the user adds a payment method via the Stripe Customer Portal.
+     * Saved payment method for the plan's invoices and Portal display.
+     * Populated when a card is saved through the setup session or the
+     * Stripe Customer Portal.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
      */
     public Builder clearDefaultPaymentMethod() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000010);
       defaultPaymentMethod_ = null;
       if (defaultPaymentMethodBuilder_ != null) {
         defaultPaymentMethodBuilder_.dispose();
@@ -1932,23 +1296,23 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Saved payment method for off-session charges and Portal display.
-     * Populated automatically after the first Stripe Checkout purchase or
-     * when the user adds a payment method via the Stripe Customer Portal.
+     * Saved payment method for the plan's invoices and Portal display.
+     * Populated when a card is saved through the setup session or the
+     * Stripe Customer Portal.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
      */
     public ai.stigmer.billing.v1.PaymentMethodSummary.Builder getDefaultPaymentMethodBuilder() {
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000010;
       onChanged();
       return internalGetDefaultPaymentMethodFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * Saved payment method for off-session charges and Portal display.
-     * Populated automatically after the first Stripe Checkout purchase or
-     * when the user adds a payment method via the Stripe Customer Portal.
+     * Saved payment method for the plan's invoices and Portal display.
+     * Populated when a card is saved through the setup session or the
+     * Stripe Customer Portal.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
@@ -1963,9 +1327,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Saved payment method for off-session charges and Portal display.
-     * Populated automatically after the first Stripe Checkout purchase or
-     * when the user adds a payment method via the Stripe Customer Portal.
+     * Saved payment method for the plan's invoices and Portal display.
+     * Populated when a card is saved through the setup session or the
+     * Stripe Customer Portal.
      * </pre>
      *
      * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
@@ -1992,7 +1356,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the createdAt field is set.
      */
     public boolean hasCreatedAt() {
-      return ((bitField0_ & 0x00000200) != 0);
+      return ((bitField0_ & 0x00000020) != 0);
     }
     /**
      * <code>.google.protobuf.Timestamp created_at = 9 [json_name = "createdAt"];</code>
@@ -2017,7 +1381,7 @@ private static final long serialVersionUID = 0L;
       } else {
         createdAtBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2031,7 +1395,7 @@ private static final long serialVersionUID = 0L;
       } else {
         createdAtBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2040,7 +1404,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeCreatedAt(com.google.protobuf.Timestamp value) {
       if (createdAtBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0) &&
+        if (((bitField0_ & 0x00000020) != 0) &&
           createdAt_ != null &&
           createdAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
           getCreatedAtBuilder().mergeFrom(value);
@@ -2051,7 +1415,7 @@ private static final long serialVersionUID = 0L;
         createdAtBuilder_.mergeFrom(value);
       }
       if (createdAt_ != null) {
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       return this;
@@ -2060,7 +1424,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp created_at = 9 [json_name = "createdAt"];</code>
      */
     public Builder clearCreatedAt() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000020);
       createdAt_ = null;
       if (createdAtBuilder_ != null) {
         createdAtBuilder_.dispose();
@@ -2073,7 +1437,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp created_at = 9 [json_name = "createdAt"];</code>
      */
     public com.google.protobuf.Timestamp.Builder getCreatedAtBuilder() {
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000020;
       onChanged();
       return internalGetCreatedAtFieldBuilder().getBuilder();
     }
@@ -2113,7 +1477,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the updatedAt field is set.
      */
     public boolean hasUpdatedAt() {
-      return ((bitField0_ & 0x00000400) != 0);
+      return ((bitField0_ & 0x00000040) != 0);
     }
     /**
      * <code>.google.protobuf.Timestamp updated_at = 10 [json_name = "updatedAt"];</code>
@@ -2138,7 +1502,7 @@ private static final long serialVersionUID = 0L;
       } else {
         updatedAtBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2152,7 +1516,7 @@ private static final long serialVersionUID = 0L;
       } else {
         updatedAtBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2161,7 +1525,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeUpdatedAt(com.google.protobuf.Timestamp value) {
       if (updatedAtBuilder_ == null) {
-        if (((bitField0_ & 0x00000400) != 0) &&
+        if (((bitField0_ & 0x00000040) != 0) &&
           updatedAt_ != null &&
           updatedAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
           getUpdatedAtBuilder().mergeFrom(value);
@@ -2172,7 +1536,7 @@ private static final long serialVersionUID = 0L;
         updatedAtBuilder_.mergeFrom(value);
       }
       if (updatedAt_ != null) {
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       return this;
@@ -2181,7 +1545,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp updated_at = 10 [json_name = "updatedAt"];</code>
      */
     public Builder clearUpdatedAt() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000040);
       updatedAt_ = null;
       if (updatedAtBuilder_ != null) {
         updatedAtBuilder_.dispose();
@@ -2194,7 +1558,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp updated_at = 10 [json_name = "updatedAt"];</code>
      */
     public com.google.protobuf.Timestamp.Builder getUpdatedAtBuilder() {
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000040;
       onChanged();
       return internalGetUpdatedAtFieldBuilder().getBuilder();
     }

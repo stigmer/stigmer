@@ -90,12 +90,13 @@ Agent's **Quality** tab. There they choose:
   $0.25, before it starts, so a limit below $0.25 grades no run.
 - **The judge's model**: the platform's default unless you pick one.
 
-The judge's cost is charged to the Organization the run belongs to, as a run of
-its own, never to the graded run. When the limit is reached or the Organization
-is out of credit, the run says **not graded: spending limit reached** or **not
-graded: out of credit**, and the Quality tab shows the same reason. A run that
-could not be graded never reads as a failure. The tab also shows this month's
-spend and how many runs were graded.
+The judge runs on the provider keys of the Organization the run belongs to, as a
+run of its own, never as part of the graded run. When the limit is reached, the
+run says **not graded: spending limit reached**; when the Organization has no
+key for the judge's model, it says **not graded: the judge could not start**.
+The Quality tab shows the same reason. A run that could not be graded never
+reads as a failure. The tab also shows this month's spend and how many runs were
+graded.
 
 In Stigmer Cloud the judge acts as a system account of the Organization. On a
 self-hosted Stigmer with sign-in, it acts as the person who switched grading on,
@@ -128,8 +129,8 @@ when every grader that counts passes.
 
 Only Stigmer writes these scores, from the case's graders; nobody rates a try by
 hand. A try Stigmer could not run or grade, for example because the Organization
-ran out of credit, says **not graded** with the reason and is left out of the
-eval's scores, never counted as a failure. The score also records the plugin
+has no key for the model, says **not graded** with the reason and is left out of
+the eval's scores, never counted as a failure. The score also records the plugin
 version the case came from and the version of the judge's instructions, so
 results from different versions are never mixed.
 

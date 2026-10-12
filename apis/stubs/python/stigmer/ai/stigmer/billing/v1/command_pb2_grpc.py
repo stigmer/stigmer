@@ -3,7 +3,6 @@
 import grpc
 
 from ai.stigmer.billing.v1 import billing_account_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2
-from ai.stigmer.billing.v1 import credit_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2
 from ai.stigmer.billing.v1 import io_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2
 from ai.stigmer.billing.v1 import model_pricing_baseline_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_model__pricing__baseline__pb2
 
@@ -13,8 +12,8 @@ class BillingCommandControllerStub(object):
 
     Billing is not a standard API Resource — there is no api_resource_kind annotation.
     An organization's own billing RPCs authorize against the organization
-    resource kind; the credit mutations, the execution pipeline and the
-    model catalog authorize against the static platform target.
+    resource kind; the usage meter and the model catalog authorize against
+    the static platform target.
 
     """
 
@@ -29,40 +28,10 @@ class BillingCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetOrCreateBillingAccountInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.FromString,
                 _registered_method=True)
-        self.adjustCredits = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingCommandController/adjustCredits',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AdjustCreditsInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.FromString,
-                _registered_method=True)
-        self.grantCredits = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingCommandController/grantCredits',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GrantCreditsInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.FromString,
-                _registered_method=True)
-        self.authorizeRun = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingCommandController/authorizeRun',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunResponse.FromString,
-                _registered_method=True)
         self.recordLlmCallUsage = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage',
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageResponse.FromString,
-                _registered_method=True)
-        self.finalizeRun = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingCommandController/finalizeRun',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeRunInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeRunResponse.FromString,
-                _registered_method=True)
-        self.rearmForRecovery = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingCommandController/rearmForRecovery',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RearmForRecoveryInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunResponse.FromString,
-                _registered_method=True)
-        self.createCreditCheckoutSession = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionResponse.FromString,
                 _registered_method=True)
         self.createBillingPortalSession = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingCommandController/createBillingPortalSession',
@@ -73,11 +42,6 @@ class BillingCommandControllerStub(object):
                 '/ai.stigmer.billing.v1.BillingCommandController/createPaymentMethodSetupSession',
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreatePaymentMethodSetupSessionInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreatePaymentMethodSetupSessionResponse.FromString,
-                _registered_method=True)
-        self.setAutoRechargeConfig = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingCommandController/setAutoRechargeConfig',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.SetAutoRechargeConfigInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.FromString,
                 _registered_method=True)
         self.upsertModelPricingBaseline = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingCommandController/upsertModelPricingBaseline',
@@ -96,8 +60,8 @@ class BillingCommandControllerServicer(object):
 
     Billing is not a standard API Resource — there is no api_resource_kind annotation.
     An organization's own billing RPCs authorize against the organization
-    resource kind; the credit mutations, the execution pipeline and the
-    model catalog authorize against the static platform target.
+    resource kind; the usage meter and the model catalog authorize against
+    the static platform target.
 
     """
 
@@ -109,73 +73,11 @@ class BillingCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def adjustCredits(self, request, context):
-        """Manually adjust an org's credit balance.
-        Produces an immutable ledger entry for audit. Requires can_manage_credits
-        on the platform: a platform operator or a credit issuer.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def grantCredits(self, request, context):
-        """Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
-        Produces an immutable promotional_credit ledger entry for audit.
-
-        The grant burns before adjustment and purchased credits. When expires_at
-        is set, any remainder unconsumed at that time is removed from the balance
-        by the platform's grant-expiry sweep (an expiry_debit ledger entry).
-        Idempotent: replaying an applied idempotency key returns the original
-        entry, even after the expiry has passed. Requires can_manage_credits on
-        the platform, as adjustCredits does.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def authorizeRun(self, request, context):
-        """Reserve credits before starting a run.
-        Returns authorization status and reservation details.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def recordLlmCallUsage(self, request, context):
-        """Record a single LLM call's usage for billing.
-        Computes cost server-side from the model registry, inserts an immutable
-        LlmCallUsageRecord, and debits credits from the run's reservation.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def finalizeRun(self, request, context):
-        """Settle billing for a completed run.
-        Releases unused reservation credits and produces the final billing record.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def rearmForRecovery(self, request, context):
-        """Re-arm a settled reservation so a failed run can be recovered.
-        The one sanctioned path past the settled-reservation latch: re-runs
-        the affordability check, transfers a fresh hold, and rotates the
-        reservation id as the fence against settles still in flight from the
-        terminated run. Returns the same shape as authorizeRun, with
-        the rotated reservation id.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def createCreditCheckoutSession(self, request, context):
-        """Create a Stripe Checkout Session to purchase a credit pack.
-        Returns a checkout URL for the client to redirect the user.
-
-        The caller's email is resolved server-side for Stripe Customer creation.
-        Credits are provisioned asynchronously via the checkout.session.completed webhook.
+        """Record a single LLM call's usage.
+        Resolves the call against the model catalog and inserts an immutable
+        LlmCallUsageRecord: what the call was (tokens, model, harness, served
+        tier and thinking mode, whose key served it), never what it cost.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -185,8 +87,10 @@ class BillingCommandControllerServicer(object):
         """Open a Stripe Customer Portal session for payment method management.
         Returns a portal URL for the client to redirect the user.
 
-        Requires an existing Stripe Customer (created during first credit purchase).
-        The portal allows users to add, update, or remove saved payment methods.
+        Requires an existing Stripe Customer (created by
+        createPaymentMethodSetupSession on first use). The portal allows users
+        to add, update, or remove saved payment methods and to read the
+        invoices Stripe sends.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -197,22 +101,10 @@ class BillingCommandControllerServicer(object):
         method without charging it. Returns a URL for the client to redirect
         the user.
 
-        This is how an organization that has never bought credit gets a card
-        on file (the billing portal needs an existing Stripe Customer, which
+        This is how an organization gets a card on file for its plan's
+        invoices (the billing portal needs an existing Stripe Customer, which
         this call creates on first use). The saved card becomes the account's
-        default payment method through the payment_method.attached webhook,
-        the same path a card saved at credit checkout takes.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def setAutoRechargeConfig(self, request, context):
-        """Configure automatic credit recharge for an organization.
-        Returns the updated BillingAccount with the new config applied.
-
-        Enabling requires an active account with a saved payment method.
-        Disabling preserves the threshold/amount/cap for easy re-enablement.
+        default payment method through the payment_method.attached webhook.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -222,8 +114,8 @@ class BillingCommandControllerServicer(object):
         """Create or revise one model registry baseline entry (catalog + list
         prices). Append-only: an existing ACTIVE document for the same
         (model_id, provider, harness) key is superseded, never mutated. The
-        registry is rebuilt immediately, so the revision reaches billing and
-        every published price surface atomically.
+        registry is rebuilt immediately, so the revision reaches the usage
+        meter, run admission and the published registry atomically.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -245,40 +137,10 @@ def add_BillingCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetOrCreateBillingAccountInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.SerializeToString,
             ),
-            'adjustCredits': grpc.unary_unary_rpc_method_handler(
-                    servicer.adjustCredits,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AdjustCreditsInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.SerializeToString,
-            ),
-            'grantCredits': grpc.unary_unary_rpc_method_handler(
-                    servicer.grantCredits,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GrantCreditsInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.SerializeToString,
-            ),
-            'authorizeRun': grpc.unary_unary_rpc_method_handler(
-                    servicer.authorizeRun,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunResponse.SerializeToString,
-            ),
             'recordLlmCallUsage': grpc.unary_unary_rpc_method_handler(
                     servicer.recordLlmCallUsage,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageResponse.SerializeToString,
-            ),
-            'finalizeRun': grpc.unary_unary_rpc_method_handler(
-                    servicer.finalizeRun,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeRunInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeRunResponse.SerializeToString,
-            ),
-            'rearmForRecovery': grpc.unary_unary_rpc_method_handler(
-                    servicer.rearmForRecovery,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RearmForRecoveryInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunResponse.SerializeToString,
-            ),
-            'createCreditCheckoutSession': grpc.unary_unary_rpc_method_handler(
-                    servicer.createCreditCheckoutSession,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionResponse.SerializeToString,
             ),
             'createBillingPortalSession': grpc.unary_unary_rpc_method_handler(
                     servicer.createBillingPortalSession,
@@ -289,11 +151,6 @@ def add_BillingCommandControllerServicer_to_server(servicer, server):
                     servicer.createPaymentMethodSetupSession,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreatePaymentMethodSetupSessionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreatePaymentMethodSetupSessionResponse.SerializeToString,
-            ),
-            'setAutoRechargeConfig': grpc.unary_unary_rpc_method_handler(
-                    servicer.setAutoRechargeConfig,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.SetAutoRechargeConfigInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.SerializeToString,
             ),
             'upsertModelPricingBaseline': grpc.unary_unary_rpc_method_handler(
                     servicer.upsertModelPricingBaseline,
@@ -318,8 +175,8 @@ class BillingCommandController(object):
 
     Billing is not a standard API Resource — there is no api_resource_kind annotation.
     An organization's own billing RPCs authorize against the organization
-    resource kind; the credit mutations, the execution pipeline and the
-    model catalog authorize against the static platform target.
+    resource kind; the usage meter and the model catalog authorize against
+    the static platform target.
 
     """
 
@@ -351,87 +208,6 @@ class BillingCommandController(object):
             _registered_method=True)
 
     @staticmethod
-    def adjustCredits(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingCommandController/adjustCredits',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AdjustCreditsInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def grantCredits(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingCommandController/grantCredits',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GrantCreditsInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2.CreditLedgerEntry.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def authorizeRun(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingCommandController/authorizeRun',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
     def recordLlmCallUsage(request,
             target,
             options=(),
@@ -448,87 +224,6 @@ class BillingCommandController(object):
             '/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def finalizeRun(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingCommandController/finalizeRun',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeRunInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeRunResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def rearmForRecovery(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingCommandController/rearmForRecovery',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RearmForRecoveryInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeRunResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def createCreditCheckoutSession(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -583,33 +278,6 @@ class BillingCommandController(object):
             '/ai.stigmer.billing.v1.BillingCommandController/createPaymentMethodSetupSession',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreatePaymentMethodSetupSessionInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreatePaymentMethodSetupSessionResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def setAutoRechargeConfig(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.billing.v1.BillingCommandController/setAutoRechargeConfig',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.SetAutoRechargeConfigInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.FromString,
             options,
             channel_credentials,
             insecure,

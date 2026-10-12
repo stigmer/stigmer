@@ -11,8 +11,9 @@ module agentic
 #   editors own its evaluator.
 # - The plugin's viewers in the plugin's own organization read the eval
 #   and, through the session link (session#plugin_eval), its tries. A
-#   child organization's viewer of the plugin does not: a try spends the
-#   plugin organization's credit and may act with its connections. The
+#   child organization's viewer of the plugin does not: a try runs on the
+#   plugin organization's own provider keys and may act with its
+#   connections. The
 #   model has no `but not`, so plugin.fga names that set `org_viewer`.
 # - No owner of its own (OWNER_ATTRIBUTION_TYPE_NONE). The plugin's owner
 #   already includes the organization's admins, who hold the purse the

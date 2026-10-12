@@ -1,112 +1,91 @@
 ---
 title: Billing
 description:
-  How Stigmer Cloud billing works — model calls and Cursor runs on your own
-  provider keys, the prepaid credit wallet, run reservations, automatic
-  recharge, and balance management.
+  How Stigmer Cloud billing works — a flat monthly fee per plan, invoiced
+  through Stripe, while every model call runs on your Organization's own
+  provider keys and is billed by the provider.
 ---
 
 ## Overview
 
-Every model call a native Agent run makes on Stigmer Cloud runs on your
-Organization's own provider key, on every plan: an admin adds an Anthropic or
-OpenAI key (optionally on your own compatible endpoint) in **Settings → Provider
-keys**, and the provider bills your Organization directly. Stigmer meters those
-calls and charges nothing for them. A run whose model needs a provider with no
-key is refused before it starts. See
-[Model provider keys](/docs/guides/integrations/model-provider-keys).
+Stigmer Cloud charges for the platform, never for tokens. Your Organization is
+on a plan, and a paid plan costs a flat monthly fee that Stripe invoices to the
+card on file. Every model call your Agents make runs on your Organization's own
+provider key, on every plan, so your model provider bills those calls to you
+directly and Stigmer adds nothing to them.
 
-Cursor-harness runs work the same way: they run on your Organization's own
-Cursor key, saved in **Settings → Provider keys**, and Cursor bills your
-Organization directly on that key's plan. No run draws on the **prepaid credit
-wallet** the rest of this page describes.
+Self-hosted Stigmer (open source) has no billing; see
+[Self-hosting](#self-hosting).
 
-- **1 credit = $0.01 USD** (10,000 micro-USD internally)
-- Credits are dollar-denominated — no abstract unit conversion
-- Self-hosted Stigmer (OSS) has no billing — it runs on your infrastructure
+## Plans
 
-## Credit packs
+| Plan     | Monthly fee                                          | Includes                                                                     |
+| -------- | ---------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Free     | $0                                                   | Channels and sharing                                                         |
+| Team     | $99                                                  | Teams, channels and sharing, with email support                              |
+| Business | $499, plus $25 for each child organization past five | Everything in Team, child organizations for your customers, priority support |
 
-Credits are sold in fixed packs through Stripe Checkout:
+Every Organization starts on Free and stays there until an admin picks a paid
+plan in **Settings → Billing**. Picking a paid plan needs a saved card, which
+the same page asks for. A
+[child organization](/docs/guides/authentication/federation/child-organizations#billing)
+runs on its parent's plan and has no plan or invoice of its own.
 
-| Pack    | Price | Credits |
-| ------- | ----- | ------- |
-| Starter | $10   | 1,000   |
-| Growth  | $50   | 5,000   |
-| Team    | $200  | 20,000  |
+### How a plan is invoiced
 
-New accounts receive a one-time promotional credit grant to explore the
-platform. Promotional credits expire after 90 days. Purchased credits expire 12
-months from purchase.
+A paid plan runs in monthly billing periods from the day you subscribe. At the
+end of each period, Stripe invoices the period's fee and charges it to your
+Organization's saved card, with tax added where it applies. The invoice has the
+plan's fee and, on Business, a line for the child organizations past the five
+the plan includes. It never has a line for model usage.
 
-## How pricing works
+- **Changing plans** takes effect at once: the current period ends and a new one
+  starts on the new plan, and each part of the month is billed on the plan it
+  ran on, prorated by its length.
+- **Canceling** keeps the plan until the end of the period you've paid for; then
+  the Organization returns to Free.
+- **A failed payment** keeps the plan while Stripe retries the card. If Stripe's
+  retries end without a payment, the Organization returns to Free.
 
-A call on your own key, native or Cursor, costs you only what your provider
-bills you. A call the wallet meters has a cost based on three factors:
+Your card and your past invoices are managed through the **Stripe Customer
+Portal**, opened from **Settings → Billing**, where you can add, update or
+remove a card without leaving the Stigmer billing flow.
 
-1. **Model** — different models have different per-token rates
-2. **Token count** — input tokens, output tokens, cache writes, and cache reads
-3. **Billing policy** — a markup multiplier applied over the raw provider rate
+## Model calls run on your own keys
 
-The formula for a single call:
+Every model call a native Agent run makes runs on your Organization's own
+Anthropic or OpenAI key, or on your own compatible endpoint, on every plan. An
+admin adds the keys in **Settings → Provider keys**. Cursor-harness runs work
+the same way, on your Organization's own Cursor key, and Cursor bills them to
+that key's plan. Stigmer never runs a model call on a key of its own.
 
-```
-billable_amount = (input_tokens × input_rate / 1M)
-                + (output_tokens × output_rate / 1M)
-                + (cache_write_tokens × cache_write_rate / 1M)
-                + (cache_read_tokens × cache_read_rate / 1M)
-```
+A run whose model needs a provider your Organization has no key for is refused
+before it starts. This holds for every run, including evals, AI grading, shared
+Agents and channels, which all run on the keys of the Organization that owns the
+Agent. See [Model provider keys](/docs/guides/integrations/model-provider-keys).
 
-Rates are per million tokens with the platform markup already included. You can
-see current rates on the [pricing page](https://stigmer.ai/pricing) or via the
-`getCustomerModelPricing` API.
+## The model catalog
 
-### Platform commission
+The model catalog lists every model Stigmer supports, with each provider's list
+prices: the same numbers as on the providers' own pricing pages. Stigmer never
+marks them up and never charges them; they're there so that every edition can
+estimate what a run costs and stop it at your cost cap (see
+[Set a cost cap](#set-a-cost-cap)).
 
-Stigmer adds no commission to model calls. Native and Cursor calls both run on
-your own keys:
-
-| Harness | Commission | What you pay                                           |
-| ------- | ---------- | ------------------------------------------------------ |
-| Native  | None       | Your provider's own rate, billed by the provider       |
-| Cursor  | None       | Cursor's own rate, billed by Cursor to your key's plan |
-
-### Cursor Token Rate
-
-Cursor-harness models can carry one cost the native harness does not: the
-**Cursor Token Rate**. On Cursor Teams plans, Cursor charges a small per-token
-fee on top of the underlying model price for non-Auto requests. Cursor bills it
-to the plan of the key the run uses; Stigmer adds nothing to it. Exempt Cursor
-models (Auto and the Composer pool) carry no Cursor Token Rate.
-
-Rates on the [pricing page](https://stigmer.ai/pricing) and the
-`getCustomerModelPricing` API are versioned and only affect future usage;
-historical charges are immutable.
-
-### Where the model catalog and prices live
-
-The model catalog — every supported model with its provider list prices — is
-maintained in Stigmer Cloud's database as an audited revision history, and the
-current version is served publicly at `/api/v1/public/model-registry` (raw
-provider list prices only; the same numbers on the providers' own pricing
-pages). Self-hosted Stigmer servers ship with a bundled copy of this catalog and
-refresh it from that endpoint automatically when they have connectivity, so
-local model pickers stay current without upgrades. Air-gapped installs simply
-keep the bundled copy; set `STIGMER_MODEL_REGISTRY_REFRESH=off` to disable the
-refresh entirely.
-
-<Callout type="info">
-  Want to spend less? See [Optimizing your costs](#optimizing-your-costs) below
-  — a practical rundown of harness choice, prompt caching, model selection, and
-  budget guardrails.
-</Callout>
+Stigmer Cloud keeps the catalog as an audited revision history and serves the
+current version publicly at `/api/v1/public/model-registry`. Self-hosted Stigmer
+servers ship with a bundled copy and refresh it from that endpoint every hour
+when they have connectivity, so local model pickers stay current without
+upgrades. Air-gapped installs keep the bundled copy; set
+`STIGMER_MODEL_REGISTRY_REFRESH=off` to turn the refresh off.
 
 ## Optimizing your costs
 
-Most of what you spend is provider token cost, on your own provider bill: your
-model provider's for native runs, Cursor's for Cursor runs. The biggest savings
-come from sending fewer tokens, reusing cached ones, and matching the model and
-harness to the job. The levers below are ordered by impact.
+What your Agents spend on models is provider token cost, on your own provider
+bill: your model provider's for native runs, Cursor's for Cursor runs. The
+biggest savings come from sending fewer tokens, reusing cached ones, and
+matching the model and harness to the job. The levers below are ordered by
+impact.
 
 ### Reuse the prompt with caching
 
@@ -128,7 +107,9 @@ across turns.
 ### Pick the harness for the job
 
 Neither harness carries a Stigmer charge, so harness choice is about
-**capability and cost**:
+**capability and cost**. On Cursor Teams plans, Cursor adds a small per-token
+fee, the **Cursor Token Rate**, to non-Auto requests, billed to the plan of the
+key the run uses; Auto and the Composer pool are exempt.
 
 | If you need…                                | Prefer | Why                                                            |
 | ------------------------------------------- | ------ | -------------------------------------------------------------- |
@@ -146,8 +127,8 @@ Within a harness, model choice is usually the largest single lever — premium
 models can cost an order of magnitude more per token than economy ones. Use a
 small, cheap model for routine work (classification, short replies, summaries)
 and reserve premium models for genuinely hard reasoning. The
-[pricing page](https://stigmer.ai/pricing) and `getCustomerModelPricing` list
-the current per-token rate for every model. Set the model once in the Agent's
+[model catalog](#the-model-catalog) lists each model's provider list price. Set
+the model once in the Agent's
 [run settings](/docs/concepts/agents#run-settings), and every conversation on it
 starts there.
 
@@ -162,133 +143,15 @@ conversation length:
 - Lean on caching so the growing prefix is re-read cheaply rather than re-billed
   at full rate.
 
-### Set budget guardrails
+### Set a cost cap
 
 Every run spends on your own provider accounts (Anthropic, OpenAI or Cursor), so
-set budgets there. Within Stigmer, a per-message cost cap (`max_cost_usd` in an
-Agent's [run settings](/docs/concepts/agents#run-settings)) stops one message
-once its estimated cost reaches the cap.
-
-## Run billing lifecycle
-
-When a run reserves credits on Stigmer Cloud, billing follows a four-phase
-lifecycle. No run does: native and Cursor runs both run on your Organization's
-own keys, and reserve and debit nothing.
-
-### 1. Authorization
-
-Before the Agent Runner starts, the billing system **reserves** credits from
-your available balance. This reservation ensures the run has budget to operate.
-
-- Default reservation: $1.00
-- Minimum balance to start: $0.05
-- If your balance is below $1.00 but above $0.05, a partial reservation is made
-  for whatever is available
-
-### 2. Per-call debit
-
-As each LLM call completes, the proxy extracts token usage from the provider's
-response and records it. The billing system computes the cost server-side (using
-frozen rates from the model registry, not caller-provided data) and debits it
-from the reservation.
-
-After each debit, a **billing signal** is returned:
-
-- `continue_run` — balance is healthy
-- `low_balance_warning` — balance is getting low
-- `stop_run` — balance is exhausted; the Agent should wrap up
-
-### 3. Finalization
-
-When the run completes (success, failure, or cancellation), unused reservation
-credits are **released** back to your available balance. A summary of the run's
-total cost is recorded.
-
-### 4. Reservation expiry (safety net)
-
-If a run never finalizes (crash, network partition), reservations expire
-automatically after 1 hour. Expired reservations release unused credits back to
-the available balance.
-
-## Balance model
-
-Your billing account tracks credits in two buckets:
-
-- **Available** — credits you can use for new runs
-- **Reserved** — credits held by active run reservations
-
-The invariant is: `total = available + reserved`.
-
-Credits are also categorized by source:
-
-- **Purchased** — from Stripe payments and automatic recharge
-- **Promotional** — from free trial grants and campaigns
-
-Promotional credits are consumed first (burn-order priority), so your purchased
-credits last longer. Within a priority tier, grants expiring soonest are
-consumed first, so expiring credits never lapse while permanent ones burn.
-
-Promotional grants can carry an expiry (use-it-or-lose-it): the `grantCredits`
-API issues allowances — for example a monthly free budget — that expire on a set
-date instead of banking indefinitely. Whatever remains unconsumed at expiry is
-removed from the balance with an `expiry_debit` ledger entry.
-
-Adding or removing credits without a purchase (`adjustCredits`, `grantCredits`)
-is the platform's act, never an Organization's: it requires `can_manage_credits`
-on the platform, which platform operators hold. A platform that funds the
-Organizations it manages does so through a funding identity Stigmer makes a
-credit issuer, by arrangement; owning an Organization does not let anyone add
-credit to it.
-
-## Automatic recharge
-
-Save a payment method during your first purchase, then configure automatic
-recharge in your billing settings:
-
-- **Threshold** — recharge when available balance drops below this amount
-- **Recharge amount** — fixed amount to charge per event
-- **Monthly cap** — maximum total recharge spend per calendar month
-
-{/* vale off */}
-
-Automatic recharge uses off-session Stripe PaymentIntents against your saved
-payment method. Credits appear after payment confirmation (typically a few
-seconds). The monthly cap resets on the first day of each UTC month.
-
-{/* vale on */}
-
-## Low balance and stop behavior
-
-When your balance gets low during a run:
-
-1. At the **low balance threshold**, a `low_balance_warning` signal is sent to
-   the Runner and automatic recharge is triggered (if configured)
-2. At **zero balance**, a `stop_run` signal tells the Runner to finish the
-   current LLM call and stop — the Agent summarizes its progress and exits
-3. **New runs** cannot start when the available balance is below $0.05
-
-## Credit ledger
-
-Every balance-affecting operation produces an **immutable ledger entry**:
-
-- `purchase_credit` — Stripe Checkout purchase
-- `auto_recharge_credit` — automatic top-up
-- `promotional_credit` — trial or campaign grant
-- `usage_debit` — LLM call cost deduction
-- `reservation_hold` — credits reserved at run start
-- `reservation_release` — unused credits returned after the run
-- `adjustment_credit` / `adjustment_debit` — operator or credit-issuer
-  adjustments
-- `refund_reversal` — Stripe refund reversal
-- `expiry_debit` — expired credit removal
-
-All entries are append-only and deduplicated by an idempotency key.
-
-## Payment methods
-
-Payment methods are managed through the **Stripe Customer Portal**. You can add,
-update, or remove cards without leaving the Stigmer billing flow. Your default
-payment method is used for automatic recharge.
+set budgets there too. Within Stigmer, a cost cap on each run (`max_cost_usd` in
+an Agent's [run settings](/docs/concepts/agents#run-settings)) stops a message
+once its estimated cost, at the catalog's list prices, reaches the cap. A
+channel or a share can lower that cap for the conversations it carries, never
+raise it, and an eval takes a spending limit of its own (`max_cost_usd` on the
+eval).
 
 ## Self-hosting
 

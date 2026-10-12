@@ -11,9 +11,9 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 //
 // @internal
 // An eval's visibility is the plugin's viewers in the plugin's own
-// organization (org_viewer from plugin): a try spends that organization's
-// credit and may act with its connections, so a child organization's
-// viewer of the plugin does not read it.
+// organization (org_viewer from plugin): a try runs on that organization's
+// own provider keys and may act with its connections, so a child
+// organization's viewer of the plugin does not read it.
 service PluginEvalQueryController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = plugin_eval;
 

@@ -84,8 +84,8 @@ public interface PluginEvalTryOrBuilder extends
 
   /**
    * <pre>
-   * Why the try produced no score, as in "platform busy" or "out of
-   * credit"; empty when graded.
+   * Why the try produced no score, as in "platform busy"; empty when
+   * graded.
    * </pre>
    *
    * <code>string not_graded_reason = 6 [json_name = "notGradedReason"];</code>
@@ -94,8 +94,8 @@ public interface PluginEvalTryOrBuilder extends
   java.lang.String getNotGradedReason();
   /**
    * <pre>
-   * Why the try produced no score, as in "platform busy" or "out of
-   * credit"; empty when graded.
+   * Why the try produced no score, as in "platform busy"; empty when
+   * graded.
    * </pre>
    *
    * <code>string not_graded_reason = 6 [json_name = "notGradedReason"];</code>

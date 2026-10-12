@@ -408,7 +408,7 @@ describe("shareAgent output", () => {
 
     const result = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
 
-    expect(result.hints.some((h) => h.includes("acme's credits"))).toBe(true);
+    expect(result.hints.some((h) => h.includes("acme's own provider keys"))).toBe(true);
     expect(result.hints.some((h) => h.includes("search engines"))).toBe(true);
   });
 
@@ -427,7 +427,7 @@ describe("shareAgent output", () => {
     };
 
     const enabled = await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
-    expect(enabled.hints.some((h) => h.includes("acme's credits"))).toBe(true);
+    expect(enabled.hints.some((h) => h.includes("acme's own provider keys"))).toBe(true);
     expect(enabled.hints.some((h) => h.includes(ACME_ID))).toBe(false);
     const link = enabled.sections.find((s) => s.title === "Public chat link");
     expect(link?.items).toEqual([CLOUD_LINK]);

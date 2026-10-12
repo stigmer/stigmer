@@ -112,7 +112,6 @@ export type JudgeFailure =
   | ""
   | "busy"
   | "cannot-act"
-  | "out-of-credit"
   | "not-started"
   | "not-finished";
 

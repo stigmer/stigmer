@@ -2,10 +2,10 @@
 
 import { useId } from "react";
 import { getErrorReason, getUserMessage } from "@stigmer/sdk";
-import type { PlanTerms } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
+import type { Plan } from "@stigmer/protos/ai/stigmer/billing/plan/v1/api_pb";
 import { Button } from "../button/index.js";
 import { DialogShell } from "../internal/DialogShell.js";
-import { formatDay, formatMonthlyMinimum, sharePercent, type OfferedFeature } from "./plan-features.js";
+import { formatChildOrgs, formatDay, formatMonthlyFee, type OfferedFeature } from "./plan-features.js";
 import type { PlanMove } from "./plan-state.js";
 
 /** The reason a plan change is refused for want of a saved card (billing/subscription/v1/command.proto). */
@@ -148,7 +148,7 @@ function body(move: PlanMove, planName: (planId: string) => string, losing: read
         <>
           <p>
             {move.to.metadata?.name} starts now. Each monthly period is billed when it ends:{" "}
-            {periodCharge(move.to.spec?.terms)}
+            {periodCharge(move.to)}
           </p>
           <p>Nothing is charged today.</p>
         </>
@@ -159,7 +159,7 @@ function body(move: PlanMove, planName: (planId: string) => string, losing: read
           <p>
             The switch takes effect now. This period closes early and is billed for the time it ran on{" "}
             {planName(move.fromPlanId)}; a new monthly period opens on {move.to.metadata?.name} at{" "}
-            {formatMonthlyMinimum(move.to.spec?.terms)}.
+            {formatMonthlyFee(move.to.spec?.terms)}.
           </p>
           {losing.length > 0 && (
             <p>
@@ -215,11 +215,14 @@ function listFeatures(features: readonly OfferedFeature[]): string {
   return labels.length <= 1 ? (labels[0] ?? "") : `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
 }
 
-/** What a period of the plan is billed at its end, in the customer's words. */
-function periodCharge(terms: PlanTerms | undefined): string {
-  const minimum = formatMonthlyMinimum(terms);
-  const percent = sharePercent(terms);
-  return percent === ""
-    ? `${minimum}.`
-    : `${minimum}, less the ${percent} commission already paid on that period's usage. Usage itself stays paid from credits.`;
+/**
+ * What a period of the plan is billed at its end, in the customer's words:
+ * the monthly fee, and the fee for each child organization beyond those the
+ * plan includes. Model usage runs on the organization's own provider keys
+ * and is never on the invoice.
+ */
+function periodCharge(plan: Plan): string {
+  const fee = formatMonthlyFee(plan.spec?.terms);
+  const childOrgs = formatChildOrgs(plan.spec?.entitlements, plan.spec?.terms);
+  return childOrgs === "" ? `${fee}.` : `${fee}; ${childOrgs}.`;
 }

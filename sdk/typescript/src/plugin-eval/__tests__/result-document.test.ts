@@ -4,8 +4,8 @@
 // delta, cases[].arms.with[].error and aborted, costUsd, durationSeconds), and Stigmer's
 // additions beside them (targets, passK, provisionalDelta, notRun). Also
 // pins the departures: a try that was not graded scores null, never 0; a
-// cancel reads as interrupted; out of credit is its own reason; with
-// several targets the top-level cases are the first target's.
+// cancel reads as interrupted; with several targets the top-level cases are
+// the first target's.
 
 import { create } from "@bufbuild/protobuf";
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
@@ -142,11 +142,10 @@ describe("toResultDocument", () => {
     expect(doc.targets[1]!.cases[0]!.passK).toBe(false);
   });
 
-  it("names each partial reason: the ceiling, out of credit, and a cancel as interrupted", () => {
+  it("names each partial reason: the ceiling, and a cancel as interrupted", () => {
     const reason = (partialReason: PluginEvalPartialReason) =>
       toResultDocument(evalOf({ phase: PluginEvalPhase.partial, partialReason })).partialReason;
     expect(reason(PluginEvalPartialReason.cost_ceiling)).toBe("cost_ceiling");
-    expect(reason(PluginEvalPartialReason.out_of_credit)).toBe("out_of_credit");
     expect(reason(PluginEvalPartialReason.cancelled)).toBe("interrupted");
     expect(toResultDocument(evalOf({ phase: PluginEvalPhase.partial, partialReason: PluginEvalPartialReason.cancelled })).partial).toBe(true);
   });

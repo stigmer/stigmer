@@ -38,8 +38,6 @@
  *     under the try's cap: each vote is capped at the judge's own $0.25.
  *     So tries already running and their AI-graded checks finish, and the
  *     spend can pass the limit by those.
- *   - Credit: a try the organization's credit refused stops new cells the
- *     same way, and the eval ends partial, "out of credit".
  *   - Cancel: cancelling this workflow (the eval's cancel) cancels the
  *     children in flight, each of which stops its run and answers its try
  *     not graded, "cancelled", with what the run spent. Each is recorded
@@ -295,9 +293,6 @@ async function runCells(
             caps.delete(index);
             spent += result.costUsd;
           }
-          if (result.outOfCredit && stop === undefined) {
-            stop = "out_of_credit";
-          }
         },
         (error: unknown) => {
           inFlight.delete(index);
@@ -435,7 +430,6 @@ async function failedTry(
     error: "",
     costUsd: spend.costUsd + voteCostUsd,
     durationSeconds: 0,
-    outOfCredit: false,
   };
 }
 

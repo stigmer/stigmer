@@ -26,14 +26,14 @@ export type RunMode = "" | "agent" | "plan";
 
 /**
  * The `--service-tier` flag's value space (#357). Empty means unset —
- * distinct from an explicit "standard" so the ledger keeps the
+ * distinct from an explicit "standard" so the usage record keeps the
  * unspecified-vs-explicit distinction.
  */
 export type ServiceTierFlag = "" | "standard" | "fast";
 
 /**
  * The `--thinking` flag's value space (#772), the tier's twin: empty means
- * unset — distinct from an explicit "disabled" for the same ledger reason.
+ * unset — distinct from an explicit "disabled" for the same usage-record reason.
  */
 export type ThinkingFlag = "" | "disabled" | "enabled";
 

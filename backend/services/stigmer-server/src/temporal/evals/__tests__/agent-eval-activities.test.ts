@@ -248,7 +248,6 @@ describe("an agent eval through the shared activities", () => {
       error: "",
       costUsd,
       durationSeconds: 3,
-      outOfCredit: false,
     });
     const cell = { targetIndex: 0, arm: "with" as const, tryIndex: 0, timeoutSeconds: 120 };
     await suite[RECORD_TRY_ACTIVITY_NAME](EVAL_ID, { ...cell, caseIndex: 0 }, result(1, 0.25));

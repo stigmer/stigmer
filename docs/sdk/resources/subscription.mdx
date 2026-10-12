@@ -125,7 +125,7 @@ Subscription subscription = client.subscriptions().getForOrg(GetSubscriptionForO
 
 Estimate what the organization's current period will be invoiced.
 
-The estimate is the invoice the period would close with if no further usage occurred before its end: the plan's cost over the whole period (its minimum is not prorated to the time elapsed), less the commission already collected on the period's usage, plus the child organizations beyond those the plan includes. It is rated by the same rule the monthly close invoices by, over the same usage, so an estimate read at a period's end equals that period's invoice. Every other read derives it the same way; nothing is stored.
+The estimate is the invoice the period would close with: the plan's monthly fee over the whole period (not prorated to the time elapsed), plus the child organizations beyond those the plan includes. It is rated by the same rule the monthly close invoices by, so an estimate read at a period's end equals that period's invoice. Every other read derives it the same way; nothing is stored.
 
 NOT_FOUND when the organization has no live subscription: it is on Free, or it is a child organization on its parent's plan, and neither is invoiced a plan of its own.
 
@@ -334,15 +334,13 @@ GetPeriodEstimateInput names the organization whose current period is estimated.
 
 ### PeriodEstimate
 
-PeriodEstimate is what an organization's current subscription period would be invoiced at its end if no further usage occurred.
+PeriodEstimate is what an organization's current subscription period would be invoiced at its end.
 
 <TypeTable
   type={{
     planId: { type: "string", description: "The id of the Plan the period is on." },
     periodStart: { type: "string", description: "When the period began." },
     periodEnd: { type: "string", description: "When the period ends and is invoiced." },
-    providerCostMicros: { type: "number", description: "What the period's usage has cost in provider charges so far, across the organization and the child organizations it pays for." },
-    commissionCollectedMicros: { type: "number", description: "The commission the wallet has already collected on that usage." },
     childOrgCount: { type: "number", description: "The child organizations counted against the plan this period." },
     lines: { type: "PeriodEstimateLineInput[]", description: "The invoice's lines in the order they print, zero lines omitted." },
     totalMicros: { type: "number", description: "The estimated invoice total: the sum of the lines." },
@@ -407,7 +405,6 @@ PeriodEstimateLineKind names what an estimated invoice line is for.
 
 | Value | Description |
 |-------|-------------|
-| `plan` | The plan's cost: the greater of its monthly minimum and its usage share of the period's provider cost. |
-| `commission_credit` | The commission already collected on the period's usage, credited against the plan's cost and never more than it. |
+| `plan` | The plan's monthly fee. |
 | `child_orgs` | The child organizations beyond those the plan includes, at the plan's fee for each. |
 

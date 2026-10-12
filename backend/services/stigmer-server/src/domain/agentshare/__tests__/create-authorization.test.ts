@@ -6,7 +6,7 @@
  * anything else before this runs), so the two bars are one organization's:
  * sharing puts the agent in front of a wider audience (the owner's act, not
  * an editor's) and
- * spends the organization's credits on the open internet (an admin's). A
+ * spends the organization's provider keys on the open internet (an admin's). A
  * missing referenced agent throws.
  */
 import { describe, expect, it } from "vitest";

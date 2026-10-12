@@ -12,7 +12,7 @@ public interface PeriodEstimateLineOrBuilder extends
 
   /**
    * <pre>
-   * What the line charges or credits.
+   * What the line charges.
    * </pre>
    *
    * <code>.ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind kind = 1 [json_name = "kind"];</code>
@@ -21,7 +21,7 @@ public interface PeriodEstimateLineOrBuilder extends
   int getKindValue();
   /**
    * <pre>
-   * What the line charges or credits.
+   * What the line charges.
    * </pre>
    *
    * <code>.ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind kind = 1 [json_name = "kind"];</code>
@@ -31,8 +31,7 @@ public interface PeriodEstimateLineOrBuilder extends
 
   /**
    * <pre>
-   * The line's amount in micros, a whole number of cents. The commission
-   * credit is negative.
+   * The line's amount in micros, a whole number of cents.
    * </pre>
    *
    * <code>int64 amount_micros = 2 [json_name = "amountMicros"];</code>

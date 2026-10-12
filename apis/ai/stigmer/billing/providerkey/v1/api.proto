@@ -54,10 +54,12 @@ message ProviderKey {
   // Updated at most once a minute.
   google.protobuf.Timestamp last_used_at = 7;
 
-  // No longer used: always true. Every plan serves calls on the
+  // 8 held in_use, which was always true: every plan serves calls on the
   // organization's own key, and list never returns a parent's key the
-  // organization's own key shadows. Kept because it is a wire field.
-  bool in_use = 8;
+  // organization's own key shadows. The number and the name are reserved
+  // so neither is ever reused for a different field.
+  reserved 8;
+  reserved "in_use";
 
   // Set when the row is the parent organization's key, serving this child
   // organization because it holds none of its own for the provider. Such a

@@ -36,7 +36,7 @@
  * Position: right after the run gate, so a caller the gate checked and
  * refused learns nothing about the session (ValidateThinkingMode's rule for
  * reading a stored session), and before the gate slot, so no edition gate,
- * the credit reservation included, ever sees a turn filed under another
+ * the provider-key admission included, ever sees a turn filed under another
  * organization. A dangling session id passes: the loading steps own that
  * refusal, with its own NotFound. A store fault is Internal, never a
  * reading of the session. The step is the chain's one read of the stored

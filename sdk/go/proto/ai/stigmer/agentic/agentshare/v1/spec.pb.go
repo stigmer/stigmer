@@ -241,8 +241,9 @@ type AgentShareMessages struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Shown when a visitor or the org exceeds the message rate limit.
 	RateLimited string `protobuf:"bytes,1,opt,name=rate_limited,json=rateLimited,proto3" json:"rate_limited,omitempty"`
-	// Shown when the share cannot serve the conversation — the org's credits
-	// are exhausted or the agent's tools are not ready (fails closed).
+	// Shown when the share cannot serve the conversation — the organization
+	// holds no provider key for the agent's model or the agent's tools are
+	// not ready (fails closed).
 	Unavailable string `protobuf:"bytes,2,opt,name=unavailable,proto3" json:"unavailable,omitempty"`
 	// Shown when a conversation hits its turn limit or inactivity timeout.
 	ConversationEnded string `protobuf:"bytes,3,opt,name=conversation_ended,json=conversationEnded,proto3" json:"conversation_ended,omitempty"`

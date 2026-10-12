@@ -111,7 +111,6 @@ export const GRADING_NOT_STARTED_REASON = "grading could not start";
  * the person reading it.
  */
 export const JUDGE_LIMIT_REACHED_REASON = "spending limit reached";
-export const JUDGE_OUT_OF_CREDIT_REASON = "out of credit";
 export const JUDGE_BUSY_REASON = "the platform was busy";
 export const JUDGE_CANNOT_ACT_REASON = "grading cannot act for this agent";
 export const JUDGE_NOT_STARTED_REASON = "the judge could not start";

@@ -483,8 +483,9 @@ type ModelPricingBaseline struct {
 	ShortDescription string `protobuf:"bytes,7,opt,name=short_description,json=shortDescription,proto3" json:"short_description,omitempty"`
 	// Latency badge: "fastest", "fast", "balanced", or "slow".
 	SpeedTier string `protobuf:"bytes,8,opt,name=speed_tier,json=speedTier,proto3" json:"speed_tier,omitempty"`
-	// Pricing bracket: "economy", "standard", or "premium". Billing policy
-	// markup resolution keys on (harness, cost_tier).
+	// Pricing bracket: "economy", "standard", or "premium". A coarse price
+	// class for pickers; the runner picks an economy model for its own
+	// small tasks, such as titling a session.
 	CostTier string `protobuf:"bytes,9,opt,name=cost_tier,json=costTier,proto3" json:"cost_tier,omitempty"`
 	// Whether the model appears in the curated default picker list.
 	Featured bool `protobuf:"varint,10,opt,name=featured,proto3" json:"featured,omitempty"`

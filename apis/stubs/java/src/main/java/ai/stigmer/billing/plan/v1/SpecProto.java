@@ -48,40 +48,37 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\n%ai/stigmer/billing/plan/v1/spec.proto\022" +
       "\032ai.stigmer.billing.plan.v1\032(ai/stigmer/" +
       "platform/v1/entitlement.proto\032\033buf/valid" +
-      "ate/validate.proto\"\261\005\n\010PlanSpec\022Y\n\ninstr" +
+      "ate/validate.proto\"\367\004\n\010PlanSpec\022Y\n\ninstr" +
       "ument\030\001 \001(\0162*.ai.stigmer.billing.plan.v1" +
       ".PlanInstrumentB\r\272H\n\202\001\004\020\001 \000\310\001\001R\ninstrume" +
       "nt\022P\n\014entitlements\030\002 \001(\0132$.ai.stigmer.pl" +
       "atform.v1.EntitlementsB\006\272H\003\310\001\001R\014entitlem" +
       "ents\022;\n\005terms\030\003 \001(\0132%.ai.stigmer.billing" +
       ".plan.v1.PlanTermsR\005terms\022*\n\013description" +
-      "\030\004 \001(\tB\010\272H\005r\003\030\200\010R\013description:\216\003\272H\212\003\032\346\001\n" +
+      "\030\004 \001(\tB\010\272H\005r\003\030\200\010R\013description:\324\002\272H\320\002\032\254\001\n" +
       "&plan_spec.license_has_no_monthly_terms\022" +
-      "La license plan carries no monthly_minim" +
-      "um_micros or usage_share_basis_points\032nt" +
-      "his.instrument != 2 || (!has(this.terms." +
-      "monthly_minimum_micros) && !has(this.ter" +
-      "ms.usage_share_basis_points))\032\236\001\n*plan_s" +
-      "pec.subscription_has_no_annual_price\0222a " +
-      "subscription plan carries no annual_pric" +
-      "e_micros\032<this.instrument != 1 || !has(t" +
-      "his.terms.annual_price_micros)\"\377\002\n\tPlanT" +
-      "erms\022B\n\026monthly_minimum_micros\030\001 \001(\003B\007\272H" +
-      "\004\"\002(\000H\000R\024monthlyMinimumMicros\210\001\001\022H\n\030usag" +
-      "e_share_basis_points\030\002 \001(\005B\n\272H\007\032\005\030\220N(\000H\001" +
-      "R\025usageShareBasisPoints\210\001\001\022=\n\024per_extra_" +
-      "org_micros\030\003 \001(\003B\007\272H\004\"\002(\000H\002R\021perExtraOrg" +
-      "Micros\210\001\001\022<\n\023annual_price_micros\030\004 \001(\003B\007" +
-      "\272H\004\"\002(\000H\003R\021annualPriceMicros\210\001\001B\031\n\027_mont" +
-      "hly_minimum_microsB\033\n\031_usage_share_basis" +
-      "_pointsB\027\n\025_per_extra_org_microsB\026\n\024_ann" +
-      "ual_price_micros*P\n\016PlanInstrument\022\037\n\033pl" +
-      "an_instrument_unspecified\020\000\022\020\n\014subscript" +
-      "ion\020\001\022\013\n\007license\020\002B\230\001B\tSpecProtoP\001\242\002\004ASB" +
-      "P\252\002\032Ai.Stigmer.Billing.Plan.V1\312\002\032Ai\\Stig" +
-      "mer\\Billing\\Plan\\V1\342\002&Ai\\Stigmer\\Billing" +
-      "\\Plan\\V1\\GPBMetadata\352\002\036Ai::Stigmer::Bill" +
-      "ing::Plan::V1b\006proto3"
+      "Aa license plan carries no monthly_minim" +
+      "um_micros, the monthly fee\032?this.instrum" +
+      "ent != 2 || !has(this.terms.monthly_mini" +
+      "mum_micros)\032\236\001\n*plan_spec.subscription_h" +
+      "as_no_annual_price\0222a subscription plan " +
+      "carries no annual_price_micros\032<this.ins" +
+      "trument != 1 || !has(this.terms.annual_p" +
+      "rice_micros)\"\270\002\n\tPlanTerms\022B\n\026monthly_mi" +
+      "nimum_micros\030\001 \001(\003B\007\272H\004\"\002(\000H\000R\024monthlyMi" +
+      "nimumMicros\210\001\001\022=\n\024per_extra_org_micros\030\003" +
+      " \001(\003B\007\272H\004\"\002(\000H\001R\021perExtraOrgMicros\210\001\001\022<\n" +
+      "\023annual_price_micros\030\004 \001(\003B\007\272H\004\"\002(\000H\002R\021a" +
+      "nnualPriceMicros\210\001\001B\031\n\027_monthly_minimum_" +
+      "microsB\027\n\025_per_extra_org_microsB\026\n\024_annu" +
+      "al_price_microsJ\004\010\002\020\003R\030usage_share_basis" +
+      "_points*P\n\016PlanInstrument\022\037\n\033plan_instru" +
+      "ment_unspecified\020\000\022\020\n\014subscription\020\001\022\013\n\007" +
+      "license\020\002B\230\001B\tSpecProtoP\001\242\002\004ASBP\252\002\032Ai.St" +
+      "igmer.Billing.Plan.V1\312\002\032Ai\\Stigmer\\Billi" +
+      "ng\\Plan\\V1\342\002&Ai\\Stigmer\\Billing\\Plan\\V1\\" +
+      "GPBMetadata\352\002\036Ai::Stigmer::Billing::Plan" +
+      "::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -100,7 +97,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_plan_v1_PlanTerms_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_plan_v1_PlanTerms_descriptor,
-        new java.lang.String[] { "MonthlyMinimumMicros", "UsageShareBasisPoints", "PerExtraOrgMicros", "AnnualPriceMicros", });
+        new java.lang.String[] { "MonthlyMinimumMicros", "PerExtraOrgMicros", "AnnualPriceMicros", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.platform.v1.EntitlementProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

@@ -433,7 +433,7 @@ AgentShare agentShare = client.agentShares().apply(AgentShareInput.builder()
 
 Create an agent share.
 
-Enabling a share is a billing-affecting decision: conversations over the hosted link consume the sharing organization's credits.
+Enabling a share is a spending decision: conversations over the hosted link call models on the sharing organization's own provider keys, and the providers bill the organization for them.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -714,7 +714,7 @@ AgentShareMessages holds owner-customizable visitor-facing copy for shared-agent
 <TypeTable
   type={{
     rateLimited: { type: "string", description: "Shown when a visitor or the org exceeds the message rate limit." },
-    unavailable: { type: "string", description: "Shown when the share cannot serve the conversation — the org's credits are exhausted or the agent's tools are not ready (fails closed)." },
+    unavailable: { type: "string", description: "Shown when the share cannot serve the conversation — the organization holds no provider key for the agent's model or the agent's tools are not ready (fails closed)." },
     conversationEnded: { type: "string", description: "Shown when a conversation hits its turn limit or inactivity timeout." },
   }}
 />

@@ -51,7 +51,7 @@ const FULL_DRAFT: AgentShareDraft = {
   allowedOrigins: ["https://example.com", "https://docs.example.com"],
   messages: {
     rateLimited: "Slow down, please.",
-    unavailable: "We're out of credits.",
+    unavailable: "We're not taking chats right now.",
     conversationEnded: "This conversation has ended.",
   },
   vaults: [{ org: "acme", slug: "github-org-shared" }],
@@ -87,7 +87,7 @@ describe("useSaveAgentShare", () => {
       "https://docs.example.com",
     ]);
     expect(input.messages?.rateLimited).toBe("Slow down, please.");
-    expect(input.messages?.unavailable).toBe("We're out of credits.");
+    expect(input.messages?.unavailable).toBe("We're not taking chats right now.");
     expect(input.messages?.conversationEnded).toBe(
       "This conversation has ended.",
     );

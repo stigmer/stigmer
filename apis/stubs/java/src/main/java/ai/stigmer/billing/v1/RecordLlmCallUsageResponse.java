@@ -7,7 +7,7 @@ package ai.stigmer.billing.v1;
 
 /**
  * <pre>
- * RecordLlmCallUsageResponse returns the cost result so callers can
+ * RecordLlmCallUsageResponse names the record written, so callers can
  * observe what was recorded without querying separately.
  * </pre>
  *
@@ -101,51 +101,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int PROVIDER_COST_MICROS_FIELD_NUMBER = 2;
-  private long providerCostMicros_ = 0L;
-  /**
-   * <pre>
-   * Provider cost computed server-side from the model registry.
-   * </pre>
-   *
-   * <code>int64 provider_cost_micros = 2 [json_name = "providerCostMicros"];</code>
-   * @return The providerCostMicros.
-   */
-  @java.lang.Override
-  public long getProviderCostMicros() {
-    return providerCostMicros_;
-  }
-
-  public static final int CUSTOMER_BILLABLE_AMOUNT_MICROS_FIELD_NUMBER = 3;
-  private long customerBillableAmountMicros_ = 0L;
-  /**
-   * <pre>
-   * Amount debited from customer credits (after markup policy).
-   * </pre>
-   *
-   * <code>int64 customer_billable_amount_micros = 3 [json_name = "customerBillableAmountMicros"];</code>
-   * @return The customerBillableAmountMicros.
-   */
-  @java.lang.Override
-  public long getCustomerBillableAmountMicros() {
-    return customerBillableAmountMicros_;
-  }
-
-  public static final int IS_BILLABLE_FIELD_NUMBER = 4;
-  private boolean isBillable_ = false;
-  /**
-   * <pre>
-   * Whether this call was billable (complete usage + non-zero cost).
-   * </pre>
-   *
-   * <code>bool is_billable = 4 [json_name = "isBillable"];</code>
-   * @return The isBillable.
-   */
-  @java.lang.Override
-  public boolean getIsBillable() {
-    return isBillable_;
-  }
-
   public static final int IS_DUPLICATE_FIELD_NUMBER = 5;
   private boolean isDuplicate_ = false;
   /**
@@ -178,15 +133,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(usageRecordId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, usageRecordId_);
     }
-    if (providerCostMicros_ != 0L) {
-      output.writeInt64(2, providerCostMicros_);
-    }
-    if (customerBillableAmountMicros_ != 0L) {
-      output.writeInt64(3, customerBillableAmountMicros_);
-    }
-    if (isBillable_ != false) {
-      output.writeBool(4, isBillable_);
-    }
     if (isDuplicate_ != false) {
       output.writeBool(5, isDuplicate_);
     }
@@ -201,18 +147,6 @@ private static final long serialVersionUID = 0L;
     size = 0;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(usageRecordId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, usageRecordId_);
-    }
-    if (providerCostMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(2, providerCostMicros_);
-    }
-    if (customerBillableAmountMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(3, customerBillableAmountMicros_);
-    }
-    if (isBillable_ != false) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeBoolSize(4, isBillable_);
     }
     if (isDuplicate_ != false) {
       size += com.google.protobuf.CodedOutputStream
@@ -235,12 +169,6 @@ private static final long serialVersionUID = 0L;
 
     if (!getUsageRecordId()
         .equals(other.getUsageRecordId())) return false;
-    if (getProviderCostMicros()
-        != other.getProviderCostMicros()) return false;
-    if (getCustomerBillableAmountMicros()
-        != other.getCustomerBillableAmountMicros()) return false;
-    if (getIsBillable()
-        != other.getIsBillable()) return false;
     if (getIsDuplicate()
         != other.getIsDuplicate()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -256,15 +184,6 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + USAGE_RECORD_ID_FIELD_NUMBER;
     hash = (53 * hash) + getUsageRecordId().hashCode();
-    hash = (37 * hash) + PROVIDER_COST_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getProviderCostMicros());
-    hash = (37 * hash) + CUSTOMER_BILLABLE_AMOUNT_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getCustomerBillableAmountMicros());
-    hash = (37 * hash) + IS_BILLABLE_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
-        getIsBillable());
     hash = (37 * hash) + IS_DUPLICATE_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getIsDuplicate());
@@ -367,7 +286,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * RecordLlmCallUsageResponse returns the cost result so callers can
+   * RecordLlmCallUsageResponse names the record written, so callers can
    * observe what was recorded without querying separately.
    * </pre>
    *
@@ -405,9 +324,6 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       usageRecordId_ = "";
-      providerCostMicros_ = 0L;
-      customerBillableAmountMicros_ = 0L;
-      isBillable_ = false;
       isDuplicate_ = false;
       return this;
     }
@@ -446,15 +362,6 @@ private static final long serialVersionUID = 0L;
         result.usageRecordId_ = usageRecordId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.providerCostMicros_ = providerCostMicros_;
-      }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.customerBillableAmountMicros_ = customerBillableAmountMicros_;
-      }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.isBillable_ = isBillable_;
-      }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.isDuplicate_ = isDuplicate_;
       }
     }
@@ -475,15 +382,6 @@ private static final long serialVersionUID = 0L;
         usageRecordId_ = other.usageRecordId_;
         bitField0_ |= 0x00000001;
         onChanged();
-      }
-      if (other.getProviderCostMicros() != 0L) {
-        setProviderCostMicros(other.getProviderCostMicros());
-      }
-      if (other.getCustomerBillableAmountMicros() != 0L) {
-        setCustomerBillableAmountMicros(other.getCustomerBillableAmountMicros());
-      }
-      if (other.getIsBillable() != false) {
-        setIsBillable(other.getIsBillable());
       }
       if (other.getIsDuplicate() != false) {
         setIsDuplicate(other.getIsDuplicate());
@@ -519,24 +417,9 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 10
-            case 16: {
-              providerCostMicros_ = input.readInt64();
-              bitField0_ |= 0x00000002;
-              break;
-            } // case 16
-            case 24: {
-              customerBillableAmountMicros_ = input.readInt64();
-              bitField0_ |= 0x00000004;
-              break;
-            } // case 24
-            case 32: {
-              isBillable_ = input.readBool();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 32
             case 40: {
               isDuplicate_ = input.readBool();
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000002;
               break;
             } // case 40
             default: {
@@ -648,138 +531,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private long providerCostMicros_ ;
-    /**
-     * <pre>
-     * Provider cost computed server-side from the model registry.
-     * </pre>
-     *
-     * <code>int64 provider_cost_micros = 2 [json_name = "providerCostMicros"];</code>
-     * @return The providerCostMicros.
-     */
-    @java.lang.Override
-    public long getProviderCostMicros() {
-      return providerCostMicros_;
-    }
-    /**
-     * <pre>
-     * Provider cost computed server-side from the model registry.
-     * </pre>
-     *
-     * <code>int64 provider_cost_micros = 2 [json_name = "providerCostMicros"];</code>
-     * @param value The providerCostMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setProviderCostMicros(long value) {
-
-      providerCostMicros_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Provider cost computed server-side from the model registry.
-     * </pre>
-     *
-     * <code>int64 provider_cost_micros = 2 [json_name = "providerCostMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearProviderCostMicros() {
-      bitField0_ = (bitField0_ & ~0x00000002);
-      providerCostMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
-    private long customerBillableAmountMicros_ ;
-    /**
-     * <pre>
-     * Amount debited from customer credits (after markup policy).
-     * </pre>
-     *
-     * <code>int64 customer_billable_amount_micros = 3 [json_name = "customerBillableAmountMicros"];</code>
-     * @return The customerBillableAmountMicros.
-     */
-    @java.lang.Override
-    public long getCustomerBillableAmountMicros() {
-      return customerBillableAmountMicros_;
-    }
-    /**
-     * <pre>
-     * Amount debited from customer credits (after markup policy).
-     * </pre>
-     *
-     * <code>int64 customer_billable_amount_micros = 3 [json_name = "customerBillableAmountMicros"];</code>
-     * @param value The customerBillableAmountMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCustomerBillableAmountMicros(long value) {
-
-      customerBillableAmountMicros_ = value;
-      bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Amount debited from customer credits (after markup policy).
-     * </pre>
-     *
-     * <code>int64 customer_billable_amount_micros = 3 [json_name = "customerBillableAmountMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCustomerBillableAmountMicros() {
-      bitField0_ = (bitField0_ & ~0x00000004);
-      customerBillableAmountMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
-    private boolean isBillable_ ;
-    /**
-     * <pre>
-     * Whether this call was billable (complete usage + non-zero cost).
-     * </pre>
-     *
-     * <code>bool is_billable = 4 [json_name = "isBillable"];</code>
-     * @return The isBillable.
-     */
-    @java.lang.Override
-    public boolean getIsBillable() {
-      return isBillable_;
-    }
-    /**
-     * <pre>
-     * Whether this call was billable (complete usage + non-zero cost).
-     * </pre>
-     *
-     * <code>bool is_billable = 4 [json_name = "isBillable"];</code>
-     * @param value The isBillable to set.
-     * @return This builder for chaining.
-     */
-    public Builder setIsBillable(boolean value) {
-
-      isBillable_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Whether this call was billable (complete usage + non-zero cost).
-     * </pre>
-     *
-     * <code>bool is_billable = 4 [json_name = "isBillable"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearIsBillable() {
-      bitField0_ = (bitField0_ & ~0x00000008);
-      isBillable_ = false;
-      onChanged();
-      return this;
-    }
-
     private boolean isDuplicate_ ;
     /**
      * <pre>
@@ -805,7 +556,7 @@ private static final long serialVersionUID = 0L;
     public Builder setIsDuplicate(boolean value) {
 
       isDuplicate_ = value;
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -818,7 +569,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearIsDuplicate() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000002);
       isDuplicate_ = false;
       onChanged();
       return this;

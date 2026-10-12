@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/subscription/v1/io.proto.
  */
 export const file_ai_stigmer_billing_subscription_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxIjEKGkdldFN1YnNjcmlwdGlvbkZvck9yZ0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBIisKFEdldEVudGl0bGVtZW50c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBImQKFUdldEVudGl0bGVtZW50c091dHB1dBI6CgxlbnRpdGxlbWVudHMYASABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkVudGl0bGVtZW50cxIPCgdwbGFuX2lkGAIgASgJIj8KD0NoYW5nZVBsYW5JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIXCgdwbGFuX2lkGAIgASgJQga6SAPIAQEiLgoXQ2FuY2VsU3Vic2NyaXB0aW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEiLQoWR2V0UGVyaW9kRXN0aW1hdGVJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASK8AgoOUGVyaW9kRXN0aW1hdGUSDwoHcGxhbl9pZBgBIAEoCRIwCgxwZXJpb2Rfc3RhcnQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnBlcmlvZF9lbmQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhwKFHByb3ZpZGVyX2Nvc3RfbWljcm9zGAQgASgDEiMKG2NvbW1pc3Npb25fY29sbGVjdGVkX21pY3JvcxgFIAEoAxIXCg9jaGlsZF9vcmdfY291bnQYBiABKAUSRQoFbGluZXMYByADKAsyNi5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLlBlcmlvZEVzdGltYXRlTGluZRIUCgx0b3RhbF9taWNyb3MYCCABKAMidQoSUGVyaW9kRXN0aW1hdGVMaW5lEkgKBGtpbmQYASABKA4yOi5haS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxLlBlcmlvZEVzdGltYXRlTGluZUtpbmQSFQoNYW1vdW50X21pY3JvcxgCIAEoAyp0ChZQZXJpb2RFc3RpbWF0ZUxpbmVLaW5kEikKJXBlcmlvZF9lc3RpbWF0ZV9saW5lX2tpbmRfdW5zcGVjaWZpZWQQABIICgRwbGFuEAESFQoRY29tbWlzc2lvbl9jcmVkaXQQAhIOCgpjaGlsZF9vcmdzEANiBnByb3RvMw", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvc3Vic2NyaXB0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmJpbGxpbmcuc3Vic2NyaXB0aW9uLnYxIjEKGkdldFN1YnNjcmlwdGlvbkZvck9yZ0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBIisKFEdldEVudGl0bGVtZW50c0lucHV0EhMKA29yZxgBIAEoCUIGukgDyAEBImQKFUdldEVudGl0bGVtZW50c091dHB1dBI6CgxlbnRpdGxlbWVudHMYASABKAsyJC5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkVudGl0bGVtZW50cxIPCgdwbGFuX2lkGAIgASgJIj8KD0NoYW5nZVBsYW5JbnB1dBITCgNvcmcYASABKAlCBrpIA8gBARIXCgdwbGFuX2lkGAIgASgJQga6SAPIAQEiLgoXQ2FuY2VsU3Vic2NyaXB0aW9uSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQEiLQoWR2V0UGVyaW9kRXN0aW1hdGVJbnB1dBITCgNvcmcYASABKAlCBrpIA8gBASK4AgoOUGVyaW9kRXN0aW1hdGUSDwoHcGxhbl9pZBgBIAEoCRIwCgxwZXJpb2Rfc3RhcnQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnBlcmlvZF9lbmQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhcKD2NoaWxkX29yZ19jb3VudBgGIAEoBRJFCgVsaW5lcxgHIAMoCzI2LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lEhQKDHRvdGFsX21pY3JvcxgIIAEoA0oECAQQBUoECAUQBlIUcHJvdmlkZXJfY29zdF9taWNyb3NSG2NvbW1pc3Npb25fY29sbGVjdGVkX21pY3JvcyJ1ChJQZXJpb2RFc3RpbWF0ZUxpbmUSSAoEa2luZBgBIAEoDjI6LmFpLnN0aWdtZXIuYmlsbGluZy5zdWJzY3JpcHRpb24udjEuUGVyaW9kRXN0aW1hdGVMaW5lS2luZBIVCg1hbW91bnRfbWljcm9zGAIgASgDKnYKFlBlcmlvZEVzdGltYXRlTGluZUtpbmQSKQolcGVyaW9kX2VzdGltYXRlX2xpbmVfa2luZF91bnNwZWNpZmllZBAAEggKBHBsYW4QARIOCgpjaGlsZF9vcmdzEAMiBAgCEAIqEWNvbW1pc3Npb25fY3JlZGl0YgZwcm90bzM", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * GetSubscriptionForOrgInput names the organization whose
@@ -165,7 +165,7 @@ export const GetPeriodEstimateInputSchema: GenMessage<GetPeriodEstimateInput> = 
 
 /**
  * PeriodEstimate is what an organization's current subscription period
- * would be invoiced at its end if no further usage occurred.
+ * would be invoiced at its end.
  *
  * Money is in micros (1 USD = 1,000,000). Each line is rounded to whole
  * cents the way the invoice rounds it, and total_micros is the sum of the
@@ -194,22 +194,6 @@ export type PeriodEstimate = Message<"ai.stigmer.billing.subscription.v1.PeriodE
    * @generated from field: google.protobuf.Timestamp period_end = 3;
    */
   periodEnd?: Timestamp;
-
-  /**
-   * What the period's usage has cost in provider charges so far, across
-   * the organization and the child organizations it pays for.
-   *
-   * @generated from field: int64 provider_cost_micros = 4;
-   */
-  providerCostMicros: bigint;
-
-  /**
-   * The commission the wallet has already collected on that usage. It
-   * counts toward the plan's cost instead of adding to it.
-   *
-   * @generated from field: int64 commission_collected_micros = 5;
-   */
-  commissionCollectedMicros: bigint;
 
   /**
    * The child organizations counted against the plan this period.
@@ -247,15 +231,14 @@ export const PeriodEstimateSchema: GenMessage<PeriodEstimate> = /*@__PURE__*/
  */
 export type PeriodEstimateLine = Message<"ai.stigmer.billing.subscription.v1.PeriodEstimateLine"> & {
   /**
-   * What the line charges or credits.
+   * What the line charges.
    *
    * @generated from field: ai.stigmer.billing.subscription.v1.PeriodEstimateLineKind kind = 1;
    */
   kind: PeriodEstimateLineKind;
 
   /**
-   * The line's amount in micros, a whole number of cents. The commission
-   * credit is negative.
+   * The line's amount in micros, a whole number of cents.
    *
    * @generated from field: int64 amount_micros = 2;
    */
@@ -281,20 +264,11 @@ export enum PeriodEstimateLineKind {
   period_estimate_line_kind_unspecified = 0,
 
   /**
-   * The plan's cost: the greater of its monthly minimum and its usage
-   * share of the period's provider cost.
+   * The plan's monthly fee.
    *
    * @generated from enum value: plan = 1;
    */
   plan = 1,
-
-  /**
-   * The commission already collected on the period's usage, credited
-   * against the plan's cost and never more than it.
-   *
-   * @generated from enum value: commission_credit = 2;
-   */
-  commission_credit = 2,
 
   /**
    * The child organizations beyond those the plan includes, at the

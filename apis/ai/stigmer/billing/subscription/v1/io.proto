@@ -55,7 +55,7 @@ message GetPeriodEstimateInput {
 }
 
 // PeriodEstimate is what an organization's current subscription period
-// would be invoiced at its end if no further usage occurred.
+// would be invoiced at its end.
 //
 // Money is in micros (1 USD = 1,000,000). Each line is rounded to whole
 // cents the way the invoice rounds it, and total_micros is the sum of the
@@ -70,13 +70,13 @@ message PeriodEstimate {
   // When the period ends and is invoiced.
   google.protobuf.Timestamp period_end = 3;
 
-  // What the period's usage has cost in provider charges so far, across
-  // the organization and the child organizations it pays for.
-  int64 provider_cost_micros = 4;
-
-  // The commission the wallet has already collected on that usage. It
-  // counts toward the plan's cost instead of adding to it.
-  int64 commission_collected_micros = 5;
+  // 4 and 5 held provider_cost_micros and commission_collected_micros: the
+  // period's provider cost and the commission collected on it, which fed a
+  // usage-share plan cost. A plan is a flat fee and usage is never part of
+  // its price, so the numbers and the names are reserved so neither is
+  // ever reused for a different field.
+  reserved 4, 5;
+  reserved "provider_cost_micros", "commission_collected_micros";
 
   // The child organizations counted against the plan this period.
   int32 child_org_count = 6;
@@ -90,11 +90,10 @@ message PeriodEstimate {
 
 // PeriodEstimateLine is one line of an estimated invoice.
 message PeriodEstimateLine {
-  // What the line charges or credits.
+  // What the line charges.
   PeriodEstimateLineKind kind = 1;
 
-  // The line's amount in micros, a whole number of cents. The commission
-  // credit is negative.
+  // The line's amount in micros, a whole number of cents.
   int64 amount_micros = 2;
 }
 
@@ -102,13 +101,15 @@ message PeriodEstimateLine {
 enum PeriodEstimateLineKind {
   period_estimate_line_kind_unspecified = 0;
 
-  // The plan's cost: the greater of its monthly minimum and its usage
-  // share of the period's provider cost.
+  // The plan's monthly fee.
   plan = 1;
 
-  // The commission already collected on the period's usage, credited
-  // against the plan's cost and never more than it.
-  commission_credit = 2;
+  // 2 was commission_credit, the commission collected on the period's
+  // usage credited against a usage-share plan cost. A plan is a flat fee,
+  // so no line credits usage; the number and the name are reserved so
+  // neither is ever reused for a different line.
+  reserved 2;
+  reserved "commission_credit";
 
   // The child organizations beyond those the plan includes, at the
   // plan's fee for each.

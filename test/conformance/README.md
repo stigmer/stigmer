@@ -279,8 +279,8 @@ npm run test:cloud -w @stigmer/conformance   # or: make test-conformance-cloud
 The `globalSetup` (`global-setup-cloud.ts`) only checks the contract is
 declared and refuses by name when it is not — a run that boots nothing must not
 pass. Files run serially (they share one multi-tenant service). Tenancy is real here: `provisionTenancy()` creates an organization
-through the production RPC (the primary user becomes owner; a zero-balance
-billing account is provisioned automatically), unlike the local targets where
+through the production RPC (the primary user becomes owner; its billing
+account is provisioned automatically), unlike the local targets where
 an org is just a unique slug. There is no CI lane for the cloud targets in this
 repository: the cloud composition's own repository runs them and keeps the
 readouts.
@@ -318,9 +318,10 @@ a deployed endpoint (a real tenant's key is never conformance's) leaves it
 unset, and the cloud target does not run there at all.
 
 **The cloud-capability suites** cover the three surfaces only the hosted
-edition serves, which the retired Java service once owned: the billing ledger
-(`billing.conformance.test.ts` + `suites-execution/billing-gates`), the
-side-channel proxy (`proxy.conformance.test.ts`) and the public REST lane
+edition serves, which the retired Java service once owned: the billing engine
+(`billing.conformance.test.ts`, with run admission in
+`suites-execution/run-admission.conformance.test.ts`), the side-channel proxy
+(`proxy.conformance.test.ts`) and the public REST lane
 (`public-lane.conformance.test.ts`). The plan catalog and subscriptions, which
 the Cloud serves with no Java predecessor, joined them as the billing plans
 facet (`billing-plans.conformance.test.ts`, gated on `billingPlans`). Three
@@ -345,7 +346,7 @@ things make them different from the CRUD suites:
 - **Lanes have their own addresses.** `STIGMER_CONFORMANCE_CLOUD_{PROXY,CURSOR_BIDI,PUBLIC,STRIPE_WEBHOOK}_ADDRESS`
   (+ `_STRIPE_WEBHOOK_SECRET`, `_FIXTURES_CONTROL_URL`), because the
   composition serves extension-owned lanes on separate listeners. The flags
-  (`billingLedger`, `billingPlans`, `sideChannelProxy`, `publicLane`) state
+  (`billingEngine`, `billingPlans`, `sideChannelProxy`, `publicLane`) state
   the EDITION's contract; the addresses state where the environment serves
   it — a cloud target whose flag is true and whose lane is missing FAILS,
   never skips.

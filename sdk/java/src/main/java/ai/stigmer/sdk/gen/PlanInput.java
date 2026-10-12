@@ -208,13 +208,11 @@ public final class PlanInput {
     /** SDK input type for PlanTerms. */
     public static final class PlanTermsInput {
         private final Long monthlyMinimumMicros;
-        private final Integer usageShareBasisPoints;
         private final Long perExtraOrgMicros;
         private final Long annualPriceMicros;
 
         private PlanTermsInput(Builder builder) {
             this.monthlyMinimumMicros = builder.monthlyMinimumMicros;
-            this.usageShareBasisPoints = builder.usageShareBasisPoints;
             this.perExtraOrgMicros = builder.perExtraOrgMicros;
             this.annualPriceMicros = builder.annualPriceMicros;
         }
@@ -223,9 +221,6 @@ public final class PlanInput {
             PlanTerms.Builder builder = PlanTerms.newBuilder();
             if (this.monthlyMinimumMicros != null) {
                 builder.setMonthlyMinimumMicros(this.monthlyMinimumMicros);
-            }
-            if (this.usageShareBasisPoints != null) {
-                builder.setUsageShareBasisPoints(this.usageShareBasisPoints);
             }
             if (this.perExtraOrgMicros != null) {
                 builder.setPerExtraOrgMicros(this.perExtraOrgMicros);
@@ -240,14 +235,12 @@ public final class PlanInput {
 
         public static final class Builder {
             private Long monthlyMinimumMicros;
-            private Integer usageShareBasisPoints;
             private Long perExtraOrgMicros;
             private Long annualPriceMicros;
 
             private Builder() {}
 
             public Builder monthlyMinimumMicros(long monthlyMinimumMicros) { this.monthlyMinimumMicros = monthlyMinimumMicros; return this; }
-            public Builder usageShareBasisPoints(int usageShareBasisPoints) { this.usageShareBasisPoints = usageShareBasisPoints; return this; }
             public Builder perExtraOrgMicros(long perExtraOrgMicros) { this.perExtraOrgMicros = perExtraOrgMicros; return this; }
             public Builder annualPriceMicros(long annualPriceMicros) { this.annualPriceMicros = annualPriceMicros; return this; }
 

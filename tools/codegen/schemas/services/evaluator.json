@@ -175,7 +175,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "Why the most recent run picked for grading could not be graded.\n\n For example \"spending limit reached\" or \"out of credit\". Empty when\n the most recent grade succeeded.",
+        "description": "Why the most recent run picked for grading could not be graded.\n\n For example \"spending limit reached\". Empty when the most recent grade\n succeeded.",
         "required": false
       },
       {

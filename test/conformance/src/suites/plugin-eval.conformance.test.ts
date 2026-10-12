@@ -38,9 +38,10 @@
 // organization's, or a member when the plugin is private) is refused get,
 // listByPlugin and create with PERMISSION_DENIED; and a child
 // organization's viewer of a plugin its parent shares gets an empty
-// listByPlugin and is refused get, because a try spends the parent's
-// credit. A target with no enforcing lane skips those arms visibly. The
-// relations themselves are the authorization model's store tests
+// listByPlugin and is refused get, because the eval is the parent's: its
+// tries run on the parent organization's own provider keys. A target with
+// no enforcing lane skips those arms visibly. The relations themselves are
+// the authorization model's store tests
 // (backend/services/stigmer-server/fga/tests/plugin-eval-access.fga.yaml).
 //
 // Out of scope here, pinned in the execution class with an engine
@@ -589,7 +590,7 @@ describe("PluginEval — who may run and read an eval", () => {
       "the child's viewer views the plugin its parent shares",
     ).toBe(pluginId);
     const list = await childViewer.pluginEvalQuery.listByPlugin({ pluginId });
-    expect(list.items, "a try spends the parent's credit: the child's viewer lists no eval").toEqual([]);
+    expect(list.items, "the eval is the parent's: the child's viewer lists no eval").toEqual([]);
     await expectGrpcCode(
       () => childViewer.pluginEvalQuery.get({ value: created.metadata!.id }),
       Code.PermissionDenied,

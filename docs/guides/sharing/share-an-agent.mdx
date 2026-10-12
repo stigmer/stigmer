@@ -24,10 +24,10 @@ or change it is a separate setting, **Manage access** on the Agent:
 
 ## Create a share
 
-You must be an admin of the Agent's Organization to create a share. A share
-spends the Organization's credits with anyone who holds the link, so it is an
-admin-level decision; members who can edit the Agent but are not admins do not
-see the **Create share** button.
+You must be an admin of the Agent's Organization to create a share. A share runs
+the Agent on the Organization's provider keys for anyone who holds the link, so
+it is an admin-level decision; members who can edit the Agent but are not admins
+do not see the **Create share** button.
 
 1. Open your Agent in the web console under **Library → Agents**.
 2. Open the **Shares** tab — or choose **Share** from the actions menu (⋯),
@@ -88,17 +88,19 @@ visitors, and an org-members-only Agent requires a signed-in member.
 
 ## Who pays for shared chats
 
-Conversations over the shared link use your Organization's credits — for
-visitors on a public link and for members on an org-members-only one. The dialog
-shows your current balance next to the sharing toggle, so you always know what
-is at stake before you share.
+Conversations over the shared link run on your Organization's own
+[provider keys](/docs/guides/integrations/model-provider-keys), for visitors on
+a public link and for members on an org-members-only one, and your model
+provider bills them to you.
 
-Stigmer protects your balance automatically:
+Stigmer protects your spend automatically:
 
 - Visitors are rate limited, per visitor and across your whole Organization.
 - Each conversation has a turn limit and an inactivity timeout.
-- If your Organization runs out of credits, shared chats stop — they never
-  overdraw your balance.
+- The Agent's [cost cap](/docs/concepts/billing#set-a-cost-cap), if you set one,
+  stops any one message at it.
+- If your Organization has no key for the Agent's model, visitors read that the
+  Agent isn't set up to answer yet, and nothing runs.
 
 ## Customize visitor messages
 
@@ -210,11 +212,11 @@ the share entirely.
 
 ## Share an Agent another Organization built
 
-A share always lives in the Agent's own Organization: its link, its credits and
-its credentials are that Organization's. To offer another Organization's Agent
-from yours, install the Plugin that carries it — the installed Agent is your
-Organization's copy, upgrades with the Plugin, and can be shared like any Agent
-you built. See
+A share always lives in the Agent's own Organization: its link, the provider
+keys it runs on and its credentials are that Organization's. To offer another
+Organization's Agent from yours, install the Plugin that carries it — the
+installed Agent is your Organization's copy, upgrades with the Plugin, and can
+be shared like any Agent you built. See
 [Install from a marketplace](/docs/guides/plugins/install-from-a-marketplace).
 
 <Callout>

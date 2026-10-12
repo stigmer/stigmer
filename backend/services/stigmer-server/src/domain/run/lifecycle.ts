@@ -783,8 +783,8 @@ function runRecoverPipeline(
         failureMessage: "failed to terminate previous workflow during recovery",
       }),
       // The pre-side-effect gate slot: after workflow termination, before
-      // re-launch side effects, where a billing composition re-arms (a
-      // terminated workflow issues no new settles). Empty in OSS.
+      // re-launch side effects, where an edition admits the turn again.
+      // Empty in OSS.
       ...stepsForSlot<Desc>(
         deps.gateSteps,
         "agent-execution-recover:pre-side-effect-gate",

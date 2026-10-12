@@ -555,7 +555,7 @@ describe("AgentChannelsPanel", () => {
 
   it("offers no connect affordance to a member who owns the agent: connecting also asks can_create_agent_channel on the organization", async () => {
     // A member owns the agents they create (can_manage_audience), but a
-    // channel spends the organization's credits, an admin's act.
+    // channel spends the organization's own provider keys, an admin's act.
     const checkMyPermission = vi.fn((input: unknown) => {
       const { relation } = input as { relation: string };
       return Promise.resolve({ isAuthorized: relation !== "can_create_agent_channel" });

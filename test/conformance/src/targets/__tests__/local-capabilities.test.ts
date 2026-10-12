@@ -23,7 +23,7 @@ const HOSTED_ONLY: ReadonlyArray<keyof CapabilityFlags> = [
   "multiTenant",
   "channelMessaging",
   "billingGates",
-  "billingLedger",
+  "billingEngine",
   "billingPlans",
   "sideChannelProxy",
   "publicLane",

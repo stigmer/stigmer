@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
           "outputType": "AgentShare",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
-          "description": "Create an agent share.\n\n Enabling a share is a billing-affecting decision: conversations over\n the hosted link consume the sharing organization's credits."
+          "description": "Create an agent share.\n\n Enabling a share is a spending decision: conversations over the hosted\n link call models on the sharing organization's own provider keys, and\n the providers bill the organization for them."
         },
         {
           "name": "Update",
