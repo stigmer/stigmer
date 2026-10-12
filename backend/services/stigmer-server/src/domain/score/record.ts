@@ -14,6 +14,13 @@
  * placeholder never outlives a grade, and two writers of the same state
  * keep the first (stigmer#2057).
  *
+ * The placeholder rule holds across versions too. A grade planned before a
+ * deploy that changes the judge's rules is recorded under the new version,
+ * which the old version's pending score does not block; so once a graded or
+ * not-graded score is recorded, the same writer's pending scores of the run
+ * under any other version are deleted. Graded and not-graded scores of
+ * other versions are history and are never touched.
+ *
  * The replacement is a delete then a create through the score's own chains
  * (ports.ts): score update admits a person's feedback only, which is what
  * keeps a check's or a judge's verdict final. A writer that loses the race
@@ -21,7 +28,8 @@
  * number of times.
  *
  * Proven by temporal/grading/__tests__/judge-composed.test.ts (the
- * stigmer#2057 interleave among them) and activities.test.ts beside it.
+ * stigmer#2057 interleave and a grade recorded under a newer version among
+ * them) and activities.test.ts beside it.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -58,6 +66,9 @@ export async function replaceUnlessGraded(
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       await deps.recorder.record(score);
+      if (incoming > 0) {
+        await deleteOtherVersionPlaceholders(deps, score);
+      }
       return "recorded";
     } catch (error) {
       if (!(error instanceof ConnectError)) {
@@ -106,6 +117,32 @@ export async function sameWriterScore(
       other.spec.source !== ScoreSource.human &&
       other.spec.evaluatorVersion === spec.evaluatorVersion,
   );
+}
+
+/**
+ * Deletes the run's pending scores from the same writer as `score` under
+ * any other version (the module header).
+ */
+async function deleteOtherVersionPlaceholders(
+  deps: ScoreWriteDeps,
+  score: Score,
+): Promise<void> {
+  const spec = score.spec;
+  if (spec === undefined) {
+    return;
+  }
+  const scores = await listRunScores(deps.store, deps.logger, spec.runId);
+  for (const other of scores) {
+    if (
+      other.spec?.metric === spec.metric &&
+      other.spec.source === spec.source &&
+      other.spec.source !== ScoreSource.human &&
+      other.spec.evaluatorVersion !== spec.evaluatorVersion &&
+      other.status?.state === ScoreState.pending
+    ) {
+      await deleteScore(deps.deleter, other.metadata?.id ?? "");
+    }
+  }
 }
 
 /** Deletes one score through its delete chain; one already gone is fine. */

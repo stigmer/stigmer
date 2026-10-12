@@ -12,8 +12,10 @@
  *     score per run per rubric version;
  *   - replaceUnlessGraded: the stigmer#2057 interleave keeps the grade (a
  *     not-graded placeholder written between the grade's read and its
- *     create is replaced), a placeholder never replaces a grade, and a
- *     judge's pending score gives way to its grade;
+ *     create is replaced), a placeholder never replaces a grade, a judge's
+ *     pending score gives way to its grade, and a grade recorded under a
+ *     newer version removes an older version's pending score while every
+ *     other version's grades stay;
  *   - evaluators: create, the one-per-agent rule, getByAgent, an update
  *     that keeps the month's spend written meanwhile, and the agent's
  *     delete removing its evaluator;
@@ -195,7 +197,10 @@ async function seedRun(opts: {
   return run;
 }
 
-function judgeScore(runId: string, opts: { passed?: boolean; model?: string; pending?: boolean } = {}): Score {
+function judgeScore(
+  runId: string,
+  opts: { passed?: boolean; model?: string; pending?: boolean; version?: string; notGraded?: string } = {},
+): Score {
   return create(ScoreSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Score",
@@ -204,11 +209,12 @@ function judgeScore(runId: string, opts: { passed?: boolean; model?: string; pen
       runId,
       metric: "judge",
       source: ScoreSource.judge,
-      evaluatorVersion: JUDGE_EVALUATOR_VERSION,
+      evaluatorVersion: opts.version ?? JUDGE_EVALUATOR_VERSION,
       judgeModel: opts.model ?? "",
       ...(opts.passed === undefined ? {} : { value: { case: "passed", value: opts.passed } }),
     },
     ...(opts.pending === true ? { status: { state: ScoreState.pending } } : {}),
+    ...(opts.notGraded === undefined ? {} : { status: { notGradedReason: opts.notGraded } }),
   });
 }
 
@@ -323,6 +329,36 @@ describe("replaceUnlessGraded", () => {
     const judged = await scoresOf(runId, "judge");
     expect(judged).toHaveLength(1);
     expect(judged[0]?.spec?.value).toEqual({ case: "passed", value: false });
+  });
+
+  it("drops the run's pending score of another version once a grade is recorded, and keeps every other version's grades", async () => {
+    // A grade planned before a deploy that changed the judge's rules is
+    // recorded under the new version; the old version's placeholder goes.
+    const planned = (await seedRun()).metadata!.id;
+    await inProcess.create(judgeScore(planned, { pending: true, version: "v-before" }));
+    expect(await replaceUnlessGraded(writeDeps(), judgeScore(planned, { passed: true }))).toBe("recorded");
+    expect((await scoresOf(planned, "judge")).map((score) => [score.spec?.evaluatorVersion, score.status?.state])).toEqual([
+      [JUDGE_EVALUATOR_VERSION, ScoreState.graded],
+    ]);
+
+    const history = (await seedRun()).metadata!.id;
+    await inProcess.create(judgeScore(history, { passed: false, version: "v-older" }));
+    await inProcess.create(judgeScore(history, { notGraded: "the judge's answer could not be read", version: "v-old" }));
+    await inProcess.create(judgeScore(history, { pending: true, version: "v-before" }));
+    expect(await replaceUnlessGraded(writeDeps(), judgeScore(history, { pending: true })), "a placeholder drops nothing").toBe(
+      "recorded",
+    );
+    expect(await scoresOf(history, "judge")).toHaveLength(4);
+    expect(await replaceUnlessGraded(writeDeps(), judgeScore(history, { notGraded: "spending limit reached" }))).toBe("recorded");
+    const kept = (await scoresOf(history, "judge")).map((score) => [score.spec?.evaluatorVersion, score.status?.state]);
+    expect(kept).toHaveLength(3);
+    expect(kept).toEqual(
+      expect.arrayContaining([
+        ["v-older", ScoreState.graded],
+        ["v-old", ScoreState.not_graded],
+        [JUDGE_EVALUATOR_VERSION, ScoreState.not_graded],
+      ]),
+    );
   });
 
   it("answers run-gone for a run that does not exist", async () => {
