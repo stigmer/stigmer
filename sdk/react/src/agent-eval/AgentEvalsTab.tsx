@@ -110,7 +110,11 @@ export function AgentEvalsTab({
   const meta = agent.metadata;
   const agentId = meta?.id ?? "";
   const agentSlug = meta?.slug ?? "";
-  const attached = (agent.spec?.plugins ?? []).map((ref) => ref.slug);
+  // A plugin deleted since it was attached comes back with no slug, and no
+  // eval can select it.
+  const attached = (agent.spec?.plugins ?? [])
+    .map((ref) => ref.slug)
+    .filter((slug) => slug !== "");
   const { allowed: canEdit } = useCheckPermission(
     agentId ? { kind: "agent", id: agentId } : null,
     "can_edit",

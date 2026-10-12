@@ -8,7 +8,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import type { ResourceRef } from "@stigmer/sdk";
+import { isDeletedReference, type ResourceRef } from "@stigmer/sdk";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
@@ -521,7 +521,11 @@ export function ScheduleDetailView({
               so this row never gains an edit affordance — error
               prevention over error handling. */}
           <DetailRow label="Target agent">
-            {target?.agentRef ? (
+            {target?.agentRef && isDeletedReference(target.agentRef) ? (
+              // Its agent was deleted: the schedule's fires refuse, and
+              // there is no page to link to.
+              <span className="stg:text-sm stg:text-muted-foreground">deleted agent</span>
+            ) : target?.agentRef ? (
               <ReferenceLink
                 label={`${slugForOrg(target.agentRef.org)}/${target.agentRef.slug}`}
                 onNavigate={

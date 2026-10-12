@@ -6,14 +6,22 @@
 // defaults, so the output round-trips through `parseManifest`'s strict
 // `fromJson` without loss.
 //
-// Two deliberate departures from the raw protojson projection, both for
+// Three deliberate departures from the raw protojson projection, all for
 // the *editable manifest* use case:
 //   - `status` and `metadata.version` are stripped — they are system-managed
 //     and would be ignored (or rejected) on apply.
+//   - every reference to another resource names it by `org` and `slug`
+//     alone: its `id` is dropped. The server stores the id and fills the
+//     current slug in what it returns; a manifest names things, so a name
+//     edited by hand is never refused as disagreeing with a leftover id. A
+//     reference whose target was deleted (an id the server could name with
+//     no slug) keeps its id: it has no name to write, and an apply refuses
+//     it as a missing resource.
 //   - the envelope field is spelled `apiVersion` (the canonical form used in
 //     every repo manifest and doc); `fromJson` accepts both spellings.
 
-import { toJson, type Message } from "@bufbuild/protobuf";
+import { clone, toJson, type DescMessage, type Message } from "@bufbuild/protobuf";
+import { reflect, type ReflectMessage } from "@bufbuild/protobuf/reflect";
 import { stringify as stringifyYaml } from "yaml";
 import { manifestHandlerForTypeName, manifestKinds } from "./registry.js";
 
@@ -24,7 +32,8 @@ import { manifestHandlerForTypeName, manifestKinds } from "./registry.js";
  * registry-supported resource (an `Agent` from `stigmer.agent.get()`, a
  * `Schedule` from `stigmer.schedule.get()`, …) serializes with the
  * same call. `metadata.id` is preserved — the output is a full-fidelity
- * representation of the stored resource, minus system-managed state.
+ * representation of the stored resource, minus system-managed state and
+ * the ids of the resources it references, which it names by slug.
  *
  * @param message - A resource proto of a registry-supported kind.
  * @returns YAML text suitable for editing and re-applying.
@@ -50,7 +59,9 @@ export function serializeManifest(message: Message): string {
     );
   }
 
-  const json = toJson(handler.schema, message, { useProtoFieldName: true });
+  const json = toJson(handler.schema, namedReferences(handler.schema, message), {
+    useProtoFieldName: true,
+  });
   if (json === null || typeof json !== "object" || Array.isArray(json)) {
     throw new Error(
       `Cannot serialize ${handler.displayName}: unexpected non-object ` +
@@ -89,4 +100,42 @@ function stripSystemMetadata(
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+const API_RESOURCE_REFERENCE_TYPE =
+  "ai.stigmer.commons.apiresource.ApiResourceReference";
+
+// A copy of the message whose references name their targets by slug alone
+// (the module header): each reference that carries a slug loses its id.
+function namedReferences(schema: DescMessage, message: Message): Message {
+  const copy = clone(schema, message);
+  dropReferenceIds(reflect(schema, copy));
+  return copy;
+}
+
+function dropReferenceIds(message: ReflectMessage): void {
+  if (message.desc.typeName === API_RESOURCE_REFERENCE_TYPE) {
+    const slug = message.desc.fields.find((f) => f.name === "slug");
+    const id = message.desc.fields.find((f) => f.name === "id");
+    if (slug !== undefined && id !== undefined && message.get(slug) !== "") {
+      message.clear(id);
+    }
+    return;
+  }
+  for (const field of message.fields) {
+    if (!message.isSet(field)) {
+      continue;
+    }
+    if (field.fieldKind === "message") {
+      dropReferenceIds(message.get(field));
+    } else if (field.fieldKind === "list" && field.listKind === "message") {
+      for (const item of message.get(field)) {
+        dropReferenceIds(item as ReflectMessage);
+      }
+    } else if (field.fieldKind === "map" && field.mapKind === "message") {
+      for (const [, value] of message.get(field)) {
+        dropReferenceIds(value as ReflectMessage);
+      }
+    }
+  }
 }

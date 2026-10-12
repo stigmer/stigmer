@@ -8,6 +8,7 @@ import {
   useOrgSlugForId,
   type ConversationIdentity,
 } from "@stigmer/react";
+import { isDeletedReference } from "@stigmer/sdk";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useAppNavigation } from "@/domain/_shared/navigation/app-navigation";
 
@@ -81,7 +82,9 @@ export function ConversationsPage() {
             : undefined
         }
         channelHref={(channel) =>
-          channel.spec?.agentRef
+          // An agent deleted since the channel was made has no slug and
+          // no page: the channel links nowhere.
+          channel.spec?.agentRef && !isDeletedReference(channel.spec.agentRef)
             ? `/library/agents/${slugForOrg(channel.spec.agentRef.org || org)}/${channel.spec.agentRef.slug}?tab=channels`
             : null
         }
