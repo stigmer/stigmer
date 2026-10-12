@@ -1,18 +1,28 @@
 /**
  * Pins the catalog (../catalog.ts) and the codec (../codec.ts): every event
  * the contract carries declares its Managed Agents type once, on its oneof
- * member; a runner's types are a subset that leaves the user's turn and
- * the session's status to the server; a draft's bytes carry no seq,
- * session or accepted time, so a resent event encodes to the stored bytes;
- * and an ask's policy source admits the word of every source a run records.
+ * member; a runner's types are a subset that leaves the user's turn, the
+ * session's status and every file-review decision to the server; a
+ * draft's bytes carry no seq, session or accepted time, so a resent event
+ * encodes to the stored bytes; an ask's policy source admits the word of
+ * every source a run records; and every file-review word the server maps
+ * (../../filereview/words.ts) passes its event's validation.
  */
 import { create, equals } from "@bufbuild/protobuf";
 import { createValidator } from "@bufbuild/protovalidate";
 import { describe, expect, it } from "vitest";
 
-import { ApprovalPolicySourceSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import {
+  ApprovalPolicySourceSchema,
+  FileDecisionActionSchema,
+  FileDecisionOriginSchema,
+  FileDecisionScopeSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   SessionEventSchema,
+  StigmerFileReviewChangeSchema,
+  StigmerFileReviewDecidedEventSchema,
+  StigmerFileReviewReconciledEventSchema,
   StigmerPermissionAskedEventSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
@@ -26,6 +36,13 @@ import {
   isStigmerEventType,
 } from "../catalog.js";
 import { draftOf, eventOf } from "../codec.js";
+import {
+  actionOfWord,
+  actionWordOf,
+  originWordOf,
+  scopeOfWord,
+  scopeWordOf,
+} from "../../filereview/words.js";
 
 describe("the catalog", () => {
   it("every oneof member declares a distinct dotted type", () => {
@@ -37,7 +54,7 @@ describe("the catalog", () => {
     }
   });
 
-  it("every Stigmer event is the runner's to append", () => {
+  it("every Stigmer event but a file-review decision is the runner's to append", () => {
     const own = SESSION_EVENT_TYPES.filter(isStigmerEventType);
     expect(own).toEqual([
       "stigmer.agent.thinking",
@@ -45,17 +62,20 @@ describe("the catalog", () => {
       "stigmer.harness.note",
       "stigmer.agent.structured_output",
       "stigmer.memory.recalled",
+      "stigmer.file_review.changes",
+      "stigmer.file_review.decided",
+      "stigmer.file_review.reconciled",
     ]);
     for (const type of own) {
-      expect(RUNNER_EVENT_TYPES.has(type)).toBe(true);
+      expect(RUNNER_EVENT_TYPES.has(type), type).toBe(type !== "stigmer.file_review.decided");
     }
   });
 
-  it("a runner appends only landed types, never the user's turn or the session's status", () => {
+  it("a runner appends only landed types, never the user's turn, the session's status or a decision", () => {
     for (const type of RUNNER_EVENT_TYPES) {
       expect(SESSION_EVENT_TYPES).toContain(type);
     }
-    for (const type of ["user.message", ...SESSION_STATUS_TYPES]) {
+    for (const type of ["user.message", ...SESSION_STATUS_TYPES, "stigmer.file_review.decided"]) {
       expect(RUNNER_EVENT_TYPES.has(type)).toBe(false);
     }
   });
@@ -102,5 +122,77 @@ describe("an ask's policy source", () => {
 
   it("refuses any other word", () => {
     expect(ask("APPROVAL_POLICY_SOURCE_HOOK")).toBe("invalid");
+  });
+});
+
+describe("the file-review words", () => {
+  const validator = createValidator();
+  const decided = (fields: { scope?: string; action?: string; origin?: string }) =>
+    validator.validate(
+      StigmerFileReviewDecidedEventSchema,
+      create(StigmerFileReviewDecidedEventSchema, {
+        id: "sevt_fd_1",
+        changeSetId: "run_1:1",
+        scope: "change_set",
+        action: "keep",
+        origin: "person",
+        ...fields,
+      }),
+    ).kind;
+
+  it("every scope, action and origin a decision carries has a word its event admits, read back to the same value", () => {
+    for (const value of FileDecisionScopeSchema.values) {
+      const word = scopeWordOf(value.number);
+      expect(word === undefined, value.name).toBe(value.number === 0);
+      if (word !== undefined) {
+        expect(decided({ scope: word }), value.name).toBe("valid");
+        expect(scopeOfWord(word)).toBe(value.number);
+      }
+    }
+    for (const value of FileDecisionActionSchema.values) {
+      const word = actionWordOf(value.number);
+      expect(word === undefined, value.name).toBe(value.number === 0);
+      if (word !== undefined) {
+        expect(decided({ action: word }), value.name).toBe("valid");
+        expect(actionOfWord(word)).toBe(value.number);
+      }
+    }
+    for (const value of FileDecisionOriginSchema.values) {
+      const word = originWordOf(value.number);
+      expect(word, value.name).toBeDefined();
+      expect(decided({ origin: word ?? "" }), value.name).toBe("valid");
+    }
+  });
+
+  it("refuses a ledger name in place of a word, and reads no value from one", () => {
+    expect(decided({ scope: "CHANGE_SET" })).toBe("invalid");
+    expect(decided({ action: "APPROVE" })).toBe("invalid");
+    expect(decided({ origin: "user" })).toBe("invalid");
+    expect(scopeOfWord("CHANGE_SET")).toBeUndefined();
+    expect(actionOfWord("approve")).toBeUndefined();
+  });
+
+  it("admits every change and reviewable word of the shared table, and the reconcile's failures", () => {
+    const change = (fields: { change?: string; reviewable?: string }) =>
+      validator.validate(
+        StigmerFileReviewChangeSchema,
+        create(StigmerFileReviewChangeSchema, { fileChangeId: "fc-1", change: "added", reviewable: "complete", ...fields }),
+      ).kind;
+    for (const word of ["added", "modified", "deleted", "renamed"]) {
+      expect(change({ change: word }), word).toBe("valid");
+    }
+    for (const word of ["complete", "partial", "binary", "secret"]) {
+      expect(change({ reviewable: word }), word).toBe("valid");
+    }
+    expect(change({ change: "binary_change" })).toBe("invalid");
+    const reconciled = (failure: string) =>
+      validator.validate(
+        StigmerFileReviewReconciledEventSchema,
+        create(StigmerFileReviewReconciledEventSchema, { id: "run_1.fr1.r", changeSetId: "run_1:1", failure }),
+      ).kind;
+    for (const failure of ["", "hash_mismatch", "reconcile_failed"]) {
+      expect(reconciled(failure), failure || "none").toBe("valid");
+    }
+    expect(reconciled("failed")).toBe("invalid");
   });
 });

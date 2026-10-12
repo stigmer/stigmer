@@ -344,8 +344,7 @@ function fileDecisionDeps(store: Store): SubmitFileDecisionDeps {
     authorizer: newPermissiveSingleTeamAuthorizer(),
     broker: untouchable("broker"),
     sessionEventBroker: new SessionEventBroker(silentLogger),
-    engineState: untouchable("engineState"),
-    statusObservers: [],
+    reconcileTurns: untouchable("reconcileTurns"),
   };
 }
 

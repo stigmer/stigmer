@@ -412,6 +412,50 @@ export function newKeepPluginEvalCaseStep(): PipelineStep<CreateDesc> {
   };
 }
 
+/** The refusal of a reconcile turn on a request the server did not compose. */
+export const RECONCILE_FILE_REVIEW_NOT_COMPOSED_MESSAGE =
+  "spec.reconcile_file_review is set only by the server's file review";
+
+/**
+ * GuardReconcileFileReview: `spec.reconcile_file_review` makes a turn that
+ * runs no model and carries no message, and puts back the files a person
+ * undid in the session (domain/session/filereview/decide.ts). Only the
+ * server's file-review decision composes it, as the person who decided;
+ * any other request that carries it is refused, whoever sends it, so no
+ * caller starts a model-less turn or skips a turn's message by setting it.
+ */
+export function newGuardReconcileFileReviewStep(): PipelineStep<CreateDesc> {
+  return {
+    name: "GuardReconcileFileReview",
+    execute(ctx) {
+      if (ctx.newState.spec?.reconcileFileReview !== true) {
+        return;
+      }
+      if (!isServerComposedRequest(ctx.callerIdentity)) {
+        throw permissionDeniedError(RECONCILE_FILE_REVIEW_NOT_COMPOSED_MESSAGE);
+      }
+    },
+  };
+}
+
+/**
+ * KeepReconcileFileReview: on update, a run's `spec.reconcile_file_review`
+ * stays what the create stored, whatever the request carries. Run update
+ * is a person's (`can_edit`) and replaces the spec whole, so an update
+ * that could set it would turn a message turn into a reconcile turn (or
+ * back) outside the create guard (GuardReconcileFileReview).
+ */
+export function newKeepReconcileFileReviewStep(): PipelineStep<CreateDesc> {
+  return {
+    name: "KeepReconcileFileReview",
+    execute(ctx) {
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Run | undefined;
+      ctx.newState.spec ??= create(RunSpecSchema);
+      ctx.newState.spec.reconcileFileReview = existing?.spec?.reconcileFileReview ?? false;
+    },
+  };
+}
+
 /** The refusal of a visitor's appended system prompt. */
 export const VISITOR_APPENDED_PROMPT_MESSAGE =
   "a visitor cannot append to the agent's system prompt (spec.append_system_prompt)";
@@ -837,6 +881,7 @@ export function newStartWorkflowStep(deps: {
           sessionId: sessionIdOf(execution.spec),
           agentId: execution.status?.agentId ?? "",
           autoApproveAll: execution.spec?.autoApproveAll ?? false,
+          reconcileFileReview: execution.spec?.reconcileFileReview ?? false,
         });
       } catch (error) {
         if (error instanceof EngineDispatchError) {
@@ -869,7 +914,7 @@ export function newStartWorkflowStep(deps: {
             "failed to start workflow and failed to update status",
           );
         }
-        // Notify site 3 of 5 (status-observers.ts): the PENDING→FAILED stamp
+        // Notify site 3 of 4 (status-observers.ts): the PENDING→FAILED stamp
         // is a persisted terminal transition — notified before the
         // refusal surfaces.
         await notifyStatusObservers(

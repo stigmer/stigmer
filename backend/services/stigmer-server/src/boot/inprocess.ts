@@ -40,6 +40,7 @@ import type {
   SessionCreator,
 } from "../domain/run/create-steps.js";
 import type { SessionLoader } from "../domain/run/plan-run-values-step.js";
+import type { ReconcileTurnCreator } from "../domain/session/filereview/decide.js";
 import type {
   JudgeRunCreator,
   JudgeSessionDeleter,
@@ -104,6 +105,15 @@ export interface InProcessClients {
    * by the in-process origin; a run's stop is the server's own.
    */
   readonly pluginEvalTries: PluginEvalTryLane;
+  /**
+   * The reconcile turn an undo on an ended turn starts
+   * (domain/session/filereview/decide.ts): the FULL run create chain AS
+   * THE PERSON WHO DECIDED (the asCaller lane), so the request is
+   * server-composed (the chain's GuardReconcileFileReview admits it) and
+   * every create gate, the run credential and the audit stamp read that
+   * person, as for a message they send.
+   */
+  readonly reconcileTurnCreator: ReconcileTurnCreator;
   /**
    * The schedule clock's fire edge (server.go 581: the RunStarter's
    * in-process agentexecution client): every fire — cron tick or manual
@@ -265,6 +275,10 @@ export function createInProcessClients(
           create(TerminateRunInputSchema, { id: runId, reason }),
         );
       },
+    },
+    reconcileTurnCreator: {
+      create: (run, caller) =>
+        agentExecutionCommand.create(run, asCaller(caller)),
     },
     // The schedule clock's fire edge — the plain Create RPC (Go's
     // ExecutionCreator). Every call through this transport

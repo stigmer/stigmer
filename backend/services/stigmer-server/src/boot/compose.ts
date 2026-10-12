@@ -1857,6 +1857,10 @@ export async function composeServer(
       runScores,
       sessionEventBroker,
       runnerAuth: runnerCredentials,
+      // A file decision's run broadcast and the reconcile turn an undo on
+      // an ended turn starts (domain/session/filereview/decide.ts).
+      broker: agentExecutionStreamBroker,
+      reconcileTurns: () => requireInProcess().reconcileTurnCreator,
     });
     // The sharing/channel family registers after the agent family, as in
     // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
@@ -1978,6 +1982,7 @@ export async function composeServer(
       sandboxLane,
       temporalConfig,
       sessionCreator: () => requireInProcess().executionSessionCreator,
+      reconcileTurns: () => requireInProcess().reconcileTurnCreator,
       runValuePlanner: {
         store,
         logger,

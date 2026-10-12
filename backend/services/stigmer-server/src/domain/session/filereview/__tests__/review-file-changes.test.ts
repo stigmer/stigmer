@@ -1,0 +1,236 @@
+/**
+ * Pins SessionCommandController.reviewFileChanges (../review-file-changes.ts):
+ * served on the session's command service, it asks can_edit on the
+ * session the input names before anything is read, refuses a word outside
+ * the contract's, maps keep and undo, change_set and file, to the ledger's
+ * decision, and answers the reconcile turn an undo on an ended turn
+ * started.
+ */
+import { clone, create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
+import {
+  FileDecisionAction,
+  FileDecisionScope,
+  RunPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
+import { ReviewFileChangesInputSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
+
+import { createLogger } from "../../../../boot/logger.js";
+import type {
+  Authorizer,
+  AuthzCheck,
+} from "../../../../extensions/authorizer.js";
+import { servedMethods } from "../../../../extensions/__tests__/composed-support.js";
+import {
+  testCallerIdentity,
+  untouchable,
+} from "../../../../pipeline/__tests__/support.js";
+import { newPermissiveSingleTeamAuthorizer } from "../../../../pipeline/steps/authorize.js";
+import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
+import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
+import { fileReviewSeed } from "../../../run/__tests__/file-review-seed.js";
+import { StreamBroker } from "../../../run/stream-broker.js";
+import { registerSessionServices } from "../../controller.js";
+import type { SessionControllerDeps } from "../../controller.js";
+import { SessionEventBroker } from "../../events/broker.js";
+import { createRunAppendingEvents } from "../../events/run-writes.js";
+import { reviewFileChanges } from "../review-file-changes.js";
+import type { ReviewFileChangesDeps } from "../review-file-changes.js";
+
+const silentLogger = createLogger({
+  level: "error",
+  pretty: false,
+  write: () => {},
+});
+const SESSION = "ses_1";
+
+let temp: TempStore;
+let reconcileCreates: number;
+
+beforeEach(() => {
+  temp = tempStore();
+  reconcileCreates = 0;
+});
+
+afterEach(async () => {
+  await temp.cleanup();
+});
+
+function deps(
+  authorizer: Authorizer = newPermissiveSingleTeamAuthorizer(),
+): ReviewFileChangesDeps {
+  return {
+    store: temp.store,
+    logger: silentLogger,
+    authorizer,
+    broker: new StreamBroker(silentLogger),
+    sessionEventBroker: new SessionEventBroker(silentLogger),
+    reconcileTurns: () => ({
+      create: async (run) => {
+        reconcileCreates += 1;
+        const row = clone(RunSchema, run);
+        row.metadata!.id = "run_reconcile";
+        return row;
+      },
+    }),
+  };
+}
+
+/** One ended turn of the session with one captured change set, `run_1:1`. */
+async function seedEndedTurn() {
+  const seed = fileReviewSeed("run_1", "run_1:1");
+  await createRunAppendingEvents(
+    {
+      store: temp.store,
+      sessionEventBroker: new SessionEventBroker(silentLogger),
+    },
+    create(RunSchema, {
+      metadata: { id: "run_1", org: "org_acme" },
+      spec: {
+        target: { case: "sessionId", value: SESSION },
+        message: "edit a.ts",
+      },
+      status: { ...seed.status, phase: RunPhase.RUN_COMPLETED },
+    }),
+  );
+  return seed;
+}
+
+function review(
+  input: {
+    readonly sessionId?: string;
+    readonly scope?: string;
+    readonly fileChangeId?: string;
+    readonly action?: string;
+    readonly expectedDigest?: string;
+  },
+  over: ReviewFileChangesDeps = deps(),
+) {
+  return reviewFileChanges(
+    over,
+    create(ReviewFileChangesInputSchema, {
+      sessionId: SESSION,
+      changeSetId: "run_1:1",
+      scope: "change_set",
+      action: "keep",
+      expectedDigest: "0".repeat(64),
+      ...input,
+    }),
+    testCallerIdentity({ identityId: "usr_person" }),
+  );
+}
+
+async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
+  try {
+    await promise;
+  } catch (error) {
+    if (error instanceof ConnectError) {
+      return error;
+    }
+    throw error;
+  }
+  throw new Error("expected a refusal");
+}
+
+async function decisions() {
+  const run = await temp.store.getResource(
+    ApiResourceKind.run,
+    "run_1",
+    RunSchema,
+  );
+  return (run.status?.fileChangeSets[0]?.decisions ?? []).map((d) => [
+    d.scope,
+    d.action,
+    d.fileChangeId,
+  ]);
+}
+
+describe("reviewFileChanges", () => {
+  it("is served on the session's command service", () => {
+    const served = servedMethods((router) =>
+      registerSessionServices(
+        router,
+        untouchable<SessionControllerDeps>("deps"),
+      ),
+    )
+      .filter(
+        (method) =>
+          method.parent.typeName === SessionCommandController.typeName,
+      )
+      .map((method) => method.localName);
+    expect(served).toContain("reviewFileChanges");
+    expect(served).toHaveLength(SessionCommandController.methods.length);
+  });
+
+  it("asks can_edit on the session it names before reading anything, and a denial writes nothing", async () => {
+    const seed = await seedEndedTurn();
+    const checks: AuthzCheck[] = [];
+    const denying: Authorizer = {
+      authorize: async (_caller, check) => {
+        checks.push(check);
+        return { kind: "deny", reason: "not an editor" };
+      },
+    };
+    const error = await refusal(
+      review({ expectedDigest: seed.aggregate }, deps(denying)),
+    );
+    expect(error.code).toBe(Code.PermissionDenied);
+    expect(
+      checks.map((c) => [c.permission, c.resourceKind, c.resourceId]),
+    ).toEqual([[IamPermission.can_edit, ApiResourceKind.session, SESSION]]);
+    expect(await decisions()).toEqual([]);
+  });
+
+  it("refuses a word outside the contract's", async () => {
+    await seedEndedTurn();
+    expect((await refusal(review({ action: "approve" }))).code).toBe(
+      Code.InvalidArgument,
+    );
+    expect((await refusal(review({ scope: "CHANGE_SET" }))).code).toBe(
+      Code.InvalidArgument,
+    );
+    expect((await refusal(review({ scope: "file" }))).code).toBe(
+      Code.InvalidArgument,
+    );
+  });
+
+  it("a keep of the whole set is the ledger's CHANGE_SET APPROVE, and starts no turn", async () => {
+    const seed = await seedEndedTurn();
+    const response = await review({ expectedDigest: seed.aggregate });
+    expect(response.reconcileRunId).toBe("");
+    expect(await decisions()).toEqual([
+      [FileDecisionScope.CHANGE_SET, FileDecisionAction.APPROVE, ""],
+    ]);
+    expect(reconcileCreates).toBe(0);
+  });
+
+  it("an undo of one file is the ledger's FILE REJECT, and names the reconcile turn it started", async () => {
+    const seed = await seedEndedTurn();
+    const response = await review({
+      scope: "file",
+      fileChangeId: seed.change.id,
+      action: "undo",
+      expectedDigest: seed.change.fileDigest,
+    });
+    expect(response.reconcileRunId).toBe("run_reconcile");
+    expect(await decisions()).toEqual([
+      [FileDecisionScope.FILE, FileDecisionAction.REJECT, seed.change.id],
+    ]);
+    expect(reconcileCreates).toBe(1);
+  });
+
+  it("a change set of another session is NOT_FOUND", async () => {
+    const seed = await seedEndedTurn();
+    const error = await refusal(
+      review({ sessionId: "ses_other", expectedDigest: seed.aggregate }),
+    );
+    expect(error.code).toBe(Code.NotFound);
+    expect(await decisions()).toEqual([]);
+  });
+});

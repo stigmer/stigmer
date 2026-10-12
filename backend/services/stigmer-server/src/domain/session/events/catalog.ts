@@ -10,10 +10,14 @@
  * outside format, the store and a list filter name them.
  *
  * Who writes what. The server writes the turn's user message and the
- * session's status (domain/session/events/transitions.ts); a runner writes
- * what the agent did, its threads, the errors it sees first, and Stigmer's
- * own events about the turn (`RUNNER_EVENT_TYPES`, append.ts). The session's status has one writer,
- * the server, so a runner may never send a status event.
+ * session's status (domain/session/events/transitions.ts), and every
+ * file-review decision (`stigmer.file_review.decided`, with its ledger
+ * event, run-writes.ts); a runner writes what the agent did, its threads,
+ * the errors it sees first, and Stigmer's other events about the turn
+ * (`RUNNER_EVENT_TYPES`, append.ts), the files a turn changed and the
+ * undone files it put back among them. The session's status has one
+ * writer, the server, so a runner may never send a status event; nor a
+ * decision, so a runner can never forge a person's keep or undo.
  *
  * Proven by __tests__/catalog.test.ts.
  */
@@ -41,7 +45,8 @@ export const SESSION_STATUS_TYPES: ReadonlyArray<string> = [
 /**
  * The types a runner may append: what the agent did, its threads, errors,
  * and Stigmer's own events about the turn (the stigmer.* types, which no
- * Managed Agents client needs).
+ * Managed Agents client needs), all but `stigmer.file_review.decided`,
+ * which is the server's.
  */
 export const RUNNER_EVENT_TYPES: ReadonlySet<string> = new Set([
   "agent.message",
@@ -62,6 +67,8 @@ export const RUNNER_EVENT_TYPES: ReadonlySet<string> = new Set([
   "stigmer.harness.note",
   "stigmer.agent.structured_output",
   "stigmer.memory.recalled",
+  "stigmer.file_review.changes",
+  "stigmer.file_review.reconciled",
 ]);
 
 const typeByCase = new Map<string, string>();

@@ -106,6 +106,8 @@ import {
   newComposeDeclaredPreferencesStep,
   newGuardPluginEvalCaseStep,
   newKeepPluginEvalCaseStep,
+  newGuardReconcileFileReviewStep,
+  newKeepReconcileFileReviewStep,
   newRefuseVisitorAppendedPromptStep,
   newComposeRecalledMemoriesStep,
   newCreateSessionIfNeededStep,
@@ -146,6 +148,7 @@ import type { SessionEventBroker } from "../session/events/broker.js";
 import { runCreateWriter, runRemover } from "../session/events/run-writes.js";
 import { submitApproval } from "./submit-approval.js";
 import { submitFileDecision } from "./submit-file-decision.js";
+import type { ReconcileTurnCreatorProvider } from "../session/filereview/decide.js";
 import { subscribeExecution } from "./subscribe.js";
 import { updateStatus } from "./update-status.js";
 import { newResolveRunConfigStep } from "./resolve-run-config.js";
@@ -229,8 +232,8 @@ export interface AgentExecutionControllerDeps {
   /**
    * The execution-engine seam (engine.ts): disconnected until the
    * TemporalManager flips it. Consumed by the engine gate, the
-   * lifecycle RPCs, the create/recover workflow starts, and the two HITL
-   * signal steps.
+   * lifecycle RPCs, the create/recover workflow starts, and the approval
+   * signal step.
    */
   readonly engineState: ExecutionEngineStateProvider;
   /**
@@ -246,6 +249,11 @@ export interface AgentExecutionControllerDeps {
    * the routes↔clients cycle resolves at request time).
    */
   readonly sessionCreator: SessionCreatorProvider;
+  /**
+   * The in-process edge submitFileDecision's undo on an ended turn
+   * starts its reconcile turn through (domain/session/filereview/decide.ts).
+   */
+  readonly reconcileTurns: ReconcileTurnCreatorProvider;
   /** The shared value-planner deps (create's plan step + recover's re-plan). */
   readonly runValuePlanner: RunValuePlannerDeps;
   /**
@@ -419,6 +427,7 @@ async function createExecution(
     .addStep(newValidateServiceTierStep(deps.modelRegistry))
     .addStep(newValidateThinkingModeStep(deps.modelRegistry))
     .addStep(newGuardPluginEvalCaseStep())
+    .addStep(newGuardReconcileFileReviewStep())
     .addStep(
       newRefuseVisitorAppendedPromptStep(deps.logger, deps.visitorClassifier),
     )
@@ -518,7 +527,7 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * introduces or changes (a run's schedule label names whose vaults a
  * person-less run uses), ValidateSessionImmutability keeps the
  * execution in its session (session-binding.ts), and KeepPluginEvalCase
- * keeps the plugin-eval case context the server composed at create.
+ * and KeepReconcileFileReview keep what the server composed at create.
  */
 async function update(
   deps: AgentExecutionControllerDeps,
@@ -546,6 +555,7 @@ async function update(
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
     .addStep(newKeepPluginEvalCaseStep())
+    .addStep(newKeepReconcileFileReviewStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateSessionImmutabilityStep())
     .addStep(newNormalizeReferencesStep())
