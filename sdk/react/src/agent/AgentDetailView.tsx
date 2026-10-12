@@ -8,7 +8,11 @@ import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/vault
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useAgent } from "./useAgent.js";
 import { useUpdateAgent } from "./useUpdateAgent.js";
-import { toAgentUpdateInput } from "@stigmer/sdk";
+import {
+  deletedReferenceLabel,
+  isDeletedReference,
+  toAgentUpdateInput,
+} from "@stigmer/sdk";
 import { toError } from "../internal/toError.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
@@ -603,10 +607,7 @@ function AgentOverview({
       (spec?.plugins ?? []).map((ref) => ({
         org: ref.org || agentOrg,
         slug: ref.slug,
-        label:
-          ref.org && ref.org !== agentOrg
-            ? `${slugForOrg(ref.org)}/${ref.slug}`
-            : ref.slug,
+        label: referenceLabel(ApiResourceKind.plugin, ref, agentOrg, slugForOrg),
       })),
     [spec?.plugins, agentOrg, slugForOrg],
   );
@@ -616,10 +617,7 @@ function AgentOverview({
       (spec?.skillRefs ?? []).map((ref) => ({
         org: ref.org || agentOrg,
         slug: ref.slug,
-        label:
-          ref.org && ref.org !== agentOrg
-            ? `${slugForOrg(ref.org)}/${ref.slug}`
-            : ref.slug,
+        label: referenceLabel(ApiResourceKind.skill, ref, agentOrg, slugForOrg),
       })),
     [spec?.skillRefs, agentOrg, slugForOrg],
   );
@@ -737,7 +735,7 @@ function AgentOverview({
               error={errorFor("plugins")}
               editing={pluginsEditing}
               onEditingChange={handlePluginsEditingChange}
-              onItemClick={onPluginClick ? (ref) => onPluginClick({ org: ref.org, slug: ref.slug }) : undefined}
+              onItemClick={onPluginClick ? (ref) => { if (!isDeletedReference(ref)) onPluginClick({ org: ref.org, slug: ref.slug }); } : undefined}
               itemIcon={<PluginIcon className="stg:size-4" />}
               resourceLabel="plugin"
               defaultOrg={agentOrg}
@@ -770,7 +768,7 @@ function AgentOverview({
               error={errorFor("skillRefs")}
               editing={skillsEditing}
               onEditingChange={handleSkillsEditingChange}
-              onItemClick={onSkillClick ? (ref) => onSkillClick({ org: ref.org, slug: ref.slug }) : undefined}
+              onItemClick={onSkillClick ? (ref) => { if (!isDeletedReference(ref)) onSkillClick({ org: ref.org, slug: ref.slug }); } : undefined}
               itemIcon={<SkillIcon className="stg:size-4" />}
               resourceLabel="skill"
               defaultOrg={agentOrg}
@@ -866,6 +864,26 @@ function InstructionsContent({ text }: { readonly text: string }) {
   );
 }
 
+/**
+ * A reference as a row reads it: its slug, prefixed by its organization's
+ * slug when it is another organization's; "deleted <kind>" for a target
+ * deleted since it was attached, which comes back with no slug and links
+ * nowhere.
+ */
+function referenceLabel(
+  kind: ApiResourceKind,
+  ref: { readonly org: string; readonly slug: string; readonly id?: string },
+  defaultOrg: string,
+  slugForOrg: (org: string) => string,
+): string {
+  if (isDeletedReference(ref)) {
+    return deletedReferenceLabel(kind);
+  }
+  return ref.org && ref.org !== defaultOrg
+    ? `${slugForOrg(ref.org)}/${ref.slug}`
+    : ref.slug;
+}
+
 function PluginsContent({
   refs,
   defaultOrg,
@@ -880,10 +898,7 @@ function PluginsContent({
     <div className="stg:flex stg:flex-col">
       {refs.map((ref, index) => {
         const refOrg = ref.org || defaultOrg;
-        const label =
-          ref.org && ref.org !== defaultOrg
-            ? `${slugForOrg(ref.org)}/${ref.slug}`
-            : ref.slug;
+        const label = referenceLabel(ApiResourceKind.plugin, ref, defaultOrg, slugForOrg);
         const row = (
           <div className="stg:flex stg:items-center stg:gap-3">
             <PluginIcon className="stg:size-4 stg:shrink-0 stg:text-muted-foreground" />
@@ -893,7 +908,7 @@ function PluginsContent({
           </div>
         );
 
-        return onPluginClick ? (
+        return onPluginClick && !isDeletedReference(ref) ? (
           <button
             key={`${refOrg}/${ref.slug || index}`}
             type="button"
@@ -930,10 +945,7 @@ function SkillsContent({
     <div className="stg:flex stg:flex-col">
       {refs.map((ref, index) => {
         const refOrg = ref.org || defaultOrg;
-        const label =
-          ref.org && ref.org !== defaultOrg
-            ? `${slugForOrg(ref.org)}/${ref.slug}`
-            : ref.slug;
+        const label = referenceLabel(ApiResourceKind.skill, ref, defaultOrg, slugForOrg);
 
         const row = (
           <div className="stg:flex stg:items-center stg:gap-3">
@@ -944,7 +956,7 @@ function SkillsContent({
           </div>
         );
 
-        return onSkillClick ? (
+        return onSkillClick && !isDeletedReference(ref) ? (
           <button
             key={ref.slug || index}
             type="button"

@@ -192,4 +192,21 @@ describe("SessionViewer — removing an attached reference compares orgs by id",
       { org: "globex", slug: "triage" },
     ]);
   });
+
+  it("drops only the deleted skill removed: deleted targets hold no slug, so they are told apart by id", async () => {
+    const deleted: ResourceRef[] = [
+      { org: ACME_ID, slug: "", id: "skl_first" },
+      { org: ACME_ID, slug: "", id: "skl_second" },
+    ];
+    stubSessionPageFlow.skillRefs = deleted;
+    try {
+      await renderConfigFacet();
+
+      fireEvent.click(screen.getAllByRole("button", { name: "Remove skill deleted skill" })[0]);
+
+      expect(stubSessionPageFlow.setSkillRefs).toHaveBeenCalledExactlyOnceWith([deleted[1]]);
+    } finally {
+      stubSessionPageFlow.skillRefs = skillRefs;
+    }
+  });
 });

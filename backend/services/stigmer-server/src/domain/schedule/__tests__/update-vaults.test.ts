@@ -1,7 +1,7 @@
 /**
  * Pins what a schedule update does to its vaults, end to end over a real
- * store: the update chain's own steps (BuildUpdateState, the vault
- * attachments step with the schedule's options, PersistScheduleUpdate)
+ * store: the update chain's own steps (BuildUpdateState, NormalizeReferences,
+ * the vault attachments step with the schedule's options, PersistScheduleUpdate)
  * write the row, and the run's credential resolver plans and opens a fire's
  * values from it.
  *
@@ -30,6 +30,7 @@ import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
 import type { Authorizer } from "../../../extensions/authorizer.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { newNormalizeReferencesStep, resolveReferences } from "../../../pipeline/steps/references.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { newBuildUpdateStateStep } from "../../../pipeline/steps/build-update-state.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
@@ -143,6 +144,8 @@ async function storeSchedule(
     audit: { specAudit: { createdBy: { id: creator } } },
     vaultAttachers: attachers,
   });
+  // A stored row holds its references by id, as the chain wrote them.
+  await resolveReferences(rig.store, ScheduleSchema, row, ORG);
   await rig.store.saveResource(ApiResourceKind.schedule, SCHEDULE_ID, ScheduleSchema, row);
 }
 
@@ -161,6 +164,7 @@ async function updateAs(writer: string, input: Schedule): Promise<Schedule> {
   ctx.set(EXISTING_RESOURCE_KEY, await storedSchedule());
   for (const step of [
     newBuildUpdateStateStep<typeof ScheduleSchema>(),
+    newNormalizeReferencesStep<typeof ScheduleSchema>(rig.store),
     newVaultAttachmentsStep(rig.store, useTable, SCHEDULE_VAULT_ATTACHMENTS),
     newPersistScheduleUpdateStep(rig.store),
   ]) {

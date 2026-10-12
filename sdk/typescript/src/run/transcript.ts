@@ -58,7 +58,9 @@ import {
 import type { SubAgentRun } from "@stigmer/protos/ai/stigmer/agentic/run/v1/subagent_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { resolvedSubject } from "../session.js";
+import { deletedReferenceLabel, isDeletedReference } from "../references.js";
 import {
   runIdFromStorageKey,
   isBuildFromPlanTurn,
@@ -425,7 +427,9 @@ export function transcriptToMarkdown(
   out.push(`# ${title}`, "");
   out.push(`- Session: \`${sessionId}\``);
   const agentRef = session.spec?.agentRef;
-  if (agentRef !== undefined && agentRef.slug !== "") {
+  if (isDeletedReference(agentRef)) {
+    out.push(`- Agent: ${deletedReferenceLabel(ApiResourceKind.agent)}`);
+  } else if (agentRef !== undefined && agentRef.slug !== "") {
     out.push(`- Agent: \`${agentRef.org}/${agentRef.slug}\``);
   }
   out.push(`- Turns: ${turns.length}`);

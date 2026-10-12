@@ -56,38 +56,31 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "n.proto\0322ai/stigmer/commons/apiresource/" +
       "field_options.proto\032\'ai/stigmer/commons/" +
       "apiresource/io.proto\032\033buf/validate/valid" +
-      "ate.proto\"\275\007\n\020AgentChannelSpec\022\266\001\n\tagent" +
-      "_ref\030\001 \001(\01324.ai.stigmer.commons.apiresou" +
-      "rce.ApiResourceReferenceBc\272H\\\272\001V\n\016agent_" +
-      "ref.kind\0223agent_ref must reference a res" +
-      "ource with kind=agent\032\017this.kind == 40\310\001" +
-      "\001\340\205,(R\010agentRef\022\030\n\007enabled\030\002 \001(\010R\007enable" +
-      "d\022N\n\005slack\030\003 \001(\01326.ai.stigmer.agentic.ag" +
-      "entchannel.v1.SlackChannelConfigH\000R\005slac" +
-      "k\022W\n\010whatsapp\030\006 \001(\01329.ai.stigmer.agentic" +
-      ".agentchannel.v1.WhatsAppChannelConfigH\000" +
-      "R\010whatsapp\022\256\001\n\006vaults\030\t \003(\01324.ai.stigmer" +
-      ".commons.apiresource.ApiResourceReferenc" +
-      "eB`\272HY\222\001V\020\024\"R\272\001O\n\013vaults.kind\022/vaults mu" +
-      "st reference resources with kind=vault\032\017" +
-      "this.kind == 59\340\205,;R\006vaults\022\304\001\n\007app_ref\030" +
-      "\005 \001(\01324.ai.stigmer.commons.apiresource.A" +
-      "piResourceReferenceBu\272Hn\272\001k\n\014app_ref.kin" +
-      "d\0227app_ref must reference a resource wit" +
-      "h kind=channel_app\032\"this.slug == \'\' || t" +
-      "his.kind == 48\340\205,0R\006appRef\022>\n\033proactive_" +
-      "messaging_enabled\030\007 \001(\010R\031proactiveMessag" +
-      "ingEnabled\022C\n\nrun_config\030\010 \001(\0132$.ai.stig" +
-      "mer.agentic.run.v1.RunConfigR\trunConfigB" +
-      "\030\n\017provider_config\022\005\272H\002\010\001J\004\010\004\020\005R\020environ" +
-      "ment_refs\"\024\n\022SlackChannelConfig\"H\n\025Whats" +
-      "AppChannelConfig\022/\n\017phone_number_id\030\001 \001(" +
-      "\tB\007\272H\004r\002\020\001R\rphoneNumberIdB\270\001B\tSpecProtoP" +
-      "\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.Agentchann" +
-      "el.V1\312\002\"Ai\\Stigmer\\Agentic\\Agentchannel\\" +
-      "V1\342\002.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\" +
-      "GPBMetadata\352\002&Ai::Stigmer::Agentic::Agen" +
-      "tchannel::V1b\006proto3"
+      "ate.proto\"\234\005\n\020AgentChannelSpec\022]\n\tagent_" +
+      "ref\030\001 \001(\01324.ai.stigmer.commons.apiresour" +
+      "ce.ApiResourceReferenceB\n\272H\003\310\001\001\340\205,(R\010age" +
+      "ntRef\022\030\n\007enabled\030\002 \001(\010R\007enabled\022N\n\005slack" +
+      "\030\003 \001(\01326.ai.stigmer.agentic.agentchannel" +
+      ".v1.SlackChannelConfigH\000R\005slack\022W\n\010whats" +
+      "app\030\006 \001(\01329.ai.stigmer.agentic.agentchan" +
+      "nel.v1.WhatsAppChannelConfigH\000R\010whatsapp" +
+      "\022Z\n\006vaults\030\t \003(\01324.ai.stigmer.commons.ap" +
+      "iresource.ApiResourceReferenceB\014\272H\005\222\001\002\020\024" +
+      "\340\205,;R\006vaults\022S\n\007app_ref\030\005 \001(\01324.ai.stigm" +
+      "er.commons.apiresource.ApiResourceRefere" +
+      "nceB\004\340\205,0R\006appRef\022>\n\033proactive_messaging" +
+      "_enabled\030\007 \001(\010R\031proactiveMessagingEnable" +
+      "d\022C\n\nrun_config\030\010 \001(\0132$.ai.stigmer.agent" +
+      "ic.run.v1.RunConfigR\trunConfigB\030\n\017provid" +
+      "er_config\022\005\272H\002\010\001J\004\010\004\020\005R\020environment_refs" +
+      "\"\024\n\022SlackChannelConfig\"H\n\025WhatsAppChanne" +
+      "lConfig\022/\n\017phone_number_id\030\001 \001(\tB\007\272H\004r\002\020" +
+      "\001R\rphoneNumberIdB\270\001B\tSpecProtoP\001\242\002\004ASAA\252" +
+      "\002\"Ai.Stigmer.Agentic.Agentchannel.V1\312\002\"A" +
+      "i\\Stigmer\\Agentic\\Agentchannel\\V1\342\002.Ai\\S" +
+      "tigmer\\Agentic\\Agentchannel\\V1\\GPBMetada" +
+      "ta\352\002&Ai::Stigmer::Agentic::Agentchannel:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

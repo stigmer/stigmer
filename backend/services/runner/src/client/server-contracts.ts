@@ -36,6 +36,7 @@ interface ResourceEnvelope {
 interface ResourceReference {
   org?: string;
   slug?: string;
+  id?: string;
   kind?: number;
 }
 
@@ -95,27 +96,25 @@ export function assertCreateRequirements(
 
 /**
  * Validates that an ApiResourceReference has the fields required by
- * the server's getByReference handlers.
- *
- * Proto declares slug as `required = true`, but generated TypeScript types
- * do not enforce this at runtime. The server's handler also requires org
- * for scoped lookups.
+ * the server's getByReference handlers: an id, or a slug and the org a
+ * slug is scoped to (the contract asks for an id or a slug; a slug
+ * lookup also needs its org).
  */
 export function assertReferenceRequirements(
   ref: ResourceReference,
   resourceKind: string,
   caller: string,
 ): void {
-  if (!ref.slug) {
+  if (!ref.slug && !ref.id) {
     throw new ServerContractError(
       caller,
-      `${resourceKind} reference requires a non-empty slug. ` +
+      `${resourceKind} reference requires a non-empty slug or id. ` +
       `If the slug came from placeholder resolution, the referenced ` +
       `secret or env var may be missing.`,
     );
   }
 
-  if (!ref.org) {
+  if (!ref.org && !ref.id) {
     throw new ServerContractError(
       caller,
       `${resourceKind} reference requires org for scoped lookup. ` +

@@ -15,11 +15,13 @@
  * reads a reference's kind from its field, not from the message, and
  * reaches an agent's plugins, which the rule then judges like any other;
  * the step over a real store
- * reads each distinct target once by name and scans no kind,
- * records the targets it resolved (RESOLVED_REFERENCE_TARGETS_KEY) for
- * every reference, and under `judge: "introduced"` judges only the
- * references the stored row does not already carry, loading nothing when
- * the write introduces none; and
+ * reads each distinct target once (by id, or by name for one still
+ * written by name) and scans no kind, and under `judge: "introduced"`
+ * judges only the references the stored row does not already carry,
+ * loading nothing when the write introduces none; the resolver
+ * (resolveReferences) turns a name into its id, fills the org and the
+ * kind, refuses a kind or an id that disagrees, and leaves a name nothing
+ * holds as written; and
  * the escalation door asks the floor alone — a dependency that has left is
  * not its question — and only when the level is being raised.
  */
@@ -30,6 +32,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
@@ -65,7 +68,9 @@ import {
   notViewableReferenceMessage,
   referenceRefusal,
   referenceTargetKind,
-  resolvedReferenceTargets,
+  newNormalizeReferencesStep,
+  referenceDisplayName,
+  resolveReferences,
 } from "../references.js";
 import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
 import { newPermissiveSingleTeamAuthorizer } from "../authorize.js";
@@ -199,6 +204,12 @@ function targetsOf(
         ? `id_${ref.slug}`
         : undefined;
     },
+    slugOf(ref) {
+      return rows.find(
+        (row) =>
+          row.kind === ref.kind && row.org === ref.org && row.slug === ref.slug,
+      )?.slug;
+    },
   };
 }
 
@@ -219,7 +230,7 @@ const ref = (
   kind: ApiResourceKind,
   org: string,
   slug: string,
-): SpecReference => ({ kind, org, slug });
+): SpecReference => ({ kind, id: "", org, slug });
 
 describe("checkReference", () => {
   const targets = targetsOf([
@@ -292,6 +303,7 @@ describe("checkReference", () => {
       expect(
         checkReference(withAgent, ACME_ORG, {
           kind: K.agent,
+          id: "",
           org: "acme",
           slug: "reviewer",
           version,
@@ -302,6 +314,7 @@ describe("checkReference", () => {
     expect(
       checkReference(withAgent, ACME_ORG, {
         kind: K.agent,
+        id: "",
         org: "acme",
         slug: "ghost",
         version: "stable",
@@ -311,7 +324,7 @@ describe("checkReference", () => {
 
   it("the three clauses say nothing about a version, so the escalation door still judges a versioned reference's floor", () => {
     expect(
-      checkReference(targets, ACME_ORG, { kind: K.skill, org: "acme", slug: "my-skill", version: "v1" }),
+      checkReference(targets, ACME_ORG, { kind: K.skill, id: "", org: "acme", slug: "my-skill", version: "v1" }),
     ).toEqual({ kind: "below-floor", targetVisibility: V.visibility_private });
   });
 
@@ -536,15 +549,15 @@ describe("the step over a store", () => {
       spec: {
         instructions: "help",
         // The message says plugin; the field is skill_refs.
-        skillRefs: [{ kind: K.plugin, org: "acme", slug: "s", version: "v1" }],
-        plugins: [{ kind: K.plugin, org: "acme", slug: "p" }],
+        skillRefs: [{ kind: K.plugin, id: "", org: "acme", slug: "s", version: "v1" }],
+        plugins: [{ kind: K.plugin, id: "", org: "acme", slug: "p" }],
       },
     });
     // Field declaration order: skill_refs (5) precedes plugins (16). The
     // version a reference names is carried as written.
     expect(collectSpecReferences(AgentSchema, agent)).toEqual([
-      { kind: K.skill, org: "acme", slug: "s", version: "v1" },
-      { kind: K.plugin, org: "acme", slug: "p", version: "" },
+      { kind: K.skill, id: "", org: "acme", slug: "s", version: "v1" },
+      { kind: K.plugin, id: "", org: "acme", slug: "p", version: "" },
     ]);
   });
 
@@ -555,12 +568,12 @@ describe("the step over a store", () => {
       metadata: { name: "Helper", org: "acme" },
       spec: {
         instructions: "help",
-        plugins: [{ kind: K.plugin, org: "acme", slug: "safety" }],
+        plugins: [{ kind: K.plugin, id: "", org: "acme", slug: "safety" }],
         hooks: [{ source: { case: "inline", value: { groups: [] } } }],
       },
     });
     expect(collectSpecReferences(AgentSchema, agent)).toEqual([
-      { kind: K.plugin, org: "acme", slug: "safety", version: "" },
+      { kind: K.plugin, id: "", org: "acme", slug: "safety", version: "" },
     ]);
   });
 
@@ -767,22 +780,67 @@ describe("the step over a store", () => {
     );
   });
 
-  it("the step records the targets it resolved, so a later step reads a reference's id without scanning again", async () => {
-    await seedSkill("skl_1", "acme", "one", V.visibility_org);
-    const ctx = new RequestContext(
+  it("the step judges a resolved reference by its id, and names one whose id names nothing by that id", async () => {
+    await seedSkill("skl_1", "acme", "one", V.visibility_private);
+    const resolved = new RequestContext(
       AgentSchema,
-      agentWith(V.visibility_org, [{ org: "acme", slug: "one" }]),
+      agentWith(V.visibility_org, []),
       testCallerIdentity(),
       K.agent,
     );
-    expect(resolvedReferenceTargets(ctx)).toBeUndefined();
-    await newValidateReferencesStep<typeof AgentSchema>(
-      store,
-      newPermissiveSingleTeamAuthorizer(),
-    ).execute(ctx);
-    expect(resolvedReferenceTargets(ctx)?.idOf(ref(K.skill, "acme", "one"))).toBe(
-      "skl_1",
+    resolved.newState.spec!.skillRefs = [
+      create(ApiResourceReferenceSchema, { org: "acme", kind: K.skill, id: "skl_1" }),
+    ];
+    const below = await failureOf(() =>
+      newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(resolved),
     );
+    // The copy names the target by its own slug, though the reference holds none.
+    expect((below as ConnectError).rawMessage).toBe(
+      belowFloorMessage(
+        referenceTargetKind(K.skill)!,
+        ref(K.skill, "acme", "one"),
+        V.visibility_private,
+        V.visibility_org,
+      ),
+    );
+
+    resolved.newState.spec!.skillRefs = [
+      create(ApiResourceReferenceSchema, { org: "acme", kind: K.skill, id: "skl_gone" }),
+    ];
+    const gone = await failureOf(() =>
+      newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(resolved),
+    );
+    expect((gone as ConnectError).rawMessage).toBe(
+      missingReferencesMessage(referenceTargetKind(K.skill)!, [
+        { slug: "skl_gone", org: "acme" },
+      ]),
+    );
+  });
+
+  it("an id that names a row of another organization than the reference names is no target of it", async () => {
+    await seedSkill("skl_g", "globex", "theirs", V.visibility_org);
+    const ctx = new RequestContext(
+      AgentSchema,
+      agentWith(V.visibility_org, []),
+      testCallerIdentity(),
+      K.agent,
+    );
+    ctx.newState.spec!.skillRefs = [
+      create(ApiResourceReferenceSchema, { org: "acme", kind: K.skill, id: "skl_g" }),
+    ];
+    const error = await failureOf(() =>
+      newValidateReferencesStep<typeof AgentSchema>(
+        store,
+        newPermissiveSingleTeamAuthorizer(),
+      ).execute(ctx),
+    );
+    expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
   });
 
   describe('judge: "introduced" — only the references the stored row does not already carry', () => {
@@ -814,20 +872,17 @@ describe("the step over a store", () => {
       await seedSkill("skl_added", "acme", "added", V.visibility_org);
     });
 
-    it("passes an echoed reference whose target has gone, and records the targets of every reference", async () => {
-      const ctx = update("added");
-      await newValidateReferencesStep<typeof AgentSchema>(
-        store,
-        newPermissiveSingleTeamAuthorizer(),
-        { judge: "introduced" },
-      ).execute(ctx);
-      const targets = resolvedReferenceTargets(ctx);
-      expect(targets?.idOf(ref(K.skill, "acme", "kept"))).toBe("skl_kept");
-      expect(targets?.idOf(ref(K.skill, "acme", "added"))).toBe("skl_added");
-      expect(targets?.idOf(ref(K.skill, "acme", "gone"))).toBeUndefined();
+    it("passes an echoed reference whose target has gone", async () => {
+      await expect(
+        newValidateReferencesStep<typeof AgentSchema>(
+          store,
+          newPermissiveSingleTeamAuthorizer(),
+          { judge: "introduced" },
+        ).execute(update("added")),
+      ).resolves.toBeUndefined();
     });
 
-    it("loads nothing and records nothing when the write introduces no reference", async () => {
+    it("loads nothing when the write introduces no reference", async () => {
       const ctx = new RequestContext(
         AgentSchema,
         agentWith(V.visibility_org, [
@@ -862,7 +917,6 @@ describe("the step over a store", () => {
         { judge: "introduced" },
       ).execute(ctx);
       expect(listed).toEqual([]);
-      expect(resolvedReferenceTargets(ctx)).toBeUndefined();
     });
 
     it("still refuses a newly added reference whose target is missing", async () => {
@@ -881,7 +935,7 @@ describe("the step over a store", () => {
       );
     });
 
-    it("the default judges every reference: the echoed one whose target has gone is refused, and the targets are recorded all the same", async () => {
+    it("the default judges every reference: the echoed one whose target has gone is refused", async () => {
       const ctx = update("added");
       const error = await failureOf(() =>
         newValidateReferencesStep<typeof AgentSchema>(
@@ -909,13 +963,12 @@ describe("the step over a store", () => {
         EXISTING_RESOURCE_KEY,
         agentWith(V.visibility_org, [{ org: "acme", slug: "kept" }]),
       );
-      await newValidateReferencesStep<typeof AgentSchema>(
-        store,
-        newPermissiveSingleTeamAuthorizer(),
-      ).execute(passing);
-      const targets = resolvedReferenceTargets(passing);
-      expect(targets?.idOf(ref(K.skill, "acme", "kept"))).toBe("skl_kept");
-      expect(targets?.idOf(ref(K.skill, "acme", "added"))).toBe("skl_added");
+      await expect(
+        newValidateReferencesStep<typeof AgentSchema>(
+          store,
+          newPermissiveSingleTeamAuthorizer(),
+        ).execute(passing),
+      ).resolves.toBeUndefined();
     });
   });
 
@@ -1339,5 +1392,236 @@ describe("the writer clause: a write may introduce only a vault its writer may u
         entry.kind === K.vault ? IamPermission.can_use : undefined,
       );
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The resolver: a written name becomes the id it names.
+// ---------------------------------------------------------------------------
+
+describe("resolveReferences and NormalizeReferences", () => {
+  let store: SqliteStore;
+  let cleanup: () => Promise<void>;
+
+  beforeEach(async () => {
+    const temp = tempStore();
+    store = namingSaves(temp.store);
+    cleanup = temp.cleanup;
+    await store.saveResource(
+      K.skill,
+      "skl_1",
+      SkillSchema,
+      create(SkillSchema, { metadata: { id: "skl_1", org: "acme", slug: "web-search", name: "web-search" } }),
+    );
+  });
+
+  afterEach(async () => {
+    await cleanup();
+  });
+
+  function agentNaming(...refs: Array<{ org?: string; slug?: string; id?: string; kind?: ApiResourceKind }>) {
+    return create(AgentSchema, {
+      metadata: { name: "helper", org: "acme", visibility: V.visibility_org },
+      spec: { skillRefs: refs.map((r) => create(ApiResourceReferenceSchema, r)) },
+    });
+  }
+
+  it("turns a written slug into the id it names, the org defaulted and the kind filled, the slug cleared", async () => {
+    const agent = agentNaming({ slug: "web-search" });
+    await resolveReferences(store, AgentSchema, agent, "acme");
+    expect(agent.spec!.skillRefs[0]).toMatchObject({ org: "acme", kind: K.skill, id: "skl_1", slug: "" });
+  });
+
+  it("is idempotent: a reference that holds an id is left as it is", async () => {
+    const agent = agentNaming({ org: "acme", kind: K.skill, id: "skl_1" });
+    await resolveReferences(store, AgentSchema, agent, "acme");
+    expect(agent.spec!.skillRefs[0]).toMatchObject({ org: "acme", kind: K.skill, id: "skl_1", slug: "" });
+  });
+
+  it("accepts an id and a slug that agree, and refuses ones that do not, naming both", async () => {
+    const agreeing = agentNaming({ slug: "web-search", id: "skl_1" });
+    await resolveReferences(store, AgentSchema, agreeing, "acme");
+    expect(agreeing.spec!.skillRefs[0]).toMatchObject({ id: "skl_1", slug: "" });
+
+    const error = await failureOf(() =>
+      resolveReferences(store, AgentSchema, agentNaming({ slug: "web-search", id: "skl_other" }), "acme"),
+    );
+    expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+    expect((error as ConnectError).rawMessage).toBe(
+      "skill_refs names 'web-search' and id 'skl_other', which are not the same resource; name it by its slug, by its id, or by both when they agree.",
+    );
+  });
+
+  it("keeps an id written beside a slug nothing holds: a reader writing back what it read before the target left", async () => {
+    const agent = agentNaming({ slug: "deleted-since", id: "skl_gone" });
+    await resolveReferences(store, AgentSchema, agent, "acme");
+    expect(agent.spec!.skillRefs[0]).toMatchObject({ id: "skl_gone", slug: "" });
+  });
+
+  it("leaves a name nothing holds as written, for the rule to refuse as missing", async () => {
+    const agent = agentNaming({ slug: "ghost" });
+    await resolveReferences(store, AgentSchema, agent, "acme");
+    expect(agent.spec!.skillRefs[0]).toMatchObject({ org: "acme", kind: K.skill, id: "", slug: "ghost" });
+  });
+
+  it("refuses a kind other than the field's, in the copy the per-field rules answered", async () => {
+    const error = await failureOf(() =>
+      resolveReferences(store, AgentSchema, agentNaming({ slug: "web-search", kind: K.plugin }), "acme"),
+    );
+    expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+    expect((error as ConnectError).rawMessage).toBe("skill_refs must reference resources with kind=skill");
+  });
+
+  it("a name deleted and taken again names the new resource only for a write that names it again; a stored id keeps meaning the first", async () => {
+    const stored = agentNaming({ slug: "web-search" });
+    await resolveReferences(store, AgentSchema, stored, "acme");
+    await store.deleteResource(K.skill, "skl_1");
+    await store.resourceNames.release("skill", "acme", "skl_1");
+    await store.saveResource(
+      K.skill,
+      "skl_2",
+      SkillSchema,
+      create(SkillSchema, { metadata: { id: "skl_2", org: "acme", slug: "web-search", name: "web-search" } }),
+    );
+    await resolveReferences(store, AgentSchema, stored, "acme");
+    expect(stored.spec!.skillRefs[0]!.id).toBe("skl_1");
+    const rewritten = agentNaming({ slug: "web-search" });
+    await resolveReferences(store, AgentSchema, rewritten, "acme");
+    expect(rewritten.spec!.skillRefs[0]!.id).toBe("skl_2");
+  });
+
+  it("keeps an id the stored row holds whatever slug is echoed beside it: the runner writes back what it read at turn start", async () => {
+    const stored = agentNaming({ org: "acme", kind: K.skill, id: "skl_1" });
+    await store.deleteResource(K.skill, "skl_1");
+    await store.resourceNames.release("skill", "acme", "skl_1");
+    await store.saveResource(
+      K.skill,
+      "skl_2",
+      SkillSchema,
+      create(SkillSchema, { metadata: { id: "skl_2", org: "acme", slug: "web-search", name: "web-search" } }),
+    );
+    const echo = () => agentNaming({ org: "acme", kind: K.skill, id: "skl_1", slug: "web-search" });
+    const kept = echo();
+    await resolveReferences(store, AgentSchema, kept, "acme", new Date(), stored);
+    expect(kept.spec!.skillRefs[0]).toMatchObject({ id: "skl_1", slug: "" });
+    // A write the stored row does not hold is judged as written: the slug names another skill now.
+    const error = await failureOf(() => resolveReferences(store, AgentSchema, echo(), "acme"));
+    expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+  });
+
+  it("referenceDisplayName names a reference still written by name by that name, and one held by id by its target's", async () => {
+    expect(await referenceDisplayName(store, K.skill, { org: "acme", id: "", slug: "ghost" })).toBe("ghost");
+    expect(await referenceDisplayName(store, K.skill, { org: "acme", id: "skl_1", slug: "" })).toBe("web-search");
+    expect(await referenceDisplayName(store, K.skill, { org: "acme", id: "skl_gone", slug: "" })).toBe("skl_gone");
+  });
+
+  it("NormalizeReferences resolves the request's spec against the resource's own organization", async () => {
+    const ctx = new RequestContext(AgentSchema, agentNaming({ slug: "web-search" }), testCallerIdentity(), K.agent);
+    await newNormalizeReferencesStep<typeof AgentSchema>(store).execute(ctx);
+    expect(ctx.newState.spec!.skillRefs[0]).toMatchObject({ org: "acme", id: "skl_1", slug: "" });
+  });
+});
+
+describe("a reference into another organization tells the writer nothing that organization holds", () => {
+  let store: SqliteStore;
+  let cleanup: () => Promise<void>;
+
+  beforeEach(async () => {
+    const temp = tempStore();
+    store = namingSaves(temp.store);
+    cleanup = temp.cleanup;
+    await store.saveResource(
+      K.organization,
+      "acme",
+      OrganizationSchema,
+      create(OrganizationSchema, { metadata: { id: "acme", name: "Acme", slug: "acme" }, spec: { parentOrg: "globex" } }),
+    );
+    for (const [id, slug, visibility] of [
+      ["skl_g", "theirs", V.visibility_org],
+      ["skl_s", "shared", V.visibility_child_orgs],
+    ] as const) {
+      await store.saveResource(
+        K.skill,
+        id,
+        SkillSchema,
+        create(SkillSchema, { metadata: { id, org: "globex", slug, name: slug, visibility } }),
+      );
+    }
+  });
+
+  afterEach(async () => {
+    await cleanup();
+  });
+
+  function agentNaming(...refs: Array<{ org: string; slug?: string; id?: string }>) {
+    return create(AgentSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Agent",
+      metadata: { name: "helper", org: "acme", visibility: V.visibility_org },
+      spec: {
+        instructions: "help the user with their tasks",
+        skillRefs: refs.map((r) => create(ApiResourceReferenceSchema, r)),
+      },
+    });
+  }
+
+  /** Normalize then judge, as every write chain does; the refusal, or undefined when the write passes. */
+  async function written(
+    agent: ReturnType<typeof agentNaming>,
+    passed: (stored: ReturnType<typeof agentNaming>) => void = () => undefined,
+  ): Promise<ConnectError | undefined> {
+    const ctx = new RequestContext(AgentSchema, agent, testCallerIdentity(), K.agent);
+    try {
+      await newNormalizeReferencesStep<typeof AgentSchema>(store).execute(ctx);
+      await newValidateReferencesStep<typeof AgentSchema>(store, newPermissiveSingleTeamAuthorizer()).execute(ctx);
+    } catch (error) {
+      return error as ConnectError;
+    }
+    passed(ctx.newState);
+    return undefined;
+  }
+
+  const unavailable = (written: string): string =>
+    notAvailableReferenceMessage(referenceTargetKind(K.skill)!, ref(K.skill, "globex", written));
+
+  it("an id beside a slug is held by the id there: whether the slug names something is never asked", async () => {
+    const named = agentNaming({ org: "globex", slug: "theirs", id: "skl_bogus" });
+    const unnamed = agentNaming({ org: "globex", slug: "nobody", id: "skl_bogus" });
+    await resolveReferences(store, AgentSchema, named, "acme");
+    await resolveReferences(store, AgentSchema, unnamed, "acme");
+    expect(named.spec!.skillRefs[0]).toMatchObject({ id: "skl_bogus", slug: "theirs" });
+    expect(unnamed.spec!.skillRefs[0]).toMatchObject({ id: "skl_bogus", slug: "nobody" });
+  });
+
+  it("a slug there takes its id and keeps the name as written until the rule admits it", async () => {
+    const agent = agentNaming({ org: "globex", slug: "theirs" });
+    await resolveReferences(store, AgentSchema, agent, "acme");
+    expect(agent.spec!.skillRefs[0]).toMatchObject({ id: "skl_g", slug: "theirs" });
+  });
+
+  it("answers one sentence naming what the writer wrote, whether the name or id exists there or not", async () => {
+    const byExistingSlug = await written(agentNaming({ org: "globex", slug: "theirs" }));
+    const byMissingSlug = await written(agentNaming({ org: "globex", slug: "nobody" }));
+    expect(byExistingSlug?.rawMessage).toBe(unavailable("theirs"));
+    expect(byMissingSlug?.rawMessage).toBe(unavailable("nobody"));
+
+    // By id alone: the sentence names the id, never what that organization calls it.
+    const byExistingId = await written(agentNaming({ org: "globex", id: "skl_g" }));
+    const byMissingId = await written(agentNaming({ org: "globex", id: "skl_none" }));
+    expect(byExistingId?.rawMessage).toBe(unavailable("skl_g"));
+    expect(byMissingId?.rawMessage).toBe(unavailable("skl_none"));
+
+    // A slug beside an id that disagree: refused alike whether the slug names something.
+    const disagreeing = await written(agentNaming({ org: "globex", slug: "shared", id: "skl_none" }));
+    const unknown = await written(agentNaming({ org: "globex", slug: "nobody-else", id: "skl_none" }));
+    expect(disagreeing?.code).toBe(Code.FailedPrecondition);
+    expect(disagreeing?.rawMessage).toBe(unavailable("shared"));
+    expect(unknown?.rawMessage).toBe(unavailable("nobody-else"));
+  });
+
+  it("a reference the rule admits there is stored by its id alone", async () => {
+    let stored: ReturnType<typeof agentNaming> | undefined;
+    expect(await written(agentNaming({ org: "globex", slug: "shared" }), (s) => (stored = s))).toBeUndefined();
+    expect(stored?.spec!.skillRefs[0]).toMatchObject({ org: "globex", kind: K.skill, id: "skl_s", slug: "" });
   });
 });

@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.iam.identityaccount.v1;
 
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/iam/identityaccount/v1/enum.proto";
 import "buf/validate/validate.proto";
@@ -88,7 +89,7 @@ message IdentityAccountSpec {
   // platform's identity provider scopes this account. Together with idp_id,
   // forms the unique identity for federated accounts.
   // (ignored for create) this value is assigned by backend.
-  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8;
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [(ai.stigmer.commons.apiresource.reference_kind) = identity_provider];
 
   // Standing preferences declared by this identity account.
   IdentityAccountPreferences preferences = 9;

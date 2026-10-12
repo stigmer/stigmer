@@ -18,13 +18,14 @@ export type NodeKind = "agent" | "plugin" | "skill" | "subagent";
  * is needed.
  *
  * Nodes are navigable when `ref` is defined (plugins, skills and
- * subagents).
+ * subagents). A dependency deleted since it was attached has no `ref`
+ * and is labelled "deleted <kind>".
  */
 export interface DependencyNode {
   /**
    * Deterministic identifier. Format: `{kind}:{slug}` for referenced
-   * resources (`subagent:{slug}` for a listed agent), or `agent:{slug}`
-   * for the root.
+   * resources (`subagent:{slug}` for a listed agent), `{kind}:deleted:{index}`
+   * for one deleted since it was attached, or `agent:{slug}` for the root.
    */
   readonly id: string;
   /** What kind of resource this node represents. */
@@ -84,6 +85,17 @@ export interface DependencyGraphProps {
 }
 
 /** Options for {@link useDependencyGraph}. */
+/**
+ * A reference as the server returns it: its target's id and current slug.
+ * A target deleted since it was attached comes back with an id and no
+ * slug.
+ */
+export interface DependencyReference {
+  readonly org: string;
+  readonly slug: string;
+  readonly id?: string;
+}
+
 export interface UseDependencyGraphOptions {
   /** Display name of the agent (used as the root node label). */
   readonly agentName: string;
@@ -95,20 +107,12 @@ export interface UseDependencyGraphOptions {
    * `null` for `tree` and `true` for `isEmpty`.
    */
   readonly spec: {
-    readonly plugins: readonly {
-      readonly org: string;
-      readonly slug: string;
-    }[];
-    readonly skillRefs: readonly {
-      readonly org: string;
-      readonly slug: string;
-    }[];
-    readonly subagents: readonly {
-      readonly org: string;
-      readonly slug: string;
+    readonly plugins: readonly DependencyReference[];
+    readonly skillRefs: readonly DependencyReference[];
+    readonly subagents: readonly (DependencyReference & {
       /** The version hash the server pinned when the agent was saved. */
       readonly version: string;
-    }[];
+    })[];
   } | undefined;
 }
 

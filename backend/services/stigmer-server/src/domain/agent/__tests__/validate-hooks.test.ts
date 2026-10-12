@@ -1,10 +1,11 @@
 /**
- * Pins ValidateHooks (domain/agent/steps.ts), the step that checks an
- * agent's plugins and hook sources where the proto's rules cannot reach:
- * each plugin listed once by slug in spec.plugins, even across two
- * organizations (the slug is what a run records as the deciding hook and
- * names a plugin's skills, agents and tools, so two plugins sharing one
- * would share them), one inline block at most, and an inline block held to the rules a plugin's hooks are held to
+ * Pins ValidatePluginList and ValidateHooks (domain/agent/steps.ts), the
+ * steps that check an agent's plugins and hook sources where the proto's
+ * rules cannot reach: each plugin listed once by slug in spec.plugins,
+ * even across two organizations (the slug is what a run records as the
+ * deciding hook and names a plugin's skills, agents and tools, so two
+ * plugins sharing one would share them), compared by the names the
+ * plugins hold now when the references hold ids, one inline block at most, and an inline block held to the rules a plugin's hooks are held to
  * at install, in either format. Claude Code's: the two tool-call events, a
  * matcher the library accepts, an `if` in a permission rule's shape, no
  * fail_closed, and `${user_config.*}` only in a handler with args (bash
@@ -25,7 +26,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
-import { newValidateHooksStep } from "../steps.js";
+import type { Store } from "../../../store/interface.js";
+import { newValidateHooksStep, newValidatePluginListStep } from "../steps.js";
 
 type AgentInit = Parameters<typeof create<typeof AgentSchema>>[1];
 
@@ -33,6 +35,7 @@ interface PluginRef {
   kind: ApiResourceKind;
   org: string;
   slug: string;
+  id?: string;
 }
 
 function contextWith(
@@ -87,6 +90,32 @@ const inline = (groups: GroupInit[], format?: HookFormat) => ({
 function refusal(hooks: unknown[], plugins: PluginRef[] = []): ConnectError {
   try {
     newValidateHooksStep().execute(contextWith(hooks, plugins));
+  } catch (error) {
+    if (error instanceof ConnectError) return error;
+    throw error;
+  }
+  throw new Error("expected the step to refuse");
+}
+
+/** A name table that answers the given `org/id` names, recording how many holders each read asked for. */
+function namesOf(held: Record<string, string>, asked: number[] = []): Store {
+  return {
+    resourceNames: {
+      currentMany: (holders: ReadonlyArray<{ kind: string; org: string; id: string }>) => {
+        asked.push(holders.length);
+        return Promise.resolve(
+          holders
+            .filter((h) => held[`${h.org}/${h.id}`] !== undefined)
+            .map((h) => ({ ...h, name: held[`${h.org}/${h.id}`]!, state: "current" as const, claimedAt: "", expiresAt: "" })),
+        );
+      },
+    },
+  } as unknown as Store;
+}
+
+async function pluginListRefusal(plugins: PluginRef[], store: Store = namesOf({})): Promise<ConnectError> {
+  try {
+    await newValidatePluginListStep(store).execute(contextWith([], plugins));
   } catch (error) {
     if (error instanceof ConnectError) return error;
     throw error;
@@ -173,12 +202,36 @@ describe("ValidateHooks", () => {
     expect(() => newValidateHooksStep().execute(contextWith([{}]))).not.toThrow();
   });
 
-  it("refuses two plugins with one slug, even from two organizations, with InvalidArgument", () => {
-    const error = refusal([], [plugin("safety"), plugin("safety", "globex")]);
+  it("ValidatePluginList refuses two plugins with one slug, even from two organizations, with InvalidArgument", async () => {
+    const error = await pluginListRefusal([plugin("safety"), plugin("safety", "globex")]);
     expect(error.code).toBe(Code.InvalidArgument);
     expect(error.rawMessage).toBe(
       "plugins lists 'safety' more than once; list each plugin once, and never two plugins that share a slug",
     );
+  });
+
+  it("ValidatePluginList compares references that hold ids by the names their plugins hold now, in one read", async () => {
+    const asked: number[] = [];
+    const names = namesOf({ "acme/plg_a": "safety", "globex/plg_b": "safety", "acme/plg_c": "audit" }, asked);
+    const twice = await pluginListRefusal(
+      [
+        { kind: ApiResourceKind.plugin, org: "acme", slug: "", id: "plg_a" },
+        { kind: ApiResourceKind.plugin, org: "globex", slug: "", id: "plg_b" },
+      ],
+      names,
+    );
+    expect(twice.rawMessage).toBe(
+      "plugins lists 'safety' more than once; list each plugin once, and never two plugins that share a slug",
+    );
+    await expect(
+      newValidatePluginListStep(names).execute(
+        contextWith([], [
+          { kind: ApiResourceKind.plugin, org: "acme", slug: "", id: "plg_a" },
+          { kind: ApiResourceKind.plugin, org: "acme", slug: "", id: "plg_c" },
+        ]),
+      ),
+    ).resolves.toBeUndefined();
+    expect(asked).toEqual([2, 2]);
   });
 
   it.each([

@@ -345,7 +345,7 @@ function buildWorkspaceEntryProto(input: WorkspaceEntryInput) {
 
 function buildSessionSpecProto(input: SessionSpecInput) {
   const msg = create(SessionSpecSchema);
-  if (input.agentRef?.slug || input.agentRef?.org) msg.agentRef = create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 });
+  if (input.agentRef?.slug || input.agentRef?.org || input.agentRef?.id) msg.agentRef = create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 });
   if (input.subject !== undefined) msg.subject = input.subject;
   if (input.harnessStateId !== undefined) msg.harnessStateId = input.harnessStateId;
   if (input.harnessStateIdHistory) msg.harnessStateIdHistory = input.harnessStateIdHistory;

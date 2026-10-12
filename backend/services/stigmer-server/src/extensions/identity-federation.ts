@@ -53,6 +53,11 @@ export interface IdentityFederation {
     ref: ApiResourceReference,
     caller: CallerIdentity,
   ): Promise<IdentityAccount>;
-  /** Whether the IdentityProvider `org/slug` exists — the arms' shared precondition. */
-  providerExists(org: string, slug: string): Promise<boolean>;
+  /**
+   * Whether the IdentityProvider `id` exists in organization `org` — the
+   * arms' shared precondition. The reference was resolved to the
+   * provider's id first (pipeline/steps/references.ts), so an arm always
+   * receives a reference that holds the id.
+   */
+  providerExists(org: string, id: string): Promise<boolean>;
 }

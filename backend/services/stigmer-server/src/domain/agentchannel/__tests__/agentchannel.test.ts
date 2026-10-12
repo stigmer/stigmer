@@ -379,7 +379,7 @@ describe("agentchannel create", () => {
     expect(err.code).toBe(Code.InvalidArgument);
   });
 
-  it("missing agent_ref slug is INVALID_ARGUMENT naming the field", async () => {
+  it("an agent_ref naming nothing is INVALID_ARGUMENT naming the field", async () => {
     const err = await grpcError(() =>
       channels.create({
         apiVersion: API_VERSION,
@@ -393,7 +393,8 @@ describe("agentchannel create", () => {
       }),
     );
     expect(err.code).toBe(Code.InvalidArgument);
-    expect(err.rawMessage).toContain("spec.agent_ref.slug");
+    expect(err.rawMessage).toContain("spec.agent_ref");
+    expect(err.rawMessage).toContain("a reference names its resource by id or by slug");
   });
 
   it("nonexistent agent is NOT_FOUND with the direct-lookup copy", async () => {
@@ -861,7 +862,13 @@ describe("whatsapp app_ref (BYO-only)", () => {
     };
     const created = await channels.create(ch);
 
+    // A read answers the reference by id and name; naming another app
+    // beside the first one's id names two resources, and is refused.
     (created.spec!.appRef as Record<string, unknown>).slug = "second-meta-app";
+    const mixed = await grpcError(() => channels.update(created));
+    expect(mixed.code).toBe(Code.InvalidArgument);
+
+    (created.spec!.appRef as Record<string, unknown>).id = "";
     const updated = await channels.update(created);
     expect(updated.spec?.appRef?.slug).toBe("second-meta-app");
   });

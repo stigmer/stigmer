@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.agentshare.v1;
 
 import "ai/stigmer/agentic/agentshare/v1/api.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
@@ -131,5 +132,5 @@ message SharedAgentProfile {
   // included. This is a name, not a capability — session creation still
   // requires an authorized token, and the edition's guest gate admits a
   // session only on this reference and the agent the share pins.
-  ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7;
+  ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [(ai.stigmer.commons.apiresource.reference_kind) = agent];
 }

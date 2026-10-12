@@ -145,7 +145,7 @@ export function isPlatformClientSubject(idpId: string): boolean {
 
 /**
  * The address namespace of federated accounts: a federated account's id is
- * `derivedId("ida", "stgm_fed|<provider org>|<provider slug>|<subject>")`
+ * `derivedId("ida", "stgm_fed|<provider id>|<subject>")`
  * (`federatedAccountIdFor`). Its natural key is the pair the port's
  * federated read takes, the identity provider that vouches for the subject
  * and the subject, because two providers may assert the same subject for
@@ -156,11 +156,10 @@ export function isPlatformClientSubject(idpId: string): boolean {
  * `stgm_fed|acme|okta|dana` would otherwise derive a federated person's
  * address. The direct arm refuses it.
  *
- * Unambiguous by construction: the provider's organization (an
- * organization id or slug) and its slug cannot hold `|` (the reference's
- * own patterns), so the subject, which may, is the whole remainder. The
- * organization is the stored reference's, the organization id, so a
- * rename never re-addresses an account.
+ * Unambiguous by construction: the provider's id cannot hold `|`, so the
+ * subject, which may, is the whole remainder. The provider is named by its
+ * id, the stored reference's, so renaming the provider or its organization
+ * never re-addresses an account.
  */
 export const FEDERATED_SUBJECT_PREFIX = "stgm_fed|";
 
@@ -168,39 +167,37 @@ export function isFederatedSubject(idpId: string): boolean {
   return idpId.startsWith(FEDERATED_SUBJECT_PREFIX);
 }
 
-/** The separator `federatedAccountIdFor` joins its three parts with; the two leading parts may not hold it. */
+/** The separator `federatedAccountIdFor` joins its two parts with; the provider id may not hold it. */
 const FEDERATED_KEY_SEPARATOR = "|";
 
 /**
  * The derived id of the federated account the identity provider
- * `<providerOrg>/<providerSlug>` vouches for under `idpId`. Pure; refuses
- * an empty part (no provider or no subject is no address) and a provider
- * part holding the separator (the text would be ambiguous), the way
- * `policyIdFor` refuses an ambiguous triple. The golden vector in
- * __tests__/constants.test.ts is wire-adjacent: a change here re-addresses
- * every federated account open source ever created.
+ * `providerId` vouches for under `idpId`. Pure; refuses an empty part (no
+ * provider or no subject is no address) and a provider id holding the
+ * separator (the text would be ambiguous), the way `policyIdFor` refuses
+ * an ambiguous triple. The golden vector in __tests__/constants.test.ts is
+ * wire-adjacent: a change here re-addresses every federated account. It
+ * last changed when references came to hold ids, when no database held a
+ * federated account (open source answers federation UNIMPLEMENTED without
+ * an edition, and no edition had shipped one).
  */
 export function federatedAccountIdFor(
-  providerOrg: string,
-  providerSlug: string,
+  providerId: string,
   idpId: string,
 ): string {
-  if (providerOrg === "" || providerSlug === "" || idpId === "") {
+  if (providerId === "" || idpId === "") {
     throw new Error(
-      "a federated account's provider organization, provider slug and idp_id must not be empty",
+      "a federated account's provider id and idp_id must not be empty",
     );
   }
-  if (
-    providerOrg.includes(FEDERATED_KEY_SEPARATOR) ||
-    providerSlug.includes(FEDERATED_KEY_SEPARATOR)
-  ) {
+  if (providerId.includes(FEDERATED_KEY_SEPARATOR)) {
     throw new Error(
-      `a federated account's provider organization and slug must not hold '${FEDERATED_KEY_SEPARATOR}'`,
+      `a federated account's provider id must not hold '${FEDERATED_KEY_SEPARATOR}'`,
     );
   }
   return derivedId(
     ACCOUNT_ID_PREFIX,
-    `${FEDERATED_SUBJECT_PREFIX}${providerOrg}${FEDERATED_KEY_SEPARATOR}${providerSlug}${FEDERATED_KEY_SEPARATOR}${idpId}`,
+    `${FEDERATED_SUBJECT_PREFIX}${providerId}${FEDERATED_KEY_SEPARATOR}${idpId}`,
   );
 }
 

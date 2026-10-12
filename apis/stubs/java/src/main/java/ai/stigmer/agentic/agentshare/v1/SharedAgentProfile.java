@@ -317,7 +317,7 @@ private static final long serialVersionUID = 0L;
    * session only on this reference and the agent the share pins.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
    * @return Whether the agentRef field is set.
    */
   @java.lang.Override
@@ -333,7 +333,7 @@ private static final long serialVersionUID = 0L;
    * session only on this reference and the agent the share pins.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
    * @return The agentRef.
    */
   @java.lang.Override
@@ -349,7 +349,7 @@ private static final long serialVersionUID = 0L;
    * session only on this reference and the agent the share pins.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
    */
   @java.lang.Override
   public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAgentRefOrBuilder() {
@@ -1289,7 +1289,7 @@ private static final long serialVersionUID = 0L;
      * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
      * @return Whether the agentRef field is set.
      */
     public boolean hasAgentRef() {
@@ -1304,7 +1304,7 @@ private static final long serialVersionUID = 0L;
      * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
      * @return The agentRef.
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference getAgentRef() {
@@ -1323,7 +1323,7 @@ private static final long serialVersionUID = 0L;
      * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
      */
     public Builder setAgentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (agentRefBuilder_ == null) {
@@ -1347,7 +1347,7 @@ private static final long serialVersionUID = 0L;
      * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
      */
     public Builder setAgentRef(
         ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
@@ -1369,7 +1369,7 @@ private static final long serialVersionUID = 0L;
      * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
      */
     public Builder mergeAgentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (agentRefBuilder_ == null) {
@@ -1398,7 +1398,7 @@ private static final long serialVersionUID = 0L;
      * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
      */
     public Builder clearAgentRef() {
       bitField0_ = (bitField0_ & ~0x00000020);
@@ -1419,7 +1419,7 @@ private static final long serialVersionUID = 0L;
      * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getAgentRefBuilder() {
       bitField0_ |= 0x00000020;
@@ -1435,7 +1435,7 @@ private static final long serialVersionUID = 0L;
      * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAgentRefOrBuilder() {
       if (agentRefBuilder_ != null) {
@@ -1454,7 +1454,7 @@ private static final long serialVersionUID = 0L;
      * session only on this reference and the agent the share pins.
      * </pre>
      *
-     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 

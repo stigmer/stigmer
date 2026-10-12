@@ -1,3 +1,4 @@
+from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from ai.stigmer.iam.identityaccount.v1 import enum_pb2 as _enum_pb2
 from buf.validate import validate_pb2 as _validate_pb2

@@ -305,17 +305,16 @@ var File_ai_stigmer_agentic_agentshare_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentshare_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/agentshare/v1/spec.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xed\t\n" +
-	"\x0eAgentShareSpec\x12\xb6\x01\n" +
-	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
-	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12\x18\n" +
+	"+ai/stigmer/agentic/agentshare/v1/spec.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xbe\b\n" +
+	"\x0eAgentShareSpec\x12]\n" +
+	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
+	"\xbaH\x03\xc8\x01\x01\xe0\x85,(R\bagentRef\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\x12P\n" +
 	"\baudience\x18\x03 \x01(\x0e24.ai.stigmer.agentic.agentshare.v1.AgentShareAudienceR\baudience\x12\xc0\x02\n" +
 	"\x0fallowed_origins\x18\x04 \x03(\tB\x96\x02\xbaH\x92\x02\x92\x01\x8e\x02\x10 \"\x89\x02\xba\x01\x85\x02\n" +
 	"\x16allowed_origins.format\x12nallowed_origins entries must be exact web origins like https://example.com (no path, query, or trailing slash)\x1a{this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')R\x0eallowedOrigins\x12P\n" +
-	"\bmessages\x18\x05 \x01(\v24.ai.stigmer.agentic.agentshare.v1.AgentShareMessagesR\bmessages\x12\xae\x01\n" +
-	"\x06vaults\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB`\xbaHY\x92\x01V\x10\x14\"R\xba\x01O\n" +
-	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12C\n" +
+	"\bmessages\x18\x05 \x01(\v24.ai.stigmer.agentic.agentshare.v1.AgentShareMessagesR\bmessages\x12Z\n" +
+	"\x06vaults\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,;R\x06vaults\x12C\n" +
 	"\n" +
 	"run_config\x18\a \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig:\x92\x02\xbaH\x8e\x02\x1a\x81\x01\n" +
 	"\x1eagent_share.vaults_public_only\x120vaults can only be set on public-audience shares\x1a-this.audience == 1 || this.vaults.size() == 0\x1a\x87\x01\n" +

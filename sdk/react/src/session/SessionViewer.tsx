@@ -1436,28 +1436,29 @@ function SessionPanelRegion({
   // id (a stored or picked one), so both sides are compared by id.
   const orgIdFor = useOrgIdForRef();
 
+  // A stored reference holds its target's id, and one whose target was
+  // deleted holds no slug, so two references are one by id when either
+  // holds one; a reference just picked by name is matched by its name.
+  const sameRef = useCallback(
+    (a: ResourceRef, b: ResourceRef) =>
+      a.id || b.id
+        ? a.id === b.id
+        : orgIdFor(a.org) === orgIdFor(b.org) && a.slug === b.slug,
+    [orgIdFor],
+  );
+
   const handleRemovePlugin = useCallback(
     (ref: ResourceRef) => {
-      const refOrg = orgIdFor(ref.org);
-      flow.setPluginRefs(
-        flow.pluginRefs.filter(
-          (r) => !(orgIdFor(r.org) === refOrg && r.slug === ref.slug),
-        ),
-      );
+      flow.setPluginRefs(flow.pluginRefs.filter((r) => !sameRef(r, ref)));
     },
-    [flow.pluginRefs, flow.setPluginRefs, orgIdFor],
+    [flow.pluginRefs, flow.setPluginRefs, sameRef],
   );
 
   const handleRemoveSkill = useCallback(
     (ref: ResourceRef) => {
-      const refOrg = orgIdFor(ref.org);
-      flow.setSkillRefs(
-        flow.skillRefs.filter(
-          (r) => !(orgIdFor(r.org) === refOrg && r.slug === ref.slug),
-        ),
-      );
+      flow.setSkillRefs(flow.skillRefs.filter((r) => !sameRef(r, ref)));
     },
-    [flow.skillRefs, flow.setSkillRefs, orgIdFor],
+    [flow.skillRefs, flow.setSkillRefs, sameRef],
   );
 
   const sessionConfig = useMemo<SetupTabProps>(

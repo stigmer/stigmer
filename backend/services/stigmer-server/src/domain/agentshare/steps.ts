@@ -59,11 +59,14 @@ import {
 import type { AuthorizationTarget } from "../../pipeline/steps/authorize.js";
 import { savedChoiceWithoutModelRefusal } from "../../modelcatalog/run-config-checks.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
-import { findResourceByName } from "../../pipeline/steps/names.js";
+import {
+  loadReferenced,
+  referenceDisplayName,
+} from "../../pipeline/steps/references.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import {
-  AGENT_REF_SLUG_REQUIRED_MESSAGE,
+  AGENT_REF_REQUIRED_MESSAGE,
   ORG_REQUIRED_MESSAGE,
   SHARE_LINK_TOKEN_BYTES,
   agentRefImmutableMessage,
@@ -311,14 +314,13 @@ export function generateShareLinkToken(): string {
   return randomBytes(SHARE_LINK_TOKEN_BYTES).toString("base64url");
 }
 
-/** The agent a slug names in the organization, through the name table (pipeline/steps/names.ts). */
-async function findAgentByOrgAndSlug(
+/** The agent a stored reference names, by its id (pipeline/steps/references.ts). */
+async function findReferencedAgent(
   store: Store,
-  org: string,
-  slug: string,
+  ref: { readonly org: string; readonly id: string },
 ): Promise<Agent | undefined> {
   try {
-    return await findResourceByName(store, ApiResourceKind.agent, AgentSchema, org, slug);
+    return await loadReferenced(store, ApiResourceKind.agent, AgentSchema, ref);
   } catch (error) {
     throw internalError(error, "failed to read the agent");
   }
@@ -327,12 +329,13 @@ async function findAgentByOrgAndSlug(
 /**
  * ResolveShareDefaults — Go resolveShareDefaultsStep:
  *   1. Requires metadata.org (URL + billing identity, never inferred).
- *   2. Normalizes spec.agent_ref.org (empty means same-org) and refuses an
- *      agent_ref that names another organization (the module header) with
- *      the same-organization sentence, BEFORE any lookup, so the share
- *      lane never says whether another organization's slug exists.
- *   3. Loads the referenced agent — a nonexistent agent is refused with
- *      the same NOT_FOUND a direct agent lookup would produce.
+ *   2. Refuses an agent_ref that names another organization (the module
+ *      header) with the same-organization sentence. NormalizeReferences
+ *      ran first and made the org absolute; it resolved a slug only to an
+ *      id, which says nothing of whether another organization's slug
+ *      exists, since no refusal here names it.
+ *   3. Loads the referenced agent by id — a nonexistent agent is refused
+ *      with the same NOT_FOUND a direct agent lookup would produce.
  *   4. Defaults metadata.slug (and name) from the agent when the caller
  *      provided neither — the canonical share keeps the agent's hosted URL.
  *      Runs before ResolveSlug, which skips already-set slugs.
@@ -351,26 +354,16 @@ export function newResolveShareDefaultsStep(
       }
 
       const agentRef = share.spec?.agentRef;
-      if ((agentRef?.slug ?? "") === "") {
-        throw invalidArgumentError(AGENT_REF_SLUG_REQUIRED_MESSAGE);
+      if (agentRef === undefined || (agentRef.id === "" && agentRef.slug === "")) {
+        throw invalidArgumentError(AGENT_REF_REQUIRED_MESSAGE);
+      }
+      if (agentRef.org !== metadata!.org) {
+        throw failedPreconditionError(sameOrgInvariantMessage(agentRef.org));
       }
 
-      // Empty ref org means same-org (the platform-wide relative-reference
-      // convention); make it absolute before anything compares orgs.
-      if (agentRef!.org === "") {
-        agentRef!.org = metadata!.org;
-      }
-      if (agentRef!.org !== metadata!.org) {
-        throw failedPreconditionError(sameOrgInvariantMessage(agentRef!.org));
-      }
-
-      const agent = await findAgentByOrgAndSlug(
-        store,
-        agentRef!.org,
-        agentRef!.slug,
-      );
+      const agent = await findReferencedAgent(store, agentRef);
       if (agent === undefined) {
-        throw notFoundError("Agent", agentRef!.slug);
+        throw notFoundError("Agent", agentRef.slug !== "" ? agentRef.slug : agentRef.id);
       }
 
       ctx.set(REFERENCED_AGENT_KEY, agent);
@@ -403,10 +396,8 @@ function refuseSavedChoiceWithoutModel(share: AgentShare): void {
 
 /**
  * StampAgentPin — Go stampAgentPinStep: writes status.agent_id, the
- * server-owned rebind pin. agent_ref is org+slug and slugs
- * are reusable after delete, so without the pin a stale share would
- * silently attach its audience, link token, and bound credentials to
- * whatever agent later claims the slug.
+ * server-owned pin. agent_ref holds the agent's id, so it never names
+ * another agent; the pin stays written for the readers that take it.
  *
  * Runs AFTER BuildNewState, which clears client-provided status — the pin
  * is system-managed and must survive that wipe, exactly like the audit
@@ -434,15 +425,18 @@ export function newStampAgentPinStep(): PipelineStep<AgentShareDesc> {
 
 /**
  * ValidateShareUpdate — Go validateShareUpdateStep: spec.agent_ref must
- * keep referencing the same agent. Runs after LoadExisting.
+ * keep referencing the same agent, compared by id. Runs after
+ * NormalizeReferences, which resolved the request's reference.
  * metadata.slug/org immutability needs no step — the generic
  * BuildUpdateState preserves both, and status (including the pin and link
  * token) wholesale.
  */
-export function newValidateShareUpdateStep(): PipelineStep<AgentShareDesc> {
+export function newValidateShareUpdateStep(
+  store: Store,
+): PipelineStep<AgentShareDesc> {
   return {
     name: "ValidateShareUpdate",
-    execute(ctx: RequestContext<AgentShareDesc>): void {
+    async execute(ctx: RequestContext<AgentShareDesc>): Promise<void> {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as AgentShare | undefined;
       if (existing === undefined) {
         throw internalError(
@@ -452,24 +446,21 @@ export function newValidateShareUpdateStep(): PipelineStep<AgentShareDesc> {
       }
 
       refuseSavedChoiceWithoutModel(ctx.newState);
-      const inputRef = ctx.input.spec?.agentRef;
+      const inputRef = ctx.newState.spec?.agentRef;
       const existingRef = existing.spec?.agentRef;
 
-      // Normalize the input ref's org the same way create does (empty
-      // means the share's own org) before comparing.
-      const inputOrg =
-        (inputRef?.org ?? "") !== ""
-          ? inputRef!.org
-          : (existing.metadata?.org ?? "");
-
       if (
-        (inputRef?.slug ?? "") !== (existingRef?.slug ?? "") ||
-        inputOrg !== (existingRef?.org ?? "")
+        (inputRef?.id ?? "") !== (existingRef?.id ?? "") ||
+        (inputRef?.org ?? "") !== (existingRef?.org ?? "")
       ) {
         throw failedPreconditionError(
           agentRefImmutableMessage(
             existingRef?.org ?? "",
-            existingRef?.slug ?? "",
+            await referenceDisplayName(store, ApiResourceKind.agent, {
+              org: existingRef?.org ?? "",
+              id: existingRef?.id ?? "",
+              slug: existingRef?.slug ?? "",
+            }),
           ),
         );
       }
@@ -493,11 +484,10 @@ export async function buildSharedAgentProfile(
   share: AgentShare,
 ): Promise<SharedAgentProfile> {
   const ref = share.spec?.agentRef;
-  const agent = await findAgentByOrgAndSlug(
-    store,
-    ref?.org ?? "",
-    ref?.slug ?? "",
-  );
+  const agent = await findReferencedAgent(store, {
+    org: ref?.org ?? "",
+    id: ref?.id ?? "",
+  });
   if (agent === undefined) {
     throw sharedNotFound(share.metadata?.id ?? "");
   }

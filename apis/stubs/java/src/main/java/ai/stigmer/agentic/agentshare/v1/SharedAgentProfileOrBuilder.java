@@ -125,7 +125,7 @@ public interface SharedAgentProfileOrBuilder extends
    * session only on this reference and the agent the share pins.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
    * @return Whether the agentRef field is set.
    */
   boolean hasAgentRef();
@@ -138,7 +138,7 @@ public interface SharedAgentProfileOrBuilder extends
    * session only on this reference and the agent the share pins.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
    * @return The agentRef.
    */
   ai.stigmer.commons.apiresource.ApiResourceReference getAgentRef();
@@ -151,7 +151,7 @@ public interface SharedAgentProfileOrBuilder extends
    * session only on this reference and the agent the share pins.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 7 [json_name = "agentRef", (.ai.stigmer.commons.apiresource.reference_kind) = agent];</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAgentRefOrBuilder();
 }

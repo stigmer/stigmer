@@ -49,6 +49,7 @@ import type {
   OAuthClientRegistrationStore,
   ResourceNameClaim,
   ResourceNameEntry,
+  ResourceNameHolder,
   ResourceNameKey,
   ResourceNameRename,
   ResourceNameRenamed,
@@ -1537,6 +1538,9 @@ interface ResourceNameRow {
 const RESOURCE_NAME_COLUMNS =
   "kind, org, name, id, state, claimed_at, expires_at";
 
+/** Holders per `currentMany` statement: three bound parameters each, under SQLite's limit. */
+const CURRENT_MANY_CHUNK = 300;
+
 function resourceNameEntryOf(row: ResourceNameRow): ResourceNameEntry {
   return {
     kind: row.kind,
@@ -1584,6 +1588,31 @@ class SqliteResourceNameStore implements ResourceNameStore {
       )
       .get(kind, org, id) as ResourceNameRow | undefined;
     return row === undefined ? undefined : resourceNameEntryOf(row);
+  }
+
+  async currentMany(
+    holders: ReadonlyArray<ResourceNameHolder>,
+  ): Promise<ReadonlyArray<ResourceNameEntry>> {
+    if (holders.length === 0) {
+      return [];
+    }
+    // One statement over a VALUES list, chunked under SQLite's bound
+    // parameter limit (three per holder).
+    const entries: ResourceNameEntry[] = [];
+    for (let at = 0; at < holders.length; at += CURRENT_MANY_CHUNK) {
+      const chunk = holders.slice(at, at + CURRENT_MANY_CHUNK);
+      const rows = this.open()
+        .prepare(
+          `WITH wanted(kind, org, id) AS (VALUES ${chunk.map(() => "(?, ?, ?)").join(", ")})
+           SELECT ${RESOURCE_NAME_COLUMNS.split(", ").map((c) => `n.${c}`).join(", ")}
+           FROM resource_names n
+           JOIN wanted w ON n.kind = w.kind AND n.org = w.org AND n.id = w.id
+           WHERE n.state = 'current'`,
+        )
+        .all(...chunk.flatMap((h) => [h.kind, h.org, h.id])) as unknown as ResourceNameRow[];
+      entries.push(...rows.map(resourceNameEntryOf));
+    }
+    return entries;
   }
 
   async claim(

@@ -410,9 +410,23 @@ func (x *RenameInput) GetSlug() string {
 	return ""
 }
 
-// Generic reference to any API resource by org and slug.
+// Generic reference to any API resource.
 // Used across resources to reference other resources (e.g., Vault, Agent, Skill).
-// Canonical format: "org/slug" (e.g., "acme/web-search", "acme/my-agent").
+// Canonical written format: "org/slug" (e.g., "acme/web-search", "acme/my-agent").
+//
+// A reference has three forms:
+//   - Written: by name (org and slug), by id, or by both. A write that carries
+//     both must have them agree, or it is refused naming both. A name is
+//     resolved to its resource's id when the referring resource is written.
+//   - Stored: org (the organization's id), kind, id and version. The slug is
+//     not stored, so a reference keeps pointing at the resource it meant when
+//     that resource is renamed, and never at a new resource that takes its old
+//     name after it is deleted.
+//   - Returned: as stored, with slug filled with the resource's current name.
+//     A reference whose resource was deleted is returned with an empty slug.
+//
+// The kind a reference names is the kind its field declares
+// (reference_kind); a reference that carries another kind is refused.
 //
 // Every reference in a resource's spec is checked when the resource is
 // written: the target must exist, and a target in another organization
@@ -445,6 +459,9 @@ type ApiResourceReference struct {
 	// Format: lowercase alphanumeric with hyphens, must start with a letter
 	// and end with a letter or digit (e.g., "web-search", "code-reviewer").
 	// Length: 2-63 characters.
+	//
+	// Written to name the resource; never stored; returned filled with the
+	// resource's current name, empty when the resource was deleted.
 	Slug string `protobuf:"bytes,3,opt,name=slug,proto3" json:"slug,omitempty"`
 	// Version of the resource (optional, only applicable to versioned resources like Skills).
 	// Supports three formats:
@@ -461,7 +478,11 @@ type ApiResourceReference struct {
 	// - version: "stable"     → Use version tagged as "stable"
 	// - version: "v1.0"       → Use version tagged as "v1.0"
 	// - version: "abc123..."  → Use exact version with this hash (immutable)
-	Version       string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
+	Version string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
+	// The referenced resource's id: what a stored reference holds. Optional
+	// on write, where the slug may name the resource instead; an id no
+	// resource of the kind holds answers as a missing resource.
+	Id            string `protobuf:"bytes,5,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -524,6 +545,13 @@ func (x *ApiResourceReference) GetVersion() string {
 	return ""
 }
 
+func (x *ApiResourceReference) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
 var File_ai_stigmer_commons_apiresource_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
@@ -556,12 +584,14 @@ const file_ai_stigmer_commons_apiresource_io_proto_rawDesc = "" +
 	"\vRenameInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"resourceId\x12;\n" +
-	"\x04slug\x18\x02 \x01(\tB'\xbaH$\xc8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\"\xc3\x02\n" +
+	"\x04slug\x18\x02 \x01(\tB'\xbaH$\xc8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\"\xc3\x03\n" +
 	"\x14ApiResourceReference\x12J\n" +
 	"\x03org\x18\x01 \x01(\tB8\xbaH5r3\x18?2/^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[0-9a-z]{26}$R\x03org\x12S\n" +
 	"\x04kind\x18\x02 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12;\n" +
-	"\x04slug\x18\x03 \x01(\tB'\xbaH$\xc8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12M\n" +
-	"\aversion\x18\x04 \x01(\tB3\xbaH0r.2,^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\aversionB\x94\x02\n" +
+	"\x04slug\x18\x03 \x01(\tB'\xbaH$\xd8\x01\x01r\x1f\x10\x02\x18?2\x19^[a-z][a-z0-9-]*[a-z0-9]$R\x04slug\x12M\n" +
+	"\aversion\x18\x04 \x01(\tB3\xbaH0r.2,^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\aversion\x12\x0e\n" +
+	"\x02id\x18\x05 \x01(\tR\x02id:n\xbaHk\x1ai\n" +
+	"\x14reference.id_or_slug\x12/a reference names its resource by id or by slug\x1a this.id != '' || this.slug != ''B\x94\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\aIoProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (

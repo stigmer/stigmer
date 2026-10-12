@@ -269,12 +269,12 @@ async function createSession(
       newAuthorizeStep(SessionCommandController.method.create, deps.authorizer),
     )
     .addStep(newValidateProtoStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, SESSION_VAULT_ATTACHMENTS))
     .addStep(newPreserveSessionValuesStep())
@@ -350,9 +350,9 @@ async function update(
     .addStep(newValidateHarnessImmutabilityStep())
     .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newKeepStoredVaultChoiceOnStaleWriteStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newNormalizeReferencesStep())
     .addStep(
       newValidateReferencesStep(deps.store, deps.authorizer, {
         judge: "introduced",

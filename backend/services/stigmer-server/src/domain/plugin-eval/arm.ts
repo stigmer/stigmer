@@ -43,7 +43,13 @@ export type EvalArm = "with" | "without";
 export interface PluginAttachmentFacts {
   /** The plugin's organization. */
   readonly org: string;
-  /** The plugin's slug, which the with-plugin arm's reference names. */
+  /**
+   * The plugin's id, which the with-plugin arm's reference holds; absent
+   * from a context written before references held ids, whose arm names
+   * the slug.
+   */
+  readonly id?: string;
+  /** The plugin's slug. */
   readonly slug: string;
   /** The archive the eval stamped, which the reference pins. */
   readonly digest: string;
@@ -66,7 +72,7 @@ export interface ArmAttachment {
 
 export function armAttachment(
   arm: EvalArm,
-  plugin: Pick<PluginAttachmentFacts, "org" | "slug" | "digest">,
+  plugin: Pick<PluginAttachmentFacts, "org" | "id" | "slug" | "digest">,
 ): ArmAttachment {
   switch (arm) {
     case "without":
@@ -77,7 +83,7 @@ export function armAttachment(
           create(ApiResourceReferenceSchema, {
             org: plugin.org,
             kind: ApiResourceKind.plugin,
-            slug: plugin.slug,
+            ...heldBy(plugin),
             version: plugin.digest,
           }),
         ],
@@ -95,15 +101,18 @@ export function pluginAttachmentFacts(plugin: Plugin, digest: string): PluginAtt
   const name = plugin.metadata?.name ?? "";
   return {
     org: plugin.metadata?.org ?? "",
+    id: plugin.metadata?.id ?? "",
     slug: plugin.metadata?.slug ?? "",
     digest,
     serverSegments: (plugin.status?.mcpServers ?? []).map((server) => toolServerSegment(name, server.name)),
   };
 }
 
-/** The agent an agent eval's tries run: its organization, slug and the version the eval stamped. */
+/** The agent an agent eval's tries run: its organization, id, slug and the version the eval stamped. */
 export interface AgentAttachmentFacts {
   readonly org: string;
+  /** The id the session's agent reference holds; absent from a context written before references held ids. */
+  readonly id?: string;
   readonly slug: string;
   /** The agent version's hash, which the session's agent reference pins. */
   readonly versionHash: string;
@@ -112,15 +121,24 @@ export interface AgentAttachmentFacts {
 /** An agent eval's try: the agent at its stamped version, every attached plugin at its stamped archive (the module header). */
 export function agentAttachment(
   agent: AgentAttachmentFacts,
-  plugins: ReadonlyArray<Pick<PluginAttachmentFacts, "org" | "slug" | "digest">>,
+  plugins: ReadonlyArray<Pick<PluginAttachmentFacts, "org" | "id" | "slug" | "digest">>,
 ): ArmAttachment {
   return {
     agentRef: create(ApiResourceReferenceSchema, {
       org: agent.org,
       kind: ApiResourceKind.agent,
-      slug: agent.slug,
+      ...heldBy(agent),
       version: agent.versionHash,
     }),
     plugins: plugins.map((plugin) => armAttachment("with", plugin).plugins[0]!),
   };
+}
+
+/**
+ * What a try's reference names its target by: the id, so a target deleted
+ * and remade under its name between the eval's start and a try is never
+ * the one the try runs; the slug for a context written without one.
+ */
+function heldBy(target: { readonly id?: string; readonly slug: string }): { id: string } | { slug: string } {
+  return target.id !== undefined && target.id !== "" ? { id: target.id } : { slug: target.slug };
 }

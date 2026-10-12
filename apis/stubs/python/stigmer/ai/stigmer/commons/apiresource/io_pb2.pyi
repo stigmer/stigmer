@@ -64,13 +64,15 @@ class RenameInput(_message.Message):
     def __init__(self, resource_id: _Optional[str] = ..., slug: _Optional[str] = ...) -> None: ...
 
 class ApiResourceReference(_message.Message):
-    __slots__ = ("org", "kind", "slug", "version")
+    __slots__ = ("org", "kind", "slug", "version", "id")
     ORG_FIELD_NUMBER: _ClassVar[int]
     KIND_FIELD_NUMBER: _ClassVar[int]
     SLUG_FIELD_NUMBER: _ClassVar[int]
     VERSION_FIELD_NUMBER: _ClassVar[int]
+    ID_FIELD_NUMBER: _ClassVar[int]
     org: str
     kind: _api_resource_kind_pb2.ApiResourceKind
     slug: str
     version: str
-    def __init__(self, org: _Optional[str] = ..., kind: _Optional[_Union[_api_resource_kind_pb2.ApiResourceKind, str]] = ..., slug: _Optional[str] = ..., version: _Optional[str] = ...) -> None: ...
+    id: str
+    def __init__(self, org: _Optional[str] = ..., kind: _Optional[_Union[_api_resource_kind_pb2.ApiResourceKind, str]] = ..., slug: _Optional[str] = ..., version: _Optional[str] = ..., id: _Optional[str] = ...) -> None: ...

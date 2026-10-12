@@ -51,50 +51,46 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "oto\0322ai/stigmer/commons/apiresource/fiel" +
       "d_options.proto\032\'ai/stigmer/commons/apir" +
       "esource/io.proto\032\033buf/validate/validate." +
-      "proto\"\355\t\n\016AgentShareSpec\022\266\001\n\tagent_ref\030\001" +
-      " \001(\01324.ai.stigmer.commons.apiresource.Ap" +
-      "iResourceReferenceBc\272H\\\272\001V\n\016agent_ref.ki" +
-      "nd\0223agent_ref must reference a resource " +
-      "with kind=agent\032\017this.kind == 40\310\001\001\340\205,(R" +
-      "\010agentRef\022\030\n\007enabled\030\002 \001(\010R\007enabled\022P\n\010a" +
-      "udience\030\003 \001(\01624.ai.stigmer.agentic.agent" +
-      "share.v1.AgentShareAudienceR\010audience\022\300\002" +
-      "\n\017allowed_origins\030\004 \003(\tB\226\002\272H\222\002\222\001\216\002\020 \"\211\002\272" +
-      "\001\205\002\n\026allowed_origins.format\022nallowed_ori" +
-      "gins entries must be exact web origins l" +
-      "ike https://example.com (no path, query," +
-      " or trailing slash)\032{this.matches(\'^http" +
-      "s?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9" +
-      "])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0" +
-      "-9])?)*(:[0-9]{1,5})?$\')R\016allowedOrigins" +
-      "\022P\n\010messages\030\005 \001(\01324.ai.stigmer.agentic." +
-      "agentshare.v1.AgentShareMessagesR\010messag" +
-      "es\022\256\001\n\006vaults\030\010 \003(\01324.ai.stigmer.commons" +
-      ".apiresource.ApiResourceReferenceB`\272HY\222\001" +
-      "V\020\024\"R\272\001O\n\013vaults.kind\022/vaults must refer" +
-      "ence resources with kind=vault\032\017this.kin" +
-      "d == 59\340\205,;R\006vaults\022C\n\nrun_config\030\007 \001(\0132" +
-      "$.ai.stigmer.agentic.run.v1.RunConfigR\tr" +
-      "unConfig:\222\002\272H\216\002\032\201\001\n\036agent_share.vaults_p" +
-      "ublic_only\0220vaults can only be set on pu" +
-      "blic-audience shares\032-this.audience == 1" +
-      " || this.vaults.size() == 0\032\207\001\n\"agent_sh" +
-      "are.run_config_public_only\0224run_config c" +
-      "an only be set on public-audience shares" +
-      "\032+this.audience == 1 || !has(this.run_co" +
-      "nfig)J\004\010\006\020\007R\020environment_refs\"\246\001\n\022AgentS" +
-      "hareMessages\022+\n\014rate_limited\030\001 \001(\tB\010\272H\005r" +
-      "\003\030\254\002R\013rateLimited\022*\n\013unavailable\030\002 \001(\tB\010" +
-      "\272H\005r\003\030\254\002R\013unavailable\0227\n\022conversation_en" +
-      "ded\030\003 \001(\tB\010\272H\005r\003\030\254\002R\021conversationEnded*y" +
-      "\n\022AgentShareAudience\022$\n agent_share_audi" +
-      "ence_unspecified\020\000\022\037\n\033agent_share_audien" +
-      "ce_public\020\001\022\034\n\030agent_share_audience_org\020" +
-      "\002B\260\001B\tSpecProtoP\001\242\002\004ASAA\252\002 Ai.Stigmer.Ag" +
-      "entic.Agentshare.V1\312\002 Ai\\Stigmer\\Agentic" +
-      "\\Agentshare\\V1\342\002,Ai\\Stigmer\\Agentic\\Agen" +
-      "tshare\\V1\\GPBMetadata\352\002$Ai::Stigmer::Age" +
-      "ntic::Agentshare::V1b\006proto3"
+      "proto\"\276\010\n\016AgentShareSpec\022]\n\tagent_ref\030\001 " +
+      "\001(\01324.ai.stigmer.commons.apiresource.Api" +
+      "ResourceReferenceB\n\272H\003\310\001\001\340\205,(R\010agentRef\022" +
+      "\030\n\007enabled\030\002 \001(\010R\007enabled\022P\n\010audience\030\003 " +
+      "\001(\01624.ai.stigmer.agentic.agentshare.v1.A" +
+      "gentShareAudienceR\010audience\022\300\002\n\017allowed_" +
+      "origins\030\004 \003(\tB\226\002\272H\222\002\222\001\216\002\020 \"\211\002\272\001\205\002\n\026allow" +
+      "ed_origins.format\022nallowed_origins entri" +
+      "es must be exact web origins like https:" +
+      "//example.com (no path, query, or traili" +
+      "ng slash)\032{this.matches(\'^https?://[A-Za" +
+      "-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-" +
+      "Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[" +
+      "0-9]{1,5})?$\')R\016allowedOrigins\022P\n\010messag" +
+      "es\030\005 \001(\01324.ai.stigmer.agentic.agentshare" +
+      ".v1.AgentShareMessagesR\010messages\022Z\n\006vaul" +
+      "ts\030\010 \003(\01324.ai.stigmer.commons.apiresourc" +
+      "e.ApiResourceReferenceB\014\272H\005\222\001\002\020\024\340\205,;R\006va" +
+      "ults\022C\n\nrun_config\030\007 \001(\0132$.ai.stigmer.ag" +
+      "entic.run.v1.RunConfigR\trunConfig:\222\002\272H\216\002" +
+      "\032\201\001\n\036agent_share.vaults_public_only\0220vau" +
+      "lts can only be set on public-audience s" +
+      "hares\032-this.audience == 1 || this.vaults" +
+      ".size() == 0\032\207\001\n\"agent_share.run_config_" +
+      "public_only\0224run_config can only be set " +
+      "on public-audience shares\032+this.audience" +
+      " == 1 || !has(this.run_config)J\004\010\006\020\007R\020en" +
+      "vironment_refs\"\246\001\n\022AgentShareMessages\022+\n" +
+      "\014rate_limited\030\001 \001(\tB\010\272H\005r\003\030\254\002R\013rateLimit" +
+      "ed\022*\n\013unavailable\030\002 \001(\tB\010\272H\005r\003\030\254\002R\013unava" +
+      "ilable\0227\n\022conversation_ended\030\003 \001(\tB\010\272H\005r" +
+      "\003\030\254\002R\021conversationEnded*y\n\022AgentShareAud" +
+      "ience\022$\n agent_share_audience_unspecifie" +
+      "d\020\000\022\037\n\033agent_share_audience_public\020\001\022\034\n\030" +
+      "agent_share_audience_org\020\002B\260\001B\tSpecProto" +
+      "P\001\242\002\004ASAA\252\002 Ai.Stigmer.Agentic.Agentshar" +
+      "e.V1\312\002 Ai\\Stigmer\\Agentic\\Agentshare\\V1\342" +
+      "\002,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMe" +
+      "tadata\352\002$Ai::Stigmer::Agentic::Agentshar" +
+      "e::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

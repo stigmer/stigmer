@@ -396,10 +396,11 @@ async function createExecution(
     )
     .addStep(newRequireApprovalAuthorityStep(deps.authorizer))
     .addStep(newValidateSessionOrganizationStep(deps.store))
+    // The run's organization is known once the session's is checked.
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newResolveSlugStep())
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newResolveRunAgentStep(deps.store, deps.logger, deps.authorizer))
     .addStep(
@@ -545,10 +546,10 @@ async function update(
     .addStep(newResolveSlugStep({ update: true }))
     .addStep(newLoadExistingStep(deps.store))
     .addStep(newBuildUpdateStateStep())
+    .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newKeepPluginEvalCaseStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateSessionImmutabilityStep())
-    .addStep(newNormalizeReferencesStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPersistStep(deps.store))
     .addStep(

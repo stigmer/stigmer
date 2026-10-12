@@ -311,15 +311,14 @@ var File_ai_stigmer_agentic_agent_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xe2\v\n" +
+	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a(ai/stigmer/agentic/plugin/v1/hooks.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/vault/v1/declaration.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xc6\t\n" +
 	"\tAgentSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12+\n" +
 	"\finstructions\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\n" +
-	"R\finstructions\x12\xbb\x01\n" +
+	"R\finstructions\x12Y\n" +
 	"\n" +
-	"skill_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBf\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
-	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x12A\n" +
+	"skill_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,+R\tskillRefs\x12A\n" +
 	"\x03env\x18\a \x03(\v2/.ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntryR\x03env\x12\xa9\x01\n" +
 	"\x05tools\x18\n" +
 	" \x03(\tB\x92\x01\xbaH\x8e\x01\x92\x01\x8a\x01\"\x87\x01r\x84\x01\x18\x80\x022\x7f^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x05tools\x12\xbe\x01\n" +
@@ -327,11 +326,9 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\x05hooks\x18\f \x03(\v2'.ai.stigmer.agentic.agent.v1.HookSourceR\x05hooks\x12C\n" +
 	"\n" +
 	"run_config\x18\r \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12@\n" +
-	"\aharness\x18\x0e \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12\xb1\x01\n" +
-	"\aplugins\x18\x10 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBa\xbaHZ\x92\x01W\"U\xba\x01R\n" +
-	"\fplugins.kind\x121plugins must reference resources with kind=plugin\x1a\x0fthis.kind == 58\xe0\x85,:R\aplugins\x12\xba\x01\n" +
-	"\tsubagents\x18\x11 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBf\xbaH_\x92\x01\\\x10\x14\"X\xba\x01U\n" +
-	"\x0esubagents.kind\x122subagents must reference resources with kind=agent\x1a\x0fthis.kind == 40\xe0\x85,(R\tsubagents\x1af\n" +
+	"\aharness\x18\x0e \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12T\n" +
+	"\aplugins\x18\x10 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,:R\aplugins\x12`\n" +
+	"\tsubagents\x18\x11 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,(R\tsubagents\x1af\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
 	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.vault.v1.EnvVarDeclarationR\x05value:\x028\x01J\x04\b\x04\x10\x05J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +

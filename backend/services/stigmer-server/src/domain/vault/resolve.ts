@@ -932,7 +932,9 @@ export function newVaultResolver(deps: VaultResolverDeps): VaultResolver {
   async function findNamed(entry: NamedVault): Promise<Vault> {
     const vault = await deps.vaults.findByReference(entry.ref, entry.fallbackOrgId);
     if (vault === undefined) {
-      const refText = `${entry.ref.org || entry.fallbackOrgId}/${entry.ref.slug}`;
+      // A vault that is gone has no name left; its id is what the
+      // reference holds.
+      const refText = `${entry.ref.org || entry.fallbackOrgId}/${entry.ref.slug !== "" ? entry.ref.slug : entry.ref.id}`;
       throw failedPreconditionError(
         `vault ${refText}, named by ${entry.namedBy}, no longer exists: remove it from ${entry.namedBy} or create it again`,
       );

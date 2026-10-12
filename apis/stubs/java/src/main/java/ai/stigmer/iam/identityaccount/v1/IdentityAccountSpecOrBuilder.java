@@ -200,7 +200,7 @@ public interface IdentityAccountSpecOrBuilder extends
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
    * @return Whether the identityProviderRef field is set.
    */
   boolean hasIdentityProviderRef();
@@ -213,7 +213,7 @@ public interface IdentityAccountSpecOrBuilder extends
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
    * @return The identityProviderRef.
    */
   ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef();
@@ -226,7 +226,7 @@ public interface IdentityAccountSpecOrBuilder extends
    * (ignored for create) this value is assigned by backend.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder();
 

@@ -33,9 +33,9 @@ export const BUILT_IN_ASSISTANT_NAME = "Assistant";
 
 /**
  * Whether a session runs the built-in assistant rather than an agent: it
- * names no agent (`spec.agentRef`) and pins none (`status.agentId`, which
- * the server writes when the reference resolves). The one reading, so no
- * caller re-derives it. A session that pins an agent since deleted is not
+ * names no agent (`spec.agentRef`, by slug or by id) and pins none
+ * (`status.agentId`, which the server writes when the reference
+ * resolves). The one reading, so no caller re-derives it. A session that pins an agent since deleted is not
  * the built-in assistant: its next turn fails naming the agent.
  */
 export function isBuiltInAssistant(
@@ -43,6 +43,7 @@ export function isBuiltInAssistant(
 ): boolean {
   return (
     (session?.spec?.agentRef?.slug ?? "") === "" &&
+    (session?.spec?.agentRef?.id ?? "") === "" &&
     (session?.status?.agentId ?? "") === ""
   );
 }

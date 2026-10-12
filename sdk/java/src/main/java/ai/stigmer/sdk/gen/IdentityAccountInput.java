@@ -4,6 +4,7 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccount;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountPreferences;
 import ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode;
@@ -67,7 +68,8 @@ public final class IdentityAccountInput {
             spec.setProvisioningMode(this.provisioningMode);
         }
         if (this.identityProviderRef != null && this.identityProviderRef.hasIdentifier()) {
-            spec.setIdentityProviderRef(this.identityProviderRef.toProto());
+            spec.setIdentityProviderRef(this.identityProviderRef.toProto().toBuilder()
+                .setKind(ApiResourceKind.identity_provider).build());
         }
         if (this.preferences != null) {
             spec.setPreferences(this.preferences.toProto());

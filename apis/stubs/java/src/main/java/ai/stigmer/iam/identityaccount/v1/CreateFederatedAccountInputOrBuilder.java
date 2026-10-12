@@ -42,7 +42,7 @@ public interface CreateFederatedAccountInputOrBuilder extends
    * The IdP must exist and belong to the specified org.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
    * @return Whether the identityProviderRef field is set.
    */
   boolean hasIdentityProviderRef();
@@ -52,7 +52,7 @@ public interface CreateFederatedAccountInputOrBuilder extends
    * The IdP must exist and belong to the specified org.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
    * @return The identityProviderRef.
    */
   ai.stigmer.commons.apiresource.ApiResourceReference getIdentityProviderRef();
@@ -62,7 +62,7 @@ public interface CreateFederatedAccountInputOrBuilder extends
    * The IdP must exist and belong to the specified org.
    * </pre>
    *
-   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef"];</code>
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 2 [json_name = "identityProviderRef", (.ai.stigmer.commons.apiresource.reference_kind) = identity_provider];</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getIdentityProviderRefOrBuilder();
 

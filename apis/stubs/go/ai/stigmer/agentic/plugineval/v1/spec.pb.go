@@ -351,7 +351,7 @@ var File_ai_stigmer_agentic_plugineval_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_plugineval_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/plugineval/v1/spec.proto\x12 ai.stigmer.agentic.plugineval.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x90\t\n" +
+	"+ai/stigmer/agentic/plugineval/v1/spec.proto\x12 ai.stigmer.agentic.plugineval.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xbb\b\n" +
 	"\x0ePluginEvalSpec\x12$\n" +
 	"\tplugin_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bpluginId\x12=\n" +
 	"\rplugin_digest\x18\x02 \x01(\tB\x18\xbaH\x15r\x132\x11^$|^[a-f0-9]{64}$R\fpluginDigest\x12V\n" +
@@ -370,9 +370,8 @@ const file_ai_stigmer_agentic_plugineval_v1_spec_proto_rawDesc = "" +
 	"\vconcurrency\x18\v \x01(\x05B\t\xbaH\x06\x1a\x04\x18\b(\x00R\vconcurrency\x12\xe2\x01\n" +
 	"\vallow_tools\x18\f \x03(\tB\xc0\x01\xbaH\xbc\x01\x92\x01\xb8\x01\x10@\"\xb3\x01r\xb0\x01\x18\x80\x022\xaa\x01^(mcp__\\*|mcp__plugin_[A-Za-z0-9.-]+_[A-Za-z0-9_.-]+?(__(\\*|[A-Za-z0-9_.-]+))?|mcp__[a-z][a-z0-9-]*[a-z0-9](__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\n" +
 	"allowTools\x12(\n" +
-	"\x10real_mcp_servers\x18\r \x01(\bR\x0erealMcpServers\x12\xae\x01\n" +
-	"\x06vaults\x18\x0e \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB`\xbaHY\x92\x01V\x10\x14\"R\xba\x01O\n" +
-	"\vvaults.kind\x12/vaults must reference resources with kind=vault\x1a\x0fthis.kind == 59\xe0\x85,;R\x06vaults\x12#\n" +
+	"\x10real_mcp_servers\x18\r \x01(\bR\x0erealMcpServers\x12Z\n" +
+	"\x06vaults\x18\x0e \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,;R\x06vaults\x12#\n" +
 	"\rskip_scaffold\x18\x0f \x01(\bR\fskipScaffold\x12,\n" +
 	"\x12allow_real_servers\x18\x10 \x01(\bR\x10allowRealServersB\f\n" +
 	"\n" +

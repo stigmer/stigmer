@@ -94,20 +94,23 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "ourceVisibilityB\n\272H\007\202\001\004\020\001 \000R\nvisibility\"" +
       "s\n\013RenameInput\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003" +
       "\310\001\001R\nresourceId\022;\n\004slug\030\002 \001(\tB\'\272H$r\037\020\002\030?" +
-      "2\031^[a-z][a-z0-9-]*[a-z0-9]$\310\001\001R\004slug\"\303\002\n" +
+      "2\031^[a-z][a-z0-9-]*[a-z0-9]$\310\001\001R\004slug\"\303\003\n" +
       "\024ApiResourceReference\022J\n\003org\030\001 \001(\tB8\272H5r" +
       "3\030?2/^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[" +
       "0-9a-z]{26}$R\003org\022S\n\004kind\030\002 \001(\0162?.ai.sti" +
       "gmer.commons.apiresource.apiresourcekind" +
       ".ApiResourceKindR\004kind\022;\n\004slug\030\003 \001(\tB\'\272H" +
-      "$r\037\020\002\030?2\031^[a-z][a-z0-9-]*[a-z0-9]$\310\001\001R\004s" +
+      "$r\037\020\002\030?2\031^[a-z][a-z0-9-]*[a-z0-9]$\330\001\001R\004s" +
       "lug\022M\n\007version\030\004 \001(\tB3\272H0r.2,^$|^latest$" +
       "|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\007versi" +
-      "onB\245\001B\007IoProtoP\001\242\002\004ASCA\252\002\036Ai.Stigmer.Com" +
-      "mons.Apiresource\312\002\036Ai\\Stigmer\\Commons\\Ap" +
-      "iresource\342\002*Ai\\Stigmer\\Commons\\Apiresour" +
-      "ce\\GPBMetadata\352\002!Ai::Stigmer::Commons::A" +
-      "piresourceb\006proto3"
+      "on\022\016\n\002id\030\005 \001(\tR\002id:n\272Hk\032i\n\024reference.id_" +
+      "or_slug\022/a reference names its resource " +
+      "by id or by slug\032 this.id != \'\' || this." +
+      "slug != \'\'B\245\001B\007IoProtoP\001\242\002\004ASCA\252\002\036Ai.Sti" +
+      "gmer.Commons.Apiresource\312\002\036Ai\\Stigmer\\Co" +
+      "mmons\\Apiresource\342\002*Ai\\Stigmer\\Commons\\A" +
+      "piresource\\GPBMetadata\352\002!Ai::Stigmer::Co" +
+      "mmons::Apiresourceb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -158,7 +161,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_commons_apiresource_ApiResourceReference_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_commons_apiresource_ApiResourceReference_descriptor,
-        new java.lang.String[] { "Org", "Kind", "Slug", "Version", });
+        new java.lang.String[] { "Org", "Kind", "Slug", "Version", "Id", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindProto.getDescriptor();
     ai.stigmer.commons.apiresource.EnumProto.getDescriptor();
@@ -167,6 +170,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

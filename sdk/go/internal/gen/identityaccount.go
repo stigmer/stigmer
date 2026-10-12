@@ -6,6 +6,7 @@ import (
 	"context"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	identityaccountv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -162,7 +163,9 @@ func (i *IdentityAccountInput) toProto() (*identityaccountv1.IdentityAccount, er
 	resource.Spec.IsMachineAccount = i.IsMachineAccount
 	resource.Spec.ProvisioningMode = i.ProvisioningMode
 	if i.IdentityProviderRef.Org != "" || i.IdentityProviderRef.Slug != "" {
-		resource.Spec.IdentityProviderRef = i.IdentityProviderRef.toProto()
+		ref := i.IdentityProviderRef.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_identity_provider
+		resource.Spec.IdentityProviderRef = ref
 	}
 	if i.Preferences != nil {
 		v, err := i.Preferences.toProto()

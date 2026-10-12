@@ -46,7 +46,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "to\0322ai/stigmer/commons/apiresource/field" +
       "_options.proto\032\'ai/stigmer/commons/apire" +
       "source/io.proto\032\033buf/validate/validate.p" +
-      "roto\"\316\010\n\rAgentEvalSpec\022\"\n\010agent_id\030\001 \001(\t" +
+      "roto\"\371\007\n\rAgentEvalSpec\022\"\n\010agent_id\030\001 \001(\t" +
       "B\007\272H\004r\002\020\001R\007agentId\022-\n\ragent_version\030\002 \001(" +
       "\tB\010\272H\005r\003\030\200\001R\014agentVersion\022+\n\007plugins\030\003 \003" +
       "(\tB\021\272H\016\222\001\013\020@\"\007r\005\020\001\030\200\001R\007plugins\022V\n\007target" +
@@ -66,19 +66,17 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "9_.-]+))?|mcp__[a-z][a-z0-9-]*[a-z0-9](_" +
       "_(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_" +
       "]*(\\([^()\\r\\n]+\\))?)$R\nallowTools\022(\n\020rea" +
-      "l_mcp_servers\030\r \001(\010R\016realMcpServers\022\256\001\n\006" +
-      "vaults\030\016 \003(\01324.ai.stigmer.commons.apires" +
-      "ource.ApiResourceReferenceB`\272HY\222\001V\020\024\"R\272\001" +
-      "O\n\013vaults.kind\022/vaults must reference re" +
-      "sources with kind=vault\032\017this.kind == 59" +
-      "\340\205,;R\006vaults\022#\n\rskip_scaffold\030\017 \001(\010R\014ski" +
-      "pScaffold\022,\n\022allow_real_servers\030\020 \001(\010R\020a" +
-      "llowRealServersB\014\n\n_thresholdB\254\001B\tSpecPr" +
-      "otoP\001\242\002\004ASAA\252\002\037Ai.Stigmer.Agentic.Agente" +
-      "val.V1\312\002\037Ai\\Stigmer\\Agentic\\Agenteval\\V1" +
-      "\342\002+Ai\\Stigmer\\Agentic\\Agenteval\\V1\\GPBMe" +
-      "tadata\352\002#Ai::Stigmer::Agentic::Agenteval" +
-      "::V1b\006proto3"
+      "l_mcp_servers\030\r \001(\010R\016realMcpServers\022Z\n\006v" +
+      "aults\030\016 \003(\01324.ai.stigmer.commons.apireso" +
+      "urce.ApiResourceReferenceB\014\272H\005\222\001\002\020\024\340\205,;R" +
+      "\006vaults\022#\n\rskip_scaffold\030\017 \001(\010R\014skipScaf" +
+      "fold\022,\n\022allow_real_servers\030\020 \001(\010R\020allowR" +
+      "ealServersB\014\n\n_thresholdB\254\001B\tSpecProtoP\001" +
+      "\242\002\004ASAA\252\002\037Ai.Stigmer.Agentic.Agenteval.V" +
+      "1\312\002\037Ai\\Stigmer\\Agentic\\Agenteval\\V1\342\002+Ai" +
+      "\\Stigmer\\Agentic\\Agenteval\\V1\\GPBMetadat" +
+      "a\352\002#Ai::Stigmer::Agentic::Agenteval::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

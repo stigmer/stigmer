@@ -147,7 +147,9 @@ class IdentityAccountInput:
             provisioning_mode=self.provisioning_mode,
         )
         if self.identity_provider_ref is not None and (self.identity_provider_ref.org or self.identity_provider_ref.slug):
-            spec.identity_provider_ref.CopyFrom(self.identity_provider_ref._to_proto())
+            _ref = self.identity_provider_ref._to_proto()
+            _ref.kind = 21
+            spec.identity_provider_ref.CopyFrom(_ref)
         if self.preferences is not None:
             spec.preferences.CopyFrom(self.preferences._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(

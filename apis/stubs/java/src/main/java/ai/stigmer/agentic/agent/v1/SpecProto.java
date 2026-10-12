@@ -59,51 +59,44 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "roto\0322ai/stigmer/commons/apiresource/fie" +
       "ld_options.proto\032\'ai/stigmer/commons/api" +
       "resource/io.proto\032\033buf/validate/validate" +
-      ".proto\"\342\013\n\tAgentSpec\022 \n\013description\030\001 \001(" +
+      ".proto\"\306\t\n\tAgentSpec\022 \n\013description\030\001 \001(" +
       "\tR\013description\022\031\n\010icon_url\030\002 \001(\tR\007iconUr" +
       "l\022+\n\014instructions\030\003 \001(\tB\007\272H\004r\002\020\nR\014instru" +
-      "ctions\022\273\001\n\nskill_refs\030\005 \003(\01324.ai.stigmer" +
-      ".commons.apiresource.ApiResourceReferenc" +
-      "eBf\272H_\222\001\\\"Z\272\001W\n\017skill_refs.kind\0223skill_r" +
-      "efs must reference resources with kind=s" +
-      "kill\032\017this.kind == 43\340\205,+R\tskillRefs\022A\n\003" +
-      "env\030\007 \003(\0132/.ai.stigmer.agentic.agent.v1." +
-      "AgentSpec.EnvEntryR\003env\022\251\001\n\005tools\030\n \003(\tB" +
-      "\222\001\272H\216\001\222\001\212\001\"\207\001r\204\001\030\200\0022\177^(mcp__\\*|mcp__([a-" +
-      "z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-" +
-      "]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Z" +
-      "a-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\005tools\022\276\001\n\020" +
-      "disallowed_tools\030\013 \003(\tB\222\001\272H\216\001\222\001\212\001\"\207\001r\204\001\030" +
-      "\200\0022\177^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0" +
-      "-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za" +
-      "-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\" +
-      "r\\n]+\\))?)$R\017disallowedTools\022=\n\005hooks\030\014 " +
-      "\003(\0132\'.ai.stigmer.agentic.agent.v1.HookSo" +
-      "urceR\005hooks\022C\n\nrun_config\030\r \001(\0132$.ai.sti" +
-      "gmer.agentic.run.v1.RunConfigR\trunConfig" +
-      "\022@\n\007harness\030\016 \001(\0162&.ai.stigmer.agentic.s" +
-      "ession.v1.HarnessR\007harness\022\261\001\n\007plugins\030\020" +
-      " \003(\01324.ai.stigmer.commons.apiresource.Ap" +
-      "iResourceReferenceBa\272HZ\222\001W\"U\272\001R\n\014plugins" +
-      ".kind\0221plugins must reference resources " +
-      "with kind=plugin\032\017this.kind == 58\340\205,:R\007p" +
-      "lugins\022\272\001\n\tsubagents\030\021 \003(\01324.ai.stigmer." +
+      "ctions\022Y\n\nskill_refs\030\005 \003(\01324.ai.stigmer." +
       "commons.apiresource.ApiResourceReference" +
-      "Bf\272H_\222\001\\\020\024\"X\272\001U\n\016subagents.kind\0222subagen" +
-      "ts must reference resources with kind=ag" +
-      "ent\032\017this.kind == 40\340\205,(R\tsubagents\032f\n\010E" +
-      "nvEntry\022\020\n\003key\030\001 \001(\tR\003key\022D\n\005value\030\002 \001(\013" +
-      "2..ai.stigmer.agentic.vault.v1.EnvVarDec" +
-      "larationR\005value:\0028\001J\004\010\004\020\005J\004\010\006\020\007J\004\010\010\020\tJ\004\010" +
-      "\t\020\nJ\004\010\017\020\020R\021mcp_server_usagesR\nsub_agents" +
-      "R\007sharingR\020datastore_usagesR\006vaults\"o\n\nH" +
-      "ookSource\022B\n\006inline\030\002 \001(\0132(.ai.stigmer.a" +
-      "gentic.plugin.v1.HookConfigH\000R\006inlineB\017\n" +
-      "\006source\022\005\272H\002\010\001J\004\010\001\020\002R\006pluginB\234\001B\tSpecPro" +
-      "toP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V" +
-      "1\312\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Sti" +
-      "gmer\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::" +
-      "Stigmer::Agentic::Agent::V1b\006proto3"
+      "B\004\340\205,+R\tskillRefs\022A\n\003env\030\007 \003(\0132/.ai.stig" +
+      "mer.agentic.agent.v1.AgentSpec.EnvEntryR" +
+      "\003env\022\251\001\n\005tools\030\n \003(\tB\222\001\272H\216\001\222\001\212\001\"\207\001r\204\001\030\200\002" +
+      "2\177^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9" +
+      "]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z" +
+      "0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\" +
+      "n]+\\))?)$R\005tools\022\276\001\n\020disallowed_tools\030\013 " +
+      "\003(\tB\222\001\272H\216\001\222\001\212\001\"\207\001r\204\001\030\200\0022\177^(mcp__\\*|mcp__" +
+      "([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z" +
+      "0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z]" +
+      "[A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\017disall" +
+      "owedTools\022=\n\005hooks\030\014 \003(\0132\'.ai.stigmer.ag" +
+      "entic.agent.v1.HookSourceR\005hooks\022C\n\nrun_" +
+      "config\030\r \001(\0132$.ai.stigmer.agentic.run.v1" +
+      ".RunConfigR\trunConfig\022@\n\007harness\030\016 \001(\0162&" +
+      ".ai.stigmer.agentic.session.v1.HarnessR\007" +
+      "harness\022T\n\007plugins\030\020 \003(\01324.ai.stigmer.co" +
+      "mmons.apiresource.ApiResourceReferenceB\004" +
+      "\340\205,:R\007plugins\022`\n\tsubagents\030\021 \003(\01324.ai.st" +
+      "igmer.commons.apiresource.ApiResourceRef" +
+      "erenceB\014\272H\005\222\001\002\020\024\340\205,(R\tsubagents\032f\n\010EnvEn" +
+      "try\022\020\n\003key\030\001 \001(\tR\003key\022D\n\005value\030\002 \001(\0132..a" +
+      "i.stigmer.agentic.vault.v1.EnvVarDeclara" +
+      "tionR\005value:\0028\001J\004\010\004\020\005J\004\010\006\020\007J\004\010\010\020\tJ\004\010\t\020\nJ" +
+      "\004\010\017\020\020R\021mcp_server_usagesR\nsub_agentsR\007sh" +
+      "aringR\020datastore_usagesR\006vaults\"o\n\nHookS" +
+      "ource\022B\n\006inline\030\002 \001(\0132(.ai.stigmer.agent" +
+      "ic.plugin.v1.HookConfigH\000R\006inlineB\017\n\006sou" +
+      "rce\022\005\272H\002\010\001J\004\010\001\020\002R\006pluginB\234\001B\tSpecProtoP\001" +
+      "\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V1\312\002\033" +
+      "Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer" +
+      "\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::Stig" +
+      "mer::Agentic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

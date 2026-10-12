@@ -50,6 +50,8 @@ interface MakeChannelOverrides {
   name?: string;
   /** BYO channel-app binding (spec.app_ref); absent = platform app. */
   appRefSlug?: string;
+  /** A BYO app deleted since: the reference comes back with this id and no slug. */
+  appRefDeletedId?: string;
 }
 
 function createMockStigmer(overrides: MockOverrides = {}) {
@@ -127,6 +129,7 @@ function makeChannel(overrides: MakeChannelOverrides = {}) {
     id = "ach_1",
     name = "Support Slack",
     appRefSlug,
+    appRefDeletedId,
   } = overrides;
   return {
     metadata: { id, org: "acme", slug: "support-slack", name, labels: {} },
@@ -135,6 +138,7 @@ function makeChannel(overrides: MakeChannelOverrides = {}) {
       enabled,
       providerConfig: { case: "slack", value: {} },
       ...(appRefSlug ? { appRef: { org: "acme", slug: appRefSlug } } : {}),
+      ...(appRefDeletedId ? { appRef: { org: "acme", slug: "", id: appRefDeletedId } } : {}),
     },
     status: {
       installState,
@@ -317,6 +321,19 @@ describe("AgentChannelsPanel", () => {
     expect(
       screen.getByText(/Serving app: acme-support-app \(your app\)/),
     ).toBeTruthy();
+  });
+
+  it("names a serving app deleted since as a deleted channel app, never the platform app", async () => {
+    const client = createMockStigmer({
+      channels: [makeChannel({ id: "ach_3", name: "Orphaned Channel", appRefDeletedId: "cha_gone" })],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+    await waitFor(() => expect(screen.getByText(/Serving app: deleted channel app/)).toBeTruthy());
+    expect(screen.queryByText(/members @mention Stigmer/)).toBeNull();
   });
 
   it("opens the connect dialog from the empty state", async () => {

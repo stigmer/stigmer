@@ -3,7 +3,11 @@
 import { useCallback, useState } from "react";
 import { FileCode2, KeyRound, LayoutTemplate, MessageSquare, MoreHorizontal, Share2, SlidersHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import {
+  deletedReferenceLabel,
+  getUserMessage,
+  isDeletedReference,
+} from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
@@ -467,11 +471,17 @@ function ChannelCard({
   // the identity people address, so prefer it over the ref's slug when
   // the app is in the fetched list (it may not be — e.g. the app was
   // deleted after install).
+  // An app deleted since comes back with no slug: it still names the
+  // channel's serving app, read as "deleted channel app", never as the
+  // platform app an absent reference means.
   const servingAppSlug = channel.spec?.appRef?.slug || null;
-  const servingAppName = servingAppSlug
+  const namedServingApp = servingAppSlug
     ? channelApps.find((app) => app.metadata?.slug === servingAppSlug)
         ?.metadata?.name || servingAppSlug
     : null;
+  const servingAppName = isDeletedReference(channel.spec?.appRef)
+    ? deletedReferenceLabel(ApiResourceKind.channel_app)
+    : namedServingApp;
 
   // The spec's provider marker is set at create; unknown cases (a newer
   // server) fall back to the default provider mark rather than no icon,
