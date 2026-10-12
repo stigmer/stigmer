@@ -232,7 +232,7 @@ Every hit falls into one of three classes:
 | `sdk/react/src/models/HarnessSelector.tsx`                                                                                  | The premium mark on the Cursor segment; the segments themselves come from `HARNESS_OPTIONS`.                                                                                                                                                                                                                                  |
 | `sdk/react/src/models/ModelSelector.tsx`                                                                                    | A Cursor-only thinking rule.                                                                                                                                                                                                                                                                                                  |
 | `sdk/react/src/identity-account/AccountPreferencesPanel.tsx`                                                                | One `HarnessOptionRow` per harness, placed by hand.                                                                                                                                                                                                                                                                           |
-| `sdk/react/src/pricing-governance/BaselineEditor.tsx`                                                                       | A select with one option per harness.                                                                                                                                                                                                                                                                                         |
+| `sdk/react/src/model-catalog/BaselineEditor.tsx`                                                                            | A select with one option per harness.                                                                                                                                                                                                                                                                                         |
 | `site/src/components/pages/pricing/ModelPricingTable.tsx`                                                                   | Harness to display label.                                                                                                                                                                                                                                                                                                     |
 | `docs/concepts/harnesses.mdx`, `docs/concepts/sessions.mdx`, `docs/guides/runners/cursor-harness.mdx`, `docs/vocabulary.md` | Hand-authored pages that name the harness set; each has an entry in `docs/_inventory/classification.yaml` to keep current.                                                                                                                                                                                                    |
 
@@ -246,9 +246,8 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
 
 - `apis/`: `apis/ai/stigmer/agentic/run/v1/io.proto`,
   `apis/ai/stigmer/agentic/run/v1/usage.proto`,
-  `apis/ai/stigmer/billing/v1/model_pricing_baseline.proto`,
-  `apis/ai/stigmer/billing/v1/pricing_override.proto` (free-form provider or
-  harness strings with examples); the fixtures under
+  `apis/ai/stigmer/billing/v1/model_pricing_baseline.proto` (free-form
+  provider or harness strings with examples); the fixtures under
   `apis/testdata/hitl/file-review/`.
 - The server: `backend/services/stigmer-server/src/domain/session/steps.ts` (the
   immutability check; no per-harness arm);

@@ -7,7 +7,6 @@ import "ai/stigmer/agentic/run/v1/usage.proto";
 import "ai/stigmer/billing/v1/credit.proto";
 import "ai/stigmer/billing/v1/enum.proto";
 import "ai/stigmer/billing/v1/model_pricing_baseline.proto";
-import "ai/stigmer/billing/v1/pricing_override.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
@@ -483,72 +482,6 @@ message CustomerModelPricingResponse {
   repeated CustomerModelPricingEntry entries = 1;
 }
 
-// GetModelPricingGovernanceInput requests the platform pricing governance
-// view: every model's baseline vs effective rates, active overrides with
-// provenance, and pending sign-off proposals.
-message GetModelPricingGovernanceInput {}
-
-// ModelPricingGovernanceResponse is the operator's view of the pricing
-// feedback loop: what the platform charges with today, where each
-// rate came from, and what awaits a decision.
-message ModelPricingGovernanceResponse {
-  // One entry per (model, variant) pricing key in the effective registry.
-  repeated ModelPricingGovernanceEntry entries = 1;
-
-  // Overrides awaiting a human decision, oldest first.
-  repeated ModelPricingOverride pending_overrides = 2;
-}
-
-// ModelPricingGovernanceEntry shows one pricing key's baseline vs effective
-// rates. Raw provider rates (pre-markup) — this is an operator surface, not
-// a customer price list.
-message ModelPricingGovernanceEntry {
-  string model_id = 1;
-  string display_name = 2;
-  string provider = 3;
-  string harness = 4;
-  string cost_tier = 5;
-
-  // Pricing variant ("" for base, "fast" for the speed variant).
-  string variant = 6;
-
-  // Baseline rates from model-registry.json, micro-USD per million tokens.
-  int64 baseline_input_micros_per_million = 7;
-  int64 baseline_output_micros_per_million = 8;
-  int64 baseline_cache_write_micros_per_million = 9;
-  int64 baseline_cache_read_micros_per_million = 10;
-  int64 baseline_cursor_token_rate_micros_per_million = 11;
-
-  // Effective rates (baseline with ACTIVE overrides composed), micro-USD
-  // per million tokens. Equal to the baseline when no override is active.
-  int64 effective_input_micros_per_million = 12;
-  int64 effective_output_micros_per_million = 13;
-  int64 effective_cache_write_micros_per_million = 14;
-  int64 effective_cache_read_micros_per_million = 15;
-  int64 effective_cursor_token_rate_micros_per_million = 16;
-
-  // ACTIVE overrides composed into this entry, with full provenance.
-  repeated ModelPricingOverride active_overrides = 17;
-
-  // Whether an external provider ledger can verify this entry's rates.
-  // False for OSS/self-hosted models and Cursor first-party models — those
-  // are manually governed by the registry baseline.
-  bool ledger_reconcilable = 18;
-}
-
-// DecideModelPricingOverrideInput records a human decision on a
-// PENDING_SIGNOFF pricing override.
-message DecideModelPricingOverrideInput {
-  string override_id = 1 [(buf.validate.field).required = true];
-
-  // true approves (the override becomes ACTIVE and supersedes any current
-  // ACTIVE override on the same key); false rejects.
-  bool approve = 2;
-
-  // Optional note recorded on the decision for the audit trail.
-  string decision_note = 3;
-}
-
 // UpsertModelPricingBaselineInput creates or revises one model registry
 // baseline entry.
 //
@@ -557,9 +490,8 @@ message DecideModelPricingOverrideInput {
 // revision; otherwise a new catalog entry is created (which also revives a
 // RETIRED key). Lifecycle fields on the embedded baseline (baseline_id,
 // status, supersedes_baseline_id, decided_by/at, created_at) are
-// server-owned and ignored; pricing effective_at is stamped server-side so
-// baseline edits always win the staleness check against older
-// ledger-derived overrides (see ModelPricingBaseline.effective_at).
+// server-owned and ignored; pricing effective_at is stamped server-side
+// (see ModelPricingBaseline.effective_at).
 message UpsertModelPricingBaselineInput {
   ModelPricingBaseline baseline = 1 [(buf.validate.field).required = true];
 
@@ -570,9 +502,8 @@ message UpsertModelPricingBaselineInput {
 
 // RetireModelPricingBaselineInput removes one model from the catalog.
 //
-// The ACTIVE document for the key transitions to RETIRED; the next
-// composition pass drops the model from the effective registry and
-// archives any ACTIVE pricing overrides that targeted it.
+// The ACTIVE document for the key transitions to RETIRED; the rebuilt
+// registry drops the model.
 message RetireModelPricingBaselineInput {
   string model_id = 1 [(buf.validate.field).required = true];
   string provider = 2 [(buf.validate.field).required = true];

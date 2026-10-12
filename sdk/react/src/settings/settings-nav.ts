@@ -1,6 +1,5 @@
 import type { ComponentType } from "react";
 import {
-  Activity,
   AppWindow,
   BarChart3,
   Bot,
@@ -189,8 +188,8 @@ export const PLATFORM_SETTINGS_NAV_GROUP: SettingsNavGroup = {
     "Stigmer-internal operations. Visible to platform operators only.",
   items: [
     {
-      href: "/settings/pricing-governance",
-      label: "Pricing Governance",
+      href: "/settings/model-catalog",
+      label: "Model catalog",
       icon: Scale,
       requiredPermission: "can_manage_model_pricing",
     },
@@ -199,12 +198,6 @@ export const PLATFORM_SETTINGS_NAV_GROUP: SettingsNavGroup = {
       label: "Cursor Accounts",
       icon: MousePointerClick,
       requiredPermission: "can_manage_cursor_accounts",
-    },
-    {
-      href: "/settings/provider-standing",
-      label: "Provider Standing",
-      icon: Activity,
-      requiredPermission: "can_view_provider_standing",
     },
     {
       href: "/settings/licenses",

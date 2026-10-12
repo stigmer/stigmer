@@ -1,7 +1,7 @@
 // Billing — the customer-facing surface: subscription plans, credit
 // balance and ledger, payment methods, usage reports, and customer model
-// pricing. The platform-operator pricing surface (registry baseline
-// authoring, override sign-offs) lives in ../pricing-governance.
+// pricing. The platform-operator model catalog (registry baseline
+// authoring) lives in ../model-catalog.
 
 // Data hooks
 export { useBillingAccount } from "./useBillingAccount.js";

@@ -2,7 +2,7 @@ import type { Timestamp } from "@bufbuild/protobuf/wkt";
 
 // BigInt literals (0n) require an ES2020 target, which not every consuming
 // app's tsconfig guarantees — the constructor form is target-agnostic (the
-// pricing-governance pricing-format precedent).
+// model-catalog pricing-format precedent).
 const ZERO = BigInt(0);
 
 /**

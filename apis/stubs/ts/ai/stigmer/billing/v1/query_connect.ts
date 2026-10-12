@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { BillingUsageReportResponse, CreditLedgerResponse, CustomerModelPricingResponse, GetBillingAccountInput, GetBillingUsageReportInput, GetCreditBalanceInput, GetCreditLedgerInput, GetCustomerModelPricingInput, GetModelPricingGovernanceInput, GetRunBillingSignalInput, GetRunBillingSignalResponse, ListModelPricingBaselinesInput, ModelPricingBaselinesResponse, ModelPricingGovernanceResponse, PreviewAuthorizationInput, PreviewAuthorizationResponse } from "./io_pbjs";
+import { BillingUsageReportResponse, CreditLedgerResponse, CustomerModelPricingResponse, GetBillingAccountInput, GetBillingUsageReportInput, GetCreditBalanceInput, GetCreditLedgerInput, GetCustomerModelPricingInput, GetRunBillingSignalInput, GetRunBillingSignalResponse, ListModelPricingBaselinesInput, ModelPricingBaselinesResponse, PreviewAuthorizationInput, PreviewAuthorizationResponse } from "./io_pbjs";
 import { BillingAccount, CreditBalance } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -74,27 +74,11 @@ export const BillingQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Retrieve the platform pricing governance view: baseline vs effective
-     * rates per model, active override provenance, and pending sign-off
-     * proposals from the pricing feedback loop.
-     *
-     * Operator surface: exposes raw provider rates (pre-markup), so it is
-     * platform-gated, not org-gated.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getModelPricingGovernance
-     */
-    getModelPricingGovernance: {
-      name: "getModelPricingGovernance",
-      I: GetModelPricingGovernanceInput,
-      O: ModelPricingGovernanceResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
      * Retrieve the model registry baseline catalog (ACTIVE documents, or the
      * full append-only revision history when include_history is set).
      *
      * Operator surface: exposes raw provider rates (pre-markup) and revision
-     * provenance, so it is platform-gated like the governance view.
+     * provenance, so it is platform-gated, not org-gated.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.listModelPricingBaselines
      */

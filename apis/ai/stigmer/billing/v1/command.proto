@@ -6,15 +6,14 @@ import "ai/stigmer/billing/v1/billing_account.proto";
 import "ai/stigmer/billing/v1/credit.proto";
 import "ai/stigmer/billing/v1/io.proto";
 import "ai/stigmer/billing/v1/model_pricing_baseline.proto";
-import "ai/stigmer/billing/v1/pricing_override.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
 // BillingCommandController handles write operations for the billing bounded context.
 //
 // Billing is not a standard API Resource — there is no api_resource_kind annotation.
 // An organization's own billing RPCs authorize against the organization
-// resource kind; the credit mutations, the execution pipeline and pricing
-// governance authorize against the static platform target.
+// resource kind; the credit mutations, the execution pipeline and the
+// model catalog authorize against the static platform target.
 //
 service BillingCommandController {
   // Provision or retrieve the billing account for an organization.
@@ -170,22 +169,11 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage auto-recharge for this organization";
   }
 
-  // Record a human decision on a PENDING_SIGNOFF pricing override from the
-  // pricing feedback loop. Approving makes the override ACTIVE (superseding
-  // any current ACTIVE override on the same pricing key) and recomposes the
-  // effective registry; rejecting archives it for audit.
-  rpc decideModelPricingOverride(DecideModelPricingOverrideInput) returns (ModelPricingOverride) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
-    option (ai.stigmer.commons.rpc.config).permission = can_manage_model_pricing;
-    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
-    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can decide pricing overrides";
-  }
-
   // Create or revise one model registry baseline entry (catalog + list
   // prices). Append-only: an existing ACTIVE document for the same
   // (model_id, provider, harness) key is superseded, never mutated. The
-  // effective registry is recomposed immediately, so the revision reaches
-  // billing and every published price surface atomically.
+  // registry is rebuilt immediately, so the revision reaches billing and
+  // every published price surface atomically.
   rpc upsertModelPricingBaseline(UpsertModelPricingBaselineInput) returns (ModelPricingBaseline) {
     option (ai.stigmer.commons.rpc.config).resource_kind = platform;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_model_pricing;
@@ -193,10 +181,8 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can edit the model registry baseline";
   }
 
-  // Retire one model from the registry catalog. The next composition pass
-  // drops it from the effective registry and archives any ACTIVE pricing
-  // overrides that targeted it. Kept for audit; the key can be revived by
-  // a subsequent upsert.
+  // Retire one model from the registry catalog. The rebuilt registry drops
+  // it. Kept for audit; the key can be revived by a subsequent upsert.
   rpc retireModelPricingBaseline(RetireModelPricingBaselineInput) returns (ModelPricingBaseline) {
     option (ai.stigmer.commons.rpc.config).resource_kind = platform;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_model_pricing;

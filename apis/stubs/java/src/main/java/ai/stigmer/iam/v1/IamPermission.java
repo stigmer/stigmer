@@ -181,10 +181,11 @@ public enum IamPermission
   can_create_channel_app(31),
   /**
    * <pre>
-   * Platform-level permission to view pricing governance and decide
-   * pricing-override sign-offs from the pricing feedback loop. A human
-   * operator action, kept distinct from can_execute_billing_ops (the
-   * machine account's internal billing pipeline).
+   * Platform-level permission to edit and read the model catalog: the
+   * operator-maintained model pricing baselines every run's model list and
+   * price reads. A human operator action, kept distinct from
+   * can_execute_billing_ops (the machine account's internal billing
+   * pipeline).
    * </pre>
    *
    * <code>can_manage_model_pricing = 32;</code>
@@ -225,19 +226,6 @@ public enum IamPermission
    * <code>can_write_reserved_labels = 37;</code>
    */
   can_write_reserved_labels(37),
-  /**
-   * <pre>
-   * Platform-level permission to view platform provider standing: the
-   * canary-probe verdicts (health, billing/auth rejections, latency) for
-   * the platform's own LLM provider accounts. Read-only and gated to
-   * platform operators — provider account health is platform-internal,
-   * never org-visible. Deliberately distinct from the manage-class
-   * platform permissions: the standing console only observes.
-   * </pre>
-   *
-   * <code>can_view_provider_standing = 38;</code>
-   */
-  can_view_provider_standing(38),
   /**
    * <pre>
    * Organization-level permission to install a plugin: push an Agent
@@ -513,10 +501,11 @@ public enum IamPermission
   public static final int can_create_channel_app_VALUE = 31;
   /**
    * <pre>
-   * Platform-level permission to view pricing governance and decide
-   * pricing-override sign-offs from the pricing feedback loop. A human
-   * operator action, kept distinct from can_execute_billing_ops (the
-   * machine account's internal billing pipeline).
+   * Platform-level permission to edit and read the model catalog: the
+   * operator-maintained model pricing baselines every run's model list and
+   * price reads. A human operator action, kept distinct from
+   * can_execute_billing_ops (the machine account's internal billing
+   * pipeline).
    * </pre>
    *
    * <code>can_manage_model_pricing = 32;</code>
@@ -557,19 +546,6 @@ public enum IamPermission
    * <code>can_write_reserved_labels = 37;</code>
    */
   public static final int can_write_reserved_labels_VALUE = 37;
-  /**
-   * <pre>
-   * Platform-level permission to view platform provider standing: the
-   * canary-probe verdicts (health, billing/auth rejections, latency) for
-   * the platform's own LLM provider accounts. Read-only and gated to
-   * platform operators — provider account health is platform-internal,
-   * never org-visible. Deliberately distinct from the manage-class
-   * platform permissions: the standing console only observes.
-   * </pre>
-   *
-   * <code>can_view_provider_standing = 38;</code>
-   */
-  public static final int can_view_provider_standing_VALUE = 38;
   /**
    * <pre>
    * Organization-level permission to install a plugin: push an Agent
@@ -730,7 +706,6 @@ public enum IamPermission
       case 35: return can_manage_cursor_accounts;
       case 36: return can_participate;
       case 37: return can_write_reserved_labels;
-      case 38: return can_view_provider_standing;
       case 40: return can_create_plugin;
       case 41: return can_manage_plans;
       case 42: return can_issue_license;

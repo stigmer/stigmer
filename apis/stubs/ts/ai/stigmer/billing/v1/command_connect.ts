@@ -3,11 +3,10 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeRunInput, AuthorizeRunResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, CreatePaymentMethodSetupSessionInput, CreatePaymentMethodSetupSessionResponse, DecideModelPricingOverrideInput, FinalizeRunInput, FinalizeRunResponse, GetOrCreateBillingAccountInput, GrantCreditsInput, RearmForRecoveryInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeRunInput, AuthorizeRunResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, CreatePaymentMethodSetupSessionInput, CreatePaymentMethodSetupSessionResponse, FinalizeRunInput, FinalizeRunResponse, GetOrCreateBillingAccountInput, GrantCreditsInput, RearmForRecoveryInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
-import { ModelPricingOverride } from "./pricing_override_pbjs";
 import { ModelPricingBaseline } from "./model_pricing_baseline_pbjs";
 
 /**
@@ -15,8 +14,8 @@ import { ModelPricingBaseline } from "./model_pricing_baseline_pbjs";
  *
  * Billing is not a standard API Resource — there is no api_resource_kind annotation.
  * An organization's own billing RPCs authorize against the organization
- * resource kind; the credit mutations, the execution pipeline and pricing
- * governance authorize against the static platform target.
+ * resource kind; the credit mutations, the execution pipeline and the
+ * model catalog authorize against the static platform target.
  *
  *
  * @generated from service ai.stigmer.billing.v1.BillingCommandController
@@ -186,25 +185,11 @@ export const BillingCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Record a human decision on a PENDING_SIGNOFF pricing override from the
-     * pricing feedback loop. Approving makes the override ACTIVE (superseding
-     * any current ACTIVE override on the same pricing key) and recomposes the
-     * effective registry; rejecting archives it for audit.
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.decideModelPricingOverride
-     */
-    decideModelPricingOverride: {
-      name: "decideModelPricingOverride",
-      I: DecideModelPricingOverrideInput,
-      O: ModelPricingOverride,
-      kind: MethodKind.Unary,
-    },
-    /**
      * Create or revise one model registry baseline entry (catalog + list
      * prices). Append-only: an existing ACTIVE document for the same
      * (model_id, provider, harness) key is superseded, never mutated. The
-     * effective registry is recomposed immediately, so the revision reaches
-     * billing and every published price surface atomically.
+     * registry is rebuilt immediately, so the revision reaches billing and
+     * every published price surface atomically.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.upsertModelPricingBaseline
      */
@@ -215,10 +200,8 @@ export const BillingCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Retire one model from the registry catalog. The next composition pass
-     * drops it from the effective registry and archives any ACTIVE pricing
-     * overrides that targeted it. Kept for audit; the key can be revived by
-     * a subsequent upsert.
+     * Retire one model from the registry catalog. The rebuilt registry drops
+     * it. Kept for audit; the key can be revived by a subsequent upsert.
      *
      * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.retireModelPricingBaseline
      */

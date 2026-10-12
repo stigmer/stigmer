@@ -11,7 +11,7 @@ package ai.stigmer.billing.v1;
  * the base entry's rates or one speed variant's rates.
  *
  * Rates are integer micro-USD per million tokens (no floating point in
- * billing writes, matching ModelPricingOverride). The served registry JSON
+ * billing writes). The served registry JSON
  * renders them back to dollar doubles for consumers.
  * </pre>
  *
@@ -244,9 +244,7 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Timestamp effectiveAt_;
   /**
    * <pre>
-   * When these rates took effect. The override staleness check reads this field:
-   * an ACTIVE override whose derivation window ended before this instant
-   * is stale and gets superseded — baseline edits always stamp it fresh.
+   * When these rates took effect. Baseline edits always stamp it fresh.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
@@ -258,9 +256,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When these rates took effect. The override staleness check reads this field:
-   * an ACTIVE override whose derivation window ended before this instant
-   * is stale and gets superseded — baseline edits always stamp it fresh.
+   * When these rates took effect. Baseline edits always stamp it fresh.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
@@ -272,9 +268,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When these rates took effect. The override staleness check reads this field:
-   * an ACTIVE override whose derivation window ended before this instant
-   * is stale and gets superseded — baseline edits always stamp it fresh.
+   * When these rates took effect. Baseline edits always stamp it fresh.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
@@ -532,7 +526,7 @@ private static final long serialVersionUID = 0L;
    * the base entry's rates or one speed variant's rates.
    *
    * Rates are integer micro-USD per million tokens (no floating point in
-   * billing writes, matching ModelPricingOverride). The served registry JSON
+   * billing writes). The served registry JSON
    * renders them back to dollar doubles for consumers.
    * </pre>
    *
@@ -1214,9 +1208,7 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> effectiveAtBuilder_;
     /**
      * <pre>
-     * When these rates took effect. The override staleness check reads this field:
-     * an ACTIVE override whose derivation window ended before this instant
-     * is stale and gets superseded — baseline edits always stamp it fresh.
+     * When these rates took effect. Baseline edits always stamp it fresh.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
@@ -1227,9 +1219,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When these rates took effect. The override staleness check reads this field:
-     * an ACTIVE override whose derivation window ended before this instant
-     * is stale and gets superseded — baseline edits always stamp it fresh.
+     * When these rates took effect. Baseline edits always stamp it fresh.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
@@ -1244,9 +1234,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When these rates took effect. The override staleness check reads this field:
-     * an ACTIVE override whose derivation window ended before this instant
-     * is stale and gets superseded — baseline edits always stamp it fresh.
+     * When these rates took effect. Baseline edits always stamp it fresh.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
@@ -1266,9 +1254,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When these rates took effect. The override staleness check reads this field:
-     * an ACTIVE override whose derivation window ended before this instant
-     * is stale and gets superseded — baseline edits always stamp it fresh.
+     * When these rates took effect. Baseline edits always stamp it fresh.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
@@ -1286,9 +1272,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When these rates took effect. The override staleness check reads this field:
-     * an ACTIVE override whose derivation window ended before this instant
-     * is stale and gets superseded — baseline edits always stamp it fresh.
+     * When these rates took effect. Baseline edits always stamp it fresh.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
@@ -1313,9 +1297,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When these rates took effect. The override staleness check reads this field:
-     * an ACTIVE override whose derivation window ended before this instant
-     * is stale and gets superseded — baseline edits always stamp it fresh.
+     * When these rates took effect. Baseline edits always stamp it fresh.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
@@ -1332,9 +1314,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When these rates took effect. The override staleness check reads this field:
-     * an ACTIVE override whose derivation window ended before this instant
-     * is stale and gets superseded — baseline edits always stamp it fresh.
+     * When these rates took effect. Baseline edits always stamp it fresh.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
@@ -1346,9 +1326,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When these rates took effect. The override staleness check reads this field:
-     * an ACTIVE override whose derivation window ended before this instant
-     * is stale and gets superseded — baseline edits always stamp it fresh.
+     * When these rates took effect. Baseline edits always stamp it fresh.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>
@@ -1363,9 +1341,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When these rates took effect. The override staleness check reads this field:
-     * an ACTIVE override whose derivation window ended before this instant
-     * is stale and gets superseded — baseline edits always stamp it fresh.
+     * When these rates took effect. Baseline edits always stamp it fresh.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp effective_at = 8 [json_name = "effectiveAt"];</code>

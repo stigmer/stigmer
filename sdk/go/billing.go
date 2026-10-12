@@ -33,14 +33,10 @@ type (
 	CreatePaymentMethodSetupSessionResponse = billingv1.CreatePaymentMethodSetupSessionResponse
 	// CustomerModelPricingResponse is the customer-facing model price list.
 	CustomerModelPricingResponse = billingv1.CustomerModelPricingResponse
-	// ModelPricingGovernanceResponse is the operator pricing governance view.
-	ModelPricingGovernanceResponse = billingv1.ModelPricingGovernanceResponse
 	// ModelPricingBaselinesResponse is the model registry baseline catalog.
 	ModelPricingBaselinesResponse = billingv1.ModelPricingBaselinesResponse
 	// ModelPricingBaseline is one model registry baseline entry (catalog + list prices).
 	ModelPricingBaseline = billingv1.ModelPricingBaseline
-	// ModelPricingOverride is one pricing override from the feedback loop.
-	ModelPricingOverride = billingv1.ModelPricingOverride
 	// LedgerEntryType filters ledger queries to specific entry types.
 	LedgerEntryType = billingv1.LedgerEntryType
 	// LedgerView selects a server-resolved slice of the ledger.
@@ -132,17 +128,6 @@ type SetAutoRechargeConfigParams struct {
 type GetCustomerModelPricingParams struct {
 	// Org resolves org-specific policy overrides. Empty for default pricing.
 	Org string
-}
-
-// DecideModelPricingOverrideParams records a decision on a pending pricing override.
-type DecideModelPricingOverrideParams struct {
-	// OverrideID identifies the PENDING_SIGNOFF override to decide.
-	OverrideID string
-	// Approve true makes the override ACTIVE (superseding any current ACTIVE
-	// override on the same pricing key); false rejects it.
-	Approve bool
-	// DecisionNote is an optional note recorded on the decision (audit trail).
-	DecisionNote string
 }
 
 // ListModelPricingBaselinesParams configures a baseline catalog query.
@@ -383,20 +368,6 @@ func (b *BillingClient) GetCustomerModelPricing(ctx context.Context, params *Get
 	return resp, nil
 }
 
-// GetModelPricingGovernance retrieves the platform pricing governance view:
-// baseline vs effective rates per model, ACTIVE override provenance, and
-// pending sign-off proposals from the pricing feedback loop.
-//
-// Platform-operator surface (can_manage_model_pricing on platform:stigmer):
-// rates are raw provider prices, pre-markup.
-func (b *BillingClient) GetModelPricingGovernance(ctx context.Context) (*ModelPricingGovernanceResponse, error) {
-	resp, err := b.query.GetModelPricingGovernance(ctx, &billingv1.GetModelPricingGovernanceInput{})
-	if err != nil {
-		return nil, gen.WrapErr(err)
-	}
-	return resp, nil
-}
-
 // ListModelPricingBaselines retrieves the model registry baseline catalog:
 // ACTIVE entries by default, or the full append-only revision history with
 // IncludeHistory. Nil params lists ACTIVE entries.
@@ -415,27 +386,10 @@ func (b *BillingClient) ListModelPricingBaselines(ctx context.Context, params *L
 	return resp, nil
 }
 
-// DecideModelPricingOverride records a human decision on a PENDING_SIGNOFF
-// pricing override. Approving makes the override ACTIVE (superseding any
-// current ACTIVE override on the same pricing key) and recomposes the
-// effective registry; rejecting archives it for audit. Returns the decided
-// override with the decision stamped.
-func (b *BillingClient) DecideModelPricingOverride(ctx context.Context, params *DecideModelPricingOverrideParams) (*ModelPricingOverride, error) {
-	resp, err := b.command.DecideModelPricingOverride(ctx, &billingv1.DecideModelPricingOverrideInput{
-		OverrideId:   params.OverrideID,
-		Approve:      params.Approve,
-		DecisionNote: params.DecisionNote,
-	})
-	if err != nil {
-		return nil, gen.WrapErr(err)
-	}
-	return resp, nil
-}
-
 // UpsertModelPricingBaseline creates or revises one model registry baseline
 // entry (catalog + list prices). Append-only: an existing ACTIVE entry for
 // the same (modelId, provider, harness) key is superseded, never mutated, and
-// the effective registry recomposes immediately. Returns the new revision
+// the registry is rebuilt immediately. Returns the new revision
 // with server-stamped lifecycle fields.
 func (b *BillingClient) UpsertModelPricingBaseline(ctx context.Context, params *UpsertModelPricingBaselineParams) (*ModelPricingBaseline, error) {
 	resp, err := b.command.UpsertModelPricingBaseline(ctx, &billingv1.UpsertModelPricingBaselineInput{
@@ -449,8 +403,8 @@ func (b *BillingClient) UpsertModelPricingBaseline(ctx context.Context, params *
 }
 
 // RetireModelPricingBaseline retires one model from the registry catalog.
-// The model disappears from every price surface on the next composition pass;
-// the document is kept for audit and the key can be revived by a subsequent
+// The rebuilt registry drops it from every price surface; the document is kept
+// for audit and the key can be revived by a subsequent
 // upsert.
 func (b *BillingClient) RetireModelPricingBaseline(ctx context.Context, params *RetireModelPricingBaselineParams) (*ModelPricingBaseline, error) {
 	resp, err := b.command.RetireModelPricingBaseline(ctx, &billingv1.RetireModelPricingBaselineInput{

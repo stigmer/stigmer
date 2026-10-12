@@ -9,9 +9,8 @@ package ai.stigmer.billing.v1;
  * <pre>
  * RetireModelPricingBaselineInput removes one model from the catalog.
  *
- * The ACTIVE document for the key transitions to RETIRED; the next
- * composition pass drops the model from the effective registry and
- * archives any ACTIVE pricing overrides that targeted it.
+ * The ACTIVE document for the key transitions to RETIRED; the rebuilt
+ * registry drops the model.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.RetireModelPricingBaselineInput}
@@ -414,9 +413,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * RetireModelPricingBaselineInput removes one model from the catalog.
    *
-   * The ACTIVE document for the key transitions to RETIRED; the next
-   * composition pass drops the model from the effective registry and
-   * archives any ACTIVE pricing overrides that targeted it.
+   * The ACTIVE document for the key transitions to RETIRED; the rebuilt
+   * registry drops the model.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.RetireModelPricingBaselineInput}
