@@ -32,14 +32,13 @@
  * conversation, so a tool can filter each.
  */
 
-import { SpanKind, SpanStatusCode, context, trace, type Span } from "@opentelemetry/api";
+import { SpanKind, context, trace, type Span } from "@opentelemetry/api";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 
 import {
-  ERROR_TYPE,
   GEN_AI_AGENT_ID,
   GEN_AI_AGENT_NAME,
   GEN_AI_AGENT_VERSION,
@@ -61,7 +60,7 @@ import {
 import { telemetrySettings } from "../otel-export.js";
 import type { ResolvedBlueprint } from "../shared/blueprint-resolver.js";
 import { GRADES_RUN_LABEL } from "../shared/builtin-judge.js";
-import { turnContent } from "../shared/telemetry-content.js";
+import { markFailed, turnContent } from "../shared/telemetry-content.js";
 
 /** The label the server sets on a plugin eval's try (the server's `domain/plugin-eval/constants.ts`). Wire contract. */
 export const PLUGIN_EVAL_LABEL = "stigmer.ai/plugin-eval";
@@ -144,8 +143,7 @@ class RecordingRunSpan implements RunSpan {
 
   settle(status: RunStatus): void {
     if (!FAILED_PHASES.has(status.phase)) return;
-    this.span.setAttribute(ERROR_TYPE, RunPhase[status.phase] ?? "RUN_FAILED");
-    this.span.setStatus({ code: SpanStatusCode.ERROR, message: status.error });
+    markFailed(this.span, RunPhase[status.phase] ?? "RUN_FAILED", { message: status.error }, this.content);
   }
 }
 

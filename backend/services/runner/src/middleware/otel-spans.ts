@@ -37,7 +37,6 @@ import * as api from "@opentelemetry/api";
 import type { Span } from "@opentelemetry/api";
 
 import {
-  ERROR_TYPE,
   GEN_AI_AGENT_NAME,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -79,7 +78,7 @@ import {
 } from "../gen-ai-conventions.js";
 import { telemetrySettings } from "../otel-export.js";
 import { chatModelFacts } from "../shared/model-facts.js";
-import { chatContent, exportedResult, toolCallContent } from "../shared/telemetry-content.js";
+import { chatContent, exportedResult, markFailed, toolCallContent } from "../shared/telemetry-content.js";
 import type { StigmerMiddleware, OtelSpansConfig, ModelCallRequest } from "./types.js";
 
 /** The usage LangChain reports on a model's answer. */
@@ -139,6 +138,10 @@ function setUsage(span: Span, usage: UsageMetadata | undefined): void {
 
 function errorTypeOf(err: unknown): string {
   return err instanceof Error ? err.name || "Error" : "Error";
+}
+
+function failureOf(err: unknown): { readonly message: string; readonly error?: Error } {
+  return err instanceof Error ? { message: err.message, error: err } : { message: String(err) };
 }
 
 export function createOtelSpansMiddleware(
@@ -241,9 +244,7 @@ export function createOtelSpansMiddleware(
 
         return response;
       } catch (err) {
-        span.setStatus({ code: api.SpanStatusCode.ERROR, message: String(err) });
-        span.setAttribute(ERROR_TYPE, errorTypeOf(err));
-        if (err instanceof Error) span.recordException(err);
+        markFailed(span, errorTypeOf(err), failureOf(err), telemetrySettings().content);
         span.end();
         throw err;
       }
@@ -279,8 +280,7 @@ export function createOtelSpansMiddleware(
         const elapsedMs = performance.now() - startTime;
         const message = result as { status?: unknown; content?: unknown };
         if (message.status === "error") {
-          span.setStatus({ code: api.SpanStatusCode.ERROR });
-          span.setAttribute(ERROR_TYPE, "tool_error");
+          markFailed(span, "tool_error", { message: typeof message.content === "string" ? message.content : "" }, telemetrySettings().content);
         }
         if (content !== undefined && typeof message.content === "string") {
           const exported = exportedResult(message.content, content.withheld);
@@ -298,11 +298,7 @@ export function createOtelSpansMiddleware(
       } catch (err) {
         // A pause bubbling up from a sub-agent's approval (or a parent
         // command) is LangGraph's control flow, not the tool failing.
-        if (!isGraphBubbleUp(err)) {
-          span.setStatus({ code: api.SpanStatusCode.ERROR, message: String(err) });
-          span.setAttribute(ERROR_TYPE, errorTypeOf(err));
-          if (err instanceof Error) span.recordException(err);
-        }
+        if (!isGraphBubbleUp(err)) markFailed(span, errorTypeOf(err), failureOf(err), telemetrySettings().content);
         span.end();
         throw err;
       }
@@ -325,11 +321,7 @@ export async function withSubAgentSpan<T>(name: string, run: () => Promise<T>): 
   try {
     return await api.context.with(api.trace.setSpan(api.context.active(), span), run);
   } catch (err) {
-    if (!isGraphBubbleUp(err)) {
-      span.setStatus({ code: api.SpanStatusCode.ERROR, message: String(err) });
-      span.setAttribute(ERROR_TYPE, errorTypeOf(err));
-      if (err instanceof Error) span.recordException(err);
-    }
+    if (!isGraphBubbleUp(err)) markFailed(span, errorTypeOf(err), failureOf(err), telemetrySettings().content);
     throw err;
   } finally {
     span.end();

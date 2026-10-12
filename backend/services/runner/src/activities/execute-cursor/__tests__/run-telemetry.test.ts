@@ -133,7 +133,7 @@ describe("CursorRunTelemetry", () => {
       "stigmer.mcp.server_name": "planton",
       "error.type": "tool_error",
     });
-    expect(span.status).toEqual({ code: SpanStatusCode.ERROR, message: "server unavailable" });
+    expect(span.status, "with content off, no failure text").toEqual({ code: SpanStatusCode.ERROR });
   });
 
   it("sums every usage report, counting cache reads and writes in the input", () => {
@@ -158,7 +158,7 @@ describe("CursorRunTelemetry", () => {
     telemetry.observe([started("c2", "shell")]);
 
     const cursor = spanNamed("invoke_agent Cursor");
-    expect(cursor.status).toEqual({ code: SpanStatusCode.ERROR, message: "the Cursor key was refused" });
+    expect(cursor.status, "with content off, no failure text").toEqual({ code: SpanStatusCode.ERROR });
     expect(cursor.attributes["error.type"]).toBe("actionable");
     expect(spanNamed("execute_tool shell").status.code).toBe(SpanStatusCode.UNSET);
     expect(exporter.getFinishedSpans()).toHaveLength(2);

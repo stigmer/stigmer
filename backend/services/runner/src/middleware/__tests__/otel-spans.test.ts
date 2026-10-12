@@ -258,6 +258,24 @@ describe("OtelSpansMiddleware", () => {
   });
 
   describe("wrapToolCall", () => {
+    it("keeps a thrown tool error's text, which can quote the call's arguments, off the span unless content is on", async () => {
+      // LangChain's schema refusal prints the call's kwargs into its message.
+      const refusal = `Error invoking tool 'echo' with kwargs {"text":"x","token":"canary-arg"}`;
+      const mw = createOtelSpansMiddleware();
+      await expect(mw.wrapToolCall!(makeToolRequest("echo"), async () => Promise.reject(new Error(refusal)))).rejects.toThrow();
+      const off = spanNamed("execute_tool echo");
+      expect(off.status, "no message with content off").toEqual({ code: SpanStatusCode.ERROR });
+      expect(off.events, "no exception event with content off").toEqual([]);
+      expect(JSON.stringify([off.attributes, off.status, off.events])).not.toContain("canary-arg");
+
+      exporter.reset();
+      contentOn();
+      await expect(mw.wrapToolCall!(makeToolRequest("echo"), async () => Promise.reject(new Error(refusal)))).rejects.toThrow();
+      const on = spanNamed("execute_tool echo");
+      expect(on.status.message, "with content on, the text the saved conversation also shows").toBe(refusal);
+      expect(on.events.map((event) => event.name)).toEqual(["exception"]);
+    });
+
     it("wraps MCP tools that are in the server map", async () => {
       const mw = createOtelSpansMiddleware({
         toolServerMap: new Map([["mcp_tool", "my-server"]]),

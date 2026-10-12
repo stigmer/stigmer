@@ -207,11 +207,17 @@ describe("withRunSpan", () => {
     ]);
   });
 
-  it("marks a failed run and leaves a completed one unset", async () => {
+  it("marks a failed run and leaves a completed one unset; the failure's text only with content on", async () => {
     await withRunSpan(TURN, async (span) => span.settle(create(RunStatusSchema, { phase: RunPhase.RUN_FAILED, error: "the model refused" })));
     const failed = onlySpan();
-    expect(failed.status).toEqual({ code: SpanStatusCode.ERROR, message: "the model refused" });
+    expect(failed.status, "an error can quote the conversation: no text with content off").toEqual({ code: SpanStatusCode.ERROR });
     expect(failed.attributes["error.type"]).toBe("RUN_FAILED");
+
+    exporter.reset();
+    adoptTelemetrySettings({ ...TELEMETRY_OFF, content: true });
+    await withRunSpan(TURN, async (span) => span.settle(create(RunStatusSchema, { phase: RunPhase.RUN_FAILED, error: "the model refused" })));
+    expect(onlySpan().status).toEqual({ code: SpanStatusCode.ERROR, message: "the model refused" });
+    adoptTelemetrySettings(TELEMETRY_OFF);
 
     exporter.reset();
     await withRunSpan(TURN, async (span) => span.settle(create(RunStatusSchema, { phase: RunPhase.RUN_COMPLETED })));

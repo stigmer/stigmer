@@ -27,10 +27,9 @@
  * recorded beside it as before (`otel.ts` `recordTurnMetrics`).
  */
 
-import { SpanKind, SpanStatusCode, context, trace, type Span } from "@opentelemetry/api";
+import { SpanKind, context, trace, type Span } from "@opentelemetry/api";
 
 import {
-  ERROR_TYPE,
   GEN_AI_AGENT_NAME,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
@@ -58,7 +57,7 @@ import {
 import type { TurnOutcome } from "../../harness/types.js";
 import type { TranscriptEvent } from "../../harness/transcript/events.js";
 import { telemetrySettings } from "../../otel-export.js";
-import { exportedResult, toolCallContent } from "../../shared/telemetry-content.js";
+import { exportedResult, markFailed, toolCallContent } from "../../shared/telemetry-content.js";
 import type { TurnUsage } from "./usage-pricing.js";
 
 /** The agent name a Cursor run's span carries. */
@@ -122,8 +121,7 @@ export class CursorRunTelemetry implements CursorTurnObserver {
         case "tool_error": {
           const tool = this.close(fact.callId);
           if (tool === undefined) break;
-          tool.span.setStatus({ code: SpanStatusCode.ERROR, message: fact.message });
-          tool.span.setAttribute(ERROR_TYPE, "tool_error");
+          markFailed(tool.span, "tool_error", { message: fact.message }, this.content);
           tool.span.end();
           break;
         }
@@ -153,8 +151,7 @@ export class CursorRunTelemetry implements CursorTurnObserver {
       [GEN_AI_USAGE_CACHE_WRITE_INPUT_TOKENS]: this.cacheWriteTokens,
     });
     if (outcome?.kind === "failed") {
-      this.span.setStatus({ code: SpanStatusCode.ERROR, message: outcome.message });
-      this.span.setAttribute(ERROR_TYPE, outcome.surface);
+      markFailed(this.span, outcome.surface, { message: outcome.message }, this.content);
     }
     this.span.end();
   }

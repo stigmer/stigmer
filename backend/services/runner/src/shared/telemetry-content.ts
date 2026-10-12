@@ -40,8 +40,16 @@
  *    reads `{ elided_bytes: n }` in place of that attribute.
  * With content on, the span processor's batch is sized to these bounds
  * (`otel-export.ts` `CONTENT_BATCH_SIZE`).
+ *
+ * A failure's text is content too: an error can quote the call that failed
+ * (a tool's schema refusal prints its arguments), so with content off a
+ * failed span carries its status and `error.type`, never the message or
+ * the exception ({@link markFailed}).
  */
 
+import { SpanStatusCode, type Span } from "@opentelemetry/api";
+
+import { ERROR_TYPE } from "../gen-ai-conventions.js";
 import { redactSensitiveArgs } from "./args-preview.js";
 import { secretLikeFilePath } from "./tool-row.js";
 import { toolApprovalCategory } from "./tool-kind.js";
@@ -275,4 +283,19 @@ function boundedJson(value: unknown, budget: number): string {
 /** The marker an attribute too large to carry reads in its place. */
 function elidedBytes(json: string): string {
   return JSON.stringify({ elided_bytes: Buffer.byteLength(json) });
+}
+
+/**
+ * Mark `span` failed: ERROR and `error.type` always; the failure's text
+ * (cut) and the exception only with content on, because an error can quote
+ * what the call was given.
+ */
+export function markFailed(span: Span, errorType: string, failure: { readonly message: string; readonly error?: Error }, content: boolean): void {
+  span.setAttribute(ERROR_TYPE, errorType);
+  if (!content) {
+    span.setStatus({ code: SpanStatusCode.ERROR });
+    return;
+  }
+  span.setStatus({ code: SpanStatusCode.ERROR, message: cutText(failure.message) });
+  if (failure.error !== undefined) span.recordException(failure.error);
 }
