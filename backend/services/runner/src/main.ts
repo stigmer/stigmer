@@ -111,6 +111,16 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
     process.exit(1);
   }
 
+  /* v8 ignore start -- @preserve: manager mode's process boundary (above) */
+  // Every way the manager stops (the shutdown command, stdin closing) flushes
+  // its telemetry after its workers have drained.
+  const shutdownWorkers = manager.shutdown.bind(manager);
+  manager.shutdown = async () => {
+    await shutdownWorkers();
+    await flushTelemetry?.();
+  };
+  /* v8 ignore stop */
+
   sendIpc(buildReadyMessage());
 
   const rl = createInterface({ input: process.stdin });
@@ -154,9 +164,6 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
         }
         case "shutdown": {
           await manager.shutdown();
-          /* v8 ignore start -- @preserve: manager mode's process boundary (above) */
-          await flushTelemetry?.();
-          /* v8 ignore stop */
           sendIpc({ type: "shutdownComplete" });
           rl.close();
           return;
@@ -180,8 +187,6 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
 
   // stdin closed (parent process died) — shut down gracefully
   await manager.shutdown();
-  /* v8 ignore next -- @preserve: manager mode's process boundary (above) */
-  await flushTelemetry?.();
 }
 
 // ─── Pool Mode ───────────────────────────────────────────────────────────────

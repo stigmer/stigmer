@@ -244,6 +244,19 @@ describe("the content switch at the exporter", () => {
     expect(JSON.stringify([exported.status, exported.events])).not.toContain("canary-arg");
   });
 
+  it("hands a span with no failure text on as the same span", async () => {
+    const sink = new InMemorySpanExporter();
+    const provider = new BasicTracerProvider({ spanProcessors: [new SimpleSpanProcessor(contentGuardedExporter(sink, false))] });
+    const span = provider.getTracer("@cursor/sdk").startSpan("clean");
+    span.addEvent("progress");
+    span.end();
+    await provider.forceFlush();
+    const [exported] = sink.getFinishedSpans();
+    expect(exported!.events.map((event) => event.name)).toEqual(["progress"]);
+    expect(exported!.status).toEqual({ code: SpanStatusCode.UNSET });
+    await provider.shutdown();
+  });
+
   it("passes spans as they are with content on", async () => {
     const exported = await exportedThrough(true);
     expect(exported.status.message).toContain("canary-arg");
