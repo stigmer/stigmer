@@ -1,7 +1,7 @@
-// Pins the judge calibration's counts (judge/calibration-tally.ts): fails
-// caught, passes kept and not applicable matched are counted apart per
-// rubric; an unreadable try is a miss in every direction and counted on its
-// own; the bar refuses below 90% caught or kept, below 80% matched, and any
+// Pins the judge calibration's counts (judge/calibration-tally.ts): each
+// example counts by the majority of its tries; fails caught, passes kept and
+// not applicable matched are counted apart per rubric; an unreadable try
+// counts against its example and on its own; the bar refuses below 90% caught or kept, below 80% matched, and any
 // unreadable verdict; the generated module reads back as the counts; and
 // the judge cell caps each grade as the server caps a live grade's judge run.
 // Domain: conformance benchmark (the judge's calibration).
@@ -38,30 +38,44 @@ function attempt(exampleId: string, task: "passed" | "failed", claims: "passed" 
 }
 
 describe("tallyCalibration", () => {
-  it("counts each direction apart per rubric, an unreadable try as a miss everywhere, and the cost per grade", () => {
+  it("counts each example by the majority of its tries, each direction apart, an unreadable try against its example, and the cost per grade", () => {
+    const examples: JudgeExample[] = [
+      ...EXAMPLES,
+      { id: "three", about: "a", parts, expected: { task: "passed", claims: "passed" }, why: "w" },
+    ];
     const { calibration, misses } = tallyCalibration(
-      EXAMPLES,
+      examples,
       ["task", "claims"],
       [
+        // one: the fail caught on two tries of three; not applicable matched on all.
+        attempt("one", "failed", "not_applicable"),
         attempt("one", "failed", "not_applicable"),
         attempt("one", "passed", "not_applicable", 0.03),
+        // two: kept on two tries of three, the third unreadable.
         attempt("two", "passed", "passed"),
         { exampleId: "two", verdicts: undefined, costUsd: 0.02 },
+        attempt("two", "passed", "passed"),
+        // three: the pass kept on one try of three only, so not kept.
+        attempt("three", "passed", "passed"),
+        attempt("three", "failed", "passed"),
+        attempt("three", "failed", "passed"),
       ],
-      META,
+      { ...META, tries: 3 },
     );
-    expect(calibration.grades).toBe(4);
-    expect(calibration.expectedGrades).toBe(4);
+    expect(calibration.grades).toBe(9);
+    expect(calibration.expectedGrades).toBe(9);
     expect(calibration.unreadable).toBe(1);
-    expect(calibration.costPerGradeUsd).toEqual({ mean: 0.0175, max: 0.03 });
+    expect(calibration.costPerGradeUsd.max).toBe(0.03);
     expect(calibration.rubrics).toEqual([
-      { name: "task", failsCaught: { n: 1, of: 2 }, passesKept: { n: 1, of: 2 }, notApplicableMatched: { n: 0, of: 0 } },
-      { name: "claims", failsCaught: { n: 0, of: 0 }, passesKept: { n: 1, of: 2 }, notApplicableMatched: { n: 2, of: 2 } },
+      { name: "task", failsCaught: { n: 1, of: 1 }, passesKept: { n: 1, of: 2 }, notApplicableMatched: { n: 0, of: 0 } },
+      { name: "claims", failsCaught: { n: 0, of: 0 }, passesKept: { n: 2, of: 2 }, notApplicableMatched: { n: 1, of: 1 } },
     ]);
     expect(misses).toEqual([
       { exampleId: "one", rubric: "task", expected: "failed", got: "passed" },
       { exampleId: "two", rubric: "task", expected: "passed", got: "unreadable" },
       { exampleId: "two", rubric: "claims", expected: "passed", got: "unreadable" },
+      { exampleId: "three", rubric: "task", expected: "passed", got: "failed" },
+      { exampleId: "three", rubric: "task", expected: "passed", got: "failed" },
     ]);
   });
 

@@ -3,19 +3,24 @@
 // the generated module (calibration.ts) the counts are committed in.
 // Domain: conformance benchmark (the judge's calibration).
 //
-// Each example is graded k times. Per rubric, three directions are counted
-// apart, because a judge errs toward passing and one agreement figure hides
-// that: expected fails the judge caught, expected passes it kept, and
-// expected not-applicable cases it matched. A try whose verdict could not be
-// read counts as a miss in every direction and in `unreadable`, which the
-// bar allows none of.
+// Each example is graded k times, and counts by the majority of its tries:
+// a rubric matches an example when more than half of its tries gave the
+// expected verdict. Two real-model runs of the same rules moved single tries
+// by about the bar's own margin, so a single unlucky try never decides an
+// example. Per rubric, three directions are counted apart, because a judge
+// errs toward passing and one agreement figure hides that: the examples
+// whose expected fail the judge caught, whose expected pass it kept, and
+// whose expected not-applicable it matched. A try whose verdict could not be
+// read counts against its example in every direction and in `unreadable`,
+// which the bar allows none of. The misses stay per try, for diagnosis.
 //
-// The bar: every example graded k times; at least 90% of expected fails
-// caught and 90% of expected passes kept, per rubric; not applicable matched
-// at least 80%; no unreadable verdict. The committed counts carry the judge's evaluator version and the
-// examples' digest, so a changed rubric, message, subject or example makes
-// them stale, and the staleness test (__tests__/judge-calibration.test.ts)
-// refuses stale counts as it refuses counts below the bar.
+// The bar: every example graded k times; at least 90% of expected-fail
+// examples caught and 90% of expected-pass examples kept, per rubric; not
+// applicable matched on at least 80%; no unreadable verdict. The committed
+// counts carry the judge's evaluator version and the examples' digest, so a
+// changed rubric, message, subject or example makes them stale, and the
+// staleness test (__tests__/judge-calibration.test.ts) refuses stale counts
+// as it refuses counts below the bar.
 //
 // The counts quote nothing: rubric names, numbers, the model, a date.
 import type { RubricVerdict, VerdictResultName } from "@stigmer/eval-runtime/judge";
@@ -29,7 +34,7 @@ export const PASSES_KEPT_MIN = 0.9;
 /** The share of expected not-applicable cases each rubric must match. */
 export const NOT_APPLICABLE_MATCHED_MIN = 0.8;
 
-/** n of N. */
+/** n of N examples. */
 export interface Count {
   readonly n: number;
   readonly of: number;
@@ -92,6 +97,8 @@ export function tallyCalibration(
   );
   const misses: CalibrationMiss[] = [];
   let unreadable = 0;
+  // Per rubric and example: [tries matched, tries graded].
+  const perExample = new Map<string, [number, number]>();
   for (const attempt of tries) {
     const example = byId.get(attempt.exampleId);
     if (example === undefined) {
@@ -107,11 +114,28 @@ export function tallyCalibration(
         throw new Error(`example ${example.id} states no verdict for ${name}`);
       }
       const got = attempt.verdicts?.find((verdict) => verdict.name === name)?.result ?? "unreadable";
-      tally[expected][1] += 1;
+      const key = `${name}\u0000${example.id}`;
+      const seen = perExample.get(key) ?? [0, 0];
+      seen[1] += 1;
       if (got === expected) {
-        tally[expected][0] += 1;
+        seen[0] += 1;
       } else {
         misses.push({ exampleId: example.id, rubric: name, expected, got });
+      }
+      perExample.set(key, seen);
+    }
+  }
+  for (const example of examples) {
+    for (const name of rubrics) {
+      const seen = perExample.get(`${name}\u0000${example.id}`);
+      const expected = example.expected[name];
+      const tally = counts.get(name);
+      if (seen === undefined || expected === undefined || tally === undefined) {
+        continue;
+      }
+      tally[expected][1] += 1;
+      if (seen[0] * 2 > seen[1]) {
+        tally[expected][0] += 1;
       }
     }
   }
