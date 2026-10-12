@@ -20,6 +20,7 @@
  * barrel. Case names are the contract lines; the OSS test pins the list.
  */
 import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
 
@@ -60,7 +61,7 @@ const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 /** A unique suffix per case, so a fixture over a shared database never meets another case's rows. */
 function unique(): string {
-  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  return `${Date.now().toString(36)}${randomBytes(4).toString("hex")}`;
 }
 
 function run(id: string, sessionId: string, phase: RunPhase, org = "org-kit"): Run {
