@@ -1900,7 +1900,7 @@ RunStatus contains all run results and state.
     completedAt: { type: "string", description: "ISO 8601 timestamp when the run completed, failed, or was cancelled." },
     todos: { type: "Record<string, TodoItem>", description: "Todo list tracking multi-step tasks and progress for this run." },
     pendingApprovals: { type: "PendingApproval[]", description: "Active pending approval requests for this run.", typeDescriptionLink: "#pendingapproval" },
-    approvalEventStream: { type: "ApprovalEventStream", description: "Server-authored, append-only record of every approval request and decision.", typeDescriptionLink: "#approvaleventstream" },
+    approvalEventStream: { type: "ApprovalEventStream", description: "No longer written: approvals and their answers are the session's events (agent.tool_use with evaluated_permission ask, user.tool_confirmation, stigmer.permission.grant).", typeDescriptionLink: "#approvaleventstream" },
     contextInfo: { type: "ContextInfo", description: "Context window utilization and summarization tracking.", typeDescriptionLink: "#contextinfo" },
     artifacts: { type: "RunArtifact[]", description: "Files/directories published by the agent for download.", typeDescriptionLink: "#runartifact" },
     workspaceWriteBacks: { type: "WorkspaceWriteBack[]", description: "Git write-back outcomes for workspace entries that had changes.", typeDescriptionLink: "#workspacewriteback" },
