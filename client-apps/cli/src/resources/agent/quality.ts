@@ -12,6 +12,14 @@
 // server lists) and says that older ones exist, since two versions' grades
 // are never added together.
 //
+// `--agreement` reads the same report and shows its agreement part: per
+// version of the judge's rubrics, for the runs that have both a judge grade
+// and a person's thumbs, how each rubric's verdicts line up with the
+// thumbs. A rubric that fails runs people liked may be too strict; one that
+// passes runs people disliked may be too lenient; runs people disliked
+// where no rubric failed point at a failure no rubric catches. Counts and
+// rubric names only, like the rest of the report.
+//
 // `--flagged` reads up to `--limit` failed grades of runs the caller can
 // open, newest first, through the cursor walk every paged list uses: the
 // server may answer a short page, even an empty one, with a token, and that
@@ -33,7 +41,9 @@ import {
   AgentQualityReportSchema,
   GetAgentQualityReportRequestSchema,
   ListFlaggedScoresByAgentRequestSchema,
+  JudgeAgreementSchema,
   type AgentQualityReport,
+  type JudgeAgreement,
   type MetricTally,
   type QualitySummary,
 } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
@@ -81,12 +91,14 @@ export interface AgentQualityFlags {
   readonly days?: string;
   readonly flagged?: boolean;
   readonly limit?: string;
+  readonly agreement?: boolean;
 }
 
 /** `agent quality`'s options, checked. */
 export interface AgentQualityOptions {
   readonly days: number;
   readonly flagged: boolean;
+  readonly agreement: boolean;
   /** The most flagged grades to list; zero lists them all. */
   readonly limit: number;
   readonly format: OutputFormat;
@@ -95,6 +107,12 @@ export interface AgentQualityOptions {
 /** Checks the flags, refusing a value out of range with the range it accepts. */
 export function readAgentQualityOptions(flags: AgentQualityFlags, format: OutputFormat): AgentQualityOptions {
   const flagged = flags.flagged === true;
+  const agreement = flags.agreement === true;
+  if (agreement && (flagged || flags.limit !== undefined)) {
+    throw new UsageError(
+      "--agreement shows the report's thumbs-against-judge counts and takes no --flagged or --limit\n\nShow it with:\n  stigmer agent quality <agent> --agreement",
+    );
+  }
   if (flags.limit !== undefined && !flagged) {
     throw new UsageError(
       "--limit applies to --flagged only\n\nList the flagged grades with:\n  stigmer agent quality <agent> --flagged --limit <n>",
@@ -103,6 +121,7 @@ export function readAgentQualityOptions(flags: AgentQualityFlags, format: Output
   return {
     days: readDays(flags.days),
     flagged,
+    agreement,
     limit: readLimit(flags.limit),
     format,
   };
@@ -152,6 +171,9 @@ export async function showAgentQuality(
   const report = await client.score.getAgentQualityReport(
     create(GetAgentQualityReportRequestSchema, { org, agentId, days: options.days }),
   );
+  if (options.agreement) {
+    return renderAgreement(report, agentLabel(agent, ref), options.format);
+  }
   if (options.format !== "table") {
     return renderQualityReport(report, agentLabel(agent, ref), new Map(), options.format);
   }
@@ -351,6 +373,50 @@ function olderVersionsNote(total: QualitySummary): string {
 function versionLabel(hash: string, tags: ReadonlyMap<string, string>): string {
   if (hash === "") return "unversioned";
   return oneLine(tags.get(hash) ?? hash.slice(0, SHORT_HASH_LENGTH));
+}
+
+// --- Render: the agreement ---
+
+/**
+ * The report's agreement as one table per judge rubric version, the current
+ * one first, or the agreement entries as json or yaml.
+ */
+export function renderAgreement(report: AgentQualityReport, agent: string, format: OutputFormat): string {
+  if (format === "json") return renderProtoListJson(JudgeAgreementSchema, report.agreement);
+  if (format === "yaml") return renderProtoListYaml(JudgeAgreementSchema, report.agreement);
+
+  const lines: string[] = ["", `Agent:   ${agent}`, `Window:  ${report.fromDate} to ${report.toDate} (UTC)`, ""];
+  if (report.agreement.length === 0) {
+    lines.push("No run in this window has both an AI judge grade and a person's thumbs.", "");
+    return `${lines.join("\n")}\n`;
+  }
+  report.agreement.forEach((entry, index) => lines.push(...agreementLines(entry, index === 0), ""));
+  lines.push(
+    "FAILED, UP: the rubric failed runs people liked (it may be too strict).",
+    "PASSED, DOWN: the rubric passed runs people disliked (it may be too lenient).",
+    "",
+  );
+  return `${lines.join("\n")}\n`;
+}
+
+function agreementLines(entry: JudgeAgreement, isCurrent: boolean): string[] {
+  const version = oneLine(entry.evaluatorVersion.slice(0, SHORT_HASH_LENGTH));
+  const runs = `${entry.runs} ${entry.runs === 1 ? "run" : "runs"} with a judge grade and thumbs`;
+  const missed =
+    entry.thumbsDownNoneFailed === 0
+      ? ""
+      : `; ${entry.thumbsDownNoneFailed} disliked where no rubric failed (a failure no rubric catches)`;
+  const rows = entry.rules.map((rule) => [
+    oneLine(rule.name),
+    String(rule.failedThumbsDown),
+    String(rule.failedThumbsUp),
+    String(rule.passedThumbsDown),
+    String(rule.passedThumbsUp),
+  ]);
+  return [
+    `Rubrics ${version}${isCurrent ? " (current)" : ""}: ${runs}${missed}`,
+    renderTable(["RUBRIC", "FAILED, DOWN", "FAILED, UP", "PASSED, DOWN", "PASSED, UP"], rows).trimEnd(),
+  ];
 }
 
 // --- Render: the flagged grades ---
