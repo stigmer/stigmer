@@ -30,9 +30,15 @@
  *   accumulated work, where the parent's identical error is one failed
  *   tool round the model adapts to.
  *
+ * - OTel spans: a `chat` span per model call and an `execute_tool` span per
+ *   tool call, innermost as on the parent. Until 2026-10 the stack left them
+ *   out on the belief that the parent's context covered them; nothing in the
+ *   parent spans a sub-agent's own calls, so its work was invisible. The
+ *   invocation's `invoke_agent` span is the transformer's
+ *   (`subagent-transformer.ts`), opened inside the parent's `task` span.
+ *
  * The sub-agent middleware stack does NOT include:
  * - Graceful stop (parent handles STOP signal propagation)
- * - OTel spans (parent's OTel context propagates automatically)
  *
  * Approval-gate note: the gate is what *creates* the LangGraph `interrupt()`.
  * A sub-agent's interrupt does surface at the parent checkpoint and resumes
@@ -46,6 +52,7 @@ import type {
   ToolTruncationConfig,
   PathNormalizationConfig,
   ToolScopeConfig,
+  OtelSpansConfig,
 } from "../../middleware/types.js";
 import type { CostAdvisoryMiddleware } from "../../middleware/index.js";
 import { createPathNormalizationMiddleware } from "../../middleware/path-normalization.js";
@@ -58,6 +65,7 @@ import {
   type ApprovalGateConfig,
 } from "../../middleware/approval-gate.js";
 import { createErrorHintsMiddleware } from "../../middleware/error-hints.js";
+import { createOtelSpansMiddleware } from "../../middleware/otel-spans.js";
 import { createToolScopeMiddleware } from "../../middleware/tool-scope.js";
 
 const SUB_AGENT_ADVISORY_INTERVAL = 30;
@@ -93,6 +101,8 @@ export interface SubAgentMiddlewareOptions {
    * own lists (`compileSubagents`). Installed when it carries a list.
    */
   readonly toolScope?: ToolScopeConfig;
+  /** Which MCP server each tool belongs to, for the tool spans. */
+  readonly otelSpans?: Partial<OtelSpansConfig>;
 }
 
 /**
@@ -101,7 +111,7 @@ export interface SubAgentMiddlewareOptions {
  * Returns an ordered array mirroring the parent composition:
  * [path normalization] → loop detection → execution budget (periodic) →
  * tool intent → tool truncation → [tool scope] → [approval gate] → cost
- * cap view → error hints.
+ * cap view → error hints → OTel spans.
  * Normalization is outermost so everything downstream observes canonical
  * workspace-absolute paths (matching the parent). The gate sits before the
  * cost-cap view so an approval pause happens before budget accounting, and
@@ -164,6 +174,7 @@ export function buildSubAgentMiddleware(
   }
 
   stack.push(createErrorHintsMiddleware());
+  stack.push(createOtelSpansMiddleware(options.otelSpans));
 
   return stack;
 }

@@ -146,6 +146,7 @@ function depsWith(c: ResolutionDeps["client"]): { deps: ResolutionDeps; labels: 
       reportProgress: async (label) => {
         labels.push(label);
       },
+      identifyRun: () => {},
     },
   };
 }

@@ -46,6 +46,7 @@ import type { CursorTranslator } from "./translator.js";
 import type { StreamingUpdateScheduler } from "../../shared/streaming-scheduler.js";
 import type { CursorUsagePricer } from "./usage-pricing.js";
 import type { createCursorEventRecorder } from "./cursor-event-recorder.js";
+import type { CursorTurnObserver } from "./run-telemetry.js";
 
 /**
  * The subset of the Cursor SDK `Run` the stream phase consumes. Kept structural
@@ -115,6 +116,8 @@ export interface TurnOnDeltaDeps {
   readonly promptEstimatedTokens: number;
   readonly executionId: string;
   readonly state: TurnStreamState;
+  /** The turn's trace spans (`run-telemetry.ts`): every fact the loop folds and every usage report; undefined in tests that need none. */
+  readonly telemetry?: CursorTurnObserver;
 }
 
 export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
@@ -133,7 +136,7 @@ export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
 export function makeCursorTurnOnDelta(
   deps: TurnOnDeltaDeps,
 ): (event: { update: InteractionUpdate }) => void {
-  const { sink, usagePricer, translator, eventRecorder, promptEstimatedTokens, executionId, state } = deps;
+  const { sink, usagePricer, translator, eventRecorder, promptEstimatedTokens, executionId, state, telemetry } = deps;
   return ({ update }) => {
     // Progress on the delta channel too: a long model generation emits token
     // deltas but few discrete stream events, and resetting only in the stream
@@ -146,6 +149,7 @@ export function makeCursorTurnOnDelta(
       // The running estimate advances only here; the runtime enforces the cap
       // and aborts the signal, which the loop reads at the next boundary.
       sink.reportUsage(usagePricer.price(update.usage));
+      telemetry?.usage(update.usage);
 
       if (!state.firstTurnAttributionLogged) {
         state.firstTurnAttributionLogged = true;
@@ -223,8 +227,11 @@ export async function consumeCursorTurnStream(
       // The stream event is one observation, folded at one instant (a
       // completion with no running before it starts and finishes together);
       // each drained delta is its own, and carries `observedAt` where it stamps.
-      transcript.applyObservation(translator.translate(event));
-      for (const fact of translator.drainDeltas()) transcript.apply(fact);
+      const observed = translator.translate(event);
+      const drained = translator.drainDeltas();
+      transcript.applyObservation(observed);
+      for (const fact of drained) transcript.apply(fact);
+      deps.telemetry?.observe([...observed, ...drained]);
 
       // First-denial stop (HITL clean pause). In CAPTURE mode this fires only for
       // an IRREVERSIBLE tool the hook still gates (shell, MCP, or a gitignored

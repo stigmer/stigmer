@@ -37,6 +37,7 @@ import {
   type WorkflowSource,
 } from "./workflow-source.js";
 import { runCredentialActivityInterceptor } from "./interceptors/run-credential-activity.js";
+import { collectorSpanExporter, telemetrySettings } from "./otel-export.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
 import { assertLlmBackendsPreflight } from "./preflight.js";
 import {
@@ -817,12 +818,10 @@ export async function buildInterceptorConfig(
     },
   }));
 
-  if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
+  const telemetry = telemetrySettings();
+  if (telemetry.traces.enabled) {
     const { OpenTelemetryActivityInboundInterceptor, makeWorkflowExporter } =
       await import("@temporalio/interceptors-opentelemetry");
-    const { OTLPTraceExporter } = await import(
-      "@opentelemetry/exporter-trace-otlp-grpc"
-    );
     const { resourceFromAttributes } = await import(
       "@opentelemetry/resources"
     );
@@ -834,9 +833,7 @@ export async function buildInterceptorConfig(
     const resource = resourceFromAttributes({
       "service.name": "stigmer-runner-manager",
     });
-    const exporter = new OTLPTraceExporter({
-      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
-    });
+    const exporter = await collectorSpanExporter(telemetry);
     const otelSinks = makeWorkflowExporter(
       exporter as any,
       resource as any,

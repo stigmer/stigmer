@@ -78,7 +78,14 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
   };
 
   let manager: StigmerRunnerManager;
+  let otelShutdown: (() => Promise<void>) | null = null;
+  let metricsShutdown: (() => Promise<void>) | null = null;
   try {
+    // The manager is the runner's own process (the CLI and the desktop app
+    // start it), so it owns its telemetry as the other modes do; a setting
+    // the standard does not name is the same fatal error as any other.
+    otelShutdown = await initTracing("stigmer-runner");
+    metricsShutdown = await initMetrics("stigmer-runner");
     manager = await createStigmerRunnerManager({
       temporalAddress: config.temporalAddress,
       temporalNamespace: config.temporalNamespace,
@@ -147,6 +154,8 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
         }
         case "shutdown": {
           await manager.shutdown();
+          await metricsShutdown?.();
+          await otelShutdown?.();
           sendIpc({ type: "shutdownComplete" });
           rl.close();
           return;
@@ -170,6 +179,8 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
 
   // stdin closed (parent process died) — shut down gracefully
   await manager.shutdown();
+  await metricsShutdown?.();
+  await otelShutdown?.();
 }
 
 // ─── Pool Mode ───────────────────────────────────────────────────────────────

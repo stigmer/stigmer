@@ -3,7 +3,8 @@
  * every harness, with the engine behind the adapter contract (`types.ts`).
  *
  * What runs here and nowhere else: the activity's identity and its
- * execution-scoped context; the status, the one transcript builder over it
+ * execution-scoped context; the turn's `invoke_agent` span, around the
+ * whole activity (`run-span.ts`); the status, the one transcript builder over it
  * (born with the status, seeded by the reinvocation phase, handed to the
  * adapter as `sink.transcript`, finalized once the adapter returns), the turn
  * timeline folded from that builder's events and written once at settle
@@ -92,6 +93,7 @@ import {
 import { TranscriptBuilder } from "./transcript/builder.js";
 import { resolveTurnContext, type ResolutionDeps, type TurnFrame, type TurnSettlement } from "./turn-context.js";
 import { TurnTimeline } from "./turn-timeline.js";
+import { withRunSpan, type RunSpan } from "./run-span.js";
 import type { HarnessAdapter, TurnInput, TurnSink } from "./types.js";
 import { CostCapWatch } from "./cost-cap-watch.js";
 import type { UsageAccumulator } from "./usage-accumulator.js";
@@ -139,7 +141,10 @@ export async function runTurnActivity(deps: TurnRuntimeDeps, input: NormalizedAc
   console.log(
     `${deps.activityName} started: execution=${executionId}, threadId=${threadId || "(new)"}, turnSeq=${turnSeq}`,
   );
-  return runWithExecutionContext(executionId, () => runTurn(deps, input));
+  // The span inside the context: its trace id is the run's (`run-trace-id.ts`).
+  return runWithExecutionContext(executionId, () =>
+    withRunSpan({ executionId, turnSeq, harness: deps.adapter.name }, (runSpan) => runTurn(deps, input, runSpan)),
+  );
 }
 
 /**
@@ -150,7 +155,7 @@ export async function runTurnActivity(deps: TurnRuntimeDeps, input: NormalizedAc
  */
 type Settled = { readonly kind: "return"; readonly value: unknown } | { readonly kind: "throw"; readonly error: CancelledFailure };
 
-async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): Promise<unknown> {
+async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, runSpan: RunSpan): Promise<unknown> {
   const { adapter, activityName, client, config } = deps;
   const { executionId } = input;
 
@@ -371,6 +376,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
       resumed: (turn.execution.status?.messages.length ?? 0) > 0 || activity.info.attempt > 1,
       status,
     });
+    runSpan.model(turn.model.requested);
     const maxCostUsd = turn.execution.status?.runConfig?.maxCostUsd ?? 0;
     const costCap = new CostCapWatch(maxCostUsd, turn.model.serviceTier, turn.model.thinkingMode);
     const accumulator = costCap.accumulator;
@@ -608,7 +614,9 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
    * actually completes the execution.
    */
   async function pauseCompletedTurnForReview(turn: TurnInput): Promise<Settled> {
-    await resolveStructuredOutput(turn, lastAssistantText());
+    const finalText = lastAssistantText();
+    runSpan.answer(finalText);
+    await resolveStructuredOutput(turn, finalText);
     return settleWith(awaitingReviewArm());
   }
 
@@ -628,6 +636,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
 
     if (phase === RunPhase.RUN_COMPLETED) {
       finalText = lastAssistantText();
+      runSpan.answer(finalText);
       await resolveStructuredOutput(turn, finalText);
 
       // Plan mode: publish the final plan message as a plan artifact (named
@@ -808,6 +817,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
         heartbeat();
       },
       reportProgress: (label) => reportSetupProgress(client, executionId, label),
+      identifyRun: (facts) => runSpan.identify(facts),
     };
     const resolution = await resolveTurnContext(resolutionDeps, adapter.capabilities, frame, () => chokepoint.write());
     if (resolution.kind === "settled") {
@@ -833,6 +843,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput): P
     // Idempotent and non-throwing, so it can never mask the turn's outcome.
     await frame.releaseWorkspaceLock?.();
   }
+  runSpan.settle(status);
 
   switch (settled.kind) {
     case "return":

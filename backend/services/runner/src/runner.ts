@@ -10,7 +10,7 @@
  * OTel tracing and metrics are intentionally excluded — they mutate
  * global state and should be initialized by the consumer before calling
  * this factory. The Temporal OTel activity interceptor is still wired
- * internally when OTEL_EXPORTER_OTLP_ENDPOINT is set.
+ * internally when the standard settings export traces (`otel-export.ts`).
  */
 
 import { mkdirSync } from "node:fs";

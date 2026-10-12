@@ -39,7 +39,15 @@ import {
   toVertexModelId,
   toBedrockModelId,
   toFoundryDeploymentName,
+  type AnthropicBackend,
 } from "./llm-backend.js";
+import {
+  PROVIDER_ANTHROPIC,
+  PROVIDER_AWS_BEDROCK,
+  PROVIDER_AZURE_AI_INFERENCE,
+  PROVIDER_GCP_VERTEX_AI,
+  PROVIDER_OPENAI,
+} from "../gen-ai-conventions.js";
 import { resolveToApiModelId } from "./model-registry.js";
 import {
   toAnthropicServiceTier,
@@ -410,7 +418,52 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
           ...anthropicClientOptionsField,
         });
 
+  MODEL_FACTS.set(model, {
+    providerName: providerNameOf(provider, anthropicBackend),
+    requestModel: opts.modelName,
+    responseModel: apiModelId,
+  });
   return { model, provider, apiModelId };
+}
+
+/**
+ * What a trace says about a model the runner built: where it is served
+ * from, in the GenAI conventions' provider names, the registry id it was
+ * asked for, and the provider API id it resolved to.
+ */
+export interface ChatModelFacts {
+  readonly providerName: string;
+  readonly requestModel: string;
+  readonly responseModel: string;
+}
+
+/**
+ * Every built model's facts, by the model instance. The native engine's
+ * span middleware reads them from the request's model
+ * (`middleware/otel-spans.ts`), so one middleware serves the parent's graph
+ * and every sub-agent's, each on the model it runs, with no per-stack
+ * configuration and no guess from a model's name.
+ */
+const MODEL_FACTS = new WeakMap<object, ChatModelFacts>();
+
+/** The facts {@link buildChatModel} recorded for `model`; `undefined` for a model it did not build. */
+export function chatModelFacts(model: unknown): ChatModelFacts | undefined {
+  return typeof model === "object" && model !== null ? MODEL_FACTS.get(model) : undefined;
+}
+
+/** The conventions' provider name for where a model is served from. */
+function providerNameOf(provider: LlmProvider, anthropicBackend: AnthropicBackend): string {
+  if (provider === "openai") return PROVIDER_OPENAI;
+  switch (anthropicBackend) {
+    case "public":
+      return PROVIDER_ANTHROPIC;
+    case "vertex":
+      return PROVIDER_GCP_VERTEX_AI;
+    case "bedrock":
+      return PROVIDER_AWS_BEDROCK;
+    case "foundry":
+      return PROVIDER_AZURE_AI_INFERENCE;
+  }
 }
 
 /**

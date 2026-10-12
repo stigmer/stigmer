@@ -51,6 +51,7 @@ async function resolveWith(exchange: () => Promise<string | undefined>, runnerKe
     heartbeat: () => {},
     enterPhase: () => {},
     reportProgress: async () => {},
+    identifyRun: () => {},
   };
   const session = create(SessionSchema, { metadata: { org: "org-1" } });
   const blueprint = {

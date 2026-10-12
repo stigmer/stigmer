@@ -43,6 +43,7 @@ import type { FailureSurface, HarnessAdapter, TurnInput, TurnOutcome, TurnSink, 
 import { executionFingerprintKey } from "../shared/fingerprint-secret.js";
 import type { CasTouchedSnapshot } from "../shared/filereview/cas-touched.js";
 import { offloadedOutputs } from "../shared/status-offload.js";
+import { activeTraceparent } from "../shared/trace-context.js";
 import {
   RuntimeFieldTracker,
   applyAdapterProjection,
@@ -115,6 +116,7 @@ async function runRemoteTurn(
       fingerprintKey: executionFingerprintKey(input.executionId).toString("base64"),
       stopped: sink.stopSignal.aborted ? describeReason(sink.stopSignal.reason) : null,
       turnKey,
+      traceparent: await activeTraceparent(),
     });
     applyAdapterProjection(sink.status, settlement.projection);
     confineHostRows(sink.status, input.executionId, turn.seededKeys);

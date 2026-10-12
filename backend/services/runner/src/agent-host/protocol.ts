@@ -48,9 +48,10 @@ import type { TranscriptEvent } from "../harness/transcript/events.js";
 import type { AgentFileKind } from "../shared/agent-fs.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
+import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 3;
+export const AGENT_HOST_PROTOCOL_VERSION = 4;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -114,6 +115,13 @@ export interface HostConfigWire {
    * providers through the local proxy's provider lanes, which add the key.
    */
   readonly platformProxied: boolean;
+  /**
+   * The runner's telemetry decision (`otel-export.ts`): whether the host
+   * exports, in which encoding, with the conversation's text or without.
+   * The host reads no telemetry setting of its own, and exports to the local
+   * proxy's lane, never to the collector (`agent-proxy/otlp-forward.ts`).
+   */
+  readonly telemetry: TelemetrySettings;
 }
 
 /** The pre-turn bytes the engine observed (`shared/filereview/cas-touched.ts`), as they cross. */
@@ -175,6 +183,8 @@ export interface HostCalls {
       readonly stopped: string | null;
       /** This turn's key at the runner's local proxy, stamped on every call the turn makes there (`shared/execution-context.ts`). */
       readonly turnKey: string;
+      /** The run span's W3C `traceparent`, which the host runs the turn under; `null` with tracing off (`shared/trace-context.ts`). */
+      readonly traceparent: string | null;
     };
     readonly result: WireSettlement;
   };

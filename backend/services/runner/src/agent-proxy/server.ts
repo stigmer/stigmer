@@ -31,6 +31,10 @@
  *    status writes, credential exchanges stay the runner's own calls.
  *  - The Cursor SDK's traffic has a listener of its own, TLS on loopback,
  *    under the same token and live-turn rules (`cursor-lane.ts`).
+ *  - The telemetry lane (`otlp/v1/traces`, `otlp/v1/metrics`) forwards the
+ *    host's OTLP exports to the operator's collector with the collector's
+ *    login (`otlp-forward.ts`). Like the registry it needs no live turn: a
+ *    batch leaves on the span processor's schedule, often after its turn.
  *
  * Every refusal is answered in the shape the providers' SDKs parse as an
  * API error, and logged once with its reason (never a token or a body).
@@ -39,7 +43,9 @@
  * host's token can make model calls on the runner's account through this
  * server, as the agent's engine does by design — model calls only, each
  * lane serving its provider's inference paths and nothing else under its
- * root (`lanes.ts`). It can no longer take a key away.
+ * root (`lanes.ts`). It can no longer take a key away. And at any time it
+ * can send telemetry, which lands in the operator's collector beside the
+ * real spans; it reads nothing back and never reaches the collector's login.
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
@@ -53,6 +59,8 @@ import type { AgentProxyGate } from "../agent-host/supervisor.js";
 import { CursorLane } from "./cursor-lane.js";
 import { LaneRefusal, checkpointUpstream, isModelProviderLane, modelUpstream, registryUpstream } from "./lanes.js";
 import { RequestTooLargeError, bearerOf, readBody, relay, replyError } from "./relay.js";
+import { OTLP_LANE_PREFIX } from "../otel-export.js";
+import { OtlpForward, otlpSignalOf } from "./otlp-forward.js";
 
 const LLM_PREFIX = "/v1/proxy/llm/";
 const CHECKPOINT_PREFIX = "/v1/proxy/checkpoints";
@@ -71,6 +79,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   private readonly live = new Set<LiveTurn>();
 
   private cursor!: CursorLane;
+  private readonly otlp = new OtlpForward();
 
   private constructor(
     private readonly server: Server,
@@ -125,6 +134,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   async close(): Promise<void> {
     await Promise.all([
       this.cursor.close(),
+      this.otlp.close(),
       new Promise<void>((resolve) => {
         this.server.closeAllConnections();
         this.server.close(() => resolve());
@@ -140,6 +150,12 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
       if (path === REGISTRY_PATH) {
         if (req.method !== "GET") throw new LaneRefusal(405, "the model registry is read with GET");
         await relay(res, registryUpstream(req));
+        return;
+      }
+      if (path.startsWith(OTLP_LANE_PREFIX)) {
+        const signal = otlpSignalOf(path.slice(OTLP_LANE_PREFIX.length));
+        if (signal === undefined) throw new LaneRefusal(404, `the telemetry lane serves v1/traces and v1/metrics, not ${path}`);
+        await this.otlp.serve(req, res, signal);
         return;
       }
       if (path.startsWith(LLM_PREFIX)) {

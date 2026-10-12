@@ -604,6 +604,7 @@ export async function buildEngine(
     // to the SAME per-turn observer as the parent.
     casObserver: workspace.casObserver,
     parentModelName: modelName,
+    toolServerMap: tools.toolServerMap,
     webFetchPosture,
     costAdvisory: costAdvisory ?? undefined,
     modelFactory: buildModelFor,

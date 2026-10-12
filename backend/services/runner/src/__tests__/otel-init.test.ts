@@ -7,7 +7,8 @@
  *
  * The OpenTelemetry SDKs are replaced at their module seams; what is pinned
  * is the resource each provider is given, and that no exporter is set up
- * without an endpoint.
+ * without an endpoint. The settings are re-read from the environment for
+ * each case (`otel-export.ts`).
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -26,9 +27,19 @@ vi.mock("@opentelemetry/sdk-trace-node", () => ({
     async shutdown(): Promise<void> {}
   },
 }));
-vi.mock("@opentelemetry/sdk-trace-base", () => ({ BatchSpanProcessor: class {} }));
-vi.mock("@opentelemetry/exporter-trace-otlp-grpc", () => ({ OTLPTraceExporter: class {} }));
-vi.mock("@opentelemetry/exporter-metrics-otlp-grpc", () => ({ OTLPMetricExporter: class {} }));
+vi.mock("@opentelemetry/sdk-trace-base", () => ({
+  BatchSpanProcessor: class {},
+  RandomIdGenerator: class {
+    generateTraceId(): string {
+      return "0".repeat(31) + "1";
+    }
+    generateSpanId(): string {
+      return "0".repeat(15) + "1";
+    }
+  },
+}));
+vi.mock("@opentelemetry/exporter-trace-otlp-proto", () => ({ OTLPTraceExporter: class {} }));
+vi.mock("@opentelemetry/exporter-metrics-otlp-proto", () => ({ OTLPMetricExporter: class {} }));
 vi.mock("@opentelemetry/sdk-metrics", () => ({
   MeterProvider: class {
     async shutdown(): Promise<void> {}
@@ -39,6 +50,7 @@ vi.mock("@opentelemetry/core", () => ({
   W3CTraceContextPropagator: class {},
   W3CBaggagePropagator: class {},
   CompositePropagator: class {},
+  parseKeyPairsIntoRecord: () => ({}),
 }));
 vi.mock("@opentelemetry/api", () => ({
   propagation: { setGlobalPropagator: () => {} },
@@ -46,10 +58,12 @@ vi.mock("@opentelemetry/api", () => ({
 }));
 
 import { ATTR_RUNNER_PROCESS, initMetrics, initTracing } from "../otel.js";
+import { resetTelemetrySettingsForTests } from "../otel-export.js";
 
 afterEach(() => {
   resources.length = 0;
   delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+  resetTelemetrySettingsForTests();
   vi.restoreAllMocks();
 });
 
@@ -58,8 +72,8 @@ describe("telemetry initialization", () => {
     process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://127.0.0.1:4317";
     vi.spyOn(console, "log").mockImplementation(() => {});
 
-    const tracing = await initTracing("stigmer-runner", "agent-host");
-    const metrics = await initMetrics("stigmer-runner", "agent-host");
+    const tracing = await initTracing("stigmer-runner", { processRole: "agent-host" });
+    const metrics = await initMetrics("stigmer-runner", { processRole: "agent-host" });
     await tracing?.();
     await metrics?.();
 
@@ -78,8 +92,8 @@ describe("telemetry initialization", () => {
   });
 
   it("sets up nothing without an endpoint", async () => {
-    expect(await initTracing("stigmer-runner", "agent-host")).toBeNull();
-    expect(await initMetrics("stigmer-runner", "agent-host")).toBeNull();
+    expect(await initTracing("stigmer-runner", { processRole: "agent-host" })).toBeNull();
+    expect(await initMetrics("stigmer-runner", { processRole: "agent-host" })).toBeNull();
     expect(resources).toEqual([]);
   });
 });
