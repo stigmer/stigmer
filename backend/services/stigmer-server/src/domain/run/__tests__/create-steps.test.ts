@@ -9,7 +9,9 @@
  *
  * CreateSessionIfNeeded forwards the caller's session_spec (its agent_ref
  * included), points the turn at the created session through the target
- * oneof and re-takes the turn's agent stamp from that session's pin. The
+ * oneof and re-takes the turn's agent stamp from that session's pin, and
+ * names it uniquely, since a session's slug is a claimed name and two runs
+ * can start in one millisecond. The
  * compose steps write their snapshots to status, over anything a caller
  * left there. StartWorkflow feeds the workflow input its agent from the
  * stamp, never from the request.
@@ -85,6 +87,7 @@ import {
   newKeepPluginEvalCaseStep,
   PLUGIN_EVAL_CASE_NOT_COMPOSED_MESSAGE,
   VISITOR_APPENDED_PROMPT_MESSAGE,
+  autoCreatedSessionName,
   newComposeRecalledMemoriesStep,
   newCreateSessionIfNeededStep,
   newSetInitialPhaseStep,
@@ -1515,5 +1518,15 @@ describe("newKeepPluginEvalCaseStep", () => {
     const cleared = update(composed, undefined);
     await step.execute(cleared);
     expect(cleared.newState.spec?.pluginEvalCase?.scaffoldScript).toBe("setup.sh");
+  });
+});
+
+describe("autoCreatedSessionName", () => {
+  it("keeps the millisecond stamp and never repeats within one millisecond", () => {
+    const names = Array.from({ length: 1000 }, () => autoCreatedSessionName());
+    for (const name of names) {
+      expect(name).toMatch(/^session-\d+-[0-9a-f]{8}$/);
+    }
+    expect(new Set(names).size, "a session's slug is a claimed name").toBe(names.length);
   });
 });

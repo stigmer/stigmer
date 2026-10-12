@@ -317,7 +317,11 @@ async function findAgentByOrgAndSlug(
   org: string,
   slug: string,
 ): Promise<Agent | undefined> {
-  return findResourceByName(store, ApiResourceKind.agent, AgentSchema, org, slug);
+  try {
+    return await findResourceByName(store, ApiResourceKind.agent, AgentSchema, org, slug);
+  } catch (error) {
+    throw internalError(error, "failed to read the agent");
+  }
 }
 
 /**

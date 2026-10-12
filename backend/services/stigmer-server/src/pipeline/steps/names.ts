@@ -117,7 +117,8 @@ export const NAMED_KINDS: Readonly<Record<ApiResourceKind, NamedKind>> = {
   [ApiResourceKind.agent]: CLAIMS,
   [ApiResourceKind.run]: {
     claims: false,
-    reason: "its slug is minted unique and it is addressed by id",
+    reason:
+      "addressed by id; its slug follows its name, which two runs may share (a plugin eval's retried tries), and a schedule fire finds its run through the run list index",
   },
   [ApiResourceKind.session]: CLAIMS,
   [ApiResourceKind.skill]: CLAIMS,
