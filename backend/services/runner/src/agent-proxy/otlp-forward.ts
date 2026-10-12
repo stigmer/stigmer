@@ -24,7 +24,9 @@
  * the delegate's own retries, so the host's exporter retries once more
  * inside its own bound; 404 when this runner exports no such signal; 415
  * for a body in another encoding or compressed; 413 above
- * {@link MAX_OTLP_BODY_BYTES}. A failing collector is logged when it starts
+ * {@link MAX_OTLP_BODY_BYTES}, after the body has been read to its end and
+ * dropped: the exporter streams its body, and a request cut off mid-body
+ * reads to it as a dropped connection, which it retries. A failing collector is logged when it starts
  * failing and when it recovers, never per batch, and never a body.
  *
  * No live turn is required: a batch leaves the host on the span
@@ -38,7 +40,6 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { laneEncoding, collectorHeaders, grpcMetadata, telemetrySettings, type TelemetrySettings, type TelemetrySignal } from "../otel-export.js";
 import { LaneRefusal } from "./lanes.js";
-import { readBody } from "./relay.js";
 
 /** The largest body the lane accepts: twice the largest batch content export allows (32 spans of 64 KiB, `otel-export.ts`). */
 export const MAX_OTLP_BODY_BYTES = 8 * 1024 * 1024;
@@ -58,6 +59,26 @@ const SIGNAL_PATHS: Readonly<Record<string, TelemetrySignal>> = { "v1/traces": "
 /** The signal a lane path names, or `undefined` for any other path under the lane. */
 export function otlpSignalOf(rest: string): TelemetrySignal | undefined {
   return SIGNAL_PATHS[rest];
+}
+
+/**
+ * The request's body, or `undefined` when it passed `limit`: the rest is
+ * read and dropped rather than the socket closed, so the refusal reaches the
+ * exporter as an answer it does not retry (`relay.ts` `readBody` destroys
+ * the request, right for a model call, which nothing retries blindly).
+ */
+function readBoundedBody(req: IncomingMessage, limit: number): Promise<Buffer | undefined> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    req.on("data", (chunk: Buffer) => {
+      size += chunk.length;
+      if (size <= limit) chunks.push(chunk);
+      else chunks.length = 0;
+    });
+    req.on("end", () => resolve(size <= limit ? Buffer.concat(chunks) : undefined));
+    req.on("error", reject);
+  });
 }
 
 /** One signal's export delegate: OpenTelemetry's, over bytes already encoded. */
@@ -111,7 +132,8 @@ export class OtlpForward {
     }
     const contentEncoding = (req.headers["content-encoding"] ?? "identity").trim().toLowerCase();
     if (contentEncoding !== "identity") throw new LaneRefusal(415, "the telemetry lane takes an uncompressed body");
-    const body = await readBody(req, MAX_OTLP_BODY_BYTES);
+    const body = await readBoundedBody(req, MAX_OTLP_BODY_BYTES);
+    if (body === undefined) throw new LaneRefusal(413, `an OTLP export may carry at most ${MAX_OTLP_BODY_BYTES} bytes`);
 
     const result = await this.forward(signal, body);
     if (result.ok) {

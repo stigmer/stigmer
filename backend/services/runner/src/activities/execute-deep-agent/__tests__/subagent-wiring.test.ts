@@ -19,12 +19,13 @@ describe("buildSubAgentMiddleware", () => {
   it("returns the correct middleware order without a cost advisory", () => {
     const stack = buildSubAgentMiddleware();
 
-    expect(stack).toHaveLength(5);
+    expect(stack).toHaveLength(6);
     expect(stack[0].name).toBe("LoopDetectionMiddleware");
     expect(stack[1].name).toBe("ExecutionBudgetMiddleware");
     expect(stack[2].name).toBe("StigmerToolIntentMiddleware");
     expect(stack[3].name).toBe("ToolTruncationMiddleware");
     expect(stack[4].name).toBe("ErrorHintsMiddleware");
+    expect(stack[5].name).toBe("OtelSpansMiddleware");
   });
 
   it("includes the parent's cost advisory view when one is provided", () => {
@@ -38,9 +39,10 @@ describe("buildSubAgentMiddleware", () => {
 
     const stack = buildSubAgentMiddleware({ costAdvisory: parentCostAdvisory });
 
-    expect(stack).toHaveLength(6);
+    expect(stack).toHaveLength(7);
     expect(stack[4].name).toBe("CostAdvisorySubAgentView");
     expect(stack[5].name).toBe("ErrorHintsMiddleware");
+    expect(stack[6].name).toBe("OtelSpansMiddleware");
   });
 
   it("the sub-agent advisory view shares the parent's running total and has no tool hook", () => {
@@ -113,7 +115,7 @@ describe("buildSubAgentMiddleware", () => {
     });
 
     // loop, budget, tool intent, truncation, approval gate, error hints
-    expect(stack).toHaveLength(6);
+    expect(stack).toHaveLength(7);
     expect(stack[4].name).toBe("ApprovalGateMiddleware");
     expect(stack[4].wrapToolCall).toBeDefined();
   });
@@ -121,7 +123,7 @@ describe("buildSubAgentMiddleware", () => {
   it("omits the approval gate when approvalGate is null (auto-approve-all parity)", () => {
     const stack = buildSubAgentMiddleware({ approvalGate: null });
 
-    expect(stack).toHaveLength(5);
+    expect(stack).toHaveLength(6);
     expect(stack.some((m) => m.name === "ApprovalGateMiddleware")).toBe(false);
   });
 
@@ -142,10 +144,11 @@ describe("buildSubAgentMiddleware", () => {
     // loop, budget, tool intent, truncation, approval gate, cost advisory view,
     // error hints. Hints AFTER the gate matches the parent nesting: the
     // gate's HITL interrupt stays outside the hints' try/catch (issue #255).
-    expect(stack).toHaveLength(7);
+    expect(stack).toHaveLength(8);
     expect(stack[4].name).toBe("ApprovalGateMiddleware");
     expect(stack[5].name).toBe("CostAdvisorySubAgentView");
     expect(stack[6].name).toBe("ErrorHintsMiddleware");
+    expect(stack[7].name).toBe("OtelSpansMiddleware");
   });
 
   // captureIgnored is the structural coupling that makes sub-agent gitignored

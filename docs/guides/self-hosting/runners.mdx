@@ -251,6 +251,10 @@ reaches the runner as an ordinary variable, without that protection. On the
 `substrate` driver the server refuses such a name at boot, because a Substrate
 sandbox's runner takes only its own secrets.
 
+To send every run to your tracing tool, give a sandboxed runner the
+OpenTelemetry settings through the same two lists, the login on the secrets
+list; [Send runs to your tracing tool](./tracing) says which goes where.
+
 A provisioner changes how runs are routed. Each Session gets its own queue,
 `session:<id>`, which is `STIGMER_ACTIVITY_ROUTING=session`; and a Session is
 provisioned only when its execution target is `cloud`, which
