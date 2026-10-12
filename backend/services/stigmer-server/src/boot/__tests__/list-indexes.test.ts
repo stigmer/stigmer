@@ -43,9 +43,12 @@ const PINNED: Readonly<
     fingerprint:
       "run{grades=label:stigmer.ai/grades-run,plugin_eval=label:stigmer.ai/plugin-eval,schedule=label:stigmer.ai/schedule-id,session=field:spec.session_id,working_session=fieldWhen:spec.session_id?status.phase=1|2|6}",
   },
+  // Revision 2 added the agent's key and the plugin eval label's, which an
+  // agent's quality report and flagged list read.
   score: {
-    revision: 1,
-    fingerprint: "score{run=field:spec.run_id,session=field:spec.session_id}",
+    revision: 2,
+    fingerprint:
+      "score{agent=field:status.agent_id,plugin_eval=label:stigmer.ai/plugin-eval,run=field:spec.run_id,session=field:spec.session_id}",
   },
   evaluator: {
     revision: 1,

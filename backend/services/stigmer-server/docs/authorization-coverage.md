@@ -270,6 +270,8 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | ScoreQueryController.get | config: can_view on score (field value), error_msg yes | chain-with-Authorize |
 | ScoreQueryController.listByRun | config: can_view on run (field run_id), error_msg yes | chain-with-Authorize (the run's scores through the score list index, whole; a score's visibility is its run's, so no row is filtered) |
 | ScoreQueryController.listBySession | config: can_view on session (field session_id), error_msg yes | chain-with-Authorize (the session's scores through the score list index, whole; a run's visibility is its session's, so no row is filtered) |
+| ScoreQueryController.getAgentQualityReport | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_view on the agent named in agent_id, after the organization's bar; the organization's live scores of the agent through the score list index's agent key, eval tries left out, counted on read; counts, names, hashes and dates only, so every run is counted and none is quoted; `src/domain/score/quality.ts`) |
+| ScoreQueryController.listFlaggedByAgent | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_view on the agent, as the report; the agent's failed grades through the score list index, paged; driver: ListReadScope — each batch narrowed by the scores' sessions, offered as kind session, one read and one decision per session per request; `src/domain/score/quality.ts`) |
 
 ## 16b. Evaluator (`src/domain/evaluator/controller.ts`)
 
