@@ -28,13 +28,26 @@ vi.mock("@stigmer/react", () => ({
   EditResourceYamlDialog: () => null,
   ConfirmDialog: () => null,
   useAgent: () => ({
-    agent: page.agentSlug === "" ? null : { metadata: { slug: page.agentSlug } },
+    agent:
+      page.agentSlug === "" ? null : { metadata: { slug: page.agentSlug } },
     refetch: () => {},
   }),
   useCopyResource: () => ({ copyId: () => {}, copyQualifiedSlug: () => {} }),
-  useConfirmAction: () => ({ confirmState: null, confirm: () => {}, handleConfirm: () => {}, handleCancel: () => {} }),
-  useDeleteResource: () => ({ deleteResource: async () => {}, isDeleting: false }),
-  useExportResource: () => ({ copyYaml: () => {}, copyJson: () => {}, downloadYaml: () => {} }),
+  useConfirmAction: () => ({
+    confirmState: null,
+    confirm: () => {},
+    handleConfirm: () => {},
+    handleCancel: () => {},
+  }),
+  useDeleteResource: () => ({
+    deleteResource: async () => {},
+    isDeleting: false,
+  }),
+  useExportResource: () => ({
+    copyYaml: () => {},
+    copyJson: () => {},
+    downloadYaml: () => {},
+  }),
   useBreadcrumbOverride: () => ({ setLabel: () => {} }),
 }));
 
@@ -75,8 +88,14 @@ describe("web AgentDetailPageInner", () => {
     render(<AgentDetailPageInner org="acme" slug="test-bot" />);
     expect(page.canonical).toEqual(["support-bot"]);
 
-    act(() => page.view.at(-1)?.onRenamed?.({ metadata: { slug: "help-bot" } } as Agent));
-    act(() => page.view.at(-1)?.onRenamed?.({ metadata: { slug: "" } } as Agent));
+    act(() =>
+      page.view
+        .at(-1)
+        ?.onRenamed?.({ metadata: { slug: "help-bot" } } as Agent),
+    );
+    act(() =>
+      page.view.at(-1)?.onRenamed?.({ metadata: { slug: "" } } as Agent),
+    );
 
     expect(page.canonical).toEqual(["support-bot", "help-bot"]);
   });
