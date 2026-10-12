@@ -44,6 +44,14 @@ import {
   NAMED_KINDS_AT_BACKFILL,
   RESOURCE_NAMES_BACKFILL_PAGE_SIZE,
 } from "../resource-names-backfill.js";
+import {
+  ARCHIVED_KIND_AT_REWRITE,
+  NAMED_KINDS_AT_REWRITE,
+  REFERENCES_BY_ID_PAGE_SIZE,
+  REFERRING_KINDS_AT_REWRITE,
+  ReferenceRewrite,
+} from "../references-by-id.js";
+import type { NameAtRewrite } from "../references-by-id.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
 import type { StoreLogger } from "../logger.js";
 import {
@@ -201,8 +209,11 @@ export const SCHEMA_VERSION_23 = 23;
 /** v24: every named kind's slug recorded as its current name in the name table. */
 export const SCHEMA_VERSION_24 = 24;
 
+/** v25: every stored reference holds the id of the resource its name held. */
+export const SCHEMA_VERSION_25 = 25;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_24;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_25;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -267,6 +278,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_22, migrateToV22],
       [SCHEMA_VERSION_23, (migrating) => migrateToV23(migrating, logger)],
       [SCHEMA_VERSION_24, (migrating) => migrateToV24(migrating, logger)],
+      [SCHEMA_VERSION_25, (migrating) => migrateToV25(migrating, logger)],
     ];
 
     for (const [version, migrate] of chain) {
@@ -1658,6 +1670,74 @@ async function migrateToV24(client: PoolClient, logger: StoreLogger): Promise<vo
       );
     }
   }
+}
+
+/**
+ * v25: every stored reference holds the id of the resource its name held
+ * (../references-by-id.ts says which rows, how a reference resolves, what
+ * an unresolved one keeps, and why an unreadable row fails the step). The
+ * live names of the kinds a reference may name are read once; each
+ * referring kind is read in keyset pages and a row its rewrite changed is
+ * written back; the agent's archived versions are rewritten in place under
+ * their hashes. The SQLite driver's v30 in this engine's terms. Runs
+ * inside applyInTransaction's BEGIN.
+ */
+async function migrateToV25(client: PoolClient, logger: StoreLogger): Promise<void> {
+  const names = (
+    await client.query<NameAtRewrite>(
+      `SELECT kind, org, name, id FROM resource_names
+       WHERE kind = ANY($1::text[]) AND (expires_at = '' OR expires_at > $2)`,
+      [[...NAMED_KINDS_AT_REWRITE], new Date().toISOString()],
+    )
+  ).rows;
+  const rewrite = new ReferenceRewrite(names);
+  for (const referring of REFERRING_KINDS_AT_REWRITE) {
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources WHERE kind = $1 AND id > $2 ORDER BY id LIMIT $3`,
+          [referring.kind, after, REFERENCES_BY_ID_PAGE_SIZE],
+        )
+      ).rows;
+      for (const row of rows) {
+        const rewritten = rewrite.rewrite(referring, row.id, new Uint8Array(row.data));
+        if (rewritten !== undefined) {
+          await client.query(
+            `UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`,
+            [Buffer.from(rewritten), referring.kind, row.id],
+          );
+        }
+      }
+      if (rows.length < REFERENCES_BY_ID_PAGE_SIZE) {
+        break;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  }
+  const archived = ARCHIVED_KIND_AT_REWRITE;
+  for (let after = "0"; ; ) {
+    const rows = (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id::text AS id, data FROM resource_audit
+         WHERE kind = $1 AND id > $2::bigint ORDER BY id LIMIT $3`,
+        [archived.kind, after, REFERENCES_BY_ID_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      const rewritten = rewrite.rewrite(archived, `archive ${row.id}`, new Uint8Array(row.data));
+      if (rewritten !== undefined) {
+        await client.query(`UPDATE resource_audit SET data = $1 WHERE id = $2::bigint`, [
+          Buffer.from(rewritten),
+          row.id,
+        ]);
+      }
+    }
+    if (rows.length < REFERENCES_BY_ID_PAGE_SIZE) {
+      break;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
+  rewrite.report(logger);
 }
 
 /**

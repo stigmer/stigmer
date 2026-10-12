@@ -47,39 +47,23 @@ import { referenceDisplayNames } from "../../pipeline/steps/references.js";
 type AgentDesc = typeof AgentSchema;
 
 // ---------------------------------------------------------------------------
-// ValidateHooks — the agent's plugins and its own hooks block, checked
-// where the proto's own rules cannot reach. Each plugin is listed once by
-// slug (spec.plugins): the slug is what a run records as the deciding hook
+// ValidatePluginList — each plugin is listed once by slug (spec.plugins):
+// the slug is what a run records as the deciding hook
 // (ToolCall.approval_policy_hook) and what a hook's "approve all" lease is
 // keyed by, and the name a turn gives its skills, agents and tools, so two
-// plugins sharing one, even from two organizations, would share them. One
-// inline block at most (spec.hooks), so "the agent's own hooks" names one
-// thing. An inline block is held to the rules a plugin's hooks are held to
-// at install, from the one library that reads them (@stigmer/plugin-package),
-// in either format, since both engines run both. Claude Code's: the two
-// tool-call events, a matcher that is "*", an exact list or a regular
-// expression, an `if` in a permission rule's shape, and no fail_closed,
-// which Claude Code hooks do not honour. Cursor's: the five tool-call
-// events Stigmer runs, a matcher that is "*" or a regular expression, and
-// neither an `if` nor `args` nor `${user_config.*}`, which Cursor's format
-// does not have. An omitted format is filled with
-// Claude Code's, so an author writing a block by hand never names an enum;
-// a Cursor block names its format.
-//
-// The plugins are compared by the names they hold now: NormalizeReferences
-// ran first and left each one its id, so a plugin listed twice is one id
-// and two plugins sharing a slug are two ids of one current name.
-//
-// Pipeline position: before ValidateReferences, so malformed hooks are
-// INVALID_ARGUMENT before any reference is judged; before the version
-// hash, so the filled format is part of what is hashed.
+// plugins sharing one, even from two organizations, would share them. The
+// plugins are compared by the names they hold now: NormalizeReferences ran
+// first and left each one its id, so a plugin listed twice is one id and
+// two plugins sharing a slug are two ids of one current name, read in one
+// batch from the name table. INVALID_ARGUMENT, before ValidateReferences
+// judges any of them.
 // ---------------------------------------------------------------------------
 
-export function newValidateHooksStep(
+export function newValidatePluginListStep(
   store: Store,
 ): PipelineStep<AgentDesc> {
   return {
-    name: "ValidateHooks",
+    name: "ValidatePluginList",
     async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
       const pluginSlugs = new Set<string>();
       for (const slug of await referenceDisplayNames(
@@ -94,6 +78,36 @@ export function newValidateHooksStep(
         }
         pluginSlugs.add(slug);
       }
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// ValidateHooks — the agent's own hooks block, checked where the proto's
+// own rules cannot reach. One inline block at most (spec.hooks), so "the
+// agent's own hooks" names one thing. An inline block is held to the rules
+// a plugin's hooks are held to
+// at install, from the one library that reads them (@stigmer/plugin-package),
+// in either format, since both engines run both. Claude Code's: the two
+// tool-call events, a matcher that is "*", an exact list or a regular
+// expression, an `if` in a permission rule's shape, and no fail_closed,
+// which Claude Code hooks do not honour. Cursor's: the five tool-call
+// events Stigmer runs, a matcher that is "*" or a regular expression, and
+// neither an `if` nor `args` nor `${user_config.*}`, which Cursor's format
+// does not have. An omitted format is filled with
+// Claude Code's, so an author writing a block by hand never names an enum;
+// a Cursor block names its format.
+//
+//
+// Pipeline position: before ValidateReferences, so malformed hooks are
+// INVALID_ARGUMENT before any reference is judged; before the version
+// hash, so the filled format is part of what is hashed.
+// ---------------------------------------------------------------------------
+
+export function newValidateHooksStep(): PipelineStep<AgentDesc> {
+  return {
+    name: "ValidateHooks",
+    execute(ctx: RequestContext<AgentDesc>): void {
       let inlineBlocks = 0;
       for (const source of ctx.newState.spec?.hooks ?? []) {
         switch (source.source.case) {

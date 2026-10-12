@@ -8,10 +8,12 @@
  *
  *   - ValidateSubagentList runs with ValidateHooks, after NormalizeReferences
  *     resolved each reference to its agent's id and before any is judged:
- *     an agent may not list itself, and lists each agent once, since a turn
- *     names a subagent by its slug. Both are INVALID_ARGUMENT, compared by
- *     id, so a listed agent that is deleted and remade under its name is a
- *     different agent, judged as one the write introduces.
+ *     an agent may not list itself (by id), and lists each slug once, by the
+ *     names the listed agents hold now (two agents of one slug from two
+ *     organizations would share it), since a turn names a subagent by its
+ *     slug. Both are INVALID_ARGUMENT. A listed agent that is deleted and
+ *     remade under its name is a different id, judged as one the write
+ *     introduces.
  *   - PinSubagents runs after ValidateReferences, which has already judged
  *     each reference's existence, organization and visibility floor
  *     (pipeline/steps/references.ts). For each reference it:
@@ -67,7 +69,7 @@ import {
   loadReferenceTargets,
   loadReferenced,
   missingReferencesMessage,
-  referenceDisplayName,
+  referenceDisplayNames,
   referenceKey,
   referenceTargetKind,
 } from "../../pipeline/steps/references.js";
@@ -146,33 +148,28 @@ export function newValidateSubagentListStep(
         id: metadata?.id ?? "",
         slug: metadata?.slug ?? "",
       };
-      const seen = new Set<string>();
-      for (const ref of ctx.newState.spec?.subagents ?? []) {
-        if (ref.id === "" && ref.slug === "") {
-          continue;
-        }
+      const listed = (ctx.newState.spec?.subagents ?? []).filter(
+        (ref) => ref.id !== "" || ref.slug !== "",
+      );
+      for (const ref of listed) {
         if (namesSelf(ref, self)) {
           throw invalidArgumentError(selfListedMessage(self.slug));
         }
-        const held = ref.id !== "" ? `#${ref.id}` : `${ref.org}/${ref.slug}`;
-        if (seen.has(held)) {
-          throw invalidArgumentError(
-            listedTwiceMessage(await subagentName(store, ref)),
-          );
+      }
+      // A turn names a subagent by its slug, so two listed agents may not
+      // share the name they hold now, whatever their ids and organizations.
+      const seen = new Set<string>();
+      for (const name of await referenceDisplayNames(store, ApiResourceKind.agent, listed)) {
+        if (seen.has(name)) {
+          throw invalidArgumentError(listedTwiceMessage(name));
         }
-        seen.add(held);
+        seen.add(name);
       }
     },
   };
 }
 
-/** A listed agent's name for copy: its current slug, else what was written, else its id. */
-function subagentName(
-  store: Store,
-  ref: ApiResourceReference,
-): Promise<string> {
-  return referenceDisplayName(store, ApiResourceKind.agent, ref);
-}
+
 
 /** PinSubagents — the module header's second step. */
 export function newPinSubagentsStep(
@@ -336,13 +333,17 @@ async function judgeWriter(
       );
     }
     if (verdict.kind === "missing") {
-      throw subagentGone(ref);
+      throw subagentGone({ ...ref, slug: targets.slugOf(spec) ?? ref.slug });
     }
   }
 }
 
-/** The reference rule's own missing-target refusal, for a listed agent that left after ValidateReferences found it. */
-function subagentGone(ref: ApiResourceReference): Error {
+/**
+ * The reference rule's own missing-target refusal, for a listed agent that
+ * left after ValidateReferences found it: named by its slug when one is
+ * known, else by the id the reference holds.
+ */
+function subagentGone(ref: Pick<ApiResourceReference, "org" | "id" | "slug">): Error {
   const entry = referenceTargetKind(ApiResourceKind.agent);
   if (entry === undefined) {
     /* v8 ignore next -- @preserve: the reference rule table is a constant that holds an agent entry; no input reaches this */

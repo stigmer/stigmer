@@ -218,8 +218,9 @@ async function resolveRunAgent(
 
 /**
  * Merge plugin references from the agent and the session, one per plugin
- * by organization and slug (an empty organization is the session's), the
- * session's reference winning.
+ * by organization and id (or slug, for a reference written by name; an
+ * empty organization is the session's), the session's reference winning.
+ * A reference whose plugin was deleted is left out with a warning.
  */
 export function mergePluginRefs(
   agentRefs: readonly ApiResourceReference[],
@@ -227,15 +228,38 @@ export function mergePluginRefs(
   org: string,
 ): ApiResourceReference[] {
   const merged = new Map<string, ApiResourceReference>();
-  for (const ref of [...agentRefs, ...sessionRefs]) {
-    if (ref.slug) merged.set(pluginKey(ref, org), ref);
+  for (const ref of usableRefs([...agentRefs, ...sessionRefs], "plugin")) {
+    merged.set(pluginKey(ref, org), ref);
   }
   return [...merged.values()];
 }
 
-/** The organization-and-slug key a plugin reference is merged by; an empty organization is `org`. */
+/** The key a plugin reference is merged by: its organization (an empty one is `org`) and its id, else its slug. */
 function pluginKey(ref: ApiResourceReference, org: string): string {
-  return `${ref.org || org}/${ref.slug}`;
+  return `${ref.org || org}/${ref.id !== "" ? `#${ref.id}` : ref.slug}`;
+}
+
+/**
+ * The references that name a resource the turn can load. Every reference
+ * reaches the runner from the server, which names each by its target's
+ * current slug; one that holds an id and no slug names a resource that was
+ * deleted, and is left out with a warning, as a skill that cannot be read
+ * is. An unset reference names nothing.
+ */
+export function usableRefs(
+  refs: readonly ApiResourceReference[],
+  noun: string,
+): ApiResourceReference[] {
+  return refs.filter((ref) => {
+    if (ref.id === "" && ref.slug === "") {
+      return false;
+    }
+    if (ref.slug === "") {
+      console.warn(`[blueprint] the ${noun} ${ref.org}/${ref.id} this turn lists was deleted; the turn runs without it`);
+      return false;
+    }
+    return true;
+  });
 }
 
 /**
@@ -252,8 +276,7 @@ async function resolveSubagents(
 ): Promise<SavedSubagent[]> {
   const byKey = new Map<string, Plugin>(turnRefs.map((ref, i) => [pluginKey(ref, org), turnPlugins[i]!]));
   const subagents: SavedSubagent[] = [];
-  for (const ref of refs) {
-    if (!ref.slug) continue;
+  for (const ref of usableRefs(refs, "subagent")) {
     let agent;
     try {
       agent = await client.getAgentByReference(ref);
@@ -267,8 +290,7 @@ async function resolveSubagents(
     const spec = agent.spec!;
     const subagentOrg = agent.metadata?.org || ref.org || org;
     const plugins: Plugin[] = [];
-    for (const pluginRef of spec.plugins) {
-      if (!pluginRef.slug) continue;
+    for (const pluginRef of usableRefs(spec.plugins, "plugin")) {
       const key = pluginKey(pluginRef, subagentOrg);
       let plugin = byKey.get(key);
       if (plugin === undefined) {
@@ -278,7 +300,7 @@ async function resolveSubagents(
       plugins.push(plugin!);
     }
     subagents.push({
-      name: ref.slug,
+      name: agent.metadata?.slug || ref.slug,
       agentId: agent.metadata?.id ?? "",
       versionHash: ref.version,
       spec,
@@ -359,8 +381,9 @@ export function resolveCloudRepos(workspaceEntries: WorkspaceEntry[]): CloudRepo
  * Merge skill refs from agent and session.
  *
  * Replicates session_context_merge.py::merge_skill_refs():
- * - Union of both sets, deduplicated by slug
+ * - Union of both sets, deduplicated by slug: a skill mounts by its name
  * - Session refs take precedence on collision (may have different version)
+ * - A reference whose skill was deleted is left out (usableRefs)
  */
 export function mergeSkillRefs(
   agentRefs: ApiResourceReference[],
@@ -368,12 +391,12 @@ export function mergeSkillRefs(
 ): ApiResourceReference[] {
   const bySlug = new Map<string, ApiResourceReference>();
 
-  for (const ref of agentRefs) {
-    if (ref.slug) bySlug.set(ref.slug, ref);
+  for (const ref of usableRefs(agentRefs, "skill")) {
+    bySlug.set(ref.slug, ref);
   }
 
-  for (const ref of sessionRefs) {
-    if (ref.slug) bySlug.set(ref.slug, ref);
+  for (const ref of usableRefs(sessionRefs, "skill")) {
+    bySlug.set(ref.slug, ref);
   }
 
   return [...bySlug.values()];

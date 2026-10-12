@@ -135,6 +135,7 @@ import { agentSearchExtractor } from "./search-extractor.js";
 import {
   newCascadeDeleteSharesStep,
   newValidateHooksStep,
+  newValidatePluginListStep,
 } from "./steps.js";
 import { newCascadeDeleteEvaluatorsStep } from "../evaluator/cascade.js";
 import { newCascadeDeleteAgentEvalsStep } from "../agent-eval/cascade.js";
@@ -231,7 +232,8 @@ async function createAgent(
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newValidateHooksStep(deps.store))
+    .addStep(newValidateHooksStep())
+    .addStep(newValidatePluginListStep(deps.store))
     .addStep(newValidateSubagentListStep(deps.store))
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
@@ -281,7 +283,8 @@ async function update(
     .addStep(newBuildUpdateStateStep())
     .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newValidateHooksStep(deps.store))
+    .addStep(newValidateHooksStep())
+    .addStep(newValidatePluginListStep(deps.store))
     .addStep(newValidateSubagentListStep(deps.store))
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
