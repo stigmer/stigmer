@@ -4,7 +4,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * ProviderKeyQueryController reads an organization's own LLM provider keys,
+ * ProviderKeyQueryController reads an organization's own model provider keys,
  * never their secrets.
  * Authorizes against the organization with can_view_billing, the permission
  * the organization's billing reads use.
@@ -110,7 +110,7 @@ public final class ProviderKeyQueryControllerGrpc {
 
   /**
    * <pre>
-   * ProviderKeyQueryController reads an organization's own LLM provider keys,
+   * ProviderKeyQueryController reads an organization's own model provider keys,
    * never their secrets.
    * Authorizes against the organization with can_view_billing, the permission
    * the organization's billing reads use.
@@ -133,7 +133,7 @@ public final class ProviderKeyQueryControllerGrpc {
   /**
    * Base class for the server implementation of the service ProviderKeyQueryController.
    * <pre>
-   * ProviderKeyQueryController reads an organization's own LLM provider keys,
+   * ProviderKeyQueryController reads an organization's own model provider keys,
    * never their secrets.
    * Authorizes against the organization with can_view_billing, the permission
    * the organization's billing reads use.
@@ -150,7 +150,7 @@ public final class ProviderKeyQueryControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service ProviderKeyQueryController.
    * <pre>
-   * ProviderKeyQueryController reads an organization's own LLM provider keys,
+   * ProviderKeyQueryController reads an organization's own model provider keys,
    * never their secrets.
    * Authorizes against the organization with can_view_billing, the permission
    * the organization's billing reads use.
@@ -185,7 +185,7 @@ public final class ProviderKeyQueryControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service ProviderKeyQueryController.
    * <pre>
-   * ProviderKeyQueryController reads an organization's own LLM provider keys,
+   * ProviderKeyQueryController reads an organization's own model provider keys,
    * never their secrets.
    * Authorizes against the organization with can_view_billing, the permission
    * the organization's billing reads use.
@@ -219,7 +219,7 @@ public final class ProviderKeyQueryControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service ProviderKeyQueryController.
    * <pre>
-   * ProviderKeyQueryController reads an organization's own LLM provider keys,
+   * ProviderKeyQueryController reads an organization's own model provider keys,
    * never their secrets.
    * Authorizes against the organization with can_view_billing, the permission
    * the organization's billing reads use.
@@ -253,7 +253,7 @@ public final class ProviderKeyQueryControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ProviderKeyQueryController.
    * <pre>
-   * ProviderKeyQueryController reads an organization's own LLM provider keys,
+   * ProviderKeyQueryController reads an organization's own model provider keys,
    * never their secrets.
    * Authorizes against the organization with can_view_billing, the permission
    * the organization's billing reads use.

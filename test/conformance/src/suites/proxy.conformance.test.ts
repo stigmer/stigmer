@@ -11,8 +11,11 @@
 //                  the organization's key, mid-stream abort, hop-by-hop
 //                  header hygiene
 //   cursor       — the three arms that need no upstream: host allow-list 403,
-//                  scope 403, pool-exhausted 503 (relay rows are `smoke`)
-//   cursor-bidi  — the handshake refusals over raw h2c (relay is `smoke`)
+//                  scope 403, and the 403 for an organization holding no
+//                  Cursor key (relay rows are `smoke`: a served call reaches
+//                  Cursor itself)
+//   cursor-bidi  — the handshake refusals over raw h2c, the Stigmer
+//                  credential read from x-stigmer-auth alone (relay is `smoke`)
 //   artifact / checkpointer — presign and storage lanes: scope, key rules,
 //                  round-trips, 413 (claimcheck: debris — no caller,
 //                  stigmer#992; rows kept in the inventory as `debris`)
@@ -24,10 +27,10 @@
 // IS what the proxy relays or classifies.
 //
 // Authentication-class arms (401 without a bearer, foreign tokens,
-// x-api-key resolution, denyAll, require-scope-header) run on every cloud
-// environment: the conformance environment boots the composition in its
-// production posture (require-scope-header at production's `true`), so they
-// measure the real edge alongside the authorization arms (FGA 403).
+// x-api-key resolution, denyAll, the required scope header) run on every
+// cloud environment: the conformance environment boots the composition in its
+// production posture, so they measure the real edge alongside the
+// authorization arms (FGA 403).
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { CLOUD_ENV, provisionConsolePerson, requireDirectLoginTenant } from "../harness/cloud-env";
@@ -55,10 +58,13 @@ const fixtures = new FixtureTracker();
 
 const EXECUTION_HEADER = "x-stigmer-execution-id";
 const PROVIDER_KEY_REQUIRED_SENTINEL = "STIGMER_PROVIDER_KEY_REQUIRED";
+const CURSOR_KEY_REQUIRED_COPY = "This organization has no Cursor key. An admin can add one in Settings → Provider keys.";
 const ORGANIZATION_PROVIDER_KEY_SENTINEL = "STIGMER_ORGANIZATION_PROVIDER_KEY";
 
 // An org holding the fixture provider keys (CONFORMANCE_PROVIDER_KEYS): every
-// call the proxy serves for it runs on them, and its runs are admitted.
+// call the proxy serves for it runs on them, and its runs are admitted. Where
+// the run supplies a real Cursor key (cursorRunsAdmitted), keyTenancy saves it
+// too.
 async function keyedOrg(): Promise<TenancyContext> {
   if (target.provisionUnfundedTenancy === undefined || target.keyTenancy === undefined) {
     throw new Error(`target ${target.name} declares sideChannelProxy but lacks the provider-key seams`);
@@ -374,19 +380,26 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       expect(response.status).toBe(403);
     });
 
-    it("[proxy.cursor.pool-exhausted-503-connect-body] with no Cursor account for the org, an authorized call answers 503 with the Connect-shaped body", async () => {
+    it("[proxy.cursor.provider-key-required-403] an authorized call for an organization holding no Cursor key answers 403 with the Connect-shaped body and the sentinel", async () => {
       const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
+      // The org's native run is admitted on the fixture keys; a Cursor key
+      // the run supplied is removed, so the org holds none.
+      if (target.capabilities.cursorRunsAdmitted) {
+        await clients.providerKeyCommand.delete({ org, provider: "cursor" });
+      }
       const response = await proxyFetch("/v1/proxy/cursor/api2.cursor.sh/aiserver.v1.AgentService/Run", {
         method: "POST",
         scope: { [EXECUTION_HEADER]: executionId },
         headers: { "content-type": "application/proto" },
         body: "",
       });
-      expect(response.status).toBe(503);
+      expect(response.status).toBe(403);
+      expect(response.headers.get("content-type")).toMatch(/application\/json/);
       const body = (await response.json()) as { code: string; message: string };
-      expect(body.code).toBe("unavailable");
-      expect(body.message).not.toBe("");
+      expect(body.code).toBe("permission_denied");
+      expect(body.message).toContain(PROVIDER_KEY_REQUIRED_SENTINEL);
+      expect(body.message).toContain(CURSOR_KEY_REQUIRED_COPY);
     });
 
     it("[proxy.cursor-bidi.missing-token-refused-stream] [proxy.cursor-bidi.authn-failure-401-code-16] [proxy.cursor-bidi.fga-denied-403-code-7] the bidi handshake refuses the three ways it must", async () => {
@@ -398,6 +411,15 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       const missing = await bidiHandshake(bidi, {});
       expect(missing.kind).toBe("reset");
       expect(missing.rstCode).toBe(HTTP2_REFUSED_STREAM);
+
+      // A valid Stigmer token anywhere but x-stigmer-auth is no credential
+      // here: the stream's authorization is the Cursor access token it
+      // forwards upstream.
+      const elsewhere = await bidiHandshake(bidi, {
+        headers: { authorization: `Bearer ${primaryToken}`, "x-api-key": primaryToken, [EXECUTION_HEADER]: executionId },
+      });
+      expect(elsewhere.kind, "a Stigmer token outside x-stigmer-auth").toBe("reset");
+      expect(elsewhere.rstCode).toBe(HTTP2_REFUSED_STREAM);
 
       const foreignToken = await bidiHandshake(bidi, { headers: { "x-stigmer-auth": "Bearer not.a.token", [EXECUTION_HEADER]: executionId } });
       expect(foreignToken.kind).toBe("headers");

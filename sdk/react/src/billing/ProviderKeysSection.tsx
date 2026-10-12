@@ -13,15 +13,47 @@ import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { useOrg } from "../organization/OrgProvider.js";
 import { useProviderKeyActions, useProviderKeys, type ProviderKeyProvider } from "./useProviderKeys.js";
 
-/** The providers, in the order the section lists them, with the base URL each one's SDK takes. */
-const PROVIDERS: ReadonlyArray<{
+/** One provider the section lists. */
+interface ProviderEntry {
   readonly id: ProviderKeyProvider;
   readonly name: string;
+  /** The key field's placeholder, in the shape of the provider's keys. */
   readonly placeholder: string;
-  readonly baseUrlExample: string;
-}> = [
-  { id: "anthropic", name: "Anthropic", placeholder: "sk-ant-…", baseUrlExample: "https://gateway.example.com" },
-  { id: "openai", name: "OpenAI", placeholder: "sk-…", baseUrlExample: "https://gateway.example.com/v1" },
+  /**
+   * An example own endpoint, as the provider's SDK takes it, for a provider
+   * that can be served from an endpoint of the organization's; `null` for one
+   * served only from its own hosts, which gets no base-URL field and is
+   * always saved without one (the contract refuses a Cursor key with one).
+   */
+  readonly baseUrlExample: string | null;
+  /** What key the provider takes, shown under the key field; `null` when the label says it all. */
+  readonly keyHint: string | null;
+}
+
+/** The providers, in the order the section lists them. */
+const PROVIDERS: readonly ProviderEntry[] = [
+  {
+    id: "anthropic",
+    name: "Anthropic",
+    placeholder: "sk-ant-…",
+    baseUrlExample: "https://gateway.example.com",
+    keyHint: null,
+  },
+  {
+    id: "openai",
+    name: "OpenAI",
+    placeholder: "sk-…",
+    baseUrlExample: "https://gateway.example.com/v1",
+    keyHint: null,
+  },
+  {
+    id: "cursor",
+    name: "Cursor",
+    placeholder: "key_…",
+    baseUrlExample: null,
+    keyHint:
+      "A Cursor user API key (Cursor dashboard → API Keys) or a team service-account key. Cursor bills usage to that user's plan or that team.",
+  },
 ];
 
 /** Props for {@link ProviderKeysSection}. */
@@ -31,14 +63,16 @@ export interface ProviderKeysSectionProps {
 }
 
 /**
- * Settings section for an organization's own LLM provider keys.
+ * Settings section for an organization's own provider keys.
  *
  * On Stigmer Cloud every model call runs on a key the organization owns, on
  * every plan: an admin saves an Anthropic or OpenAI key, optionally against
  * the organization's own Anthropic- or OpenAI-compatible endpoint (a company
- * gateway, a model server it runs), and its agents run on it. The provider
- * bills the organization directly. A run whose model needs a provider with
- * no key is refused until one is added. A saved key is never shown again,
+ * gateway, a model server it runs), and a Cursor key (a user API key or a
+ * team service-account key, always on Cursor's own hosts) for the agents
+ * that run on Cursor; its agents run on them. The provider bills the
+ * organization directly. A run that needs a provider with no key is refused
+ * until one is added. A saved key is never shown again,
  * only its last four characters. A child organization is served by its
  * parent's key for a provider it holds none of, shown read-only.
  *
@@ -66,9 +100,9 @@ export function ProviderKeysSection({ className }: ProviderKeysSectionProps) {
         Provider keys
       </h2>
       <p className="stg:text-muted-foreground stg:mb-4 stg:text-xs">
-        Your agents run on your organization&apos;s own Anthropic and OpenAI keys, on the provider&apos;s API or on
-        your own compatible endpoint. The provider bills you directly. A run whose model needs a provider with no key
-        here is refused until an admin adds one.
+        Your agents run on your organization&apos;s own Anthropic, OpenAI and Cursor keys: Anthropic and OpenAI on the
+        provider&apos;s API or on your own compatible endpoint, Cursor on Cursor&apos;s. The provider bills you directly. A
+        run that needs a provider with no key here is refused until an admin adds one.
       </p>
       {mode === "local" || !available ? (
         <CloudFeatureNotice>
@@ -137,7 +171,8 @@ function ProviderKeysContent({ org }: { readonly org: string }) {
         </p>
       )}
       <p className="stg:text-muted-foreground stg:text-[0.65rem]">
-        A failure on your key, such as a rejected key or an exhausted provider balance, is reported as your key&apos;s.
+        A failure on your key, such as a rejected key, an exhausted provider balance or a usage limit, is reported as
+        your key&apos;s.
         Stigmer never serves a call on keys of its own.
       </p>
     </div>
@@ -164,7 +199,7 @@ function ProviderRow({
   actions,
 }: {
   readonly org: string;
-  readonly provider: (typeof PROVIDERS)[number];
+  readonly provider: ProviderEntry;
   readonly stored: ProviderKey | undefined;
   readonly canManage: boolean;
   readonly editing: boolean;
@@ -174,6 +209,7 @@ function ProviderRow({
   readonly actions: ReturnType<typeof useProviderKeyActions>;
 }) {
   const inputId = useId();
+  const keyHintId = useId();
   const baseUrlId = useId();
   const baseUrlHintId = useId();
   const [value, setValue] = useState("");
@@ -184,7 +220,7 @@ function ProviderRow({
 
   const save = async () => {
     try {
-      await actions.setKey(org, provider.id, value.trim(), baseUrl.trim());
+      await actions.setKey(org, provider.id, value.trim(), provider.baseUrlExample === null ? "" : baseUrl.trim());
       setValue("");
       onDone();
     } catch {
@@ -273,31 +309,41 @@ function ProviderRow({
               value={value}
               onChange={(event) => setValue(event.target.value)}
               placeholder={provider.placeholder}
+              aria-describedby={provider.keyHint === null ? undefined : keyHintId}
               disabled={actions.isSubmitting}
               className={INPUT_CLASSES}
             />
           </div>
-          <div className="stg:min-w-48 stg:flex-1 stg:space-y-1">
-            <label htmlFor={baseUrlId} className="stg:text-foreground stg:text-xs stg:font-medium">
-              Base URL (optional)
-            </label>
-            <input
-              id={baseUrlId}
-              type="url"
-              inputMode="url"
-              autoComplete="off"
-              value={baseUrl}
-              onChange={(event) => setBaseUrl(event.target.value)}
-              placeholder={provider.baseUrlExample}
-              aria-describedby={baseUrlHintId}
-              disabled={actions.isSubmitting}
-              className={INPUT_CLASSES}
-            />
-          </div>
-          <p id={baseUrlHintId} className="stg:text-muted-foreground stg:w-full stg:text-[0.65rem]">
-            Empty uses {provider.name}&apos;s own API. For your own {provider.name}-compatible endpoint, give an https
-            URL as {provider.name}&apos;s SDK takes it, such as {provider.baseUrlExample}.
-          </p>
+          {provider.baseUrlExample !== null && (
+            <div className="stg:min-w-48 stg:flex-1 stg:space-y-1">
+              <label htmlFor={baseUrlId} className="stg:text-foreground stg:text-xs stg:font-medium">
+                Base URL (optional)
+              </label>
+              <input
+                id={baseUrlId}
+                type="url"
+                inputMode="url"
+                autoComplete="off"
+                value={baseUrl}
+                onChange={(event) => setBaseUrl(event.target.value)}
+                placeholder={provider.baseUrlExample}
+                aria-describedby={baseUrlHintId}
+                disabled={actions.isSubmitting}
+                className={INPUT_CLASSES}
+              />
+            </div>
+          )}
+          {provider.keyHint !== null && (
+            <p id={keyHintId} className="stg:text-muted-foreground stg:w-full stg:text-[0.65rem]">
+              {provider.keyHint}
+            </p>
+          )}
+          {provider.baseUrlExample !== null && (
+            <p id={baseUrlHintId} className="stg:text-muted-foreground stg:w-full stg:text-[0.65rem]">
+              Empty uses {provider.name}&apos;s own API. For your own {provider.name}-compatible endpoint, give an
+              https URL as {provider.name}&apos;s SDK takes it, such as {provider.baseUrlExample}.
+            </p>
+          )}
           <Button size="sm" type="submit" disabled={actions.isSubmitting || value.trim() === ""}>
             {actions.isSubmitting ? "Saving…" : "Save key"}
           </Button>

@@ -27,7 +27,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// ProviderKeyCommandController saves and removes an organization's own LLM
+// ProviderKeyCommandController saves and removes an organization's own model
 // provider keys.
 //
 // Provider keys are not a standard API Resource, so there is no
@@ -82,7 +82,7 @@ func (c *providerKeyCommandControllerClient) Delete(ctx context.Context, in *Del
 // All implementations should embed UnimplementedProviderKeyCommandControllerServer
 // for forward compatibility.
 //
-// ProviderKeyCommandController saves and removes an organization's own LLM
+// ProviderKeyCommandController saves and removes an organization's own model
 // provider keys.
 //
 // Provider keys are not a standard API Resource, so there is no

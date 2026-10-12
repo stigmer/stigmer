@@ -58,23 +58,28 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n*ai/stigmer/billing/providerkey/v1/io.p" +
       "roto\022!ai.stigmer.billing.providerkey.v1\032" +
       "+ai/stigmer/billing/providerkey/v1/api.p" +
-      "roto\032\033buf/validate/validate.proto\"\300\001\n\023Se" +
+      "roto\032\033buf/validate/validate.proto\"\344\002\n\023Se" +
       "tProviderKeyInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R" +
-      "\003org\0224\n\010provider\030\002 \001(\tB\030\272H\025r\023R\tanthropic" +
-      "R\006openaiR\010provider\022#\n\007api_key\030\003 \001(\tB\n\272H\007" +
-      "r\005\020\010\030\200\004R\006apiKey\0223\n\010base_url\030\004 \001(\tB\030\272H\025r\020" +
-      "\030\200\020:\010https://\210\001\001\330\001\001R\007baseUrl\"i\n\026DeletePr" +
-      "oviderKeyInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003or" +
-      "g\0224\n\010provider\030\002 \001(\tB\030\272H\025r\023R\tanthropicR\006o" +
-      "penaiR\010provider\"2\n\025ListProviderKeysInput" +
-      "\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"\\\n\026ListProvi" +
-      "derKeysOutput\022B\n\004keys\030\001 \003(\0132..ai.stigmer" +
-      ".billing.providerkey.v1.ProviderKeyR\004key" +
-      "sB\262\001B\007IoProtoP\001\242\002\004ASBP\252\002!Ai.Stigmer.Bill" +
-      "ing.Providerkey.V1\312\002!Ai\\Stigmer\\Billing\\" +
-      "Providerkey\\V1\342\002-Ai\\Stigmer\\Billing\\Prov" +
-      "iderkey\\V1\\GPBMetadata\352\002%Ai::Stigmer::Bi" +
-      "lling::Providerkey::V1b\006proto3"
+      "\003org\022<\n\010provider\030\002 \001(\tB \272H\035r\033R\tanthropic" +
+      "R\006openaiR\006cursorR\010provider\022#\n\007api_key\030\003 " +
+      "\001(\tB\n\272H\007r\005\020\010\030\200\004R\006apiKey\0223\n\010base_url\030\004 \001(" +
+      "\tB\030\272H\025r\020\030\200\020:\010https://\210\001\001\330\001\001R\007baseUrl:\231\001\272" +
+      "H\225\001\032\222\001\n\034provider_key.cursor_base_url\022@a " +
+      "Cursor key takes no base URL; Cursor ser" +
+      "ves from its own hosts\0320this.provider !=" +
+      " \'cursor\' || this.base_url == \'\'\"q\n\026Dele" +
+      "teProviderKeyInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001" +
+      "R\003org\022<\n\010provider\030\002 \001(\tB \272H\035r\033R\tanthropi" +
+      "cR\006openaiR\006cursorR\010provider\"2\n\025ListProvi" +
+      "derKeysInput\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"" +
+      "\\\n\026ListProviderKeysOutput\022B\n\004keys\030\001 \003(\0132" +
+      "..ai.stigmer.billing.providerkey.v1.Prov" +
+      "iderKeyR\004keysB\262\001B\007IoProtoP\001\242\002\004ASBP\252\002!Ai." +
+      "Stigmer.Billing.Providerkey.V1\312\002!Ai\\Stig" +
+      "mer\\Billing\\Providerkey\\V1\342\002-Ai\\Stigmer\\" +
+      "Billing\\Providerkey\\V1\\GPBMetadata\352\002%Ai:" +
+      ":Stigmer::Billing::Providerkey::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -112,6 +117,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.message);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

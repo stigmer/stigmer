@@ -1,21 +1,19 @@
 /**
- * Tests for the shared model-call error unwrapping and classification
- * (stigmer/stigmer#330).
+ * Tests for the shared model-call error unwrapping and classification.
  *
- * The scenarios mirror the production incident: the platform proxy rewrites
- * a platform-account billing rejection into a 503 carrying the sentinel
- * code, LangChain wraps the SDK error in a MiddlewareError whose message is
- * copied verbatim and whose `cause` is the original — and the runner must
- * (a) attribute platform faults to the platform, (b) attribute direct-mode
- * billing faults to the user's own provider account, and (c) never relabel
- * a non-model error.
+ * LangChain wraps the SDK error in a MiddlewareError whose message is copied
+ * verbatim and whose `cause` is the original (stigmer/stigmer#330), and the
+ * runner must (a) attribute provider billing faults to the account the key
+ * belongs to, which is the caller's own in both modes, (b) word a failure
+ * the cloud marks as the organization's key as that key's, (c) name a
+ * missing provider key before any status or proxy-mode wording, and
+ * (d) never relabel a non-model error.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   ORGANIZATION_PROVIDER_KEY_SENTINEL,
   PROVIDER_KEY_REQUIRED_SENTINEL,
-  PLATFORM_CAPACITY_SENTINEL,
   classifyModelCallError,
   describeExecutionError,
   unwrapModelError,
@@ -55,11 +53,6 @@ const ANTHROPIC_BILLING_MESSAGE =
   '400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low' +
   ' to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."}}';
 
-/** The rewritten message the cloud proxy now returns for platform faults. */
-const PLATFORM_REWRITE_MESSAGE =
-  "The Stigmer platform's model capacity for anthropic is temporarily unavailable." +
-  ` [code: ${PLATFORM_CAPACITY_SENTINEL}]`;
-
 describe("unwrapModelError", () => {
   it("returns the error itself when there is no cause", () => {
     const err = new Error("plain");
@@ -96,26 +89,6 @@ describe("unwrapModelError", () => {
   });
 });
 
-describe("classifyModelCallError — platform sentinel", () => {
-  it("classifies the platform rewrite as platform capacity", () => {
-    const err = middlewareWrap(sdkError(503, PLATFORM_REWRITE_MESSAGE));
-
-    const classified = classifyModelCallError(err, { proxyMode: true, provider: "anthropic" });
-
-    expect(classified?.code).toBe("LLM_PLATFORM_CAPACITY");
-    expect(classified?.message).toContain("platform-side issue");
-    expect(classified?.message).toContain("credits were not charged");
-  });
-
-  it("sentinel wins over status mapping (a 503 would otherwise be a provider server error)", () => {
-    const classified = classifyModelCallError(
-      sdkError(503, PLATFORM_REWRITE_MESSAGE),
-      { proxyMode: true },
-    );
-    expect(classified?.code).toBe("LLM_PLATFORM_CAPACITY");
-  });
-});
-
 describe("classifyModelCallError — provider billing prose", () => {
   it("in direct mode, attributes billing to the user's own provider account", () => {
     const err = middlewareWrap(sdkError(400, ANTHROPIC_BILLING_MESSAGE));
@@ -128,13 +101,14 @@ describe("classifyModelCallError — provider billing prose", () => {
     expect(classified?.message).toContain("credit balance is too low");
   });
 
-  it("in proxy mode, raw billing prose (version-skewed proxy) attributes to the platform", () => {
+  it("in proxy mode, attributes billing to the caller's own provider account too, never to the platform", () => {
     const err = sdkError(400, ANTHROPIC_BILLING_MESSAGE);
 
     const classified = classifyModelCallError(err, { proxyMode: true, provider: "anthropic" });
 
-    expect(classified?.code).toBe("LLM_PLATFORM_CAPACITY");
-    expect(classified?.message).not.toContain("Plans & Billing");
+    expect(classified?.code).toBe("LLM_PROVIDER_BILLING");
+    expect(classified?.message).toContain("Your Anthropic account");
+    expect(classified?.message).not.toContain("Stigmer platform");
   });
 
   it("recognizes OpenAI quota exhaustion wordings", () => {
@@ -506,11 +480,11 @@ describe("classifyModelCallError — foundry backend", () => {
 describe("describeExecutionError", () => {
   it("labels classified model errors with the stable code, not the wrapper class", () => {
     const { errorType, errorMessage } = describeExecutionError(
-      middlewareWrap(sdkError(503, PLATFORM_REWRITE_MESSAGE)),
+      middlewareWrap(sdkError(400, ANTHROPIC_BILLING_MESSAGE)),
       { proxyMode: true },
     );
-    expect(errorType).toBe("LLM_PLATFORM_CAPACITY");
-    expect(errorMessage).toContain("credits were not charged");
+    expect(errorType).toBe("LLM_PROVIDER_BILLING");
+    expect(errorMessage).toContain("out of credits or over quota");
     expect(errorMessage).not.toContain("MiddlewareError");
   });
 
@@ -532,27 +506,18 @@ describe("describeExecutionError", () => {
     expect(errorType).toBe("UnknownError");
     expect(errorMessage).toBe("oops");
   });
-
-  it("never surfaces provider billing-console prose in proxy mode", () => {
-    const { errorMessage } = describeExecutionError(
-      middlewareWrap(sdkError(400, ANTHROPIC_BILLING_MESSAGE)),
-      { proxyMode: true },
-    );
-    expect(errorMessage).not.toContain("Plans & Billing");
-    expect(errorMessage).toContain("platform-side issue");
-  });
 });
 
 describe("classifyModelCallError on the organization's own provider key", () => {
   const proxied = { proxyMode: true, provider: "anthropic" as const, modelId: "claude-sonnet-4-6" };
   const marked = (message: string) => `${message} [code: ${ORGANIZATION_PROVIDER_KEY_SENTINEL}]`;
 
-  it("words the key's billing exhaustion as the organization's account, never platform capacity", () => {
+  it("words the key's billing exhaustion as the organization's own account, never the platform's", () => {
     const err = middlewareWrap(sdkError(400, marked(ANTHROPIC_BILLING_MESSAGE)));
     const classified = classifyModelCallError(err, proxied);
     expect(classified?.code).toBe("LLM_PROVIDER_BILLING");
     expect(classified?.message).toContain("organization's own Anthropic key");
-    expect(classified?.message).not.toContain(PLATFORM_CAPACITY_SENTINEL);
+    expect(classified?.message).not.toContain("Stigmer platform");
   });
 
   it("words a rejected key as the organization's key, not an expired Stigmer session", () => {

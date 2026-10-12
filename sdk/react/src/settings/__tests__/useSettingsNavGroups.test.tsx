@@ -109,7 +109,6 @@ describe("useSettingsNavGroups", () => {
   it("appends the full Platform group when the operator holds every platform permission", () => {
     verdicts = {
       can_manage_model_pricing: true,
-      can_manage_cursor_accounts: true,
       can_issue_license: true,
       can_manage_plans: true,
     };
@@ -120,7 +119,7 @@ describe("useSettingsNavGroups", () => {
       `${BASE_LABELS},${PLATFORM_SETTINGS_NAV_GROUP.label}`,
     );
     expect(el.getAttribute("data-platform-items")).toBe(
-      "Model catalog,Cursor Accounts,Licenses,Plans",
+      "Model catalog,Licenses,Plans",
     );
   });
 
@@ -130,15 +129,6 @@ describe("useSettingsNavGroups", () => {
 
     expect(screen.getByTestId("groups").getAttribute("data-platform-items")).toBe(
       "Model catalog",
-    );
-  });
-
-  it("filters per item: cursor-accounts-only operator sees only Cursor Accounts", () => {
-    verdicts = { can_manage_cursor_accounts: true };
-    render(<GroupsProbe />);
-
-    expect(screen.getByTestId("groups").getAttribute("data-platform-items")).toBe(
-      "Cursor Accounts",
     );
   });
 
@@ -199,7 +189,7 @@ describe("useSettingsNavGroups", () => {
   it("keeps the array reference stable across re-renders", () => {
     verdicts = {
       can_manage_model_pricing: true,
-      can_manage_cursor_accounts: true,
+      can_issue_license: true,
     };
 
     function StabilityProbe() {

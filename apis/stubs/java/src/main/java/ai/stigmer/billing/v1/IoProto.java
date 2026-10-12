@@ -245,7 +245,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "onId\022\'\n\017reserved_micros\030\003 \001(\003R\016reservedM" +
       "icros\0228\n\030available_balance_micros\030\004 \001(\003R" +
       "\026availableBalanceMicros\022#\n\rdenial_reason" +
-      "\030\005 \001(\tR\014denialReason\"\274\010\n\027RecordLlmCallUs" +
+      "\030\005 \001(\tR\014denialReason\"\333\007\n\027RecordLlmCallUs" +
       "ageInput\022\035\n\006run_id\030\001 \001(\tB\006\272H\003\310\001\001R\005runId\022" +
       "#\n\010sequence\030\002 \001(\005B\007\272H\004\032\002 \000R\010sequence\022!\n\007" +
       "call_id\030\024 \001(\tB\010\272H\005r\003\030\200\001R\006callId\022\"\n\010provi" +
@@ -263,142 +263,140 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "(\0132&.ai.stigmer.agentic.run.v1.ProxyTimi" +
       "ngR\013proxyTiming\022.\n\023provider_usage_json\030\r" +
       " \001(\tR\021providerUsageJson\022\030\n\007harness\030\016 \001(\t" +
-      "R\007harness\022*\n\021cursor_account_id\030\017 \001(\tR\017cu" +
-      "rsorAccountId\022\"\n\rcursor_key_id\030\020 \001(\tR\013cu" +
-      "rsorKeyId\022V\n\021cursor_key_source\030\021 \001(\0162*.a" +
-      "i.stigmer.agentic.run.v1.CursorKeySource" +
-      "R\017cursorKeySource\022.\n\023served_service_tier" +
-      "\030\022 \001(\tR\021servedServiceTier\022B\n\013metered_run" +
-      "\030\023 \001(\0132!.ai.stigmer.billing.v1.MeteredRu" +
-      "nR\nmeteredRun\022\\\n\023provider_key_source\030\025 \001" +
-      "(\0162,.ai.stigmer.agentic.run.v1.ProviderK" +
-      "eySourceR\021providerKeySource\"\215\002\n\nMeteredR" +
-      "un\022\035\n\nsession_id\030\001 \001(\tR\tsessionId\022!\n\014pin" +
-      "ned_model\030\002 \001(\tR\013pinnedModel\022\\\n\026requeste" +
-      "d_service_tier\030\003 \001(\0162&.ai.stigmer.agenti" +
-      "c.run.v1.ServiceTierR\024requestedServiceTi" +
-      "er\022_\n\027requested_thinking_mode\030\004 \001(\0162\'.ai" +
-      ".stigmer.agentic.run.v1.ThinkingModeR\025re" +
-      "questedThinkingMode\"\201\002\n\032RecordLlmCallUsa" +
-      "geResponse\022&\n\017usage_record_id\030\001 \001(\tR\rusa" +
-      "geRecordId\0220\n\024provider_cost_micros\030\002 \001(\003" +
-      "R\022providerCostMicros\022E\n\037customer_billabl" +
-      "e_amount_micros\030\003 \001(\003R\034customerBillableA" +
-      "mountMicros\022\037\n\013is_billable\030\004 \001(\010R\nisBill" +
-      "able\022!\n\014is_duplicate\030\005 \001(\010R\013isDuplicate\"" +
-      "1\n\020FinalizeRunInput\022\035\n\006run_id\030\001 \001(\tB\006\272H\003" +
-      "\310\001\001R\005runId\"\377\001\n\023FinalizeRunResponse\022;\n\032to" +
-      "tal_provider_cost_micros\030\001 \001(\003R\027totalPro" +
-      "viderCostMicros\022?\n\034total_billable_amount" +
-      "_micros\030\002 \001(\003R\031totalBillableAmountMicros" +
-      "\022>\n\033released_reservation_micros\030\003 \001(\003R\031r" +
-      "eleasedReservationMicros\022*\n\021billed_call_" +
-      "count\030\004 \001(\005R\017billedCallCount\"6\n\025RearmFor" +
-      "RecoveryInput\022\035\n\006run_id\030\001 \001(\tB\006\272H\003\310\001\001R\005r" +
-      "unId\"\255\001\n CreateCreditCheckoutSessionInpu" +
-      "t\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\037\n\007pack_id\030\002" +
-      " \001(\tB\006\272H\003\310\001\001R\006packId\022\'\n\013success_url\030\003 \001(" +
-      "\tB\006\272H\003\310\001\001R\nsuccessUrl\022%\n\ncancel_url\030\004 \001(" +
-      "\tB\006\272H\003\310\001\001R\tcancelUrl\"\231\001\n#CreateCreditChe" +
-      "ckoutSessionResponse\022!\n\014checkout_url\030\001 \001" +
-      "(\tR\013checkoutUrl\022\037\n\013purchase_id\030\002 \001(\tR\npu" +
-      "rchaseId\022.\n\023checkout_session_id\030\003 \001(\tR\021c" +
-      "heckoutSessionId\"b\n\037CreateBillingPortalS" +
-      "essionInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022%\n" +
-      "\nreturn_url\030\002 \001(\tB\006\272H\003\310\001\001R\treturnUrl\"C\n\"" +
-      "CreateBillingPortalSessionResponse\022\035\n\npo" +
-      "rtal_url\030\001 \001(\tR\tportalUrl\"\220\001\n$CreatePaym" +
-      "entMethodSetupSessionInput\022\030\n\003org\030\001 \001(\tB" +
-      "\006\272H\003\310\001\001R\003org\022\'\n\013success_url\030\002 \001(\tB\006\272H\003\310\001" +
-      "\001R\nsuccessUrl\022%\n\ncancel_url\030\003 \001(\tB\006\272H\003\310\001" +
-      "\001R\tcancelUrl\"v\n\'CreatePaymentMethodSetup" +
-      "SessionResponse\022\033\n\tsetup_url\030\001 \001(\tR\010setu" +
-      "pUrl\022.\n\023checkout_session_id\030\002 \001(\tR\021check" +
-      "outSessionId\"\337\001\n\032SetAutoRechargeConfigIn" +
-      "put\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\030\n\007enabled" +
-      "\030\002 \001(\010R\007enabled\022)\n\020threshold_micros\030\003 \001(" +
-      "\003R\017thresholdMicros\0224\n\026recharge_amount_mi" +
-      "cros\030\004 \001(\003R\024rechargeAmountMicros\022,\n\022mont" +
-      "hly_cap_micros\030\005 \001(\003R\020monthlyCapMicros\"2" +
-      "\n\026GetBillingAccountInput\022\030\n\003org\030\001 \001(\tB\006\272" +
-      "H\003\310\001\001R\003org\"1\n\025GetCreditBalanceInput\022\030\n\003o" +
-      "rg\030\001 \001(\tB\006\272H\003\310\001\001R\003org\"\330\002\n\024GetCreditLedge" +
-      "rInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\0224\n\004page" +
-      "\030\002 \001(\0132 .ai.stigmer.commons.rpc.PageInfo" +
-      "R\004page\022G\n\013type_filter\030\003 \003(\0162&.ai.stigmer" +
-      ".billing.v1.LedgerEntryTypeR\ntypeFilter\022" +
-      "9\n\nstart_time\030\004 \001(\0132\032.google.protobuf.Ti" +
-      "mestampR\tstartTime\0225\n\010end_time\030\005 \001(\0132\032.g" +
-      "oogle.protobuf.TimestampR\007endTime\0225\n\004vie" +
-      "w\030\006 \001(\0162!.ai.stigmer.billing.v1.LedgerVi" +
-      "ewR\004view\"{\n\024CreditLedgerResponse\022B\n\007entr" +
-      "ies\030\001 \003(\0132(.ai.stigmer.billing.v1.Credit" +
-      "LedgerEntryR\007entries\022\037\n\013total_pages\030\002 \001(" +
-      "\005R\ntotalPages\"\270\001\n\032GetBillingUsageReportI" +
-      "nput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022A\n\nstart_" +
-      "time\030\002 \001(\0132\032.google.protobuf.TimestampB\006" +
-      "\272H\003\310\001\001R\tstartTime\022=\n\010end_time\030\003 \001(\0132\032.go" +
-      "ogle.protobuf.TimestampB\006\272H\003\310\001\001R\007endTime" +
-      "\"\264\002\n\032BillingUsageReportResponse\022;\n\032total" +
-      "_provider_cost_micros\030\001 \001(\003R\027totalProvid" +
-      "erCostMicros\022?\n\034total_billable_amount_mi" +
-      "cros\030\002 \001(\003R\031totalBillableAmountMicros\022\033\n" +
-      "\trun_count\030\003 \001(\005R\010runCount\022$\n\016llm_call_c" +
-      "ount\030\004 \001(\005R\014llmCallCount\022U\n\017model_breakd" +
-      "own\030\005 \003(\0132,.ai.stigmer.billing.v1.ModelB" +
-      "illingBreakdownR\016modelBreakdown\"\353\001\n\025Mode" +
-      "lBillingBreakdown\022\024\n\005model\030\001 \001(\tR\005model\022" +
-      "\030\n\007harness\030\002 \001(\tR\007harness\022\033\n\tcost_tier\030\003" +
-      " \001(\tR\010costTier\0220\n\024provider_cost_micros\030\004" +
-      " \001(\003R\022providerCostMicros\0224\n\026billable_amo" +
-      "unt_micros\030\005 \001(\003R\024billableAmountMicros\022\035" +
-      "\n\ncall_count\030\006 \001(\005R\tcallCount\"0\n\034GetCust" +
-      "omerModelPricingInput\022\020\n\003org\030\001 \001(\tR\003org\"" +
-      "j\n\034CustomerModelPricingResponse\022J\n\007entri" +
-      "es\030\001 \003(\01320.ai.stigmer.billing.v1.Custome" +
-      "rModelPricingEntryR\007entries\"\241\001\n\037UpsertMo" +
-      "delPricingBaselineInput\022O\n\010baseline\030\001 \001(" +
-      "\0132+.ai.stigmer.billing.v1.ModelPricingBa" +
-      "selineB\006\272H\003\310\001\001R\010baseline\022-\n\rrevision_not" +
-      "e\030\002 \001(\tB\010\272H\005r\003\030\200\010R\014revisionNote\"\271\001\n\037Reti" +
-      "reModelPricingBaselineInput\022!\n\010model_id\030" +
-      "\001 \001(\tB\006\272H\003\310\001\001R\007modelId\022\"\n\010provider\030\002 \001(\t" +
-      "B\006\272H\003\310\001\001R\010provider\022 \n\007harness\030\003 \001(\tB\006\272H\003" +
-      "\310\001\001R\007harness\022-\n\rrevision_note\030\004 \001(\tB\010\272H\005" +
-      "r\003\030\200\010R\014revisionNote\"I\n\036ListModelPricingB" +
-      "aselinesInput\022\'\n\017include_history\030\001 \001(\010R\016" +
-      "includeHistory\"j\n\035ModelPricingBaselinesR" +
-      "esponse\022I\n\tbaselines\030\001 \003(\0132+.ai.stigmer." +
-      "billing.v1.ModelPricingBaselineR\tbaselin" +
-      "es\"\264\004\n\031CustomerModelPricingEntry\022\031\n\010mode" +
-      "l_id\030\001 \001(\tR\007modelId\022!\n\014display_name\030\002 \001(" +
-      "\tR\013displayName\022\032\n\010provider\030\003 \001(\tR\010provid" +
-      "er\022\030\n\007harness\030\004 \001(\tR\007harness\022\033\n\tcost_tie" +
-      "r\030\005 \001(\tR\010costTier\022B\n\036input_price_micros_" +
-      "per_million\030\006 \001(\003R\032inputPriceMicrosPerMi" +
-      "llion\022D\n\037output_price_micros_per_million" +
-      "\030\007 \001(\003R\033outputPriceMicrosPerMillion\022S\n\'c" +
-      "ache_creation_price_micros_per_million\030\010" +
-      " \001(\003R\"cacheCreationPriceMicrosPerMillion" +
-      "\022K\n#cache_read_price_micros_per_million\030" +
-      "\t \001(\003R\036cacheReadPriceMicrosPerMillion\022*\n" +
-      "\021pricing_policy_id\030\n \001(\tR\017pricingPolicyI" +
-      "d\022.\n\023markup_basis_points\030\013 \001(\005R\021markupBa" +
-      "sisPoints\"n\n\031PreviewAuthorizationInput\022\030" +
-      "\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\0227\n\030expected_cos" +
-      "t_cap_micros\030\002 \001(\003R\025expectedCostCapMicro" +
-      "s\"\227\001\n\034PreviewAuthorizationResponse\022\036\n\nau" +
-      "thorized\030\001 \001(\010R\nauthorized\022#\n\rdenial_rea" +
-      "son\030\002 \001(\tR\014denialReason\0222\n\025reserve_amoun" +
-      "t_micros\030\003 \001(\003R\023reserveAmountMicros\"9\n\030G" +
-      "etRunBillingSignalInput\022\035\n\006run_id\030\001 \001(\tB" +
-      "\006\272H\003\310\001\001R\005runId\"v\n\033GetRunBillingSignalRes" +
-      "ponse\022?\n\006signal\030\001 \001(\0162\'.ai.stigmer.billi" +
-      "ng.v1.RunBillingSignalR\006signal\022\026\n\006reason" +
-      "\030\002 \001(\tR\006reasonB\200\001B\007IoProtoP\001\242\002\003ASB\252\002\025Ai." +
-      "Stigmer.Billing.V1\312\002\025Ai\\Stigmer\\Billing\\" +
-      "V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\352\002" +
-      "\030Ai::Stigmer::Billing::V1b\006proto3"
+      "R\007harness\022.\n\023served_service_tier\030\022 \001(\tR\021" +
+      "servedServiceTier\022B\n\013metered_run\030\023 \001(\0132!" +
+      ".ai.stigmer.billing.v1.MeteredRunR\nmeter" +
+      "edRun\022\\\n\023provider_key_source\030\025 \001(\0162,.ai." +
+      "stigmer.agentic.run.v1.ProviderKeySource" +
+      "R\021providerKeySourceJ\004\010\017\020\020J\004\010\020\020\021J\004\010\021\020\022R\021c" +
+      "ursor_account_idR\rcursor_key_idR\021cursor_" +
+      "key_source\"\215\002\n\nMeteredRun\022\035\n\nsession_id\030" +
+      "\001 \001(\tR\tsessionId\022!\n\014pinned_model\030\002 \001(\tR\013" +
+      "pinnedModel\022\\\n\026requested_service_tier\030\003 " +
+      "\001(\0162&.ai.stigmer.agentic.run.v1.ServiceT" +
+      "ierR\024requestedServiceTier\022_\n\027requested_t" +
+      "hinking_mode\030\004 \001(\0162\'.ai.stigmer.agentic." +
+      "run.v1.ThinkingModeR\025requestedThinkingMo" +
+      "de\"\201\002\n\032RecordLlmCallUsageResponse\022&\n\017usa" +
+      "ge_record_id\030\001 \001(\tR\rusageRecordId\0220\n\024pro" +
+      "vider_cost_micros\030\002 \001(\003R\022providerCostMic" +
+      "ros\022E\n\037customer_billable_amount_micros\030\003" +
+      " \001(\003R\034customerBillableAmountMicros\022\037\n\013is" +
+      "_billable\030\004 \001(\010R\nisBillable\022!\n\014is_duplic" +
+      "ate\030\005 \001(\010R\013isDuplicate\"1\n\020FinalizeRunInp" +
+      "ut\022\035\n\006run_id\030\001 \001(\tB\006\272H\003\310\001\001R\005runId\"\377\001\n\023Fi" +
+      "nalizeRunResponse\022;\n\032total_provider_cost" +
+      "_micros\030\001 \001(\003R\027totalProviderCostMicros\022?" +
+      "\n\034total_billable_amount_micros\030\002 \001(\003R\031to" +
+      "talBillableAmountMicros\022>\n\033released_rese" +
+      "rvation_micros\030\003 \001(\003R\031releasedReservatio" +
+      "nMicros\022*\n\021billed_call_count\030\004 \001(\005R\017bill" +
+      "edCallCount\"6\n\025RearmForRecoveryInput\022\035\n\006" +
+      "run_id\030\001 \001(\tB\006\272H\003\310\001\001R\005runId\"\255\001\n CreateCr" +
+      "editCheckoutSessionInput\022\030\n\003org\030\001 \001(\tB\006\272" +
+      "H\003\310\001\001R\003org\022\037\n\007pack_id\030\002 \001(\tB\006\272H\003\310\001\001R\006pac" +
+      "kId\022\'\n\013success_url\030\003 \001(\tB\006\272H\003\310\001\001R\nsucces" +
+      "sUrl\022%\n\ncancel_url\030\004 \001(\tB\006\272H\003\310\001\001R\tcancel" +
+      "Url\"\231\001\n#CreateCreditCheckoutSessionRespo" +
+      "nse\022!\n\014checkout_url\030\001 \001(\tR\013checkoutUrl\022\037" +
+      "\n\013purchase_id\030\002 \001(\tR\npurchaseId\022.\n\023check" +
+      "out_session_id\030\003 \001(\tR\021checkoutSessionId\"" +
+      "b\n\037CreateBillingPortalSessionInput\022\030\n\003or" +
+      "g\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022%\n\nreturn_url\030\002 \001(\t" +
+      "B\006\272H\003\310\001\001R\treturnUrl\"C\n\"CreateBillingPort" +
+      "alSessionResponse\022\035\n\nportal_url\030\001 \001(\tR\tp" +
+      "ortalUrl\"\220\001\n$CreatePaymentMethodSetupSes" +
+      "sionInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\'\n\013s" +
+      "uccess_url\030\002 \001(\tB\006\272H\003\310\001\001R\nsuccessUrl\022%\n\n" +
+      "cancel_url\030\003 \001(\tB\006\272H\003\310\001\001R\tcancelUrl\"v\n\'C" +
+      "reatePaymentMethodSetupSessionResponse\022\033" +
+      "\n\tsetup_url\030\001 \001(\tR\010setupUrl\022.\n\023checkout_" +
+      "session_id\030\002 \001(\tR\021checkoutSessionId\"\337\001\n\032" +
+      "SetAutoRechargeConfigInput\022\030\n\003org\030\001 \001(\tB" +
+      "\006\272H\003\310\001\001R\003org\022\030\n\007enabled\030\002 \001(\010R\007enabled\022)" +
+      "\n\020threshold_micros\030\003 \001(\003R\017thresholdMicro" +
+      "s\0224\n\026recharge_amount_micros\030\004 \001(\003R\024recha" +
+      "rgeAmountMicros\022,\n\022monthly_cap_micros\030\005 " +
+      "\001(\003R\020monthlyCapMicros\"2\n\026GetBillingAccou" +
+      "ntInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\"1\n\025Get" +
+      "CreditBalanceInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R" +
+      "\003org\"\330\002\n\024GetCreditLedgerInput\022\030\n\003org\030\001 \001" +
+      "(\tB\006\272H\003\310\001\001R\003org\0224\n\004page\030\002 \001(\0132 .ai.stigm" +
+      "er.commons.rpc.PageInfoR\004page\022G\n\013type_fi" +
+      "lter\030\003 \003(\0162&.ai.stigmer.billing.v1.Ledge" +
+      "rEntryTypeR\ntypeFilter\0229\n\nstart_time\030\004 \001" +
+      "(\0132\032.google.protobuf.TimestampR\tstartTim" +
+      "e\0225\n\010end_time\030\005 \001(\0132\032.google.protobuf.Ti" +
+      "mestampR\007endTime\0225\n\004view\030\006 \001(\0162!.ai.stig" +
+      "mer.billing.v1.LedgerViewR\004view\"{\n\024Credi" +
+      "tLedgerResponse\022B\n\007entries\030\001 \003(\0132(.ai.st" +
+      "igmer.billing.v1.CreditLedgerEntryR\007entr" +
+      "ies\022\037\n\013total_pages\030\002 \001(\005R\ntotalPages\"\270\001\n" +
+      "\032GetBillingUsageReportInput\022\030\n\003org\030\001 \001(\t" +
+      "B\006\272H\003\310\001\001R\003org\022A\n\nstart_time\030\002 \001(\0132\032.goog" +
+      "le.protobuf.TimestampB\006\272H\003\310\001\001R\tstartTime" +
+      "\022=\n\010end_time\030\003 \001(\0132\032.google.protobuf.Tim" +
+      "estampB\006\272H\003\310\001\001R\007endTime\"\264\002\n\032BillingUsage" +
+      "ReportResponse\022;\n\032total_provider_cost_mi" +
+      "cros\030\001 \001(\003R\027totalProviderCostMicros\022?\n\034t" +
+      "otal_billable_amount_micros\030\002 \001(\003R\031total" +
+      "BillableAmountMicros\022\033\n\trun_count\030\003 \001(\005R" +
+      "\010runCount\022$\n\016llm_call_count\030\004 \001(\005R\014llmCa" +
+      "llCount\022U\n\017model_breakdown\030\005 \003(\0132,.ai.st" +
+      "igmer.billing.v1.ModelBillingBreakdownR\016" +
+      "modelBreakdown\"\353\001\n\025ModelBillingBreakdown" +
+      "\022\024\n\005model\030\001 \001(\tR\005model\022\030\n\007harness\030\002 \001(\tR" +
+      "\007harness\022\033\n\tcost_tier\030\003 \001(\tR\010costTier\0220\n" +
+      "\024provider_cost_micros\030\004 \001(\003R\022providerCos" +
+      "tMicros\0224\n\026billable_amount_micros\030\005 \001(\003R" +
+      "\024billableAmountMicros\022\035\n\ncall_count\030\006 \001(" +
+      "\005R\tcallCount\"0\n\034GetCustomerModelPricingI" +
+      "nput\022\020\n\003org\030\001 \001(\tR\003org\"j\n\034CustomerModelP" +
+      "ricingResponse\022J\n\007entries\030\001 \003(\01320.ai.sti" +
+      "gmer.billing.v1.CustomerModelPricingEntr" +
+      "yR\007entries\"\241\001\n\037UpsertModelPricingBaselin" +
+      "eInput\022O\n\010baseline\030\001 \001(\0132+.ai.stigmer.bi" +
+      "lling.v1.ModelPricingBaselineB\006\272H\003\310\001\001R\010b" +
+      "aseline\022-\n\rrevision_note\030\002 \001(\tB\010\272H\005r\003\030\200\010" +
+      "R\014revisionNote\"\271\001\n\037RetireModelPricingBas" +
+      "elineInput\022!\n\010model_id\030\001 \001(\tB\006\272H\003\310\001\001R\007mo" +
+      "delId\022\"\n\010provider\030\002 \001(\tB\006\272H\003\310\001\001R\010provide" +
+      "r\022 \n\007harness\030\003 \001(\tB\006\272H\003\310\001\001R\007harness\022-\n\rr" +
+      "evision_note\030\004 \001(\tB\010\272H\005r\003\030\200\010R\014revisionNo" +
+      "te\"I\n\036ListModelPricingBaselinesInput\022\'\n\017" +
+      "include_history\030\001 \001(\010R\016includeHistory\"j\n" +
+      "\035ModelPricingBaselinesResponse\022I\n\tbaseli" +
+      "nes\030\001 \003(\0132+.ai.stigmer.billing.v1.ModelP" +
+      "ricingBaselineR\tbaselines\"\264\004\n\031CustomerMo" +
+      "delPricingEntry\022\031\n\010model_id\030\001 \001(\tR\007model" +
+      "Id\022!\n\014display_name\030\002 \001(\tR\013displayName\022\032\n" +
+      "\010provider\030\003 \001(\tR\010provider\022\030\n\007harness\030\004 \001" +
+      "(\tR\007harness\022\033\n\tcost_tier\030\005 \001(\tR\010costTier" +
+      "\022B\n\036input_price_micros_per_million\030\006 \001(\003" +
+      "R\032inputPriceMicrosPerMillion\022D\n\037output_p" +
+      "rice_micros_per_million\030\007 \001(\003R\033outputPri" +
+      "ceMicrosPerMillion\022S\n\'cache_creation_pri" +
+      "ce_micros_per_million\030\010 \001(\003R\"cacheCreati" +
+      "onPriceMicrosPerMillion\022K\n#cache_read_pr" +
+      "ice_micros_per_million\030\t \001(\003R\036cacheReadP" +
+      "riceMicrosPerMillion\022*\n\021pricing_policy_i" +
+      "d\030\n \001(\tR\017pricingPolicyId\022.\n\023markup_basis" +
+      "_points\030\013 \001(\005R\021markupBasisPoints\"n\n\031Prev" +
+      "iewAuthorizationInput\022\030\n\003org\030\001 \001(\tB\006\272H\003\310" +
+      "\001\001R\003org\0227\n\030expected_cost_cap_micros\030\002 \001(" +
+      "\003R\025expectedCostCapMicros\"\227\001\n\034PreviewAuth" +
+      "orizationResponse\022\036\n\nauthorized\030\001 \001(\010R\na" +
+      "uthorized\022#\n\rdenial_reason\030\002 \001(\tR\014denial" +
+      "Reason\0222\n\025reserve_amount_micros\030\003 \001(\003R\023r" +
+      "eserveAmountMicros\"9\n\030GetRunBillingSigna" +
+      "lInput\022\035\n\006run_id\030\001 \001(\tB\006\272H\003\310\001\001R\005runId\"v\n" +
+      "\033GetRunBillingSignalResponse\022?\n\006signal\030\001" +
+      " \001(\0162\'.ai.stigmer.billing.v1.RunBillingS" +
+      "ignalR\006signal\022\026\n\006reason\030\002 \001(\tR\006reasonB\200\001" +
+      "B\007IoProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V" +
+      "1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stigmer\\B" +
+      "illing\\V1\\GPBMetadata\352\002\030Ai::Stigmer::Bil" +
+      "ling::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -447,7 +445,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_billing_v1_RecordLlmCallUsageInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_RecordLlmCallUsageInput_descriptor,
-        new java.lang.String[] { "RunId", "Sequence", "CallId", "Provider", "ResolvedModel", "RequestedModel", "Tokens", "UsageStatus", "ProviderRequestId", "HttpStatusCode", "Streaming", "FinishReason", "ProxyTiming", "ProviderUsageJson", "Harness", "CursorAccountId", "CursorKeyId", "CursorKeySource", "ServedServiceTier", "MeteredRun", "ProviderKeySource", });
+        new java.lang.String[] { "RunId", "Sequence", "CallId", "Provider", "ResolvedModel", "RequestedModel", "Tokens", "UsageStatus", "ProviderRequestId", "HttpStatusCode", "Streaming", "FinishReason", "ProxyTiming", "ProviderUsageJson", "Harness", "ServedServiceTier", "MeteredRun", "ProviderKeySource", });
     internal_static_ai_stigmer_billing_v1_MeteredRun_descriptor =
       getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_billing_v1_MeteredRun_fieldAccessorTable = new

@@ -453,9 +453,9 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Add your Organization's own Anthropic or OpenAI key on Stigmer Cloud,
-      optionally on your own compatible endpoint, and the rules a key and its
-      base URL follow.
+      Add your Organization's own Anthropic, OpenAI or Cursor key on Stigmer
+      Cloud, an LLM key optionally on your own compatible endpoint, and the
+      rules a key and its base URL follow.
     medium: none
 
   guides/integrations/caller-identity-for-mcp-servers:
@@ -511,8 +511,9 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Make the Cursor engine available to a runner in direct or proxy mode and
-      pin a Session to it.
+      Make the Cursor engine available to a runner in direct mode, or on
+      Stigmer Cloud through the Organization's own Cursor key, and pin a
+      Session to it.
     medium: none
 
   guides/runners/model-backends:

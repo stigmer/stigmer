@@ -169,18 +169,20 @@ export interface CapabilityFlags {
   // hold wherever no conversation traffic exists — exactly the state a
   // fresh conformance fixture is in on either edition.
   channelMessaging: boolean;
-  // Execution-credit billing gates run here: an agent-execution create is
-  // authorized against the org's per-credit balance before any work happens,
-  // and a zero-balance account denies the run with the engine's one denial
-  // vocabulary ("Insufficient credits to start execution").
+  // Run admission gates run here: an agent-execution create is admitted on
+  // the organization's own provider keys before any work happens, and an
+  // organization holding no key for the run's provider is refused at create
+  // with FAILED_PRECONDITION, before any execution exists. No run draws
+  // credit: every run is served on the organization's own key.
   //
-  // True for cloud: the composition's create-time reserve gate refuses the
-  // create RPC itself with FAILED_PRECONDITION, before any execution exists.
+  // True for cloud: the composition's create-chain gate refuses the create
+  // RPC itself.
   //
   // False for the local OSS targets — BY THE EDITION BOUNDARY, not a gap: OSS
-  // has no billing engine, no credit accounting, and no billing gates; every
-  // execution runs unmetered. There is no refusal contract to pin, so the
-  // billing-denial suite skips entirely (the scheduleFiring posture).
+  // has no billing engine, no provider keys and no admission gates; every
+  // execution runs unmetered on the operator's own provider credentials.
+  // There is no refusal contract to pin, so the run-admission suite skips
+  // entirely (the scheduleFiring posture).
   billingGates: boolean;
   // The target's ENFORCING lane mints PlatformClient user tokens and enforces
   // the minting client's contract at the serving edge: mintUserToken answers
@@ -364,6 +366,19 @@ export interface CapabilityFlags {
   // (domain/run/__tests__/local-programs.test.ts); where a target composes
   // the cloud-mode lane, the arm gated on this flag runs.
   cloudTargetRefusesLocalPrograms: boolean;
+  // A Cursor run is admitted at create: the arms that create one run here.
+  //
+  // True for the local OSS targets BY THE EDITION: open source asks no
+  // provider key, so a Cursor run is created and the runner decides at turn
+  // start (no arm here lets a Cursor turn reach Cursor). On the cloud targets
+  // only when the run supplies a real Cursor key in CURSOR_API_KEY, which
+  // keyTenancy saves on every tenancy it keys: Stigmer Cloud runs Cursor on
+  // the organization's own Cursor key and refuses a Cursor run of an
+  // organization holding none at create (PROVIDER_KEY_REQUIRED), and the
+  // cloud checks a Cursor key with Cursor itself at save, so no fixture key
+  // can stand in for one. A Cursor arm reads this and skips with
+  // CURSOR_KEY_SKIP_REASON (targets/cloud.ts) where it is false.
+  cursorRunsAdmitted: boolean;
 }
 
 // The Stripe webhook lane as the suite drives it: where the composition
@@ -631,12 +646,14 @@ export interface TargetProfile {
   fundTenancy?(org: string): Promise<void>;
 
   // Save an Anthropic and an OpenAI key on the org, as an admin pastes them
-  // in the console: on the hosted edition every native run needs a key for
-  // its model's provider, and a run in an org with none is refused at
-  // create. The keys are this target's fixtures (CONFORMANCE_PROVIDER_KEYS),
-  // so the proxy suite can read them back off the upstream request. Present
-  // only where provider keys exist (the cloud targets); elsewhere a native
-  // run needs none, and callers write `keyTenancy?.(org)`.
+  // in the console, and a Cursor key when the run supplies one
+  // (cursorRunsAdmitted): on the hosted edition every run needs a key for its
+  // provider, and a run in an org with none is refused at create. The
+  // Anthropic and OpenAI keys are this target's fixtures
+  // (CONFORMANCE_PROVIDER_KEYS), so the proxy suite can read them back off
+  // the upstream request. Present only where provider keys exist (the cloud
+  // targets); elsewhere a run needs none, and callers write
+  // `keyTenancy?.(org)`.
   keyTenancy?(org: string): Promise<void>;
 
   // The clients that may add or remove an org's credits without a purchase

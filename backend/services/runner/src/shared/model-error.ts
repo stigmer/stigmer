@@ -1,7 +1,7 @@
 /**
  * Model-call error unwrapping and classification, shared by every harness.
  *
- * Two problems this module solves (stigmer/stigmer#330):
+ * Three problems this module solves:
  *
  * 1. LangChain wraps any error thrown inside a middleware-wrapped model call
  *    in `MiddlewareError`, so `err.constructor.name` reads "MiddlewareError"
@@ -10,30 +10,24 @@
  *    chain back to the root SDK error (which carries `.status` and the
  *    provider's parsed body).
  *
- * 2. Raw provider error prose is wrong for the user in proxy mode: billing
- *    errors from the PLATFORM's provider account told customers to top up
- *    consoles they don't own. The cloud proxy rewrites those to a 503
- *    carrying PLATFORM_CAPACITY_SENTINEL (the contract lives in
- *    stigmer-cloud's PlatformProviderErrorClassifier); this module
- *    is the runner-side half that recognizes the sentinel and, in direct
- *    (BYO-key) mode, attributes billing errors to the user's own account
- *    with actionable wording.
+ * 2. On Stigmer Cloud every model call runs on a key the organization owns,
+ *    so a provider failure the proxy relays is the organization's, though
+ *    it reaches the runner in proxy mode. The proxy keeps the provider's
+ *    status and message and marks the message with
+ *    ORGANIZATION_PROVIDER_KEY_SENTINEL; this module words a marked failure
+ *    as the organization's own key and account. Provider billing prose
+ *    (stigmer/stigmer#330: Anthropic's "credit balance is too low") reads
+ *    as the account's own in both modes, because no call runs on an account
+ *    the platform owns.
  *
- * 3. On Stigmer Cloud the proxy serves a model call on the organization's
- *    own provider key. A failure on that key is the organization's, not the
- *    platform's, yet it reaches the runner in proxy mode. The proxy keeps the provider's status and message
- *    and marks the message with ORGANIZATION_PROVIDER_KEY_SENTINEL; this
- *    module words a marked failure as the organization's key, never as a
- *    platform fault.
- *
- * 4. On Stigmer Cloud every model call runs on a key the organization owns;
- *    the proxy refuses a call for a provider the organization holds no key
+ * 3. The proxy refuses a call for a provider the organization holds no key
  *    for, marking the refusal with PROVIDER_KEY_REQUIRED_SENTINEL. This
  *    module words it as the missing key and where an admin adds it.
  *
- * Classification order is load-bearing: the sentinel check must precede
- * status mapping, otherwise the proxy's 503 would classify as a provider
- * server error and the user would read a platform fault as the provider's.
+ * Classification order is load-bearing: the sentinels precede everything
+ * that reads proxy mode or the status, otherwise the proxy's refusal (a
+ * 403) would read as the proxy denying the call and an organization-key
+ * 401 as the platform rejecting the runner's session.
  */
 
 import type { LlmProvider } from "./llm-proxy.js";
@@ -47,19 +41,11 @@ import {
 } from "./llm-backend.js";
 
 /**
- * Machine-readable code the cloud proxy embeds in rewritten platform-fault
- * error messages. The message text is the contract carrier — it is the one
- * field proven to survive provider SDK → LangChain → runner intact.
- * Duplicated in stigmer-cloud's PlatformProviderErrorClassifier.SENTINEL_CODE;
- * change both or neither.
- */
-export const PLATFORM_CAPACITY_SENTINEL = "STIGMER_PLATFORM_MODEL_CAPACITY";
-
-/**
  * Machine-readable code the cloud proxy embeds in a provider failure it
  * relays from a call served on the organization's own provider key. The
- * message text carries it, as it carries PLATFORM_CAPACITY_SENTINEL.
- * Duplicated in stigmer-cloud's LLM proxy lane; change both or neither.
+ * message text is the contract carrier: it is the one field proven to
+ * survive provider SDK → LangChain → runner intact. Duplicated in
+ * stigmer-cloud's LLM proxy lane; change both or neither.
  */
 export const ORGANIZATION_PROVIDER_KEY_SENTINEL = "STIGMER_ORGANIZATION_PROVIDER_KEY";
 
@@ -74,7 +60,7 @@ export const PROVIDER_KEY_REQUIRED_SENTINEL = "STIGMER_PROVIDER_KEY_REQUIRED";
 export interface ClassifiedModelError {
   /** Stable machine-readable code (the `[type]` a failed turn's message leads with). */
   readonly code: string;
-  /** User-facing message; never raw provider prose in proxy mode. */
+  /** User-facing message; provider prose appears only quoted after it. */
   readonly message: string;
 }
 
@@ -149,20 +135,12 @@ export function classifyModelCallError(
   const ctx = organizationKey ? { ...callerCtx, proxyMode: false } : callerCtx;
   const backend = resolveDirectBackend(ctx);
 
-  // 1. Platform sentinel — before status mapping (see module doc).
-  if (message.includes(PLATFORM_CAPACITY_SENTINEL)) {
-    return {
-      code: "LLM_PLATFORM_CAPACITY",
-      message: platformCapacityMessage(ctx),
-    };
-  }
-
-  // 1b. Backend credential acquisition — also before status mapping: these
-  //     failures come from the auth library (thrown while adapting the
-  //     request, usually with no HTTP status) and won't self-heal on retry.
-  //     Raw, they read like library internals ("Could not load the default
-  //     credentials"); the operator needs to hear "fix your cloud
-  //     credentials".
+  // 1. Backend credential acquisition — before status mapping: these
+  //    failures come from the auth library (thrown while adapting the
+  //    request, usually with no HTTP status) and won't self-heal on retry.
+  //    Raw, they read like library internals ("Could not load the default
+  //    credentials"); the operator needs to hear "fix your cloud
+  //    credentials".
   if (backend === "vertex" && isGoogleCredentialMessage(message)) {
     return {
       code: "LLM_BACKEND_CREDENTIALS",
@@ -199,7 +177,7 @@ export function classifyModelCallError(
     };
   }
 
-  // 1c. Bedrock's inference-profile rejection — a config condition, not a
+  // 1b. Bedrock's inference-profile rejection — a config condition, not a
   //     bad request: newer Claude models cannot be invoked by bare model id
   //     (AWS lists their in-region endpoint as N/A). The operator remedy is
   //     one env var, so say exactly that instead of relaying AWS prose that
@@ -216,18 +194,11 @@ export function classifyModelCallError(
     };
   }
 
-  // 2. Provider billing prose. In direct mode this is the user's own
-  //    account and the fix is theirs. In proxy mode these patterns should
-  //    never appear (the proxy rewrites them), but a version-skewed proxy
-  //    could still relay them — attribute to the platform, never tell a
-  //    proxied customer to top up someone else's account.
+  // 2. Provider billing prose: the account the key belongs to is out of
+  //    credit, and that account is the caller's own in either mode (the
+  //    cloud relays a failure on the organization's key marked, which 0b
+  //    words first).
   if (isProviderBillingMessage(message)) {
-    if (ctx.proxyMode) {
-      return {
-        code: "LLM_PLATFORM_CAPACITY",
-        message: platformCapacityMessage(ctx),
-      };
-    }
     return {
       code: "LLM_PROVIDER_BILLING",
       message:
@@ -558,14 +529,6 @@ function isProviderBillingMessage(message: string): boolean {
     || lower.includes("insufficient_quota")
     || lower.includes("exceeded your current quota")
     || lower.includes("no credits remaining")
-  );
-}
-
-function platformCapacityMessage(ctx: ModelErrorContext): string {
-  return (
-    `The Stigmer platform's model capacity for ${providerLabel(ctx)} is temporarily unavailable. ` +
-    `This is a platform-side issue — your organization's credits were not charged for this call. ` +
-    `Please retry shortly, or contact support if it persists. [code: ${PLATFORM_CAPACITY_SENTINEL}]`
   );
 }
 
