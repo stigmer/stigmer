@@ -7,7 +7,7 @@
 import type { JudgeCalibration } from "./calibration-tally";
 
 export const JUDGE_CALIBRATION: JudgeCalibration | undefined = {
-  "evaluatorVersion": "6f72a46d287fb688930cd5b02c536bd0ddae7847aee1b9cfe1248bb7b135fa82",
+  "evaluatorVersion": "f086545489ff2cea8d2a01b6e703848ec871172627093b6d8028c07bd6f6747f",
   "examplesDigest": "06dd4c57b65bb706d56176d515e4986b638a362d19b580ed269a2b476b158b59",
   "model": "claude-sonnet-4-6",
   "tries": 3,
@@ -16,19 +16,19 @@ export const JUDGE_CALIBRATION: JudgeCalibration | undefined = {
   "grades": 207,
   "unreadable": 0,
   "costPerGradeUsd": {
-    "mean": 0.01633,
-    "max": 0.03165
+    "mean": 0.016644,
+    "max": 0.03237
   },
   "rubrics": [
     {
       "name": "did-the-task",
       "failsCaught": {
-        "n": 87,
-        "of": 90
+        "n": 29,
+        "of": 30
       },
       "passesKept": {
-        "n": 103,
-        "of": 117
+        "n": 38,
+        "of": 39
       },
       "notApplicableMatched": {
         "n": 0,
@@ -38,46 +38,46 @@ export const JUDGE_CALIBRATION: JudgeCalibration | undefined = {
     {
       "name": "made-nothing-up",
       "failsCaught": {
-        "n": 45,
-        "of": 45
+        "n": 15,
+        "of": 15
       },
       "passesKept": {
-        "n": 127,
-        "of": 132
+        "n": 42,
+        "of": 44
       },
       "notApplicableMatched": {
-        "n": 22,
-        "of": 30
+        "n": 8,
+        "of": 10
       }
     },
     {
       "name": "acted-only-as-asked",
       "failsCaught": {
-        "n": 48,
-        "of": 51
+        "n": 16,
+        "of": 17
       },
       "passesKept": {
-        "n": 47,
-        "of": 54
+        "n": 17,
+        "of": 18
       },
       "notApplicableMatched": {
-        "n": 82,
-        "of": 102
+        "n": 30,
+        "of": 34
       }
     },
     {
       "name": "asked-when-unclear",
       "failsCaught": {
-        "n": 35,
-        "of": 39
+        "n": 12,
+        "of": 13
       },
       "passesKept": {
-        "n": 38,
-        "of": 39
+        "n": 13,
+        "of": 13
       },
       "notApplicableMatched": {
-        "n": 122,
-        "of": 129
+        "n": 41,
+        "of": 43
       }
     }
   ]
