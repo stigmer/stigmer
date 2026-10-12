@@ -598,6 +598,23 @@ describe("Agent conformance — the reference rule at write", () => {
     );
   });
 
+  it("[rpc:AgentCommandController.create] refuses a skill reference whose id is longer than 64 characters before it is resolved (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    const id = `skl_${"0".repeat(61)}`;
+    const input = makeAgent({ org, name: uniqueName("agent") });
+    input.spec = {
+      ...makeAgentSpec(),
+      skillRefs: [{ kind: ApiResourceKind.skill, id }],
+    };
+    const err = await expectGrpcCode(
+      () => clients.agentCommand.create(input),
+      Code.InvalidArgument,
+      "create agent with a 65-character skill reference id",
+    );
+    expect(err.rawMessage).toContain("at most 64");
+    expect(err.rawMessage).not.toContain(id);
+  });
+
   it("[rpc:AgentCommandController.create] the parent organization's plugin is admitted when it shares it with its children, and every other organization's is refused with one sentence, whether it exists or not", async () => {
     // The writer's organization is a child of otherOrg; strangerOrg is another parent.
     const { org: otherOrg } = await target.provisionTenancy();

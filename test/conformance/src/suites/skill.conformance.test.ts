@@ -548,6 +548,27 @@ describe("[rpc:SkillQueryController.getByReference] Skill conformance — getByR
     );
   });
 
+  it("[rpc:SkillQueryController.getByReference] refuses a reference whose id is longer than 64 characters before anything is read (InvalidArgument), naming the bound and never the id", async () => {
+    const { org } = await target.provisionTenancy();
+    const id = `skl_${"0".repeat(61)}`;
+    const err = await expectGrpcCode(
+      () => clients.skillQuery.getByReference({ org, id }),
+      Code.InvalidArgument,
+      "getByReference with a 65-character id",
+    );
+    expect(err.rawMessage).toContain("at most 64");
+    expect(err.rawMessage).not.toContain(id);
+  });
+
+  it("[rpc:SkillQueryController.getByReference] answers a 64-character id no skill holds as missing (NotFound)", async () => {
+    const { org } = await target.provisionTenancy();
+    await expectGrpcCode(
+      () => clients.skillQuery.getByReference({ org, id: `skl_${"0".repeat(60)}` }),
+      Code.NotFound,
+      "getByReference with a 64-character unknown id",
+    );
+  });
+
   it("returns NotFound for an unknown slug", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
