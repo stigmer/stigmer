@@ -46,9 +46,9 @@ message SessionSpec {
   // @internal
   // Another organization's agent is accepted only when it is this
   // organization's parent's, shared at visibility_child_orgs
-  // (the reference rule). The resolved id beside the reference is what
-  // every turn reads, by point read, so a slug deleted and taken by another
-  // agent never redirects a live conversation (the share's pin).
+  // (the reference rule). The reference holds the agent's id, which every
+  // turn reads by point read, so a slug deleted and taken by another agent
+  // never redirects a live conversation (the share's pin).
   ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 14 [(ai.stigmer.commons.apiresource.reference_kind) = agent];
 
   // Conversation title for UI display.
@@ -113,7 +113,8 @@ message SessionSpec {
   // whose content is added to the agent's context alongside agent-level skills.
   //
   // @internal
-  // Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+  // Merge semantics: union'd with agent-level skill_refs, deduplicated by the
+  // skill's current name (a skill mounts by its name).
   repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [(ai.stigmer.commons.apiresource.reference_kind) = skill];
 
   // Execution harness for this session.

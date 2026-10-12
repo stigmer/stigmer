@@ -9,10 +9,14 @@ export interface DeleteResourceInput {
   readonly force?: boolean;
 }
 
-/** Identifies an API resource by org, slug, and optional version. */
+/**
+ * Identifies an API resource by org and slug, or by the id a stored
+ * reference holds, with an optional version.
+ */
 export interface ResourceRef {
   readonly org: string;
   readonly slug: string;
+  readonly id?: string;
   readonly version?: string;
   readonly kind?: number;
 }

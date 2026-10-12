@@ -69,6 +69,7 @@ import {
   referenceRefusal,
   referenceTargetKind,
   newNormalizeReferencesStep,
+  referenceDisplayName,
   resolveReferences,
 } from "../references.js";
 import { EXISTING_RESOURCE_KEY } from "../load-existing.js";
@@ -1489,9 +1490,138 @@ describe("resolveReferences and NormalizeReferences", () => {
     expect(rewritten.spec!.skillRefs[0]!.id).toBe("skl_2");
   });
 
+  it("keeps an id the stored row holds whatever slug is echoed beside it: the runner writes back what it read at turn start", async () => {
+    const stored = agentNaming({ org: "acme", kind: K.skill, id: "skl_1" });
+    await store.deleteResource(K.skill, "skl_1");
+    await store.resourceNames.release("skill", "acme", "skl_1");
+    await store.saveResource(
+      K.skill,
+      "skl_2",
+      SkillSchema,
+      create(SkillSchema, { metadata: { id: "skl_2", org: "acme", slug: "web-search", name: "web-search" } }),
+    );
+    const echo = () => agentNaming({ org: "acme", kind: K.skill, id: "skl_1", slug: "web-search" });
+    const kept = echo();
+    await resolveReferences(store, AgentSchema, kept, "acme", new Date(), stored);
+    expect(kept.spec!.skillRefs[0]).toMatchObject({ id: "skl_1", slug: "" });
+    // A write the stored row does not hold is judged as written: the slug names another skill now.
+    const error = await failureOf(() => resolveReferences(store, AgentSchema, echo(), "acme"));
+    expect((error as ConnectError).code).toBe(Code.InvalidArgument);
+  });
+
+  it("referenceDisplayName names a reference still written by name by that name, and one held by id by its target's", async () => {
+    expect(await referenceDisplayName(store, K.skill, { org: "acme", id: "", slug: "ghost" })).toBe("ghost");
+    expect(await referenceDisplayName(store, K.skill, { org: "acme", id: "skl_1", slug: "" })).toBe("web-search");
+    expect(await referenceDisplayName(store, K.skill, { org: "acme", id: "skl_gone", slug: "" })).toBe("skl_gone");
+  });
+
   it("NormalizeReferences resolves the request's spec against the resource's own organization", async () => {
     const ctx = new RequestContext(AgentSchema, agentNaming({ slug: "web-search" }), testCallerIdentity(), K.agent);
     await newNormalizeReferencesStep<typeof AgentSchema>(store).execute(ctx);
     expect(ctx.newState.spec!.skillRefs[0]).toMatchObject({ org: "acme", id: "skl_1", slug: "" });
+  });
+});
+
+describe("a reference into another organization tells the writer nothing that organization holds", () => {
+  let store: SqliteStore;
+  let cleanup: () => Promise<void>;
+
+  beforeEach(async () => {
+    const temp = tempStore();
+    store = namingSaves(temp.store);
+    cleanup = temp.cleanup;
+    await store.saveResource(
+      K.organization,
+      "acme",
+      OrganizationSchema,
+      create(OrganizationSchema, { metadata: { id: "acme", name: "Acme", slug: "acme" }, spec: { parentOrg: "globex" } }),
+    );
+    for (const [id, slug, visibility] of [
+      ["skl_g", "theirs", V.visibility_org],
+      ["skl_s", "shared", V.visibility_child_orgs],
+    ] as const) {
+      await store.saveResource(
+        K.skill,
+        id,
+        SkillSchema,
+        create(SkillSchema, { metadata: { id, org: "globex", slug, name: slug, visibility } }),
+      );
+    }
+  });
+
+  afterEach(async () => {
+    await cleanup();
+  });
+
+  function agentNaming(...refs: Array<{ org: string; slug?: string; id?: string }>) {
+    return create(AgentSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "Agent",
+      metadata: { name: "helper", org: "acme", visibility: V.visibility_org },
+      spec: {
+        instructions: "help the user with their tasks",
+        skillRefs: refs.map((r) => create(ApiResourceReferenceSchema, r)),
+      },
+    });
+  }
+
+  /** Normalize then judge, as every write chain does; the refusal, or undefined when the write passes. */
+  async function written(
+    agent: ReturnType<typeof agentNaming>,
+    passed: (stored: ReturnType<typeof agentNaming>) => void = () => undefined,
+  ): Promise<ConnectError | undefined> {
+    const ctx = new RequestContext(AgentSchema, agent, testCallerIdentity(), K.agent);
+    try {
+      await newNormalizeReferencesStep<typeof AgentSchema>(store).execute(ctx);
+      await newValidateReferencesStep<typeof AgentSchema>(store, newPermissiveSingleTeamAuthorizer()).execute(ctx);
+    } catch (error) {
+      return error as ConnectError;
+    }
+    passed(ctx.newState);
+    return undefined;
+  }
+
+  const unavailable = (written: string): string =>
+    notAvailableReferenceMessage(referenceTargetKind(K.skill)!, ref(K.skill, "globex", written));
+
+  it("an id beside a slug is held by the id there: whether the slug names something is never asked", async () => {
+    const named = agentNaming({ org: "globex", slug: "theirs", id: "skl_bogus" });
+    const unnamed = agentNaming({ org: "globex", slug: "nobody", id: "skl_bogus" });
+    await resolveReferences(store, AgentSchema, named, "acme");
+    await resolveReferences(store, AgentSchema, unnamed, "acme");
+    expect(named.spec!.skillRefs[0]).toMatchObject({ id: "skl_bogus", slug: "theirs" });
+    expect(unnamed.spec!.skillRefs[0]).toMatchObject({ id: "skl_bogus", slug: "nobody" });
+  });
+
+  it("a slug there takes its id and keeps the name as written until the rule admits it", async () => {
+    const agent = agentNaming({ org: "globex", slug: "theirs" });
+    await resolveReferences(store, AgentSchema, agent, "acme");
+    expect(agent.spec!.skillRefs[0]).toMatchObject({ id: "skl_g", slug: "theirs" });
+  });
+
+  it("answers one sentence naming what the writer wrote, whether the name or id exists there or not", async () => {
+    const byExistingSlug = await written(agentNaming({ org: "globex", slug: "theirs" }));
+    const byMissingSlug = await written(agentNaming({ org: "globex", slug: "nobody" }));
+    expect(byExistingSlug?.rawMessage).toBe(unavailable("theirs"));
+    expect(byMissingSlug?.rawMessage).toBe(unavailable("nobody"));
+
+    // By id alone: the sentence names the id, never what that organization calls it.
+    const byExistingId = await written(agentNaming({ org: "globex", id: "skl_g" }));
+    const byMissingId = await written(agentNaming({ org: "globex", id: "skl_none" }));
+    expect(byExistingId?.rawMessage).toBe(unavailable("skl_g"));
+    expect(byMissingId?.rawMessage).toBe(unavailable("skl_none"));
+
+    // A slug beside an id that disagree: refused alike whether the slug names something.
+    const disagreeing = await written(agentNaming({ org: "globex", slug: "shared", id: "skl_none" }));
+    const unknown = await written(agentNaming({ org: "globex", slug: "nobody-else", id: "skl_none" }));
+    expect(disagreeing?.code).toBe(Code.FailedPrecondition);
+    expect(disagreeing?.rawMessage).toBe(unavailable("shared"));
+    expect(unknown?.rawMessage).toBe(unavailable("nobody-else"));
+  });
+
+  it("a reference the rule admits there is stored by its id alone", async () => {
+    let stored: ReturnType<typeof agentNaming> | undefined;
+    expect(await written(agentNaming({ org: "globex", slug: "shared" }), (s) => (stored = s))).toBeUndefined();
+    expect(stored?.spec!.skillRefs[0]).toMatchObject({ org: "globex", kind: K.skill, id: "skl_s", slug: "" });
   });
 });

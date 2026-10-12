@@ -179,8 +179,8 @@ export async function findClientByName(
 /**
  * The client a reference request names: by its id through the port, the
  * row in the reference's organization when it names one; else by its org
- * and slug. Both, the slug naming another client, is INVALID_ARGUMENT (the
- * reference resolver's rule, pipeline/steps/references.ts).
+ * and slug. Beside an id the slug is not looked up (findByReference,
+ * pipeline/steps/references.ts, says why).
  */
 export async function findClientByReference(
   store: Store,
@@ -191,17 +191,8 @@ export async function findClientByReference(
     return findClientByName(store, clients, ref.org, ref.slug);
   }
   const client = await clients.findById(ref.id);
-  const org = client?.metadata?.org ?? "";
-  if (client === undefined || (ref.org !== "" && org !== ref.org)) {
+  if (client === undefined || (ref.org !== "" && (client.metadata?.org ?? "") !== ref.org)) {
     return undefined;
-  }
-  if (ref.slug !== "" && ref.slug !== (client.metadata?.slug ?? "")) {
-    const named = await resolveName(store, ApiResourceKind.platform_client, org, ref.slug);
-    if (named !== undefined && named !== ref.id) {
-      throw invalidArgumentError(
-        `reference names '${ref.slug}' and id '${ref.id}', which are not the same resource; name it by its slug, by its id, or by both when they agree.`,
-      );
-    }
   }
   return client;
 }

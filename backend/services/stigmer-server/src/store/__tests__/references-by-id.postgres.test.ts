@@ -22,7 +22,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
+import { create, createFileRegistry, fromBinary, toBinary, toJson } from "@bufbuild/protobuf";
+import {
+  FieldDescriptorProto_Label,
+  FieldDescriptorProto_Type,
+  FileDescriptorProtoSchema,
+} from "@bufbuild/protobuf/wkt";
 import pg from "pg";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -30,7 +35,9 @@ import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb"
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { file_ai_stigmer_commons_apiresource_io } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import type { StoreLogger } from "../logger.js";
 import {
@@ -41,7 +48,7 @@ import {
   createTestDatabase,
   testDatabaseAdminUrl,
 } from "../postgres/__tests__/support.js";
-import { REFERENCES_BY_ID_PAGE_SIZE } from "../references-by-id.js";
+import { REFERENCES_BY_ID_PAGE_SIZE, REFERRING_KINDS_AT_REWRITE, ReferenceRewrite } from "../references-by-id.js";
 import {
   SCHEMA_VERSION_30,
   getSchemaVersion,
@@ -103,6 +110,125 @@ const SCHEDULE = create(ScheduleSchema, {
     cron: "0 9 * * *",
     target: { case: "agent", value: { agentRef: { org: ACME, slug: "gone-agent" }, vaults: [{ slug: "keys" }] } },
   },
+});
+
+describe("a session's own agent at the rewrite", () => {
+  const sessions = REFERRING_KINDS_AT_REWRITE.find((k) => k.kind === "session")!;
+
+  it("takes the agent its status pins, not a newcomer that took the deleted agent's name since", () => {
+    // The pinned agent agt_00gone was deleted before the upgrade; agt_02main holds "main" now.
+    const pinnedElsewhere = create(SessionSchema, {
+      metadata: { id: "ses_02old", org: ACME, slug: "old" },
+      spec: { agentRef: { slug: "main" }, vaults: [{ slug: "keys" }] },
+      status: { agentId: "agt_00gone", agentVersionHash: OLDER },
+    });
+    const rewritten = new ReferenceRewrite(NAMES).rewrite(sessions, "ses_02old", toBinary(SessionSchema, pinnedElsewhere));
+    const session = fromBinary(SessionSchema, rewritten!);
+    expect([session.spec!.agentRef!.org, session.spec!.agentRef!.id, session.spec!.agentRef!.slug]).toEqual([
+      ACME,
+      "agt_00gone",
+      "",
+    ]);
+    // Every other reference of the row resolves by its name as before.
+    expect(session.spec!.vaults.map((r) => r.id)).toEqual(["vlt_01keys"]);
+  });
+
+  it("resolves the name when no pin is recorded", () => {
+    const unpinned = create(SessionSchema, {
+      metadata: { id: "ses_03new", org: ACME, slug: "new" },
+      spec: { agentRef: { slug: "main" } },
+    });
+    const rewritten = new ReferenceRewrite(NAMES).rewrite(sessions, "ses_03new", toBinary(SessionSchema, unpinned));
+    expect(fromBinary(SessionSchema, rewritten!).spec!.agentRef!.id).toBe("agt_02main");
+  });
+});
+
+describe("a federated identity account at the rewrite", () => {
+  const accounts = REFERRING_KINDS_AT_REWRITE.find((k) => k.kind === "identity_account")!;
+
+  it("stops the step, naming the row: its address is derived from the provider, and the step does not move it", () => {
+    const federated = create(IdentityAccountSchema, {
+      metadata: { id: "ida_01fed", org: ACME },
+      spec: { identityProviderRef: { org: ACME, slug: "okta" } },
+    });
+    expect(() =>
+      new ReferenceRewrite(NAMES).rewrite(accounts, "ida_01fed", toBinary(IdentityAccountSchema, federated)),
+    ).toThrow(/the identity_account row 'ida_01fed' is a federated account/);
+  });
+
+  it("passes an account no provider vouches for, an empty provider reference included", () => {
+    const local = create(IdentityAccountSchema, { metadata: { id: "ida_02me", org: ACME }, spec: { isMachineAccount: false } });
+    expect(new ReferenceRewrite(NAMES).rewrite(accounts, "ida_02me", toBinary(IdentityAccountSchema, local))).toBeUndefined();
+    const unset = create(IdentityAccountSchema, { metadata: { id: "ida_03me", org: ACME }, spec: { identityProviderRef: {} } });
+    expect(() => new ReferenceRewrite(NAMES).rewrite(accounts, "ida_03me", toBinary(IdentityAccountSchema, unset))).not.toThrow();
+  });
+});
+
+describe("a reference held as a map value", () => {
+  it("is rewritten like any other: the walk reaches map values, as the write chain's walk does", () => {
+    // No referring kind's spec holds references in a map; a synthetic one
+    // stands in for the day one does.
+    const { OPTIONAL, REPEATED } = FieldDescriptorProto_Label;
+    const { MESSAGE, STRING } = FieldDescriptorProto_Type;
+    const registry = createFileRegistry(
+      create(FileDescriptorProtoSchema, {
+        name: "test/holder.proto",
+        package: "test.holder",
+        syntax: "proto3",
+        dependency: [file_ai_stigmer_commons_apiresource_io.proto.name],
+        messageType: [
+          {
+            name: "Holder",
+            field: [{ name: "spec", jsonName: "spec", number: 1, label: OPTIONAL, type: MESSAGE, typeName: ".test.holder.Spec" }],
+          },
+          {
+            name: "Spec",
+            field: [{ name: "refs", jsonName: "refs", number: 1, label: REPEATED, type: MESSAGE, typeName: ".test.holder.Spec.RefsEntry" }],
+            nestedType: [
+              {
+                name: "RefsEntry",
+                options: { mapEntry: true },
+                field: [
+                  { name: "key", jsonName: "key", number: 1, label: OPTIONAL, type: STRING },
+                  { name: "value", jsonName: "value", number: 2, label: OPTIONAL, type: MESSAGE, typeName: ".ai.stigmer.commons.apiresource.ApiResourceReference" },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+      () => file_ai_stigmer_commons_apiresource_io,
+    );
+    const holder = registry.getMessage("test.holder.Holder")!;
+    const row = create(holder, { spec: { refs: { first: { org: ACME, kind: ApiResourceKind.skill, slug: "web-search" } } } });
+    const rewritten = new ReferenceRewrite(NAMES).rewrite({ kind: "holder", schema: holder }, "hld_1", toBinary(holder, row));
+    expect(toJson(holder, fromBinary(holder, rewritten!))).toEqual({
+      spec: { refs: { first: { org: ACME, kind: "skill", id: "skl_01search" } } },
+    });
+  });
+});
+
+describe("references the rewrite leaves as they are", () => {
+  const sessions = REFERRING_KINDS_AT_REWRITE.find((k) => k.kind === "session")!;
+
+  it("leaves a reference naming nothing, and reports one whose organization is a name nothing holds", () => {
+    const logger = recordingLogger();
+    const rewrite = new ReferenceRewrite(NAMES);
+    const row = create(SessionSchema, {
+      metadata: { id: "ses_04odd", org: ACME },
+      // A map of plain values beside them, which holds no reference.
+      spec: { skillRefs: [{}, { org: "no-such-org", slug: "web-search" }], metadata: { "stigmer.ai/context": "embedded" } },
+    });
+    const rewritten = rewrite.rewrite(sessions, "ses_04odd", toBinary(SessionSchema, row));
+    // Each kept as written; only the empty reference's kind is filled.
+    const session = fromBinary(SessionSchema, rewritten!);
+    expect(session.spec!.skillRefs.map((r) => [r.org, r.id, r.slug])).toEqual([
+      ["", "", ""],
+      ["no-such-org", "", "web-search"],
+    ]);
+    rewrite.report(logger);
+    expect(JSON.stringify(logger.warnings)).toContain("ses_04odd: 'no-such-org/web-search'");
+  });
 });
 
 interface SeededRow {
@@ -250,12 +376,18 @@ describe("sqlite v30: every stored reference holds its target's id", () => {
     );
   });
 
-  it("reads every page of a kind", () => {
+  it("reads every page of a kind, and of the archive", () => {
     const db = v29Database();
     seed(db, PAGED);
+    const archive = db.prepare(`INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag) VALUES ('agent', ?, ?, ?, '')`);
+    for (let i = 0; i <= REFERENCES_BY_ID_PAGE_SIZE; i++) {
+      archive.run(ARCHIVE.resourceId, ARCHIVE.data, `${i}`.padStart(64, "0"));
+    }
     runSqliteMigrations(db, SCHEMA_VERSION_30);
     const last = fromBinary(SessionSchema, readRow(db, "session", PAGED[PAGED.length - 1]!.id));
     expect(last.spec!.vaults[0]!.id).toBe("vlt_01keys");
+    const lastArchived = db.prepare(`SELECT data FROM resource_audit ORDER BY id DESC LIMIT 1`).get() as { data: Uint8Array };
+    expect(fromBinary(AgentSchema, lastArchived.data).spec!.skillRefs[0]!.id).toBe("skl_01search");
   });
 
   it("stops on a row that does not decode, naming it, and rewrites nothing", () => {
@@ -342,12 +474,21 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)("postgres v25: every store
     );
   });
 
-  it("reads every page of a kind", async () => {
+  it("reads every page of a kind, and of the archive", async () => {
     const { client, url } = await v24Database();
     await seed(client, PAGED);
+    await client.query(
+      `INSERT INTO resource_audit (kind, resource_id, data, version_hash, tag)
+       SELECT 'agent', $1, $2, lpad(g::text, 64, '0'), '' FROM generate_series(0, $3::int) AS g`,
+      [ARCHIVE.resourceId, Buffer.from(ARCHIVE.data), REFERENCES_BY_ID_PAGE_SIZE],
+    );
     await migrate(url, SCHEMA_VERSION_25);
     const last = fromBinary(SessionSchema, await readRow(client, "session", PAGED[PAGED.length - 1]!.id));
     expect(last.spec!.vaults[0]!.id).toBe("vlt_01keys");
+    const lastArchived = (
+      await client.query<{ data: Buffer }>(`SELECT data FROM resource_audit ORDER BY id DESC LIMIT 1`)
+    ).rows[0]!;
+    expect(fromBinary(AgentSchema, new Uint8Array(lastArchived.data)).spec!.skillRefs[0]!.id).toBe("skl_01search");
   }, 60_000);
 
   it("stops on a row that does not decode, naming it, and rewrites nothing", async () => {

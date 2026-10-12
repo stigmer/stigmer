@@ -55,8 +55,10 @@ type AgentDesc = typeof AgentSchema;
 // plugins are compared by the names they hold now: NormalizeReferences ran
 // first and left each one its id, so a plugin listed twice is one id and
 // two plugins sharing a slug are two ids of one current name, read in one
-// batch from the name table. INVALID_ARGUMENT, before ValidateReferences
-// judges any of them.
+// batch from the name table. INVALID_ARGUMENT, directly after
+// ValidateReferences admitted every one of them, so the copy never names a
+// plugin of another organization the writer has no standing to learn
+// about (pipeline/steps/references.ts, clause iii).
 // ---------------------------------------------------------------------------
 
 export function newValidatePluginListStep(

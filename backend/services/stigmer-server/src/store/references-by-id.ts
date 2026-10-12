@@ -18,7 +18,12 @@
  *     organization id is resolved as an organization's name;
  *   - its slug is resolved through the name table, which the v24/v29
  *     backfill filled (resource-names-backfill.ts): the id is set and the
- *     slug cleared.
+ *     slug cleared;
+ *   - a session's own agent (`spec.agent_ref`) takes the id its
+ *     `status.agent_id` pins when it holds one, not the name's holder now:
+ *     every turn runs the pinned agent, so a session whose agent was
+ *     deleted and whose name another agent took since keeps naming the
+ *     agent it runs, never the newcomer.
  * A reference whose organization or name nothing holds keeps its slug and
  * an empty id, as the write chain keeps a name nothing holds. It is never
  * dropped: the reference rule refuses it at the row's next write, and its
@@ -33,14 +38,29 @@
  * what it recorded, as a run keeps its spec. A stored run holds no
  * reference (its session's spec is replaced by the session's id).
  *
- * Why the tables here are frozen and not read from the live contract. The
- * step is a statement about the store as it was when references came to
- * hold ids: a later release that adds a referring kind writes ids from its
- * first create, and must not change what this step does to a database it
- * has not reached yet (resource-names-backfill.ts gives the same reason).
- * The `kind` strings are the enum names the drivers' `kind` column holds.
+ * Why the kind tables here are frozen and not read from the live contract.
+ * The step is a statement about the store as it was when references came
+ * to hold ids: a later release that adds a referring kind writes ids from
+ * its first create, and must not change what this step does to a database
+ * it has not reached yet (resource-names-backfill.ts gives the same
+ * reason). The `kind` strings are the enum names the drivers' `kind`
+ * column holds. Rows are decoded with the generated schemas and each
+ * field's `reference_kind` is read from them, so the walk is the
+ * contract's as built: a later change to a field that holds a reference
+ * (its number, its type, its declared kind) must keep what this step reads
+ * from an older row, as every wire change must.
  * The step reads only the library's own tables: a composition that keeps
  * referring rows in tables of its own rewrites their references itself.
+ *
+ * Why a federated identity account fails the step. A federated account's
+ * id is derived from its identity provider (domain/identityaccount/
+ * constants.ts, federatedAccountIdFor), and from this release on from the
+ * provider's id rather than its organization and name. Rewriting the
+ * account's reference would leave the row at an address no lookup reaches,
+ * and the next sign-in would provision a second account beside it, so the
+ * step refuses to run over one instead, naming it. None is expected: open
+ * source answers federation UNIMPLEMENTED without an edition, and no
+ * edition that stores federated accounts in these tables has shipped.
  *
  * Why an undecodable row fails the step. Its references cannot be read,
  * so they cannot be rewritten, and a later read would meet a reference in
@@ -61,6 +81,7 @@ import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/a
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { IdentityAccountSchema } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
 import { PlatformClientSchema } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 
@@ -120,6 +141,14 @@ const MISSES_SAMPLED = 5;
 const API_RESOURCE_REFERENCE_TYPE =
   "ai.stigmer.commons.apiresource.ApiResourceReference";
 
+/** The message a session's own agent reference sits in, and the field. */
+const SESSION_SPEC_TYPE = "ai.stigmer.agentic.session.v1.SessionSpec";
+const SESSION_AGENT_FIELD = "agent_ref";
+
+/** The kind whose federated rows the step refuses, and the field that marks one. */
+const FEDERATED_KIND = "identity_account";
+const FEDERATED_PROVIDER_FIELD = "identity_provider_ref";
+
 /** An organization id as the server mints it. */
 const ORGANIZATION_ID = /^org_[0-9a-z]{26}$/;
 
@@ -164,13 +193,30 @@ export class ReferenceRewrite {
         ? root.get(metadataField)
         : undefined;
     const rowOrg = metadata === undefined ? "" : stringOf(metadata, "org");
+    const statusField = root.fields.find((f) => f.name === "status");
+    const status =
+      statusField !== undefined && statusField.fieldKind === "message" && root.isSet(statusField)
+        ? root.get(statusField)
+        : undefined;
+    const sessionPin =
+      status !== undefined && status.fields.some((f) => f.name === "agent_id")
+        ? stringOf(status, "agent_id")
+        : "";
     const specField = root.fields.find((f) => f.name === "spec");
     if (specField === undefined || specField.fieldKind !== "message" || !root.isSet(specField)) {
       return undefined;
     }
+    const spec = root.get(specField);
+    if (referring.kind === FEDERATED_KIND) {
+      refuseFederated(rowId, spec);
+    }
     let changed = false;
-    walk(root.get(specField), (ref, field) => {
-      if (this.resolve(referring.kind, rowId, rowOrg, ref, field)) {
+    walk(spec, (ref, field) => {
+      const pinned =
+        field.parent.typeName === SESSION_SPEC_TYPE && field.name === SESSION_AGENT_FIELD
+          ? sessionPin
+          : "";
+      if (this.resolve(referring.kind, rowId, rowOrg, ref, field, pinned)) {
         changed = true;
       }
     });
@@ -191,13 +237,14 @@ export class ReferenceRewrite {
     }
   }
 
-  /** One reference; reports whether it changed. */
+  /** One reference, or the id `pinned` names for it when not empty; reports whether it changed. */
   private resolve(
     referringKind: string,
     rowId: string,
     rowOrg: string,
     ref: ReflectMessage,
     field: DescField,
+    pinned: string,
   ): boolean {
     let changed = false;
     const writtenKind = numberOf(ref, "kind");
@@ -208,7 +255,7 @@ export class ReferenceRewrite {
       writtenKind === ApiResourceKind.api_resource_kind_unknown &&
       declared !== ApiResourceKind.api_resource_kind_unknown
     ) {
-      ref.set(fieldOf(ref, "kind"), declared);
+      ref.set(REFERENCE_FIELDS.kind, declared);
       changed = true;
     }
     if (stringOf(ref, "id") !== "") {
@@ -221,7 +268,7 @@ export class ReferenceRewrite {
     let org = stringOf(ref, "org");
     if (org === "") {
       org = rowOrg;
-      ref.set(fieldOf(ref, "org"), org);
+      ref.set(REFERENCE_FIELDS.org, org);
       changed = true;
     } else if (!ORGANIZATION_ID.test(org)) {
       const orgId = this.ids.get(nameKey("organization", "", org));
@@ -230,16 +277,17 @@ export class ReferenceRewrite {
         return changed;
       }
       org = orgId;
-      ref.set(fieldOf(ref, "org"), org);
+      ref.set(REFERENCE_FIELDS.org, org);
       changed = true;
     }
-    const id = this.ids.get(nameKey(ApiResourceKind[declared] ?? "", org, slug));
+    const id =
+      pinned !== "" ? pinned : this.ids.get(nameKey(ApiResourceKind[declared] ?? "", org, slug));
     if (id === undefined) {
       this.miss(referringKind, rowId, org, slug);
       return changed;
     }
-    ref.set(fieldOf(ref, "id"), id);
-    ref.set(fieldOf(ref, "slug"), "");
+    ref.set(REFERENCE_FIELDS.id, id);
+    ref.set(REFERENCE_FIELDS.slug, "");
     return true;
   }
 
@@ -248,6 +296,21 @@ export class ReferenceRewrite {
     held.push(`${rowId}: '${org}/${slug}'`);
     this.misses.set(kind, held);
   }
+}
+
+/** Throws, naming the row, when an identity account's spec names an identity provider (the module header). */
+function refuseFederated(rowId: string, spec: ReflectMessage): void {
+  const field = spec.fields.find((f) => f.name === FEDERATED_PROVIDER_FIELD);
+  if (field === undefined || field.fieldKind !== "message" || !spec.isSet(field)) {
+    return;
+  }
+  const ref = spec.get(field);
+  if (stringOf(ref, "id") === "" && stringOf(ref, "slug") === "") {
+    return;
+  }
+  throw new Error(
+    `migrate references to ids: the identity_account row '${rowId}' is a federated account, whose address this release derives from its identity provider's id rather than its name, and this step does not move it; remove the federated accounts, or stay on the previous release, then start the server again`,
+  );
 }
 
 function nameKey(kind: string, org: string, name: string): string {
@@ -294,20 +357,21 @@ function visit(
   }
 }
 
-function fieldOf(msg: ReflectMessage, name: string): DescField {
+/** A reference's own fields, which the rewrite writes. */
+const REFERENCE_FIELDS = ApiResourceReferenceSchema.field;
+
+/** A field's value by name; a message the field is not on reads as empty. */
+function valueOf(msg: ReflectMessage, name: string): unknown {
   const field = msg.fields.find((f) => f.name === name);
-  if (field === undefined) {
-    throw new Error(`${msg.desc.typeName} has no field ${name}`);
-  }
-  return field;
+  return field === undefined ? undefined : msg.get(field);
 }
 
 function stringOf(msg: ReflectMessage, name: string): string {
-  const value = msg.get(fieldOf(msg, name));
+  const value = valueOf(msg, name);
   return typeof value === "string" ? value : "";
 }
 
 function numberOf(msg: ReflectMessage, name: string): number {
-  const value = msg.get(fieldOf(msg, name));
+  const value = valueOf(msg, name);
   return typeof value === "number" ? value : 0;
 }

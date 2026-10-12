@@ -191,6 +191,17 @@ describe("the getByReference ladder", () => {
     expect(error.rawMessage).toBe("slug or id is required in reference");
   });
 
+  it("is Internal, never NotFound, for a failing read of the head a reference names by id", async () => {
+    const error = await failureOf(
+      loadByReferenceWithVersion(
+        storeWith({ getResource: async () => Promise.reject(STORE_DOWN) }),
+        agentVersionBinding,
+        create(ApiResourceReferenceSchema, { org: "acme", id: "agt_1", version: OLD }),
+      ),
+    );
+    expect(error.code).toBe(Code.Internal);
+  });
+
   it("is Internal for a failing audit query", async () => {
     const step = newLoadByReferenceWithVersionStep(
       storeWith({ listResources: listed, getAuditRecordByHash: async () => Promise.reject(STORE_DOWN) }),

@@ -158,6 +158,7 @@ import { newValidateAgentRunConfigStep } from "./validate-run-config.js";
 import {
   newPinSubagentsStep,
   newValidateSubagentListStep,
+  newValidateSubagentNamesStep,
 } from "./subagents.js";
 
 export interface AgentControllerDeps {
@@ -233,9 +234,10 @@ async function createAgent(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateHooksStep())
-    .addStep(newValidatePluginListStep(deps.store))
-    .addStep(newValidateSubagentListStep(deps.store))
+    .addStep(newValidateSubagentListStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newValidatePluginListStep(deps.store))
+    .addStep(newValidateSubagentNamesStep(deps.store))
     .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
@@ -284,9 +286,10 @@ async function update(
     .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateHooksStep())
-    .addStep(newValidatePluginListStep(deps.store))
-    .addStep(newValidateSubagentListStep(deps.store))
+    .addStep(newValidateSubagentListStep())
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newValidatePluginListStep(deps.store))
+    .addStep(newValidateSubagentNamesStep(deps.store))
     .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())

@@ -143,7 +143,10 @@ import { VaultSchema } from "@stigmer/protos/ai/stigmer/agentic/vault/v1/api_pb"
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { reference_kind } from "@stigmer/protos/ai/stigmer/commons/apiresource/field_options_pb";
-import type { UpdateVisibilityInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import {
+  ApiResourceReferenceSchema,
+  type UpdateVisibilityInputSchema,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { IamPermission } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
@@ -412,9 +415,10 @@ export async function loadReferenced<Desc extends DescMessage>(
  * The resource a reference REQUEST names (getByReference and the server
  * readers that load a reference they were handed): by its id, a point read
  * whose row must belong to the reference's organization when it names one;
- * else by its org and slug through the name table. A reference carrying
- * both is refused when the slug names a different resource
- * (INVALID_ARGUMENT, the resolver's rule). Undefined when nothing matches.
+ * else by its org and slug through the name table. Beside an id the slug is
+ * not looked up: a read lane authorizes the row only after this finds it,
+ * so asking the name table here would tell a caller with no standing on
+ * the organization whether it holds a name. Undefined when nothing matches.
  */
 export async function findByReference<Desc extends DescMessage>(
   store: Store,
@@ -429,18 +433,9 @@ export async function findByReference<Desc extends DescMessage>(
     | MessageShape<Desc>
     | undefined;
   const metadata = row === undefined ? undefined : metadataOf(row);
-  if (metadata === undefined || (ref.org !== "" && metadata.org !== ref.org)) {
-    return undefined;
-  }
-  if (ref.slug !== "" && ref.slug !== metadata.slug) {
-    const named = await resolveName(store, kind, metadata.org, ref.slug);
-    if (named !== undefined && named !== ref.id) {
-      throw invalidArgumentError(
-        `reference names '${ref.slug}' and id '${ref.id}', which are not the same resource; name it by its slug, by its id, or by both when they agree.`,
-      );
-    }
-  }
-  return row;
+  return metadata === undefined || (ref.org !== "" && metadata.org !== ref.org)
+    ? undefined
+    : row;
 }
 
 /**
@@ -839,10 +834,16 @@ export async function resolveReferences(
   resource: Message,
   defaultOrg: string,
   now: Date = new Date(),
+  stored?: Message,
 ): Promise<void> {
   const found: Array<{ ref: ReflectMessage; field: DescField }> = [];
   forEachSpecReference(schema, resource, (ref, field) => found.push({ ref, field }));
-  await resolveFound(store, found, defaultOrg, now);
+  const held = new Set(
+    (stored === undefined ? [] : collectSpecReferences(schema, stored))
+      .filter((ref) => ref.id !== "")
+      .map(referenceKey),
+  );
+  await resolveFound(store, found, defaultOrg, now, held);
 }
 
 /**
@@ -862,7 +863,22 @@ export async function resolveReferences(
  *     what it read): the id stands and the slug is cleared;
  *   - a slug nothing holds and no id are left as written, for the
  *     reference rule to refuse as a missing target, so resolving never
- *     says which names exist.
+ *     says which names exist;
+ *   - an id the stored row already holds (resolveReferences' `stored`, an
+ *     update's loaded row) whose resource has since been deleted stands
+ *     whatever slug is echoed beside it, and the slug is cleared: it is the
+ *     name a reader read before the delete, which another resource may have
+ *     taken since, and the runner writing back a session it read at turn
+ *     start must not be refused for it. Beside a live resource's id, a slug
+ *     naming another one is a person's edit, and is refused as above;
+ *   - a reference into ANOTHER organization than `defaultOrg` is resolved
+ *     without asking that organization anything the writer could read
+ *     back: one that carries an id is held by that id and its slug is not
+ *     looked up (no disagreement is judged), and one written by slug alone
+ *     takes the id its name holds. Both keep the slug as written, so the
+ *     reference rule's one cross-organization sentence names what the
+ *     writer wrote whatever exists; ValidateReferences clears it once the
+ *     rule admits the reference (clause iii).
  *
  * Idempotent: a reference that holds an id and no slug is left as it is.
  */
@@ -875,7 +891,7 @@ export async function resolveReferencesIn(
 ): Promise<void> {
   const found: Array<{ ref: ReflectMessage; field: DescField }> = [];
   walk(reflect(schema, message), (ref, field) => found.push({ ref, field }));
-  await resolveFound(store, found, defaultOrg, now);
+  await resolveFound(store, found, defaultOrg, now, new Set());
 }
 
 async function resolveFound(
@@ -883,10 +899,11 @@ async function resolveFound(
   found: ReadonlyArray<{ ref: ReflectMessage; field: DescField }>,
   defaultOrg: string,
   now: Date,
+  held: ReadonlySet<string>,
 ): Promise<void> {
   const resolved = new Map<string, string | undefined>();
   for (const { ref, field } of found) {
-    const orgField = fieldNamed(ref, "org");
+    const orgField = REFERENCE_FIELDS.org;
     if (defaultOrg !== "" && stringField(ref, "org") === "") {
       ref.set(orgField, defaultOrg);
     }
@@ -896,12 +913,27 @@ async function resolveFound(
     if (slug === "" || org === "") {
       continue;
     }
+    const written = stringField(ref, "id");
+    if (
+      written !== "" &&
+      held.has(referenceKey({ kind, org, id: written, slug, version: "" })) &&
+      (await store.resourceNames.current(kindEnumName(kind), org, written)) === undefined
+    ) {
+      // An echo of a reference the stored row holds, to a resource deleted
+      // since: the slug is the name the writer read, which another resource
+      // may have taken.
+      ref.set(REFERENCE_FIELDS.slug, "");
+      continue;
+    }
+    const foreign = org !== defaultOrg;
+    if (foreign && written !== "") {
+      continue;
+    }
     const key = `${kind}/${org}/${slug}`;
     if (!resolved.has(key)) {
       resolved.set(key, await resolveName(store, kind, org, slug, now));
     }
     const named = resolved.get(key);
-    const written = stringField(ref, "id");
     if (written !== "" && named !== undefined && written !== named) {
       throw invalidArgumentError(
         `${field.name} names '${slug}' and id '${written}', which are not the same resource; name it by its slug, by its id, or by both when they agree.`,
@@ -910,9 +942,25 @@ async function resolveFound(
     if (named === undefined && written === "") {
       continue;
     }
-    ref.set(fieldNamed(ref, "id"), named ?? written);
-    ref.set(fieldNamed(ref, "slug"), "");
+    ref.set(REFERENCE_FIELDS.id, named ?? written);
+    if (!foreign) {
+      ref.set(REFERENCE_FIELDS.slug, "");
+    }
   }
+}
+
+/**
+ * Clears the slug of every reference in the spec that holds an id: a
+ * reference into another organization keeps the slug it was written with
+ * until ValidateReferences admits it (resolveReferencesIn), and is stored
+ * by its id alone like every other.
+ */
+function settleAdmitted(schema: DescMessage, resource: Message): void {
+  forEachSpecReference(schema, resource, (ref) => {
+    if (stringField(ref, "id") !== "" && stringField(ref, "slug") !== "") {
+      ref.set(REFERENCE_FIELDS.slug, "");
+    }
+  });
 }
 
 /**
@@ -923,13 +971,13 @@ async function resolveFound(
  */
 function settleKind(ref: ReflectMessage, field: DescField): ApiResourceKind {
   const written = numberField(ref, "kind") as ApiResourceKind;
-  if (!hasOption(field, reference_kind)) {
-    return written;
+  const declared = declaredKind(field, ref);
+  if (written === declared) {
+    return declared;
   }
-  const declared = getOption(field, reference_kind);
   if (written === ApiResourceKind.api_resource_kind_unknown) {
-    ref.set(fieldNamed(ref, "kind"), declared);
-  } else if (written !== declared) {
+    ref.set(REFERENCE_FIELDS.kind, declared);
+  } else {
     const target = field.fieldKind === "list" ? "resources" : "a resource";
     throw invalidArgumentError(
       `${field.name} must reference ${target} with kind=${ApiResourceKind[declared]}`,
@@ -938,13 +986,8 @@ function settleKind(ref: ReflectMessage, field: DescField): ApiResourceKind {
   return declared;
 }
 
-function fieldNamed(msg: ReflectMessage, name: string): DescField {
-  const field = msg.fields.find((f) => f.name === name);
-  if (field === undefined) {
-    throw new Error(`${msg.desc.typeName} has no field ${name}`);
-  }
-  return field;
-}
+/** A reference's own fields, which the resolver writes. */
+const REFERENCE_FIELDS = ApiResourceReferenceSchema.field;
 
 /**
  * NormalizeReferences: every reference the spec carries resolved to its
@@ -967,8 +1010,16 @@ export function newNormalizeReferencesStep<Desc extends DescMessage>(
         );
       }
       // With no org to default to, an org-less reference stays empty, and
-      // the rule's first clause refuses it.
-      await resolveReferences(store, ctx.schema, ctx.newState, metadata.org);
+      // the rule's first clause refuses it. On an update the stored row is
+      // loaded, and a reference it holds is an echo (resolveReferencesIn).
+      await resolveReferences(
+        store,
+        ctx.schema,
+        ctx.newState,
+        metadata.org,
+        new Date(),
+        ctx.get(EXISTING_RESOURCE_KEY) as Message | undefined,
+      );
     },
   };
 }
@@ -994,7 +1045,9 @@ export interface ValidateReferencesOptions {
  * update; none on a create) — the module header's clauses and its writer
  * clause. Under `introduced`, it reads nothing when the write introduces
  * no reference. A later step that needs a target reads the reference's id,
- * which NormalizeReferences set.
+ * which NormalizeReferences set. A reference it admits into another
+ * organization loses the slug it was written with here
+ * (resolveReferencesIn), so every stored reference holds its id alone.
  */
 export function newValidateReferencesStep<Desc extends DescMessage>(
   store: Store,
@@ -1014,9 +1067,6 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
       const refs = collectSpecReferences(ctx.schema, ctx.newState).filter(
         isSet,
       );
-      if (refs.length === 0) {
-        return;
-      }
       const parent: ReferenceParent = {
         org: metadata.org,
         visibility: metadata.visibility,
@@ -1032,18 +1082,18 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
               (ref) => !stored.some((held) => sameReference(held, ref)),
             )
           : refs;
-      if (judged.length === 0) {
-        return;
+      if (judged.length > 0) {
+        const targets = await loadReferenceTargets(store, judged, parent.org);
+        const refusal = await judgeReferences(targets, store, parent, judged, {
+          authorizer,
+          caller: ctx.callerIdentity,
+          stored,
+        });
+        if (refusal !== undefined) {
+          throw refusal;
+        }
       }
-      const targets = await loadReferenceTargets(store, judged, parent.org);
-      const refusal = await judgeReferences(targets, store, parent, judged, {
-        authorizer,
-        caller: ctx.callerIdentity,
-        stored,
-      });
-      if (refusal !== undefined) {
-        throw refusal;
-      }
+      settleAdmitted(ctx.schema, ctx.newState);
     },
   };
 }
@@ -1095,11 +1145,14 @@ async function judgeReferences(
 
 /**
  * The verdicts named for the refusal's copy: references are judged by id,
- * but a person reads the sentence. Each target is named by its own current
- * slug (a reference still written by name keeps the name it was written
- * with; one whose id names nothing is named by that id), and the writer's
- * own organization by its slug. Another organization is never named by a
- * refusal at all (notAvailableReferenceMessage says why).
+ * but a person reads the sentence. Each target of the writer's own
+ * organization is named by its own current slug (a reference still written
+ * by name keeps the name it was written with; one whose id names nothing
+ * is named by that id), and the writer's own organization by its slug. A
+ * target of another organization is named as the writer wrote it, its
+ * slug or else its id, never by what that organization calls it, and that
+ * organization is never named by a refusal at all
+ * (notAvailableReferenceMessage says why).
  */
 async function namedForPeople<
   V extends { readonly ref: SpecReference; readonly verdict: ReferenceVerdict },
@@ -1116,7 +1169,10 @@ async function namedForPeople<
           ...verdict,
           ref: {
             ...verdict.ref,
-            slug: targets.slugOf(verdict.ref) ?? verdict.ref.id,
+            slug:
+              (verdict.ref.org === parent.org
+                ? targets.slugOf(verdict.ref)
+                : undefined) ?? verdict.ref.id,
           },
         },
   );

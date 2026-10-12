@@ -21,7 +21,11 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { newPinSubagentsStep, newValidateSubagentListStep } from "../../../domain/agent/subagents.js";
+import {
+  newPinSubagentsStep,
+  newValidateSubagentListStep,
+  newValidateSubagentNamesStep,
+} from "../../../domain/agent/subagents.js";
 import { newValidatePluginListStep } from "../../../domain/agent/steps.js";
 import {
   newResolveChannelDefaultsStep,
@@ -50,6 +54,7 @@ type Factory = (...deps: never[]) => { readonly name: string };
 /** The steps that read a reference, by factory, with the frozen step name each builds. */
 const READERS: ReadonlyArray<{ readonly factory: string; readonly build: Factory; readonly step: string }> = [
   { factory: "newValidateSubagentListStep", build: newValidateSubagentListStep, step: "ValidateSubagentList" },
+  { factory: "newValidateSubagentNamesStep", build: newValidateSubagentNamesStep, step: "ValidateSubagentNames" },
   { factory: "newPinSubagentsStep", build: newPinSubagentsStep, step: "PinSubagents" },
   { factory: "newValidatePluginListStep", build: newValidatePluginListStep, step: "ValidatePluginList" },
   { factory: "newResolveShareDefaultsStep", build: newResolveShareDefaultsStep, step: "ResolveShareDefaults" },

@@ -210,7 +210,7 @@ function buildRunConfigProto(input: RunConfigInput) {
 
 function buildAgentInvocationProto(input: AgentInvocationInput) {
   const msg = create(AgentInvocationSchema);
-  if (input.agentRef?.slug || input.agentRef?.org) msg.agentRef = create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 });
+  if (input.agentRef?.slug || input.agentRef?.org || input.agentRef?.id) msg.agentRef = create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 });
   if (input.message !== undefined) msg.message = input.message;
   if (input.harness !== undefined) msg.harness = input.harness;
   if (input.workspaceEntries) msg.workspaceEntries = input.workspaceEntries.map(buildWorkspaceEntryProto);

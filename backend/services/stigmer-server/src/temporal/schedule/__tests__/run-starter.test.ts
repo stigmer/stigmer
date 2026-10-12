@@ -520,6 +520,27 @@ describe("RunStarter.startRun — against a real store", () => {
     });
   });
 
+  it("throws, naming the agent, when the agent cannot be read: a fault the activity retries, never a missing target", async () => {
+    const failing = new Proxy(store, {
+      get(target, property, receiver) {
+        if (property === "getResource") {
+          return () => Promise.reject(new Error("database offline"));
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const runStarter = new RunStarter({
+      store: failing,
+      config,
+      executions: { create: async () => Promise.reject(new Error("unreachable")) },
+      logger: silentLogger,
+    });
+    await expect(runStarter.startRun(scheduleWith(), NOMINAL)).rejects.toThrow(
+      /^resolve target agent acme\/agt_01helper: /,
+    );
+  });
+
   it("refuses via the model-pinning launch backstop for a pre-rule cursor row", async () => {
     const runStarter = starter(async () => {
       throw new Error("unreachable");

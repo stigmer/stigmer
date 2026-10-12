@@ -4,16 +4,21 @@
  * Managed Agents pins a predefined agent when the agent listing it is
  * created or updated.
  *
- * Two steps:
+ * Three steps:
  *
  *   - ValidateSubagentList runs with ValidateHooks, after NormalizeReferences
  *     resolved each reference to its agent's id and before any is judged:
- *     an agent may not list itself (by id), and lists each slug once, by the
- *     names the listed agents hold now (two agents of one slug from two
- *     organizations would share it), since a turn names a subagent by its
- *     slug. Both are INVALID_ARGUMENT. A listed agent that is deleted and
- *     remade under its name is a different id, judged as one the write
- *     introduces.
+ *     an agent may not list itself (by id, or on a create by the slug it is
+ *     about to claim). INVALID_ARGUMENT. It reads nothing. A listed agent
+ *     that is deleted and remade under its name is a different id, judged
+ *     as one the write introduces.
+ *   - ValidateSubagentNames runs directly after ValidateReferences: the list
+ *     names each slug once, by the names the listed agents hold now (two
+ *     agents of one slug from two organizations would share it), since a
+ *     turn names a subagent by its slug. INVALID_ARGUMENT. It runs only once
+ *     the reference rule has admitted every listed agent, so its copy never
+ *     names an agent of another organization the writer has no standing to
+ *     learn about (pipeline/steps/references.ts, clause iii).
  *   - PinSubagents runs after ValidateReferences, which has already judged
  *     each reference's existence, organization and visibility floor
  *     (pipeline/steps/references.ts). For each reference it:
@@ -136,12 +141,10 @@ function namesSelf(
 }
 
 /** ValidateSubagentList — the module header's first step; runs after NormalizeReferences, so it compares ids. */
-export function newValidateSubagentListStep(
-  store: Store,
-): PipelineStep<AgentDesc> {
+export function newValidateSubagentListStep(): PipelineStep<AgentDesc> {
   return {
     name: "ValidateSubagentList",
-    async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
+    execute(ctx: RequestContext<AgentDesc>): void {
       const metadata = ctx.newState.metadata;
       const self = {
         org: metadata?.org ?? "",
@@ -156,6 +159,20 @@ export function newValidateSubagentListStep(
           throw invalidArgumentError(selfListedMessage(self.slug));
         }
       }
+    },
+  };
+}
+
+/** ValidateSubagentNames — the module header's second step; runs after ValidateReferences admitted every listed agent. */
+export function newValidateSubagentNamesStep(
+  store: Store,
+): PipelineStep<AgentDesc> {
+  return {
+    name: "ValidateSubagentNames",
+    async execute(ctx: RequestContext<AgentDesc>): Promise<void> {
+      const listed = (ctx.newState.spec?.subagents ?? []).filter(
+        (ref) => ref.id !== "" || ref.slug !== "",
+      );
       // A turn names a subagent by its slug, so two listed agents may not
       // share the name they hold now, whatever their ids and organizations.
       const seen = new Set<string>();
@@ -171,7 +188,7 @@ export function newValidateSubagentListStep(
 
 
 
-/** PinSubagents — the module header's second step. */
+/** PinSubagents — the module header's third step. */
 export function newPinSubagentsStep(
   store: Store,
   authorizer: Authorizer,

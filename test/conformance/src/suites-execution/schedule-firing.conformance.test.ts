@@ -97,12 +97,14 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
 
     await clients.agentCommand.delete({ value: agent.metadata!.id });
-    return { schedule, agentSlug };
+    // The schedule holds the agent's id, and a deleted agent has no name
+    // left, so the fire names it by that id.
+    return { schedule, agentId: agent.metadata!.id };
   }
 
   it("[rpc:ScheduleCommandController.trigger] a trigger answers the run's real outcome synchronously, stamps the fire, and never feeds the streak", async () => {
     const { org } = await target.provisionTenancy();
-    const { schedule, agentSlug } = await createDanglingSchedule(org);
+    const { schedule, agentId } = await createDanglingSchedule(org);
 
     const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
 
@@ -111,7 +113,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     // never thrown. The reason is the tick's exact vocabulary, pinned
     // byte-identical in both editions.
     expect(result.outcome).toBe(ScheduleFireOutcome.TARGET_MISSING);
-    expect(result.refusalReason).toBe(targetMissingReason(org, agentSlug));
+    expect(result.refusalReason).toBe(targetMissingReason(org, agentId));
     expect(result.runId).toBe("");
 
     // The handler stamps last_fire_at before answering — the fire is
@@ -131,7 +133,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
 
   it("[rpc:ScheduleCommandController.trigger] [rpc:ScheduleQueryController.listFires] every fire leaves a run-history row with the reason verbatim — including fires that created no execution", async () => {
     const { org } = await target.provisionTenancy();
-    const { schedule, agentSlug } = await createDanglingSchedule(org);
+    const { schedule, agentId } = await createDanglingSchedule(org);
 
     await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
 
@@ -145,7 +147,7 @@ describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targe
     const run = history.items[0]!;
     expect(run.origin).toBe(ScheduleFireOrigin.MANUAL);
     expect(run.outcome).toBe(ScheduleFireOutcome.TARGET_MISSING);
-    expect(run.reason).toBe(targetMissingReason(org, agentSlug));
+    expect(run.reason).toBe(targetMissingReason(org, agentId));
     expect(run.runId).toBe("");
     expect(run.completedAt, "a no-run fire is terminal at insert").toBeDefined();
   });

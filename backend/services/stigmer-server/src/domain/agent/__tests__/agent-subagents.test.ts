@@ -82,6 +82,7 @@ import {
   nestedSubagentMessage,
   newPinSubagentsStep,
   newValidateSubagentListStep,
+  newValidateSubagentNamesStep,
   selfListedMessage,
   subagentNotRunnableMessage,
   subagentUnversionedMessage,
@@ -336,15 +337,40 @@ describe("saving an agent pins each subagent it lists", () => {
   });
 
   it("refuses two agents of one slug from two organizations: a turn names a subagent by its slug", async () => {
+    const names = {
+      resourceNames: {
+        currentMany: (holders: ReadonlyArray<{ kind: string; org: string; id: string }>) =>
+          Promise.resolve(holders.map((h) => ({ ...h, name: "helper", state: "current" as const, claimedAt: "", expiresAt: "" }))),
+      },
+    } as unknown as typeof server.store;
+    const ctx = new RequestContext(
+      AgentSchema,
+      create(AgentSchema, {
+        metadata: { name: "parent", slug: "parent", org: ORG_ID },
+        spec: {
+          subagents: [
+            { kind: ApiResourceKind.agent, org: ORG_ID, id: "agt_mine" },
+            { kind: ApiResourceKind.agent, org: "globex", id: "agt_theirs" },
+          ],
+        },
+      }),
+      testCallerIdentity(),
+      ApiResourceKind.agent,
+    );
+    await expect(newValidateSubagentNamesStep(names).execute(ctx)).rejects.toMatchObject({
+      code: Code.InvalidArgument,
+      rawMessage: listedTwiceMessage("helper"),
+    });
+  });
+
+  it("judges another organization's agent before comparing names, so the answer never says what that organization holds", async () => {
     const child = await command.create(agentInput(uniqueName("helper")));
     const slug = child.metadata!.slug;
-    await expectRefused(
-      command.create(
-        agentInput(uniqueName("parent"), { subagents: [{ slug }, { slug, org: "globex" }] }),
-      ),
-      Code.InvalidArgument,
-      listedTwiceMessage(slug),
+    const error = await grpcError(
+      command.create(agentInput(uniqueName("parent"), { subagents: [{ slug }, { slug, org: "globex" }] })),
     );
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toContain(`referenced agent '${slug}' of another organization is not available`);
   });
 
   it("refuses a subagent whose pinned version lists subagents, and admits an older version without them", async () => {
@@ -685,9 +711,10 @@ describe("the two steps' own faults", () => {
     });
   }
 
-  it("ValidateSubagentList passes over a reference with no slug, however many there are", async () => {
+  it("ValidateSubagentList and ValidateSubagentNames pass over a reference with no slug, however many there are", async () => {
     const ctx = context(["", "", "lone"]);
-    await expect(newValidateSubagentListStep(server.store).execute(ctx)).resolves.toBeUndefined();
+    expect(() => newValidateSubagentListStep().execute(ctx)).not.toThrow();
+    await expect(newValidateSubagentNamesStep(server.store).execute(ctx)).resolves.toBeUndefined();
   });
 
   it("PinSubagents on a state with no metadata is INTERNAL", async () => {

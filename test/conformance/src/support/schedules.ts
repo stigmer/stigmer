@@ -42,8 +42,8 @@ export const TRIGGER_DISABLED_MESSAGE =
 // suite's no-LLM failure mechanism: delete the target agent and every fire
 // fails with exactly this reason before any execution is created. Pinned
 // byte-identical in the Java tick activities and the Go run starter.
-export function targetMissingReason(org: string, agentSlug: string): string {
-  return `target agent ${org}/${agentSlug} not found`;
+export function targetMissingReason(org: string, agentId: string): string {
+  return `target agent ${org}/${agentId} not found`;
 }
 
 // ─── Fixtures ──────────────────────────────────────────────────────────────

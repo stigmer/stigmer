@@ -18,8 +18,13 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { create } from "@bufbuild/protobuf";
+import { create, createFileRegistry, toJson } from "@bufbuild/protobuf";
 import type { DescMethod } from "@bufbuild/protobuf";
+import {
+  FieldDescriptorProto_Label,
+  FieldDescriptorProto_Type,
+  FileDescriptorProtoSchema,
+} from "@bufbuild/protobuf/wkt";
 import { createClient } from "@connectrpc/connect";
 import type { Transport, UnaryRequest, UnaryResponse, StreamResponse } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
@@ -33,6 +38,8 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { file_ai_stigmer_commons_apiresource_io } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 
 import { loadConfig } from "../../../boot/config.js";
@@ -41,7 +48,7 @@ import type { ComposedServer } from "../../../boot/compose.js";
 import { baseConfig, silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { seedOrganizations } from "../../../domain/organization/__tests__/support.js";
 import type { ResourceNameHolder, ResourceNameStore } from "../../../store/interface.js";
-import { createResourceReferenceInterceptor } from "../resource-references.js";
+import { createResourceReferenceInterceptor, fillReferenceNames } from "../resource-references.js";
 
 /** A name table answering `held` (`kind/org/id` → name), recording each batch it was asked. */
 function namesOf(held: Record<string, string>): Pick<ResourceNameStore, "currentMany"> & { asked: ResourceNameHolder[][] } {
@@ -122,6 +129,50 @@ describe("the reference fill, over the interceptor alone", () => {
     }
     expect(seen).toEqual(["run_1:support", "run_2:support"]);
     expect(names.asked).toHaveLength(2);
+  });
+
+  it("fillReferenceNames over a type that holds no reference reports none and reads nothing", async () => {
+    const names = namesOf({});
+    const org = create(OrganizationSchema, { metadata: { id: "org_a", slug: "acme" } });
+    expect(await fillReferenceNames(names, OrganizationSchema, org)).toBe(false);
+    expect(names.asked).toEqual([]);
+  });
+
+  it("fills a reference held as a map value", async () => {
+    // No message of the contract holds references in a map today; the walk
+    // reaches one the day it does, as the write chain's walk does.
+    const { OPTIONAL, REPEATED } = FieldDescriptorProto_Label;
+    const { MESSAGE, STRING } = FieldDescriptorProto_Type;
+    const registry = createFileRegistry(
+      create(FileDescriptorProtoSchema, {
+        name: "test/holder.proto",
+        package: "test.holder",
+        syntax: "proto3",
+        dependency: [file_ai_stigmer_commons_apiresource_io.proto.name],
+        messageType: [
+          {
+            name: "Holder",
+            field: [{ name: "refs", jsonName: "refs", number: 1, label: REPEATED, type: MESSAGE, typeName: ".test.holder.Holder.RefsEntry" }],
+            nestedType: [
+              {
+                name: "RefsEntry",
+                options: { mapEntry: true },
+                field: [
+                  { name: "key", jsonName: "key", number: 1, label: OPTIONAL, type: STRING },
+                  { name: "value", jsonName: "value", number: 2, label: OPTIONAL, type: MESSAGE, typeName: ".ai.stigmer.commons.apiresource.ApiResourceReference" },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+      () => file_ai_stigmer_commons_apiresource_io,
+    );
+    const holder = registry.getMessage("test.holder.Holder")!;
+    const message = create(holder, { refs: { first: { org: "org_a", kind: ApiResourceKind.skill, id: "skl_1" } } });
+    const names = namesOf({ "skill/org_a/skl_1": "web-search" });
+    expect(await fillReferenceNames(names, holder, message)).toBe(true);
+    expect(toJson(holder, message)).toEqual({ refs: { first: { org: "org_a", kind: "skill", id: "skl_1", slug: "web-search" } } });
   });
 });
 

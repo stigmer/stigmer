@@ -157,23 +157,17 @@ function visitReferences(
   }
 }
 
-function stringOf(ref: ReflectMessage, name: string): string {
-  const field = ref.desc.fields.find((f) => f.name === name);
-  const value = field === undefined ? undefined : ref.get(field);
-  return typeof value === "string" ? value : "";
-}
+/** The reference's own fields this fill reads and writes. */
+const REFERENCE_FIELDS = ApiResourceReferenceSchema.field;
 
-function fieldOf(ref: ReflectMessage, name: string): DescField {
-  const field = ref.desc.fields.find((f) => f.name === name);
-  if (field === undefined) {
-    throw new Error(`ApiResourceReference has no field ${name}`);
-  }
-  return field;
+function stringOf(ref: ReflectMessage, field: DescField): string {
+  const value = ref.get(field);
+  return typeof value === "string" ? value : "";
 }
 
 /** The kind a reference names: its own, else the kind its field declares. */
 function kindOf(ref: ReflectMessage, field: DescField): ApiResourceKind {
-  const own = ref.get(fieldOf(ref, "kind"));
+  const own = ref.get(REFERENCE_FIELDS.kind);
   if (typeof own === "number" && own !== ApiResourceKind.api_resource_kind_unknown) {
     return own as ApiResourceKind;
   }
@@ -195,7 +189,7 @@ export async function fillReferenceNames(
 ): Promise<boolean> {
   const found: Array<{ ref: ReflectMessage; kind: ApiResourceKind }> = [];
   visitReferences(reflect(desc, message), (ref, field) => {
-    if (stringOf(ref, "id") !== "") {
+    if (stringOf(ref, REFERENCE_FIELDS.id) !== "") {
       found.push({ ref, kind: kindOf(ref, field) });
     }
   });
@@ -207,8 +201,8 @@ export async function fillReferenceNames(
   for (const { ref, kind } of found) {
     const holder = {
       kind: kindEnumName(kind),
-      org: stringOf(ref, "org"),
-      id: stringOf(ref, "id"),
+      org: stringOf(ref, REFERENCE_FIELDS.org),
+      id: stringOf(ref, REFERENCE_FIELDS.id),
     };
     holders.set(keyOf(holder.kind, holder.org, holder.id), holder);
   }
@@ -217,20 +211,15 @@ export async function fillReferenceNames(
     entries.map((entry) => [keyOf(entry.kind, entry.org, entry.id), entry.name]),
   );
   for (const { ref, kind } of found) {
-    ref.set(fieldOf(ref, "kind"), kind);
+    ref.set(REFERENCE_FIELDS.kind, kind);
     ref.set(
-      fieldOf(ref, "slug"),
+      REFERENCE_FIELDS.slug,
       current.get(
-        keyOf(kindEnumName(kind), stringOf(ref, "org"), stringOf(ref, "id")),
+        keyOf(kindEnumName(kind), stringOf(ref, REFERENCE_FIELDS.org), stringOf(ref, REFERENCE_FIELDS.id)),
       ) ?? "",
     );
   }
   return true;
-}
-
-/** Whether a message type can hold a reference at all (the memoised plan). */
-export function reachesResourceReference(desc: DescMessage): boolean {
-  return planOf(desc) !== null;
 }
 
 /** A filled clone of `message`, or `message` itself when it holds no reference to fill. */
@@ -239,9 +228,6 @@ async function filled<T extends Message>(
   desc: DescMessage,
   message: T,
 ): Promise<T> {
-  if (planOf(desc) === null) {
-    return message;
-  }
   const copy = clone(desc, message) as T;
   return (await fillReferenceNames(names, desc, copy)) ? copy : message;
 }
