@@ -1277,16 +1277,12 @@ export type {
   ChildOrganizationsListProps,
 } from "./organization/index.js";
 
-// Billing — customer-facing data hooks, behavior hooks, styled components,
-// catalog, and formatting utilities
+// Billing — customer-facing data hooks, behavior hooks, styled components
+// and formatting utilities
 export {
   useBillingAccount,
-  useCreditLedger,
   useBillingUsageReport,
-  useCustomerModelPricing,
-  useCreateCheckoutSession,
   useCreateBillingPortalSession,
-  useSetAutoRechargeConfig,
   usePlans,
   useSubscription,
   useEntitlements,
@@ -1314,21 +1310,8 @@ export {
   PROVIDER_KEY_REQUIRED,
   DEFAULT_PROVIDER_KEYS_HREF,
   BillingSection,
-  CreditBalanceCard,
   PaymentMethodCard,
-  AutoRechargeCard,
-  CreditPackGrid,
-  CreditLedgerTable,
-  LowBalanceBanner,
-  CREDIT_PACKS,
-  formatPackPrice,
-  formatCreditCount,
-  formatCreditBalance,
-  formatLedgerAmount,
-  ledgerEntryLabel,
-  isCredit,
-  isHold,
-  formatLedgerDate,
+  formatUsd,
 } from "./billing/index.js";
 export type {
   UseBillingAccountOptions,
@@ -1358,23 +1341,10 @@ export type {
   UpgradeNoticeProps,
   ProviderKeyNoticeProps,
   ProviderKeyRequired,
-  UseCreditLedgerReturn,
-  UseCreditLedgerOptions,
   UseBillingUsageReportReturn,
-  UseCustomerModelPricingReturn,
-  CreateCheckoutSessionInput,
-  UseCreateCheckoutSessionReturn,
   UseCreateBillingPortalSessionReturn,
-  SetAutoRechargeConfigInput,
-  UseSetAutoRechargeConfigReturn,
   BillingSectionProps,
-  CreditBalanceCardProps,
   PaymentMethodCardProps,
-  AutoRechargeCardProps,
-  CreditPackGridProps,
-  CreditLedgerTableProps,
-  LowBalanceBannerProps,
-  CreditPackInfo,
 } from "./billing/index.js";
 
 // Model catalog — platform-operator authoring of the model registry
@@ -1972,7 +1942,6 @@ export type {
 export {
   useOrgUsageReport,
   OrgUsagePanel,
-  CreditRunwayIndicator,
   AgentBreakdownList,
   HarnessSplitCard,
   useExportCSV,
@@ -1985,7 +1954,6 @@ export {
 export type {
   UseOrgUsageReportReturn,
   OrgUsagePanelProps,
-  CreditRunwayIndicatorProps,
   AgentBreakdownListProps,
   HarnessSplitCardProps,
   UseExportCSVReturn,

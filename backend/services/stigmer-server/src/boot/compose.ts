@@ -233,6 +233,7 @@ import {
 import { createOrganizationNameInterceptor } from "../pipeline/interceptors/organization-names.js";
 import { newOrganizationNameResolver } from "../domain/organization/names.js";
 import { accountAsCaller } from "../domain/identityaccount/actor.js";
+import { newStoppedTurnObserver, undoDeciderCaller } from "../domain/session/filereview/stopped-turn.js";
 import { ensureSingleOrganization } from "./single-organization.js";
 import { operatorIdentitySnapshot } from "../pipeline/steps/defaults.js";
 import { createErrorBoundaryInterceptor } from "../pipeline/interceptors/error-boundary.js";
@@ -279,6 +280,7 @@ import type { ServerConfig } from "./config.js";
 import { createInProcessClients } from "./inprocess.js";
 import type { InProcessClients } from "./inprocess.js";
 import { LIST_INDEXES } from "./list-indexes.js";
+import { STORE_OPEN_OPTIONS } from "./store-options.js";
 import {
   CORE_PURGED_KINDS,
   assertOrganizationPurgeCoverage,
@@ -440,14 +442,15 @@ export async function composeServer(
   // database — schema continuity). Postgres wins when both are set:
   // DB_PATH always has a default value, so no other precedence could ever
   // select Postgres (config.ts documents the contract). Either driver
-  // opens with the list indexes (list-indexes.ts) and reconciles them
+  // opens with the list indexes (list-indexes.ts) and the session event
+  // gates (domain/session/events/gates.ts) and reconciles them
   // before it returns. A failure here is a loud boot throw, never a
   // degraded server. The operator identity (#400) is installed by the
   // process body (boot/run.ts) — once per PROCESS, before any writer
   // exists — not here: composeServer is re-entrant for tests, the
   // identity seam deliberately is not.
   let store: Store;
-  const storeOptions = { listIndexes: LIST_INDEXES };
+  const storeOptions = STORE_OPEN_OPTIONS;
   if (config.databaseUrl !== "") {
     store = await PostgresStore.open(config.databaseUrl, logger, storeOptions);
     logger.info("storage driver selected", { driver: "postgres" });
@@ -1094,7 +1097,7 @@ export async function composeServer(
   // Grading: a completed run's run-health score, written by the grading
   // workflow on its own queue (temporal/grading/). The observer starts it
   // and runs after every extension's observer, so the hosted edition's
-  // billing settle and channel nudge keep their timing; the score writes
+  // own observers (its channel nudge) keep their timing; the score writes
   // and the run-delete cascade ride the in-process lane as the server,
   // resolved lazily for the boot-ordering reason the run worker's are.
   const gradingTemporalConfig = newGradingConfigFromEnv();
@@ -1106,6 +1109,15 @@ export async function composeServer(
     recorder: scoreRecorder,
     logger,
   });
+  // A turn stopped while it waits puts back its undone files at once,
+  // through the reconcile turn an undo on an ended turn starts, as the
+  // person who decided the undo (domain/session/filereview/stopped-turn.ts).
+  const stoppedTurnObserver = newStoppedTurnObserver({
+    logger,
+    reconcileTurns: () => requireInProcess().reconcileTurnCreator,
+    callerOf: undoDeciderCaller(personAccounts, () => singleOrganizationCaller),
+  });
+  const runStatusObservers = [...extensions.statusObservers, gradingObserver, stoppedTurnObserver];
   const runScores = newRunScoreCascade({
     store,
     logger,
@@ -1865,6 +1877,10 @@ export async function composeServer(
       // an ended turn starts (domain/session/filereview/decide.ts).
       broker: agentExecutionStreamBroker,
       reconcileTurns: () => requireInProcess().reconcileTurnCreator,
+      // The answers to waiting tool uses and the session's stop
+      // (domain/session/hitl/).
+      engineState: executionEngineState,
+      statusObservers: runStatusObservers,
     });
     // The sharing/channel family registers after the agent family, as in
     // Go server.go (agent 378 → agentshare 384 → agentchannel 391 →
@@ -1981,7 +1997,7 @@ export async function composeServer(
       modelRegistry: modelCatalog,
       artifactStorage,
       gateSteps: extensions.gateSteps,
-      statusObservers: [...extensions.statusObservers, gradingObserver],
+      statusObservers: runStatusObservers,
       runScores,
       responseDecorators: extensions.responseDecorators,
       sandboxLane,

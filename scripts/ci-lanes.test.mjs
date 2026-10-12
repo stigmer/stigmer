@@ -93,6 +93,7 @@ test("a store migration runs the upgrade rehearsal; a CLI command runs `stigmer 
     "conformance",
     "conformance-execution",
     "e2e-interactive",
+    "ee",
     "stigmer-server",
     "ts-workspace",
     "upgrade-rehearsal",
@@ -151,7 +152,7 @@ test("the selection's summary names the lanes and why every coverage lane ran; e
   const range = { base: "origin/main", head: "HEAD", source: "pull_request base branch" };
   const floors = selectLanes({ event: "pull_request", changedFiles: [COVERAGE_FLOORS] });
   const text = selectionSummary({ range, changedFiles: [COVERAGE_FLOORS], ...floors });
-  assert.match(text, /^### Lanes this change needs\n\nBase `origin\/main` \(pull_request base branch\), head `HEAD`, 1 changed file\(s\)\.\n\n7 lane\(s\): /);
+  assert.match(text, /^### Lanes this change needs\n\nBase `origin\/main` \(pull_request base branch\), head `HEAD`, 1 changed file\(s\)\.\n\n8 lane\(s\): /);
   assert.match(text, /\n\n\*\*Every coverage lane\*\*: the coverage floors changed \(test\/coverage-floors\.json\): every lane that measures a package runs, so each moved floor is judged\.$/);
   const plain = selectLanes({ event: "pull_request", changedFiles: ["test/README.md"] });
   assert.doesNotMatch(selectionSummary({ range, changedFiles: ["test/README.md"], ...plain }), /Every coverage lane/);

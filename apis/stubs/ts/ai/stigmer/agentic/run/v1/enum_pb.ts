@@ -805,9 +805,9 @@ export const ToolCallStreamingSourceSchema: GenEnum<ToolCallStreamingSource> = /
  * update and acts accordingly.
  *
  * Signal sources are opaque to the runner — the platform may set STOP due
- * to credit exhaustion, an admin kill, a user-configured budget cap, or any
- * future enforcement mechanism. The runner does not know or care about the
- * source; it only reacts to the signal value.
+ * to an admin kill, a user-configured budget cap, or any other enforcement
+ * mechanism. The runner does not know or care about the source; it only
+ * reacts to the signal value.
  *
  * @generated from enum ai.stigmer.agentic.run.v1.RunControlSignal
  */
@@ -828,8 +828,8 @@ export enum RunControlSignal {
   STOP = 1,
 
   /**
-   * Informational warning (e.g. low credit balance). The runner logs the
-   * warning and continues the run.
+   * Informational warning (e.g. a budget cap nearly reached). The runner
+   * logs the warning and continues the run.
    *
    * @generated from enum value: RUN_CONTROL_SIGNAL_WARNING = 2;
    */

@@ -135,8 +135,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The commercial terms. Which fields are set depends on the instrument:
-   * a subscription plan carries the greater-of terms, a license plan its
-   * annual price.
+   * a subscription plan carries its monthly fee, a license plan its annual
+   * price.
    * </pre>
    *
    * <code>.ai.stigmer.billing.plan.v1.PlanTerms terms = 3 [json_name = "terms"];</code>
@@ -149,8 +149,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The commercial terms. Which fields are set depends on the instrument:
-   * a subscription plan carries the greater-of terms, a license plan its
-   * annual price.
+   * a subscription plan carries its monthly fee, a license plan its annual
+   * price.
    * </pre>
    *
    * <code>.ai.stigmer.billing.plan.v1.PlanTerms terms = 3 [json_name = "terms"];</code>
@@ -163,8 +163,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The commercial terms. Which fields are set depends on the instrument:
-   * a subscription plan carries the greater-of terms, a license plan its
-   * annual price.
+   * a subscription plan carries its monthly fee, a license plan its annual
+   * price.
    * </pre>
    *
    * <code>.ai.stigmer.billing.plan.v1.PlanTerms terms = 3 [json_name = "terms"];</code>
@@ -870,8 +870,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The commercial terms. Which fields are set depends on the instrument:
-     * a subscription plan carries the greater-of terms, a license plan its
-     * annual price.
+     * a subscription plan carries its monthly fee, a license plan its annual
+     * price.
      * </pre>
      *
      * <code>.ai.stigmer.billing.plan.v1.PlanTerms terms = 3 [json_name = "terms"];</code>
@@ -883,8 +883,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The commercial terms. Which fields are set depends on the instrument:
-     * a subscription plan carries the greater-of terms, a license plan its
-     * annual price.
+     * a subscription plan carries its monthly fee, a license plan its annual
+     * price.
      * </pre>
      *
      * <code>.ai.stigmer.billing.plan.v1.PlanTerms terms = 3 [json_name = "terms"];</code>
@@ -900,8 +900,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The commercial terms. Which fields are set depends on the instrument:
-     * a subscription plan carries the greater-of terms, a license plan its
-     * annual price.
+     * a subscription plan carries its monthly fee, a license plan its annual
+     * price.
      * </pre>
      *
      * <code>.ai.stigmer.billing.plan.v1.PlanTerms terms = 3 [json_name = "terms"];</code>
@@ -922,8 +922,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The commercial terms. Which fields are set depends on the instrument:
-     * a subscription plan carries the greater-of terms, a license plan its
-     * annual price.
+     * a subscription plan carries its monthly fee, a license plan its annual
+     * price.
      * </pre>
      *
      * <code>.ai.stigmer.billing.plan.v1.PlanTerms terms = 3 [json_name = "terms"];</code>
@@ -942,8 +942,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The commercial terms. Which fields are set depends on the instrument:
-     * a subscription plan carries the greater-of terms, a license plan its
-     * annual price.
+     * a subscription plan carries its monthly fee, a license plan its annual
+     * price.
      * </pre>
      *
      * <code>.ai.stigmer.billing.plan.v1.PlanTerms terms = 3 [json_name = "terms"];</code>
@@ -969,8 +969,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The commercial terms. Which fields are set depends on the instrument:
-     * a subscription plan carries the greater-of terms, a license plan its
-     * annual price.
+     * a subscription plan carries its monthly fee, a license plan its annual
+     * price.
      * </pre>
      *
      * <code>.ai.stigmer.billing.plan.v1.PlanTerms terms = 3 [json_name = "terms"];</code>
@@ -988,8 +988,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The commercial terms. Which fields are set depends on the instrument:
-     * a subscription plan carries the greater-of terms, a license plan its
-     * annual price.
+     * a subscription plan carries its monthly fee, a license plan its annual
+     * price.
      * </pre>
      *
      * <code>.ai.stigmer.billing.plan.v1.PlanTerms terms = 3 [json_name = "terms"];</code>
@@ -1002,8 +1002,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The commercial terms. Which fields are set depends on the instrument:
-     * a subscription plan carries the greater-of terms, a license plan its
-     * annual price.
+     * a subscription plan carries its monthly fee, a license plan its annual
+     * price.
      * </pre>
      *
      * <code>.ai.stigmer.billing.plan.v1.PlanTerms terms = 3 [json_name = "terms"];</code>
@@ -1019,8 +1019,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The commercial terms. Which fields are set depends on the instrument:
-     * a subscription plan carries the greater-of terms, a license plan its
-     * annual price.
+     * a subscription plan carries its monthly fee, a license plan its annual
+     * price.
      * </pre>
      *
      * <code>.ai.stigmer.billing.plan.v1.PlanTerms terms = 3 [json_name = "terms"];</code>

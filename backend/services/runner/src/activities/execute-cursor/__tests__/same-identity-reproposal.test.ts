@@ -10,7 +10,7 @@
  * FIRST same-identity row in the whole transcript — the completed, approved
  * one — flipped it back to WAITING_APPROVAL with its APPROVE still on it and
  * wiped its result; the actual streamed call was hidden as a twin. On the next
- * invocation `approvalDecisionsOf` read that row as a decision and the new,
+ * invocation the runtime read that row as a decision and the new,
  * never-approved proposal ran under the old approval. The stream fold had the
  * sibling flaw: a re-issue after a SKIP or REJECT was reconciled onto the
  * declined row by identity, inheriting its decision.
@@ -23,8 +23,9 @@
  * one case where the later call IS the decided act.
  *
  * Each arm ends by deriving the decisions the runtime would read from the
- * reconciled transcript (`approvalDecisionsOf`): the assertion that matters
- * is that nothing decided bleeds onto the new proposal.
+ * reconciled transcript and the person's answer on the log
+ * (`harness/approval-answers.ts` `approvalAnswersOf`): the assertion that
+ * matters is that nothing decided bleeds onto the new proposal.
  */
 
 import { describe, it, expect } from "vitest";
@@ -35,7 +36,8 @@ import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_p
 import { ApprovalAction, MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
-import { approvalDecisionsOf } from "../../../harness/approval-decisions.js";
+import { approvalAnswersOf } from "../../../harness/approval-answers.js";
+import { answerEventsFor, stampedActionOf } from "../../../__test-utils__/approval-log.js";
 import { reconcileDeniedToolCalls } from "../boundary-rows.js";
 import { CursorFold, builderOver } from "../__test-utils__/fold.js";
 import { toolCallIdentityToken } from "../approval-state.js";
@@ -90,8 +92,13 @@ async function laterTurnProposesSameEdit(seeded: AgentMessage[]): Promise<ToolCa
   return reconcileDeniedToolCalls(seeded, builderOver(seeded), ledger);
 }
 
-function decisionsTheRuntimeWouldRead(messages: AgentMessage[]): ReadonlyMap<string, ApprovalAction> {
-  return approvalDecisionsOf(create(RunStatusSchema, { messages }));
+const RUN = "run_reproposal";
+
+/** What the runtime's door reads over `messages`, the person having answered the first gate `action` on the log. */
+function decisionsTheRuntimeWouldRead(messages: AgentMessage[], action: ApprovalAction): ReadonlyMap<string, ApprovalAction> {
+  const first = create(ToolCallSchema, { id: FIRST_ID, name: "edit" });
+  const log = answerEventsFor({ sessionId: "ses_reproposal", runId: RUN }, first, action);
+  return approvalAnswersOf(RUN, create(RunStatusSchema, { messages }), log).decisions;
 }
 
 describe("a later same-identity proposal never lands on a decided row", () => {
@@ -112,7 +119,7 @@ describe("a later same-identity proposal never lands on a decided row", () => {
     expect(later!.approvalAction, "undecided — the user has not been asked yet").toBe(ApprovalAction.UNSPECIFIED);
     expect(gated.map((tc) => tc.id)).toEqual([LATER_ID]);
 
-    expect(decisionsTheRuntimeWouldRead(seeded).size, "no decision bleeds onto the new proposal").toBe(0);
+    expect(decisionsTheRuntimeWouldRead(seeded, ApprovalAction.APPROVE).size, "no decision bleeds onto the new proposal").toBe(0);
   });
 
   it.each([
@@ -135,8 +142,8 @@ describe("a later same-identity proposal never lands on a decided row", () => {
     expect(later!.approvalAction).toBe(ApprovalAction.UNSPECIFIED);
     expect(gated.map((tc) => tc.id)).toEqual([LATER_ID]);
 
-    const decisions = decisionsTheRuntimeWouldRead(seeded);
-    expect(decisions.get(FIRST_ID), "the declined row's decision stays its own").toBe(action);
+    const decisions = decisionsTheRuntimeWouldRead(seeded, action);
+    expect(decisions.get(FIRST_ID), "the declined row's decision stays its own").toBe(stampedActionOf(action));
     expect(decisions.has(LATER_ID), "and is not the new proposal's").toBe(false);
   });
 

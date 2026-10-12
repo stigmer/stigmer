@@ -74,7 +74,7 @@ import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import { scopedRunnerCredential } from "../client/token-claims.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
-import { approvalDecisionsOf } from "./approval-decisions.js";
+import { readApprovalAnswers, NO_APPROVAL_ANSWERS } from "./approval-answers.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-resolver.js";
@@ -138,6 +138,7 @@ import { selectRecalledFacts } from "../shared/memory-retrieval.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { HarnessCapabilities, PausePrimitive, StateIdSource } from "./capabilities.js";
 import { reconcileOwedUndos, type ReconciledUndo } from "./owed-undos.js";
+import type { RunFacts } from "./run-span.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
 import type {
   TurnAttachments,
@@ -207,6 +208,13 @@ export interface ResolutionDeps {
   /** The user-visible setup label (`setupProgress`); the six strings are unchanged from the orchestrator. */
   readonly reportProgress: (label: string) => Promise<void>;
   /**
+   * The run and its session are known: the turn's trace span takes its
+   * name and facts from them (`run-span.ts`). Called once, right after the
+   * blueprint resolves, so a turn that settles during resolution is named
+   * too.
+   */
+  readonly identifyRun: (facts: RunFacts) => void;
+  /**
    * Writes what the turn's start put back for earlier turns into the
    * session's log at once (`events/emitter.ts` `writeReconciled`), before the
    * workspace lock is released (`owed-undos.ts`).
@@ -229,8 +237,10 @@ export interface ResolutionDeps {
 export interface TurnReinvocation {
   /** The engine already holds state for this execution (derived per {@link isReinvocation}). */
   readonly isReinvocation: boolean;
-  /** The adjudicated WAITING rows, keyed by tool-call id; empty when nothing was decided. */
+  /** The answered WAITING rows, keyed by tool-call id; empty when nothing was answered. */
   readonly approvalDecisions: ReadonlyMap<string, ApprovalAction>;
+  /** The reason a person gave with each deny that carries one, by tool-call id. */
+  readonly approvalDenyMessages: ReadonlyMap<string, string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -724,36 +734,16 @@ export async function startEvalMocks(
 }
 
 /**
- * Set OTel baggage so downstream calls carry execution
- * context. Best-effort; tracing not initialized is a silent skip. Runs after
- * the lock, as it always has.
- */
-export async function bindTelemetryBaggage(
-  deps: ResolutionDeps,
-  args: { readonly session: Session; readonly sessionId: string },
-): Promise<void> {
-  try {
-    const { setBaggage, BAGGAGE_EXECUTION_ID, BAGGAGE_SESSION_ID, BAGGAGE_ORG_ID } = await import("../otel.js");
-    await setBaggage({
-      [BAGGAGE_EXECUTION_ID]: deps.input.executionId,
-      [BAGGAGE_SESSION_ID]: args.sessionId,
-      [BAGGAGE_ORG_ID]: args.session.metadata?.org ?? "",
-    });
-  } catch {
-    // Tracing not initialized — silently skip.
-  }
-}
-
-/**
  * Phase 3: what the previous invocation left.
  *
  * On a reinvocation, seed the in-progress status from the persisted
  * execution ({@link seedFromPersistedStatus}), BEFORE the harness's
  * transcript builder wraps `status.messages`. Tool approvals (shell / MCP /
- * a gated write) resolve from the message transcript, read here as
- * {@link approvalDecisionsOf}. Any adjudicated decision runs the agent: an
- * approved call proceeds; a SKIP or REJECT denies its tool and the run
- * continues without it (the row is settled SKIPPED after the turn,
+ * a gated write) resolve from the answers the server appended to the
+ * session's log, read here through the one door, `approval-answers.ts`
+ * `readApprovalAnswers`, onto the seeded rows. Any answer runs the agent: an
+ * allowed call proceeds; a denied one is refused with the reason given, and
+ * the run continues without it (the row is settled SKIPPED after the turn,
  * `approval-decisions.ts`). Until #1096 a REJECT failed the turn here with
  * its own FAILED arm, Cursor's legacy; the proto (`APPROVAL_ACTION_REJECT`:
  * "does NOT fail the run"), the conformance suite and the native harness
@@ -768,12 +758,20 @@ export async function reconcileReinvocation(
   args: {
     readonly stateIdSource: StateIdSource;
     readonly execution: Run;
+    readonly sessionId: string;
   },
 ): Promise<TurnReinvocation> {
   deps.enterPhase("reconcile_reinvocation");
   const reinvoked = isReinvocation(args.stateIdSource, deps.input, args.execution);
   if (reinvoked) seedFromPersistedStatus(deps.status, deps.transcript, args.execution);
-  return { isReinvocation: reinvoked, approvalDecisions: approvalDecisionsOf(deps.status) };
+  const answers = reinvoked
+    ? await readApprovalAnswers(deps.client, {
+        sessionId: args.sessionId,
+        runId: deps.input.executionId,
+        status: deps.status,
+      })
+    : NO_APPROVAL_ANSWERS;
+  return { isReinvocation: reinvoked, approvalDecisions: answers.decisions, approvalDenyMessages: answers.denyMessages };
 }
 
 /**
@@ -1669,6 +1667,7 @@ export async function resolveTurnContext(
   const { execution, spec, sessionId } = await fetchExecution(deps);
   if (spec.reconcileFileReview) return resolveReconcileTurn(deps, frame, sessionId);
   const { session, blueprint } = await resolveAgentBlueprint(deps, execution, sessionId);
+  deps.identifyRun({ execution, session, sessionId, blueprint });
   const unrunnable = refuseUnrunnableHooks(blueprint, capabilities);
   if (unrunnable !== undefined) return { kind: "settled", settlement: unrunnable };
   const fetched = await fetchValues(deps);
@@ -1690,8 +1689,6 @@ export async function resolveTurnContext(
   frame.releaseWorkspaceLock = lock.release;
   await reconcileOwedUndosPhase(deps, { sessionId, workspace, reconcileTurn: false });
 
-  await bindTelemetryBaggage(deps, { session, sessionId });
-
   const evalCase = await prepareEvalCasePhase(deps, { spec, sessionId, workspace, values });
   if (evalCase.kind === "settled") return { kind: "settled", settlement: evalCase.settlement };
   const prepared = evalCase.prepared;
@@ -1704,6 +1701,7 @@ export async function resolveTurnContext(
   const reinvocation = await reconcileReinvocation(deps, {
     stateIdSource: capabilities.stateIdSource,
     execution,
+    sessionId,
   });
 
   const resolvedMcp = await resolveMcpServersAndPolicies(deps, {
@@ -1776,6 +1774,7 @@ export async function resolveTurnContext(
       turnSeq: deps.input.turnSeq,
       sessionId,
       approvalDecisions: reinvocation.approvalDecisions,
+      approvalDenyMessages: reinvocation.approvalDenyMessages,
       execution,
       session,
       blueprint,

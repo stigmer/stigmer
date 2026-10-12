@@ -37,9 +37,9 @@ export interface UseBillingAccountReturn {
  *
  * Calls `billing.getOrCreateBillingAccount` which is idempotent —
  * creates the account on first call, returns the existing account
- * on subsequent calls. The returned `BillingAccount` includes
- * the embedded `CreditBalance` with available, reserved,
- * promotional, and purchased breakdowns.
+ * on subsequent calls. The returned `BillingAccount` is the
+ * organization's billing customer: its status and the card on file
+ * that plan invoices are charged to.
  *
  * Pass `null` as `org` to skip fetching (stable no-op).
  *
@@ -53,7 +53,7 @@ export interface UseBillingAccountReturn {
  * if (error) return <ErrorMessage error={error} />;
  * if (!account) return null;
  *
- * return <div>Balance: {formatCreditBalance(account.balance?.availableMicros)}</div>;
+ * return <div>Card: {account.defaultPaymentMethod?.last4 ?? "none"}</div>;
  * ```
  */
 export function useBillingAccount(

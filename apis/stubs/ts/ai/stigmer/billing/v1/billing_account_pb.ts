@@ -14,14 +14,14 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/v1/billing_account.proto.
  */
 export const file_ai_stigmer_billing_v1_billing_account: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvdjEvYmlsbGluZ19hY2NvdW50LnByb3RvEhVhaS5zdGlnbWVyLmJpbGxpbmcudjEi9wMKDkJpbGxpbmdBY2NvdW50EgoKAmlkGAEgASgJEgsKA29yZxgCIAEoCRI7CgZzdGF0dXMYAyABKA4yKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQmlsbGluZ0FjY291bnRTdGF0dXMSNQoHYmFsYW5jZRgEIAEoCzIkLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRCYWxhbmNlEkAKDWF1dG9fcmVjaGFyZ2UYBSABKAsyKS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQXV0b1JlY2hhcmdlQ29uZmlnEhoKEnN0cmlwZV9jdXN0b21lcl9pZBgGIAEoCRInCh9hbGxvd2VkX25lZ2F0aXZlX2JhbGFuY2VfbWljcm9zGAcgASgDEiQKHGxvd19iYWxhbmNlX3RocmVzaG9sZF9taWNyb3MYCCABKAMSSwoWZGVmYXVsdF9wYXltZW50X21ldGhvZBgLIAEoCzIrLmFpLnN0aWdtZXIuYmlsbGluZy52MS5QYXltZW50TWV0aG9kU3VtbWFyeRIuCgpjcmVhdGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKOAQoNQ3JlZGl0QmFsYW5jZRIYChBhdmFpbGFibGVfbWljcm9zGAEgASgDEhcKD3Jlc2VydmVkX21pY3JvcxgCIAEoAxIaChJwcm9tb3Rpb25hbF9taWNyb3MYAyABKAMSGAoQcHVyY2hhc2VkX21pY3JvcxgEIAEoAxIUCgx0b3RhbF9taWNyb3MYBSABKAMidAoUUGF5bWVudE1ldGhvZFN1bW1hcnkSGQoRcGF5bWVudF9tZXRob2RfaWQYASABKAkSDQoFYnJhbmQYAiABKAkSDQoFbGFzdDQYAyABKAkSEQoJZXhwX21vbnRoGAQgASgFEhAKCGV4cF95ZWFyGAUgASgFIrgBChJBdXRvUmVjaGFyZ2VDb25maWcSDwoHZW5hYmxlZBgBIAEoCBIYChB0aHJlc2hvbGRfbWljcm9zGAIgASgDEh4KFnJlY2hhcmdlX2Ftb3VudF9taWNyb3MYAyABKAMSGgoSbW9udGhseV9jYXBfbWljcm9zGAQgASgDEiQKHGN1cnJlbnRfbW9udGhfY2hhcmdlZF9taWNyb3MYBSABKAMSFQoNY3VycmVudF9tb250aBgHIAEoCWIGcHJvdG8z", [file_ai_stigmer_billing_v1_enum, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvdjEvYmlsbGluZ19hY2NvdW50LnByb3RvEhVhaS5zdGlnbWVyLmJpbGxpbmcudjEingMKDkJpbGxpbmdBY2NvdW50EgoKAmlkGAEgASgJEgsKA29yZxgCIAEoCRI7CgZzdGF0dXMYAyABKA4yKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQmlsbGluZ0FjY291bnRTdGF0dXMSGgoSc3RyaXBlX2N1c3RvbWVyX2lkGAYgASgJEksKFmRlZmF1bHRfcGF5bWVudF9tZXRob2QYCyABKAsyKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuUGF5bWVudE1ldGhvZFN1bW1hcnkSLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBKBAgEEAVKBAgFEAZKBAgHEAhKBAgIEAlSB2JhbGFuY2VSDWF1dG9fcmVjaGFyZ2VSH2FsbG93ZWRfbmVnYXRpdmVfYmFsYW5jZV9taWNyb3NSHGxvd19iYWxhbmNlX3RocmVzaG9sZF9taWNyb3MidAoUUGF5bWVudE1ldGhvZFN1bW1hcnkSGQoRcGF5bWVudF9tZXRob2RfaWQYASABKAkSDQoFYnJhbmQYAiABKAkSDQoFbGFzdDQYAyABKAkSEQoJZXhwX21vbnRoGAQgASgFEhAKCGV4cF95ZWFyGAUgASgFYgZwcm90bzM", [file_ai_stigmer_billing_v1_enum, file_google_protobuf_timestamp]);
 
 /**
  * BillingAccount is the billing aggregate for an organization.
  *
- * Exactly one BillingAccount exists per org, auto-provisioned on first
- * billing interaction. It tracks credit balances, Stripe customer mapping,
- * and auto-recharge configuration.
+ * Exactly one BillingAccount exists per org, provisioned when the
+ * organization is created. It is the organization's Stripe customer: the
+ * customer mapping and the card its plan's invoices are charged to.
  *
  * This is not a standard Stigmer API Resource — it has no api_version/kind
  * envelope, no slug, and no blueprint/runtime split. Authorization is scoped
@@ -52,20 +52,6 @@ export type BillingAccount = Message<"ai.stigmer.billing.v1.BillingAccount"> & {
   status: BillingAccountStatus;
 
   /**
-   * Real-time credit balance breakdown.
-   *
-   * @generated from field: ai.stigmer.billing.v1.CreditBalance balance = 4;
-   */
-  balance?: CreditBalance;
-
-  /**
-   * User-configurable automatic recharge settings.
-   *
-   * @generated from field: ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5;
-   */
-  autoRecharge?: AutoRechargeConfig;
-
-  /**
    * Stripe Customer ID. Empty until the org's first Stripe interaction.
    *
    * @generated from field: string stripe_customer_id = 6;
@@ -73,24 +59,9 @@ export type BillingAccount = Message<"ai.stigmer.billing.v1.BillingAccount"> & {
   stripeCustomerId: string;
 
   /**
-   * Maximum negative balance allowed before hard-stopping runs.
-   * Free orgs: 0. Paid orgs: typically 2_000_000 ($2.00). Enterprise: contract-specific.
-   *
-   * @generated from field: int64 allowed_negative_balance_micros = 7;
-   */
-  allowedNegativeBalanceMicros: bigint;
-
-  /**
-   * Balance threshold that triggers low-balance warnings and notifications.
-   *
-   * @generated from field: int64 low_balance_threshold_micros = 8;
-   */
-  lowBalanceThresholdMicros: bigint;
-
-  /**
-   * Saved payment method for off-session charges and Portal display.
-   * Populated automatically after the first Stripe Checkout purchase or
-   * when the user adds a payment method via the Stripe Customer Portal.
+   * Saved payment method for the plan's invoices and Portal display.
+   * Populated when a card is saved through the setup session or the
+   * Stripe Customer Portal.
    *
    * @generated from field: ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11;
    */
@@ -115,62 +86,10 @@ export const BillingAccountSchema: GenMessage<BillingAccount> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_billing_v1_billing_account, 0);
 
 /**
- * CreditBalance provides the real-time breakdown of an org's credit position.
- *
- * Invariant: total_micros = available_micros + reserved_micros
- * Invariant: total_micros = promotional_micros + purchased_micros
- *
- * @generated from message ai.stigmer.billing.v1.CreditBalance
- */
-export type CreditBalance = Message<"ai.stigmer.billing.v1.CreditBalance"> & {
-  /**
-   * Credits available for new reservations and immediate use.
-   *
-   * @generated from field: int64 available_micros = 1;
-   */
-  availableMicros: bigint;
-
-  /**
-   * Credits held by active run reservations.
-   *
-   * @generated from field: int64 reserved_micros = 2;
-   */
-  reservedMicros: bigint;
-
-  /**
-   * Subset of total from promotional grants (free trial, campaigns).
-   *
-   * @generated from field: int64 promotional_micros = 3;
-   */
-  promotionalMicros: bigint;
-
-  /**
-   * Subset of total from purchased credits (Stripe payments, auto-recharge).
-   *
-   * @generated from field: int64 purchased_micros = 4;
-   */
-  purchasedMicros: bigint;
-
-  /**
-   * Total credits (available + reserved).
-   *
-   * @generated from field: int64 total_micros = 5;
-   */
-  totalMicros: bigint;
-};
-
-/**
- * Describes the message ai.stigmer.billing.v1.CreditBalance.
- * Use `create(CreditBalanceSchema)` to create a new message.
- */
-export const CreditBalanceSchema: GenMessage<CreditBalance> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_billing_account, 1);
-
-/**
  * PaymentMethodSummary holds the display-safe details of a Stripe
  * PaymentMethod so the UI can render card info without a Stripe API call.
  *
- * Populated from Stripe webhook events (checkout.session.completed,
+ * Populated from Stripe webhook events (payment_method.attached,
  * customer.updated) and kept in sync with the Stripe Customer's
  * default payment method via the Billing Portal.
  *
@@ -218,73 +137,5 @@ export type PaymentMethodSummary = Message<"ai.stigmer.billing.v1.PaymentMethodS
  * Use `create(PaymentMethodSummarySchema)` to create a new message.
  */
 export const PaymentMethodSummarySchema: GenMessage<PaymentMethodSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_billing_account, 2);
-
-/**
- * AutoRechargeConfig controls automatic credit top-up behavior.
- *
- * When enabled, the billing system triggers a charge against the account's
- * saved payment method (BillingAccount.default_payment_method) whenever
- * the available balance drops below threshold_micros.
- *
- * Fields 1–4 are user-configurable via SetAutoRechargeConfig.
- * Fields 5 and 7 are system-managed (updated by the recharge trigger).
- *
- * @generated from message ai.stigmer.billing.v1.AutoRechargeConfig
- */
-export type AutoRechargeConfig = Message<"ai.stigmer.billing.v1.AutoRechargeConfig"> & {
-  /**
-   * Whether auto-recharge is enabled.
-   *
-   * @generated from field: bool enabled = 1;
-   */
-  enabled: boolean;
-
-  /**
-   * Trigger recharge when available balance drops below this amount.
-   *
-   * @generated from field: int64 threshold_micros = 2;
-   */
-  thresholdMicros: bigint;
-
-  /**
-   * Fixed amount to charge per recharge event.
-   *
-   * @generated from field: int64 recharge_amount_micros = 3;
-   */
-  rechargeAmountMicros: bigint;
-
-  /**
-   * Maximum total auto-recharge spend per calendar month.
-   * Prevents runaway charges from aggressive usage patterns.
-   *
-   * @generated from field: int64 monthly_cap_micros = 4;
-   */
-  monthlyCapMicros: bigint;
-
-  /**
-   * Running total of auto-recharge charges in the current month.
-   * System-managed: incremented on each recharge, lazily reset when
-   * current_month rolls over.
-   *
-   * @generated from field: int64 current_month_charged_micros = 5;
-   */
-  currentMonthChargedMicros: bigint;
-
-  /**
-   * Calendar month the current_month_charged_micros counter belongs to.
-   * Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
-   * the recharge trigger on the first charge of a new month.
-   *
-   * @generated from field: string current_month = 7;
-   */
-  currentMonth: string;
-};
-
-/**
- * Describes the message ai.stigmer.billing.v1.AutoRechargeConfig.
- * Use `create(AutoRechargeConfigSchema)` to create a new message.
- */
-export const AutoRechargeConfigSchema: GenMessage<AutoRechargeConfig> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_billing_account, 3);
+  messageDesc(file_ai_stigmer_billing_v1_billing_account, 1);
 

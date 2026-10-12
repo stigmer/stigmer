@@ -11,7 +11,9 @@
  *   - at most `concurrency` children are in flight;
  *   - once the finished tries' cost reaches the limit no cell starts and
  *     the eval ends partial, "cost_ceiling";
- *   - a credit refusal ends the eval partial, "out_of_credit";
+ *   - a try refused FAILED_PRECONDITION (a keyless organization's copy) is
+ *     recorded not graded in the refusal's words, and the eval runs on to
+ *     completed;
  *   - cancelling the eval stops the try in flight, records it not graded,
  *     "cancelled", and ends the eval partial, "cancelled";
  *   - a cancel arriving while a try's start activity runs waits for the
@@ -56,8 +58,8 @@ interface Script {
   plan: SuitePlan;
   /** What each try costs. */
   costUsd: number;
-  /** The try number (1-based, in start order) the credit refuses. */
-  refuseCreditAt: number;
+  /** The try number (1-based, in start order) admission refuses. */
+  refuseAt: number;
   /** Polls answer "running" for ever, until the run is stopped. */
   hang: boolean;
   /** How long each try's start takes, in milliseconds. */
@@ -76,6 +78,10 @@ interface Script {
 }
 
 let script: Script;
+
+/** Admission's refusal of a run whose organization has no key for its model. */
+const KEYLESS_COPY =
+  "This organization has no Anthropic key for model 'claude-sonnet-4-5', so the run was not started. An admin can add one in Settings → Provider keys.";
 
 function cells(count: number): SuiteCell[] {
   return Array.from({ length: count }, (_, index) => ({
@@ -97,7 +103,7 @@ function resetScript(): void {
       concurrency: 1,
     },
     costUsd: 0.1,
-    refuseCreditAt: 0,
+    refuseAt: 0,
     hang: false,
     startDelayMs: 0,
     judged: false,
@@ -139,12 +145,8 @@ function scriptedActivities(): SuiteActivities &
           setTimeout(resolve, script.startDelayMs),
         );
       }
-      if (n === script.refuseCreditAt) {
-        return {
-          kind: "refused",
-          failure: "out-of-credit",
-          reason: "out of credit",
-        };
+      if (n === script.refuseAt) {
+        return { kind: "refused", failure: "not-started", reason: KEYLESS_COPY };
       }
       script.inFlight++;
       script.most = Math.max(script.most, script.inFlight);
@@ -201,7 +203,6 @@ function scriptedActivities(): SuiteActivities &
       error: grade.error,
       costUsd: grade.costUsd,
       durationSeconds: grade.durationSeconds,
-      outOfCredit: false,
     }),
   };
 }
@@ -308,19 +309,17 @@ describe("stigmer/evals/run-plugin-eval workflow (TestWorkflowEnvironment)", () 
     ]);
   }, 60_000);
 
-  it("ends partial when the organization's credit refuses a try", async (testCtx) => {
+  it("records a try admission refuses not graded in its words, and runs on to completed", async (testCtx) => {
     if (!envReady) return testCtx.skip();
-    script.refuseCreditAt = 2;
+    script.refuseAt = 2;
     const handle = await startEval();
     await handle.result();
-    expect(script.recorded).toHaveLength(2);
+    expect(script.recorded).toHaveLength(4);
     expect(script.recorded[1]?.result).toMatchObject({
       state: "not-graded",
-      outOfCredit: true,
+      notGradedReason: KEYLESS_COPY,
     });
-    expect(script.finished).toEqual([
-      { phase: "partial", reason: "out_of_credit" },
-    ]);
+    expect(script.finished).toEqual([{ phase: "completed" }]);
   }, 60_000);
 
   it("stops the try in flight and ends partial when cancelled", async (testCtx) => {

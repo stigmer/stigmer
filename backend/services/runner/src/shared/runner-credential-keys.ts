@@ -66,6 +66,13 @@ export const RUNNER_CREDENTIAL_ENV_KEYS: readonly string[] = [
   // is the user's (that module's header).
   TEMPORAL_API_KEY_ENV,
   TEMPORAL_TLS_CLIENT_KEY_DATA_ENV,
+  // The OpenTelemetry collector's login, read by the runner's exporters and
+  // its local proxy's telemetry forward (otel-export.ts). For a tool like
+  // Langfuse it is a key that reads every exported conversation; the agent
+  // host exports through the runner's local proxy instead.
+  "OTEL_EXPORTER_OTLP_HEADERS",
+  "OTEL_EXPORTER_OTLP_TRACES_HEADERS",
+  "OTEL_EXPORTER_OTLP_METRICS_HEADERS",
 ];
 
 /**

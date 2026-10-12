@@ -19,6 +19,7 @@ import {
 import type { SiblingEnforcingLane } from "../harness/enforcing-lane";
 import { newSiblingEnforcingExecutionLane } from "../harness/enforcing-execution-lane";
 import { McpToolFixture } from "../harness/mcp-server";
+import { COLLECTOR_LOGIN, FakeOtlpCollector } from "../harness/fake-otlp-collector";
 import { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
 import { ensureRunnerBuilt } from "@stigmer/test-support/runner-build";
@@ -83,7 +84,7 @@ export class LocalExecutionTarget implements TargetProfile {
     // boundary).
     billingGates: false,
     // The cloud-capability surfaces: absent by the same boundary, as on local.
-    billingLedger: false,
+    billingEngine: false,
     billingPlans: false,
     sideChannelProxy: false,
     publicLane: false,
@@ -117,6 +118,7 @@ export class LocalExecutionTarget implements TargetProfile {
   private runner: RunningRunner | undefined;
   private mockLlm: MockLlmProxy | undefined;
   private mcpTools: McpToolFixture | undefined;
+  private otlpCollector: FakeOtlpCollector | undefined;
   private conformanceClients: ConformanceClients | undefined;
   // The one enforcing lane of this target instance — an OIDC sibling with
   // its own engine and a runner — created on the first enforcingLane() call
@@ -158,6 +160,11 @@ export class LocalExecutionTarget implements TargetProfile {
     this.mcpTools = new McpToolFixture();
     await this.mcpTools.start();
 
+    // 3c. A fake OpenTelemetry collector the runner sends every run's trace
+    //     to, over the standard settings, the login only the runner holds.
+    this.otlpCollector = new FakeOtlpCollector();
+    await this.otlpCollector.start();
+
     // 4. Runner last: it dials the server's gRPC endpoint to stream status back,
     //    the same server's HTTP lane for the model registry (the OSS topology,
     //    stigmer#240), and the mock proxy for LLM calls.
@@ -170,6 +177,7 @@ export class LocalExecutionTarget implements TargetProfile {
       // Share the server's local artifact store so a storage-key attachment the
       // server wrote resolves when the runner reads it back (#285).
       artifactDir: this.server.artifactBaseDir,
+      telemetry: { endpoint: this.otlpCollector.endpoint(), login: COLLECTOR_LOGIN },
     });
   }
 
@@ -279,6 +287,13 @@ export class LocalExecutionTarget implements TargetProfile {
     return this.mcpTools;
   }
 
+  traceCollector(): FakeOtlpCollector {
+    if (this.otlpCollector === undefined) {
+      throw new Error("LocalExecutionTarget.setup() must be called before traceCollector()");
+    }
+    return this.otlpCollector;
+  }
+
   // The document the runner was pointed at (registryOrigin above): the OSS
   // unified port serves it anonymously from the server's bundled snapshot.
   modelRegistryDocument(): Promise<ModelRegistryDocument> {
@@ -385,12 +400,14 @@ export class LocalExecutionTarget implements TargetProfile {
     await this.runner?.stop();
     await this.mockLlm?.close();
     await this.mcpTools?.close();
+    await this.otlpCollector?.close();
     await this.server?.stop();
     await this.storage?.release();
     await this.temporal?.stop();
     this.runner = undefined;
     this.mockLlm = undefined;
     this.mcpTools = undefined;
+    this.otlpCollector = undefined;
     this.server = undefined;
     this.storage = undefined;
     this.temporal = undefined;

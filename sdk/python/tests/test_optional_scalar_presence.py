@@ -30,7 +30,6 @@ class TestOptionalScalarPresence:
         terms = PlanTermsInput(annual_price_micros=1_200_000_000)._to_proto()
         assert terms.HasField("annual_price_micros")
         assert not terms.HasField("monthly_minimum_micros")
-        assert not terms.HasField("usage_share_basis_points")
         assert not terms.HasField("per_extra_org_micros")
 
     def test_an_unset_depth_stays_absent_for_the_shallow_default(self) -> None:

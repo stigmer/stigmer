@@ -132,7 +132,7 @@ public enum ProviderKeySource
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.UsageProto.getDescriptor().getEnumType(5);
+    return ai.stigmer.agentic.run.v1.UsageProto.getDescriptor().getEnumType(3);
   }
 
   private static final ProviderKeySource[] VALUES = values();

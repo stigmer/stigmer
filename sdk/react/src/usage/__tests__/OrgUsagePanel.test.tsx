@@ -2,8 +2,8 @@
  * OrgUsagePanel over a usage report: the summary counts the organization's
  * runs, agents and sessions in compact form; a report with no model usage
  * shows the empty state, which says usage appears once agents start runs;
- * a failed fetch shows the error's user message. The report hook and the
- * credit runway (a billing-account reader with its own tests) are stubbed.
+ * a failed fetch shows the error's user message. The report hook is
+ * stubbed.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -21,10 +21,6 @@ const state = vi.hoisted(() => ({
 
 vi.mock("../useOrgUsageReport.js", () => ({
   useOrgUsageReport: () => ({ report: state.report, isLoading: false, error: state.error, refetch: () => {} }),
-}));
-
-vi.mock("../CreditRunwayIndicator.js", () => ({
-  CreditRunwayIndicator: () => null,
 }));
 
 import { OrgUsagePanel } from "../OrgUsagePanel";

@@ -7,15 +7,15 @@ import { computeCoverage, extractTags, parseInventory } from "../inventory";
 
 const ROW = `
 rows:
-  - id: billing.rpc.adjust-credits.owner-can-adjust
+  - id: billing.rpc.get-billing-account.owner-can-read
     surface: billing
-    lane: rpc.adjustCredits
-    behavior: An org owner adjusts credits and the balance reflects the amount.
+    lane: rpc.getBillingAccount
+    behavior: An org owner reads the organization's billing account.
     class: behavior
     disposition: conformance
     observability: launcher
     caller: primary
-    needs: [funded-org]
+    needs: [keyless-org]
 `;
 
 function withRows(extra: string): string {
@@ -31,7 +31,7 @@ describe("parseInventory", () => {
   });
 
   it("rejects a numeric or single-segment id", () => {
-    const bad = ROW.replace("billing.rpc.adjust-credits.owner-can-adjust", "billing.B-RPC-07");
+    const bad = ROW.replace("billing.rpc.get-billing-account.owner-can-read", "billing.B-RPC-07");
     const { problems } = parseInventory(bad);
     expect(problems.some((p) => p.kind === "schema" && p.message.includes("row id"))).toBe(true);
   });
@@ -43,7 +43,7 @@ describe("parseInventory", () => {
   });
 
   it("rejects unknown fields and unknown dispositions", () => {
-    expect(parseInventory(ROW.replace("needs: [funded-org]", "needs: [funded-org]\n    extra: x")).problems).not.toEqual([]);
+    expect(parseInventory(ROW.replace("needs: [keyless-org]", "needs: [keyless-org]\n    extra: x")).problems).not.toEqual([]);
     expect(parseInventory(ROW.replace("disposition: conformance", "disposition: someday")).problems).not.toEqual([]);
   });
 
@@ -92,9 +92,9 @@ describe("parseInventory — metrics", () => {
 
 describe("extractTags", () => {
   it("finds every bracketed row id in a suite source, ignoring other brackets", () => {
-    const source = `it("[billing.rpc.adjust-credits.owner-can-adjust] adjusts", ...); const x = arr[0]; // [proxy.llm.unknown-provider.400]`;
+    const source = `it("[billing.rpc.get-billing-account.owner-can-read] reads", ...); const x = arr[0]; // [proxy.llm.unknown-provider.400]`;
     expect(extractTags(source, "a.test.ts").map((t) => t.id)).toEqual([
-      "billing.rpc.adjust-credits.owner-can-adjust",
+      "billing.rpc.get-billing-account.owner-can-read",
       "proxy.llm.unknown-provider.400",
     ]);
   });
@@ -103,7 +103,7 @@ describe("extractTags", () => {
 describe("computeCoverage", () => {
   it("passes when every tested row is tagged exactly by existing tests", () => {
     const { inventory } = parseInventory(ROW);
-    const coverage = computeCoverage(inventory, [{ id: "billing.rpc.adjust-credits.owner-can-adjust", file: "a.test.ts" }]);
+    const coverage = computeCoverage(inventory, [{ id: "billing.rpc.get-billing-account.owner-can-read", file: "a.test.ts" }]);
     expect(coverage.problems).toEqual([]);
     expect(coverage.coveredRows).toBe(1);
   });
@@ -117,7 +117,7 @@ describe("computeCoverage", () => {
   it("names a tag that points at no row", () => {
     const { inventory } = parseInventory(ROW);
     const coverage = computeCoverage(inventory, [
-      { id: "billing.rpc.adjust-credits.owner-can-adjust", file: "a.test.ts" },
+      { id: "billing.rpc.get-billing-account.owner-can-read", file: "a.test.ts" },
       { id: "billing.rpc.nope.nothing", file: "b.test.ts" },
     ]);
     expect(coverage.problems.map((p) => p.kind)).toEqual(["unknown-tag"]);
@@ -125,7 +125,7 @@ describe("computeCoverage", () => {
 
   it("refuses a tag on a row whose proof lives elsewhere", () => {
     const { inventory } = parseInventory(ROW.replace("disposition: conformance", "disposition: smoke"));
-    const coverage = computeCoverage(inventory, [{ id: "billing.rpc.adjust-credits.owner-can-adjust", file: "a.test.ts" }]);
+    const coverage = computeCoverage(inventory, [{ id: "billing.rpc.get-billing-account.owner-can-read", file: "a.test.ts" }]);
     expect(coverage.problems.map((p) => p.kind)).toEqual(["tag-on-untested-disposition"]);
   });
 
@@ -141,7 +141,7 @@ describe("computeCoverage", () => {
     // row reaching for them today is a schema problem, not a coverage one.
     const deviation = parseInventory(ROW.replace("disposition: conformance", "disposition: deviation"));
     expect(deviation.problems.map((p) => p.kind)).toEqual(["schema"]);
-    const disputed = parseInventory(ROW.replace("needs: [funded-org]", "needs: [funded-org]\n    disputed: Java answers 401"));
+    const disputed = parseInventory(ROW.replace("needs: [keyless-org]", "needs: [keyless-org]\n    disputed: Java answers 401"));
     expect(disputed.problems.map((p) => p.kind)).toEqual(["schema"]);
   });
 });

@@ -104,11 +104,12 @@ describe("PlanSection", () => {
     expect(client.subscription.changePlan).not.toHaveBeenCalled();
   });
 
-  it("subscribes on an explicit confirm that says nothing is charged today", async () => {
+  it("subscribes on an explicit confirm that states the monthly fee and says nothing is charged today", async () => {
     const client = mockClient();
     renderSection(client);
     await userEvent.click(within(await planOption("Team")).getByRole("button", { name: "Subscribe" }));
     const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/billed when it ends: \$99\.00\/month\.$/)).toBeTruthy();
     expect(within(dialog).getByText("Nothing is charged today.")).toBeTruthy();
     await userEvent.click(within(dialog).getByRole("button", { name: "Subscribe" }));
     await waitFor(() => expect(client.subscription.changePlan).toHaveBeenCalledTimes(1));
@@ -120,9 +121,8 @@ describe("PlanSection", () => {
     renderSection(client);
     expect(await screen.findByText("Estimated invoice on Feb 28, 2027")).toBeTruthy();
     expect(screen.getByText("Team plan")).toBeTruthy();
-    expect(screen.getByText("Commission already paid on tokens")).toBeTruthy();
-    expect(screen.getByText("-$8.00")).toBeTruthy();
-    expect(screen.getByText("$91.00")).toBeTruthy();
+    // The plan line and the total: the fee is the whole invoice.
+    expect(screen.getAllByText("$99.00")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Switch to Business" })).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: "Move to Free" }));

@@ -2,170 +2,19 @@ syntax = "proto3";
 
 package ai.stigmer.billing.v1;
 
-// LedgerEntryType classifies each row in the credit ledger.
-//
-// Every balance-affecting operation produces exactly one immutable ledger entry.
-// The type determines sign convention and audit semantics.
-enum LedgerEntryType {
-  ledger_entry_type_unspecified = 0;
-
-  // Credits added from a Stripe Checkout purchase.
-  purchase_credit = 1;
-
-  // Promotional credits granted (e.g., free trial, referral bonus).
-  promotional_credit = 2;
-
-  // Debit for a single LLM call during run.
-  usage_debit = 3;
-
-  // Hold placed at run start to reserve credits.
-  reservation_hold = 4;
-
-  // Release of unused reservation after the run completes.
-  reservation_release = 5;
-
-  // Manual credit added by a platform admin.
-  adjustment_credit = 6;
-
-  // Manual debit applied by a platform admin.
-  adjustment_debit = 7;
-
-  // Credits reversed due to a Stripe refund.
-  refund_reversal = 8;
-
-  // Credits frozen due to an active Stripe dispute.
-  dispute_hold = 9;
-
-  // Credits unfrozen after a dispute is resolved in the customer's favor.
-  dispute_release = 10;
-
-  // Credits removed upon grant expiration.
-  expiry_debit = 11;
-
-  // Credits added from an automatic recharge via saved payment method.
-  auto_recharge_credit = 12;
-}
-
-// LedgerView selects which slice of the credit ledger a query returns.
-//
-// The classification of which entry types are customer-facing money events
-// versus internal accounting mechanics is a domain concern owned by the
-// server. Clients express intent via this view; the server resolves it to
-// the concrete set of LedgerEntryType values. This keeps every surface
-// (web, desktop, CLI, SDK) consistent and ensures a newly added entry type
-// is classified in exactly one place.
-enum LedgerView {
-  // Default. Returns the full ledger across all entry types (back-compat
-  // for existing and administrative callers).
-  ledger_view_unspecified = 0;
-
-  // Customer-facing account statement: funding and money-movement events
-  // only (purchases, auto-recharge, promotional credits, refunds, admin
-  // adjustments, expirations, and disputes). Excludes routine internal
-  // mechanics — per-call usage debits and run reservation
-  // holds/releases — which are surfaced as consumption analytics elsewhere.
-  ledger_view_statement = 1;
-}
-
-// CreditGrantKind classifies how credits were acquired.
-//
-// Determines burn order (promotional consumed first) and expiry rules.
-enum CreditGrantKind {
-  credit_grant_kind_unspecified = 0;
-
-  // Credits purchased via Stripe Checkout or auto-recharge.
-  purchased = 1;
-
-  // Complimentary credits (free trial, marketing campaign, referral).
-  promotional = 2;
-
-  // Credits added by manual admin adjustment.
-  adjustment = 3;
-}
-
 // BillingAccountStatus tracks the lifecycle state of an org's billing account.
 enum BillingAccountStatus {
   billing_account_status_unspecified = 0;
 
-  // Account is operational; credits can be consumed and purchased.
+  // Account is operational: the organization can save a card and change
+  // its plan.
   billing_account_active = 1;
 
-  // Account is frozen (e.g., dispute, compliance hold). Runs blocked.
+  // Account is frozen by a platform operator (e.g., a dispute or a
+  // compliance hold). Saving a card and changing the plan are refused.
   billing_account_suspended = 2;
 
-  // Account is permanently closed. No further operations allowed.
+  // Account is permanently closed by a platform operator. No further
+  // operations allowed.
   billing_account_closed = 3;
-}
-
-// ReservationStatus tracks the lifecycle of a run credit reservation.
-enum ReservationStatus {
-  reservation_status_unspecified = 0;
-
-  // Reservation is active; run is in progress.
-  reservation_active = 1;
-
-  // Run completed; reservation settled and unused credits released.
-  reservation_finalized = 2;
-
-  // Reservation expired without finalization (safety timeout).
-  reservation_expired = 3;
-
-  // Reservation cancelled before the run started.
-  reservation_cancelled = 4;
-}
-
-// RunBillingSignal is returned after each usage debit to direct
-// the agent runner's behavior.
-enum RunBillingSignal {
-  run_billing_signal_unspecified = 0;
-
-  // Balance is healthy; run may continue.
-  continue_run = 1;
-
-  // Balance is low; run may continue but a warning should be shown.
-  low_balance_warning = 2;
-
-  // Balance is exhausted; run must stop gracefully.
-  stop_run = 3;
-}
-
-// CreditPurchaseStatus tracks the lifecycle of a credit pack purchase.
-//
-// A purchase begins as PENDING when the Checkout Session is created,
-// transitions to COMPLETED when payment succeeds (via webhook), or
-// to FAILED/EXPIRED if payment fails or the session expires.
-enum CreditPurchaseStatus {
-  credit_purchase_status_unspecified = 0;
-
-  // Checkout session created; awaiting customer payment.
-  credit_purchase_pending = 1;
-
-  // Payment succeeded; credits have been provisioned.
-  credit_purchase_completed = 2;
-
-  // Payment failed (card declined, insufficient funds, etc.).
-  credit_purchase_failed = 3;
-
-  // Checkout session expired without payment completion.
-  credit_purchase_expired = 4;
-}
-
-// AutoRechargeEventStatus tracks the lifecycle of an automatic recharge attempt.
-//
-// A recharge begins as PENDING when the billing system claims a monthly cap
-// slot and creates a Stripe PaymentIntent. It transitions to SUCCEEDED when
-// the payment_intent.succeeded webhook confirms payment and credits are
-// provisioned, or to FAILED if the PaymentIntent creation fails or the
-// payment_intent.payment_failed webhook fires.
-enum AutoRechargeEventStatus {
-  auto_recharge_event_status_unspecified = 0;
-
-  // PaymentIntent created; awaiting Stripe payment confirmation.
-  auto_recharge_pending = 1;
-
-  // Payment succeeded; credits have been provisioned.
-  auto_recharge_succeeded = 2;
-
-  // Payment failed; monthly cap slot has been released.
-  auto_recharge_failed = 3;
 }

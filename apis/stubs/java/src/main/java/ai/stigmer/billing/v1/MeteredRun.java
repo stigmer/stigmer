@@ -10,7 +10,7 @@ package ai.stigmer.billing.v1;
  * The run-side facts LLM metering denormalizes onto every usage
  * record, carried from the proxy that authorized the call to the billing
  * handler that records it. Deliberately narrower than the settings the
- * run resolved: only what metering reconciles or prices against.
+ * run resolved: only what metering reconciles or resolves against.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.MeteredRun}
@@ -113,7 +113,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The model the run resolved (status.run_config.model_name, whichever
    * layer chose it: the message, the agent's defaults or the lane's profile)
-   * — the authoritative statement of what was asked for, and the pricing
+   * — the authoritative statement of what was asked for, and the catalog
    * fallback when the wire's requested_model came up empty. Empty when no
    * layer named a model and the engine chose.
    * </pre>
@@ -138,7 +138,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The model the run resolved (status.run_config.model_name, whichever
    * layer chose it: the message, the agent's defaults or the lane's profile)
-   * — the authoritative statement of what was asked for, and the pricing
+   * — the authoritative statement of what was asked for, and the catalog
    * fallback when the wire's requested_model came up empty. Empty when no
    * layer named a model and the engine chose.
    * </pre>
@@ -412,7 +412,7 @@ private static final long serialVersionUID = 0L;
    * The run-side facts LLM metering denormalizes onto every usage
    * record, carried from the proxy that authorized the call to the billing
    * handler that records it. Deliberately narrower than the settings the
-   * run resolved: only what metering reconciles or prices against.
+   * run resolved: only what metering reconciles or resolves against.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.MeteredRun}
@@ -687,7 +687,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The model the run resolved (status.run_config.model_name, whichever
      * layer chose it: the message, the agent's defaults or the lane's profile)
-     * — the authoritative statement of what was asked for, and the pricing
+     * — the authoritative statement of what was asked for, and the catalog
      * fallback when the wire's requested_model came up empty. Empty when no
      * layer named a model and the engine chose.
      * </pre>
@@ -711,7 +711,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The model the run resolved (status.run_config.model_name, whichever
      * layer chose it: the message, the agent's defaults or the lane's profile)
-     * — the authoritative statement of what was asked for, and the pricing
+     * — the authoritative statement of what was asked for, and the catalog
      * fallback when the wire's requested_model came up empty. Empty when no
      * layer named a model and the engine chose.
      * </pre>
@@ -736,7 +736,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The model the run resolved (status.run_config.model_name, whichever
      * layer chose it: the message, the agent's defaults or the lane's profile)
-     * — the authoritative statement of what was asked for, and the pricing
+     * — the authoritative statement of what was asked for, and the catalog
      * fallback when the wire's requested_model came up empty. Empty when no
      * layer named a model and the engine chose.
      * </pre>
@@ -757,7 +757,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The model the run resolved (status.run_config.model_name, whichever
      * layer chose it: the message, the agent's defaults or the lane's profile)
-     * — the authoritative statement of what was asked for, and the pricing
+     * — the authoritative statement of what was asked for, and the catalog
      * fallback when the wire's requested_model came up empty. Empty when no
      * layer named a model and the engine chose.
      * </pre>
@@ -775,7 +775,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * The model the run resolved (status.run_config.model_name, whichever
      * layer chose it: the message, the agent's defaults or the lane's profile)
-     * — the authoritative statement of what was asked for, and the pricing
+     * — the authoritative statement of what was asked for, and the catalog
      * fallback when the wire's requested_model came up empty. Empty when no
      * layer named a model and the engine chose.
      * </pre>

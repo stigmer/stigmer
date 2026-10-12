@@ -1,9 +1,20 @@
 /**
- * OpenTelemetry tracing and metrics initialization.
+ * OpenTelemetry tracing and metrics initialization for the runner's own
+ * processes.
  *
- * Env-var-driven: reads OTEL_EXPORTER_OTLP_ENDPOINT and configures an
- * OTLP/gRPC exporter with W3C TraceContext + Baggage propagation. When
- * the env var is unset, returns null — zero overhead.
+ * Settings-driven (`otel-export.ts`): a signal is exported when the
+ * standard variables turn it on, over the protocol they choose, with W3C
+ * TraceContext and Baggage propagation. When nothing turns a signal on,
+ * these return null and load no OpenTelemetry package: zero overhead.
+ *
+ * Two routes. The runner exports to the operator's collector, with the
+ * collector's login from the custody store. The agent host exports to the
+ * runner's local proxy (`lane`), which forwards to the collector with that
+ * login (`agent-proxy/otlp-forward.ts`); the host never holds it.
+ *
+ * The tracer provider generates a run's trace id from its run id inside a
+ * run's execution context (`run-trace-id.ts`), so every turn of a run is
+ * one trace.
  *
  * `processRole` tells apart the two processes of one runner (`"agent-host"`
  * for the host that runs the engines, `agent-host/entry.ts`): both export
@@ -11,31 +22,56 @@
  * report under one resource would read as one counter going backwards.
  */
 
+import {
+  METRIC_ATTR_CURSOR_MODE,
+  METRIC_ATTR_CURSOR_MODEL,
+  METRIC_LLM_CALL_COUNT,
+  METRIC_LLM_CALL_DURATION,
+  METRIC_LLM_TOKENS_INPUT,
+  METRIC_LLM_TOKENS_OUTPUT,
+  TRACER_NAME,
+} from "./gen-ai-conventions.js";
+import type { TelemetryLane } from "./otel-export.js";
+
 /** The resource attribute that names which of a runner's processes exported a span or a series. */
 export const ATTR_RUNNER_PROCESS = "stigmer.runner.process";
+
+/** Who exported, and where to: the role on the resource, and the local proxy's lane for the agent host. */
+export interface TelemetryInitOptions {
+  readonly processRole?: string;
+  /** Export to the runner's local proxy instead of the collector: the agent host's route. */
+  readonly lane?: TelemetryLane;
+}
 
 function runnerResourceAttributes(serviceName: string, processRole: string | undefined): Record<string, string> {
   return { "service.name": serviceName, ...(processRole ? { [ATTR_RUNNER_PROCESS]: processRole } : {}) };
 }
 
-export async function initTracing(serviceName: string, processRole?: string): Promise<(() => Promise<void>) | null> {
-  const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
-  if (!endpoint) {
+export async function initTracing(serviceName: string, options: TelemetryInitOptions = {}): Promise<(() => Promise<void>) | null> {
+  const { telemetrySettings, collectorSpanExporter, laneSpanExporter, contentGuardedExporter } = await import("./otel-export.js");
+  const settings = telemetrySettings();
+  if (!settings.traces.enabled) {
     return null;
   }
 
   const { NodeTracerProvider } = await import("@opentelemetry/sdk-trace-node");
   const { BatchSpanProcessor } = await import("@opentelemetry/sdk-trace-base");
-  const { OTLPTraceExporter } = await import("@opentelemetry/exporter-trace-otlp-grpc");
   const { resourceFromAttributes } = await import("@opentelemetry/resources");
   const { W3CTraceContextPropagator, CompositePropagator, W3CBaggagePropagator } = await import("@opentelemetry/core");
+  const { RunTraceIdGenerator } = await import("./run-trace-id.js");
   const otelApi = await import("@opentelemetry/api");
 
-  const resource = resourceFromAttributes(runnerResourceAttributes(serviceName, processRole));
-  const exporter = new OTLPTraceExporter({ url: endpoint });
+  const resource = resourceFromAttributes(runnerResourceAttributes(serviceName, options.processRole));
+  const exporter = contentGuardedExporter(
+    options.lane ? await laneSpanExporter(settings, options.lane) : await collectorSpanExporter(settings),
+    settings.content,
+  );
   const provider = new NodeTracerProvider({
     resource,
-    spanProcessors: [new BatchSpanProcessor(exporter)],
+    idGenerator: new RunTraceIdGenerator(),
+    spanProcessors: [
+      new BatchSpanProcessor(exporter, settings.batchSize !== null ? { maxExportBatchSize: settings.batchSize } : undefined),
+    ],
   });
   provider.register();
 
@@ -45,26 +81,29 @@ export async function initTracing(serviceName: string, processRole?: string): Pr
     }),
   );
 
-  console.log(`OTel tracing enabled (endpoint=${endpoint}, service=${serviceName})`);
+  console.log(
+    `OTel tracing enabled (${options.lane ? "through the runner's local proxy" : `protocol=${settings.traces.protocol}`}, ` +
+      `content=${settings.content ? "on" : "off"}, service=${serviceName})`,
+  );
 
   return async () => {
     await provider.shutdown();
   };
 }
 
-export async function initMetrics(serviceName: string, processRole?: string): Promise<(() => Promise<void>) | null> {
-  const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
-  if (!endpoint) {
+export async function initMetrics(serviceName: string, options: TelemetryInitOptions = {}): Promise<(() => Promise<void>) | null> {
+  const { telemetrySettings, collectorMetricExporter, laneMetricExporter } = await import("./otel-export.js");
+  const settings = telemetrySettings();
+  if (!settings.metrics.enabled) {
     return null;
   }
 
   const { MeterProvider, PeriodicExportingMetricReader } = await import("@opentelemetry/sdk-metrics");
-  const { OTLPMetricExporter } = await import("@opentelemetry/exporter-metrics-otlp-grpc");
   const { resourceFromAttributes } = await import("@opentelemetry/resources");
   const otelApi = await import("@opentelemetry/api");
 
-  const resource = resourceFromAttributes(runnerResourceAttributes(serviceName, processRole));
-  const exporter = new OTLPMetricExporter({ url: endpoint });
+  const resource = resourceFromAttributes(runnerResourceAttributes(serviceName, options.processRole));
+  const exporter = options.lane ? await laneMetricExporter(settings, options.lane) : await collectorMetricExporter(settings);
   const reader = new PeriodicExportingMetricReader({
     exporter,
     exportIntervalMillis: 30_000,
@@ -73,81 +112,27 @@ export async function initMetrics(serviceName: string, processRole?: string): Pr
 
   otelApi.metrics.setGlobalMeterProvider(provider);
 
-  console.log(`OTel metrics enabled (endpoint=${endpoint}, service=${serviceName})`);
+  console.log(
+    `OTel metrics enabled (${options.lane ? "through the runner's local proxy" : `protocol=${settings.metrics.protocol}`}, service=${serviceName})`,
+  );
 
   return async () => {
     await provider.shutdown();
   };
 }
 
-// Span names — shared across all Stigmer runners (Go, Python, TypeScript)
-export const SPAN_CURSOR_TURN = "stigmer.cursor.turn";
-export const SPAN_DEEP_AGENT_RUN = "stigmer.deepagent.run";
-export const SPAN_LLM_CALL = "stigmer.llm.call";
-export const SPAN_MCP_TOOL = "stigmer.mcp.tool_call";
-
-// Attribute keys — LLM
-export const ATTR_LLM_PROVIDER = "stigmer.llm.provider";
-export const ATTR_LLM_MODEL = "stigmer.llm.model";
-export const ATTR_LLM_PROXY_ACTIVE = "stigmer.llm.proxy_active";
-export const ATTR_LLM_INPUT_TOKENS = "stigmer.llm.input_tokens";
-export const ATTR_LLM_OUTPUT_TOKENS = "stigmer.llm.output_tokens";
-
-// Attribute keys — Cursor/harness
-export const ATTR_CURSOR_MODE = "stigmer.cursor.mode";
-export const ATTR_CURSOR_MODEL = "stigmer.cursor.model";
-export const ATTR_SESSION_ID = "stigmer.session.id";
-export const ATTR_HARNESS = "stigmer.harness";
-
-// Attribute keys — MCP
-export const ATTR_MCP_TOOL_NAME = "stigmer.mcp.tool_name";
-export const ATTR_MCP_SERVER_NAME = "stigmer.mcp.server_name";
-export const ATTR_MCP_SERVER_ID = "stigmer.mcp.server_id";
-
-// Baggage keys — propagated through W3C baggage headers
-export const BAGGAGE_EXECUTION_ID = "stigmer.execution_id";
-export const BAGGAGE_SESSION_ID = "stigmer.session_id";
-export const BAGGAGE_ORG_ID = "stigmer.org_id";
-
 /**
- * Start a cursor turn span. No-op when tracing is not initialized.
+ * Start a runner process's own tracing and metrics, exporting to the
+ * collector; resolves to one flush for both, `null` when nothing is exported.
  */
-export async function startCursorTurnSpan(attrs: {
-  model: string;
-  mode: string;
-  sessionId: string;
-}): Promise<{ setTokens(input: number, output: number): void; end(): void }> {
-  const noop = { setTokens() {}, end() {} };
-  try {
-    const otelApi = await import("@opentelemetry/api");
-    const tracer = otelApi.trace.getTracer("stigmer-runner");
-    const span = tracer.startSpan(SPAN_CURSOR_TURN, {
-      attributes: {
-        [ATTR_CURSOR_MODEL]: attrs.model,
-        [ATTR_CURSOR_MODE]: attrs.mode,
-        [ATTR_SESSION_ID]: attrs.sessionId,
-      },
-    });
-    // Guard against a double end / a late setTokens: the turn span is ended from
-    // the activity's finally (finishTurnTelemetry), and OTel warns when a span is
-    // ended twice or mutated after end. Making this a no-op keeps the caller free
-    // to end idempotently on every exit path.
-    let ended = false;
-    return {
-      setTokens(input: number, output: number) {
-        if (ended) return;
-        if (input) span.setAttribute(ATTR_LLM_INPUT_TOKENS, input);
-        if (output) span.setAttribute(ATTR_LLM_OUTPUT_TOKENS, output);
-      },
-      end() {
-        if (ended) return;
-        ended = true;
-        span.end();
-      },
-    };
-  } catch {
-    return noop;
-  }
+export async function startRunnerTelemetry(serviceName: string): Promise<(() => Promise<void>) | null> {
+  const tracing = await initTracing(serviceName);
+  const metrics = await initMetrics(serviceName);
+  if (!tracing && !metrics) return null;
+  return async () => {
+    await metrics?.();
+    await tracing?.();
+  };
 }
 
 /**
@@ -162,44 +147,27 @@ export async function recordTurnMetrics(opts: {
 }): Promise<void> {
   try {
     const otelApi = await import("@opentelemetry/api");
-    const meter = otelApi.metrics.getMeter("stigmer-runner");
+    const meter = otelApi.metrics.getMeter(TRACER_NAME);
 
     const attrs = {
-      [ATTR_CURSOR_MODEL]: opts.model,
-      [ATTR_CURSOR_MODE]: opts.mode,
+      [METRIC_ATTR_CURSOR_MODEL]: opts.model,
+      [METRIC_ATTR_CURSOR_MODE]: opts.mode,
     };
 
-    meter.createHistogram("stigmer.llm.call.duration", { unit: "ms" })
+    meter.createHistogram(METRIC_LLM_CALL_DURATION, { unit: "ms" })
       .record(opts.durationMs, attrs);
-    meter.createCounter("stigmer.llm.call.count")
+    meter.createCounter(METRIC_LLM_CALL_COUNT)
       .add(1, attrs);
 
     if (opts.inputTokens) {
-      meter.createCounter("stigmer.llm.tokens.input", { unit: "{token}" })
+      meter.createCounter(METRIC_LLM_TOKENS_INPUT, { unit: "{token}" })
         .add(opts.inputTokens, attrs);
     }
     if (opts.outputTokens) {
-      meter.createCounter("stigmer.llm.tokens.output", { unit: "{token}" })
+      meter.createCounter(METRIC_LLM_TOKENS_OUTPUT, { unit: "{token}" })
         .add(opts.outputTokens, attrs);
     }
   } catch {
     // Metrics not initialized — silently skip.
-  }
-}
-
-export async function setBaggage(items: Record<string, string>): Promise<void> {
-  try {
-    const otelApi = await import("@opentelemetry/api");
-    const ctx = otelApi.context.active();
-    let bag = otelApi.propagation.getBaggage(ctx) ?? otelApi.propagation.createBaggage();
-    for (const [k, v] of Object.entries(items)) {
-      if (v) {
-        bag = bag.setEntry(k, { value: v });
-      }
-    }
-    const newCtx = otelApi.propagation.setBaggage(ctx, bag);
-    otelApi.context.with(newCtx, () => {});
-  } catch {
-    // Tracing not initialized — silently skip.
   }
 }

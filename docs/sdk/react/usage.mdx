@@ -110,28 +110,6 @@ of the organization total.
 />
 
 
-### CreditRunwayIndicator
-
-Displays projected credit runway: "~N days at this rate".
-
-Computes runway by dividing available balance by the daily spend rate
-derived from the usage report. Color-coded by urgency:
-green (>14d), amber (7-14d), red (\<7d).
-
-Requires `useBillingAccount` — renders nothing in local mode or if
-billing data is unavailable.
-
-**Props** — `CreditRunwayIndicatorProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names." },
-    daysInRange: { type: "number", description: "Number of calendar days the report covers.", required: true },
-    totalBillableCostMicros: { type: "bigint", description: "Total billable cost in micro-USD for the report period.", required: true },
-  }}
-/>
-
-
 ### ExportButton
 
 Dropdown button for exporting usage data as CSV.

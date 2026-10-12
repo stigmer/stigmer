@@ -172,7 +172,7 @@ The exit code tells a script or a CI job what happened:
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0         | Every case that ran reached the threshold and every case loaded                                                                                                                                                                                                                                                                                                                             |
 | 1         | A case scored below the threshold, a case failed to load, no case was found, a case's with-plugin tries on a model were all not graded (a case that never ran is not a pass), or an option was not valid; or the eval could not start (the plugin was not found, you may not evaluate it, or the server refused the eval), or the CLI could not read it for about a minute and cancelled it |
-| 2         | Partial: the cost limit was reached or the Organization ran out of credit; the results cover what ran                                                                                                                                                                                                                                                                                       |
+| 2         | Partial: the cost limit was reached; the results cover what ran                                                                                                                                                                                                                                                                                                                             |
 | 3         | The server could not be reached (the CLI's own code for a connection failure)                                                                                                                                                                                                                                                                                                               |
 | 4         | You are not signed in, or your sign-in expired (the CLI's own code for a sign-in failure)                                                                                                                                                                                                                                                                                                   |
 | 130       | Interrupted: the eval was cancelled, by Ctrl+C or any other cancel (the console's Cancel, `stigmer plugin eval cancel`); the results cover the tries that finished                                                                                                                                                                                                                          |
@@ -200,7 +200,7 @@ the fields it carries:
 | Field                                                  | Meaning                                                                                                                  |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
 | `schemaVersion`                                        | `1`                                                                                                                      |
-| `partial`, `partialReason`                             | `true` with `cost_ceiling`, `interrupted` (a cancel), or Stigmer's `out_of_credit` when the eval stopped early           |
+| `partial`, `partialReason`                             | `true` with `cost_ceiling` or `interrupted` (a cancel) when the eval stopped early                                       |
 | `aggregates.overallScore`                              | Mean with-arm case score across the suite                                                                                |
 | `aggregates.casesPassed`, `aggregates.casesTotal`      | Cases reaching the threshold, and the cases that ran                                                                     |
 | `aggregates.meanDelta`                                 | Mean `Δ` across the cases with a comparison; absent when none had one                                                    |
@@ -338,14 +338,14 @@ reading the suite and not loaded, and the rest of the suite still runs.
   grants `Bash`, because every Stigmer tool list reads a specifier that way.
   Each try runs in a fresh Workspace of its own.
 - **A platform failure is not graded, never 0.** A try that Stigmer could not
-  run or grade, such as one refused for lack of credit, one that waited too long
-  for capacity ("platform busy"), or a judge that failed, is left out of every
-  mean and named on the try. So is a try that would start after the plugin was
-  updated during the eval: it is not graded, with the reason "the plugin was
-  updated during the eval", and the case carries a note, because the try would
-  have measured another version. Claude Code scores such runs 0. A failure of
-  the Agent itself, such as a timeout or the turn cap, is graded on what the run
-  produced, as Claude Code does.
+  run or grade, such as one refused because the Organization has no key for its
+  model, one that waited too long for capacity ("platform busy"), or a judge
+  that failed, is left out of every mean and named on the try. So is a try that
+  would start after the plugin was updated during the eval: it is not graded,
+  with the reason "the plugin was updated during the eval", and the case carries
+  a note, because the try would have measured another version. Claude Code
+  scores such runs 0. A failure of the Agent itself, such as a timeout or the
+  turn cap, is graded on what the run produced, as Claude Code does.
 - **A denied `Skill` hides Skills; an allow-list without `Skill` keeps them.** A
   case whose `allowed_tools` leaves out `Skill` runs with `Skill` denied, so the
   try cannot load the plugin's Skills, as in Claude Code. `Grep` and `Glob` are

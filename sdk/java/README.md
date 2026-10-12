@@ -75,7 +75,7 @@ Every resource type has a typed client exposed as a public final field on
 | `skill`                  | Skill              |
 | `vault`                  | Vault              |
 | `search()`               | Cross-resource search |
-| `billing()`              | Credit balance, ledger, and Stripe billing |
+| `billing()`              | Billing account, Stripe, usage counts, model catalog |
 
 A vault's entries are written through its entry calls, not through `create`
 or `update`: `client.vault.setSecrets`, `setConnection`, `removeSecrets` and
@@ -143,27 +143,36 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
 
 ## Billing
 
-Credit balance queries, ledger history, and manual credit adjustments for an
-organization. Queries require `can_view_billing` on the org and the org's own
-billing commands require `can_manage_billing`. Adding or removing credits
-without a purchase (`adjustCredits`, `grantCredits`) requires
-`can_manage_credits` on the platform, held by platform operators and by the
-funding identities Stigmer makes credit issuers:
+An organization's billing account (its Stripe customer), the Stripe portal
+and card setup sessions, and the usage meter's run and call counts. Queries
+require `can_view_billing` on the org and the org's own billing commands
+require `can_manage_billing`. The model catalog methods
+(`listModelPricingBaselines`, `upsertModelPricingBaseline`,
+`retireModelPricingBaseline`) require `can_manage_model_pricing` on the
+platform:
 
 ```java
 import ai.stigmer.sdk.BillingClient;
-import ai.stigmer.billing.v1.CreditBalance;
-import ai.stigmer.billing.v1.CreditLedgerEntry;
+import ai.stigmer.billing.v1.BillingAccount;
+import ai.stigmer.billing.v1.BillingUsageReportResponse;
+import ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse;
+import java.time.Instant;
 
 try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
-    CreditBalance balance = client.billing().getCreditBalance(org);
+    BillingAccount account = client.billing().getBillingAccount(org);
 
-    CreditLedgerEntry entry = client.billing().adjustCredits(
-        BillingClient.AdjustCreditsParams.builder()
+    CreatePaymentMethodSetupSessionResponse setup = client.billing().createPaymentMethodSetupSession(
+        BillingClient.CreatePaymentMethodSetupSessionParams.builder()
             .org(org)
-            .amountMicros(25_000_000L) // +$25.00
-            .reason("support credit for an outage")
-            .idempotencyKey("support-" + org + "-2026-09")
+            .successUrl("https://example.com/billing?setup=success")
+            .cancelUrl("https://example.com/billing")
+            .build());
+
+    BillingUsageReportResponse report = client.billing().getBillingUsageReport(
+        BillingClient.GetBillingUsageReportParams.builder()
+            .org(org)
+            .startTime(Instant.parse("2026-10-01T00:00:00Z"))
+            .endTime(Instant.parse("2026-11-01T00:00:00Z"))
             .build());
 }
 ```

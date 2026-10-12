@@ -523,10 +523,11 @@ export function buildApprovalGrants(
   return grants;
 }
 
-/** A call a person skipped or rejected this run: what they decided, and the tool as the row named it. */
+/** A call a person skipped or rejected this run: what they decided, the tool as the row named it, and the reason they gave (`""` for none). */
 export interface PersonRefusal {
   readonly action: "skip" | "reject";
   readonly toolName: string;
+  readonly comment: string;
 }
 
 /**
@@ -542,12 +543,17 @@ export function buildPersonRefusals(
   decisions: ReadonlyMap<string, ApprovalAction>,
   contentDigests?: Map<string, string>,
   hookAsked: ReadonlySet<string> = new Set(),
+  denyMessages: ReadonlyMap<string, string> = new Map(),
 ): Map<string, PersonRefusal> {
   const refusals = new Map<string, PersonRefusal>();
   for (const pa of pendingApprovals) {
     const decision = decisions.get(pa.toolCallId);
     if (decision !== ApprovalAction.REJECT && decision !== ApprovalAction.SKIP) continue;
-    const refusal: PersonRefusal = { action: decision === ApprovalAction.SKIP ? "skip" : "reject", toolName: pa.toolName };
+    const refusal: PersonRefusal = {
+      action: decision === ApprovalAction.SKIP ? "skip" : "reject",
+      toolName: pa.toolName,
+      comment: denyMessages.get(pa.toolCallId) ?? "",
+    };
     const id = toolIdentity(pa.toolName, pa.mcpServerSlug, parseArgs(pa.argsPreview));
     const digest = contentDigests?.get(pa.toolCallId) ?? "";
     refusals.set(primaryToken(id.key, id.salient, digest), refusal);
@@ -1011,9 +1017,10 @@ export async function removeActiveTurnPointer(gateDir: string): Promise<void> {
  * (PendingApprovalComputer) and CLEARS entries once they carry an approval_action,
  * so by the time the workflow reinvokes this activity, pending_approvals is empty
  * and the decision survives only on the tool call (status WAITING_APPROVAL +
- * approval_action set). The runtime reads the same rows for the decisions
- * themselves (`harness/approval-decisions.ts` `approvalDecisionsOf`, on
- * `TurnInput.approvalDecisions`, for every harness); this reader exists for
+ * approval_action set). The runtime reads the decisions themselves from the
+ * answers on the session's log, mapped onto the same rows
+ * (`harness/approval-answers.ts`, on `TurnInput.approvalDecisions`, for every
+ * harness); the server stamps the row in the same write. This reader exists for
  * the two facts only this harness needs beside them — the pending-approval
  * protos the grant and prompt builders take, and the content digests for the
  * exact grant — and a test pins the two readers' agreement.

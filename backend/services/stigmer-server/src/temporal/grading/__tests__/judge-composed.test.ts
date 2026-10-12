@@ -82,7 +82,6 @@ import {
   JUDGE_COST_CAP_REASON,
   JUDGE_LIMIT_REACHED_REASON,
   JUDGE_NOT_STARTED_REASON,
-  JUDGE_OUT_OF_CREDIT_REASON,
   JUDGE_RUN_FAILED_REASON,
   JUDGE_SOURCE_REFUSED_MESSAGE,
   JUDGE_UNREADABLE_REASON,
@@ -632,11 +631,17 @@ describe("the judge's activities", () => {
     });
   }
 
-  it("answer a credit refusal as out of credit and any other refusal as not started", async () => {
+  it("answer every refusal, a keyless organization's FAILED_PRECONDITION among them, as not started", async () => {
     const agentId = await newAgent();
     await newEvaluator(agentId);
     for (const [refusal, reason] of [
-      [new ConnectError("Insufficient credits to start execution", Code.FailedPrecondition), JUDGE_OUT_OF_CREDIT_REASON],
+      [
+        new ConnectError(
+          "This organization has no Anthropic key for model 'claude-sonnet-4-5', so the run was not started. An admin can add one in Settings → Provider keys.",
+          Code.FailedPrecondition,
+        ),
+        JUDGE_NOT_STARTED_REASON,
+      ],
       [new ConnectError("organization is being deleted", Code.PermissionDenied), JUDGE_NOT_STARTED_REASON],
     ] as const) {
       const runId = (await seedRun({ agentId })).metadata!.id;

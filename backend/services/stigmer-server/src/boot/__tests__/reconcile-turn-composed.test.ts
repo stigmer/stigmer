@@ -9,7 +9,11 @@
  * refuses the create as Unavailable; the undo stands, the reply names no
  * turn, and the refusal is logged as the decision core logs a refused
  * create (domain/session/filereview/decide.ts). What the chain admits is
- * pinned in the run create suites.
+ * pinned in the run create suites. A turn that waits, has an undo decided,
+ * and is then failed by its workflow without running again hands its
+ * reconcile turn to the same chain, through the stopped-turn observer the
+ * composition root composes beside the grading observer
+ * (domain/session/filereview/stopped-turn.ts).
  *
  * The calls ride the in-process transport, as the server acting as itself,
  * so no sign-in is needed.
@@ -74,7 +78,7 @@ describe("the composed reconcile turn", () => {
   });
 
   /** An ended turn of `sessionId` with one captured change set, `<id>:1`, stored as the create chain stores it. */
-  async function seedEndedTurn(id: string, sessionId: string) {
+  async function seedEndedTurn(id: string, sessionId: string, phase = RunPhase.RUN_COMPLETED) {
     const seed = fileReviewSeed(id, `${id}:1`);
     await createRunAppendingEvents(
       {
@@ -89,7 +93,7 @@ describe("the composed reconcile turn", () => {
           target: { case: "sessionId", value: sessionId },
           message: `edit in ${id}`,
         },
-        status: { ...seed.status, phase: RunPhase.RUN_COMPLETED },
+        status: { ...seed.status, phase },
       }),
     );
     return seed;
@@ -151,6 +155,28 @@ describe("the composed reconcile turn", () => {
     expect(await decisionsOf("run_run_undo")).toEqual([
       FileDecisionAction.REJECT,
     ]);
+    expect(refusalsLogged() - before).toBe(1);
+  });
+
+  it("a waiting turn with an undo that its workflow fails hands its reconcile turn to the same chain", async () => {
+    const seed = await seedEndedTurn("run_stopped_undo", "ses_stopped_undo", RunPhase.RUN_WAITING_FOR_APPROVAL);
+    const session = createClient(SessionCommandController, server.inProcessTransport);
+    const response = await session.reviewFileChanges({
+      sessionId: "ses_stopped_undo",
+      changeSetId: "run_stopped_undo:1",
+      scope: "change_set",
+      action: "undo",
+      expectedDigest: seed.aggregate,
+    });
+    expect(response.reconcileRunId, "a turn still unfinished starts none").toBe("");
+    const before = refusalsLogged();
+
+    // The workflow's failure write after its approval cycles run out.
+    await createClient(RunCommandController, server.inProcessTransport).updateStatus({
+      runId: "run_stopped_undo",
+      status: { phase: RunPhase.RUN_FAILED, error: "approval cycles exhausted" },
+    });
+
     expect(refusalsLogged() - before).toBe(1);
   });
 });

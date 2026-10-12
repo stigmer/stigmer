@@ -36,7 +36,7 @@ import {
   captureRunnerSecrets,
   getRunnerSecret,
 } from "./shared/runner-credential-store.js";
-import { initTracing, initMetrics } from "./otel.js";
+import { initTracing, initMetrics, startRunnerTelemetry } from "./otel.js";
 import { createStigmerRunner } from "./runner.js";
 import { createStigmerRunnerManager } from "./runner-manager.js";
 import type { StigmerRunnerManager } from "./runner-manager.js";
@@ -78,7 +78,14 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
   };
 
   let manager: StigmerRunnerManager;
+  // The manager is the runner's own process (the CLI and the desktop app
+  // start it), so it owns its telemetry as the other modes do; a setting
+  // the standard does not name is the same fatal error as any other.
+  /* v8 ignore start -- @preserve: manager mode's process boundary, driven over IPC by test/conformance's runner-ipc harness; startRunnerTelemetry is otel.ts's, tested there */
+  let flushTelemetry: (() => Promise<void>) | null = null;
   try {
+    flushTelemetry = await startRunnerTelemetry("stigmer-runner");
+    /* v8 ignore stop */
     manager = await createStigmerRunnerManager({
       temporalAddress: config.temporalAddress,
       temporalNamespace: config.temporalNamespace,
@@ -103,6 +110,16 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
     });
     process.exit(1);
   }
+
+  /* v8 ignore start -- @preserve: manager mode's process boundary (above) */
+  // Every way the manager stops (the shutdown command, stdin closing) flushes
+  // its telemetry after its workers have drained.
+  const shutdownWorkers = manager.shutdown.bind(manager);
+  manager.shutdown = async () => {
+    await shutdownWorkers();
+    await flushTelemetry?.();
+  };
+  /* v8 ignore stop */
 
   sendIpc(buildReadyMessage());
 

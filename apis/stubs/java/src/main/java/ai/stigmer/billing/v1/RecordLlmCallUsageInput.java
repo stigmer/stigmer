@@ -8,8 +8,8 @@ package ai.stigmer.billing.v1;
 /**
  * <pre>
  * RecordLlmCallUsageInput carries proxy-observed data for a single LLM call.
- * The billing service computes cost server-side from the model registry —
- * the caller never provides cost figures.
+ * The billing service resolves the call against the model catalog and
+ * records what it was; no cost figure is sent or recorded.
  *
  * Deduplication identity: `call_id` when the caller supplies one, else
  * `sequence`. A report that is redelivered under the same identity records
@@ -606,7 +606,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Harness that originated this call ("native" or "cursor").
    * Set by the proxy controller based on which proxy path handled the request.
-   * When empty, the billing handler falls back to the model pricing registry.
+   * When empty, the billing handler falls back to the model catalog.
    * </pre>
    *
    * <code>string harness = 14 [json_name = "harness"];</code>
@@ -629,7 +629,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Harness that originated this call ("native" or "cursor").
    * Set by the proxy controller based on which proxy path handled the request.
-   * When empty, the billing handler falls back to the model pricing registry.
+   * When empty, the billing handler falls back to the model catalog.
    * </pre>
    *
    * <code>string harness = 14 [json_name = "harness"];</code>
@@ -782,7 +782,7 @@ private static final long serialVersionUID = 0L;
    * Whose provider credential the proxy injected upstream for this call,
    * stamped verbatim onto the usage record (the proxy holds the fact).
    * ORGANIZATION means the organization's own provider key served the
-   * call: it is recorded and priced for visibility, and never debited.
+   * call, which is recorded and never charged.
    * PLATFORM means a connection the platform provides served it.
    * UNSPECIFIED from a proxy that predates the field.
    * </pre>
@@ -798,7 +798,7 @@ private static final long serialVersionUID = 0L;
    * Whose provider credential the proxy injected upstream for this call,
    * stamped verbatim onto the usage record (the proxy holds the fact).
    * ORGANIZATION means the organization's own provider key served the
-   * call: it is recorded and priced for visibility, and never debited.
+   * call, which is recorded and never charged.
    * PLATFORM means a connection the platform provides served it.
    * UNSPECIFIED from a proxy that predates the field.
    * </pre>
@@ -1162,8 +1162,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * RecordLlmCallUsageInput carries proxy-observed data for a single LLM call.
-   * The billing service computes cost server-side from the model registry —
-   * the caller never provides cost figures.
+   * The billing service resolves the call against the model catalog and
+   * records what it was; no cost figure is sent or recorded.
    *
    * Deduplication identity: `call_id` when the caller supplies one, else
    * `sequence`. A report that is redelivered under the same identity records
@@ -2836,7 +2836,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Harness that originated this call ("native" or "cursor").
      * Set by the proxy controller based on which proxy path handled the request.
-     * When empty, the billing handler falls back to the model pricing registry.
+     * When empty, the billing handler falls back to the model catalog.
      * </pre>
      *
      * <code>string harness = 14 [json_name = "harness"];</code>
@@ -2858,7 +2858,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Harness that originated this call ("native" or "cursor").
      * Set by the proxy controller based on which proxy path handled the request.
-     * When empty, the billing handler falls back to the model pricing registry.
+     * When empty, the billing handler falls back to the model catalog.
      * </pre>
      *
      * <code>string harness = 14 [json_name = "harness"];</code>
@@ -2881,7 +2881,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Harness that originated this call ("native" or "cursor").
      * Set by the proxy controller based on which proxy path handled the request.
-     * When empty, the billing handler falls back to the model pricing registry.
+     * When empty, the billing handler falls back to the model catalog.
      * </pre>
      *
      * <code>string harness = 14 [json_name = "harness"];</code>
@@ -2900,7 +2900,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Harness that originated this call ("native" or "cursor").
      * Set by the proxy controller based on which proxy path handled the request.
-     * When empty, the billing handler falls back to the model pricing registry.
+     * When empty, the billing handler falls back to the model catalog.
      * </pre>
      *
      * <code>string harness = 14 [json_name = "harness"];</code>
@@ -2916,7 +2916,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Harness that originated this call ("native" or "cursor").
      * Set by the proxy controller based on which proxy path handled the request.
-     * When empty, the billing handler falls back to the model pricing registry.
+     * When empty, the billing handler falls back to the model catalog.
      * </pre>
      *
      * <code>string harness = 14 [json_name = "harness"];</code>
@@ -3300,7 +3300,7 @@ private static final long serialVersionUID = 0L;
      * Whose provider credential the proxy injected upstream for this call,
      * stamped verbatim onto the usage record (the proxy holds the fact).
      * ORGANIZATION means the organization's own provider key served the
-     * call: it is recorded and priced for visibility, and never debited.
+     * call, which is recorded and never charged.
      * PLATFORM means a connection the platform provides served it.
      * UNSPECIFIED from a proxy that predates the field.
      * </pre>
@@ -3316,7 +3316,7 @@ private static final long serialVersionUID = 0L;
      * Whose provider credential the proxy injected upstream for this call,
      * stamped verbatim onto the usage record (the proxy holds the fact).
      * ORGANIZATION means the organization's own provider key served the
-     * call: it is recorded and priced for visibility, and never debited.
+     * call, which is recorded and never charged.
      * PLATFORM means a connection the platform provides served it.
      * UNSPECIFIED from a proxy that predates the field.
      * </pre>
@@ -3337,7 +3337,7 @@ private static final long serialVersionUID = 0L;
      * Whose provider credential the proxy injected upstream for this call,
      * stamped verbatim onto the usage record (the proxy holds the fact).
      * ORGANIZATION means the organization's own provider key served the
-     * call: it is recorded and priced for visibility, and never debited.
+     * call, which is recorded and never charged.
      * PLATFORM means a connection the platform provides served it.
      * UNSPECIFIED from a proxy that predates the field.
      * </pre>
@@ -3355,7 +3355,7 @@ private static final long serialVersionUID = 0L;
      * Whose provider credential the proxy injected upstream for this call,
      * stamped verbatim onto the usage record (the proxy holds the fact).
      * ORGANIZATION means the organization's own provider key served the
-     * call: it is recorded and priced for visibility, and never debited.
+     * call, which is recorded and never charged.
      * PLATFORM means a connection the platform provides served it.
      * UNSPECIFIED from a proxy that predates the field.
      * </pre>
@@ -3376,7 +3376,7 @@ private static final long serialVersionUID = 0L;
      * Whose provider credential the proxy injected upstream for this call,
      * stamped verbatim onto the usage record (the proxy holds the fact).
      * ORGANIZATION means the organization's own provider key served the
-     * call: it is recorded and priced for visibility, and never debited.
+     * call, which is recorded and never charged.
      * PLATFORM means a connection the platform provides served it.
      * UNSPECIFIED from a proxy that predates the field.
      * </pre>

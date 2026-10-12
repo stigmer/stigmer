@@ -1,12 +1,12 @@
-// Public lane conformance — /api/v1/public/{model-registry, model-pricing,
-// leads/contact-sales}, the endpoints the marketing site calls without
-// credentials (Class A). The rows were first read from the retired Java
+// Public lane conformance — /api/v1/public/{model-registry,
+// leads/contact-sales}, the endpoints the marketing site and every
+// open-source install call without credentials (Class A). The rows were first read from the retired Java
 // service's behavior, and the composition is held to them.
 // Domain: public REST lane.
 //
 // The site-facing contract is carved out as byte-identical: the
-// contact-sales validation limits and error copy, the response envelope, the
-// pricing entry fields the PricingPage reads. This suite pins those bytes;
+// contact-sales validation limits and error copy and the response envelope.
+// This suite pins those bytes;
 // everything else it asserts as behavior.
 //
 // The Discord side runs against the run's fake webhook receiver
@@ -106,27 +106,6 @@ describe.skipIf(!publicServed)("Public lane conformance — the marketing site's
     }
   });
 
-  it("[public.model-pricing.entries-shape-sorted-with-markup] [public.model-pricing.site-reads-entries] model pricing answers {entries:[...]} with the PricingPage's fields, sorted", async () => {
-    const response = await fetch(`${baseUrl}/api/v1/public/model-pricing`);
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as { entries: Array<Record<string, unknown>> };
-    expect(Array.isArray(body.entries)).toBe(true);
-    expect(body.entries.length, "the seeded baseline prices at least one model").toBeGreaterThan(0);
-    const required = [
-      "modelId", "displayName", "provider", "harness", "costTier",
-      "inputPriceMicrosPerMillion", "outputPriceMicrosPerMillion",
-      "cacheCreationPriceMicrosPerMillion", "cacheReadPriceMicrosPerMillion",
-      "pricingPolicyId", "markupBasisPoints", "variants",
-    ];
-    for (const entry of body.entries) {
-      for (const field of required) expect(entry, `entry ${String(entry["modelId"])} carries ${field}`).toHaveProperty(field);
-    }
-    const sortKey = (e: Record<string, unknown>): string =>
-      [e["harness"], e["costTier"], e["provider"], e["modelId"]].map(String).join("\u0000");
-    const keys = body.entries.map(sortKey);
-    expect(keys, "sorted by harness, costTier, provider, modelId").toEqual([...keys].sort());
-  });
-
   it("[public.leads.valid-submission-201-and-discord-embed] [public.leads.site-request-shape] a valid site submission answers 201 success and posts one embed with the lead's fields", async () => {
     const { status, json } = await submit(siteSubmission());
     expect(status).toBe(201);
@@ -197,11 +176,11 @@ describe.skipIf(!publicServed)("Public lane conformance — the marketing site's
 
   it("[public.cors.allow-list-and-methods] [public.edge.public-paths-anonymous] the allow-listed origins get CORS headers and the lane is anonymous while the proxy lane on the same listener is not", async () => {
     for (const origin of ["https://stigmer.ai", "https://www.stigmer.ai", "http://localhost:3000"]) {
-      const response = await fetch(`${baseUrl}/api/v1/public/model-pricing`, { headers: { origin } });
+      const response = await fetch(`${baseUrl}/api/v1/public/model-registry`, { headers: { origin } });
       expect(response.status).toBe(200);
       expect(response.headers.get("access-control-allow-origin"), origin).toBe(origin);
     }
-    const foreign = await fetch(`${baseUrl}/api/v1/public/model-pricing`, { headers: { origin: "https://evil.example" } });
+    const foreign = await fetch(`${baseUrl}/api/v1/public/model-registry`, { headers: { origin: "https://evil.example" } });
     expect(foreign.headers.get("access-control-allow-origin")).toBeNull();
     if (target.proxyBaseUrl !== undefined) {
       const anonymousProxy = await fetch(`${target.proxyBaseUrl()}/v1/proxy/model-registry`);

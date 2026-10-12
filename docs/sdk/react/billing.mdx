@@ -13,9 +13,9 @@ Data hook that fetches the billing account for an organization.
 
 Calls `billing.getOrCreateBillingAccount` which is idempotent —
 creates the account on first call, returns the existing account
-on subsequent calls. The returned `BillingAccount` includes
-the embedded `CreditBalance` with available, reserved,
-promotional, and purchased breakdowns.
+on subsequent calls. The returned `BillingAccount` is the
+organization's billing customer: its status and the card on file
+that plan invoices are charged to.
 
 Pass `null` as `org` to skip fetching (stable no-op).
 
@@ -51,16 +51,17 @@ if (isLoading) return <Skeleton />;
 if (error) return <ErrorMessage error={error} />;
 if (!account) return null;
 
-return <div>Balance: {formatCreditBalance(account.balance?.availableMicros)}</div>;
+return <div>Card: {account.defaultPaymentMethod?.last4 ?? "none"}</div>;
 ```
 
 
 ### useBillingUsageReport
 
-Data hook that fetches an aggregated billing usage report for a date range.
+Data hook that fetches the meter's counts for a date range.
 
-Returns total provider cost, total billable amount, run and LLM
-call counts, and a per-model breakdown with cost tier attribution.
+Returns the run and LLM call counts, and per model the model, its
+harness and its call count. The meter records what each call was and
+never what it cost.
 
 Pass `null` as `org` to skip fetching (stable no-op).
 
@@ -100,7 +101,7 @@ const { report, isLoading } = useBillingUsageReport(
 if (isLoading) return <Skeleton />;
 if (!report) return null;
 
-return <div>Total: {formatCreditBalance(report.totalBillableAmountMicros)}</div>;
+return <div>{report.llmCallCount} calls across {report.runCount} runs</div>;
 ```
 
 
@@ -193,53 +194,6 @@ const { openPortal, isLoading } = useCreateBillingPortalSession();
 ```
 
 
-### useCreateCheckoutSession
-
-Behavior hook that creates a Stripe Checkout Session for credit
-pack purchases.
-
-Wraps `billing.createCreditCheckoutSession` with loading and error
-state management. On success, redirects the user to the Stripe-hosted
-checkout page. Credits are provisioned asynchronously via webhook
-after payment succeeds.
-
-**Signature**
-
-```tsx
-function useCreateCheckoutSession(redirect?: BillingRedirect): UseCreateCheckoutSessionReturn
-```
-
-<TypeTable
-  type={{
-    redirect: { type: "BillingRedirect", description: "" },
-  }}
-/>
-
-**Returns** — `UseCreateCheckoutSessionReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    createSession: { type: "(input: CreateCheckoutSessionInput) => Promise<CreateCreditCheckoutSessionResponse>", description: "Create a Stripe Checkout Session and redirect the user.  On success, leaves for the Stripe-hosted checkout page: through the hook's `redirect.openUrl` when given, else by navigating this window. The promise resolves with the response before the redirect occurs, allowing callers to perform cleanup if needed." },
-    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
-    isSubmitting: { type: "boolean", description: "`true` while the checkout session is being created." },
-  }}
-/>
-
-```tsx
-const { createSession, isSubmitting, error } = useCreateCheckoutSession();
-
-const handleBuy = () => {
-  createSession({
-    org,
-    packId: "growth",
-    successUrl: `${window.location.origin}/settings/billing?checkout=success`,
-    cancelUrl: `${window.location.origin}/settings/billing`,
-  });
-};
-```
-
-
 ### useCreatePaymentMethodSetupSession
 
 Behaviour hook that saves a payment method through a Stripe-hosted setup
@@ -271,98 +225,6 @@ function useCreatePaymentMethodSetupSession(redirect?: BillingRedirect): UseCrea
     isSubmitting: { type: "boolean", description: "`true` while the setup session is being created." },
   }}
 />
-
-
-### useCreditLedger
-
-Data hook that fetches paginated credit ledger entries for an organization.
-
-Calls `billing.getCreditLedger` with optional pagination and type
-filtering. Returns the entries and total page count for building
-pagination controls.
-
-Pass `null` as `org` to skip fetching (stable no-op).
-
-**Signature**
-
-```tsx
-function useCreditLedger(org: string | null, options: UseCreditLedgerOptions): UseCreditLedgerReturn
-```
-
-<TypeTable
-  type={{
-    org: { type: "string | null", description: "Organization ID, or `null` to skip.", required: true },
-    options: { type: "UseCreditLedgerOptions", description: "Pagination and filter options.", required: true },
-  }}
-/>
-
-**Returns** — `UseCreditLedgerReturn`
-
-<TypeTable
-  type={{
-    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
-    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
-    ledger: { type: "CreditLedgerResponse | null", description: "The ledger response, or `null` before the first successful fetch." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
-  }}
-/>
-
-```tsx
-const { ledger, isLoading } = useCreditLedger(org, { pageNum: 1 });
-
-if (isLoading) return <Skeleton />;
-if (!ledger) return null;
-
-return ledger.entries.map(entry => <LedgerRow key={entry.entryId} entry={entry} />);
-```
-
-
-### useCustomerModelPricing
-
-Data hook that fetches the customer-facing model price list.
-
-Returns per-million-token prices for all billable models with
-billing policy markup already applied, organized by harness
-and cost tier.
-
-Pass `null` as `org` to skip fetching (stable no-op).
-Pass `undefined` to fetch default pricing (no org override).
-
-**Signature**
-
-```tsx
-function useCustomerModelPricing(org: string | null | undefined): UseCustomerModelPricingReturn
-```
-
-<TypeTable
-  type={{
-    org: { type: "string | null | undefined", description: "Organization ID for org-specific overrides,   `undefined` for default pricing, or `null` to skip.", required: true },
-  }}
-/>
-
-**Returns** — `UseCustomerModelPricingReturn`
-
-<TypeTable
-  type={{
-    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
-    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
-    pricing: { type: "CustomerModelPricingResponse | null", description: "The pricing response, or `null` before the first successful fetch." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
-  }}
-/>
-
-```tsx
-const { pricing, isLoading } = useCustomerModelPricing(org);
-
-if (isLoading) return <Skeleton />;
-if (!pricing) return null;
-
-return pricing.entries.map(entry => (
-  <PricingRow key={entry.modelId} entry={entry} />
-));
-```
 
 
 ### useEntitlements
@@ -413,12 +275,11 @@ if (allows(Feature.teams) === false) return <UpgradeNotice feature={Feature.team
 Data hook that estimates what an organization's current subscription
 period will be invoiced.
 
-The estimate is the invoice the period would close with if no further
-usage occurred: the plan's minimum for the whole period (or its share of
-the period's provider cost, whichever is greater), less the commission
-already collected on tokens, plus child organizations beyond those
-included. The server rates it by the same rule the monthly close
-invoices by, so it agrees with the invoice to the cent.
+The estimate is the invoice the period would close with if nothing else
+changed: the plan's monthly fee for the whole period, plus the child
+organizations beyond those included. The server rates it by the same
+rule the monthly close invoices by, so it agrees with the invoice to the
+cent.
 
 The server answers NOT_FOUND when nothing is live to invoice (Free, or a
 child organization), so enable it only while a subscription is live.
@@ -558,44 +419,6 @@ const { keys } = useProviderKeys(org);
 ```
 
 
-### useSetAutoRechargeConfig
-
-Behavior hook for configuring auto-recharge settings.
-
-Wraps `billing.setAutoRechargeConfig` with loading and error state
-management. Returns the updated `BillingAccount` on success so the
-parent can refresh its cached data.
-
-**Signature**
-
-```tsx
-function useSetAutoRechargeConfig(): UseSetAutoRechargeConfigReturn
-```
-
-**Returns** — `UseSetAutoRechargeConfigReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
-    isSubmitting: { type: "boolean", description: "`true` while the configuration is being saved." },
-    setConfig: { type: "(input: SetAutoRechargeConfigInput) => Promise<BillingAccount>", description: "Save auto-recharge configuration. Returns the updated BillingAccount on success." },
-  }}
-/>
-
-```tsx
-const { setConfig, isSubmitting, error } = useSetAutoRechargeConfig();
-
-await setConfig({
-  org,
-  enabled: true,
-  thresholdMicros: BigInt(5_000_000),
-  rechargeAmountMicros: BigInt(50_000_000),
-  monthlyCapMicros: BigInt(200_000_000),
-});
-```
-
-
 ### useSubscription
 
 Data hook that reads an organization's subscription.
@@ -641,65 +464,29 @@ const { subscription } = useSubscription(org);
 
 ## Components
 
-### AutoRechargeCard
-
-Auto-recharge configuration card for the billing settings page.
-
-Shows a toggle to enable/disable auto-recharge, with input fields
-for threshold, recharge amount, and monthly cap. Displays a
-disabled state with an explanatory message when no payment method
-is on file. Validates inputs client-side before submitting.
-
-**Props** — `AutoRechargeCardProps`
-
-<TypeTable
-  type={{
-    accountStatus: { type: "BillingAccountStatus", description: "Account status — config disabled when suspended or closed.", required: true },
-    autoRecharge: { type: "AutoRechargeConfig", description: "Current auto-recharge configuration from the billing account." },
-    className: { type: "string", description: "Additional CSS class names." },
-    hasPaymentMethod: { type: "boolean", description: "Whether the account has a saved payment method.", required: true },
-    onSaved: { type: "() => void", description: "Called after a successful save so the parent can refresh account data." },
-    org: { type: "string", description: "Organization ID.", required: true },
-  }}
-/>
-
-```tsx
-<AutoRechargeCard
-  org={org}
-  autoRecharge={account.autoRecharge}
-  hasPaymentMethod={!!account.defaultPaymentMethod?.paymentMethodId}
-  accountStatus={account.status}
-  onSaved={refetch}
-/>
-```
-
-
 ### BillingSection
 
 Top-level billing settings section.
 
-Composes the billing sub-components into a cohesive settings page:
-low-balance warning, checkout success banner, credit balance display,
-credit pack purchase grid, and transaction history. Handles the
-deployment mode gate (billing unavailable in local mode) and the
-org-not-selected state.
+Composes the plan (its price, standing and the period's estimated
+invoice) and the card on file, which opens Stripe's billing portal for
+invoices. Handles the deployment mode gate (billing unavailable in local
+mode) and the org-not-selected state.
 
 **Props** — `BillingSectionProps`
 
 <TypeTable
   type={{
-    checkoutSuccess: { type: "boolean", description: "Whether a checkout just completed (e.g., `?checkout=success`).  When `true`, an optimistic banner is shown indicating that credits will appear shortly. This prop is typically driven by the host application's URL query parameters." },
     className: { type: "string", description: "Additional CSS class names." },
-    onDismissCheckoutSuccess: { type: "() => void", description: "Callback to dismiss the checkout success banner." },
     onResumeHandled: { type: "() => void", description: "Called once the resumed plan choice is taken up, so the host can clear its query." },
-    redirect: { type: "BillingRedirect", description: "The host's seam for Stripe-hosted pages (checkout, card setup and the billing portal). Absent, this window navigates to them and Stripe returns to this origin's `/settings/billing`. A desktop host opens the system browser and names the web console's billing page instead; its reads refresh when the window regains focus.", typeDescriptionLink: "#billingredirect" },
+    redirect: { type: "BillingRedirect", description: "The host's seam for Stripe-hosted pages (card setup and the billing portal). Absent, this window navigates to them and Stripe returns to this origin's `/settings/billing`. A desktop host opens the system browser and names the web console's billing page instead; its reads refresh when the window regains focus.", typeDescriptionLink: "#billingredirect" },
     resumePlanId: { type: "string", description: "The plan the person was choosing when they left to save a card: the `plan` query Stripe returns with after `?setup=success`. The plan section reopens that choice for an explicit confirm." },
   }}
 />
 
 ```tsx
-// In a settings page:
-<BillingSection checkoutSuccess={searchParams.checkout === "success"} />
+// In a settings page, resuming the plan a saved card was for:
+<BillingSection resumePlanId={searchParams.plan} />
 ```
 
 
@@ -727,108 +514,6 @@ nothing. Without a saved card it offers the card page first.
     planName: { type: "(planId: string) => string", description: "The display name of a plan by id, for the plan being left.", required: true },
   }}
 />
-
-
-### CreditBalanceCard
-
-Prominent display of the organization's available credit balance.
-
-Shows the total available balance as the primary figure, with
-a secondary breakdown of promotional vs. purchased credits and
-any reserved amount. Uses semantic colors to indicate balance
-health: green for healthy, amber for low, red for zero/negative.
-
-**Props** — `CreditBalanceCardProps`
-
-<TypeTable
-  type={{
-    balance: { type: "CreditBalance", description: "The credit balance breakdown from the billing account.", required: true },
-    className: { type: "string", description: "Additional CSS class names." },
-    isLowBalance: { type: "boolean", description: "Whether the balance is below the low-balance threshold." },
-  }}
-/>
-
-```tsx
-<CreditBalanceCard balance={account.balance} isLowBalance={isLow} />
-```
-
-
-### CreditLedgerTable
-
-Paginated transaction history table showing credit ledger entries.
-
-Displays entries with type badges, signed amounts, and running
-balance. Supports pagination with simple prev/next controls.
-Uses semantic colors: green for credits, red for debits, gray
-for holds and releases.
-
-**Props** — `CreditLedgerTableProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names." },
-    org: { type: "string", description: "Organization ID to fetch ledger entries for.", required: true },
-  }}
-/>
-
-```tsx
-<CreditLedgerTable org={activeOrg.metadata.id} />
-```
-
-
-### CreditPackGrid
-
-Grid of credit pack cards with purchase buttons.
-
-Displays the 3 self-serve credit packs (Starter, Growth, Scale)
-in a responsive grid. Each card shows the pack name, price,
-credit count, and a buy button. Buttons are disabled when the
-account is suspended/closed or a purchase is in progress.
-
-**Props** — `CreditPackGridProps`
-
-<TypeTable
-  type={{
-    accountStatus: { type: "BillingAccountStatus", description: "Account status — purchases disabled when suspended or closed.", required: true },
-    className: { type: "string", description: "Additional CSS class names." },
-    onPurchase: { type: "(packId: string) => void", description: "Called when the user clicks a pack's buy button.", required: true },
-    purchasingPackId: { type: "string | null", description: "ID of the pack currently being purchased (shows loading state)." },
-  }}
-/>
-
-```tsx
-<CreditPackGrid
-  accountStatus={account.status}
-  purchasingPackId={isSubmitting ? activePackId : null}
-  onPurchase={(packId) => createSession({ org, packId, ... })}
-/>
-```
-
-
-### LowBalanceBanner
-
-Conditional banner that warns when the available credit balance
-is below the configured threshold.
-
-Renders nothing when the balance is healthy. Not dismissible —
-it reflects a real account state that the user should address.
-
-**Props** — `LowBalanceBannerProps`
-
-<TypeTable
-  type={{
-    availableMicros: { type: "bigint", description: "Available balance in micro-USD.", required: true },
-    className: { type: "string", description: "Additional CSS class names." },
-    thresholdMicros: { type: "bigint", description: "Threshold in micro-USD below which the warning is shown.", required: true },
-  }}
-/>
-
-```tsx
-<LowBalanceBanner
-  availableMicros={account.balance.availableMicros}
-  thresholdMicros={account.lowBalanceThresholdMicros}
-/>
-```
 
 
 ### PaymentMethodCard
@@ -1031,43 +716,6 @@ The host's seam for leaving the app to a Stripe-hosted page.
 />
 
 
-### CreateCheckoutSessionInput
-
-Parameters for [`useCreateCheckoutSession`](#usecreatecheckoutsession)'s `createSession` callback.
-
-<TypeTable
-  type={{
-    cancelUrl: { type: "string", description: "URL to redirect to if the user cancels checkout.", required: true },
-    org: { type: "string", description: "Organization purchasing credits.", required: true },
-    packId: { type: "string", description: "Credit pack to purchase: its id, e.g. \"starter\", \"growth\" or \"team\" (the pack named Scale).", required: true },
-    successUrl: { type: "string", description: "URL to redirect to after successful payment.", required: true },
-  }}
-/>
-
-
-### CREDIT_PACKS
-
-Static credit pack catalog matching the backend `CreditPackCatalog`.
-
-Packs are static product entries, not database-backed resources.
-At launch, credits equal the dollar value (no volume bonus).
-
-
-### CreditPackInfo
-
-Metadata for a self-serve credit pack.
-
-<TypeTable
-  type={{
-    credits: { type: "number", description: "Number of credits granted (1 credit = $0.01 USD).", required: true },
-    description: { type: "string", description: "Brief description of the pack's positioning.", required: true },
-    displayName: { type: "string", description: "Display name shown in the UI.", required: true },
-    packId: { type: "string", description: "Stable identifier matching the backend catalog (e.g., \"starter\").", required: true },
-    priceCents: { type: "number", description: "Price in USD cents (e.g., 1000 = $10.00).", required: true },
-  }}
-/>
-
-
 ### DEFAULT_BILLING_HREF
 
 The billing page the notice links to by default: the settings route every client serves.
@@ -1083,7 +731,7 @@ The provider keys page the notice links to by default: the settings route every 
 Where Enterprise enquiries go by default.
 
 
-### formatCreditBalance
+### formatUsd
 
 Convert micro-USD (bigint) to a display string like "$12.50".
 
@@ -1091,82 +739,7 @@ Micro-USD uses 6 decimal places (1 USD = 1,000,000 micros).
 The output always shows exactly 2 decimal places.
 
 ```tsx
-function formatCreditBalance(micros: bigint | undefined): string
-```
-
-
-### formatCreditCount
-
-Format a credit count with commas (e.g., 5000 -> "5,000").
-
-```tsx
-function formatCreditCount(credits: number): string
-```
-
-
-### formatLedgerAmount
-
-Convert micro-USD (bigint) to a signed display string.
-
-Positive amounts show "+$5.00", negative show "-$0.23",
-zero shows "$0.00" (no sign).
-
-```tsx
-function formatLedgerAmount(micros: bigint): string
-```
-
-
-### formatLedgerDate
-
-Format a protobuf Timestamp for ledger display.
-
-Returns a locale-appropriate date and time string
-(e.g., "May 3, 2026, 4:30 PM").
-
-```tsx
-function formatLedgerDate(seconds: bigint): string
-```
-
-
-### formatPackPrice
-
-Format a cent amount as a dollar string (e.g., 1000 -> "$10").
-
-```tsx
-function formatPackPrice(cents: number): string
-```
-
-
-### isCredit
-
-Whether a ledger entry type represents a credit (positive amount).
-
-Used by UI components to choose semantic colors: green for credits,
-red for debits, gray for holds/releases.
-
-```tsx
-function isCredit(type: LedgerEntryType): boolean
-```
-
-
-### isHold
-
-Whether a ledger entry type represents a hold operation.
-
-Holds are neither credits nor debits in the user's mental model —
-they represent temporary balance changes (reservations, disputes).
-
-```tsx
-function isHold(type: LedgerEntryType): boolean
-```
-
-
-### ledgerEntryLabel
-
-Human-readable label for a ledger entry type.
-
-```tsx
-function ledgerEntryLabel(type: LedgerEntryType): string
+function formatUsd(micros: bigint | undefined): string
 ```
 
 
@@ -1260,21 +833,6 @@ What a `PROVIDER_KEY_REQUIRED` refusal names.
 />
 
 
-### SetAutoRechargeConfigInput
-
-Input for [`useSetAutoRechargeConfig`](#usesetautorechargeconfig).
-
-<TypeTable
-  type={{
-    enabled: { type: "boolean", description: "Whether auto-recharge is enabled.", required: true },
-    monthlyCapMicros: { type: "bigint", description: "Maximum monthly auto-recharge spend in micro-USD.", required: true },
-    org: { type: "string", description: "Organization ID to configure auto-recharge for.", required: true },
-    rechargeAmountMicros: { type: "bigint", description: "Fixed charge per recharge event in micro-USD.", required: true },
-    thresholdMicros: { type: "bigint", description: "Trigger threshold in micro-USD.", required: true },
-  }}
-/>
-
-
 ### UseBillingAccountOptions
 
 Options for [`useBillingAccount`](#usebillingaccount).
@@ -1282,20 +840,6 @@ Options for [`useBillingAccount`](#usebillingaccount).
 <TypeTable
   type={{
     refetchOnWindowFocus: { type: "boolean", description: "Re-read the account when the window regains focus: for a host that sends Stripe's pages to another window (the system browser), so a card saved there shows on return. Default `false`." },
-  }}
-/>
-
-
-### UseCreditLedgerOptions
-
-Options for [`useCreditLedger`](#usecreditledger).
-
-<TypeTable
-  type={{
-    pageNum: { type: "number", description: "1-based page number. Defaults to 1." },
-    pageSize: { type: "number", description: "Page size. Defaults to 20." },
-    typeFilter: { type: "LedgerEntryType[]", description: "Filter to specific ledger entry types. Empty means all types." },
-    view: { type: "LedgerView", description: "Server-resolved ledger slice. When set to `LedgerView.statement`, the server returns only customer-facing money-movement entry types and excludes internal mechanics (per-call usage debits, reservation holds/releases). Defaults to the full ledger." },
   }}
 />
 

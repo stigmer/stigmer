@@ -62,7 +62,7 @@ stigmer plugin eval cancel pev_01abc123
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0    | Every case that ran reached the threshold and every case file loaded                                                                                                                                                                                                                                                                              |
 | 1    | A case scored below the threshold, a case file failed to load, no case ran, a case's with-plugin tries on a model were all not graded (a case that never ran is not a pass), or an option was not valid; or the eval could not start (the plugin not found, not permitted, or refused), or could not be read for about a minute and was cancelled |
-| 2    | Partial: the spending limit was reached, or the organization ran out of credit, or the eval stopped early for a reason this CLI does not know                                                                                                                                                                                                     |
+| 2    | Partial: the spending limit was reached, or the eval stopped early for a reason this CLI does not know                                                                                                                                                                                                                                            |
 | 3    | The server could not be reached, the CLI's own code for a connection failure                                                                                                                                                                                                                                                                      |
 | 4    | Not signed in, or the sign-in expired, the CLI's own code for a sign-in failure                                                                                                                                                                                                                                                                   |
 | 130  | Interrupted: the eval was cancelled, by Ctrl+C or any other cancel (the console's Cancel, `stigmer plugin eval cancel`); the results of the tries that finished are printed. If Ctrl+C's cancel cannot reach the server, the command says the eval may still be running and how to cancel it                                                      |
@@ -77,10 +77,10 @@ code.
 `--model` names an engine and a model (`native/<model>` or `cursor/<model>`),
 because Stigmer runs a model on one of its engines; a bare model ID is the
 native engine's. `--max-cost-usd` is always set: 5 when you omit it. A try the
-platform could not grade, such as one refused for lack of credit, is shown as
-not graded and left out of every score instead of scoring 0. A scaffold runs
-without `--scaffold`, inside the try's own sandbox; `--scaffold` is accepted and
-changes nothing. See
+platform could not grade, such as one refused for a missing provider key, is
+shown as not graded and left out of every score instead of scoring 0. A scaffold
+runs without `--scaffold`, inside the try's own sandbox; `--scaffold` is
+accepted and changes nothing. See
 [Test a plugin with evals](/docs/guides/plugins/test-a-plugin-with-evals) for
 the result file, the support table and every difference.
 

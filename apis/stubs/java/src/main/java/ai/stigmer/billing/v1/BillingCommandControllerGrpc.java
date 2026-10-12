@@ -7,8 +7,8 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * BillingCommandController handles write operations for the billing bounded context.
  * Billing is not a standard API Resource — there is no api_resource_kind annotation.
  * An organization's own billing RPCs authorize against the organization
- * resource kind; the credit mutations, the execution pipeline and the
- * model catalog authorize against the static platform target.
+ * resource kind; the usage meter and the model catalog authorize against
+ * the static platform target.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -50,99 +50,6 @@ public final class BillingCommandControllerGrpc {
     return getGetOrCreateBillingAccountMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AdjustCreditsInput,
-      ai.stigmer.billing.v1.CreditLedgerEntry> getAdjustCreditsMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "adjustCredits",
-      requestType = ai.stigmer.billing.v1.AdjustCreditsInput.class,
-      responseType = ai.stigmer.billing.v1.CreditLedgerEntry.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AdjustCreditsInput,
-      ai.stigmer.billing.v1.CreditLedgerEntry> getAdjustCreditsMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AdjustCreditsInput, ai.stigmer.billing.v1.CreditLedgerEntry> getAdjustCreditsMethod;
-    if ((getAdjustCreditsMethod = BillingCommandControllerGrpc.getAdjustCreditsMethod) == null) {
-      synchronized (BillingCommandControllerGrpc.class) {
-        if ((getAdjustCreditsMethod = BillingCommandControllerGrpc.getAdjustCreditsMethod) == null) {
-          BillingCommandControllerGrpc.getAdjustCreditsMethod = getAdjustCreditsMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.AdjustCreditsInput, ai.stigmer.billing.v1.CreditLedgerEntry>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "adjustCredits"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.AdjustCreditsInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.CreditLedgerEntry.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("adjustCredits"))
-              .build();
-        }
-      }
-    }
-    return getAdjustCreditsMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GrantCreditsInput,
-      ai.stigmer.billing.v1.CreditLedgerEntry> getGrantCreditsMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "grantCredits",
-      requestType = ai.stigmer.billing.v1.GrantCreditsInput.class,
-      responseType = ai.stigmer.billing.v1.CreditLedgerEntry.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GrantCreditsInput,
-      ai.stigmer.billing.v1.CreditLedgerEntry> getGrantCreditsMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GrantCreditsInput, ai.stigmer.billing.v1.CreditLedgerEntry> getGrantCreditsMethod;
-    if ((getGrantCreditsMethod = BillingCommandControllerGrpc.getGrantCreditsMethod) == null) {
-      synchronized (BillingCommandControllerGrpc.class) {
-        if ((getGrantCreditsMethod = BillingCommandControllerGrpc.getGrantCreditsMethod) == null) {
-          BillingCommandControllerGrpc.getGrantCreditsMethod = getGrantCreditsMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.GrantCreditsInput, ai.stigmer.billing.v1.CreditLedgerEntry>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "grantCredits"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.GrantCreditsInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.CreditLedgerEntry.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("grantCredits"))
-              .build();
-        }
-      }
-    }
-    return getGrantCreditsMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AuthorizeRunInput,
-      ai.stigmer.billing.v1.AuthorizeRunResponse> getAuthorizeRunMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "authorizeRun",
-      requestType = ai.stigmer.billing.v1.AuthorizeRunInput.class,
-      responseType = ai.stigmer.billing.v1.AuthorizeRunResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AuthorizeRunInput,
-      ai.stigmer.billing.v1.AuthorizeRunResponse> getAuthorizeRunMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.AuthorizeRunInput, ai.stigmer.billing.v1.AuthorizeRunResponse> getAuthorizeRunMethod;
-    if ((getAuthorizeRunMethod = BillingCommandControllerGrpc.getAuthorizeRunMethod) == null) {
-      synchronized (BillingCommandControllerGrpc.class) {
-        if ((getAuthorizeRunMethod = BillingCommandControllerGrpc.getAuthorizeRunMethod) == null) {
-          BillingCommandControllerGrpc.getAuthorizeRunMethod = getAuthorizeRunMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.AuthorizeRunInput, ai.stigmer.billing.v1.AuthorizeRunResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "authorizeRun"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.AuthorizeRunInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.AuthorizeRunResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("authorizeRun"))
-              .build();
-        }
-      }
-    }
-    return getAuthorizeRunMethod;
-  }
-
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RecordLlmCallUsageInput,
       ai.stigmer.billing.v1.RecordLlmCallUsageResponse> getRecordLlmCallUsageMethod;
 
@@ -172,99 +79,6 @@ public final class BillingCommandControllerGrpc {
       }
     }
     return getRecordLlmCallUsageMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.FinalizeRunInput,
-      ai.stigmer.billing.v1.FinalizeRunResponse> getFinalizeRunMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "finalizeRun",
-      requestType = ai.stigmer.billing.v1.FinalizeRunInput.class,
-      responseType = ai.stigmer.billing.v1.FinalizeRunResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.FinalizeRunInput,
-      ai.stigmer.billing.v1.FinalizeRunResponse> getFinalizeRunMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.FinalizeRunInput, ai.stigmer.billing.v1.FinalizeRunResponse> getFinalizeRunMethod;
-    if ((getFinalizeRunMethod = BillingCommandControllerGrpc.getFinalizeRunMethod) == null) {
-      synchronized (BillingCommandControllerGrpc.class) {
-        if ((getFinalizeRunMethod = BillingCommandControllerGrpc.getFinalizeRunMethod) == null) {
-          BillingCommandControllerGrpc.getFinalizeRunMethod = getFinalizeRunMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.FinalizeRunInput, ai.stigmer.billing.v1.FinalizeRunResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "finalizeRun"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.FinalizeRunInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.FinalizeRunResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("finalizeRun"))
-              .build();
-        }
-      }
-    }
-    return getFinalizeRunMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RearmForRecoveryInput,
-      ai.stigmer.billing.v1.AuthorizeRunResponse> getRearmForRecoveryMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "rearmForRecovery",
-      requestType = ai.stigmer.billing.v1.RearmForRecoveryInput.class,
-      responseType = ai.stigmer.billing.v1.AuthorizeRunResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RearmForRecoveryInput,
-      ai.stigmer.billing.v1.AuthorizeRunResponse> getRearmForRecoveryMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RearmForRecoveryInput, ai.stigmer.billing.v1.AuthorizeRunResponse> getRearmForRecoveryMethod;
-    if ((getRearmForRecoveryMethod = BillingCommandControllerGrpc.getRearmForRecoveryMethod) == null) {
-      synchronized (BillingCommandControllerGrpc.class) {
-        if ((getRearmForRecoveryMethod = BillingCommandControllerGrpc.getRearmForRecoveryMethod) == null) {
-          BillingCommandControllerGrpc.getRearmForRecoveryMethod = getRearmForRecoveryMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.RearmForRecoveryInput, ai.stigmer.billing.v1.AuthorizeRunResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "rearmForRecovery"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.RearmForRecoveryInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.AuthorizeRunResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("rearmForRecovery"))
-              .build();
-        }
-      }
-    }
-    return getRearmForRecoveryMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput,
-      ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> getCreateCreditCheckoutSessionMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "createCreditCheckoutSession",
-      requestType = ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput.class,
-      responseType = ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput,
-      ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> getCreateCreditCheckoutSessionMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput, ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> getCreateCreditCheckoutSessionMethod;
-    if ((getCreateCreditCheckoutSessionMethod = BillingCommandControllerGrpc.getCreateCreditCheckoutSessionMethod) == null) {
-      synchronized (BillingCommandControllerGrpc.class) {
-        if ((getCreateCreditCheckoutSessionMethod = BillingCommandControllerGrpc.getCreateCreditCheckoutSessionMethod) == null) {
-          BillingCommandControllerGrpc.getCreateCreditCheckoutSessionMethod = getCreateCreditCheckoutSessionMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput, ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "createCreditCheckoutSession"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("createCreditCheckoutSession"))
-              .build();
-        }
-      }
-    }
-    return getCreateCreditCheckoutSessionMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreateBillingPortalSessionInput,
@@ -327,37 +141,6 @@ public final class BillingCommandControllerGrpc {
       }
     }
     return getCreatePaymentMethodSetupSessionMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.SetAutoRechargeConfigInput,
-      ai.stigmer.billing.v1.BillingAccount> getSetAutoRechargeConfigMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "setAutoRechargeConfig",
-      requestType = ai.stigmer.billing.v1.SetAutoRechargeConfigInput.class,
-      responseType = ai.stigmer.billing.v1.BillingAccount.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.SetAutoRechargeConfigInput,
-      ai.stigmer.billing.v1.BillingAccount> getSetAutoRechargeConfigMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.SetAutoRechargeConfigInput, ai.stigmer.billing.v1.BillingAccount> getSetAutoRechargeConfigMethod;
-    if ((getSetAutoRechargeConfigMethod = BillingCommandControllerGrpc.getSetAutoRechargeConfigMethod) == null) {
-      synchronized (BillingCommandControllerGrpc.class) {
-        if ((getSetAutoRechargeConfigMethod = BillingCommandControllerGrpc.getSetAutoRechargeConfigMethod) == null) {
-          BillingCommandControllerGrpc.getSetAutoRechargeConfigMethod = getSetAutoRechargeConfigMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.SetAutoRechargeConfigInput, ai.stigmer.billing.v1.BillingAccount>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "setAutoRechargeConfig"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.SetAutoRechargeConfigInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.BillingAccount.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("setAutoRechargeConfig"))
-              .build();
-        }
-      }
-    }
-    return getSetAutoRechargeConfigMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.UpsertModelPricingBaselineInput,
@@ -486,8 +269,8 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * An organization's own billing RPCs authorize against the organization
-   * resource kind; the credit mutations, the execution pipeline and the
-   * model catalog authorize against the static platform target.
+   * resource kind; the usage meter and the model catalog authorize against
+   * the static platform target.
    * </pre>
    */
   public interface AsyncService {
@@ -505,49 +288,10 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Manually adjust an org's credit balance.
-     * Produces an immutable ledger entry for audit. Requires can_manage_credits
-     * on the platform: a platform operator or a credit issuer.
-     * </pre>
-     */
-    default void adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerEntry> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAdjustCreditsMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
-     * Produces an immutable promotional_credit ledger entry for audit.
-     * The grant burns before adjustment and purchased credits. When expires_at
-     * is set, any remainder unconsumed at that time is removed from the balance
-     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
-     * Idempotent: replaying an applied idempotency key returns the original
-     * entry, even after the expiry has passed. Requires can_manage_credits on
-     * the platform, as adjustCredits does.
-     * </pre>
-     */
-    default void grantCredits(ai.stigmer.billing.v1.GrantCreditsInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerEntry> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGrantCreditsMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Reserve credits before starting a run.
-     * Returns authorization status and reservation details.
-     * </pre>
-     */
-    default void authorizeRun(ai.stigmer.billing.v1.AuthorizeRunInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeRunResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAuthorizeRunMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Record a single LLM call's usage for billing.
-     * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the run's reservation.
+     * Record a single LLM call's usage.
+     * Resolves the call against the model catalog and inserts an immutable
+     * LlmCallUsageRecord: what the call was (tokens, model, harness, served
+     * tier and thinking mode, whose key served it), never what it cost.
      * </pre>
      */
     default void recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request,
@@ -557,49 +301,12 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Settle billing for a completed run.
-     * Releases unused reservation credits and produces the final billing record.
-     * </pre>
-     */
-    default void finalizeRun(ai.stigmer.billing.v1.FinalizeRunInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.FinalizeRunResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getFinalizeRunMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Re-arm a settled reservation so a failed run can be recovered.
-     * The one sanctioned path past the settled-reservation latch: re-runs
-     * the affordability check, transfers a fresh hold, and rotates the
-     * reservation id as the fence against settles still in flight from the
-     * terminated run. Returns the same shape as authorizeRun, with
-     * the rotated reservation id.
-     * </pre>
-     */
-    default void rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeRunResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRearmForRecoveryMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Create a Stripe Checkout Session to purchase a credit pack.
-     * Returns a checkout URL for the client to redirect the user.
-     * The caller's email is resolved server-side for Stripe Customer creation.
-     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
-     * </pre>
-     */
-    default void createCreditCheckoutSession(ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateCreditCheckoutSessionMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
      * Open a Stripe Customer Portal session for payment method management.
      * Returns a portal URL for the client to redirect the user.
-     * Requires an existing Stripe Customer (created during first credit purchase).
-     * The portal allows users to add, update, or remove saved payment methods.
+     * Requires an existing Stripe Customer (created by
+     * createPaymentMethodSetupSession on first use). The portal allows users
+     * to add, update, or remove saved payment methods and to read the
+     * invoices Stripe sends.
      * </pre>
      */
     default void createBillingPortalSession(ai.stigmer.billing.v1.CreateBillingPortalSessionInput request,
@@ -612,11 +319,10 @@ public final class BillingCommandControllerGrpc {
      * Create a Stripe Checkout Session in setup mode, which saves a payment
      * method without charging it. Returns a URL for the client to redirect
      * the user.
-     * This is how an organization that has never bought credit gets a card
-     * on file (the billing portal needs an existing Stripe Customer, which
+     * This is how an organization gets a card on file for its plan's
+     * invoices (the billing portal needs an existing Stripe Customer, which
      * this call creates on first use). The saved card becomes the account's
-     * default payment method through the payment_method.attached webhook,
-     * the same path a card saved at credit checkout takes.
+     * default payment method through the payment_method.attached webhook.
      * </pre>
      */
     default void createPaymentMethodSetupSession(ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput request,
@@ -626,24 +332,11 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Configure automatic credit recharge for an organization.
-     * Returns the updated BillingAccount with the new config applied.
-     * Enabling requires an active account with a saved payment method.
-     * Disabling preserves the threshold/amount/cap for easy re-enablement.
-     * </pre>
-     */
-    default void setAutoRechargeConfig(ai.stigmer.billing.v1.SetAutoRechargeConfigInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingAccount> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSetAutoRechargeConfigMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
      * Create or revise one model registry baseline entry (catalog + list
      * prices). Append-only: an existing ACTIVE document for the same
      * (model_id, provider, harness) key is superseded, never mutated. The
-     * registry is rebuilt immediately, so the revision reaches billing and
-     * every published price surface atomically.
+     * registry is rebuilt immediately, so the revision reaches the usage
+     * meter, run admission and the published registry atomically.
      * </pre>
      */
     default void upsertModelPricingBaseline(ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request,
@@ -669,8 +362,8 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * An organization's own billing RPCs authorize against the organization
-   * resource kind; the credit mutations, the execution pipeline and the
-   * model catalog authorize against the static platform target.
+   * resource kind; the usage meter and the model catalog authorize against
+   * the static platform target.
    * </pre>
    */
   public static abstract class BillingCommandControllerImplBase
@@ -687,8 +380,8 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * An organization's own billing RPCs authorize against the organization
-   * resource kind; the credit mutations, the execution pipeline and the
-   * model catalog authorize against the static platform target.
+   * resource kind; the usage meter and the model catalog authorize against
+   * the static platform target.
    * </pre>
    */
   public static final class BillingCommandControllerStub
@@ -718,52 +411,10 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Manually adjust an org's credit balance.
-     * Produces an immutable ledger entry for audit. Requires can_manage_credits
-     * on the platform: a platform operator or a credit issuer.
-     * </pre>
-     */
-    public void adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerEntry> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getAdjustCreditsMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
-     * Produces an immutable promotional_credit ledger entry for audit.
-     * The grant burns before adjustment and purchased credits. When expires_at
-     * is set, any remainder unconsumed at that time is removed from the balance
-     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
-     * Idempotent: replaying an applied idempotency key returns the original
-     * entry, even after the expiry has passed. Requires can_manage_credits on
-     * the platform, as adjustCredits does.
-     * </pre>
-     */
-    public void grantCredits(ai.stigmer.billing.v1.GrantCreditsInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerEntry> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGrantCreditsMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Reserve credits before starting a run.
-     * Returns authorization status and reservation details.
-     * </pre>
-     */
-    public void authorizeRun(ai.stigmer.billing.v1.AuthorizeRunInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeRunResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getAuthorizeRunMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Record a single LLM call's usage for billing.
-     * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the run's reservation.
+     * Record a single LLM call's usage.
+     * Resolves the call against the model catalog and inserts an immutable
+     * LlmCallUsageRecord: what the call was (tokens, model, harness, served
+     * tier and thinking mode, whose key served it), never what it cost.
      * </pre>
      */
     public void recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request,
@@ -774,52 +425,12 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Settle billing for a completed run.
-     * Releases unused reservation credits and produces the final billing record.
-     * </pre>
-     */
-    public void finalizeRun(ai.stigmer.billing.v1.FinalizeRunInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.FinalizeRunResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getFinalizeRunMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Re-arm a settled reservation so a failed run can be recovered.
-     * The one sanctioned path past the settled-reservation latch: re-runs
-     * the affordability check, transfers a fresh hold, and rotates the
-     * reservation id as the fence against settles still in flight from the
-     * terminated run. Returns the same shape as authorizeRun, with
-     * the rotated reservation id.
-     * </pre>
-     */
-    public void rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeRunResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getRearmForRecoveryMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Create a Stripe Checkout Session to purchase a credit pack.
-     * Returns a checkout URL for the client to redirect the user.
-     * The caller's email is resolved server-side for Stripe Customer creation.
-     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
-     * </pre>
-     */
-    public void createCreditCheckoutSession(ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getCreateCreditCheckoutSessionMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
      * Open a Stripe Customer Portal session for payment method management.
      * Returns a portal URL for the client to redirect the user.
-     * Requires an existing Stripe Customer (created during first credit purchase).
-     * The portal allows users to add, update, or remove saved payment methods.
+     * Requires an existing Stripe Customer (created by
+     * createPaymentMethodSetupSession on first use). The portal allows users
+     * to add, update, or remove saved payment methods and to read the
+     * invoices Stripe sends.
      * </pre>
      */
     public void createBillingPortalSession(ai.stigmer.billing.v1.CreateBillingPortalSessionInput request,
@@ -833,11 +444,10 @@ public final class BillingCommandControllerGrpc {
      * Create a Stripe Checkout Session in setup mode, which saves a payment
      * method without charging it. Returns a URL for the client to redirect
      * the user.
-     * This is how an organization that has never bought credit gets a card
-     * on file (the billing portal needs an existing Stripe Customer, which
+     * This is how an organization gets a card on file for its plan's
+     * invoices (the billing portal needs an existing Stripe Customer, which
      * this call creates on first use). The saved card becomes the account's
-     * default payment method through the payment_method.attached webhook,
-     * the same path a card saved at credit checkout takes.
+     * default payment method through the payment_method.attached webhook.
      * </pre>
      */
     public void createPaymentMethodSetupSession(ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput request,
@@ -848,25 +458,11 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Configure automatic credit recharge for an organization.
-     * Returns the updated BillingAccount with the new config applied.
-     * Enabling requires an active account with a saved payment method.
-     * Disabling preserves the threshold/amount/cap for easy re-enablement.
-     * </pre>
-     */
-    public void setAutoRechargeConfig(ai.stigmer.billing.v1.SetAutoRechargeConfigInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingAccount> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getSetAutoRechargeConfigMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
      * Create or revise one model registry baseline entry (catalog + list
      * prices). Append-only: an existing ACTIVE document for the same
      * (model_id, provider, harness) key is superseded, never mutated. The
-     * registry is rebuilt immediately, so the revision reaches billing and
-     * every published price surface atomically.
+     * registry is rebuilt immediately, so the revision reaches the usage
+     * meter, run admission and the published registry atomically.
      * </pre>
      */
     public void upsertModelPricingBaseline(ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request,
@@ -894,8 +490,8 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * An organization's own billing RPCs authorize against the organization
-   * resource kind; the credit mutations, the execution pipeline and the
-   * model catalog authorize against the static platform target.
+   * resource kind; the usage meter and the model catalog authorize against
+   * the static platform target.
    * </pre>
    */
   public static final class BillingCommandControllerBlockingV2Stub
@@ -924,49 +520,10 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Manually adjust an org's credit balance.
-     * Produces an immutable ledger entry for audit. Requires can_manage_credits
-     * on the platform: a platform operator or a credit issuer.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.CreditLedgerEntry adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getAdjustCreditsMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
-     * Produces an immutable promotional_credit ledger entry for audit.
-     * The grant burns before adjustment and purchased credits. When expires_at
-     * is set, any remainder unconsumed at that time is removed from the balance
-     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
-     * Idempotent: replaying an applied idempotency key returns the original
-     * entry, even after the expiry has passed. Requires can_manage_credits on
-     * the platform, as adjustCredits does.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.CreditLedgerEntry grantCredits(ai.stigmer.billing.v1.GrantCreditsInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGrantCreditsMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Reserve credits before starting a run.
-     * Returns authorization status and reservation details.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.AuthorizeRunResponse authorizeRun(ai.stigmer.billing.v1.AuthorizeRunInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getAuthorizeRunMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Record a single LLM call's usage for billing.
-     * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the run's reservation.
+     * Record a single LLM call's usage.
+     * Resolves the call against the model catalog and inserts an immutable
+     * LlmCallUsageRecord: what the call was (tokens, model, harness, served
+     * tier and thinking mode, whose key served it), never what it cost.
      * </pre>
      */
     public ai.stigmer.billing.v1.RecordLlmCallUsageResponse recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request) throws io.grpc.StatusException {
@@ -976,49 +533,12 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Settle billing for a completed run.
-     * Releases unused reservation credits and produces the final billing record.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.FinalizeRunResponse finalizeRun(ai.stigmer.billing.v1.FinalizeRunInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getFinalizeRunMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Re-arm a settled reservation so a failed run can be recovered.
-     * The one sanctioned path past the settled-reservation latch: re-runs
-     * the affordability check, transfers a fresh hold, and rotates the
-     * reservation id as the fence against settles still in flight from the
-     * terminated run. Returns the same shape as authorizeRun, with
-     * the rotated reservation id.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.AuthorizeRunResponse rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getRearmForRecoveryMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Create a Stripe Checkout Session to purchase a credit pack.
-     * Returns a checkout URL for the client to redirect the user.
-     * The caller's email is resolved server-side for Stripe Customer creation.
-     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse createCreditCheckoutSession(ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getCreateCreditCheckoutSessionMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Open a Stripe Customer Portal session for payment method management.
      * Returns a portal URL for the client to redirect the user.
-     * Requires an existing Stripe Customer (created during first credit purchase).
-     * The portal allows users to add, update, or remove saved payment methods.
+     * Requires an existing Stripe Customer (created by
+     * createPaymentMethodSetupSession on first use). The portal allows users
+     * to add, update, or remove saved payment methods and to read the
+     * invoices Stripe sends.
      * </pre>
      */
     public ai.stigmer.billing.v1.CreateBillingPortalSessionResponse createBillingPortalSession(ai.stigmer.billing.v1.CreateBillingPortalSessionInput request) throws io.grpc.StatusException {
@@ -1031,11 +551,10 @@ public final class BillingCommandControllerGrpc {
      * Create a Stripe Checkout Session in setup mode, which saves a payment
      * method without charging it. Returns a URL for the client to redirect
      * the user.
-     * This is how an organization that has never bought credit gets a card
-     * on file (the billing portal needs an existing Stripe Customer, which
+     * This is how an organization gets a card on file for its plan's
+     * invoices (the billing portal needs an existing Stripe Customer, which
      * this call creates on first use). The saved card becomes the account's
-     * default payment method through the payment_method.attached webhook,
-     * the same path a card saved at credit checkout takes.
+     * default payment method through the payment_method.attached webhook.
      * </pre>
      */
     public ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse createPaymentMethodSetupSession(ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput request) throws io.grpc.StatusException {
@@ -1045,24 +564,11 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Configure automatic credit recharge for an organization.
-     * Returns the updated BillingAccount with the new config applied.
-     * Enabling requires an active account with a saved payment method.
-     * Disabling preserves the threshold/amount/cap for easy re-enablement.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.BillingAccount setAutoRechargeConfig(ai.stigmer.billing.v1.SetAutoRechargeConfigInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getSetAutoRechargeConfigMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Create or revise one model registry baseline entry (catalog + list
      * prices). Append-only: an existing ACTIVE document for the same
      * (model_id, provider, harness) key is superseded, never mutated. The
-     * registry is rebuilt immediately, so the revision reaches billing and
-     * every published price surface atomically.
+     * registry is rebuilt immediately, so the revision reaches the usage
+     * meter, run admission and the published registry atomically.
      * </pre>
      */
     public ai.stigmer.billing.v1.ModelPricingBaseline upsertModelPricingBaseline(ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request) throws io.grpc.StatusException {
@@ -1088,8 +594,8 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * An organization's own billing RPCs authorize against the organization
-   * resource kind; the credit mutations, the execution pipeline and the
-   * model catalog authorize against the static platform target.
+   * resource kind; the usage meter and the model catalog authorize against
+   * the static platform target.
    * </pre>
    */
   public static final class BillingCommandControllerBlockingStub
@@ -1118,49 +624,10 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Manually adjust an org's credit balance.
-     * Produces an immutable ledger entry for audit. Requires can_manage_credits
-     * on the platform: a platform operator or a credit issuer.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.CreditLedgerEntry adjustCredits(ai.stigmer.billing.v1.AdjustCreditsInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getAdjustCreditsMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
-     * Produces an immutable promotional_credit ledger entry for audit.
-     * The grant burns before adjustment and purchased credits. When expires_at
-     * is set, any remainder unconsumed at that time is removed from the balance
-     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
-     * Idempotent: replaying an applied idempotency key returns the original
-     * entry, even after the expiry has passed. Requires can_manage_credits on
-     * the platform, as adjustCredits does.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.CreditLedgerEntry grantCredits(ai.stigmer.billing.v1.GrantCreditsInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGrantCreditsMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Reserve credits before starting a run.
-     * Returns authorization status and reservation details.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.AuthorizeRunResponse authorizeRun(ai.stigmer.billing.v1.AuthorizeRunInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getAuthorizeRunMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Record a single LLM call's usage for billing.
-     * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the run's reservation.
+     * Record a single LLM call's usage.
+     * Resolves the call against the model catalog and inserts an immutable
+     * LlmCallUsageRecord: what the call was (tokens, model, harness, served
+     * tier and thinking mode, whose key served it), never what it cost.
      * </pre>
      */
     public ai.stigmer.billing.v1.RecordLlmCallUsageResponse recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request) {
@@ -1170,49 +637,12 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Settle billing for a completed run.
-     * Releases unused reservation credits and produces the final billing record.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.FinalizeRunResponse finalizeRun(ai.stigmer.billing.v1.FinalizeRunInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getFinalizeRunMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Re-arm a settled reservation so a failed run can be recovered.
-     * The one sanctioned path past the settled-reservation latch: re-runs
-     * the affordability check, transfers a fresh hold, and rotates the
-     * reservation id as the fence against settles still in flight from the
-     * terminated run. Returns the same shape as authorizeRun, with
-     * the rotated reservation id.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.AuthorizeRunResponse rearmForRecovery(ai.stigmer.billing.v1.RearmForRecoveryInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getRearmForRecoveryMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Create a Stripe Checkout Session to purchase a credit pack.
-     * Returns a checkout URL for the client to redirect the user.
-     * The caller's email is resolved server-side for Stripe Customer creation.
-     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse createCreditCheckoutSession(ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getCreateCreditCheckoutSessionMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Open a Stripe Customer Portal session for payment method management.
      * Returns a portal URL for the client to redirect the user.
-     * Requires an existing Stripe Customer (created during first credit purchase).
-     * The portal allows users to add, update, or remove saved payment methods.
+     * Requires an existing Stripe Customer (created by
+     * createPaymentMethodSetupSession on first use). The portal allows users
+     * to add, update, or remove saved payment methods and to read the
+     * invoices Stripe sends.
      * </pre>
      */
     public ai.stigmer.billing.v1.CreateBillingPortalSessionResponse createBillingPortalSession(ai.stigmer.billing.v1.CreateBillingPortalSessionInput request) {
@@ -1225,11 +655,10 @@ public final class BillingCommandControllerGrpc {
      * Create a Stripe Checkout Session in setup mode, which saves a payment
      * method without charging it. Returns a URL for the client to redirect
      * the user.
-     * This is how an organization that has never bought credit gets a card
-     * on file (the billing portal needs an existing Stripe Customer, which
+     * This is how an organization gets a card on file for its plan's
+     * invoices (the billing portal needs an existing Stripe Customer, which
      * this call creates on first use). The saved card becomes the account's
-     * default payment method through the payment_method.attached webhook,
-     * the same path a card saved at credit checkout takes.
+     * default payment method through the payment_method.attached webhook.
      * </pre>
      */
     public ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse createPaymentMethodSetupSession(ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput request) {
@@ -1239,24 +668,11 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Configure automatic credit recharge for an organization.
-     * Returns the updated BillingAccount with the new config applied.
-     * Enabling requires an active account with a saved payment method.
-     * Disabling preserves the threshold/amount/cap for easy re-enablement.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.BillingAccount setAutoRechargeConfig(ai.stigmer.billing.v1.SetAutoRechargeConfigInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getSetAutoRechargeConfigMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Create or revise one model registry baseline entry (catalog + list
      * prices). Append-only: an existing ACTIVE document for the same
      * (model_id, provider, harness) key is superseded, never mutated. The
-     * registry is rebuilt immediately, so the revision reaches billing and
-     * every published price surface atomically.
+     * registry is rebuilt immediately, so the revision reaches the usage
+     * meter, run admission and the published registry atomically.
      * </pre>
      */
     public ai.stigmer.billing.v1.ModelPricingBaseline upsertModelPricingBaseline(ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request) {
@@ -1282,8 +698,8 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * An organization's own billing RPCs authorize against the organization
-   * resource kind; the credit mutations, the execution pipeline and the
-   * model catalog authorize against the static platform target.
+   * resource kind; the usage meter and the model catalog authorize against
+   * the static platform target.
    * </pre>
    */
   public static final class BillingCommandControllerFutureStub
@@ -1313,52 +729,10 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Manually adjust an org's credit balance.
-     * Produces an immutable ledger entry for audit. Requires can_manage_credits
-     * on the platform: a platform operator or a credit issuer.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreditLedgerEntry> adjustCredits(
-        ai.stigmer.billing.v1.AdjustCreditsInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getAdjustCreditsMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Grant promotional credits to an org, optionally expiring (use-it-or-lose-it).
-     * Produces an immutable promotional_credit ledger entry for audit.
-     * The grant burns before adjustment and purchased credits. When expires_at
-     * is set, any remainder unconsumed at that time is removed from the balance
-     * by the platform's grant-expiry sweep (an expiry_debit ledger entry).
-     * Idempotent: replaying an applied idempotency key returns the original
-     * entry, even after the expiry has passed. Requires can_manage_credits on
-     * the platform, as adjustCredits does.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreditLedgerEntry> grantCredits(
-        ai.stigmer.billing.v1.GrantCreditsInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGrantCreditsMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Reserve credits before starting a run.
-     * Returns authorization status and reservation details.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.AuthorizeRunResponse> authorizeRun(
-        ai.stigmer.billing.v1.AuthorizeRunInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getAuthorizeRunMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Record a single LLM call's usage for billing.
-     * Computes cost server-side from the model registry, inserts an immutable
-     * LlmCallUsageRecord, and debits credits from the run's reservation.
+     * Record a single LLM call's usage.
+     * Resolves the call against the model catalog and inserts an immutable
+     * LlmCallUsageRecord: what the call was (tokens, model, harness, served
+     * tier and thinking mode, whose key served it), never what it cost.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.RecordLlmCallUsageResponse> recordLlmCallUsage(
@@ -1369,52 +743,12 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Settle billing for a completed run.
-     * Releases unused reservation credits and produces the final billing record.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.FinalizeRunResponse> finalizeRun(
-        ai.stigmer.billing.v1.FinalizeRunInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getFinalizeRunMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Re-arm a settled reservation so a failed run can be recovered.
-     * The one sanctioned path past the settled-reservation latch: re-runs
-     * the affordability check, transfers a fresh hold, and rotates the
-     * reservation id as the fence against settles still in flight from the
-     * terminated run. Returns the same shape as authorizeRun, with
-     * the rotated reservation id.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.AuthorizeRunResponse> rearmForRecovery(
-        ai.stigmer.billing.v1.RearmForRecoveryInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getRearmForRecoveryMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Create a Stripe Checkout Session to purchase a credit pack.
-     * Returns a checkout URL for the client to redirect the user.
-     * The caller's email is resolved server-side for Stripe Customer creation.
-     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> createCreditCheckoutSession(
-        ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getCreateCreditCheckoutSessionMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
      * Open a Stripe Customer Portal session for payment method management.
      * Returns a portal URL for the client to redirect the user.
-     * Requires an existing Stripe Customer (created during first credit purchase).
-     * The portal allows users to add, update, or remove saved payment methods.
+     * Requires an existing Stripe Customer (created by
+     * createPaymentMethodSetupSession on first use). The portal allows users
+     * to add, update, or remove saved payment methods and to read the
+     * invoices Stripe sends.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreateBillingPortalSessionResponse> createBillingPortalSession(
@@ -1428,11 +762,10 @@ public final class BillingCommandControllerGrpc {
      * Create a Stripe Checkout Session in setup mode, which saves a payment
      * method without charging it. Returns a URL for the client to redirect
      * the user.
-     * This is how an organization that has never bought credit gets a card
-     * on file (the billing portal needs an existing Stripe Customer, which
+     * This is how an organization gets a card on file for its plan's
+     * invoices (the billing portal needs an existing Stripe Customer, which
      * this call creates on first use). The saved card becomes the account's
-     * default payment method through the payment_method.attached webhook,
-     * the same path a card saved at credit checkout takes.
+     * default payment method through the payment_method.attached webhook.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse> createPaymentMethodSetupSession(
@@ -1443,25 +776,11 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Configure automatic credit recharge for an organization.
-     * Returns the updated BillingAccount with the new config applied.
-     * Enabling requires an active account with a saved payment method.
-     * Disabling preserves the threshold/amount/cap for easy re-enablement.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.BillingAccount> setAutoRechargeConfig(
-        ai.stigmer.billing.v1.SetAutoRechargeConfigInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getSetAutoRechargeConfigMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
      * Create or revise one model registry baseline entry (catalog + list
      * prices). Append-only: an existing ACTIVE document for the same
      * (model_id, provider, harness) key is superseded, never mutated. The
-     * registry is rebuilt immediately, so the revision reaches billing and
-     * every published price surface atomically.
+     * registry is rebuilt immediately, so the revision reaches the usage
+     * meter, run admission and the published registry atomically.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.ModelPricingBaseline> upsertModelPricingBaseline(
@@ -1484,18 +803,11 @@ public final class BillingCommandControllerGrpc {
   }
 
   private static final int METHODID_GET_OR_CREATE_BILLING_ACCOUNT = 0;
-  private static final int METHODID_ADJUST_CREDITS = 1;
-  private static final int METHODID_GRANT_CREDITS = 2;
-  private static final int METHODID_AUTHORIZE_RUN = 3;
-  private static final int METHODID_RECORD_LLM_CALL_USAGE = 4;
-  private static final int METHODID_FINALIZE_RUN = 5;
-  private static final int METHODID_REARM_FOR_RECOVERY = 6;
-  private static final int METHODID_CREATE_CREDIT_CHECKOUT_SESSION = 7;
-  private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 8;
-  private static final int METHODID_CREATE_PAYMENT_METHOD_SETUP_SESSION = 9;
-  private static final int METHODID_SET_AUTO_RECHARGE_CONFIG = 10;
-  private static final int METHODID_UPSERT_MODEL_PRICING_BASELINE = 11;
-  private static final int METHODID_RETIRE_MODEL_PRICING_BASELINE = 12;
+  private static final int METHODID_RECORD_LLM_CALL_USAGE = 1;
+  private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 2;
+  private static final int METHODID_CREATE_PAYMENT_METHOD_SETUP_SESSION = 3;
+  private static final int METHODID_UPSERT_MODEL_PRICING_BASELINE = 4;
+  private static final int METHODID_RETIRE_MODEL_PRICING_BASELINE = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1518,33 +830,9 @@ public final class BillingCommandControllerGrpc {
           serviceImpl.getOrCreateBillingAccount((ai.stigmer.billing.v1.GetOrCreateBillingAccountInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingAccount>) responseObserver);
           break;
-        case METHODID_ADJUST_CREDITS:
-          serviceImpl.adjustCredits((ai.stigmer.billing.v1.AdjustCreditsInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerEntry>) responseObserver);
-          break;
-        case METHODID_GRANT_CREDITS:
-          serviceImpl.grantCredits((ai.stigmer.billing.v1.GrantCreditsInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreditLedgerEntry>) responseObserver);
-          break;
-        case METHODID_AUTHORIZE_RUN:
-          serviceImpl.authorizeRun((ai.stigmer.billing.v1.AuthorizeRunInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeRunResponse>) responseObserver);
-          break;
         case METHODID_RECORD_LLM_CALL_USAGE:
           serviceImpl.recordLlmCallUsage((ai.stigmer.billing.v1.RecordLlmCallUsageInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.RecordLlmCallUsageResponse>) responseObserver);
-          break;
-        case METHODID_FINALIZE_RUN:
-          serviceImpl.finalizeRun((ai.stigmer.billing.v1.FinalizeRunInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.FinalizeRunResponse>) responseObserver);
-          break;
-        case METHODID_REARM_FOR_RECOVERY:
-          serviceImpl.rearmForRecovery((ai.stigmer.billing.v1.RearmForRecoveryInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeRunResponse>) responseObserver);
-          break;
-        case METHODID_CREATE_CREDIT_CHECKOUT_SESSION:
-          serviceImpl.createCreditCheckoutSession((ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse>) responseObserver);
           break;
         case METHODID_CREATE_BILLING_PORTAL_SESSION:
           serviceImpl.createBillingPortalSession((ai.stigmer.billing.v1.CreateBillingPortalSessionInput) request,
@@ -1553,10 +841,6 @@ public final class BillingCommandControllerGrpc {
         case METHODID_CREATE_PAYMENT_METHOD_SETUP_SESSION:
           serviceImpl.createPaymentMethodSetupSession((ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse>) responseObserver);
-          break;
-        case METHODID_SET_AUTO_RECHARGE_CONFIG:
-          serviceImpl.setAutoRechargeConfig((ai.stigmer.billing.v1.SetAutoRechargeConfigInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingAccount>) responseObserver);
           break;
         case METHODID_UPSERT_MODEL_PRICING_BASELINE:
           serviceImpl.upsertModelPricingBaseline((ai.stigmer.billing.v1.UpsertModelPricingBaselineInput) request,
@@ -1592,54 +876,12 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.BillingAccount>(
                 service, METHODID_GET_OR_CREATE_BILLING_ACCOUNT)))
         .addMethod(
-          getAdjustCreditsMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.AdjustCreditsInput,
-              ai.stigmer.billing.v1.CreditLedgerEntry>(
-                service, METHODID_ADJUST_CREDITS)))
-        .addMethod(
-          getGrantCreditsMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.GrantCreditsInput,
-              ai.stigmer.billing.v1.CreditLedgerEntry>(
-                service, METHODID_GRANT_CREDITS)))
-        .addMethod(
-          getAuthorizeRunMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.AuthorizeRunInput,
-              ai.stigmer.billing.v1.AuthorizeRunResponse>(
-                service, METHODID_AUTHORIZE_RUN)))
-        .addMethod(
           getRecordLlmCallUsageMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
               ai.stigmer.billing.v1.RecordLlmCallUsageInput,
               ai.stigmer.billing.v1.RecordLlmCallUsageResponse>(
                 service, METHODID_RECORD_LLM_CALL_USAGE)))
-        .addMethod(
-          getFinalizeRunMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.FinalizeRunInput,
-              ai.stigmer.billing.v1.FinalizeRunResponse>(
-                service, METHODID_FINALIZE_RUN)))
-        .addMethod(
-          getRearmForRecoveryMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.RearmForRecoveryInput,
-              ai.stigmer.billing.v1.AuthorizeRunResponse>(
-                service, METHODID_REARM_FOR_RECOVERY)))
-        .addMethod(
-          getCreateCreditCheckoutSessionMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput,
-              ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse>(
-                service, METHODID_CREATE_CREDIT_CHECKOUT_SESSION)))
         .addMethod(
           getCreateBillingPortalSessionMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1654,13 +896,6 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput,
               ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionResponse>(
                 service, METHODID_CREATE_PAYMENT_METHOD_SETUP_SESSION)))
-        .addMethod(
-          getSetAutoRechargeConfigMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.SetAutoRechargeConfigInput,
-              ai.stigmer.billing.v1.BillingAccount>(
-                service, METHODID_SET_AUTO_RECHARGE_CONFIG)))
         .addMethod(
           getUpsertModelPricingBaselineMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1724,16 +959,9 @@ public final class BillingCommandControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new BillingCommandControllerFileDescriptorSupplier())
               .addMethod(getGetOrCreateBillingAccountMethod())
-              .addMethod(getAdjustCreditsMethod())
-              .addMethod(getGrantCreditsMethod())
-              .addMethod(getAuthorizeRunMethod())
               .addMethod(getRecordLlmCallUsageMethod())
-              .addMethod(getFinalizeRunMethod())
-              .addMethod(getRearmForRecoveryMethod())
-              .addMethod(getCreateCreditCheckoutSessionMethod())
               .addMethod(getCreateBillingPortalSessionMethod())
               .addMethod(getCreatePaymentMethodSetupSessionMethod())
-              .addMethod(getSetAutoRechargeConfigMethod())
               .addMethod(getUpsertModelPricingBaselineMethod())
               .addMethod(getRetireModelPricingBaselineMethod())
               .build();

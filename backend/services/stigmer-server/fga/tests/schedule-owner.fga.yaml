@@ -2,8 +2,8 @@
 # cloned from the agent_channel model): the
 # creator owns the schedule; view/edit/delete require ownership or an
 # explicit grant. Plain org members get NO implicit access — a schedule's
-# levers are billing-affecting (every fire spends the owning org's
-# credits, unattended). Creation is target-gated (can_edit on the
+# levers are billing-affecting (every fire spends on the owning org's own
+# provider keys, unattended). Creation is target-gated (can_edit on the
 # referenced agent, checked in-handler), so no organization-level
 # can_create_schedule relation exists to test.
 #

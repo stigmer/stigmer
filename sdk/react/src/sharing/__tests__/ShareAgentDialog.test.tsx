@@ -178,10 +178,9 @@ function renderOpenDialog(
 }
 
 describe("ShareAgentDialog", () => {
-  it("mounts no body while closed (billing fetch stays lazy)", () => {
-    const getOrCreateBillingAccount = vi.fn();
+  it("mounts no body while closed", () => {
     render(
-      <Providers client={createMockStigmer({ getOrCreateBillingAccount })}>
+      <Providers client={createMockStigmer()}>
         <ShareAgentDialog
           open={false}
           onOpenChange={() => {}}
@@ -193,7 +192,6 @@ describe("ShareAgentDialog", () => {
     );
 
     expect(screen.queryByText("Share")).toBeNull();
-    expect(getOrCreateBillingAccount).not.toHaveBeenCalled();
   });
 
   it("renders header, toggle, and the share link from buildShareUrl", () => {
@@ -375,8 +373,8 @@ describe("ShareAgentDialog", () => {
       });
       renderOpenDialog(createMockStigmer({ apply }));
 
-      // The create copy names the org that owns and pays for the channel.
-      expect(screen.getByText(/credits/)).toBeTruthy();
+      // The create copy names the org whose own provider keys serve the channel.
+      expect(screen.getByText(/own provider keys/)).toBeTruthy();
 
       fireEvent.click(screen.getByRole("button", { name: "Create share", hidden: true }));
 
@@ -886,48 +884,19 @@ describe("ShareAgentDialog", () => {
   });
 
   describe("who pays", () => {
-    it("shows the who-pays line with the balance on cloud", async () => {
-      const getOrCreateBillingAccount = vi.fn().mockResolvedValue({
-        balance: { availableMicros: BigInt(12_500_000) },
-      });
-      renderOpenDialog(createMockStigmer({ getOrCreateBillingAccount }), {
-        mode: "cloud",
-        share: makeShare({ enabled: true }),
-      });
+    it.each(["cloud", "local"] as const)(
+      "names the organization whose own provider keys serve the chat, with no billing read (%s)",
+      (mode) => {
+        const getOrCreateBillingAccount = vi.fn();
+        renderOpenDialog(createMockStigmer({ getOrCreateBillingAccount }), {
+          mode,
+          share: makeShare({ enabled: true }),
+        });
 
-      expect(screen.getByText(/Visitors chat on/)).toBeTruthy();
-      await waitFor(() =>
-        expect(screen.getByText(/\$12\.50 available/)).toBeTruthy(),
-      );
-      expect(getOrCreateBillingAccount).toHaveBeenCalledWith("acme");
-    });
-
-    it("degrades to the who-pays line alone in local mode (no billing fetch)", () => {
-      const getOrCreateBillingAccount = vi.fn();
-      renderOpenDialog(createMockStigmer({ getOrCreateBillingAccount }), {
-        mode: "local",
-        share: makeShare({ enabled: true }),
-      });
-
-      expect(screen.getByText(/Visitors chat on/)).toBeTruthy();
-      expect(screen.queryByText(/available/)).toBeNull();
-      expect(getOrCreateBillingAccount).not.toHaveBeenCalled();
-    });
-
-    it("degrades silently when the billing fetch fails", async () => {
-      const getOrCreateBillingAccount = vi
-        .fn()
-        .mockRejectedValue(new Error("billing unavailable"));
-      renderOpenDialog(createMockStigmer({ getOrCreateBillingAccount }), {
-        mode: "cloud",
-        share: makeShare({ enabled: true }),
-      });
-
-      await waitFor(() => expect(getOrCreateBillingAccount).toHaveBeenCalled());
-      expect(screen.getByText(/Visitors chat on/)).toBeTruthy();
-      expect(screen.queryByText(/available/)).toBeNull();
-      expect(screen.queryByText(/billing unavailable/)).toBeNull();
-    });
+        expect(screen.getByText(/Visitors chat on/).textContent).toMatch(/own provider keys\.$/);
+        expect(getOrCreateBillingAccount).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe("Developer tab", () => {

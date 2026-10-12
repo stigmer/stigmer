@@ -156,8 +156,8 @@ function buildSessionSpec(input: CreateRunInput): SessionSpec {
 // choose. An explicit --service-tier or --thinking value maps to the enum even
 // for the base choice ("standard"/"disabled"): sent alone it adjusts the model
 // another layer chose (thinking off for one message on an agent whose
-// defaults turn it on), and unspecified vs explicit is a load-bearing ledger
-// distinction (#357/#772).
+// defaults turn it on), and unspecified vs explicit is a load-bearing
+// usage-record distinction (#357/#772).
 function buildRunConfig(
   model: string,
   serviceTier: ServiceTierFlag,

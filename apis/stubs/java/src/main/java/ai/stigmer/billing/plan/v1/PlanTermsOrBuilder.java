@@ -12,8 +12,8 @@ public interface PlanTermsOrBuilder extends
 
   /**
    * <pre>
-   * The least a subscription plan bills per month, in micro-USD. Absent on a
-   * license plan.
+   * The plan's monthly fee: what a subscription plan bills per month, in
+   * micro-USD. Absent on a license plan.
    * </pre>
    *
    * <code>optional int64 monthly_minimum_micros = 1 [json_name = "monthlyMinimumMicros", (.buf.validate.field) = { ... }</code>
@@ -22,35 +22,14 @@ public interface PlanTermsOrBuilder extends
   boolean hasMonthlyMinimumMicros();
   /**
    * <pre>
-   * The least a subscription plan bills per month, in micro-USD. Absent on a
-   * license plan.
+   * The plan's monthly fee: what a subscription plan bills per month, in
+   * micro-USD. Absent on a license plan.
    * </pre>
    *
    * <code>optional int64 monthly_minimum_micros = 1 [json_name = "monthlyMinimumMicros", (.buf.validate.field) = { ... }</code>
    * @return The monthlyMinimumMicros.
    */
   long getMonthlyMinimumMicros();
-
-  /**
-   * <pre>
-   * The share of monthly usage a subscription plan bills when it exceeds the
-   * minimum, in basis points. Absent on a license plan.
-   * </pre>
-   *
-   * <code>optional int32 usage_share_basis_points = 2 [json_name = "usageShareBasisPoints", (.buf.validate.field) = { ... }</code>
-   * @return Whether the usageShareBasisPoints field is set.
-   */
-  boolean hasUsageShareBasisPoints();
-  /**
-   * <pre>
-   * The share of monthly usage a subscription plan bills when it exceeds the
-   * minimum, in basis points. Absent on a license plan.
-   * </pre>
-   *
-   * <code>optional int32 usage_share_basis_points = 2 [json_name = "usageShareBasisPoints", (.buf.validate.field) = { ... }</code>
-   * @return The usageShareBasisPoints.
-   */
-  int getUsageShareBasisPoints();
 
   /**
    * <pre>

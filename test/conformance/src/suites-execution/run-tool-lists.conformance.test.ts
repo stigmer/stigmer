@@ -40,7 +40,6 @@
 // Read, and the Cursor engine (the gateway contract,
 // approval-gateway-contract.test.ts, runs the lists on both engines).
 import {
-  ApprovalEventType,
   RunPhase,
   SubAgentStatus,
   ToolCallStatus,
@@ -61,6 +60,7 @@ import {
   pushFixturePlugin,
   requireLlmProxy,
   requireMcpFixture,
+  sessionIdOf,
 } from "../support/runs";
 import { FIXTURE_SERVER, oneServerPlugin, pluginToolName, pushPlugin } from "../support/plugins";
 import { uniqueName } from "../support/naming";
@@ -148,10 +148,19 @@ describe("Run tool lists — out of scope is refused, never gated", () => {
       `execution ${executionId} completes without a gate (error: ${settled.status?.error ?? ""})`,
     ).toBe(RunPhase[RunPhase.RUN_COMPLETED]);
     expect(settled.status?.pendingApprovals ?? [], "no approval is pending").toEqual([]);
-    expect(
-      (settled.status?.approvalEventStream?.events ?? []).filter((e) => e.eventType === ApprovalEventType.REQUESTED),
-      "no approval was ever requested",
-    ).toEqual([]);
+    const asked = (
+      await clients.sessionQuery.listEvents({
+        sessionId: sessionIdOf(settled),
+        runId: executionId,
+        types: ["agent.tool_use", "agent.mcp_tool_use"],
+        pageSize: 1000,
+      })
+    ).events.filter(
+      (e) =>
+        (e.event.case === "agentToolUse" || e.event.case === "agentMcpToolUse") &&
+        e.event.value.evaluatedPermission === "ask",
+    );
+    expect(asked, "no call ever asked a person (no ask in the session's log)").toEqual([]);
 
     // Hidden: the model was never offered either refused tool.
     const scripted = mock.scriptedRequests();

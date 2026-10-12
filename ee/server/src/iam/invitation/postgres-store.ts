@@ -1,0 +1,243 @@
+/**
+ * The Invitation store's Postgres adapter over `ee.iam_invitation`, which
+ * the Enterprise schema chain creates (schema/enterprise-migrations.ts).
+ *
+ * The rows hold BYTEA payloads, so the redemption invariant (store.ts)
+ * rides a SELECT ... FOR UPDATE transaction: the row lock serializes
+ * concurrent redemptions and their releases identically.
+ *
+ * The list pages over the `(org, created_at DESC, id COLLATE "C" DESC)`
+ * index. A row's cursor is its `created_at` rendered in UTC at the column's
+ * full microsecond precision, so the comparison against it never rounds a
+ * row out of the list; a cursor that is not a real instant at
+ * microseconds, UTC, continues nothing rather than failing the cast.
+ * `findIdsByOrg` rides the same index.
+ */
+import type { Pool } from "pg";
+import type { ListIndexCursor, ListIndexRow } from "@stigmer/server";
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
+import { timestampDate, TimestampSchema } from "@bufbuild/protobuf/wkt";
+
+import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
+import {
+  InvitationRedemptionSchema,
+  InvitationSchema,
+} from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
+import { InvitationState } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/enum_pb";
+
+import { inTransaction } from "../../postgres/transaction.js";
+import {
+  ledgerSeconds,
+  type InvitationStore,
+  type RedemptionOutcome,
+  type ReleaseOutcome,
+} from "./store.js";
+
+/** The cursor's instant as `pageByOrg` renders it: UTC, six fractional digits. */
+const CURSOR_INSTANT = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3})\d{3}Z$/;
+
+/**
+ * Whether `cursor` is one this store renders: an instant in the format, a
+ * real date Postgres can hold (year 0001 on), and an id Postgres can carry
+ * as text (no NUL).
+ */
+function isCursor(cursor: ListIndexCursor): boolean {
+  const millis = CURSOR_INSTANT.exec(cursor.createdAt)?.[1];
+  if (millis === undefined || millis.startsWith("0000") || cursor.id.includes("\u0000")) {
+    return false;
+  }
+  const parsed = Date.parse(`${millis}Z`);
+  return !Number.isNaN(parsed) && new Date(parsed).toISOString() === `${millis}Z`;
+}
+
+export function newInvitationStore(pool: Pool): InvitationStore {
+  function decode(data: Buffer): Invitation {
+    return fromBinary(InvitationSchema, new Uint8Array(data));
+  }
+
+  async function queryOne(
+    where: string,
+    params: ReadonlyArray<unknown>,
+  ): Promise<Invitation | undefined> {
+    const result = await pool.query<{ data: Buffer }>(
+      `SELECT data FROM ee.iam_invitation ${where} LIMIT 1`,
+      [...params],
+    );
+    return result.rows[0] !== undefined ? decode(result.rows[0].data) : undefined;
+  }
+
+  function writeParams(invitation: Invitation) {
+    const createdAt = invitation.status?.audit?.specAudit?.createdAt;
+    return [
+      invitation.metadata?.id ?? "",
+      Buffer.from(toBinary(InvitationSchema, invitation)),
+      invitation.metadata?.org ?? "",
+      invitation.status?.token ?? "",
+      createdAt !== undefined ? timestampDate(createdAt) : new Date(),
+    ];
+  }
+
+  /**
+   * One transaction holding the invitation's row lock: `change` reads the
+   * locked row and answers the row to write, or undefined to write nothing.
+   */
+  async function underRowLock<T>(
+    invitationId: string,
+    change: (invitation: Invitation | undefined) => { readonly write?: Invitation; readonly answer: T },
+  ): Promise<T> {
+    return inTransaction(pool, async (client) => {
+      const locked = await client.query<{ data: Buffer }>(
+        "SELECT data FROM ee.iam_invitation WHERE id = $1 FOR UPDATE",
+        [invitationId],
+      );
+      const row = locked.rows[0];
+      const { write, answer } = change(row === undefined ? undefined : decode(row.data));
+      if (write === undefined) {
+        return { commit: false, value: answer };
+      }
+      await client.query("UPDATE ee.iam_invitation SET data = $2 WHERE id = $1", [
+        invitationId,
+        Buffer.from(toBinary(InvitationSchema, write)),
+      ]);
+      return { commit: true, value: answer };
+    });
+  }
+
+  return {
+    async save(invitation): Promise<void> {
+      await pool.query(
+        `INSERT INTO ee.iam_invitation (id, data, org, token, created_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        writeParams(invitation),
+      );
+    },
+
+    async update(invitation): Promise<void> {
+      const params = writeParams(invitation);
+      await pool.query(
+        `UPDATE ee.iam_invitation
+            SET data = $2, org = $3, token = $4
+          WHERE id = $1`,
+        params.slice(0, 4),
+      );
+    },
+
+    async deleteById(id): Promise<void> {
+      await pool.query("DELETE FROM ee.iam_invitation WHERE id = $1", [id]);
+    },
+
+    findById(id) {
+      return queryOne("WHERE id = $1", [id]);
+    },
+
+    findByToken(token) {
+      return queryOne("WHERE token = $1", [token]);
+    },
+
+    async pageByOrg(org, after, limit): Promise<ReadonlyArray<ListIndexRow>> {
+      if (after !== undefined && !isCursor(after)) {
+        return [];
+      }
+      const params: unknown[] = [org];
+      let continueAfter = "";
+      if (after !== undefined) {
+        params.push(after.createdAt, after.id);
+        continueAfter = `AND (created_at, id COLLATE "C") < ($2::timestamptz, $3 COLLATE "C")`;
+      }
+      let window = "";
+      if (limit !== undefined) {
+        params.push(limit);
+        window = `LIMIT $${params.length}`;
+      }
+      const result = await pool.query<{ id: string; data: Buffer; cursor_at: string }>(
+        `SELECT id, data,
+                to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at
+           FROM ee.iam_invitation
+          WHERE org = $1 ${continueAfter}
+          ORDER BY created_at DESC, id COLLATE "C" DESC
+          ${window}`,
+        params,
+      );
+      return result.rows.map((row) => ({
+        id: row.id,
+        data: new Uint8Array(row.data),
+        cursor: { createdAt: row.cursor_at, id: row.id },
+      }));
+    },
+
+    async findIdsByOrg(org): Promise<ReadonlyArray<string>> {
+      const result = await pool.query<{ id: string }>(
+        "SELECT id FROM ee.iam_invitation WHERE org = $1",
+        [org],
+      );
+      return result.rows.map((row) => row.id);
+    },
+
+    async findAll(): Promise<ReadonlyArray<Invitation>> {
+      const result = await pool.query<{ data: Buffer }>(
+        "SELECT data FROM ee.iam_invitation ORDER BY created_at, id",
+      );
+      return result.rows.map((row) => decode(row.data));
+    },
+
+    recordRedemption(invitationId, identityAccountId, redeemedAt): Promise<RedemptionOutcome> {
+      return underRowLock<RedemptionOutcome>(invitationId, (invitation) => {
+        const status = invitation?.status;
+        if (invitation === undefined || status === undefined) {
+          return { answer: { kind: "refused" } }; // concurrently deleted
+        }
+        const maxRedemptions = invitation.spec?.maxRedemptions ?? 0;
+        const persistedCount = status.redemptionCount;
+        // The guard arms: still active AND
+        // under max (0 = unlimited) — decided from the PERSISTED row.
+        if (
+          status.state !== InvitationState.active ||
+          (maxRedemptions > 0 && persistedCount >= maxRedemptions)
+        ) {
+          return { answer: { kind: "refused" } };
+        }
+        status.redemptionCount = persistedCount + 1;
+        status.redemptions.push(
+          create(InvitationRedemptionSchema, {
+            identityAccountId,
+            redeemedAt: create(TimestampSchema, { seconds: ledgerSeconds(redeemedAt) }),
+          }),
+        );
+        // The fully-redeemed latch: flips exactly when THIS increment
+        // reaches the max.
+        if (maxRedemptions > 0 && status.redemptionCount >= maxRedemptions) {
+          status.state = InvitationState.fully_redeemed;
+        }
+        return { write: invitation, answer: { kind: "recorded", invitation } };
+      });
+    },
+
+    releaseRedemption(invitationId, identityAccountId, redeemedAt): Promise<ReleaseOutcome> {
+      return underRowLock<ReleaseOutcome>(invitationId, (invitation) => {
+        const status = invitation?.status;
+        const seconds = ledgerSeconds(redeemedAt);
+        const index =
+          status?.redemptions.findIndex(
+            (entry) =>
+              entry.identityAccountId === identityAccountId && entry.redeemedAt?.seconds === seconds,
+          ) ?? -1;
+        if (invitation === undefined || status === undefined || index < 0) {
+          return { answer: { kind: "absent" } };
+        }
+        status.redemptions.splice(index, 1);
+        status.redemptionCount = Math.max(0, status.redemptionCount - 1);
+        const maxRedemptions = invitation.spec?.maxRedemptions ?? 0;
+        // The latch returns only to the state it came from: a revoked row
+        // stays revoked, and expiry is the row's own date.
+        if (
+          status.state === InvitationState.fully_redeemed &&
+          maxRedemptions > 0 &&
+          status.redemptionCount < maxRedemptions
+        ) {
+          status.state = InvitationState.active;
+        }
+        return { write: invitation, answer: { kind: "released" } };
+      });
+    },
+  };
+}

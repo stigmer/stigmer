@@ -5,11 +5,9 @@
  * Chain: Authorize → ValidateUpdateStatusInput → MergeAndPersistExecution
  * → NotifyStatusObservers → BroadcastToStreams. The merge+persist is ONE
  * atomic read-modify-write under the store's per-resource write lock
- * (store.updateResource) — the same discipline SubmitApproval uses,
- * load-bearing now that the append-only approval_event_stream is the
- * source of truth for pending_approvals: a non-atomic load-then-save
- * could drop an approval event a concurrent SubmitApproval appended in
- * the window between the load and the save.
+ * (updateRunAppendingEvents) — the same discipline an answer uses: a
+ * non-atomic load-then-save could drop the decision stamp a concurrent
+ * answer recorded on a row in the window between the load and the save.
  *
  * The status-transition hooks are consumed here — one of
  * the five notifying sites (the exhaustive list: status-observers.ts):
@@ -22,9 +20,10 @@
  * closure (and exercised directly by the guard tests), mirroring the Java
  * BuildNewStateWithStatusStep strategy: most fields are replaced
  * wholesale with the runner's latest complete state, while server-owned
- * fields (approval decisions, the approval_event_stream, the file_review
- * ledger) are preserved/authored here because the runner never sends
- * them. The transcript's platform rows are the same kind of server-owned
+ * fields (approval decisions, the file_review ledger) are preserved or
+ * authored here because the runner never sends them. pending_approvals is
+ * recomputed on every write from the rows and the run's open asks in the
+ * session's log, read under the session's lock (approval/pending.ts). The transcript's platform rows are the same kind of server-owned
  * state (platform-rows.ts, stigmer#980): a platform marker write is
  * appended and never replaces the transcript, and a PAUSED or CANCELLED
  * execution's stop row stays last across the runner's later writes,
@@ -105,9 +104,8 @@ import {
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
-import { ensureApprovalRequests } from "./approval/author.js";
+import { pendingApprovalsOf } from "./approval/pending.js";
 import { preserveApprovalFields } from "./approval/preserve.js";
-import { projectPendingApprovals } from "./approval/project.js";
 import { appendRunnerEvents } from "./filereview/author.js";
 import {
   autoKeepApprovedCommandSets,
@@ -134,7 +132,7 @@ import {
 import { settleInterruptedToolCalls } from "./tool-call-settle.js";
 import type { StreamBroker } from "./stream-broker.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
-import { updateRunAppendingEvents } from "../session/events/run-writes.js";
+import { openAsksOf, updateRunAppendingEvents } from "../session/events/run-writes.js";
 
 export interface UpdateStatusDeps {
   readonly store: Store;
@@ -218,6 +216,7 @@ export async function updateStatus(
                 deps.logger,
                 isServerComposedRequest(identity) ? "platform" : "wire",
                 foldsCandidate && isOutdatedTurn(ctx.input.runId, session.runOfNewestType),
+                openAsksOf(session, ctx.input.runId),
               );
             },
             foldsCandidate ? { runOfNewestType: NEWEST_TURN_EVENT_TYPE } : {},
@@ -402,13 +401,13 @@ export type StatusWriter = "platform" | "wire";
 /**
  * Merges an incoming status update into the execution in place — the
  * runner-owns-the-transcript merge rules, exactly update_status.go
- * applyUpdateStatusMerge. Runs inside the updateResource closure
- * (synchronous by store contract), so the merge, the approval event
- * authoring, and the pending_approvals projection all see the same
- * snapshot that will be persisted. `writer` defaults to the wire, the
- * side that grants nothing extra. `outdatedTurn` says a later message was
- * sent after this run's, so its file review is closed in this write (the
- * caller reads it under the session's lock; module header).
+ * applyUpdateStatusMerge. Runs inside the locked write (synchronous by
+ * store contract), so the merge and the pending_approvals projection see
+ * the same snapshot that will be persisted. `writer` defaults to the wire,
+ * the side that grants nothing extra. `outdatedTurn` says a later message
+ * was sent after this run's, so its file review is closed in this write;
+ * `openAsks` are the run's tool uses that wait in the session's log (both
+ * read under the session's lock; module header).
  */
 export function applyUpdateStatusMerge(
   execution: Run,
@@ -416,6 +415,7 @@ export function applyUpdateStatusMerge(
   logger: Logger,
   writer: StatusWriter = "wire",
   outdatedTurn = false,
+  openAsks: ReadonlySet<string> = new Set(),
 ): void {
   if (execution.status === undefined) {
     execution.status = create(RunStatusSchema);
@@ -578,8 +578,7 @@ export function applyUpdateStatusMerge(
   // having to remember it, and composes with the phase latch into a
   // self-healing pair: a straggler persist that reintroduces RUNNING rows
   // cannot move the terminal phase, so its rows are re-settled in the
-  // same merge. Runs before ensureApprovalRequests so a gated call on a
-  // dead execution never seeds a REQUESTED approval event.
+  // same merge, so a gated call on a dead execution is never pending.
   if (isTerminalExecutionPhase(status.phase)) {
     let settledAt = status.completedAt;
     if (settledAt === "") {
@@ -598,26 +597,9 @@ export function applyUpdateStatusMerge(
     }
   }
 
-  // Author REQUESTED events for any tool call now in the approval gate
-  // (seeding the persisted stream the first time it is touched). The
-  // runner never sends this server-only field; it is carried over from
-  // the loaded resource and mutated in place here. Decisions are authored
-  // separately by SubmitApproval. Because this runs inside the
-  // updateResource write lock on the freshly-loaded stream, the events it
-  // appends can never clobber a decision a concurrent SubmitApproval
-  // appended.
-  ensureApprovalRequests(status, input.runId);
-
-  // Compute pending_approvals from the authored event stream, via the
-  // single projection seam (returns the event-stream projection and runs
-  // the scan parity cross-check).
-  status.pendingApprovals = projectPendingApprovals(
-    status.phase,
-    status.messages,
-    status.subAgentRuns,
-    status.approvalEventStream,
-    logger,
-  );
+  // The calls that wait: the rows' waiting calls whose asks are open in
+  // the session's log (approval/pending.ts).
+  status.pendingApprovals = pendingApprovalsOf(input.runId, status, openAsks, logger);
 
   // Fold the runner-authored capture/reconcile events (carried on the
   // request payload) into the server-owned ledger: append-only,

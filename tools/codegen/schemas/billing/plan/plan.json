@@ -44,7 +44,7 @@
         "kind": "message",
         "messageType": "PlanTerms"
       },
-      "description": "The commercial terms. Which fields are set depends on the instrument:\n a subscription plan carries the greater-of terms, a license plan its\n annual price.",
+      "description": "The commercial terms. Which fields are set depends on the instrument:\n a subscription plan carries its monthly fee, a license plan its annual\n price.",
       "required": false
     },
     {

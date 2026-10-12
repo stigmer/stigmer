@@ -105,7 +105,7 @@ export const SHARE_ORGANIZATION_DENIED_MESSAGE =
  * reaches the agent: the owner's act, never an editor's, who may change the
  * definition but not its audience) and then can_create_agent_share on the
  * organization (a share spends the
- * organization's credits on the open internet, an admin-level act). The
+ * organization's provider keys on the open internet, an admin-level act). The
  * RPC is is_skip_authorization because the target is the referenced agent,
  * resolved from a slug, not a request field. The resolve step has already
  * made the reference absolute and refused an agent outside the share's

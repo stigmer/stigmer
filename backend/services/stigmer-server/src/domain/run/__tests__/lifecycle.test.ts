@@ -53,7 +53,6 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
-  ApprovalEventType,
   RunPhase,
   RunValueOrigin,
   SubAgentStatus,
@@ -85,10 +84,6 @@ import { SqliteStore } from "../../../store/sqlite/store.js";
 import type { Store } from "../../../store/interface.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 
-import {
-  ensureApprovalRequests,
-  recordDecisionEvent,
-} from "../approval/author.js";
 import type { RunValuePlannerDeps } from "../plan-run-values-step.js";
 import { newConfigFromEnv } from "../temporal/config.js";
 import type {
@@ -576,7 +571,7 @@ describe("lifecycle pipelines", () => {
       [
         () =>
           cancelExecution(deps, cancelInput(completed), testCallerIdentity()),
-        "cannot cancel execution in phase RUN_COMPLETED; only PENDING or IN_PROGRESS can be cancelled",
+        "cannot cancel execution in phase RUN_COMPLETED; only an unfinished one (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL or PAUSED) can be cancelled",
       ],
       [
         () =>
@@ -1682,12 +1677,10 @@ describe("lifecycle persist uses the atomic row-locked write", () => {
   }
 });
 
-// The append-only invariant on the lifecycle path: a pause and an
-// approval-decision append race on the same gated execution. Because the
-// lifecycle persist re-reads fresh under the store's write lock inside
-// store.updateResource, it can never clobber a decision a concurrent
-// writer appended (Go's 50-iteration regression, appended through the
-// same real approval helpers).
+// The lifecycle path never loses a decision: a pause and an approval
+// stamp race on the same gated execution. Because the lifecycle persist
+// re-reads fresh under the store's write lock, it can never clobber a
+// decision a concurrent writer recorded (Go's 50-iteration regression).
 describe("lifecycle pause racing a decision append", () => {
   it("keeps both the decision and the pause across 50 races", async () => {
     const toolCallId = "tc-1";
@@ -1721,7 +1714,6 @@ describe("lifecycle pause racing a decision append", () => {
           id,
           RunSchema,
           (loaded) => {
-            ensureApprovalRequests(loaded.status, id);
             const tc = loaded.status?.messages[0]?.toolCalls[0];
             if (tc === undefined) {
               throw new Error(`tool call ${toolCallId} not found`);
@@ -1730,7 +1722,6 @@ describe("lifecycle pause racing a decision append", () => {
             tc.approvalDecidedAt = new Date()
               .toISOString()
               .replace(/\.\d{3}Z$/, "Z");
-            recordDecisionEvent(loaded.status, tc, "", "");
           },
         ),
       ]);
@@ -1741,21 +1732,10 @@ describe("lifecycle pause racing a decision append", () => {
         RunSchema,
       );
 
-      let requested = 0;
-      let approved = 0;
-      for (const ev of final.status?.approvalEventStream?.events ?? []) {
-        if (ev.approvalRequestId !== toolCallId) {
-          continue;
-        }
-        if (ev.eventType === ApprovalEventType.REQUESTED) {
-          requested += 1;
-        }
-        if (ev.eventType === ApprovalEventType.APPROVED) {
-          approved += 1;
-        }
-      }
-      expect(requested, `iteration ${i}: REQUESTED count`).toBe(1);
-      expect(approved, `iteration ${i}: APPROVED decision lost`).toBe(1);
+      expect(
+        final.status?.messages[0]?.toolCalls[0]?.approvalAction,
+        `iteration ${i}: decision lost`,
+      ).toBe(ApprovalAction.APPROVE);
       // The pause transition must also have landed.
       expect(final.status?.phase, `iteration ${i}: phase`).toBe(
         RunPhase.RUN_PAUSED,

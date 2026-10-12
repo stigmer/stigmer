@@ -9,12 +9,12 @@ package ai.stigmer.billing.plan.v1;
  * <pre>
  * The commercial terms of a plan.
  *
- * Amounts are micro-USD (one millionth of a dollar), the unit the billing
- * ledger already uses; shares are basis points (one hundredth of a percent).
- * Every field has explicit presence: absent means the term does not apply to
- * this plan, which is how a subscription plan and a license plan share one
- * message. A monthly plan costs the greater of monthly_minimum_micros and
- * usage_share_basis_points of the month's usage.
+ * Amounts are micro-USD (one millionth of a dollar). Every field has
+ * explicit presence: absent means the term does not apply to this plan,
+ * which is how a subscription plan and a license plan share one message. A
+ * monthly plan costs its monthly fee, monthly_minimum_micros, plus
+ * per_extra_org_micros for each child organization beyond the ones it
+ * includes. Usage is never part of a plan's price.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanTerms}
@@ -64,8 +64,8 @@ private static final long serialVersionUID = 0L;
   private long monthlyMinimumMicros_ = 0L;
   /**
    * <pre>
-   * The least a subscription plan bills per month, in micro-USD. Absent on a
-   * license plan.
+   * The plan's monthly fee: what a subscription plan bills per month, in
+   * micro-USD. Absent on a license plan.
    * </pre>
    *
    * <code>optional int64 monthly_minimum_micros = 1 [json_name = "monthlyMinimumMicros", (.buf.validate.field) = { ... }</code>
@@ -77,8 +77,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The least a subscription plan bills per month, in micro-USD. Absent on a
-   * license plan.
+   * The plan's monthly fee: what a subscription plan bills per month, in
+   * micro-USD. Absent on a license plan.
    * </pre>
    *
    * <code>optional int64 monthly_minimum_micros = 1 [json_name = "monthlyMinimumMicros", (.buf.validate.field) = { ... }</code>
@@ -87,35 +87,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public long getMonthlyMinimumMicros() {
     return monthlyMinimumMicros_;
-  }
-
-  public static final int USAGE_SHARE_BASIS_POINTS_FIELD_NUMBER = 2;
-  private int usageShareBasisPoints_ = 0;
-  /**
-   * <pre>
-   * The share of monthly usage a subscription plan bills when it exceeds the
-   * minimum, in basis points. Absent on a license plan.
-   * </pre>
-   *
-   * <code>optional int32 usage_share_basis_points = 2 [json_name = "usageShareBasisPoints", (.buf.validate.field) = { ... }</code>
-   * @return Whether the usageShareBasisPoints field is set.
-   */
-  @java.lang.Override
-  public boolean hasUsageShareBasisPoints() {
-    return ((bitField0_ & 0x00000002) != 0);
-  }
-  /**
-   * <pre>
-   * The share of monthly usage a subscription plan bills when it exceeds the
-   * minimum, in basis points. Absent on a license plan.
-   * </pre>
-   *
-   * <code>optional int32 usage_share_basis_points = 2 [json_name = "usageShareBasisPoints", (.buf.validate.field) = { ... }</code>
-   * @return The usageShareBasisPoints.
-   */
-  @java.lang.Override
-  public int getUsageShareBasisPoints() {
-    return usageShareBasisPoints_;
   }
 
   public static final int PER_EXTRA_ORG_MICROS_FIELD_NUMBER = 3;
@@ -132,7 +103,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasPerExtraOrgMicros() {
-    return ((bitField0_ & 0x00000004) != 0);
+    return ((bitField0_ & 0x00000002) != 0);
   }
   /**
    * <pre>
@@ -162,7 +133,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasAnnualPriceMicros() {
-    return ((bitField0_ & 0x00000008) != 0);
+    return ((bitField0_ & 0x00000004) != 0);
   }
   /**
    * <pre>
@@ -196,12 +167,9 @@ private static final long serialVersionUID = 0L;
       output.writeInt64(1, monthlyMinimumMicros_);
     }
     if (((bitField0_ & 0x00000002) != 0)) {
-      output.writeInt32(2, usageShareBasisPoints_);
-    }
-    if (((bitField0_ & 0x00000004) != 0)) {
       output.writeInt64(3, perExtraOrgMicros_);
     }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       output.writeInt64(4, annualPriceMicros_);
     }
     getUnknownFields().writeTo(output);
@@ -219,13 +187,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(2, usageShareBasisPoints_);
-    }
-    if (((bitField0_ & 0x00000004) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(3, perExtraOrgMicros_);
     }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(4, annualPriceMicros_);
     }
@@ -248,11 +212,6 @@ private static final long serialVersionUID = 0L;
     if (hasMonthlyMinimumMicros()) {
       if (getMonthlyMinimumMicros()
           != other.getMonthlyMinimumMicros()) return false;
-    }
-    if (hasUsageShareBasisPoints() != other.hasUsageShareBasisPoints()) return false;
-    if (hasUsageShareBasisPoints()) {
-      if (getUsageShareBasisPoints()
-          != other.getUsageShareBasisPoints()) return false;
     }
     if (hasPerExtraOrgMicros() != other.hasPerExtraOrgMicros()) return false;
     if (hasPerExtraOrgMicros()) {
@@ -279,10 +238,6 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + MONTHLY_MINIMUM_MICROS_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
           getMonthlyMinimumMicros());
-    }
-    if (hasUsageShareBasisPoints()) {
-      hash = (37 * hash) + USAGE_SHARE_BASIS_POINTS_FIELD_NUMBER;
-      hash = (53 * hash) + getUsageShareBasisPoints();
     }
     if (hasPerExtraOrgMicros()) {
       hash = (37 * hash) + PER_EXTRA_ORG_MICROS_FIELD_NUMBER;
@@ -395,12 +350,12 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * The commercial terms of a plan.
    *
-   * Amounts are micro-USD (one millionth of a dollar), the unit the billing
-   * ledger already uses; shares are basis points (one hundredth of a percent).
-   * Every field has explicit presence: absent means the term does not apply to
-   * this plan, which is how a subscription plan and a license plan share one
-   * message. A monthly plan costs the greater of monthly_minimum_micros and
-   * usage_share_basis_points of the month's usage.
+   * Amounts are micro-USD (one millionth of a dollar). Every field has
+   * explicit presence: absent means the term does not apply to this plan,
+   * which is how a subscription plan and a license plan share one message. A
+   * monthly plan costs its monthly fee, monthly_minimum_micros, plus
+   * per_extra_org_micros for each child organization beyond the ones it
+   * includes. Usage is never part of a plan's price.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.plan.v1.PlanTerms}
@@ -437,7 +392,6 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       monthlyMinimumMicros_ = 0L;
-      usageShareBasisPoints_ = 0;
       perExtraOrgMicros_ = 0L;
       annualPriceMicros_ = 0L;
       return this;
@@ -479,16 +433,12 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000001;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.usageShareBasisPoints_ = usageShareBasisPoints_;
+        result.perExtraOrgMicros_ = perExtraOrgMicros_;
         to_bitField0_ |= 0x00000002;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.perExtraOrgMicros_ = perExtraOrgMicros_;
-        to_bitField0_ |= 0x00000004;
-      }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.annualPriceMicros_ = annualPriceMicros_;
-        to_bitField0_ |= 0x00000008;
+        to_bitField0_ |= 0x00000004;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -507,9 +457,6 @@ private static final long serialVersionUID = 0L;
       if (other == ai.stigmer.billing.plan.v1.PlanTerms.getDefaultInstance()) return this;
       if (other.hasMonthlyMinimumMicros()) {
         setMonthlyMinimumMicros(other.getMonthlyMinimumMicros());
-      }
-      if (other.hasUsageShareBasisPoints()) {
-        setUsageShareBasisPoints(other.getUsageShareBasisPoints());
       }
       if (other.hasPerExtraOrgMicros()) {
         setPerExtraOrgMicros(other.getPerExtraOrgMicros());
@@ -548,19 +495,14 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 8
-            case 16: {
-              usageShareBasisPoints_ = input.readInt32();
-              bitField0_ |= 0x00000002;
-              break;
-            } // case 16
             case 24: {
               perExtraOrgMicros_ = input.readInt64();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000002;
               break;
             } // case 24
             case 32: {
               annualPriceMicros_ = input.readInt64();
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000004;
               break;
             } // case 32
             default: {
@@ -583,8 +525,8 @@ private static final long serialVersionUID = 0L;
     private long monthlyMinimumMicros_ ;
     /**
      * <pre>
-     * The least a subscription plan bills per month, in micro-USD. Absent on a
-     * license plan.
+     * The plan's monthly fee: what a subscription plan bills per month, in
+     * micro-USD. Absent on a license plan.
      * </pre>
      *
      * <code>optional int64 monthly_minimum_micros = 1 [json_name = "monthlyMinimumMicros", (.buf.validate.field) = { ... }</code>
@@ -596,8 +538,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The least a subscription plan bills per month, in micro-USD. Absent on a
-     * license plan.
+     * The plan's monthly fee: what a subscription plan bills per month, in
+     * micro-USD. Absent on a license plan.
      * </pre>
      *
      * <code>optional int64 monthly_minimum_micros = 1 [json_name = "monthlyMinimumMicros", (.buf.validate.field) = { ... }</code>
@@ -609,8 +551,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The least a subscription plan bills per month, in micro-USD. Absent on a
-     * license plan.
+     * The plan's monthly fee: what a subscription plan bills per month, in
+     * micro-USD. Absent on a license plan.
      * </pre>
      *
      * <code>optional int64 monthly_minimum_micros = 1 [json_name = "monthlyMinimumMicros", (.buf.validate.field) = { ... }</code>
@@ -626,8 +568,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The least a subscription plan bills per month, in micro-USD. Absent on a
-     * license plan.
+     * The plan's monthly fee: what a subscription plan bills per month, in
+     * micro-USD. Absent on a license plan.
      * </pre>
      *
      * <code>optional int64 monthly_minimum_micros = 1 [json_name = "monthlyMinimumMicros", (.buf.validate.field) = { ... }</code>
@@ -636,66 +578,6 @@ private static final long serialVersionUID = 0L;
     public Builder clearMonthlyMinimumMicros() {
       bitField0_ = (bitField0_ & ~0x00000001);
       monthlyMinimumMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
-    private int usageShareBasisPoints_ ;
-    /**
-     * <pre>
-     * The share of monthly usage a subscription plan bills when it exceeds the
-     * minimum, in basis points. Absent on a license plan.
-     * </pre>
-     *
-     * <code>optional int32 usage_share_basis_points = 2 [json_name = "usageShareBasisPoints", (.buf.validate.field) = { ... }</code>
-     * @return Whether the usageShareBasisPoints field is set.
-     */
-    @java.lang.Override
-    public boolean hasUsageShareBasisPoints() {
-      return ((bitField0_ & 0x00000002) != 0);
-    }
-    /**
-     * <pre>
-     * The share of monthly usage a subscription plan bills when it exceeds the
-     * minimum, in basis points. Absent on a license plan.
-     * </pre>
-     *
-     * <code>optional int32 usage_share_basis_points = 2 [json_name = "usageShareBasisPoints", (.buf.validate.field) = { ... }</code>
-     * @return The usageShareBasisPoints.
-     */
-    @java.lang.Override
-    public int getUsageShareBasisPoints() {
-      return usageShareBasisPoints_;
-    }
-    /**
-     * <pre>
-     * The share of monthly usage a subscription plan bills when it exceeds the
-     * minimum, in basis points. Absent on a license plan.
-     * </pre>
-     *
-     * <code>optional int32 usage_share_basis_points = 2 [json_name = "usageShareBasisPoints", (.buf.validate.field) = { ... }</code>
-     * @param value The usageShareBasisPoints to set.
-     * @return This builder for chaining.
-     */
-    public Builder setUsageShareBasisPoints(int value) {
-
-      usageShareBasisPoints_ = value;
-      bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * The share of monthly usage a subscription plan bills when it exceeds the
-     * minimum, in basis points. Absent on a license plan.
-     * </pre>
-     *
-     * <code>optional int32 usage_share_basis_points = 2 [json_name = "usageShareBasisPoints", (.buf.validate.field) = { ... }</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearUsageShareBasisPoints() {
-      bitField0_ = (bitField0_ & ~0x00000002);
-      usageShareBasisPoints_ = 0;
       onChanged();
       return this;
     }
@@ -713,7 +595,7 @@ private static final long serialVersionUID = 0L;
      */
     @java.lang.Override
     public boolean hasPerExtraOrgMicros() {
-      return ((bitField0_ & 0x00000004) != 0);
+      return ((bitField0_ & 0x00000002) != 0);
     }
     /**
      * <pre>
@@ -743,7 +625,7 @@ private static final long serialVersionUID = 0L;
     public Builder setPerExtraOrgMicros(long value) {
 
       perExtraOrgMicros_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
@@ -758,7 +640,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearPerExtraOrgMicros() {
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000002);
       perExtraOrgMicros_ = 0L;
       onChanged();
       return this;
@@ -776,7 +658,7 @@ private static final long serialVersionUID = 0L;
      */
     @java.lang.Override
     public boolean hasAnnualPriceMicros() {
-      return ((bitField0_ & 0x00000008) != 0);
+      return ((bitField0_ & 0x00000004) != 0);
     }
     /**
      * <pre>
@@ -804,7 +686,7 @@ private static final long serialVersionUID = 0L;
     public Builder setAnnualPriceMicros(long value) {
 
       annualPriceMicros_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -818,7 +700,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearAnnualPriceMicros() {
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000004);
       annualPriceMicros_ = 0L;
       onChanged();
       return this;

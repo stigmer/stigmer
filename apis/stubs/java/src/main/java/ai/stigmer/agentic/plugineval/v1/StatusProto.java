@@ -156,22 +156,22 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "ending\020\001\022\035\n\031plugin_eval_phase_running\020\002\022" +
       "\037\n\033plugin_eval_phase_completed\020\003\022\035\n\031plug" +
       "in_eval_phase_partial\020\004\022\034\n\030plugin_eval_p" +
-      "hase_failed\020\005*\312\001\n\027PluginEvalPartialReaso" +
+      "hase_failed\020\005*\314\001\n\027PluginEvalPartialReaso" +
       "n\022*\n&plugin_eval_partial_reason_unspecif" +
       "ied\020\000\022+\n\'plugin_eval_partial_reason_cost" +
-      "_ceiling\020\001\022,\n(plugin_eval_partial_reason" +
-      "_out_of_credit\020\002\022(\n$plugin_eval_partial_" +
-      "reason_cancelled\020\003*\311\001\n\022PluginEvalTryStat" +
-      "e\022%\n!plugin_eval_try_state_unspecified\020\000" +
-      "\022!\n\035plugin_eval_try_state_pending\020\001\022!\n\035p" +
-      "lugin_eval_try_state_running\020\002\022 \n\034plugin" +
-      "_eval_try_state_graded\020\003\022$\n plugin_eval_" +
-      "try_state_not_graded\020\004B\262\001B\013StatusProtoP\001" +
-      "\242\002\004ASAP\252\002 Ai.Stigmer.Agentic.Plugineval." +
-      "V1\312\002 Ai\\Stigmer\\Agentic\\Plugineval\\V1\342\002," +
-      "Ai\\Stigmer\\Agentic\\Plugineval\\V1\\GPBMeta" +
-      "data\352\002$Ai::Stigmer::Agentic::Plugineval:" +
-      ":V1b\006proto3"
+      "_ceiling\020\001\022(\n$plugin_eval_partial_reason" +
+      "_cancelled\020\003\"\004\010\002\020\002*(plugin_eval_partial_" +
+      "reason_out_of_credit*\311\001\n\022PluginEvalTrySt" +
+      "ate\022%\n!plugin_eval_try_state_unspecified" +
+      "\020\000\022!\n\035plugin_eval_try_state_pending\020\001\022!\n" +
+      "\035plugin_eval_try_state_running\020\002\022 \n\034plug" +
+      "in_eval_try_state_graded\020\003\022$\n plugin_eva" +
+      "l_try_state_not_graded\020\004B\262\001B\013StatusProto" +
+      "P\001\242\002\004ASAP\252\002 Ai.Stigmer.Agentic.Plugineva" +
+      "l.V1\312\002 Ai\\Stigmer\\Agentic\\Plugineval\\V1\342" +
+      "\002,Ai\\Stigmer\\Agentic\\Plugineval\\V1\\GPBMe" +
+      "tadata\352\002$Ai::Stigmer::Agentic::Plugineva" +
+      "l::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

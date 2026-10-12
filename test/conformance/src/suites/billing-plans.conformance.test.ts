@@ -88,11 +88,11 @@ const FREE_FEATURES = [Feature.channels, Feature.sharing];
 
 // The loud-failure posture: a billingPlans target without these is a target
 // bug, never a skip.
-async function unfundedOrg(): Promise<TenancyContext> {
-  if (target.provisionUnfundedTenancy === undefined) {
-    throw new Error(`target ${target.name} declares billingPlans but provides no provisionUnfundedTenancy()`);
+async function keylessOrg(): Promise<TenancyContext> {
+  if (target.provisionKeylessTenancy === undefined) {
+    throw new Error(`target ${target.name} declares billingPlans but provides no provisionKeylessTenancy()`);
   }
-  const context = await target.provisionUnfundedTenancy();
+  const context = await target.provisionKeylessTenancy();
   fixtures.defer(() => target.cleanupTenancy(context));
   return context;
 }
@@ -124,7 +124,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — the catalog (billin
       expect(plan.status?.lifecycle, `plan '${id}' lifecycle`).toBe(PlanLifecycle.active);
       expect(plan.spec?.instrument, `plan '${id}' instrument`).not.toBe(PlanInstrument.plan_instrument_unspecified);
       if (plan.spec?.instrument === PlanInstrument.subscription) {
-        expect(plan.spec.terms?.monthlyMinimumMicros, `subscription plan '${id}' names a monthly minimum`).not.toBeUndefined();
+        expect(plan.spec.terms?.monthlyMinimumMicros, `subscription plan '${id}' names a monthly fee`).not.toBeUndefined();
       }
     }
 
@@ -164,7 +164,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
   });
 
   it("[billing.rpc.get-entitlements.free-by-default] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getForOrg] an organization that never subscribed is on Free", async () => {
-    const { org } = await unfundedOrg();
+    const { org } = await keylessOrg();
     const answer = await clients.subscriptionQuery.getEntitlements({ org });
     expect(answer.planId).toBe("");
     expect(answer.entitlements?.features).toEqual(FREE_FEATURES);
@@ -176,7 +176,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
   });
 
   it("[billing.rpc.get-period-estimate.not-found-on-free] [rpc:SubscriptionQueryController.getPeriodEstimate] an organization on Free has no period to estimate", async () => {
-    const { org } = await unfundedOrg();
+    const { org } = await keylessOrg();
     await expectGrpcCode(
       () => clients.subscriptionQuery.getPeriodEstimate({ org }),
       Code.NotFound,
@@ -185,7 +185,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
   });
 
   it("[billing.rpc.change-plan.requires-payment-method] [rpc:SubscriptionCommandController.changePlan] subscribing without a saved card is refused before anything is written or charged", async () => {
-    const { org } = await unfundedOrg();
+    const { org } = await keylessOrg();
     const planId = await subscriptionPlanId();
     const refused = await expectGrpcCode(
       () => clients.subscriptionCommand.changePlan({ org, planId }),
@@ -208,7 +208,7 @@ describe.skipIf(!plansServed)("Billing plans conformance — an organization's s
   });
 
   it("[billing.rpc.subscription.outsider-permission-denied] [rpc:SubscriptionCommandController.changePlan] [rpc:SubscriptionQueryController.getEntitlements] [rpc:SubscriptionQueryController.getPeriodEstimate] an outsider can neither change an organization's plan nor read its entitlements or period estimate", async () => {
-    const { org } = await unfundedOrg();
+    const { org } = await keylessOrg();
     const planId = await subscriptionPlanId();
     const other = await outsider();
     const change = await expectGrpcCode(

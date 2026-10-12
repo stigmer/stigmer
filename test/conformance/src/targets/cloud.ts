@@ -10,8 +10,8 @@
 //
 // Tenancy is real here, unlike the local targets: each provisioned scope is an
 // organization created via the production RPC, whose creation grants the
-// primary user ownership (IAM policies) and provisions a zero-balance billing
-// account — sufficient for the Class A (CRUD) domains. A run needs the
+// primary user ownership (IAM policies) and provisions its billing account —
+// sufficient for the Class A (CRUD) domains. A run needs the
 // organization's own key for its provider (keyTenancy): the fixture Anthropic
 // and OpenAI keys always, and a Cursor key only when the invoking shell
 // supplies a real one in CURSOR_API_KEY.
@@ -46,12 +46,6 @@ import type {
   TenancyContext,
 } from "./target";
 
-
-// The credit seed for a funded org ($100 in micro-USD), for the ledger arms
-// that move or read a balance. No run draws credit: every run is served on
-// the organization's own provider key, so a zero-balance org runs as well as
-// a funded one.
-const TENANCY_SEED_CREDITS_MICROS = 100_000_000n;
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -162,7 +156,7 @@ export class CloudTarget implements TargetProfile {
     authorizationQueries: true,
     // The three cloud-capability surfaces, all served by the composition (the
     // flag is the edition's contract; the lane address is CLOUD_ENV's).
-    billingLedger: true,
+    billingEngine: true,
     // The plan catalog and subscriptions (the Cloud's subscription engine).
     billingPlans: true,
     sideChannelProxy: true,
@@ -362,36 +356,14 @@ export class CloudTarget implements TargetProfile {
     await this.clients().organizationCommand.delete({ value: id });
   }
 
-  // On this Class A target provisionTenancy already yields the unfunded shape
-  // (an org create provisions a zero-balance billing account and nothing
-  // adds credits), so the two verbs coincide here; the execution target funds
-  // in provisionTenancy and delegates this one. Named separately so a suite
-  // can state its precondition — "this org has NO credits" — instead of
+  // On this Class A target provisionTenancy already yields the keyless shape
+  // (an org create provisions its billing account and saves no provider
+  // key), so the two verbs coincide here; the execution target keys in
+  // provisionTenancy and delegates this one. Named separately so a suite can
+  // state its precondition — "this org holds NO provider key" — instead of
   // relying on which target it happens to run under.
-  provisionUnfundedTenancy(): Promise<TenancyContext> {
+  provisionKeylessTenancy(): Promise<TenancyContext> {
     return this.provisionTenancy();
-  }
-
-  // Seeds the org's billing account with the standard execution-credit
-  // allowance (TENANCY_SEED_CREDITS_MICROS). The primary user, the owner of
-  // every org this target provisions, ensures the account; the credit itself
-  // comes from the operator, because adding credit without a purchase needs
-  // can_manage_credits on the platform, which owning the org never confers.
-  // Billing accounts are keyed by the execution's metadata.org — the slug.
-  // Lives on the Class A target (not on cloud-execution) so
-  // ledger arms that need a funded account — usage reports, settle, the
-  // STOP/WARNING thresholds — can run without a runner; the execution target
-  // delegates here. Without an operator credential there is nobody who may
-  // fund, so the refusal names the credential instead of failing later on an
-  // empty wallet.
-  async fundTenancy(org: string): Promise<void> {
-    await this.clients().billingCommand.getOrCreateBillingAccount({ org });
-    await this.creditIssuer().billingCommand.adjustCredits({
-      org,
-      amountMicros: TENANCY_SEED_CREDITS_MICROS,
-      reason: "conformance execution tenancy seed",
-      idempotencyKey: `conformance-seed-${org}`,
-    });
   }
 
   // Saves the fixture keys through the org owner's own ProviderKey.set, the
@@ -406,18 +378,6 @@ export class CloudTarget implements TargetProfile {
     if (this.cursorKey !== undefined) {
       await this.clients().providerKeyCommand.set({ org, provider: "cursor", apiKey: this.cursorKey });
     }
-  }
-
-  // The clients that may add credit: the operator's. Exposed for the suites
-  // that move a funded org's balance (drain, refund) on the primary's org.
-  creditIssuer(): ConformanceClients {
-    if (this.operatorClients === undefined) {
-      throw new Error(
-        `funding a tenancy needs can_manage_credits on the platform: set ${CLOUD_ENV.operatorToken}, ` +
-          "or run against a hermetic substrate, whose bootstrap always mints the operator",
-      );
-    }
-    return this.operatorClients;
   }
 
   // A brand-new console person holding no grants on any org this run

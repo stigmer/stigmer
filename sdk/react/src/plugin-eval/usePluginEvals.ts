@@ -40,7 +40,8 @@ const NO_EVALS: readonly PluginEval[] = [];
  * Data hook that lists a plugin's {@link PluginEval}s, newest first,
  * through `plugineval.listByPlugin()`. The plugin's viewers in its own
  * organization read them; a viewer from a child organization gets an
- * empty list, because a try spends the plugin's organization's credit.
+ * empty list, because a try runs on the plugin's organization's own
+ * provider keys.
  *
  * Pass an empty `pluginId` to skip fetching, while the plugin is loading.
  *

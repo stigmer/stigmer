@@ -22,8 +22,6 @@ import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v
 import { PluginQueryController } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/query_pb";
 import type { Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { GetArtifactResponse as GetPluginArtifactResponse, PluginArtifactDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/io_pb";
-import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
-import type { RecordLlmCallUsageInput, RecordLlmCallUsageResponse } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import type { Run, RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
@@ -170,7 +168,6 @@ export class StigmerClient {
   private readonly agentQuery: Client<typeof AgentQueryController>;
   private readonly skillQuery: Client<typeof SkillQueryController>;
   private readonly pluginQuery: Client<typeof PluginQueryController>;
-  private readonly billingCommand: Client<typeof BillingCommandController>;
   private readonly platformQuery: Client<typeof PlatformQueryController>;
   private readonly channelMessageQuery: Client<typeof ChannelMessageQueryController>;
 
@@ -264,7 +261,6 @@ export class StigmerClient {
     this.agentQuery = createClient(AgentQueryController, this.transport);
     this.skillQuery = createClient(SkillQueryController, this.transport);
     this.pluginQuery = createClient(PluginQueryController, this.transport);
-    this.billingCommand = createClient(BillingCommandController, this.transport);
     this.platformQuery = createClient(PlatformQueryController, this.transport);
     this.channelMessageQuery = createClient(ChannelMessageQueryController, this.transport);
   }
@@ -523,14 +519,16 @@ export class StigmerClient {
   }
 
   /**
-   * Every event one run wrote into its session's log, oldest first: what a
-   * resumed turn already sent. Pages to the end, at most 1000 a page.
+   * Every event of one run in its session's log, oldest first, of `types`
+   * when given (every type otherwise): what a resumed turn already sent, or
+   * the answers the server recorded on its asks (`harness/approval-answers.ts`).
+   * Pages to the end, at most 1000 a page.
    */
-  async listRunSessionEvents(sessionId: string, runId: string): Promise<SessionEvent[]> {
+  async listRunSessionEvents(sessionId: string, runId: string, types: readonly string[] = []): Promise<SessionEvent[]> {
     const events: SessionEvent[] = [];
     let pageToken = "";
     do {
-      const page = await this.sessionQuery.listEvents({ sessionId, runId, pageSize: 1000, pageToken });
+      const page = await this.sessionQuery.listEvents({ sessionId, runId, types: [...types], pageSize: 1000, pageToken });
       events.push(...page.events);
       pageToken = page.nextPageToken;
     } while (pageToken !== "");
@@ -625,10 +623,6 @@ export class StigmerClient {
    */
   async getPluginArtifactDownloadUrl(artifactStorageKey: string): Promise<PluginArtifactDownloadUrl> {
     return this.pluginQuery.getArtifactDownloadUrl({ artifactStorageKey });
-  }
-
-  async recordLlmCallUsage(input: RecordLlmCallUsageInput): Promise<RecordLlmCallUsageResponse> {
-    return this.billingCommand.recordLlmCallUsage(input);
   }
 
   async getAgentByReference(ref: ApiResourceReference): Promise<Agent> {

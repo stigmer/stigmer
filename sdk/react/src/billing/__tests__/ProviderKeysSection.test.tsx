@@ -40,7 +40,6 @@ function key(
     createdBy: "ida_admin",
     createdAt: timestampFromDate(SAVED),
     updatedAt: timestampFromDate(SAVED),
-    inUse: true,
     ...fields,
   });
 }

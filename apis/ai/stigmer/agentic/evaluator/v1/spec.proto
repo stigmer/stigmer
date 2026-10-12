@@ -10,7 +10,8 @@ import "buf/validate/validate.proto";
 // agent_id is fixed at create; every other field changes with update. The
 // spend limit bounds the runner's estimated model cost of the judge runs
 // (RunStatus.streaming_usage.estimated_cost_usd), not a billed amount: the
-// hosted edition's ledger adds its own pricing on top.
+// judge runs on the organization's own provider keys, and the provider
+// bills the organization for the calls it actually served.
 message EvaluatorSpec {
   // ID of the agent whose runs are graded.
   //

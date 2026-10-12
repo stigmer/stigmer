@@ -394,6 +394,33 @@ export const LANES = {
       ".github/workflows/ci.e2e-interactive.yaml",
     ],
   },
+  "ci.ee.yaml": {
+    paths: [
+      // Stigmer Enterprise, its consumer check and their lockfiles.
+      "ee/**",
+      // The server it links with `file:` and builds against, and that
+      // server's own closure: the packages it links, and the turbo wrapper,
+      // task graph and set `make build-ee` builds the libraries through. A
+      // change to the open-source server that breaks Enterprise must fail
+      // in its own PR.
+      "backend/services/stigmer-server/**",
+      "apis/stubs/ts/**",
+      "backend/libs/ts/**",
+      "package.json",
+      "package-lock.json",
+      "turbo.json",
+      "scripts/turbo-set.mjs",
+      "scripts/publish-libs.mjs",
+      // The consumer-install check the lane runs, and the helpers it imports.
+      "scripts/verify-consumer-install.mjs",
+      "scripts/lib/**",
+      // The Makefile its build target comes from (ci.all-in-one says why).
+      "Makefile",
+      // The Node version the lane sets up (ci.all-in-one says why).
+      ".nvmrc",
+      ".github/workflows/ci.ee.yaml",
+    ],
+  },
   "ci.go-sdk.yaml": {
     paths: [
       "apis/**",
@@ -637,6 +664,7 @@ export const COVERAGE_LANES = [
   "ci.authorization-model.yaml",
   "ci.conformance.yaml",
   "ci.docs.yaml",
+  "ci.ee.yaml",
   "ci.go-sdk.yaml",
   "ci.runner.yaml",
   "ci.stigmer-server.yaml",

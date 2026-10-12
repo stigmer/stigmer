@@ -13,18 +13,12 @@ import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { useBillingUsageReport } from "../useBillingUsageReport";
 import { useCreateBillingPortalSession } from "../useCreateBillingPortalSession";
-import { useCreateCheckoutSession } from "../useCreateCheckoutSession";
-import { useCustomerModelPricing } from "../useCustomerModelPricing";
-import { useSetAutoRechargeConfig } from "../useSetAutoRechargeConfig";
 
 /** A billing client whose every call records its input and answers empty. */
 function stubBilling() {
   const billing = {
     getBillingUsageReport: vi.fn(async (_input: unknown) => ({})),
     createBillingPortalSession: vi.fn(async (_input: unknown) => ({ portalUrl: "" })),
-    createCreditCheckoutSession: vi.fn(async (_input: unknown) => ({ checkoutUrl: "" })),
-    getCustomerModelPricing: vi.fn(async (_input?: unknown) => ({})),
-    setAutoRechargeConfig: vi.fn(async (_input: unknown) => ({})),
   };
   const client = { billing } as unknown as Stigmer;
   const wrapper = ({ children }: { children: ReactNode }) =>
@@ -51,50 +45,5 @@ describe("the billing hooks send org", () => {
     const { result } = renderHook(() => useCreateBillingPortalSession({ returnUrl: "https://console.test/billing" }), { wrapper });
     await act(() => result.current.openPortal("acme"));
     expect(billing.createBillingPortalSession.mock.calls[0]?.[0]).toMatchObject({ org: "acme" });
-  });
-
-  it("useCreateCheckoutSession checks out for the organization", async () => {
-    const { billing, wrapper } = stubBilling();
-    const { result } = renderHook(() => useCreateCheckoutSession(), { wrapper });
-    await act(() =>
-      result.current.createSession({ org: "acme", packId: "starter", successUrl: "https://ok.test", cancelUrl: "https://no.test" }),
-    );
-    expect(billing.createCreditCheckoutSession.mock.calls[0]?.[0]).toEqual({
-      org: "acme",
-      packId: "starter",
-      successUrl: "https://ok.test",
-      cancelUrl: "https://no.test",
-    });
-  });
-
-  it("useCustomerModelPricing asks for the organization's prices, the defaults without one, and nothing for null", async () => {
-    const scoped = stubBilling();
-    renderHook(() => useCustomerModelPricing("acme"), { wrapper: scoped.wrapper });
-    await waitFor(() => expect(scoped.billing.getCustomerModelPricing).toHaveBeenCalledTimes(1));
-    expect(scoped.billing.getCustomerModelPricing.mock.calls[0]?.[0]).toEqual({ org: "acme" });
-
-    const defaults = stubBilling();
-    renderHook(() => useCustomerModelPricing(undefined), { wrapper: defaults.wrapper });
-    await waitFor(() => expect(defaults.billing.getCustomerModelPricing).toHaveBeenCalledTimes(1));
-    expect(defaults.billing.getCustomerModelPricing.mock.calls[0]?.[0]).toBeUndefined();
-
-    const skipped = stubBilling();
-    renderHook(() => useCustomerModelPricing(null), { wrapper: skipped.wrapper });
-    expect(skipped.billing.getCustomerModelPricing).not.toHaveBeenCalled();
-  });
-
-  it("useSetAutoRechargeConfig configures the organization's recharge", async () => {
-    const { billing, wrapper } = stubBilling();
-    const { result } = renderHook(() => useSetAutoRechargeConfig(), { wrapper });
-    await act(() =>
-      result.current.setConfig({
-        org: "acme",
-        enabled: true,
-        thresholdMicros: 1n,
-        rechargeAmountMicros: 2n,
-        monthlyCapMicros: 3n,
-      }),
-    );
-    expect(billing.setAutoRechargeConfig.mock.calls[0]?.[0]).toMatchObject({ org: "acme", enabled: true });
   });
 });

@@ -21,7 +21,8 @@ public enum BillingAccountStatus
   billing_account_status_unspecified(0),
   /**
    * <pre>
-   * Account is operational; credits can be consumed and purchased.
+   * Account is operational: the organization can save a card and change
+   * its plan.
    * </pre>
    *
    * <code>billing_account_active = 1;</code>
@@ -29,7 +30,8 @@ public enum BillingAccountStatus
   billing_account_active(1),
   /**
    * <pre>
-   * Account is frozen (e.g., dispute, compliance hold). Runs blocked.
+   * Account is frozen by a platform operator (e.g., a dispute or a
+   * compliance hold). Saving a card and changing the plan are refused.
    * </pre>
    *
    * <code>billing_account_suspended = 2;</code>
@@ -37,7 +39,8 @@ public enum BillingAccountStatus
   billing_account_suspended(2),
   /**
    * <pre>
-   * Account is permanently closed. No further operations allowed.
+   * Account is permanently closed by a platform operator. No further
+   * operations allowed.
    * </pre>
    *
    * <code>billing_account_closed = 3;</code>
@@ -61,7 +64,8 @@ public enum BillingAccountStatus
   public static final int billing_account_status_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Account is operational; credits can be consumed and purchased.
+   * Account is operational: the organization can save a card and change
+   * its plan.
    * </pre>
    *
    * <code>billing_account_active = 1;</code>
@@ -69,7 +73,8 @@ public enum BillingAccountStatus
   public static final int billing_account_active_VALUE = 1;
   /**
    * <pre>
-   * Account is frozen (e.g., dispute, compliance hold). Runs blocked.
+   * Account is frozen by a platform operator (e.g., a dispute or a
+   * compliance hold). Saving a card and changing the plan are refused.
    * </pre>
    *
    * <code>billing_account_suspended = 2;</code>
@@ -77,7 +82,8 @@ public enum BillingAccountStatus
   public static final int billing_account_suspended_VALUE = 2;
   /**
    * <pre>
-   * Account is permanently closed. No further operations allowed.
+   * Account is permanently closed by a platform operator. No further
+   * operations allowed.
    * </pre>
    *
    * <code>billing_account_closed = 3;</code>
@@ -143,7 +149,7 @@ public enum BillingAccountStatus
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.billing.v1.EnumProto.getDescriptor().getEnumType(3);
+    return ai.stigmer.billing.v1.EnumProto.getDescriptor().getEnumType(0);
   }
 
   private static final BillingAccountStatus[] VALUES = values();

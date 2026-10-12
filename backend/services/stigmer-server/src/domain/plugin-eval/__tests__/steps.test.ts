@@ -255,7 +255,6 @@ describe("StartPluginEvalWorkflow", () => {
         error: "",
         costUsd: 0.42,
         durationSeconds: 3,
-        outOfCredit: false,
       },
     );
     const status = (await readEval(temp.store)).status;

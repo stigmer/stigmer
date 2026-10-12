@@ -16,11 +16,9 @@ class PeriodEstimateLineKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     period_estimate_line_kind_unspecified: _ClassVar[PeriodEstimateLineKind]
     plan: _ClassVar[PeriodEstimateLineKind]
-    commission_credit: _ClassVar[PeriodEstimateLineKind]
     child_orgs: _ClassVar[PeriodEstimateLineKind]
 period_estimate_line_kind_unspecified: PeriodEstimateLineKind
 plan: PeriodEstimateLineKind
-commission_credit: PeriodEstimateLineKind
 child_orgs: PeriodEstimateLineKind
 
 class GetSubscriptionForOrgInput(_message.Message):
@@ -64,24 +62,20 @@ class GetPeriodEstimateInput(_message.Message):
     def __init__(self, org: _Optional[str] = ...) -> None: ...
 
 class PeriodEstimate(_message.Message):
-    __slots__ = ("plan_id", "period_start", "period_end", "provider_cost_micros", "commission_collected_micros", "child_org_count", "lines", "total_micros")
+    __slots__ = ("plan_id", "period_start", "period_end", "child_org_count", "lines", "total_micros")
     PLAN_ID_FIELD_NUMBER: _ClassVar[int]
     PERIOD_START_FIELD_NUMBER: _ClassVar[int]
     PERIOD_END_FIELD_NUMBER: _ClassVar[int]
-    PROVIDER_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
-    COMMISSION_COLLECTED_MICROS_FIELD_NUMBER: _ClassVar[int]
     CHILD_ORG_COUNT_FIELD_NUMBER: _ClassVar[int]
     LINES_FIELD_NUMBER: _ClassVar[int]
     TOTAL_MICROS_FIELD_NUMBER: _ClassVar[int]
     plan_id: str
     period_start: _timestamp_pb2.Timestamp
     period_end: _timestamp_pb2.Timestamp
-    provider_cost_micros: int
-    commission_collected_micros: int
     child_org_count: int
     lines: _containers.RepeatedCompositeFieldContainer[PeriodEstimateLine]
     total_micros: int
-    def __init__(self, plan_id: _Optional[str] = ..., period_start: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., period_end: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., provider_cost_micros: _Optional[int] = ..., commission_collected_micros: _Optional[int] = ..., child_org_count: _Optional[int] = ..., lines: _Optional[_Iterable[_Union[PeriodEstimateLine, _Mapping]]] = ..., total_micros: _Optional[int] = ...) -> None: ...
+    def __init__(self, plan_id: _Optional[str] = ..., period_start: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., period_end: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., child_org_count: _Optional[int] = ..., lines: _Optional[_Iterable[_Union[PeriodEstimateLine, _Mapping]]] = ..., total_micros: _Optional[int] = ...) -> None: ...
 
 class PeriodEstimateLine(_message.Message):
     __slots__ = ("kind", "amount_micros")

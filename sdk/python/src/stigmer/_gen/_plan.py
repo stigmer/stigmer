@@ -99,7 +99,6 @@ class PlanTermsInput:
     """SDK input type for PlanTerms."""
 
     monthly_minimum_micros: int | None = None
-    usage_share_basis_points: int | None = None
     per_extra_org_micros: int | None = None
     annual_price_micros: int | None = None
 
@@ -107,8 +106,6 @@ class PlanTermsInput:
         msg = spec_pb2.PlanTerms()
         if self.monthly_minimum_micros is not None:
             msg.monthly_minimum_micros = self.monthly_minimum_micros
-        if self.usage_share_basis_points is not None:
-            msg.usage_share_basis_points = self.usage_share_basis_points
         if self.per_extra_org_micros is not None:
             msg.per_extra_org_micros = self.per_extra_org_micros
         if self.annual_price_micros is not None:

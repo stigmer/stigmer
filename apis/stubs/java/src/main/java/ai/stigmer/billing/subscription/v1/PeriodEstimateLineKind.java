@@ -21,22 +21,12 @@ public enum PeriodEstimateLineKind
   period_estimate_line_kind_unspecified(0),
   /**
    * <pre>
-   * The plan's cost: the greater of its monthly minimum and its usage
-   * share of the period's provider cost.
+   * The plan's monthly fee.
    * </pre>
    *
    * <code>plan = 1;</code>
    */
   plan(1),
-  /**
-   * <pre>
-   * The commission already collected on the period's usage, credited
-   * against the plan's cost and never more than it.
-   * </pre>
-   *
-   * <code>commission_credit = 2;</code>
-   */
-  commission_credit(2),
   /**
    * <pre>
    * The child organizations beyond those the plan includes, at the
@@ -64,22 +54,12 @@ public enum PeriodEstimateLineKind
   public static final int period_estimate_line_kind_unspecified_VALUE = 0;
   /**
    * <pre>
-   * The plan's cost: the greater of its monthly minimum and its usage
-   * share of the period's provider cost.
+   * The plan's monthly fee.
    * </pre>
    *
    * <code>plan = 1;</code>
    */
   public static final int plan_VALUE = 1;
-  /**
-   * <pre>
-   * The commission already collected on the period's usage, credited
-   * against the plan's cost and never more than it.
-   * </pre>
-   *
-   * <code>commission_credit = 2;</code>
-   */
-  public static final int commission_credit_VALUE = 2;
   /**
    * <pre>
    * The child organizations beyond those the plan includes, at the
@@ -117,7 +97,6 @@ public enum PeriodEstimateLineKind
     switch (value) {
       case 0: return period_estimate_line_kind_unspecified;
       case 1: return plan;
-      case 2: return commission_credit;
       case 3: return child_orgs;
       default: return null;
     }

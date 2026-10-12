@@ -36,8 +36,9 @@ type AgentShareCommandControllerClient interface {
 	Apply(ctx context.Context, in *AgentShare, opts ...grpc.CallOption) (*AgentShare, error)
 	// Create an agent share.
 	//
-	// Enabling a share is a billing-affecting decision: conversations over
-	// the hosted link consume the sharing organization's credits.
+	// Enabling a share is a spending decision: conversations over the hosted
+	// link call models on the sharing organization's own provider keys, and
+	// the providers bill the organization for them.
 	Create(ctx context.Context, in *AgentShare, opts ...grpc.CallOption) (*AgentShare, error)
 	// Update an existing agent share.
 	//
@@ -135,8 +136,9 @@ type AgentShareCommandControllerServer interface {
 	Apply(context.Context, *AgentShare) (*AgentShare, error)
 	// Create an agent share.
 	//
-	// Enabling a share is a billing-affecting decision: conversations over
-	// the hosted link consume the sharing organization's credits.
+	// Enabling a share is a spending decision: conversations over the hosted
+	// link call models on the sharing organization's own provider keys, and
+	// the providers bill the organization for them.
 	Create(context.Context, *AgentShare) (*AgentShare, error)
 	// Update an existing agent share.
 	//

@@ -44,7 +44,7 @@ export interface AgentShareDraft {
   readonly messages: {
     /** Shown when a visitor exceeds the message rate limit. */
     readonly rateLimited: string;
-    /** Shown when the org's credits are exhausted (sharing fails closed). */
+    /** Shown when the share cannot serve the conversation, e.g. the org holds no provider key for the agent's model (fails closed). */
     readonly unavailable: string;
     /** Shown when a conversation hits its turn limit or inactivity timeout. */
     readonly conversationEnded: string;

@@ -575,7 +575,7 @@ outside it sees them.
   `tenancy/organization/v1/spec.proto`. CLI: `--org` flag, the `STIGMER_ORG`
   environment variable and the `context.org` config key. In every field name an
   Organization is `org`: `org` for the one a message is about (`metadata.org`,
-  `GetCreditBalanceInput.org`), `<role>_org` for a second one in the same
+  `GetBillingAccountInput.org`), `<role>_org` for a second one in the same
   message (`ProviderKey.inherited_from_org`), `orgs` for a list
   (`repeated string orgs`), `org_<attribute>` for something that describes one
   (`InvitationPreview.org_name`), `orgs` in a count (`max_orgs`), and `org` in a
@@ -944,8 +944,8 @@ whatever roles its person holds elsewhere.
   `visibility_child_orgs`; and, for a credential bound to a parent, managing
   that parent's child organizations (never reading what they hold). It cannot
   create an Organization, except a child of its own, or accept an invitation to
-  another one. One exception: a platform operator's acts (credits, plans,
-  pricing, licenses) follow the person's platform role, so their limited key
+  another one. One exception: a platform operator's acts (plans, the model
+  catalog, licenses) follow the person's platform role, so their limited key
   still performs them.
 - **Context rule**: Use in authentication guides and reference. On the sales
   site, say "a key that works in one Organization." In quickstart, avoid unless
@@ -1131,8 +1131,8 @@ credentials.
   signed-in members chat. Say "Anyone with the link can chat" only for the
   `public` audience, an explicit choice. A chat link lets people chat; it never
   grants a role on the Agent.
-- **Note**: Creating one is an Organization admin's act, because it spends the
-  Organization's credits with everyone who holds the link. See
+- **Note**: Creating one is an Organization admin's act, because it runs the
+  Agent on the Organization's provider keys for everyone who holds the link. See
   [Share an Agent](/docs/guides/sharing/share-an-agent).
 
 ---

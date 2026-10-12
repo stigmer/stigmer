@@ -48,6 +48,7 @@ function deps(): ResolutionDeps {
     heartbeat: () => {},
     enterPhase: () => {},
     reportProgress: async () => {},
+    identifyRun: () => {},
     recordReconciled: async () => {},
   };
 }

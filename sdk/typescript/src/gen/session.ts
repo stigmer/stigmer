@@ -8,7 +8,8 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
-import { SessionIdSchema, UpdateSessionSubjectRequestSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, type UpdateSessionSubjectRequest, type ReviewFileChangesInput, type ReviewFileChangesResponse, type AppendSessionEventsInput, type AppendSessionEventsResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionIdSchema, UpdateSessionSubjectRequestSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, ConfirmToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, type UpdateSessionSubjectRequest, type ReviewFileChangesInput, type ReviewFileChangesResponse, type ConfirmToolUseInput, type GrantPermissionInput, type GrantPermissionResponse, type InterruptSessionInput, type InterruptSessionResponse, type AppendSessionEventsInput, type AppendSessionEventsResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -53,6 +54,24 @@ export class SessionClient {
   async reviewFileChanges(input: ReviewFileChangesInput): Promise<ReviewFileChangesResponse> {
     try {
       return await this.command.reviewFileChanges(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async confirmToolUse(input: ConfirmToolUseInput): Promise<SessionEvent> {
+    try {
+      return await this.command.confirmToolUse(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async grantPermission(input: GrantPermissionInput): Promise<GrantPermissionResponse> {
+    try {
+      return await this.command.grantPermission(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async interrupt(input: InterruptSessionInput): Promise<InterruptSessionResponse> {
+    try {
+      return await this.command.interrupt(input);
     } catch (e) { throw wrapError(e); }
   }
 

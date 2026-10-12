@@ -566,7 +566,7 @@ PluginEvalTry is one try: one run in a fresh conversation.
     runId: { type: "string", description: "" },
     state: { type: "PluginEvalTryState", description: "Where the try is.", typeDescriptionLink: "#pluginevaltrystate" },
     score: { type: "number", description: "The try's score from 0 to 1 when graded: the weighted share of its scored checks that passed." },
-    notGradedReason: { type: "string", description: "Why the try produced no score, as in \"platform busy\" or \"out of credit\"; empty when graded." },
+    notGradedReason: { type: "string", description: "Why the try produced no score, as in \"platform busy\"; empty when graded." },
     error: { type: "string", description: "The run's own failure, when it had one, as in \"timed out after 300s\"." },
     costUsd: { type: "number", description: "The try's estimated model cost, AI-graded checks included, in US dollars." },
     durationSeconds: { type: "number", description: "How long the try ran, in seconds." },
@@ -593,7 +593,6 @@ PluginEvalPartialReason is why an eval stopped early.
 | Value | Description |
 |-------|-------------|
 | `plugin_eval_partial_reason_cost_ceiling` | The eval's spending limit was reached. |
-| `plugin_eval_partial_reason_out_of_credit` | The organization ran out of credit. |
 | `plugin_eval_partial_reason_cancelled` | Someone cancelled the eval. |
 
 ### Harness

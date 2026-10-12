@@ -2,7 +2,7 @@
 # its evals; its viewers in its own organization read them and, through
 # the session link, open each try's conversation, run and score, read-only.
 # A child organization's viewer of the plugin reads none of it: a try
-# spends the plugin organization's credit and may act with its
+# runs on the plugin organization's own provider keys and may act with its
 # connections.
 #
 # An eval carries a single parent link

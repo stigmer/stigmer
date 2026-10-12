@@ -190,7 +190,9 @@ export type RunStatus = Message<"ai.stigmer.agentic.run.v1.RunStatus"> & {
   pendingApprovals: PendingApproval[];
 
   /**
-   * Server-authored, append-only record of every approval request and decision.
+   * No longer written: approvals and their answers are the session's events
+   * (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+   * stigmer.permission.grant). Runs written before then keep their entries.
    *
    * @generated from field: ai.stigmer.agentic.run.v1.ApprovalEventStream approval_event_stream = 22;
    */

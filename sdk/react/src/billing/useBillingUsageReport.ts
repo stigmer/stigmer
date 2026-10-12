@@ -21,10 +21,11 @@ export interface UseBillingUsageReportReturn {
 }
 
 /**
- * Data hook that fetches an aggregated billing usage report for a date range.
+ * Data hook that fetches the meter's counts for a date range.
  *
- * Returns total provider cost, total billable amount, run and LLM
- * call counts, and a per-model breakdown with cost tier attribution.
+ * Returns the run and LLM call counts, and per model the model, its
+ * harness and its call count. The meter records what each call was and
+ * never what it cost.
  *
  * Pass `null` as `org` to skip fetching (stable no-op).
  *
@@ -43,7 +44,7 @@ export interface UseBillingUsageReportReturn {
  * if (isLoading) return <Skeleton />;
  * if (!report) return null;
  *
- * return <div>Total: {formatCreditBalance(report.totalBillableAmountMicros)}</div>;
+ * return <div>{report.llmCallCount} calls across {report.runCount} runs</div>;
  * ```
  */
 export function useBillingUsageReport(

@@ -18,7 +18,6 @@ use serde::Serialize;
 pub(crate) struct BillingReturnPayload {
     pub setup: Option<String>,
     pub plan: Option<String>,
-    pub checkout: Option<String>,
 }
 
 /// The app event a deep link becomes.
@@ -29,7 +28,7 @@ pub(crate) enum DeepLinkEvent {
     /// `stigmer://oauth/callback`: a sign-in's code, state or error, relayed by
     /// the web console's callback page (`/auth/oauth/callback?source=desktop`).
     SignInCallback(AuthCallbackPayload),
-    /// `stigmer://billing/return`: the outcome of a Stripe checkout or card setup.
+    /// `stigmer://billing/return`: the outcome of a Stripe card setup.
     BillingReturn(BillingReturnPayload),
 }
 
@@ -57,7 +56,6 @@ pub(crate) fn route(url: &url::Url) -> Option<DeepLinkEvent> {
         (Some("billing"), "/return") => Some(DeepLinkEvent::BillingReturn(BillingReturnPayload {
             setup: param(url, "setup"),
             plan: param(url, "plan"),
-            checkout: param(url, "checkout"),
         })),
         _ => None,
     }
@@ -140,7 +138,6 @@ mod tests {
             Some(DeepLinkEvent::BillingReturn(BillingReturnPayload {
                 setup: Some("succeeded".into()),
                 plan: Some("pro".into()),
-                checkout: Some("cs_1".into()),
             }))
         );
     }
@@ -211,7 +208,6 @@ mod tests {
         let billing = BillingReturnPayload {
             setup: None,
             plan: None,
-            checkout: None,
         };
         assert_eq!(
             DeepLinkEvent::BillingReturn(billing).name(),

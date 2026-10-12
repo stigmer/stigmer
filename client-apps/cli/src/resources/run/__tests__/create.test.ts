@@ -134,7 +134,7 @@ describe("createAgentRun", () => {
   });
 
   it("maps an explicit --service-tier standard to STANDARD, not UNSPECIFIED", async () => {
-    // Unspecified-vs-explicit-standard is a load-bearing ledger
+    // Unspecified-vs-explicit-standard is a load-bearing usage-record
     // distinction (#357): an explicit choice must survive to the proto.
     const { fn } = fakeController();
     const exec = await createAgentRun(fn, {
@@ -181,7 +181,7 @@ describe("createAgentRun", () => {
 
   it("maps an explicit --thinking disabled to DISABLED, not UNSPECIFIED", async () => {
     // The tier's #772 twin: unspecified-vs-explicit-disabled is the same
-    // load-bearing ledger distinction.
+    // load-bearing usage-record distinction.
     const { fn } = fakeController();
     const exec = await createAgentRun(fn, {
       agentRef: AGENT_REF,

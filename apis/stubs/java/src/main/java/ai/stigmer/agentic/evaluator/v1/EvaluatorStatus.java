@@ -169,8 +169,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Why the most recent run picked for grading could not be graded.
    *
-   * For example "spending limit reached" or "out of credit". Empty when
-   * the most recent grade succeeded.
+   * For example "spending limit reached". Empty when the most recent grade
+   * succeeded.
    * </pre>
    *
    * <code>string last_not_graded_reason = 6 [json_name = "lastNotGradedReason"];</code>
@@ -193,8 +193,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Why the most recent run picked for grading could not be graded.
    *
-   * For example "spending limit reached" or "out of credit". Empty when
-   * the most recent grade succeeded.
+   * For example "spending limit reached". Empty when the most recent grade
+   * succeeded.
    * </pre>
    *
    * <code>string last_not_graded_reason = 6 [json_name = "lastNotGradedReason"];</code>
@@ -989,8 +989,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why the most recent run picked for grading could not be graded.
      *
-     * For example "spending limit reached" or "out of credit". Empty when
-     * the most recent grade succeeded.
+     * For example "spending limit reached". Empty when the most recent grade
+     * succeeded.
      * </pre>
      *
      * <code>string last_not_graded_reason = 6 [json_name = "lastNotGradedReason"];</code>
@@ -1012,8 +1012,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why the most recent run picked for grading could not be graded.
      *
-     * For example "spending limit reached" or "out of credit". Empty when
-     * the most recent grade succeeded.
+     * For example "spending limit reached". Empty when the most recent grade
+     * succeeded.
      * </pre>
      *
      * <code>string last_not_graded_reason = 6 [json_name = "lastNotGradedReason"];</code>
@@ -1036,8 +1036,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why the most recent run picked for grading could not be graded.
      *
-     * For example "spending limit reached" or "out of credit". Empty when
-     * the most recent grade succeeded.
+     * For example "spending limit reached". Empty when the most recent grade
+     * succeeded.
      * </pre>
      *
      * <code>string last_not_graded_reason = 6 [json_name = "lastNotGradedReason"];</code>
@@ -1056,8 +1056,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why the most recent run picked for grading could not be graded.
      *
-     * For example "spending limit reached" or "out of credit". Empty when
-     * the most recent grade succeeded.
+     * For example "spending limit reached". Empty when the most recent grade
+     * succeeded.
      * </pre>
      *
      * <code>string last_not_graded_reason = 6 [json_name = "lastNotGradedReason"];</code>
@@ -1073,8 +1073,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Why the most recent run picked for grading could not be graded.
      *
-     * For example "spending limit reached" or "out of credit". Empty when
-     * the most recent grade succeeded.
+     * For example "spending limit reached". Empty when the most recent grade
+     * succeeded.
      * </pre>
      *
      * <code>string last_not_graded_reason = 6 [json_name = "lastNotGradedReason"];</code>

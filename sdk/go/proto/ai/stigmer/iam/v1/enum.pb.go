@@ -67,10 +67,10 @@ const (
 	IamPermission_can_view_billing   IamPermission = 27
 	IamPermission_can_manage_billing IamPermission = 28
 	// Platform-level permission to execute internal billing operations
-	// (authorize, record, finalize). Gated to operator (machine account).
+	// (recording a metered LLM call). Gated to operator (machine account).
 	IamPermission_can_execute_billing_ops IamPermission = 29
-	// Organization-level permission to create agent shares billed to the
-	// organization.
+	// Organization-level permission to create agent shares whose runs the
+	// organization pays for.
 	IamPermission_can_create_agent_share IamPermission = 30
 	// Organization-level permission to connect an agent to a messaging
 	// channel (Slack, WhatsApp).
@@ -114,10 +114,6 @@ const (
 	IamPermission_can_issue_license IamPermission = 42
 	// Organization-level permission to create a team in the organization.
 	IamPermission_can_create_team IamPermission = 45
-	// Platform-level permission to add or remove an organization's credits
-	// without a purchase: BillingCommandController.adjustCredits and
-	// grantCredits, checked on the static platform target.
-	IamPermission_can_manage_credits IamPermission = 46
 	// Organization-level permission to create, find and list the
 	// organization's child organizations: OrganizationCommandController.create
 	// with spec.parent_org naming it, getByExternalId and listChildOrgs.
@@ -172,7 +168,6 @@ var (
 		41: "can_manage_plans",
 		42: "can_issue_license",
 		45: "can_create_team",
-		46: "can_manage_credits",
 		49: "can_manage_child_orgs",
 		50: "can_view_settings",
 		51: "can_create_vault",
@@ -212,7 +207,6 @@ var (
 		"can_manage_plans":            41,
 		"can_issue_license":           42,
 		"can_create_team":             45,
-		"can_manage_credits":          46,
 		"can_manage_child_orgs":       49,
 		"can_view_settings":           50,
 		"can_create_vault":            51,
@@ -430,7 +424,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1\x1a google/protobuf/descriptor.proto\"R\n" +
 	"\vIamRoleMeta\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription*\xe5\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription*\xe7\n" +
 	"\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
@@ -464,8 +458,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x11can_create_plugin\x10(\x12\x14\n" +
 	"\x10can_manage_plans\x10)\x12\x15\n" +
 	"\x11can_issue_license\x10*\x12\x13\n" +
-	"\x0fcan_create_team\x10-\x12\x16\n" +
-	"\x12can_manage_credits\x10.\x12\x19\n" +
+	"\x0fcan_create_team\x10-\x12\x19\n" +
 	"\x15can_manage_child_orgs\x101\x12\x15\n" +
 	"\x11can_view_settings\x102\x12\x14\n" +
 	"\x10can_create_vault\x103\x12\x1b\n" +
@@ -473,7 +466,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\acan_use\x105\x12\x13\n" +
 	"\x0fcan_manage_keys\x107\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x16\x10\x16\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b#\x10#\"\x04\b&\x10&\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x1acan_manage_cursor_accounts*\x1acan_view_provider_standing*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*\xb7\x04\n" +
+	"\"\x04\b#\x10#\"\x04\b&\x10&\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,\"\x04\b.\x10.*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x1acan_manage_cursor_accounts*\x1acan_view_provider_standing*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*\x12can_manage_credits*\xb7\x04\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12U\n" +
 	"\x05owner\x10\x01\x1aJ\x8a\xc4,F\n" +

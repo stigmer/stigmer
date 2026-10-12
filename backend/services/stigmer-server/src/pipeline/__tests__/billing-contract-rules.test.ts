@@ -72,7 +72,7 @@ const rows: ReadonlyArray<Row<DescMessage>> = [
     init: {
       instrument: PlanInstrument.subscription,
       entitlements,
-      terms: { monthlyMinimumMicros: 1n, usageShareBasisPoints: 100 },
+      terms: { monthlyMinimumMicros: 1n, perExtraOrgMicros: 1n },
     },
   }),
   row({
@@ -100,16 +100,6 @@ const rows: ReadonlyArray<Row<DescMessage>> = [
     refusedBy: "plan_spec.license_has_no_monthly_terms",
   }),
   row({
-    name: "a license plan carrying a usage share",
-    schema: PlanSpecSchema,
-    init: {
-      instrument: PlanInstrument.license,
-      entitlements,
-      terms: { usageShareBasisPoints: 100 },
-    },
-    refusedBy: "plan_spec.license_has_no_monthly_terms",
-  }),
-  row({
     name: "a subscription plan carrying an annual price",
     schema: PlanSpecSchema,
     init: {
@@ -120,14 +110,14 @@ const rows: ReadonlyArray<Row<DescMessage>> = [
     refusedBy: "plan_spec.subscription_has_no_annual_price",
   }),
   row({
-    name: "a usage share above one hundred percent",
+    name: "a negative monthly fee",
     schema: PlanSpecSchema,
     init: {
       instrument: PlanInstrument.subscription,
       entitlements,
-      terms: { usageShareBasisPoints: 10001 },
+      terms: { monthlyMinimumMicros: -1n },
     },
-    refusedBy: "int32.gte_lte",
+    refusedBy: "int64.gte",
   }),
   row({
     name: "ordered license claims",

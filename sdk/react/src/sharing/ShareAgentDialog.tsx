@@ -24,9 +24,6 @@ import { toast } from "../feedback/toast.js";
 import { usePublicBaseUrl } from "../public-base-url-context.js";
 import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
 import { useCopyResource } from "../resource-detail/useCopyResource.js";
-import { useDeploymentMode } from "../deployment-mode.js";
-import { useBillingAccount } from "../billing/useBillingAccount.js";
-import { formatCreditBalance } from "../billing/format.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
 import { generateSlug } from "../internal/slug.js";
 import { TruncatedText } from "../internal/truncated-text.js";
@@ -383,7 +380,7 @@ function CreateShareForm({
         A share is its own channel to this agent: a hosted chat link with
         its own audience, embed origins, tool credentials, and visitor
         messages. Visitors chat on{" "}
-        <span className="stg:font-medium">{shareOrg}</span>&apos;s credits.
+        <span className="stg:font-medium">{shareOrg}</span>&apos;s own provider keys.
       </p>
 
       {/* ---- Name ---- */}
@@ -803,7 +800,8 @@ function AudienceSelector({
 }
 
 // ---------------------------------------------------------------------------
-// Who pays — cost attribution is always the share's own org (metadata.org)
+// Who pays — the share's own org (metadata.org), whose provider keys serve
+// every chat
 // ---------------------------------------------------------------------------
 
 function WhoPaysLine({
@@ -814,23 +812,11 @@ function WhoPaysLine({
   readonly audience: SharingAudience;
 }) {
   const slugForOrg = useOrgSlugForId();
-  const mode = useDeploymentMode();
-  // The share's org reference holds the organization's id, so it is
-  // directly usable as the billing org id.
-  // The wallet is a cloud-only facility: neither
-  // the open-source nor the Enterprise edition has billing accounts.
-  const { account } = useBillingAccount(mode === "cloud" ? org : null);
-
-  const balance =
-    account?.balance !== undefined
-      ? formatCreditBalance(account.balance?.availableMicros)
-      : null;
 
   return (
     <p className="stg:mt-0.5 stg:text-xs stg:text-muted-foreground">
       {audience === "org" ? "Members" : "Visitors"} chat on{" "}
-      <span className="stg:font-medium">{slugForOrg(org)}</span>&apos;s credits
-      {balance !== null && <> ({balance} available)</>}.
+      <span className="stg:font-medium">{slugForOrg(org)}</span>&apos;s own provider keys.
     </p>
   );
 }

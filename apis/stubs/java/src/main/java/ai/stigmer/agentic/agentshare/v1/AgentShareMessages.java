@@ -111,8 +111,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object unavailable_ = "";
   /**
    * <pre>
-   * Shown when the share cannot serve the conversation — the org's credits
-   * are exhausted or the agent's tools are not ready (fails closed).
+   * Shown when the share cannot serve the conversation — the organization
+   * holds no provider key for the agent's model or the agent's tools are
+   * not ready (fails closed).
    * </pre>
    *
    * <code>string unavailable = 2 [json_name = "unavailable", (.buf.validate.field) = { ... }</code>
@@ -133,8 +134,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Shown when the share cannot serve the conversation — the org's credits
-   * are exhausted or the agent's tools are not ready (fails closed).
+   * Shown when the share cannot serve the conversation — the organization
+   * holds no provider key for the agent's model or the agent's tools are
+   * not ready (fails closed).
    * </pre>
    *
    * <code>string unavailable = 2 [json_name = "unavailable", (.buf.validate.field) = { ... }</code>
@@ -647,8 +649,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object unavailable_ = "";
     /**
      * <pre>
-     * Shown when the share cannot serve the conversation — the org's credits
-     * are exhausted or the agent's tools are not ready (fails closed).
+     * Shown when the share cannot serve the conversation — the organization
+     * holds no provider key for the agent's model or the agent's tools are
+     * not ready (fails closed).
      * </pre>
      *
      * <code>string unavailable = 2 [json_name = "unavailable", (.buf.validate.field) = { ... }</code>
@@ -668,8 +671,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Shown when the share cannot serve the conversation — the org's credits
-     * are exhausted or the agent's tools are not ready (fails closed).
+     * Shown when the share cannot serve the conversation — the organization
+     * holds no provider key for the agent's model or the agent's tools are
+     * not ready (fails closed).
      * </pre>
      *
      * <code>string unavailable = 2 [json_name = "unavailable", (.buf.validate.field) = { ... }</code>
@@ -690,8 +694,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Shown when the share cannot serve the conversation — the org's credits
-     * are exhausted or the agent's tools are not ready (fails closed).
+     * Shown when the share cannot serve the conversation — the organization
+     * holds no provider key for the agent's model or the agent's tools are
+     * not ready (fails closed).
      * </pre>
      *
      * <code>string unavailable = 2 [json_name = "unavailable", (.buf.validate.field) = { ... }</code>
@@ -708,8 +713,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Shown when the share cannot serve the conversation — the org's credits
-     * are exhausted or the agent's tools are not ready (fails closed).
+     * Shown when the share cannot serve the conversation — the organization
+     * holds no provider key for the agent's model or the agent's tools are
+     * not ready (fails closed).
      * </pre>
      *
      * <code>string unavailable = 2 [json_name = "unavailable", (.buf.validate.field) = { ... }</code>
@@ -723,8 +729,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Shown when the share cannot serve the conversation — the org's credits
-     * are exhausted or the agent's tools are not ready (fails closed).
+     * Shown when the share cannot serve the conversation — the organization
+     * holds no provider key for the agent's model or the agent's tools are
+     * not ready (fails closed).
      * </pre>
      *
      * <code>string unavailable = 2 [json_name = "unavailable", (.buf.validate.field) = { ... }</code>

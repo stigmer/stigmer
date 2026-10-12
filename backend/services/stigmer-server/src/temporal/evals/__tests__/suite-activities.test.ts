@@ -115,7 +115,6 @@ const GRADED: TryResult = {
   error: "",
   costUsd: 0.1,
   durationSeconds: 3,
-  outOfCredit: false,
 };
 
 /** `store` with one method replaced. */

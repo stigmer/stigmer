@@ -207,7 +207,6 @@ describe("PluginEvalResults", () => {
 
   it.each([
     [PluginEvalPartialReason.cost_ceiling, "Partial (cost limit reached) ·"],
-    [PluginEvalPartialReason.out_of_credit, "Partial (out of credit) ·"],
     [PluginEvalPartialReason.cancelled, "Partial (cancelled) ·"],
     [PluginEvalPartialReason.unspecified, "Partial ·"],
     [99 as PluginEvalPartialReason, "Partial (stopped early) ·"],

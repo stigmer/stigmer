@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Command } from "@langchain/langgraph";
 import { detectPendingInterrupts, resolveResumeInput, reconcileUnattendedSkips } from "../hitl.js";
+import { refusalsOf } from "../turn-setup.js";
 import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import {
@@ -10,7 +11,7 @@ import {
 import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { GraphStateSnapshot } from "../hitl.js";
 
-/** The runtime's reading of the adjudicated rows (`approvalDecisionsOf`): a decision per WAITING tool-call id. */
+/** The runtime's reading of the answers onto the WAITING rows (`harness/approval-answers.ts`): a decision per WAITING tool-call id. */
 function makeDecisions(
   toolCalls: Array<{ id: string; status: ToolCallStatus; approvalAction: ApprovalAction }>,
 ): ReadonlyMap<string, ApprovalAction> {
@@ -92,6 +93,25 @@ describe("resolveResumeInput", () => {
     // reconcileNonExecutingDecisions.
     if (!result.isResumeFromApproval) throw new Error("expected an approval resume");
     expect(result.graphInput).toBeInstanceOf(Command);
+  });
+
+  it("carries a deny's reason on the resume value as its comment, and none on a deny without one", () => {
+    const decisions = new Map([
+      ["call-1", ApprovalAction.REJECT],
+      ["call-2", ApprovalAction.REJECT],
+    ]);
+    const state = makeGraphState([
+      { taskId: "task-1", toolCallId: "call-1" },
+      { taskId: "task-2", toolCallId: "call-2" },
+    ]);
+
+    const result = resolveResumeInput(decisions, state, new Map([["call-1", "use make clean instead"]]));
+
+    if (!result.isResumeFromApproval) throw new Error("expected an approval resume");
+    expect(result.graphInput.resume).toEqual({
+      "task-1": { action: "reject", comment: "use make clean instead" },
+      "task-2": { action: "reject" },
+    });
   });
 
   it("handles multiple interrupts with mixed decisions", () => {
@@ -306,5 +326,22 @@ describe("reconcileUnattendedSkips — a hook's ask", () => {
     const [hooked, defaulted] = status.messages[0]!.toolCalls;
     expect(hooked).toMatchObject({ approvalPolicySource: ApprovalPolicySource.UNATTENDED_SKIP, approvalPolicyHook: "safety" });
     expect(defaulted).toMatchObject({ approvalPolicySource: ApprovalPolicySource.UNATTENDED_SKIP, approvalPolicyHook: "" });
+  });
+});
+
+describe("refusalsOf", () => {
+  it("holds each refused call with the reason given, and nothing allowed", () => {
+    const refused = refusalsOf(
+      new Map([
+        ["call-1", ApprovalAction.REJECT],
+        ["call-2", ApprovalAction.SKIP],
+        ["call-3", ApprovalAction.APPROVE],
+      ]),
+      new Map([["call-1", "use make clean instead"]]),
+    );
+    expect([...refused.entries()]).toEqual([
+      ["call-1", { action: "reject", comment: "use make clean instead" }],
+      ["call-2", { action: "skip", comment: "" }],
+    ]);
   });
 });

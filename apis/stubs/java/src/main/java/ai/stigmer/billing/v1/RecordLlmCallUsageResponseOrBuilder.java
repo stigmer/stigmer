@@ -32,36 +32,6 @@ public interface RecordLlmCallUsageResponseOrBuilder extends
 
   /**
    * <pre>
-   * Provider cost computed server-side from the model registry.
-   * </pre>
-   *
-   * <code>int64 provider_cost_micros = 2 [json_name = "providerCostMicros"];</code>
-   * @return The providerCostMicros.
-   */
-  long getProviderCostMicros();
-
-  /**
-   * <pre>
-   * Amount debited from customer credits (after markup policy).
-   * </pre>
-   *
-   * <code>int64 customer_billable_amount_micros = 3 [json_name = "customerBillableAmountMicros"];</code>
-   * @return The customerBillableAmountMicros.
-   */
-  long getCustomerBillableAmountMicros();
-
-  /**
-   * <pre>
-   * Whether this call was billable (complete usage + non-zero cost).
-   * </pre>
-   *
-   * <code>bool is_billable = 4 [json_name = "isBillable"];</code>
-   * @return The isBillable.
-   */
-  boolean getIsBillable();
-
-  /**
-   * <pre>
    * True if this was a duplicate (idempotency key already existed).
    * </pre>
    *

@@ -175,7 +175,7 @@ private static final long serialVersionUID = 0L;
   private long audioInputTokens_ = 0L;
   /**
    * <pre>
-   * Audio tokens (future multimodal billing).
+   * Audio tokens (multimodal models).
    * </pre>
    *
    * <code>int64 audio_input_tokens = 8 [json_name = "audioInputTokens"];</code>
@@ -1156,7 +1156,7 @@ private static final long serialVersionUID = 0L;
     private long audioInputTokens_ ;
     /**
      * <pre>
-     * Audio tokens (future multimodal billing).
+     * Audio tokens (multimodal models).
      * </pre>
      *
      * <code>int64 audio_input_tokens = 8 [json_name = "audioInputTokens"];</code>
@@ -1168,7 +1168,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Audio tokens (future multimodal billing).
+     * Audio tokens (multimodal models).
      * </pre>
      *
      * <code>int64 audio_input_tokens = 8 [json_name = "audioInputTokens"];</code>
@@ -1184,7 +1184,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Audio tokens (future multimodal billing).
+     * Audio tokens (multimodal models).
      * </pre>
      *
      * <code>int64 audio_input_tokens = 8 [json_name = "audioInputTokens"];</code>

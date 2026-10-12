@@ -54,6 +54,7 @@ const SUBJECTS = {
   "backend/services/runner": { script: "test", jobs: [["ci.runner.yaml", "runner-vitest"]] },
   "backend/services/stigmer-server": { script: "test", jobs: [["ci.stigmer-server.yaml", "server-tests"]] },
   "client-apps/cli": { script: "test", jobs: [LIBS] },
+  "ee/server": { script: "test", jobs: [["ci.ee.yaml", "ee"]] },
   "client-apps/desktop": { script: "test", jobs: [["ci.ts-workspace.yaml", "desktop-tests"]] },
   "client-apps/web": { script: "test", jobs: [["ci.ts-workspace.yaml", "web-tests"]] },
   "mcp-server": { script: "test", jobs: [LIBS] },
@@ -165,7 +166,7 @@ test("the Coverage job needs exactly the lanes that upload coverage, and Gate ne
 });
 
 test("the coverage provider and vitest are pinned to one exact version wherever the provider is declared", () => {
-  for (const manifest of ["package.json", "backend/services/runner/package.json", "backend/services/stigmer-server/package.json", "site/package.json"]) {
+  for (const manifest of ["package.json", "backend/services/runner/package.json", "backend/services/stigmer-server/package.json", "ee/server/package.json", "site/package.json"]) {
     const { dependencies = {}, devDependencies = {} } = readJson(manifest);
     const declared = { ...dependencies, ...devDependencies };
     const provider = declared["@vitest/coverage-v8"];

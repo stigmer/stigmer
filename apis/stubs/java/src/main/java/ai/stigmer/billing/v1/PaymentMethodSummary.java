@@ -10,7 +10,7 @@ package ai.stigmer.billing.v1;
  * PaymentMethodSummary holds the display-safe details of a Stripe
  * PaymentMethod so the UI can render card info without a Stripe API call.
  *
- * Populated from Stripe webhook events (checkout.session.completed,
+ * Populated from Stripe webhook events (payment_method.attached,
  * customer.updated) and kept in sync with the Stripe Customer's
  * default payment method via the Billing Portal.
  * </pre>
@@ -434,7 +434,7 @@ private static final long serialVersionUID = 0L;
    * PaymentMethodSummary holds the display-safe details of a Stripe
    * PaymentMethod so the UI can render card info without a Stripe API call.
    *
-   * Populated from Stripe webhook events (checkout.session.completed,
+   * Populated from Stripe webhook events (payment_method.attached,
    * customer.updated) and kept in sync with the Stripe Customer's
    * default payment method via the Billing Portal.
    * </pre>

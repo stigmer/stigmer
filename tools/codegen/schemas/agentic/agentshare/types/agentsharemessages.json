@@ -24,7 +24,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Shown when the share cannot serve the conversation — the org's credits\n are exhausted or the agent's tools are not ready (fails closed).",
+      "description": "Shown when the share cannot serve the conversation — the organization\n holds no provider key for the agent's model or the agent's tools are\n not ready (fails closed).",
       "required": false,
       "validation": {
         "maxLength": 300

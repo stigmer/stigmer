@@ -90,7 +90,6 @@ export interface EntitlementLimitsInput {
 /** SDK input type for PlanTerms. */
 export interface PlanTermsInput {
   monthlyMinimumMicros?: bigint;
-  usageShareBasisPoints?: number;
   perExtraOrgMicros?: bigint;
   annualPriceMicros?: bigint;
 }
@@ -115,7 +114,6 @@ function buildEntitlementsProto(input: EntitlementsInput) {
 function buildPlanTermsProto(input: PlanTermsInput) {
   return Object.assign(create(PlanTermsSchema), stripUndefined({
     monthlyMinimumMicros: input.monthlyMinimumMicros,
-    usageShareBasisPoints: input.usageShareBasisPoints,
     perExtraOrgMicros: input.perExtraOrgMicros,
     annualPriceMicros: input.annualPriceMicros,
   }));

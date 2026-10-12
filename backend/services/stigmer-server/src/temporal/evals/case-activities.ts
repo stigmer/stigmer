@@ -15,11 +15,12 @@
  *     retry), it adopts the earliest created and stops the other. The
  *     session's create and the run's are refused alike: a capacity
  *     refusal is thrown as PLUGIN_EVAL_BUSY_FAILURE_TYPE for the
- *     workflow's thirty minutes of retries; a credit refusal (the hosted
- *     edition's billing gate, every denial FAILED_PRECONDITION naming
- *     credits) is "out-of-credit"; any other refusal is its own message;
- *     a session left by a refused run is deleted. A caller the seam refuses is "cannot-act", with the
- *     refusal's own not-graded reason when it names one. A plugin eval's
+ *     workflow's thirty minutes of retries; any other refusal is the
+ *     try's not-graded reason in its own words (an organization with no
+ *     key for the target's model reads admission's FAILED_PRECONDITION
+ *     copy on each try); a session left by a refused run is deleted. A
+ *     caller the seam refuses is "cannot-act", with the refusal's own
+ *     not-graded reason when it names one. A plugin eval's
  *     try whose plugin has moved past the eval's digest is not started: the
  *     with-plugin arm runs the plugin as installed now, so it would grade
  *     a newer plugin against the eval's suite (PLUGIN_UPDATED_REASON). An
@@ -155,7 +156,6 @@ import {
   CANNOT_ACT_REASON,
   DELETE_VOTE_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
-  OUT_OF_CREDIT_REASON,
   PLUGIN_EVAL_BUSY_FAILURE_TYPE,
   PLUGIN_UPDATED_REASON,
   POLL_RUN_ACTIVITY_NAME,
@@ -672,7 +672,6 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           state: "not-graded",
           score: 0,
           notGradedReason: TRY_GONE_REASON,
-          outOfCredit: false,
         };
       }
       const graders = cell.evalCase.graders;
@@ -689,7 +688,6 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           state: "graded",
           score: 0,
           notGradedReason: "",
-          outOfCredit: false,
           ...(stopped.kind === "scaffold-failed"
             ? { error: `scaffold failed: ${stopped.detail}` }
             : { aborted: { server: stopped.server, tool: stopped.tool, reason: stopped.reason } }),
@@ -720,7 +718,6 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
           state: "not-graded",
           score: 0,
           notGradedReason: failed.notGraded,
-          outOfCredit: failed.notGraded === OUT_OF_CREDIT_REASON,
         };
       }
       const score = tryScore(
@@ -741,7 +738,6 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
         state: "graded",
         score,
         notGradedReason: "",
-        outOfCredit: false,
       };
     },
   };
@@ -751,13 +747,7 @@ export function createCaseActivities(deps: CaseActivityDeps): CaseActivities {
 function voteRefusalOf(
   refusal: Extract<TryStart, { kind: "refused" }>,
 ): VoteStart {
-  return {
-    kind: "failed",
-    reason:
-      refusal.failure === "out-of-credit"
-        ? OUT_OF_CREDIT_REASON
-        : refusal.reason,
-  };
+  return { kind: "failed", reason: refusal.reason };
 }
 
 /**
@@ -786,16 +776,6 @@ function refusalOf(
         code: Code[error.code],
         reason: error.rawMessage,
       });
-      if (
-        error.code === Code.FailedPrecondition &&
-        /credit/i.test(error.rawMessage)
-      ) {
-        return {
-          kind: "refused",
-          failure: "out-of-credit",
-          reason: OUT_OF_CREDIT_REASON,
-        };
-      }
       const reason =
         error.rawMessage === "" ? TRY_NOT_STARTED_REASON : error.rawMessage;
       return {

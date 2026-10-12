@@ -17,7 +17,6 @@ import {
   presetLabel,
   type DateRangePreset,
 } from "./date-range.js";
-import { CreditRunwayIndicator } from "./CreditRunwayIndicator.js";
 import { AgentBreakdownList } from "./AgentBreakdownList.js";
 import { HarnessSplitCard } from "./HarnessSplitCard.js";
 import { ExportButton } from "./ExportButton.js";
@@ -56,7 +55,6 @@ export function OrgUsagePanel({ org, className }: OrgUsagePanelProps) {
   const dateRange = dateRangeFromPreset(preset);
   const { report, isLoading, error } = useOrgUsageReport(org, dateRange);
   const { exportCSV, isExporting } = useExportCSV(report, org);
-  const daysInRange = Number.parseInt(preset, 10);
 
   if (isLoading) {
     return (
@@ -110,7 +108,7 @@ export function OrgUsagePanel({ org, className }: OrgUsagePanelProps) {
         />
       </div>
 
-      <SummaryCards report={report} daysInRange={daysInRange} />
+      <SummaryCards report={report} />
 
       {report.dailyCosts.length > 0 && (
         <DailyCostChart entries={report.dailyCosts} />
@@ -188,13 +186,7 @@ function microsToUsd(micros: bigint): number {
   return Number(micros) / 1_000_000;
 }
 
-function SummaryCards({
-  report,
-  daysInRange,
-}: {
-  report: GetOrgUsageReportOutput;
-  daysInRange: number;
-}) {
+function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
   const { totalLlmCalls, totalTokens } = report.modelBreakdown.reduce(
     (acc, m) => ({
       totalLlmCalls: acc.totalLlmCalls + m.callCount,
@@ -217,11 +209,6 @@ function SummaryCards({
             {formatCost(microsToUsd(report.totalBillableCostMicros))}
           </div>
           <div className="stg:text-xs stg:text-muted-foreground">Total Cost</div>
-          <CreditRunwayIndicator
-            totalBillableCostMicros={report.totalBillableCostMicros}
-            daysInRange={daysInRange}
-            className="stg:mt-0.5 stg:block"
-          />
         </div>
         <div className="stg:rounded-lg stg:border stg:border-border stg:bg-card stg:px-3.5 stg:py-3">
           <div className="stg:text-lg stg:font-semibold stg:tabular-nums stg:text-foreground">

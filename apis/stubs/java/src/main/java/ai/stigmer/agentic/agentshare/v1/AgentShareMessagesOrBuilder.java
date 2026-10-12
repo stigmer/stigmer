@@ -32,8 +32,9 @@ public interface AgentShareMessagesOrBuilder extends
 
   /**
    * <pre>
-   * Shown when the share cannot serve the conversation — the org's credits
-   * are exhausted or the agent's tools are not ready (fails closed).
+   * Shown when the share cannot serve the conversation — the organization
+   * holds no provider key for the agent's model or the agent's tools are
+   * not ready (fails closed).
    * </pre>
    *
    * <code>string unavailable = 2 [json_name = "unavailable", (.buf.validate.field) = { ... }</code>
@@ -42,8 +43,9 @@ public interface AgentShareMessagesOrBuilder extends
   java.lang.String getUnavailable();
   /**
    * <pre>
-   * Shown when the share cannot serve the conversation — the org's credits
-   * are exhausted or the agent's tools are not ready (fails closed).
+   * Shown when the share cannot serve the conversation — the organization
+   * holds no provider key for the agent's model or the agent's tools are
+   * not ready (fails closed).
    * </pre>
    *
    * <code>string unavailable = 2 [json_name = "unavailable", (.buf.validate.field) = { ... }</code>

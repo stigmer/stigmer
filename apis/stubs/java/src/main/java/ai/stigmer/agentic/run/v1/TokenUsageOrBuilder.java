@@ -83,7 +83,7 @@ public interface TokenUsageOrBuilder extends
 
   /**
    * <pre>
-   * Audio tokens (future multimodal billing).
+   * Audio tokens (multimodal models).
    * </pre>
    *
    * <code>int64 audio_input_tokens = 8 [json_name = "audioInputTokens"];</code>

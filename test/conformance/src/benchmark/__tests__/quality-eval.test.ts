@@ -129,7 +129,7 @@ describe("renderQuality", () => {
           { name: "other", reason: "not run: plugins" },
         ],
       },
-      failure: { stage: "execution", message: "the eval failed: out of credit" },
+      failure: { stage: "execution", message: "the eval failed: workflow timed out" },
     };
     expect(renderQuality(quality)).toEqual([
       "",
@@ -144,7 +144,7 @@ describe("renderQuality", () => {
       "- refine-over-turns on cursor/claude-sonnet-4-6: not run on Cursor: resumed conversations",
       "- other: not run: plugins",
       "",
-      "Quality eval: execution: the eval failed: out of credit",
+      "Quality eval: execution: the eval failed: workflow timed out",
     ]);
   });
 });

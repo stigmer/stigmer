@@ -563,7 +563,13 @@ export async function installGate(
         captureMode: workspace.captureMode,
         globalBypass,
         refusals: approvalDecisions.size > 0
-          ? buildPersonRefusals(rows.adjudicatedApprovals, approvalDecisions, rows.adjudicatedContentDigests, rows.adjudicatedHookAsks)
+          ? buildPersonRefusals(
+              rows.adjudicatedApprovals,
+              approvalDecisions,
+              rows.adjudicatedContentDigests,
+              rows.adjudicatedHookAsks,
+              input.approvalDenyMessages,
+            )
           : new Map(),
       });
   let hitlGate: HitlGateHandle;
@@ -846,6 +852,7 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
   const subAgents = await subagentsInScope(input);
   const shared = (): Omit<BuildPromptInput, "resolution" | "recalledMemories" | "turnRecoveryDigest"> => ({
     approvalDecisions,
+    approvalDenyMessages: input.approvalDenyMessages,
     instructions: blueprint.instructions,
     userMessage: spec.message,
     skills: input.skills.root,

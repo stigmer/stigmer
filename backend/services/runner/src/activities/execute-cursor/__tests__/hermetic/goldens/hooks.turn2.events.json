@@ -107,6 +107,15 @@
     }
   },
   {
+    "session_id": "ses_hermetic_0001",
+    "run_id": "aex_hermetic_0001",
+    "user_tool_confirmation": {
+      "id": "sevt_tc_eda0b35e754d4c16b6dd61fda045e41a149641fb",
+      "result": "allow",
+      "tool_use_id": "aex_hermetic_0001.call-publish"
+    }
+  },
+  {
     "run_id": "aex_hermetic_0001",
     "agent_tool_result": {
       "id": "aex_hermetic_0001.call-publish.r",

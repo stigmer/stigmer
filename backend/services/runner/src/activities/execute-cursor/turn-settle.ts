@@ -54,6 +54,7 @@ import { CursorTranslator } from "./translator.js";
 import { runTurnBoundary, type TurnBoundaryResult } from "./turn-boundary.js";
 import {
   consumeCursorTurnStream,
+  foldDrainedDeltas,
   makeCursorTurnOnDelta,
   type CursorTurnStreamDeps,
   type TurnOnDeltaDeps,
@@ -62,6 +63,7 @@ import {
 import type { AdjudicatedRows, CursorEngine, CursorGate, CursorPrompt } from "./turn-setup.js";
 import { createFreshAgent } from "./turn-setup.js";
 import { declaredServerCount } from "../../shared/mcp-resolver.js";
+import type { CursorTurnObserver } from "./run-telemetry.js";
 
 /** Everything the settle reads that setup produced. */
 export interface CursorTurnFrame {
@@ -72,6 +74,8 @@ export interface CursorTurnFrame {
   readonly prompt: CursorPrompt;
   readonly rows: AdjudicatedRows;
   readonly streamState: TurnStreamState;
+  /** The turn's trace spans, fed by the stream loop (`run-telemetry.ts`). */
+  readonly telemetry: CursorTurnObserver;
 }
 
 /**
@@ -80,7 +84,7 @@ export interface CursorTurnFrame {
  * built here, once, and shared with both recovery spines.
  */
 export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutcome> {
-  const { input, sink, engine, gate, prompt, rows, streamState } = frame;
+  const { input, sink, engine, gate, prompt, rows, streamState, telemetry } = frame;
   const { executionId, sessionId, blueprint, workspace, mcp } = input;
   const { status } = sink;
 
@@ -114,6 +118,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
     promptEstimatedTokens: prompt.promptEstimatedTokens,
     executionId,
     state: streamState,
+    telemetry,
   };
 
   // Issue #209 forensics: the SDK acquires the local executor — the piece
@@ -179,7 +184,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // streaming flag, mark any in-flight sub-agent CANCELLED on a stopped turn,
   // flush the recorder, and persist so the UI sees the settled rows.
   const finalizeStreamPhase = async (): Promise<void> => {
-    for (const fact of translator.drainDeltas()) transcript.apply(fact);
+    foldDrainedDeltas(translator, transcript, telemetry);
     // The runtime finalizes once `runTurn` returns, on every path; this
     // harness finalizes EARLIER too because it persists on the settled rows
     // right below, before `run.wait()` and the boundary, and the console's
@@ -330,8 +335,8 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // the SDK never reports the variant that actually served the call
   // (verified against the billing ledger, #357). A mismatch here means the
   // SDK rewrote our selection (contract change), not variant drift; the
-  // authoritative requested-vs-billed reconciliation is the cloud billing
-  // handler's pricing_variant mismatch metric.
+  // authoritative requested-vs-billed check is the cloud usage meter's
+  // pricing_variant mismatch metric.
   const echoedSelection = result.model;
   if (echoedSelection) {
     const idMatches = echoedSelection.id === engine.validatedModel;
