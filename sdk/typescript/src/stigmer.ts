@@ -5,7 +5,6 @@ import { GeneratedClient } from "./gen/client.js";
 import { GitHubClient } from "./github.js";
 import { ManifestClient } from "./manifest/index.js";
 import { PlatformClient } from "./platform.js";
-import { ProviderStandingClient } from "./provider-standing.js";
 import { SearchClient } from "./search.js";
 import { RoutedPluginClient } from "./plugin.js";
 import { RoutedSkillClient } from "./skill.js";
@@ -82,8 +81,6 @@ export class Stigmer extends GeneratedClient {
   readonly billing: BillingClient;
   /** Managed Cursor accounts (platform operators only). */
   readonly cursorAccounts: CursorAccountsClient;
-  /** Platform provider standing, read-only (platform operators only). */
-  readonly providerStanding: ProviderStandingClient;
   readonly platform: PlatformClient;
   readonly search: SearchClient;
   readonly github: GitHubClient;
@@ -119,7 +116,6 @@ export class Stigmer extends GeneratedClient {
     this.activity = new ActivityClient(transport);
     this.billing = new BillingClient(transport);
     this.cursorAccounts = new CursorAccountsClient(transport);
-    this.providerStanding = new ProviderStandingClient(transport);
     this.platform = new PlatformClient(transport);
     this.search = new SearchClient(transport);
     this.github = new GitHubClient(transport);

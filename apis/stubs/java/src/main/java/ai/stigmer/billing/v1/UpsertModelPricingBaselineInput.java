@@ -15,9 +15,8 @@ package ai.stigmer.billing.v1;
  * revision; otherwise a new catalog entry is created (which also revives a
  * RETIRED key). Lifecycle fields on the embedded baseline (baseline_id,
  * status, supersedes_baseline_id, decided_by/at, created_at) are
- * server-owned and ignored; pricing effective_at is stamped server-side so
- * baseline edits always win the staleness check against older
- * ledger-derived overrides (see ModelPricingBaseline.effective_at).
+ * server-owned and ignored; pricing effective_at is stamped server-side
+ * (see ModelPricingBaseline.effective_at).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.UpsertModelPricingBaselineInput}
@@ -321,9 +320,8 @@ private static final long serialVersionUID = 0L;
    * revision; otherwise a new catalog entry is created (which also revives a
    * RETIRED key). Lifecycle fields on the embedded baseline (baseline_id,
    * status, supersedes_baseline_id, decided_by/at, created_at) are
-   * server-owned and ignored; pricing effective_at is stamped server-side so
-   * baseline edits always win the staleness check against older
-   * ledger-derived overrides (see ModelPricingBaseline.effective_at).
+   * server-owned and ignored; pricing effective_at is stamped server-side
+   * (see ModelPricingBaseline.effective_at).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.UpsertModelPricingBaselineInput}

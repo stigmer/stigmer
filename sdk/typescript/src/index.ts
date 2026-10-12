@@ -139,9 +139,6 @@ export {
   type SetCursorMemberKeyEnabledParams,
 } from "./cursor-accounts.js";
 
-// Provider standing client (platform operators only, read-only)
-export { ProviderStandingClient } from "./provider-standing.js";
-
 // Search client
 export {
   SearchClient,

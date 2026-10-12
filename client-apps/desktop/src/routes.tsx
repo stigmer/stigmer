@@ -48,9 +48,8 @@ const RunPage = lazy(() => import("./pages/runs/RunPage"));
 const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
 const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
-const PricingGovernancePage = lazy(() => import("./pages/settings/PricingGovernancePage"));
+const ModelCatalogPage = lazy(() => import("./pages/settings/ModelCatalogPage"));
 const CursorAccountsPage = lazy(() => import("./pages/settings/CursorAccountsPage"));
-const ProviderStandingPage = lazy(() => import("./pages/settings/ProviderStandingPage"));
 const LicensesPage = lazy(() => import("./pages/settings/LicensesPage"));
 const PlansPage = lazy(() => import("./pages/settings/PlansPage"));
 
@@ -288,10 +287,10 @@ const routes: RouteObject[] = [
                 ),
               },
               {
-                path: "pricing-governance",
+                path: "model-catalog",
                 element: (
                   <LazyPage>
-                    <PricingGovernancePage />
+                    <ModelCatalogPage />
                   </LazyPage>
                 ),
               },
@@ -300,14 +299,6 @@ const routes: RouteObject[] = [
                 element: (
                   <LazyPage>
                     <CursorAccountsPage />
-                  </LazyPage>
-                ),
-              },
-              {
-                path: "provider-standing",
-                element: (
-                  <LazyPage>
-                    <ProviderStandingPage />
                   </LazyPage>
                 ),
               },

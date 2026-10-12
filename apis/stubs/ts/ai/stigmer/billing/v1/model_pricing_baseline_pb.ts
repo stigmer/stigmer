@@ -20,7 +20,7 @@ export const file_ai_stigmer_billing_v1_model_pricing_baseline: GenFile = /*@__P
  * the base entry's rates or one speed variant's rates.
  *
  * Rates are integer micro-USD per million tokens (no floating point in
- * billing writes, matching ModelPricingOverride). The served registry JSON
+ * billing writes). The served registry JSON
  * renders them back to dollar doubles for consumers.
  *
  * @generated from message ai.stigmer.billing.v1.PricingBlock
@@ -83,9 +83,7 @@ export type PricingBlock = Message<"ai.stigmer.billing.v1.PricingBlock"> & {
   sourceNote: string;
 
   /**
-   * When these rates took effect. The override staleness check reads this field:
-   * an ACTIVE override whose derivation window ended before this instant
-   * is stale and gets superseded — baseline edits always stamp it fresh.
+   * When these rates took effect. Baseline edits always stamp it fresh.
    *
    * @generated from field: google.protobuf.Timestamp effective_at = 8;
    */
@@ -255,12 +253,11 @@ export const ModelCapabilitiesSchema: GenMessage<ModelCapabilities> = /*@__PURE_
 
 /**
  * ModelPricingBaseline is one versioned catalog-and-list-price entry of the
- * model registry — the human-governed half of the effective registry
- * (baseline ⊕ ACTIVE overrides).
+ * model registry, which the ACTIVE baselines alone make up.
  *
  * Documents are append-only: operator edits supersede the previous ACTIVE
- * document for the same (model_id, provider, harness) key. The composition
- * pass renders all ACTIVE documents into the registry document that every
+ * document for the same (model_id, provider, harness) key. The registry
+ * build renders all ACTIVE documents into the registry document that every
  * read surface consumes (billing lookups, /v1/proxy/model-registry, the
  * public catalog endpoint).
  *
@@ -350,8 +347,7 @@ export type ModelPricingBaseline = Message<"ai.stigmer.billing.v1.ModelPricingBa
   pricing?: PricingBlock;
 
   /**
-   * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-   * from the pricing feedback loop target variants by the same key.
+   * Speed/mode variants keyed by variant name (e.g. "fast").
    *
    * @generated from field: map<string, ai.stigmer.billing.v1.PricingVariant> pricing_variants = 12;
    */
@@ -452,12 +448,10 @@ export const ModelPricingBaselineSchema: GenMessage<ModelPricingBaseline> = /*@_
 /**
  * ModelPricingBaselineStatus tracks the lifecycle of one baseline document.
  *
- * The state machine is append-only, mirroring ModelPricingOverrideStatus: an
- * edit SUPERSEDES the previous ACTIVE document rather than mutating it, so
- * the collection is a complete audit history of every catalog entry and
- * list price the platform ever published. RETIRED removes the model from
- * the effective registry (and the composition pass archives any overrides
- * that targeted it).
+ * The state machine is append-only: an edit SUPERSEDES the previous ACTIVE
+ * document rather than mutating it, so the collection is a complete audit
+ * history of every catalog entry and list price the platform ever
+ * published. RETIRED removes the model from the registry.
  *
  * @generated from enum ai.stigmer.billing.v1.ModelPricingBaselineStatus
  */
@@ -468,7 +462,7 @@ export enum ModelPricingBaselineStatus {
   model_pricing_baseline_status_unspecified = 0,
 
   /**
-   * Composed into the effective registry; at most one ACTIVE document
+   * Rendered into the registry; at most one ACTIVE document
    * exists per (model_id, provider, harness) key.
    *
    * @generated from enum value: pricing_baseline_active = 1;

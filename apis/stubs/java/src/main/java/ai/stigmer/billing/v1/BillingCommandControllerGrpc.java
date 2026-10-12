@@ -7,8 +7,8 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * BillingCommandController handles write operations for the billing bounded context.
  * Billing is not a standard API Resource — there is no api_resource_kind annotation.
  * An organization's own billing RPCs authorize against the organization
- * resource kind; the credit mutations, the execution pipeline and pricing
- * governance authorize against the static platform target.
+ * resource kind; the credit mutations, the execution pipeline and the
+ * model catalog authorize against the static platform target.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -360,37 +360,6 @@ public final class BillingCommandControllerGrpc {
     return getSetAutoRechargeConfigMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.DecideModelPricingOverrideInput,
-      ai.stigmer.billing.v1.ModelPricingOverride> getDecideModelPricingOverrideMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "decideModelPricingOverride",
-      requestType = ai.stigmer.billing.v1.DecideModelPricingOverrideInput.class,
-      responseType = ai.stigmer.billing.v1.ModelPricingOverride.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.DecideModelPricingOverrideInput,
-      ai.stigmer.billing.v1.ModelPricingOverride> getDecideModelPricingOverrideMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.DecideModelPricingOverrideInput, ai.stigmer.billing.v1.ModelPricingOverride> getDecideModelPricingOverrideMethod;
-    if ((getDecideModelPricingOverrideMethod = BillingCommandControllerGrpc.getDecideModelPricingOverrideMethod) == null) {
-      synchronized (BillingCommandControllerGrpc.class) {
-        if ((getDecideModelPricingOverrideMethod = BillingCommandControllerGrpc.getDecideModelPricingOverrideMethod) == null) {
-          BillingCommandControllerGrpc.getDecideModelPricingOverrideMethod = getDecideModelPricingOverrideMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.DecideModelPricingOverrideInput, ai.stigmer.billing.v1.ModelPricingOverride>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "decideModelPricingOverride"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.DecideModelPricingOverrideInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.ModelPricingOverride.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("decideModelPricingOverride"))
-              .build();
-        }
-      }
-    }
-    return getDecideModelPricingOverrideMethod;
-  }
-
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.UpsertModelPricingBaselineInput,
       ai.stigmer.billing.v1.ModelPricingBaseline> getUpsertModelPricingBaselineMethod;
 
@@ -517,8 +486,8 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * An organization's own billing RPCs authorize against the organization
-   * resource kind; the credit mutations, the execution pipeline and pricing
-   * governance authorize against the static platform target.
+   * resource kind; the credit mutations, the execution pipeline and the
+   * model catalog authorize against the static platform target.
    * </pre>
    */
   public interface AsyncService {
@@ -670,24 +639,11 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Record a human decision on a PENDING_SIGNOFF pricing override from the
-     * pricing feedback loop. Approving makes the override ACTIVE (superseding
-     * any current ACTIVE override on the same pricing key) and recomposes the
-     * effective registry; rejecting archives it for audit.
-     * </pre>
-     */
-    default void decideModelPricingOverride(ai.stigmer.billing.v1.DecideModelPricingOverrideInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingOverride> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDecideModelPricingOverrideMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
      * Create or revise one model registry baseline entry (catalog + list
      * prices). Append-only: an existing ACTIVE document for the same
      * (model_id, provider, harness) key is superseded, never mutated. The
-     * effective registry is recomposed immediately, so the revision reaches
-     * billing and every published price surface atomically.
+     * registry is rebuilt immediately, so the revision reaches billing and
+     * every published price surface atomically.
      * </pre>
      */
     default void upsertModelPricingBaseline(ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request,
@@ -697,10 +653,8 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Retire one model from the registry catalog. The next composition pass
-     * drops it from the effective registry and archives any ACTIVE pricing
-     * overrides that targeted it. Kept for audit; the key can be revived by
-     * a subsequent upsert.
+     * Retire one model from the registry catalog. The rebuilt registry drops
+     * it. Kept for audit; the key can be revived by a subsequent upsert.
      * </pre>
      */
     default void retireModelPricingBaseline(ai.stigmer.billing.v1.RetireModelPricingBaselineInput request,
@@ -715,8 +669,8 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * An organization's own billing RPCs authorize against the organization
-   * resource kind; the credit mutations, the execution pipeline and pricing
-   * governance authorize against the static platform target.
+   * resource kind; the credit mutations, the execution pipeline and the
+   * model catalog authorize against the static platform target.
    * </pre>
    */
   public static abstract class BillingCommandControllerImplBase
@@ -733,8 +687,8 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * An organization's own billing RPCs authorize against the organization
-   * resource kind; the credit mutations, the execution pipeline and pricing
-   * governance authorize against the static platform target.
+   * resource kind; the credit mutations, the execution pipeline and the
+   * model catalog authorize against the static platform target.
    * </pre>
    */
   public static final class BillingCommandControllerStub
@@ -908,25 +862,11 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Record a human decision on a PENDING_SIGNOFF pricing override from the
-     * pricing feedback loop. Approving makes the override ACTIVE (superseding
-     * any current ACTIVE override on the same pricing key) and recomposes the
-     * effective registry; rejecting archives it for audit.
-     * </pre>
-     */
-    public void decideModelPricingOverride(ai.stigmer.billing.v1.DecideModelPricingOverrideInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingOverride> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getDecideModelPricingOverrideMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
      * Create or revise one model registry baseline entry (catalog + list
      * prices). Append-only: an existing ACTIVE document for the same
      * (model_id, provider, harness) key is superseded, never mutated. The
-     * effective registry is recomposed immediately, so the revision reaches
-     * billing and every published price surface atomically.
+     * registry is rebuilt immediately, so the revision reaches billing and
+     * every published price surface atomically.
      * </pre>
      */
     public void upsertModelPricingBaseline(ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request,
@@ -937,10 +877,8 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Retire one model from the registry catalog. The next composition pass
-     * drops it from the effective registry and archives any ACTIVE pricing
-     * overrides that targeted it. Kept for audit; the key can be revived by
-     * a subsequent upsert.
+     * Retire one model from the registry catalog. The rebuilt registry drops
+     * it. Kept for audit; the key can be revived by a subsequent upsert.
      * </pre>
      */
     public void retireModelPricingBaseline(ai.stigmer.billing.v1.RetireModelPricingBaselineInput request,
@@ -956,8 +894,8 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * An organization's own billing RPCs authorize against the organization
-   * resource kind; the credit mutations, the execution pipeline and pricing
-   * governance authorize against the static platform target.
+   * resource kind; the credit mutations, the execution pipeline and the
+   * model catalog authorize against the static platform target.
    * </pre>
    */
   public static final class BillingCommandControllerBlockingV2Stub
@@ -1120,24 +1058,11 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Record a human decision on a PENDING_SIGNOFF pricing override from the
-     * pricing feedback loop. Approving makes the override ACTIVE (superseding
-     * any current ACTIVE override on the same pricing key) and recomposes the
-     * effective registry; rejecting archives it for audit.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.ModelPricingOverride decideModelPricingOverride(ai.stigmer.billing.v1.DecideModelPricingOverrideInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getDecideModelPricingOverrideMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Create or revise one model registry baseline entry (catalog + list
      * prices). Append-only: an existing ACTIVE document for the same
      * (model_id, provider, harness) key is superseded, never mutated. The
-     * effective registry is recomposed immediately, so the revision reaches
-     * billing and every published price surface atomically.
+     * registry is rebuilt immediately, so the revision reaches billing and
+     * every published price surface atomically.
      * </pre>
      */
     public ai.stigmer.billing.v1.ModelPricingBaseline upsertModelPricingBaseline(ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request) throws io.grpc.StatusException {
@@ -1147,10 +1072,8 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Retire one model from the registry catalog. The next composition pass
-     * drops it from the effective registry and archives any ACTIVE pricing
-     * overrides that targeted it. Kept for audit; the key can be revived by
-     * a subsequent upsert.
+     * Retire one model from the registry catalog. The rebuilt registry drops
+     * it. Kept for audit; the key can be revived by a subsequent upsert.
      * </pre>
      */
     public ai.stigmer.billing.v1.ModelPricingBaseline retireModelPricingBaseline(ai.stigmer.billing.v1.RetireModelPricingBaselineInput request) throws io.grpc.StatusException {
@@ -1165,8 +1088,8 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * An organization's own billing RPCs authorize against the organization
-   * resource kind; the credit mutations, the execution pipeline and pricing
-   * governance authorize against the static platform target.
+   * resource kind; the credit mutations, the execution pipeline and the
+   * model catalog authorize against the static platform target.
    * </pre>
    */
   public static final class BillingCommandControllerBlockingStub
@@ -1329,24 +1252,11 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Record a human decision on a PENDING_SIGNOFF pricing override from the
-     * pricing feedback loop. Approving makes the override ACTIVE (superseding
-     * any current ACTIVE override on the same pricing key) and recomposes the
-     * effective registry; rejecting archives it for audit.
-     * </pre>
-     */
-    public ai.stigmer.billing.v1.ModelPricingOverride decideModelPricingOverride(ai.stigmer.billing.v1.DecideModelPricingOverrideInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getDecideModelPricingOverrideMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
      * Create or revise one model registry baseline entry (catalog + list
      * prices). Append-only: an existing ACTIVE document for the same
      * (model_id, provider, harness) key is superseded, never mutated. The
-     * effective registry is recomposed immediately, so the revision reaches
-     * billing and every published price surface atomically.
+     * registry is rebuilt immediately, so the revision reaches billing and
+     * every published price surface atomically.
      * </pre>
      */
     public ai.stigmer.billing.v1.ModelPricingBaseline upsertModelPricingBaseline(ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request) {
@@ -1356,10 +1266,8 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Retire one model from the registry catalog. The next composition pass
-     * drops it from the effective registry and archives any ACTIVE pricing
-     * overrides that targeted it. Kept for audit; the key can be revived by
-     * a subsequent upsert.
+     * Retire one model from the registry catalog. The rebuilt registry drops
+     * it. Kept for audit; the key can be revived by a subsequent upsert.
      * </pre>
      */
     public ai.stigmer.billing.v1.ModelPricingBaseline retireModelPricingBaseline(ai.stigmer.billing.v1.RetireModelPricingBaselineInput request) {
@@ -1374,8 +1282,8 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * An organization's own billing RPCs authorize against the organization
-   * resource kind; the credit mutations, the execution pipeline and pricing
-   * governance authorize against the static platform target.
+   * resource kind; the credit mutations, the execution pipeline and the
+   * model catalog authorize against the static platform target.
    * </pre>
    */
   public static final class BillingCommandControllerFutureStub
@@ -1549,25 +1457,11 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Record a human decision on a PENDING_SIGNOFF pricing override from the
-     * pricing feedback loop. Approving makes the override ACTIVE (superseding
-     * any current ACTIVE override on the same pricing key) and recomposes the
-     * effective registry; rejecting archives it for audit.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.ModelPricingOverride> decideModelPricingOverride(
-        ai.stigmer.billing.v1.DecideModelPricingOverrideInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getDecideModelPricingOverrideMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
      * Create or revise one model registry baseline entry (catalog + list
      * prices). Append-only: an existing ACTIVE document for the same
      * (model_id, provider, harness) key is superseded, never mutated. The
-     * effective registry is recomposed immediately, so the revision reaches
-     * billing and every published price surface atomically.
+     * registry is rebuilt immediately, so the revision reaches billing and
+     * every published price surface atomically.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.ModelPricingBaseline> upsertModelPricingBaseline(
@@ -1578,10 +1472,8 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Retire one model from the registry catalog. The next composition pass
-     * drops it from the effective registry and archives any ACTIVE pricing
-     * overrides that targeted it. Kept for audit; the key can be revived by
-     * a subsequent upsert.
+     * Retire one model from the registry catalog. The rebuilt registry drops
+     * it. Kept for audit; the key can be revived by a subsequent upsert.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.ModelPricingBaseline> retireModelPricingBaseline(
@@ -1602,9 +1494,8 @@ public final class BillingCommandControllerGrpc {
   private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 8;
   private static final int METHODID_CREATE_PAYMENT_METHOD_SETUP_SESSION = 9;
   private static final int METHODID_SET_AUTO_RECHARGE_CONFIG = 10;
-  private static final int METHODID_DECIDE_MODEL_PRICING_OVERRIDE = 11;
-  private static final int METHODID_UPSERT_MODEL_PRICING_BASELINE = 12;
-  private static final int METHODID_RETIRE_MODEL_PRICING_BASELINE = 13;
+  private static final int METHODID_UPSERT_MODEL_PRICING_BASELINE = 11;
+  private static final int METHODID_RETIRE_MODEL_PRICING_BASELINE = 12;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1666,10 +1557,6 @@ public final class BillingCommandControllerGrpc {
         case METHODID_SET_AUTO_RECHARGE_CONFIG:
           serviceImpl.setAutoRechargeConfig((ai.stigmer.billing.v1.SetAutoRechargeConfigInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingAccount>) responseObserver);
-          break;
-        case METHODID_DECIDE_MODEL_PRICING_OVERRIDE:
-          serviceImpl.decideModelPricingOverride((ai.stigmer.billing.v1.DecideModelPricingOverrideInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingOverride>) responseObserver);
           break;
         case METHODID_UPSERT_MODEL_PRICING_BASELINE:
           serviceImpl.upsertModelPricingBaseline((ai.stigmer.billing.v1.UpsertModelPricingBaselineInput) request,
@@ -1775,13 +1662,6 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.BillingAccount>(
                 service, METHODID_SET_AUTO_RECHARGE_CONFIG)))
         .addMethod(
-          getDecideModelPricingOverrideMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.billing.v1.DecideModelPricingOverrideInput,
-              ai.stigmer.billing.v1.ModelPricingOverride>(
-                service, METHODID_DECIDE_MODEL_PRICING_OVERRIDE)))
-        .addMethod(
           getUpsertModelPricingBaselineMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
@@ -1854,7 +1734,6 @@ public final class BillingCommandControllerGrpc {
               .addMethod(getCreateBillingPortalSessionMethod())
               .addMethod(getCreatePaymentMethodSetupSessionMethod())
               .addMethod(getSetAutoRechargeConfigMethod())
-              .addMethod(getDecideModelPricingOverrideMethod())
               .addMethod(getUpsertModelPricingBaselineMethod())
               .addMethod(getRetireModelPricingBaselineMethod())
               .build();

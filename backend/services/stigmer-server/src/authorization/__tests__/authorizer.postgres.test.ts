@@ -290,7 +290,7 @@ describe.each(driverFixtures(SEEDED_KINDS))(
             "a kind this edition does not serve (platform — nobody holds an operator capability)",
             resolved(FOUNDER),
             check(
-              IamPermission.can_view_provider_standing,
+              IamPermission.can_manage_plans,
               ApiResourceKind.platform,
               "stigmer",
             ),

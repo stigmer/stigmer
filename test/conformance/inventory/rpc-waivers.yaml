@@ -169,11 +169,6 @@ waivers:
     issue: 1547
     reason: >-
       Served by the Cloud edition only; the open-source server routes no ProviderKey service and the suite has no client for it.
-  - rpc: ProviderStandingQueryController.getProviderStandingView
-    kind: gap
-    issue: 1549
-    reason: >-
-      Served by the Cloud edition only; the open-source server routes no ProviderStanding service and the suite has no client for it.
   - rpc: TeamCommandController.create
     kind: gap
     issue: 1543

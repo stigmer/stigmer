@@ -8,12 +8,11 @@ package ai.stigmer.billing.v1;
 /**
  * <pre>
  * ModelPricingBaseline is one versioned catalog-and-list-price entry of the
- * model registry — the human-governed half of the effective registry
- * (baseline ⊕ ACTIVE overrides).
+ * model registry, which the ACTIVE baselines alone make up.
  *
  * Documents are append-only: operator edits supersede the previous ACTIVE
- * document for the same (model_id, provider, harness) key. The composition
- * pass renders all ACTIVE documents into the registry document that every
+ * document for the same (model_id, provider, harness) key. The registry
+ * build renders all ACTIVE documents into the registry document that every
  * read surface consumes (billing lookups, /v1/proxy/model-registry, the
  * public catalog endpoint).
  * </pre>
@@ -603,8 +602,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-   * from the pricing feedback loop target variants by the same key.
+   * Speed/mode variants keyed by variant name (e.g. "fast").
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -625,8 +623,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-   * from the pricing feedback loop target variants by the same key.
+   * Speed/mode variants keyed by variant name (e.g. "fast").
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -637,8 +634,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-   * from the pricing feedback loop target variants by the same key.
+   * Speed/mode variants keyed by variant name (e.g. "fast").
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -656,8 +652,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
   }
   /**
    * <pre>
-   * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-   * from the pricing feedback loop target variants by the same key.
+   * Speed/mode variants keyed by variant name (e.g. "fast").
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -1551,12 +1546,11 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
   /**
    * <pre>
    * ModelPricingBaseline is one versioned catalog-and-list-price entry of the
-   * model registry — the human-governed half of the effective registry
-   * (baseline ⊕ ACTIVE overrides).
+   * model registry, which the ACTIVE baselines alone make up.
    *
    * Documents are append-only: operator edits supersede the previous ACTIVE
-   * document for the same (model_id, provider, harness) key. The composition
-   * pass renders all ACTIVE documents into the registry document that every
+   * document for the same (model_id, provider, harness) key. The registry
+   * build renders all ACTIVE documents into the registry document that every
    * read surface consumes (billing lookups, /v1/proxy/model-registry, the
    * public catalog endpoint).
    * </pre>
@@ -3181,8 +3175,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-     * from the pricing feedback loop target variants by the same key.
+     * Speed/mode variants keyed by variant name (e.g. "fast").
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -3203,8 +3196,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-     * from the pricing feedback loop target variants by the same key.
+     * Speed/mode variants keyed by variant name (e.g. "fast").
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -3215,8 +3207,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-     * from the pricing feedback loop target variants by the same key.
+     * Speed/mode variants keyed by variant name (e.g. "fast").
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -3233,8 +3224,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-     * from the pricing feedback loop target variants by the same key.
+     * Speed/mode variants keyed by variant name (e.g. "fast").
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -3256,8 +3246,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-     * from the pricing feedback loop target variants by the same key.
+     * Speed/mode variants keyed by variant name (e.g. "fast").
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -3280,8 +3269,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-     * from the pricing feedback loop target variants by the same key.
+     * Speed/mode variants keyed by variant name (e.g. "fast").
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -3298,8 +3286,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-     * from the pricing feedback loop target variants by the same key.
+     * Speed/mode variants keyed by variant name (e.g. "fast").
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>
@@ -3318,8 +3305,7 @@ ai.stigmer.billing.v1.PricingVariant defaultValue) {
     }
     /**
      * <pre>
-     * Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-     * from the pricing feedback loop target variants by the same key.
+     * Speed/mode variants keyed by variant name (e.g. "fast").
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.billing.v1.PricingVariant&gt; pricing_variants = 12 [json_name = "pricingVariants"];</code>

@@ -7,16 +7,14 @@ import "google/protobuf/timestamp.proto";
 
 // ModelPricingBaselineStatus tracks the lifecycle of one baseline document.
 //
-// The state machine is append-only, mirroring ModelPricingOverrideStatus: an
-// edit SUPERSEDES the previous ACTIVE document rather than mutating it, so
-// the collection is a complete audit history of every catalog entry and
-// list price the platform ever published. RETIRED removes the model from
-// the effective registry (and the composition pass archives any overrides
-// that targeted it).
+// The state machine is append-only: an edit SUPERSEDES the previous ACTIVE
+// document rather than mutating it, so the collection is a complete audit
+// history of every catalog entry and list price the platform ever
+// published. RETIRED removes the model from the registry.
 enum ModelPricingBaselineStatus {
   model_pricing_baseline_status_unspecified = 0;
 
-  // Composed into the effective registry; at most one ACTIVE document
+  // Rendered into the registry; at most one ACTIVE document
   // exists per (model_id, provider, harness) key.
   pricing_baseline_active = 1;
 
@@ -32,7 +30,7 @@ enum ModelPricingBaselineStatus {
 // the base entry's rates or one speed variant's rates.
 //
 // Rates are integer micro-USD per million tokens (no floating point in
-// billing writes, matching ModelPricingOverride). The served registry JSON
+// billing writes). The served registry JSON
 // renders them back to dollar doubles for consumers.
 message PricingBlock {
   // Micro-USD per million uncached input tokens.
@@ -63,9 +61,7 @@ message PricingBlock {
   // read or derived from, confirmation dates, caveats.
   string source_note = 7 [(buf.validate.field).string.max_len = 2048];
 
-  // When these rates took effect. The override staleness check reads this field:
-  // an ACTIVE override whose derivation window ended before this instant
-  // is stale and gets superseded — baseline edits always stamp it fresh.
+  // When these rates took effect. Baseline edits always stamp it fresh.
   google.protobuf.Timestamp effective_at = 8;
 }
 
@@ -157,12 +153,11 @@ message ModelCapabilities {
 }
 
 // ModelPricingBaseline is one versioned catalog-and-list-price entry of the
-// model registry — the human-governed half of the effective registry
-// (baseline ⊕ ACTIVE overrides).
+// model registry, which the ACTIVE baselines alone make up.
 //
 // Documents are append-only: operator edits supersede the previous ACTIVE
-// document for the same (model_id, provider, harness) key. The composition
-// pass renders all ACTIVE documents into the registry document that every
+// document for the same (model_id, provider, harness) key. The registry
+// build renders all ACTIVE documents into the registry document that every
 // read surface consumes (billing lookups, /v1/proxy/model-registry, the
 // public catalog endpoint).
 message ModelPricingBaseline {
@@ -235,8 +230,7 @@ message ModelPricingBaseline {
   // Base per-token rates with provenance.
   PricingBlock pricing = 11 [(buf.validate.field).required = true];
 
-  // Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
-  // from the pricing feedback loop target variants by the same key.
+  // Speed/mode variants keyed by variant name (e.g. "fast").
   map<string, PricingVariant> pricing_variants = 12;
 
   // Wire model names that resolve directly to this base entry — the

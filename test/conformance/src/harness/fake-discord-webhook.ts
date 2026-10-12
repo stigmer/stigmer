@@ -7,8 +7,7 @@
 // queue, no retry — a pinned site contract). The server is booted with
 // its leads webhook URL pointed here so the public suite can assert both the
 // embed the server sends (title, fields, footer, truncation) and the 502
-// posture by scripting the next delivery to fail. The billing governance
-// notifier posts through the same Discord client and may reuse this fixture.
+// posture by scripting the next delivery to fail.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { readBody } from "@stigmer/test-support/fake-llm-upstream";

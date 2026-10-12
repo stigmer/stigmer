@@ -1,4 +1,4 @@
-// Billing ledger conformance — the 23 RPCs of the billing engine and the
+// Billing ledger conformance — the 21 RPCs of the billing engine and the
 // Stripe webhook (Class A; no runner). The rows were first read from the
 // retired Java service's behavior, and the composition is held to them.
 // Domain: billing.
@@ -87,9 +87,7 @@ const COPY = {
   grantCredits: "only platform operators and credit issuers can grant credits",
   purchaseCredits: "unauthorized to purchase credits for this organization",
   engineOps: "only platform operators can execute billing operations",
-  pricingDecide: "only platform operators can decide pricing overrides",
   pricingEdit: "only platform operators can edit the model registry baseline",
-  pricingGovernance: "only platform operators can view pricing governance",
   pricingBaselineView: "only platform operators can view the model registry baseline",
   manageAutoRecharge: "unauthorized to manage auto-recharge for this organization",
   insufficientCredits: "Insufficient credits to start execution",
@@ -117,8 +115,6 @@ const DOMAIN_COPY = {
   // RetireModelPricingBaselineHandler
   noActiveBaseline: (modelId: string, provider: string, harness: string) =>
     `No ACTIVE baseline found for ${modelId}/${provider}/${harness} — it may already be retired, or the key is misspelled.`,
-  // DecideModelPricingOverrideHandler
-  noOverride: (overrideId: string) => `No pricing override found with id ${overrideId}`,
 } as const;
 
 // A Class A billing test needs an org (funded or not), an outsider, and — for
@@ -910,7 +906,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     }
   });
 
-  it("[billing.rpc.pricing-admin-lanes.ordinary-caller-permission-denied] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingCommandController.decideModelPricingOverride] [rpc:BillingQueryController.getModelPricingGovernance] [rpc:BillingQueryController.listModelPricingBaselines] an org owner is refused on every pricing-admin RPC with its own copy", async () => {
+  it("[billing.rpc.pricing-admin-lanes.ordinary-caller-permission-denied] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingQueryController.listModelPricingBaselines] an org owner is refused on every pricing-admin RPC with its own copy", async () => {
     // Input validation runs before authorization on these handlers, so each
     // call is structurally valid — the refusal must be the authorization's.
     const cases: Array<[string, () => Promise<unknown>, string]> = [
@@ -931,8 +927,6 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
         COPY.pricingEdit,
       ],
       ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({ modelId: "conf-model", provider: "anthropic", harness: "native" }), COPY.pricingEdit],
-      ["decideModelPricingOverride", () => clients.billingCommand.decideModelPricingOverride({ overrideId: "ovr_conformance" }), COPY.pricingDecide],
-      ["getModelPricingGovernance", () => clients.billingQuery.getModelPricingGovernance({}), COPY.pricingGovernance],
       ["listModelPricingBaselines", () => clients.billingQuery.listModelPricingBaselines({}), COPY.pricingBaselineView],
     ];
     for (const [name, op, copy] of cases) {
@@ -1029,14 +1023,14 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     expect(report.runCount).toBe(1);
   });
 
-  // --- the pricing-governance lanes (operator tooling with a console).
+  // --- the model catalog lanes (operator tooling with a console).
   // Baselines are PLATFORM-GLOBAL state, not org
   // state: every arm keys its baseline on a run-unique model id and retires it
   // on cleanup, so nothing it creates outlives the test or reaches another
   // file's registry assertions.
 
-  // A structurally valid baseline for a run-unique model. The registry's
-  // composed catalog picks it up on upsert; retire removes it again.
+  // A structurally valid baseline for a run-unique model. The registry
+  // picks it up on upsert; retire removes it again.
   function conformanceBaseline(modelId: string, inputMicros = 1_000_000n, outputMicros = 5_000_000n) {
     return {
       modelId,
@@ -1127,49 +1121,6 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — the engine and pr
     );
     expect(again.rawMessage).toBe(DOMAIN_COPY.noActiveBaseline(modelId, "anthropic", "native"));
   });
-
-  it("[billing.rpc.decide-model-pricing-override.unknown-not-found] [rpc:BillingCommandController.decideModelPricingOverride] deciding an override nobody proposed is NOT_FOUND with the handler's copy", async () => {
-    // Only the provider-reconciliation corrector proposes overrides, so the
-    // already-decided FAILED_PRECONDITION half of this lane is a `unit` row
-    // (billing.rpc.decide-model-pricing-override.already-decided-failed-precondition).
-    const op = await operator();
-    const overrideId = uniqueName("ovr-conf");
-    for (const approve of [true, false]) {
-      const missing = await expectGrpcCode(
-        () => op.clients.billingCommand.decideModelPricingOverride({ overrideId, approve, decisionNote: "conformance" }),
-        Code.NotFound,
-        `decide unknown override (approve=${approve})`,
-      );
-      expect(missing.rawMessage).toBe(DOMAIN_COPY.noOverride(overrideId));
-    }
-  });
-
-  it("[billing.rpc.get-model-pricing-governance.returns-queue] [rpc:BillingQueryController.getModelPricingGovernance] the governance view lists one entry per effective-registry model, sorted, with baseline and effective rates equal while no override is active, and an empty proposal queue on a fresh environment", async () => {
-    const op = await operator();
-    const modelId = uniqueName("conf-model");
-    await upsertBaseline(op, modelId, 3_000_000n, 9_000_000n);
-
-    const governance = await op.clients.billingQuery.getModelPricingGovernance({});
-    expect(governance.entries.length, "the seeded registry is never empty").toBeGreaterThan(0);
-    expect(governance.pendingOverrides, "nothing proposes overrides on a fresh environment but the reconciliation corrector").toEqual([]);
-
-    const keys = governance.entries.map((e) => `${e.harness}\u0000${e.provider}\u0000${e.modelId}`);
-    expect(keys, "sorted by harness, provider, model").toEqual([...keys].sort());
-    for (const entry of governance.entries) {
-      expect(entry.modelId).not.toBe("");
-      expect(entry.variant, "the view is the base variant only").toBe("");
-      if (entry.activeOverrides.length === 0) {
-        expect(entry.effectiveInputMicrosPerMillion, `${entry.modelId} input`).toBe(entry.baselineInputMicrosPerMillion);
-        expect(entry.effectiveOutputMicrosPerMillion, `${entry.modelId} output`).toBe(entry.baselineOutputMicrosPerMillion);
-      }
-    }
-
-    const mine = governance.entries.find((e) => e.modelId === modelId && e.harness === "native");
-    expect(mine, "the upserted baseline is an entry").toBeDefined();
-    expect(mine?.baselineInputMicrosPerMillion).toBe(3_000_000n);
-    expect(mine?.effectiveOutputMicrosPerMillion).toBe(9_000_000n);
-    expect(mine?.activeOverrides).toEqual([]);
-  });
 });
 
 describe.skipIf(!ledgerServed)("Billing ledger conformance — auto-recharge, the operator-driven money path against the fake Stripe", () => {
@@ -1259,7 +1210,7 @@ describe.skipIf(!ledgerServed)("Billing ledger conformance — auto-recharge, th
 });
 
 describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (no billing controllers routed)", () => {
-  it("[billing.rpc.oss-boundary.every-billing-rpc-unimplemented] [rpc:BillingCommandController.getOrCreateBillingAccount] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] [rpc:BillingCommandController.authorizeRun] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingCommandController.finalizeRun] [rpc:BillingCommandController.rearmForRecovery] [rpc:BillingCommandController.createCreditCheckoutSession] [rpc:BillingCommandController.createBillingPortalSession] [rpc:BillingCommandController.createPaymentMethodSetupSession] [rpc:BillingCommandController.setAutoRechargeConfig] [rpc:BillingCommandController.decideModelPricingOverride] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingQueryController.getBillingAccount] [rpc:BillingQueryController.getCreditBalance] [rpc:BillingQueryController.getCreditLedger] [rpc:BillingQueryController.getBillingUsageReport] [rpc:BillingQueryController.getCustomerModelPricing] [rpc:BillingQueryController.getModelPricingGovernance] [rpc:BillingQueryController.listModelPricingBaselines] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingQueryController.getRunBillingSignal] every billing RPC answers Unimplemented where billingLedger is false", async () => {
+  it("[billing.rpc.oss-boundary.every-billing-rpc-unimplemented] [rpc:BillingCommandController.getOrCreateBillingAccount] [rpc:BillingCommandController.adjustCredits] [rpc:BillingCommandController.grantCredits] [rpc:BillingCommandController.authorizeRun] [rpc:BillingCommandController.recordLlmCallUsage] [rpc:BillingCommandController.finalizeRun] [rpc:BillingCommandController.rearmForRecovery] [rpc:BillingCommandController.createCreditCheckoutSession] [rpc:BillingCommandController.createBillingPortalSession] [rpc:BillingCommandController.createPaymentMethodSetupSession] [rpc:BillingCommandController.setAutoRechargeConfig] [rpc:BillingCommandController.upsertModelPricingBaseline] [rpc:BillingCommandController.retireModelPricingBaseline] [rpc:BillingQueryController.getBillingAccount] [rpc:BillingQueryController.getCreditBalance] [rpc:BillingQueryController.getCreditLedger] [rpc:BillingQueryController.getBillingUsageReport] [rpc:BillingQueryController.getCustomerModelPricing] [rpc:BillingQueryController.listModelPricingBaselines] [rpc:BillingQueryController.previewAuthorization] [rpc:BillingQueryController.getRunBillingSignal] every billing RPC answers Unimplemented where billingLedger is false", async () => {
     const org = uniqueName("org");
     const executionId = uniqueName("exec");
     const lanes: Array<[string, () => Promise<unknown>]> = [
@@ -1274,7 +1225,6 @@ describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (
       ["createBillingPortalSession", () => clients.billingCommand.createBillingPortalSession({ org, returnUrl: "https://x/back" })],
       ["createPaymentMethodSetupSession", () => clients.billingCommand.createPaymentMethodSetupSession({ org, successUrl: "https://x/ok", cancelUrl: "https://x/c" })],
       ["setAutoRechargeConfig", () => clients.billingCommand.setAutoRechargeConfig({ org })],
-      ["decideModelPricingOverride", () => clients.billingCommand.decideModelPricingOverride({ overrideId: "ovr_x" })],
       ["upsertModelPricingBaseline", () => clients.billingCommand.upsertModelPricingBaseline({ baseline: { modelId: "m", provider: "p", harness: "native", displayName: "M", speedTier: "balanced", costTier: "standard", pricing: {} } })],
       ["retireModelPricingBaseline", () => clients.billingCommand.retireModelPricingBaseline({ modelId: "m", provider: "p", harness: "native" })],
       ["getBillingAccount", () => clients.billingQuery.getBillingAccount({ org })],
@@ -1282,12 +1232,11 @@ describe.skipIf(ledgerServed)("Billing ledger conformance — the OSS boundary (
       ["getCreditLedger", () => clients.billingQuery.getCreditLedger({ org })],
       ["getBillingUsageReport", () => clients.billingQuery.getBillingUsageReport({ org, startTime: timestampFromDate(new Date()), endTime: timestampFromDate(new Date()) })],
       ["getCustomerModelPricing", () => clients.billingQuery.getCustomerModelPricing({ org })],
-      ["getModelPricingGovernance", () => clients.billingQuery.getModelPricingGovernance({})],
       ["listModelPricingBaselines", () => clients.billingQuery.listModelPricingBaselines({})],
       ["previewAuthorization", () => clients.billingQuery.previewAuthorization({ org })],
       ["getRunBillingSignal", () => clients.billingQuery.getRunBillingSignal({ runId: executionId })],
     ];
-    expect(lanes, "the 23 RPCs, no more, no fewer").toHaveLength(23);
+    expect(lanes, "the 21 RPCs, no more, no fewer").toHaveLength(21);
     for (const [name, op] of lanes) {
       await expectGrpcCode(op, Code.Unimplemented, `OSS ${name}`);
     }

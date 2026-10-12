@@ -12,7 +12,6 @@ from ai.stigmer.billing.v1 import command_pb2_grpc
 from ai.stigmer.billing.v1 import credit_pb2
 from ai.stigmer.billing.v1 import io_pb2 as billing_io_pb2
 from ai.stigmer.billing.v1 import model_pricing_baseline_pb2
-from ai.stigmer.billing.v1 import pricing_override_pb2
 from ai.stigmer.billing.v1 import query_pb2_grpc
 from ai.stigmer.commons.rpc import pagination_pb2
 
@@ -115,19 +114,6 @@ class SetAutoRechargeConfigParams:
     threshold_micros: int
     recharge_amount_micros: int
     monthly_cap_micros: int
-
-
-@dataclass
-class DecideModelPricingOverrideParams:
-    """Parameters for deciding a pending pricing override."""
-
-    override_id: str
-    """The PENDING_SIGNOFF override to decide."""
-    approve: bool
-    """``True`` approves (the override becomes ACTIVE and supersedes any
-    current ACTIVE override on the same pricing key); ``False`` rejects."""
-    decision_note: str = ""
-    """Optional note recorded on the decision for the audit trail."""
 
 
 @dataclass
@@ -384,23 +370,6 @@ class BillingClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_model_pricing_governance(
-        self,
-    ) -> billing_io_pb2.ModelPricingGovernanceResponse:
-        """Retrieve the platform pricing governance view.
-
-        Baseline vs effective rates per model, ACTIVE override provenance,
-        and pending sign-off proposals from the pricing feedback loop.
-
-        Platform-operator surface (``can_manage_model_pricing`` on
-        ``platform:stigmer``): rates are raw provider prices, pre-markup.
-        """
-        req = billing_io_pb2.GetModelPricingGovernanceInput()
-        try:
-            return self._query.getModelPricingGovernance(req)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def list_model_pricing_baselines(
         self, include_history: bool = False
     ) -> billing_io_pb2.ModelPricingBaselinesResponse:
@@ -420,26 +389,6 @@ class BillingClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def decide_model_pricing_override(
-        self, params: DecideModelPricingOverrideParams
-    ) -> pricing_override_pb2.ModelPricingOverride:
-        """Record a human decision on a PENDING_SIGNOFF pricing override.
-
-        Approving makes the override ACTIVE (superseding any current ACTIVE
-        override on the same pricing key) and recomposes the effective
-        registry; rejecting archives it for audit.  Returns the decided
-        override with the decision stamped.
-        """
-        req = billing_io_pb2.DecideModelPricingOverrideInput(
-            override_id=params.override_id,
-            approve=params.approve,
-            decision_note=params.decision_note,
-        )
-        try:
-            return self._command.decideModelPricingOverride(req)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def upsert_model_pricing_baseline(
         self, params: UpsertModelPricingBaselineParams
     ) -> model_pricing_baseline_pb2.ModelPricingBaseline:
@@ -447,7 +396,7 @@ class BillingClient:
 
         Append-only: an existing ACTIVE entry for the same
         (model_id, provider, harness) key is superseded, never mutated, and
-        the effective registry recomposes immediately.  Returns the new
+        the registry is rebuilt immediately.  Returns the new
         revision with server-stamped lifecycle fields.
         """
         req = billing_io_pb2.UpsertModelPricingBaselineInput(
@@ -464,9 +413,8 @@ class BillingClient:
     ) -> model_pricing_baseline_pb2.ModelPricingBaseline:
         """Retire one model from the registry catalog.
 
-        The model disappears from every price surface on the next composition
-        pass; the document is kept for audit and the key can be revived by a
-        subsequent upsert.
+        The rebuilt registry drops it from every price surface; the document
+        is kept for audit and the key can be revived by a subsequent upsert.
         """
         req = billing_io_pb2.RetireModelPricingBaselineInput(
             model_id=params.model_id,
