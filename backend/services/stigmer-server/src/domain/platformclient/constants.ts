@@ -60,7 +60,11 @@ export function reservedSlugMessage(slug: string): string {
 }
 
 /** The three mutations a system-managed client refuses. */
-export type SystemManagedMutation = "updated" | "renamed" | "deleted" | "rotated";
+export type SystemManagedMutation =
+  | "updated"
+  | "renamed"
+  | "deleted"
+  | "rotated";
 
 export function systemManagedMessage(verb: SystemManagedMutation): string {
   return `This platform client is system-managed and cannot be ${verb}`;

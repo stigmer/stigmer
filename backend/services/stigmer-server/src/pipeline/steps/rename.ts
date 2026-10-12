@@ -40,7 +40,10 @@
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import type { DescMethodUnary } from "@bufbuild/protobuf";
 
-import type { RenameInput, RenameInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type {
+  RenameInput,
+  RenameInputSchema,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { Logger } from "../../boot/logger.js";
@@ -86,7 +89,10 @@ export async function moveName(
   holder: NameHolder,
 ): Promise<ResourceNameRenamed> {
   const moved = await table.resourceNames.rename(move);
-  if (moved.claimed || !(await holderIsGone(moved.entry, new Date(move.now), holder))) {
+  if (
+    moved.claimed ||
+    !(await holderIsGone(moved.entry, new Date(move.now), holder))
+  ) {
     return moved;
   }
   await table.resourceNames.releaseName(
@@ -165,7 +171,9 @@ export function portRenameRows<Desc extends DescMessage>(
     schema,
     find: (id) => port.findById(id),
     modify: (id, modify) => port.modifyById(id, modify),
-    holder: { holds: async (entry) => (await port.findById(entry.id)) !== undefined },
+    holder: {
+      holds: async (entry) => (await port.findById(entry.id)) !== undefined,
+    },
   };
 }
 
@@ -196,10 +204,16 @@ export function newLoadForRenameStep<Desc extends DescMessage>(
       try {
         row = await rows.find(ctx.input.resourceId);
       } catch (error) {
-        throw internalError(error, `failed to load ${kindEnumName(ctx.apiResourceKind)}`);
+        throw internalError(
+          error,
+          `failed to load ${kindEnumName(ctx.apiResourceKind)}`,
+        );
       }
       if (row === undefined) {
-        throw notFoundError(getKindName(ctx.apiResourceKind), ctx.input.resourceId);
+        throw notFoundError(
+          getKindName(ctx.apiResourceKind),
+          ctx.input.resourceId,
+        );
       }
       ctx.set(EXISTING_RESOURCE_KEY, row);
     },
@@ -224,7 +238,10 @@ export function newValidateNewSlugStep<Desc extends DescMessage>(
   return {
     name: "ValidateNewSlug",
     execute(ctx: RequestContext<RenameDesc>): void {
-      rule?.(ctx.get(EXISTING_RESOURCE_KEY) as MessageShape<Desc>, ctx.input.slug);
+      rule?.(
+        ctx.get(EXISTING_RESOURCE_KEY) as MessageShape<Desc>,
+        ctx.input.slug,
+      );
     },
   };
 }
@@ -248,7 +265,11 @@ export function newRenameNameStep<Desc extends DescMessage>(
       const resource = ctx.get(EXISTING_RESOURCE_KEY) as MessageShape<Desc>;
       const metadata = metadataOf(resource);
       const kind = ctx.apiResourceKind;
-      if (metadata === undefined || metadata.id === "" || metadata.slug === "") {
+      if (
+        metadata === undefined ||
+        metadata.id === "" ||
+        metadata.slug === ""
+      ) {
         throw internalError(
           new Error(`${kindEnumName(kind)} row has no id or slug`),
           "failed to rename the resource",
@@ -259,7 +280,11 @@ export function newRenameNameStep<Desc extends DescMessage>(
       }
       let current;
       try {
-        current = await names.resourceNames.current(kindEnumName(kind), metadata.org, metadata.id);
+        current = await names.resourceNames.current(
+          kindEnumName(kind),
+          metadata.org,
+          metadata.id,
+        );
       } catch (error) {
         throw internalError(error, "failed to rename the resource");
       }
@@ -276,7 +301,9 @@ export function newRenameNameStep<Desc extends DescMessage>(
         id: metadata.id,
         from,
         to: ctx.input.slug,
-        fromExpiresAt: new Date(now.getTime() + RENAMED_NAME_HOLD_MS).toISOString(),
+        fromExpiresAt: new Date(
+          now.getTime() + RENAMED_NAME_HOLD_MS,
+        ).toISOString(),
         now: now.toISOString(),
       };
       let moved: ResourceNameRenamed;
@@ -289,7 +316,9 @@ export function newRenameNameStep<Desc extends DescMessage>(
         throw nameTakenError(kind, moved.entry);
       }
       const recorded: NameMove =
-        moved.takenBack === undefined ? { move } : { move, takenBack: moved.takenBack };
+        moved.takenBack === undefined
+          ? { move }
+          : { move, takenBack: moved.takenBack };
       ctx.set(NAME_MOVE_KEY, recorded);
     },
   };
@@ -325,7 +354,13 @@ export function newPersistRenamedStep<Desc extends DescMessage>(
           if (metadata !== undefined) {
             metadata.slug = move.to;
           }
-          setAuditFieldsForUpdate(rows.schema, row, "spec_audit", identity, "renamed");
+          setAuditFieldsForUpdate(
+            rows.schema,
+            row,
+            "spec_audit",
+            identity,
+            "renamed",
+          );
         });
       } catch (error) {
         failure = error;
@@ -344,7 +379,10 @@ export function newPersistRenamedStep<Desc extends DescMessage>(
             id: move.id,
             from: move.from,
             to: move.to,
-            error: revertError instanceof Error ? revertError.message : String(revertError),
+            error:
+              revertError instanceof Error
+                ? revertError.message
+                : String(revertError),
           },
         );
       }

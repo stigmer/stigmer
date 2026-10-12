@@ -51,7 +51,9 @@ export function newCheckDuplicateStep<Desc extends DescMessage>(
         );
         held =
           entry !== undefined &&
-          (await storedRowHolder(store, ctx.apiResourceKind, ctx.schema).holds(entry))
+          (await storedRowHolder(store, ctx.apiResourceKind, ctx.schema).holds(
+            entry,
+          ))
             ? entry
             : undefined;
       } catch (error) {
