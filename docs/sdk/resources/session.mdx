@@ -81,6 +81,9 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`updateSubject`](#updatesubject) | Set the session subject. | |
 | [`delete`](#delete) | Delete a session. | |
 | [`appendEvents`](#appendevents) | Append a run's events to its session's log. | |
+| [`confirmToolUse`](#confirmtooluse) | Allow or deny a tool use that waits for an answer. | |
+| [`grantPermission`](#grantpermission) | Allow a tool use, and every call of its class for the rest of the turn. | |
+| [`interrupt`](#interrupt) | Stop the session's unfinished work. | |
 | [`reviewFileChanges`](#reviewfilechanges) | Keep or undo the file changes a turn made, or one of its files. | |
 | [`streamEvents`](#streamevents) | Stream a session's events as they are appended. | Server |
 
@@ -801,6 +804,149 @@ AppendSessionEventsResponse appendSessionEventsResponse = client.sessions().appe
 
 **Returns**: [`AppendSessionEventsResponse`](#appendsessioneventsresponse)
 
+### confirmToolUse
+
+Allow or deny a tool use that waits for an answer.
+
+A call that needs a person's answer is an agent.tool_use (or agent.mcp_tool_use) with evaluated_permission ask, and the session goes idle with stop_reason requires_action naming it. The answer is appended as a user.tool_confirmation. A deny may carry a message, which the agent reads. When every waiting call of the turn is answered, the turn resumes; until then the session re-states requires_action with the calls still waiting.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const sessionEvent = await stigmer.session.confirmToolUse({
+  sessionId: "...",
+  toolUseId: "...",
+  result: "...",
+  denyMessage: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+sessionEvent, err := client.Session.ConfirmToolUse(ctx, &stigmer.ConfirmToolUseInput{
+  SessionId:   "...",
+  ToolUseId:   "...",
+  Result:      "...",
+  DenyMessage: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+session_event = client.sessions.confirm_tool_use(ConfirmToolUseInput(
+    session_id="...",
+    tool_use_id="...",
+    result="...",
+    deny_message="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SessionEvent sessionEvent = client.sessions().confirmToolUse(ConfirmToolUseInput.builder()
+    .sessionId("...")
+    .toolUseId("...")
+    .result("...")
+    .denyMessage("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ConfirmToolUseInput`](#confirmtooluseinput)
+
+**Returns**: [`SessionEvent`](#sessionevent)
+
+### grantPermission
+
+Allow a tool use, and every call of its class for the rest of the turn.
+
+The class is the call's built-in category (write, delete or shell), its MCP server, or, when a hook asked, that hook on that tool. The grant is appended as a stigmer.permission.grant after the call's user.tool_confirmation, and every other call of the class waiting in the same turn is allowed with it. A call with no class (one the default never asks about) is allowed alone, with no grant.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const grantPermissionResponse = await stigmer.session.grantPermission({
+  sessionId: "...",
+  toolUseId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+grantPermissionResponse, err := client.Session.GrantPermission(ctx, &stigmer.GrantPermissionInput{
+  SessionId: "...",
+  ToolUseId: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+grant_permission_response = client.sessions.grant_permission(GrantPermissionInput(
+    session_id="...",
+    tool_use_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+GrantPermissionResponse grantPermissionResponse = client.sessions().grantPermission(GrantPermissionInput.builder()
+    .sessionId("...")
+    .toolUseId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GrantPermissionInput`](#grantpermissioninput)
+
+**Returns**: [`GrantPermissionResponse`](#grantpermissionresponse)
+
+### interrupt
+
+Stop the session's unfinished work.
+
+Appends a user.interrupt and stops every unfinished turn of the conversation: queued, working, waiting for an answer or paused. Each ends cancelled and the session goes idle with end_turn. Files undone in a turn that waited are put back at once.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const interruptSessionResponse = await stigmer.session.interrupt({
+  sessionId: "...",
+  sessionThreadId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+interruptSessionResponse, err := client.Session.Interrupt(ctx, &stigmer.InterruptSessionInput{
+  SessionId:       "...",
+  SessionThreadId: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+interrupt_session_response = client.sessions.interrupt(InterruptSessionInput(
+    session_id="...",
+    session_thread_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+InterruptSessionResponse interruptSessionResponse = client.sessions().interrupt(InterruptSessionInput.builder()
+    .sessionId("...")
+    .sessionThreadId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`InterruptSessionInput`](#interruptsessioninput)
+
+**Returns**: [`InterruptSessionResponse`](#interruptsessionresponse)
+
 ### reviewFileChanges
 
 Keep or undo the file changes a turn made, or one of its files.
@@ -1043,6 +1189,103 @@ ReviewFileChangesResponse answers a recorded decision.
 <TypeTable
   type={{
     reconcileRunId: { type: "string", description: "The turn started to put undone files back now, when the decision was an undo on a turn that had ended; empty otherwise, or when no turn could be started then (the next turn puts them back before its agent runs)." },
+  }}
+/>
+
+### ConfirmToolUseInput
+
+ConfirmToolUseInput allows or denies a tool use that waits for an answer: Managed Agents' user.tool_confirmation parameters, with the session.
+
+<TypeTable
+  type={{
+    sessionId: { type: "string", description: "The conversation." },
+    toolUseId: { type: "string", description: "The agent.tool_use or agent.mcp_tool_use event to answer, as the requires_action idle's event_ids name it." },
+    result: { type: "string", description: "allow or deny." },
+    denyMessage: { type: "string", description: "Why the call is denied, for the agent to read; only with deny." },
+  }}
+/>
+
+### SessionEvent
+
+SessionEvent is one entry in a session's ordered event log.
+
+<TypeTable
+  type={{
+    seq: { type: "number", description: "The event's place in the session's log, assigned when it is appended: later events have higher numbers." },
+    sessionId: { type: "string", description: "The session the event belongs to." },
+    runId: { type: "string", description: "The run (turn) the event belongs to; empty for none." },
+    threadId: { type: "string", description: "The thread that produced the event; empty for the session's primary thread." },
+    userMessage: { type: "UserMessageEventInput", description: "The user sent a message." },
+    sessionStatusRunning: { type: "SessionStatusRunningEventInput", description: "The session started working." },
+    sessionStatusIdle: { type: "SessionStatusIdleEventInput", description: "The session stopped working and waits for input." },
+    sessionError: { type: "SessionErrorEventInput", description: "An error happened." },
+    agentMessage: { type: "AgentMessageEventInput", description: "The agent wrote a message." },
+    agentThinking: { type: "AgentThinkingEventInput", description: "The agent is thinking." },
+    agentToolUse: { type: "AgentToolUseEventInput", description: "The agent called a built-in tool." },
+    agentToolResult: { type: "AgentToolResultEventInput", description: "A built-in tool returned." },
+    agentMcpToolUse: { type: "AgentMcpToolUseEventInput", description: "The agent called an MCP server's tool." },
+    agentMcpToolResult: { type: "AgentMcpToolResultEventInput", description: "An MCP server's tool returned." },
+    sessionThreadCreated: { type: "SessionThreadCreatedEventInput", description: "A thread (a sub-agent) was created." },
+    sessionThreadStatusRunning: { type: "SessionThreadStatusRunningEventInput", description: "A thread started working." },
+    sessionThreadStatusIdle: { type: "SessionThreadStatusIdleEventInput", description: "A thread stopped working." },
+    agentThreadMessageSent: { type: "AgentThreadMessageSentEventInput", description: "The agent sent a message to another thread." },
+    agentThreadMessageReceived: { type: "AgentThreadMessageReceivedEventInput", description: "The agent received a message from another thread." },
+    agentThreadContextCompacted: { type: "AgentThreadContextCompactedEventInput", description: "A thread's context was compacted." },
+    userToolConfirmation: { type: "UserToolConfirmationEventInput", description: "A person allowed or denied a tool use that waited for an answer." },
+    userInterrupt: { type: "UserInterruptEventInput", description: "A person stopped the session's unfinished work." },
+    stigmerAgentThinking: { type: "StigmerAgentThinkingEventInput", description: "The text of the agent's thinking." },
+    stigmerPermissionAsked: { type: "StigmerPermissionAskedEventInput", description: "Why a tool use waits for a person's answer." },
+    stigmerHarnessNote: { type: "StigmerHarnessNoteEventInput", description: "A line the platform added to the conversation in its own voice." },
+    stigmerAgentStructuredOutput: { type: "StigmerAgentStructuredOutputEventInput", description: "The structured output the turn produced." },
+    stigmerMemoryRecalled: { type: "StigmerMemoryRecalledEventInput", description: "Which of the agent's memories the turn recalled." },
+    stigmerFileReviewChanges: { type: "StigmerFileReviewChangesEventInput", description: "The files a turn changed, offered for review (the session asked for file review)." },
+    stigmerFileReviewDecided: { type: "StigmerFileReviewDecidedEventInput", description: "A turn's file changes, or one of its files, were kept or undone." },
+    stigmerFileReviewReconciled: { type: "StigmerFileReviewReconciledEventInput", description: "The files that were undone were put back." },
+    stigmerPermissionGrant: { type: "StigmerPermissionGrantEventInput", description: "A person allowed every call of one class for the rest of the turn." },
+  }}
+/>
+
+### GrantPermissionInput
+
+GrantPermissionInput allows a tool use and every call of its class for the rest of the turn.
+
+<TypeTable
+  type={{
+    sessionId: { type: "string", description: "The conversation." },
+    toolUseId: { type: "string", description: "The agent.tool_use or agent.mcp_tool_use event the grant is given on." },
+  }}
+/>
+
+### GrantPermissionResponse
+
+GrantPermissionResponse answers a recorded grant.
+
+<TypeTable
+  type={{
+    grant: { type: "SessionEventInput", description: "The stigmer.permission.grant; absent when the call has no class and was allowed alone." },
+    confirmations: { type: "SessionEventInput[]", description: "The user.tool_confirmation events written: the named call's first, then every call of the class the grant allowed." },
+  }}
+/>
+
+### InterruptSessionInput
+
+InterruptSessionInput stops a session's unfinished work: Managed Agents' user.interrupt parameters, with the session.
+
+<TypeTable
+  type={{
+    sessionId: { type: "string", description: "The conversation." },
+    sessionThreadId: { type: "string", description: "Must be empty: the whole session is stopped." },
+  }}
+/>
+
+### InterruptSessionResponse
+
+InterruptSessionResponse answers a recorded interrupt.
+
+<TypeTable
+  type={{
+    event: { type: "SessionEventInput", description: "The user.interrupt event." },
+    stoppedRunIds: { type: "string[]", description: "The runs (turns) the interrupt stopped." },
   }}
 />
 

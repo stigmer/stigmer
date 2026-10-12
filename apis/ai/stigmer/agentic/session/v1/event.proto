@@ -87,6 +87,12 @@ message SessionEvent {
     // A thread's context was compacted.
     AgentThreadContextCompactedEvent agent_thread_context_compacted = 25 [(ai.stigmer.commons.apiresource.event_type) = "agent.thread_context_compacted"];
 
+    // A person allowed or denied a tool use that waited for an answer.
+    UserToolConfirmationEvent user_tool_confirmation = 26 [(ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];
+
+    // A person stopped the session's unfinished work.
+    UserInterruptEvent user_interrupt = 27 [(ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];
+
     // Stigmer's own events (types starting with stigmer.): optional for a
     // Managed Agents client, which skips a type it does not know.
 
@@ -114,6 +120,9 @@ message SessionEvent {
 
     // The files that were undone were put back.
     StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];
+
+    // A person allowed every call of one class for the rest of the turn.
+    StigmerPermissionGrantEvent stigmer_permission_grant = 108 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];
   }
 }
 
@@ -396,6 +405,50 @@ message AgentThreadContextCompactedEvent {
 
   // When the event was appended, as RFC 3339 UTC.
   string processed_at = 2;
+}
+
+// UserToolConfirmationEvent is a person's answer to a tool use that waited
+// for one: user.tool_confirmation. Written by the server only, by
+// SessionCommandController.confirmToolUse (or grantPermission, for each
+// call its grant answers).
+message UserToolConfirmationEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // allow (the call runs) or deny (it does not, and the agent is told).
+  string result = 2 [(buf.validate.field).string = {
+    in: [
+      "allow",
+      "deny"
+    ]
+  }];
+
+  // The agent.tool_use or agent.mcp_tool_use event answered.
+  string tool_use_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Why the call was denied, for the agent to read; only with deny.
+  string deny_message = 4;
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 5;
+
+  // The thread whose call was answered; empty for the primary thread.
+  string session_thread_id = 6;
+}
+
+// UserInterruptEvent says a person stopped the session's unfinished work:
+// user.interrupt. Written by the server only, by
+// SessionCommandController.interrupt.
+message UserInterruptEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The thread stopped; empty for every thread. Stigmer stops the whole
+  // session, so it is always empty.
+  string session_thread_id = 3;
 }
 
 // StigmerAgentThinkingEvent is the text of the agent's thinking:
@@ -703,6 +756,49 @@ message StigmerFileReviewReconciledEvent {
 
   // What failed, for a person; empty when nothing failed.
   string failure_detail = 6;
+}
+
+// StigmerPermissionGrantEvent records that a person allowed every call of
+// one class for the rest of the turn: stigmer.permission.grant. Written by
+// the server only, by SessionCommandController.grantPermission, after the
+// user.tool_confirmation of the call it was given on. A later call of the
+// same class in the turn runs without asking.
+message StigmerPermissionGrantEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The agent.tool_use or agent.mcp_tool_use event the grant was given on.
+  string tool_use_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // How long the grant lasts: turn (the rest of the turn it was given in).
+  string scope = 4 [(buf.validate.field).string = {
+    in: ["turn"]
+  }];
+
+  // The class of calls the grant allows.
+  StigmerPermissionLease lease = 5 [(buf.validate.field).required = true];
+}
+
+// StigmerPermissionLease is the class of calls a grant allows: a hook's
+// asks on one tool (hook and tool set), else an MCP server's tools
+// (server set), else a built-in category (category set).
+message StigmerPermissionLease {
+  // The built-in category: write, delete or shell; empty for a server's or
+  // a hook's class.
+  string category = 1;
+
+  // The MCP server; empty for a built-in.
+  string server = 2;
+
+  // The plugin whose hook asked, empty for the agent's own hooks; null when
+  // no hook asked.
+  optional string hook = 3;
+
+  // The tool's name; set only when a hook asked, for that one tool.
+  string tool = 4;
 }
 
 // EventDelta is one fragment of a previewed agent.message.

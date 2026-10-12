@@ -1,0 +1,94 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-build",
+      "input": {
+        "command": "npm run build",
+        "cwd": "/x",
+        "timeout": 30000
+      },
+      "name": "shell",
+      "evaluated_permission": "ask"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "stigmer_permission_asked": {
+      "id": "aex_hermetic_0001.call-build.ask",
+      "tool_use_id": "aex_hermetic_0001.call-build",
+      "message": "Run command: npm run build",
+      "args_preview": "{\"command\":\"npm run build\",\"cwd\":\"/x\",\"timeout\":30000}",
+      "policy_source": "builtin_category"
+    }
+  },
+  {
+    "session_id": "ses_hermetic_0001",
+    "run_id": "aex_hermetic_0001",
+    "user_tool_confirmation": {
+      "id": "sevt_tc_2c5dfafd6d802b7cf9ef6a2692ca7bd20dd0854d",
+      "result": "allow",
+      "tool_use_id": "aex_hermetic_0001.call-build"
+    }
+  },
+  {
+    "session_id": "ses_hermetic_0001",
+    "run_id": "aex_hermetic_0001",
+    "stigmer_permission_grant": {
+      "id": "sevt_pg_2c5dfafd6d802b7cf9ef6a2692ca7bd20dd0854d",
+      "tool_use_id": "aex_hermetic_0001.call-build",
+      "scope": "turn",
+      "lease": {
+        "category": "shell"
+      }
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-build.r",
+      "tool_use_id": "aex_hermetic_0001.call-build",
+      "content": [
+        {
+          "type": "text",
+          "text": "build ok\n"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-test",
+      "input": {
+        "command": "npm test"
+      },
+      "name": "shell"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-test.r",
+      "tool_use_id": "aex_hermetic_0001.call-test",
+      "content": [
+        {
+          "type": "text",
+          "text": "tests ok\n"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Built and tested."
+        }
+      ]
+    }
+  }
+]

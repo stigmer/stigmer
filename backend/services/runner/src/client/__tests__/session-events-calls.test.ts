@@ -75,9 +75,21 @@ describe("StigmerClient.listRunSessionEvents", () => {
     const events = await newClient().listRunSessionEvents("ses_1", "run_1");
     expect(events.map((e) => (e.event.case === undefined ? "" : e.event.value.id))).toEqual(["a", "b"]);
     expect(listEvents.mock.calls.map((c) => c[0])).toEqual([
-      { sessionId: "ses_1", runId: "run_1", pageSize: 1000, pageToken: "" },
-      { sessionId: "ses_1", runId: "run_1", pageSize: 1000, pageToken: "next" },
+      { sessionId: "ses_1", runId: "run_1", types: [], pageSize: 1000, pageToken: "" },
+      { sessionId: "ses_1", runId: "run_1", types: [], pageSize: 1000, pageToken: "next" },
     ]);
+  });
+
+  it("filters by type when asked: the answers a resumed turn reads", async () => {
+    listEvents.mockResolvedValue({ events: [], nextPageToken: "" });
+    await newClient().listRunSessionEvents("ses_1", "run_1", ["user.tool_confirmation", "stigmer.permission.grant"]);
+    expect(listEvents.mock.calls[0]![0]).toEqual({
+      sessionId: "ses_1",
+      runId: "run_1",
+      types: ["user.tool_confirmation", "stigmer.permission.grant"],
+      pageSize: 1000,
+      pageToken: "",
+    });
   });
 });
 

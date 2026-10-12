@@ -209,8 +209,11 @@ export const SCHEMA_VERSION_29 = 29;
 /** v30: every stored reference holds the id of the resource its name held. */
 export const SCHEMA_VERSION_30 = 30;
 
+/** v31: each session event's gates (the tool use it opens or closes), derived at open (DDL only). */
+export const SCHEMA_VERSION_31 = 31;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_30;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_31;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -266,6 +269,7 @@ export function runMigrations(
     [SCHEMA_VERSION_28, (migrating) => migrateToV28(migrating, logger)],
     [SCHEMA_VERSION_29, (migrating) => migrateToV29(migrating, logger)],
     [SCHEMA_VERSION_30, (migrating) => migrateToV30(migrating, logger)],
+    [SCHEMA_VERSION_31, migrateToV31],
   ];
 
   for (const [version, migrate] of chain) {
@@ -1730,5 +1734,23 @@ function migrateToV27(db: DatabaseSync): void {
       last_processed_at TEXT NOT NULL
     );
     CREATE INDEX idx_session_event_heads_org ON session_event_heads (org);
+  `);
+}
+
+/**
+ * v31: each session event's gates (../session-events.ts, "Gates"), added
+ * empty: the store derives them at write and at open. The Postgres
+ * driver's v26 in this engine's terms (its header has the columns).
+ */
+function migrateToV31(db: DatabaseSync): void {
+  db.exec(`
+    ALTER TABLE session_events ADD COLUMN opens_gate TEXT NOT NULL DEFAULT '';
+    ALTER TABLE session_events ADD COLUMN closes_gate TEXT NOT NULL DEFAULT '';
+    ALTER TABLE session_events ADD COLUMN gate_revision INTEGER NOT NULL DEFAULT 0;
+    CREATE INDEX idx_session_events_opens_gate ON session_events (session_id, opens_gate)
+      WHERE opens_gate <> '';
+    CREATE INDEX idx_session_events_closes_gate ON session_events (session_id, closes_gate)
+      WHERE closes_gate <> '';
+    CREATE INDEX idx_session_events_gate_revision ON session_events (gate_revision);
   `);
 }

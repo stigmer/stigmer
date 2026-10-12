@@ -7,45 +7,56 @@
  * session can have more than one turn unfinished at once (a channel user
  * who sends two messages quickly has two runs, the second queued behind
  * the first's workspace lock), and Managed Agents has one status per
- * session: running while any of its work is unfinished.
+ * session. So each write computes the session's status from what the
+ * store reads under the session's lock (store/session-events.ts) and
+ * writes it when it differs from the newest status event:
  *
- * So each write compares two facts the store reads under the session's
- * lock (store/session-events.ts): whether the session works after this
- * write (this run is working, or `othersWorking` > 0), and what the
- * session's newest status event says (`state`). A status event is written
- * exactly when they differ, so the newest status event always equals the
- * session's state. Comparing states rather than reacting to one run's
- * transition also repairs a log that drifted: runs that were working when
- * the log was introduced, or a phase an older binary wrote during a roll,
- * are put right by the next write in their session.
+ *   running ........ this run works (pending or in progress,
+ *                    run/phases.ts `isWorkingPhase`), another does
+ *                    (`othersWorking`), or a waiting run has no open ask
+ *                    left: its answers are in and it is about to resume
+ *                    (Managed Agents: "resolving all of them transitions
+ *                    the session back to running")
+ *   idle requires_action
+ *                    otherwise, while a waiting run has open asks
+ *                    (`gates`): event_ids names every open ask of every
+ *                    waiting run, in log order. Answering some of several
+ *                    re-states the idle with the remainder.
+ *   idle ........... otherwise: end_turn; retries_exhausted when this run
+ *                    just FAILED; budget_reached when it just stopped on
+ *                    its budget (the cost cap or the tool-call limit)
  *
- * A run is working while pending, in progress or waiting for approval
- * (run/phases.ts `isWorkingPhase`). Waiting for approval writes nothing of
- * its own yet: the requires_action idle names the tool uses that wait, and
- * those events come from the runner.
+ * "Differs" compares the type, and for requires_action the event ids;
+ * another idle is never re-written over an idle, so a finished turn's
+ * later write cannot turn a retries_exhausted into an end_turn. Comparing
+ * states rather than reacting to one run's transition also repairs a log
+ * that drifted: runs that were working when the log was introduced, or a
+ * phase an older binary wrote during a roll, are put right by the next
+ * write in their session.
+ *
+ * The open asks are the session's gates (domain/session/events/gates.ts):
+ * an ask opens one, its answer or its result closes it. The events the
+ * write itself appends count: an answer it records has closed its ask
+ * before the status is computed (run-writes.ts hands the fold the gates
+ * that remain).
  *
  *   created .................. user.message (none for a reconcile turn,
  *                              `spec.reconcile_file_review`, which has no
- *                              message); then running if the session did
- *                              not read running
- *   the session stops working  session.status_idle (end_turn); when this
- *                              run just FAILED, retries_exhausted; when it
- *                              just stopped on its budget (the cost cap or
- *                              the tool-call limit), budget_reached
+ *                              message); then the status
  *   this run just FAILED ..... session.error (terminal) first, whether or
- *                              not others still work: model_request_failed_
+ *   (from working or waiting)  not others still work: model_request_failed_
  *                              error when the model provider failed the
  *                              turn, unknown_error otherwise
- *   the session works again .. session.status_running (resume, recover)
- *   removed while working .... as stopping (end_turn)
+ *   removed .................. as stopping
  *
  * The cause is the run's `stop_cause`, written with its terminal status
- * by the runner's terminal table or the workflow (RunStatus.stop_cause),
- * never matched from its error text. PAUSED, and TERMINATED for any other
- * cause, end the turn as end_turn: a Stigmer client reads the pause and
- * the precise cause from the run. session.status_terminated
- * is never written: in Managed Agents it is a session that can no longer
- * be used, and a Stigmer conversation always takes another message.
+ * by the runner's terminal table, the workflow or a stop
+ * (RunStatus.stop_cause), never matched from its error text. PAUSED, and
+ * TERMINATED for any other cause, end the turn as end_turn: a Stigmer
+ * client reads the pause and the precise cause from the run.
+ * session.status_terminated is never written: in Managed Agents it is a
+ * session that can no longer be used, and a Stigmer conversation always
+ * takes another message.
  *
  * Proven by __tests__/transitions.test.ts.
  */
@@ -60,7 +71,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 
 import { generateId } from "../../../pipeline/steps/defaults.js";
-import { isWorkingPhase } from "../../run/phases.js";
+import type { OpenSessionEventGate } from "../../../store/session-events.js";
+import { isWaitingPhase, isWorkingPhase } from "../../run/phases.js";
 import { SESSION_EVENT_ID_PREFIX } from "./catalog.js";
 
 /** What happened to the run. */
@@ -74,16 +86,46 @@ export function sessionIdOfRun(run: Run): string {
   return run.spec?.target.case === "sessionId" ? run.spec.target.value : "";
 }
 
-/** The session's state as its newest status event states it; a session with none reads idle. */
-export type SessionStateNow = "running" | "idle";
+/** The session's status as its newest status event states it; undefined when it has none (reads idle). */
+export type SessionStatusNow =
+  | { readonly type: "running" }
+  | { readonly type: "idle"; readonly reason: string; readonly eventIds: ReadonlyArray<string> };
+
+/** The session as committed, read under its lock, with the write's own answers applied. */
+export interface SessionNow {
+  /** The session's other runs that work (pending or in progress). */
+  readonly othersWorking: number;
+  /** The session's other runs that wait for a person's answer. */
+  readonly othersWaiting: ReadonlyArray<string>;
+  /** The open asks of the waiting runs and of this run, in log order. */
+  readonly gates: ReadonlyArray<OpenSessionEventGate>;
+  /** The newest status event; undefined when there is none. */
+  readonly status: SessionStatusNow | undefined;
+}
+
+/** The status a session event states; undefined for any other event. */
+export function sessionStatusOf(event: SessionEvent): SessionStatusNow | undefined {
+  switch (event.event.case) {
+    case "sessionStatusRunning":
+      return { type: "running" };
+    case "sessionStatusIdle":
+      return {
+        type: "idle",
+        reason: event.event.value.stopReason?.type ?? "",
+        eventIds: event.event.value.stopReason?.eventIds ?? [],
+      };
+    default:
+      return undefined;
+  }
+}
 
 /**
  * The events a run transition appends, in order, given the session as
- * committed: how many of its other runs work, and its stated state.
+ * committed (module header).
  */
 export function sessionEventsForTransition(
   transition: RunTransition,
-  session: { readonly othersWorking: number; readonly state: SessionStateNow },
+  session: SessionNow,
 ): SessionEvent[] {
   const runId =
     transition.kind === "remove" ? transition.runId : (transition.run.metadata?.id ?? "");
@@ -104,13 +146,16 @@ export function sessionEventsForTransition(
     );
   }
 
-  const wasWorking = transition.kind !== "create" && isWorkingPhase(transition.previousPhase);
+  const wasActive =
+    transition.kind !== "create" &&
+    (isWorkingPhase(transition.previousPhase) || isWaitingPhase(transition.previousPhase));
   const nextPhase =
     transition.kind === "remove"
       ? RunPhase.RUN_PHASE_UNSPECIFIED
       : (transition.run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED);
-  const isWorking = transition.kind !== "remove" && isWorkingPhase(nextPhase);
-  const failed = wasWorking && nextPhase === RunPhase.RUN_FAILED;
+  const isWorking = isWorkingPhase(nextPhase);
+  const isWaiting = isWaitingPhase(nextPhase);
+  const failed = wasActive && nextPhase === RunPhase.RUN_FAILED;
   const stopCause = transition.kind === "remove" ? "" : (transition.run.status?.stopCause ?? "");
   if (failed && transition.kind !== "remove") {
     events.push(
@@ -127,17 +172,43 @@ export function sessionEventsForTransition(
       }),
     );
   }
-  const stopped = wasWorking && !isWorking;
+  const stopped = wasActive && !isWorking && !isWaiting;
   const idleReason = failed
     ? "retries_exhausted"
     : stopped && stopCause === "budget_reached"
       ? "budget_reached"
       : "end_turn";
 
-  const sessionWorks = isWorking || session.othersWorking > 0;
-  if (sessionWorks && session.state !== "running") {
-    events.push(event({ case: "sessionStatusRunning", value: { id: id() } }));
-  } else if (!sessionWorks && session.state === "running") {
+  const waitingRuns = new Set(session.othersWaiting);
+  if (isWaiting) {
+    waitingRuns.add(runId);
+  }
+  const open = session.gates.filter((gate) => waitingRuns.has(gate.runId));
+  const withOpenAsks = new Set(open.map((gate) => gate.runId));
+  const resuming = [...waitingRuns].some((waiting) => !withOpenAsks.has(waiting));
+  const sessionWorks = isWorking || session.othersWorking > 0 || resuming;
+
+  const now = session.status;
+  if (sessionWorks) {
+    if (now?.type !== "running") {
+      events.push(event({ case: "sessionStatusRunning", value: { id: id() } }));
+    }
+  } else if (open.length > 0) {
+    const eventIds = open.map((gate) => gate.toolUseId);
+    const stated =
+      now?.type === "idle" &&
+      now.reason === "requires_action" &&
+      now.eventIds.length === eventIds.length &&
+      now.eventIds.every((value, index) => value === eventIds[index]);
+    if (!stated) {
+      events.push(
+        event({
+          case: "sessionStatusIdle",
+          value: { id: id(), stopReason: { type: "requires_action", eventIds } },
+        }),
+      );
+    }
+  } else if (now?.type === "running" || (now?.type === "idle" && now.reason === "requires_action")) {
     events.push(
       event({
         case: "sessionStatusIdle",

@@ -49,6 +49,30 @@
           "description": "Keep or undo the file changes a turn made, or one of its files.\n\n In a conversation with file review on (SessionSpec.file_review), each\n turn's file edits are applied as the agent makes them and listed in a\n stigmer.file_review.changes event. They can be decided until the\n conversation's next message is sent; then whatever is undecided is\n kept. Keep records the choice. Undo puts the file back as it was\n before the turn: at once when the turn has ended (the reply names the\n turn that does it), else when the turn's next step starts. The\n decision is appended as a stigmer.file_review.decided event.\n\n ## Error Conditions\n\n - NOT_FOUND: the change set is not one of this conversation's\n - FAILED_PRECONDITION: the conversation has moved on (a later message\n   was sent), the change was already decided the other way (a decision\n   is final), the file is not in the change set, or a keep of a change\n   that cannot be shown whole without acknowledge_unreviewable\n - INVALID_ARGUMENT: expected_digest does not match the change\n\n ## Idempotency\n\n The same decision sent again records nothing new and starts no second\n turn."
         },
         {
+          "name": "ConfirmToolUse",
+          "inputType": "ConfirmToolUseInput",
+          "inputFullType": "ai.stigmer.agentic.session.v1.ConfirmToolUseInput",
+          "outputType": "SessionEvent",
+          "outputFullType": "ai.stigmer.agentic.session.v1.SessionEvent",
+          "description": "Allow or deny a tool use that waits for an answer.\n\n A call that needs a person's answer is an agent.tool_use (or\n agent.mcp_tool_use) with evaluated_permission ask, and the session goes\n idle with stop_reason requires_action naming it. The answer is appended\n as a user.tool_confirmation. A deny may carry a message, which the\n agent reads. When every waiting call of the turn is answered, the turn\n resumes; until then the session re-states requires_action with the\n calls still waiting.\n\n ## Error Conditions\n\n - NOT_FOUND: the tool use is not one of this conversation's calls that\n   asked\n - FAILED_PRECONDITION: the call no longer waits (its turn moved on or\n   was stopped), or it was already answered the other way (an answer is\n   final)\n\n ## Idempotency\n\n The same answer sent again records nothing new and returns the event\n first recorded."
+        },
+        {
+          "name": "GrantPermission",
+          "inputType": "GrantPermissionInput",
+          "inputFullType": "ai.stigmer.agentic.session.v1.GrantPermissionInput",
+          "outputType": "GrantPermissionResponse",
+          "outputFullType": "ai.stigmer.agentic.session.v1.GrantPermissionResponse",
+          "description": "Allow a tool use, and every call of its class for the rest of the turn.\n\n The class is the call's built-in category (write, delete or shell), its\n MCP server, or, when a hook asked, that hook on that tool. The grant is\n appended as a stigmer.permission.grant after the call's\n user.tool_confirmation, and every other call of the class waiting in\n the same turn is allowed with it. A call with no class (one the\n default never asks about) is allowed alone, with no grant.\n\n ## Error Conditions\n\n As confirmToolUse.\n\n ## Idempotency\n\n The same grant sent again records nothing new."
+        },
+        {
+          "name": "Interrupt",
+          "inputType": "InterruptSessionInput",
+          "inputFullType": "ai.stigmer.agentic.session.v1.InterruptSessionInput",
+          "outputType": "InterruptSessionResponse",
+          "outputFullType": "ai.stigmer.agentic.session.v1.InterruptSessionResponse",
+          "description": "Stop the session's unfinished work.\n\n Appends a user.interrupt and stops every unfinished turn of the\n conversation: queued, working, waiting for an answer or paused. Each\n ends cancelled and the session goes idle with end_turn. Files undone\n in a turn that waited are put back at once.\n\n ## Error Conditions\n\n - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot\n   be stopped)\n - FAILED_PRECONDITION: the execution engine is not connected\n\n ## Idempotency\n\n An interrupt with nothing unfinished records the event and stops\n nothing."
+        },
+        {
           "name": "Delete",
           "inputType": "SessionId",
           "inputFullType": "ai.stigmer.agentic.session.v1.SessionId",
@@ -281,6 +305,574 @@
             "kind": "string"
           },
           "description": "The turn started to put undone files back now, when the decision was\n an undo on a turn that had ended; empty otherwise, or when no turn\n could be started then (the next turn puts them back before its agent\n runs).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ConfirmToolUseInput",
+      "description": "ConfirmToolUseInput allows or denies a tool use that waits for an answer:\n Managed Agents' user.tool_confirmation parameters, with the session.",
+      "protoType": "ai.stigmer.agentic.session.v1.ConfirmToolUseInput",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The conversation.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ToolUseId",
+          "jsonName": "toolUseId",
+          "protoField": "tool_use_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The agent.tool_use or agent.mcp_tool_use event to answer, as the\n requires_action idle's event_ids name it.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Result",
+          "jsonName": "result",
+          "protoField": "result",
+          "type": {
+            "kind": "string"
+          },
+          "description": "allow or deny.",
+          "required": false,
+          "validation": {
+            "enum": [
+              "allow",
+              "deny"
+            ]
+          }
+        },
+        {
+          "name": "DenyMessage",
+          "jsonName": "denyMessage",
+          "protoField": "deny_message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Why the call is denied, for the agent to read; only with deny.",
+          "required": false,
+          "validation": {
+            "maxLength": 2000
+          }
+        }
+      ]
+    },
+    {
+      "name": "SessionEvent",
+      "description": "SessionEvent is one entry in a session's ordered event log.\n\n The event itself is a Claude Managed Agents session event, named and\n shaped as Anthropic's SDK types it (see the session docs for the pinned\n version). The envelope adds where the event sits: its place in the log,\n the turn (run) it belongs to and the thread that produced it.",
+      "protoType": "ai.stigmer.agentic.session.v1.SessionEvent",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/event.proto",
+      "fields": [
+        {
+          "name": "Seq",
+          "jsonName": "seq",
+          "protoField": "seq",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "The event's place in the session's log, assigned when it is appended:\n later events have higher numbers.",
+          "required": false
+        },
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The session the event belongs to.",
+          "required": false
+        },
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run (turn) the event belongs to; empty for none.",
+          "required": false
+        },
+        {
+          "name": "ThreadId",
+          "jsonName": "threadId",
+          "protoField": "thread_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The thread that produced the event; empty for the session's primary\n thread.",
+          "required": false,
+          "validation": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          }
+        },
+        {
+          "name": "UserMessage",
+          "jsonName": "userMessage",
+          "protoField": "user_message",
+          "type": {
+            "kind": "message",
+            "messageType": "UserMessageEvent"
+          },
+          "description": "The user sent a message.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "SessionStatusRunning",
+          "jsonName": "sessionStatusRunning",
+          "protoField": "session_status_running",
+          "type": {
+            "kind": "message",
+            "messageType": "SessionStatusRunningEvent"
+          },
+          "description": "The session started working.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "SessionStatusIdle",
+          "jsonName": "sessionStatusIdle",
+          "protoField": "session_status_idle",
+          "type": {
+            "kind": "message",
+            "messageType": "SessionStatusIdleEvent"
+          },
+          "description": "The session stopped working and waits for input.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "SessionError",
+          "jsonName": "sessionError",
+          "protoField": "session_error",
+          "type": {
+            "kind": "message",
+            "messageType": "SessionErrorEvent"
+          },
+          "description": "An error happened.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "AgentMessage",
+          "jsonName": "agentMessage",
+          "protoField": "agent_message",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentMessageEvent"
+          },
+          "description": "The agent wrote a message.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "AgentThinking",
+          "jsonName": "agentThinking",
+          "protoField": "agent_thinking",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentThinkingEvent"
+          },
+          "description": "The agent is thinking.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "AgentToolUse",
+          "jsonName": "agentToolUse",
+          "protoField": "agent_tool_use",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentToolUseEvent"
+          },
+          "description": "The agent called a built-in tool.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "AgentToolResult",
+          "jsonName": "agentToolResult",
+          "protoField": "agent_tool_result",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentToolResultEvent"
+          },
+          "description": "A built-in tool returned.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "AgentMcpToolUse",
+          "jsonName": "agentMcpToolUse",
+          "protoField": "agent_mcp_tool_use",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentMcpToolUseEvent"
+          },
+          "description": "The agent called an MCP server's tool.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "AgentMcpToolResult",
+          "jsonName": "agentMcpToolResult",
+          "protoField": "agent_mcp_tool_result",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentMcpToolResultEvent"
+          },
+          "description": "An MCP server's tool returned.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "SessionThreadCreated",
+          "jsonName": "sessionThreadCreated",
+          "protoField": "session_thread_created",
+          "type": {
+            "kind": "message",
+            "messageType": "SessionThreadCreatedEvent"
+          },
+          "description": "A thread (a sub-agent) was created.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "SessionThreadStatusRunning",
+          "jsonName": "sessionThreadStatusRunning",
+          "protoField": "session_thread_status_running",
+          "type": {
+            "kind": "message",
+            "messageType": "SessionThreadStatusRunningEvent"
+          },
+          "description": "A thread started working.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "SessionThreadStatusIdle",
+          "jsonName": "sessionThreadStatusIdle",
+          "protoField": "session_thread_status_idle",
+          "type": {
+            "kind": "message",
+            "messageType": "SessionThreadStatusIdleEvent"
+          },
+          "description": "A thread stopped working.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "AgentThreadMessageSent",
+          "jsonName": "agentThreadMessageSent",
+          "protoField": "agent_thread_message_sent",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentThreadMessageSentEvent"
+          },
+          "description": "The agent sent a message to another thread.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "AgentThreadMessageReceived",
+          "jsonName": "agentThreadMessageReceived",
+          "protoField": "agent_thread_message_received",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentThreadMessageReceivedEvent"
+          },
+          "description": "The agent received a message from another thread.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "AgentThreadContextCompacted",
+          "jsonName": "agentThreadContextCompacted",
+          "protoField": "agent_thread_context_compacted",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentThreadContextCompactedEvent"
+          },
+          "description": "A thread's context was compacted.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "UserToolConfirmation",
+          "jsonName": "userToolConfirmation",
+          "protoField": "user_tool_confirmation",
+          "type": {
+            "kind": "message",
+            "messageType": "UserToolConfirmationEvent"
+          },
+          "description": "A person allowed or denied a tool use that waited for an answer.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "UserInterrupt",
+          "jsonName": "userInterrupt",
+          "protoField": "user_interrupt",
+          "type": {
+            "kind": "message",
+            "messageType": "UserInterruptEvent"
+          },
+          "description": "A person stopped the session's unfinished work.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "StigmerAgentThinking",
+          "jsonName": "stigmerAgentThinking",
+          "protoField": "stigmer_agent_thinking",
+          "type": {
+            "kind": "message",
+            "messageType": "StigmerAgentThinkingEvent"
+          },
+          "description": "The text of the agent's thinking.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "StigmerPermissionAsked",
+          "jsonName": "stigmerPermissionAsked",
+          "protoField": "stigmer_permission_asked",
+          "type": {
+            "kind": "message",
+            "messageType": "StigmerPermissionAskedEvent"
+          },
+          "description": "Why a tool use waits for a person's answer.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "StigmerHarnessNote",
+          "jsonName": "stigmerHarnessNote",
+          "protoField": "stigmer_harness_note",
+          "type": {
+            "kind": "message",
+            "messageType": "StigmerHarnessNoteEvent"
+          },
+          "description": "A line the platform added to the conversation in its own voice.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "StigmerAgentStructuredOutput",
+          "jsonName": "stigmerAgentStructuredOutput",
+          "protoField": "stigmer_agent_structured_output",
+          "type": {
+            "kind": "message",
+            "messageType": "StigmerAgentStructuredOutputEvent"
+          },
+          "description": "The structured output the turn produced.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "StigmerMemoryRecalled",
+          "jsonName": "stigmerMemoryRecalled",
+          "protoField": "stigmer_memory_recalled",
+          "type": {
+            "kind": "message",
+            "messageType": "StigmerMemoryRecalledEvent"
+          },
+          "description": "Which of the agent's memories the turn recalled.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "StigmerFileReviewChanges",
+          "jsonName": "stigmerFileReviewChanges",
+          "protoField": "stigmer_file_review_changes",
+          "type": {
+            "kind": "message",
+            "messageType": "StigmerFileReviewChangesEvent"
+          },
+          "description": "The files a turn changed, offered for review (the session asked for\n file review).",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "StigmerFileReviewDecided",
+          "jsonName": "stigmerFileReviewDecided",
+          "protoField": "stigmer_file_review_decided",
+          "type": {
+            "kind": "message",
+            "messageType": "StigmerFileReviewDecidedEvent"
+          },
+          "description": "A turn's file changes, or one of its files, were kept or undone.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "StigmerFileReviewReconciled",
+          "jsonName": "stigmerFileReviewReconciled",
+          "protoField": "stigmer_file_review_reconciled",
+          "type": {
+            "kind": "message",
+            "messageType": "StigmerFileReviewReconciledEvent"
+          },
+          "description": "The files that were undone were put back.",
+          "required": false,
+          "oneofGroup": "event"
+        },
+        {
+          "name": "StigmerPermissionGrant",
+          "jsonName": "stigmerPermissionGrant",
+          "protoField": "stigmer_permission_grant",
+          "type": {
+            "kind": "message",
+            "messageType": "StigmerPermissionGrantEvent"
+          },
+          "description": "A person allowed every call of one class for the rest of the turn.",
+          "required": false,
+          "oneofGroup": "event"
+        }
+      ]
+    },
+    {
+      "name": "GrantPermissionInput",
+      "description": "GrantPermissionInput allows a tool use and every call of its class for\n the rest of the turn.",
+      "protoType": "ai.stigmer.agentic.session.v1.GrantPermissionInput",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The conversation.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ToolUseId",
+          "jsonName": "toolUseId",
+          "protoField": "tool_use_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The agent.tool_use or agent.mcp_tool_use event the grant is given on.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GrantPermissionResponse",
+      "description": "GrantPermissionResponse answers a recorded grant.",
+      "protoType": "ai.stigmer.agentic.session.v1.GrantPermissionResponse",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "Grant",
+          "jsonName": "grant",
+          "protoField": "grant",
+          "type": {
+            "kind": "message",
+            "messageType": "SessionEvent"
+          },
+          "description": "The stigmer.permission.grant; absent when the call has no class and\n was allowed alone.",
+          "required": false
+        },
+        {
+          "name": "Confirmations",
+          "jsonName": "confirmations",
+          "protoField": "confirmations",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SessionEvent"
+            }
+          },
+          "description": "The user.tool_confirmation events written: the named call's first,\n then every call of the class the grant allowed.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "InterruptSessionInput",
+      "description": "InterruptSessionInput stops a session's unfinished work: Managed Agents'\n user.interrupt parameters, with the session.",
+      "protoType": "ai.stigmer.agentic.session.v1.InterruptSessionInput",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The conversation.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "SessionThreadId",
+          "jsonName": "sessionThreadId",
+          "protoField": "session_thread_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Must be empty: the whole session is stopped.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "InterruptSessionResponse",
+      "description": "InterruptSessionResponse answers a recorded interrupt.",
+      "protoType": "ai.stigmer.agentic.session.v1.InterruptSessionResponse",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "message",
+            "messageType": "SessionEvent"
+          },
+          "description": "The user.interrupt event.",
+          "required": false
+        },
+        {
+          "name": "StoppedRunIds",
+          "jsonName": "stoppedRunIds",
+          "protoField": "stopped_run_ids",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "The runs (turns) the interrupt stopped.",
           "required": false
         }
       ]

@@ -43,7 +43,8 @@
  *      decision still succeeds with no reconcile turn named; the next
  *      turn restores what is owed before its agent runs. An undo on a run
  *      still working is restored by that run's next start or the turn
- *      after it.
+ *      after it; one on a turn that is then stopped while it waits, by
+ *      the reconcile turn its stop starts (stopped-turn.ts).
  *
  * A file decision signals no workflow: the turn's gate is its pending
  * approvals alone.
@@ -410,11 +411,13 @@ function isSameDecision(
 }
 
 /**
- * Starts the reconcile turn for an undo on an ended run. Never throws: the
- * decision is committed, and the next turn restores what is owed.
+ * Starts the reconcile turn for an undo on an ended run, as `identity`.
+ * Never throws: the decision is committed, and the next turn restores
+ * what is owed. Also started for a turn stopped while it waited
+ * (stopped-turn.ts).
  */
-async function startReconcileTurn(
-  deps: FileDecisionDeps,
+export async function startReconcileTurn(
+  deps: Pick<FileDecisionDeps, "logger" | "reconcileTurns">,
   run: Run,
   identity: CallerIdentity,
 ): Promise<string> {

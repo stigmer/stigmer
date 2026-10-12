@@ -223,7 +223,14 @@ describe("the chain writers and store faults", () => {
       ...deps,
       store: {
         writeResourceAppendingEvents: async (...args: Parameters<Store["writeResourceAppendingEvents"]>) => {
-          args[3](undefined, { othersWorking: 0, latestStateType: undefined, runOfNewestType: undefined });
+          args[3](undefined, {
+            othersWorking: 0,
+            latestStateType: undefined,
+            latestState: undefined,
+            runOfNewestType: undefined,
+            othersWaiting: [],
+            gates: [],
+          });
           throw new Error("unreachable");
         },
       } as unknown as Store,
@@ -260,10 +267,10 @@ describe("the session's newest turn", () => {
     await createRunAppendingEvents(deps, run("a", "s1"));
     await createRunAppendingEvents(deps, run("b", "s1"));
     const seen: Array<string | undefined> = [];
-    await updateRunAppendingEvents(deps, "a", (_r, session) => seen.push(session.runOfNewestType), {
+    await updateRunAppendingEvents(deps, "a", (_r, session) => void seen.push(session.runOfNewestType), {
       runOfNewestType: "user.message",
     });
-    await updateRunAppendingEvents(deps, "a", (_r, session) => seen.push(session.runOfNewestType));
+    await updateRunAppendingEvents(deps, "a", (_r, session) => void seen.push(session.runOfNewestType));
     expect(seen).toEqual(["b", undefined]);
   });
 });

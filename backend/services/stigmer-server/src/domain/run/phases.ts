@@ -67,13 +67,24 @@ export function isActiveExecutionPhase(phase: RunPhase): boolean {
   }
 }
 
-/** The phases in which a run's turn is under way (isWorkingPhase). */
+/**
+ * The phases in which a run's turn is under way and needs no one
+ * (isWorkingPhase). A turn waiting for a person's answer is not working:
+ * the session is idle with requires_action until the answer comes
+ * (WAITING_PHASES, domain/session/events/transitions.ts).
+ */
 export const WORKING_PHASES: ReadonlyArray<RunPhase> = [
   RunPhase.RUN_PENDING,
   RunPhase.RUN_IN_PROGRESS,
-  RunPhase.RUN_WAITING_FOR_APPROVAL,
 ];
 
 export function isWorkingPhase(phase: RunPhase): boolean {
   return WORKING_PHASES.includes(phase);
+}
+
+/** The phase in which a run's turn waits for a person's answer to its asks. */
+export const WAITING_PHASES: ReadonlyArray<RunPhase> = [RunPhase.RUN_WAITING_FOR_APPROVAL];
+
+export function isWaitingPhase(phase: RunPhase): boolean {
+  return WAITING_PHASES.includes(phase);
 }

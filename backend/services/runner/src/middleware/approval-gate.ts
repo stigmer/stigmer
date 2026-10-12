@@ -243,11 +243,12 @@ export interface ApprovalGateConfig {
   /**
    * The calls a person refused on their card, from the decisions this turn
    * resumes with (`TurnInput.approvalDecisions`): `skip` or `reject` by
-   * tool-call id. On resume the hooks run again and may now allow, or no
-   * longer ask; the person's refusal binds before any answer but a hook's
-   * deny, so a refused call never runs.
+   * tool-call id, with the reason the person gave (`""` for none). On resume
+   * the hooks run again and may now allow, or no longer ask; the person's
+   * refusal binds before any answer but a hook's deny, so a refused call
+   * never runs.
    */
-  readonly refusedByPerson?: ReadonlyMap<string, "skip" | "reject">;
+  readonly refusedByPerson?: ReadonlyMap<string, PersonRefusal>;
 }
 
 /**
@@ -270,6 +271,12 @@ export { HOOK_FEEDBACK_HEADING } from "../shared/hooks/messages.js";
 interface ApprovalDecision {
   readonly action: string;
   readonly comment?: string;
+}
+
+/** A call a person refused: skip or reject, and the reason they gave (`""` for none), which the model reads. */
+export interface PersonRefusal {
+  readonly action: "skip" | "reject";
+  readonly comment: string;
 }
 
 /**
@@ -320,7 +327,7 @@ export function createApprovalGateMiddleware(
         : NO_PRE_TOOL_USE;
       if (pre.decision === "deny") return refuseByHook(request, pre);
       const refused = config.refusedByPerson?.get(toolCall.id);
-      if (refused !== undefined) return personDecisionMessage(request, refused, "");
+      if (refused !== undefined) return personDecisionMessage(request, refused.action, refused.comment);
 
       let call = request;
       if (pre.updatedArgs !== undefined) {

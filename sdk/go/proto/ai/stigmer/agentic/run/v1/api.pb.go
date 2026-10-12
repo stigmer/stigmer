@@ -151,7 +151,9 @@ type RunStatus struct {
 	// it can proceed. Sub-agent approvals are included with from_sub_agent
 	// set to true. Empty when no approvals are pending.
 	PendingApprovals []*PendingApproval `protobuf:"bytes,16,rep,name=pending_approvals,json=pendingApprovals,proto3" json:"pending_approvals,omitempty"`
-	// Server-authored, append-only record of every approval request and decision.
+	// No longer written: approvals and their answers are the session's events
+	// (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+	// stigmer.permission.grant). Runs written before then keep their entries.
 	ApprovalEventStream *ApprovalEventStream `protobuf:"bytes,22,opt,name=approval_event_stream,json=approvalEventStream,proto3" json:"approval_event_stream,omitempty"`
 	// Context window utilization and summarization tracking.
 	//

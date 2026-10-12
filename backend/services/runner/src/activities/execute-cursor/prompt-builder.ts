@@ -290,11 +290,16 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
  * does not redo them; only the remaining approved actions (hunk edits, shell,
  * MCP) are the ones it must still carry out. No grant is issued for an applied
  * write, so if the model edits that file again it is correctly re-gated.
+ *
+ * A denied action that carries the person's reason (`denyMessages`, the
+ * `deny_message` of its `user.tool_confirmation`) is listed with it, so the
+ * model adapts to the objection rather than reading a bare refusal.
  */
 export function buildReinvocationPrompt(
   pendingApprovals: PendingApproval[],
   approvalDecisions: ReadonlyMap<string, ApprovalAction>,
   appliedToolCallIds: ReadonlySet<string> = new Set(),
+  denyMessages: ReadonlyMap<string, string> = new Map(),
 ): string {
   const approved: string[] = [];
   const alreadyApplied: string[] = [];
@@ -315,7 +320,8 @@ export function buildReinvocationPrompt(
       // A REJECT denies the tool and the run continues (stigmer#197); the
       // runtime settles its row SKIPPED. Told apart from a SKIP in the prose
       // so the model reads a refusal, not an omission (since #1096).
-      rejected.push(describeApproval(pa));
+      const reason = denyMessages.get(pa.toolCallId) ?? "";
+      rejected.push(reason === "" ? describeApproval(pa) : `${describeApproval(pa)} (the user said: ${reason})`);
     }
   }
 
@@ -397,6 +403,7 @@ export function buildHitlRecoveryPrompt(
     pendingApprovals: PendingApproval[];
     approvalDecisions: ReadonlyMap<string, ApprovalAction>;
     appliedToolCallIds?: ReadonlySet<string>;
+    approvalDenyMessages?: ReadonlyMap<string, string>;
   },
 ): string {
   return [
@@ -406,6 +413,7 @@ export function buildHitlRecoveryPrompt(
       recovery.pendingApprovals,
       recovery.approvalDecisions,
       recovery.appliedToolCallIds,
+      recovery.approvalDenyMessages,
     ),
   ].join("\n\n---\n\n");
 }
@@ -755,6 +763,8 @@ export interface BuildPromptInput {
   resolution: AgentResolution;
   /** Empty when the turn carries no adjudicated approvals (see isHitlReinvocation). */
   approvalDecisions: ReadonlyMap<string, ApprovalAction>;
+  /** The reason given with each deny that carries one, by tool-call id: the model reads it beside the refused action. */
+  approvalDenyMessages?: ReadonlyMap<string, string>;
   instructions: string;
   userMessage: string;
   skills: readonly SkillMetadata[];
@@ -1003,6 +1013,7 @@ function promptShape(input: BuildPromptInput): string {
           pendingApprovals: input.pendingApprovals,
           approvalDecisions,
           appliedToolCallIds: input.appliedToolCallIds,
+          approvalDenyMessages: input.approvalDenyMessages,
         },
       );
     }
@@ -1010,6 +1021,7 @@ function promptShape(input: BuildPromptInput): string {
       input.pendingApprovals,
       approvalDecisions,
       input.appliedToolCallIds,
+      input.approvalDenyMessages,
     );
   }
 

@@ -162,11 +162,13 @@ describe("buildPersonRefusals", () => {
         ["c4", ApprovalAction.APPROVE],
       ]),
       new Map([["c2", "d1g3st"]]),
+      new Set(),
+      new Map([["c3", "leave the issue open"]]),
     );
-    expect(refusals.get(grantToken("shell", "rm -rf x"))).toEqual({ action: "reject", toolName: "shell" });
-    expect(refusals.get(primaryToken("write", "/x/a", "d1g3st"))).toEqual({ action: "skip", toolName: "edit" });
-    expect(refusals.get(grantToken("write", "/x/a")), "a content-less retry of the same file").toEqual({ action: "skip", toolName: "edit" });
-    expect(refusals.get(grantToken("github/close_issue", ""))).toEqual({ action: "reject", toolName: "close_issue" });
+    expect(refusals.get(grantToken("shell", "rm -rf x"))).toEqual({ action: "reject", toolName: "shell", comment: "" });
+    expect(refusals.get(primaryToken("write", "/x/a", "d1g3st"))).toEqual({ action: "skip", toolName: "edit", comment: "" });
+    expect(refusals.get(grantToken("write", "/x/a")), "a content-less retry of the same file").toEqual({ action: "skip", toolName: "edit", comment: "" });
+    expect(refusals.get(grantToken("github/close_issue", ""))).toEqual({ action: "reject", toolName: "close_issue", comment: "leave the issue open" });
     expect(refusals.has(grantToken("shell", "ls"))).toBe(false);
   });
 
@@ -177,7 +179,7 @@ describe("buildPersonRefusals", () => {
       new Map([["c1", ApprovalAction.REJECT]]),
       new Map([["c1", digest]]),
     );
-    expect(refusals.get(primaryToken("srv/merge", "", digest))).toEqual({ action: "reject", toolName: "merge" });
+    expect(refusals.get(primaryToken("srv/merge", "", digest))).toEqual({ action: "reject", toolName: "merge", comment: "" });
     expect(refusals.has(grantToken("srv/merge", "")), "merging another PR is not refused").toBe(false);
 
     const write = buildPersonRefusals(
@@ -186,7 +188,7 @@ describe("buildPersonRefusals", () => {
       new Map([["c2", "d1g3st"]]),
       new Set(["c2"]),
     );
-    expect(write.get(primaryToken("write", "/x/a", "d1g3st"))).toEqual({ action: "reject", toolName: "edit" });
+    expect(write.get(primaryToken("write", "/x/a", "d1g3st"))).toEqual({ action: "reject", toolName: "edit", comment: "" });
     expect(write.has(grantToken("write", "/x/a")), "another write to the file is the hook's to ask on").toBe(false);
   });
 });

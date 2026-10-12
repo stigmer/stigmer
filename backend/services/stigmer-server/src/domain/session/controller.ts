@@ -29,7 +29,9 @@
  *
  * reviewFileChanges keeps or undoes a turn's file edits under can_edit on
  * the session (filereview/review-file-changes.ts, deciding through
- * filereview/decide.ts).
+ * filereview/decide.ts). confirmToolUse and grantPermission answer a tool
+ * use that waits, and interrupt stops the session's unfinished turns, each
+ * under can_edit on the session (hitl/).
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
@@ -155,6 +157,11 @@ import { listSessionEvents } from "./events/list.js";
 import { streamSessionEvents } from "./events/stream.js";
 import type { ReconcileTurnCreatorProvider } from "./filereview/decide.js";
 import { reviewFileChanges } from "./filereview/review-file-changes.js";
+import { confirmToolUse } from "./hitl/confirm-tool-use.js";
+import { grantPermission } from "./hitl/grant-permission.js";
+import { interrupt } from "./hitl/interrupt.js";
+import type { ExecutionEngineStateProvider } from "../run/engine.js";
+import type { RunStatusObserver } from "../../extensions/status-hooks.js";
 import type { StreamBroker } from "../run/stream-broker.js";
 import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/status_pb";
 
@@ -197,6 +204,10 @@ export interface SessionControllerDeps {
   readonly broker: StreamBroker;
   /** Creates the reconcile turn an undo on an ended turn starts (reviewFileChanges). */
   readonly reconcileTurns: ReconcileTurnCreatorProvider;
+  /** Signals a turn its answers are in, and cancels a stopped turn's workflow (hitl/). */
+  readonly engineState: ExecutionEngineStateProvider;
+  /** A run an answer or an interrupt moves notifies the composed observers. */
+  readonly statusObservers: ReadonlyArray<RunStatusObserver>;
 }
 
 /**
@@ -229,6 +240,9 @@ export function registerSessionServices(
     appendEvents: (input, ctx) => appendSessionEvents(deps, input, ctx),
     reviewFileChanges: (input, ctx) =>
       reviewFileChanges(deps, input, callerIdentityOf(ctx)),
+    confirmToolUse: (input, ctx) => confirmToolUse(deps, input, callerIdentityOf(ctx)),
+    grantPermission: (input, ctx) => grantPermission(deps, input, callerIdentityOf(ctx)),
+    interrupt: (input, ctx) => interrupt(deps, input, callerIdentityOf(ctx)),
   });
   router.service(SessionQueryController, {
     get: (id, ctx) => get(deps, id, ctx),

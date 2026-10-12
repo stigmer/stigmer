@@ -9,8 +9,8 @@
  * the driver — `createHarnessActivities` over the subject's adapter, the
  * hermetic `ExecutionRecord` as the control plane, the record's client bound
  * for the invocation — and the subject still owns the engine, arranged from
- * the view the record implies (`approvalDecisionsOf` over what the record
- * persisted, the runtime's own reader). The two drivers share their verbs
+ * the view the record implies (`approval-answers.ts` `approvalAnswersOf` over
+ * the answers on the record's log, the runtime's own map). The two drivers share their verbs
  * (`turn`, `decide`) so a subject's file reads the same either side of the
  * contract line.
  *
@@ -63,7 +63,8 @@ import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { Config } from "../../config.js";
 import { HARNESS_ACTIVITY_NAMES, createHarnessActivities } from "../../harness/registry.js";
 import { TERMINAL_COPY } from "../../harness/terminal-table.js";
-import { REJECTED_BY_USER_ERROR, approvalDecisionsOf } from "../../harness/approval-decisions.js";
+import { approvalAnswersOf } from "../../harness/approval-answers.js";
+import { REJECTED_BY_USER_ERROR } from "../../harness/approval-decisions.js";
 import { MIN_TOOL_ROUNDS, TOOL_CALL_LIMIT_ERROR_PREFIX, TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../../shared/tool-rounds.js";
 import type { FailureSurface, HarnessAdapter } from "../../harness/types.js";
 import type { ExecuteActivityInput } from "../../shared/activity-input.js";
@@ -187,13 +188,13 @@ export class RuntimeExecutionDriver {
   /** One activity invocation: arrange the engine from the record's view, then run the real activity for the subject's row. */
   async turn(turn: TurnScenario, options: RuntimeTurnOptions = {}): Promise<ActivityInvocation> {
     const { subject } = this.harness;
-    // The decisions come off the status the server HOLDS (`record.status`, what
-    // the runtime fetches and where `SubmitApproval` writes), never off a
-    // persisted snapshot.
+    // The decisions come off the log and the status the server HOLDS
+    // (`record.sessionEvents` and `record.status`, what the runtime's door
+    // reads), never off a persisted snapshot.
     const view: EngineView = {
       executionId: this.record.executionId,
       sessionId: this.sessionId,
-      approvalDecisions: approvalDecisionsOf(this.record.status ?? emptyStatus()),
+      approvalDecisions: approvalAnswersOf(this.record.executionId, this.record.status ?? emptyStatus(), this.record.sessionEvents).decisions,
     };
     subject.arrange(turn, view);
     bindHermeticClient(this.record.client(options.clientOverrides));
@@ -212,10 +213,10 @@ export class RuntimeExecutionDriver {
     return invocation;
   }
 
-  /** The server's act between invocations: decide every WAITING row. Returns how many. */
-  decide(action: ApprovalAction): number {
+  /** The server's act between invocations: answer every WAITING row on the log and stamp it. Returns how many. */
+  decide(action: ApprovalAction, denyMessage = ""): number {
     this.harness.clock.tick();
-    return this.record.decideWaitingToolCalls(action, new Date().toISOString());
+    return this.record.decideWaitingToolCalls(action, new Date().toISOString(), undefined, denyMessage);
   }
 
   /**
@@ -482,32 +483,34 @@ export async function assertFileReviewOffWriteFlows(harness: RuntimeContractHarn
   return { driver, invocations: [invocation], final };
 }
 
-// ── Arm: awaiting_approval then REJECT or SKIP ──────────────────────────────
+// ── Arm: awaiting_approval then deny ────────────────────────────────────────
 
 /**
- * A decision that never runs the tool: the user REJECTs (or SKIPs) the
- * proposal; the reinvocation continues WITHOUT it — the adapter's next step
- * runs, the turn COMPLETES, the tool executes zero times — and the runtime
- * settles the row SKIPPED (a REJECT row carries `error: "Rejected by user"`),
- * so no WAITING row survives on a finished execution. This is the proto
- * contract as of stigmer#197 and the runtime's own write
- * (`harness/approval-decisions.ts`); before #1096 the runtime FAILED a
- * REJECTed reinvocation before any engine ran.
+ * An answer that never runs the tool: the person denies the proposal, with
+ * or without a reason (a skip and a reject are one deny since approvals
+ * became session events); the reinvocation continues WITHOUT it — the
+ * adapter's next step runs, the turn COMPLETES, the tool executes zero
+ * times — and the runtime settles the row SKIPPED with
+ * `error: "Rejected by user"`, so no WAITING row survives on a finished
+ * execution. This is the proto contract as of stigmer#197 and the runtime's
+ * own write (`harness/approval-decisions.ts`); before #1096 the runtime
+ * FAILED a REJECTed reinvocation before any engine ran.
  */
 export async function assertNonExecutingDecisionSettlesSkipped(
   harness: RuntimeContractHarness,
-  action: ApprovalAction.REJECT | ApprovalAction.SKIP,
-  label = `rt-${ApprovalAction[action].toLowerCase()}`,
+  denyMessage = "",
+  label = denyMessage === "" ? "rt-deny" : "rt-deny-reason",
 ): Promise<RuntimeArmResult> {
   const { subject } = harness;
   const driver = new RuntimeExecutionDriver(harness, label);
   const id = `${label}-shell`;
   const propose = scenario.propose(id, { kind: "shell", resource: `rm -rf build # ${label}` });
-  const verdict = ApprovalAction[action];
+  const verdict = "deni";
+  const action = ApprovalAction.REJECT;
 
   const first = await driver.turn([propose]);
   expect(slimOf(subject, first).phase, `${subject.name}: a proposal returns WAITING_FOR_APPROVAL`).toBe("RUN_WAITING_FOR_APPROVAL");
-  expect(driver.decide(action), `${subject.name}: one row to decide`).toBe(1);
+  expect(driver.decide(action, denyMessage), `${subject.name}: one row to decide`).toBe(1);
 
   const second = await driver.turn([propose, scenario.say("Moving on.")]);
   expect(slimOf(subject, second).phase, `${subject.name}: after ${verdict} the run continues to COMPLETED — it does not fail`).toBe("RUN_COMPLETED");
@@ -518,8 +521,8 @@ export async function assertNonExecutingDecisionSettlesSkipped(
   const row = final.messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id);
   expect(row, `${subject.name}: the decided row is carried on the transcript`).toBeDefined();
   expect(row!.status, `${subject.name}: the runtime settles a ${verdict}ed row SKIPPED`).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
-  expect(row!.approvalAction, `${subject.name}: the decision stays legible on the settled row`).toBe(action);
-  expect(row!.error, `${subject.name}: a REJECT carries its reason, a SKIP carries none`).toBe(action === ApprovalAction.REJECT ? REJECTED_BY_USER_ERROR : "");
+  expect(row!.approvalAction, `${subject.name}: the decision stays legible on the settled row`).toBe(ApprovalAction.REJECT);
+  expect(row!.error, `${subject.name}: a denied row carries the refusal`).toBe(REJECTED_BY_USER_ERROR);
   expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits on a finished execution`).toHaveLength(0);
   expect(final.error, `${subject.name}: the execution carries no error`).toBe("");
   return { driver, invocations: [first, second], final };
@@ -1072,10 +1075,10 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       clock.reset();
       await assertFileReviewRoundTrip(harness);
     });
-    for (const action of [ApprovalAction.REJECT, ApprovalAction.SKIP] as const) {
-      it(`awaiting_approval then ${ApprovalAction[action]}: the run continues without the tool and the runtime settles the row SKIPPED`, async () => {
+    for (const denyMessage of ["", "use make clean instead"]) {
+      it(`awaiting_approval then a deny${denyMessage === "" ? "" : " with a reason"}: the run continues without the tool and the runtime settles the row SKIPPED`, async () => {
         clock.reset();
-        await assertNonExecutingDecisionSettlesSkipped(harness, action);
+        await assertNonExecutingDecisionSettlesSkipped(harness, denyMessage);
       });
     }
     it("an orchestrator stop settles the transcript with no phase and no row, and throws the stop's CancelledFailure", async () => {
