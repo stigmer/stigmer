@@ -9,9 +9,9 @@
 //   provisions it: the target's MCP fixture, memory through a real
 //   Organization, eight skills, a sub-agent, a seeded non-git workspace
 //   outside the repository. A scripted turn calls the order tool and writes a
-//   file. The session driver stops at review, approves, and follows the
-//   reconcile to the end. Every count the report lifts is present, and the
-//   written bytes are on disk.
+//   file. The benchmark's sessions leave file review off, so the turn ends on
+//   its own with nothing to review. Every count the report lifts is present,
+//   and the written bytes are on disk.
 // - Two provisionings of the working agent send the model byte-identical
 //   system prompts and tool surfaces: the instrument's own claim that its
 //   fixed names keep the provider's prompt cache as warm as a user's.
@@ -209,7 +209,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
         workspaceDir,
       });
 
-    it("provisions, runs a tool-and-edit turn through review, and lifts every count the report carries", async () => {
+    it("provisions, runs a tool-and-edit turn to its end, and lifts every count the report carries", async () => {
       const agent = await provision();
       mock.enqueue(anthropicToolUse("toolu_lookup", LOOKUP_ORDER_TOOL_NAME, { order_id: "ORD-4821" }));
       mock.enqueue(anthropicToolUse("toolu_write", WRITE_FILE_TOOL, { file_path: "NOTES.md", content: "ORD-4821 shipped\n" }));
@@ -232,11 +232,11 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
       expect(sample.outcome, `the turn should complete (${JSON.stringify(sample.failure)})`).toBe("completed");
       expect(sample.failure).toBeUndefined();
       expect(turn!.reply).toBe("Wrote NOTES.md.");
-      expect(mock.consumed(), "the three scripted rounds, and nothing after the approval").toBe(3);
+      expect(mock.consumed(), "the three scripted rounds, and nothing after them").toBe(3);
 
       const m = sample.measures;
-      expect(m.review_ready_ms, "the driver stopped at review before the end").not.toBeNull();
-      expect(m.end_to_end_ms, "and followed the reconcile to the terminal phase").not.toBeNull();
+      expect(m.review_ready_ms, "review is off: nothing was offered for review").toBeNull();
+      expect(m.end_to_end_ms, "the turn ran to its terminal phase").not.toBeNull();
       expect(m.mcp_server_count, "the one declared MCP server").toBe(1);
       expect(m.attachment_count, "memory is the one platform attachment").toBe(1);
       expect(m.skill_count).toBe(8);
@@ -247,7 +247,7 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
       expect(m.sub_agent_calls).toBe(0);
       expect(sample.timing.turn_first_event).toBeNull();
 
-      expect(await readFile(join(workspaceDir, "NOTES.md"), "utf8"), "the approved write is on disk").toBe("ORD-4821 shipped\n");
+      expect(await readFile(join(workspaceDir, "NOTES.md"), "utf8"), "the write is on disk").toBe("ORD-4821 shipped\n");
       expect(await changedFiles(WORKING_AGENT_WORKSPACE_FIXTURE_DIR, workspaceDir)).toEqual([
         { path: "NOTES.md", change: "added" },
       ]);

@@ -209,9 +209,11 @@ sampled:
 The working agent is also a plugin (`fixtures/working-agent`), whose `evals/`
 suite holds the quality tasks.
 
-A turn that edits files parks for review before it ends. The benchmark
-approves the change set whole at once, stamps when the agent's work was done
-(`review_ready_ms`), and sends the next turn only after the terminal phase.
+The benchmark's sessions leave file review off, so a turn that edits files
+ends on its own and its edits stay. A turn whose session asks for review is
+offered for review when it ends; the benchmark then keeps the change set
+whole, stamps when the agent's work was done (`review_ready_ms`), and sends
+the next turn only after the terminal phase.
 
 Per execution it reads its sources and joins them by execution id:
 - the `subscribe` stream: when the user first saw a token, when the work was
@@ -678,9 +680,12 @@ definition, and `sub_agent_runs`), `run-provider-error`
 shapes), `run-structured-output` (what the final message becomes on
 `structured_output`; the fallback's lack of schema validation is deliberately
 NOT pinned, see the file header), `run-file-review` and
-`-file-review-progress` (apply-then-review: 15 decide-and-reconcile arms over a
-harness git workspace, the secret and binary rules, and the mid-run progress
-strip under the runner's capture throttle), `run-memory-selection`
+`-file-review-progress` (apply-then-review in a session that asks for it,
+never a wait: review off and on, keep and undo through `reviewFileChanges` and
+its `submitFileDecision` adapter, the reconcile turn an undo starts, the next
+message closing a turn's review, an unattended write (stigmer#1471), the
+secret and binary rules over a harness git workspace, and the mid-run
+progress strip under the runner's capture throttle), `run-memory-selection`
 (the embedder posture, beside `-memory-retrieval`'s no-embedder one),
 `run-stigmer-mcp-stdio` (a fixture agent on the real
 `stigmer mcp-server` over stdio, the always-on proof of the stdio lane), plus additions to

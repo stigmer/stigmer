@@ -749,6 +749,19 @@ rows:
     needs: [unfunded-org, keyed-org, agent-execution]
     note: >-
       The second arm of suites-execution/run-admission.conformance.test.ts.
+  - id: billing.gate.provider-key.reconcile-turn-needs-no-key
+    surface: billing
+    lane: >-
+      gate.providerKey
+    behavior: >-
+      An undo of a finished turn's file changes, in an org that holds no provider key any more, still starts the reconcile turn (a run with reconcile_file_review set, which asks no model) and it puts the file back and completes; the provider-key and credit gates pass such a run.
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [keyed-org, agent-execution, git-workspace]
+    note: >-
+      Asserted by suites-execution/run-file-review.conformance.test.ts, which removes the org's keys after the turn that edited the file.
   - id: billing.gate.reserve.funding-clears-denial
     surface: billing
     lane: >-

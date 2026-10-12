@@ -132,6 +132,30 @@ describe("useCreateRun — one-call session bootstrap (sessionSpec)", () => {
     ]);
   });
 
+  it("carries file review on the bootstrap spec when the caller sets it, and leaves it off otherwise", async () => {
+    const { result } = renderHook(() => useCreateRun(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        message: "Edit the page",
+        sessionSpec: { agentRef: { org: "acme", slug: "site-builder" }, fileReview: true },
+      });
+    });
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        message: "Edit the page",
+        sessionSpec: { agentRef: { org: "acme", slug: "site-builder" } },
+      });
+    });
+
+    expect(mockCreate.mock.calls[0][0].sessionSpec.fileReview).toBe(true);
+    expect(mockCreate.mock.calls[1][0].sessionSpec.fileReview).toBeUndefined();
+  });
+
   it("leaves harness and executionTarget undefined when not chosen (server decides)", async () => {
     const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),

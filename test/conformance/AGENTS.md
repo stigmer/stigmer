@@ -46,8 +46,9 @@ too, read through run status against a scripted LLM. This guide is an index;
 - The three shapes: a runner behaviour is scripted on the mock LLM and read from
   the terminal run status; every approval goes through
   `submitApprovalPerContract` in `src/support/runs.ts`, never a bare submit
-  followed by an expectation on pending approvals; a file-review turn attaches a
-  `GitWorkspace` and decides through `src/support/file-review.ts`.
+  followed by an expectation on pending approvals; a file-review turn runs in a
+  session with `fileReview` on, attaches a `GitWorkspace` and decides through
+  `src/support/file-review.ts`.
 - Determinism: poll with a timeout, never sleep; unique resource names per test
   (`src/support/naming.ts`); no order dependence; temp dirs only; LLM-dependent
   assertions on structure and side effects, never on prose.

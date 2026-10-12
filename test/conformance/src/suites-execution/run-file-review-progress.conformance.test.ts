@@ -1,6 +1,7 @@
 // Conformance suite for mid-run file-change progress: the live "N files
-// changed so far" strip a console renders WHILE a turn is still editing, and its
-// disappearance once the turn's set is offered for review.
+// changed so far" strip a console renders WHILE a turn of a session with file
+// review on is still editing, and its disappearance once the turn ends with
+// its set offered for review.
 // Domain: agentic / agentexecution — status.file_change_progress.
 //
 // Progress is the file-review analogue of setup_progress: a runner-owned,
@@ -35,11 +36,7 @@
 // appear in the snapshot the arm lands on; it is asserted only at the boundary.
 // A tracked file is modified with edit_file (write_file creates; it does not
 // overwrite a file the agent has not read).
-import {
-  RunPhase,
-  FileChangeKind,
-  FileDecisionAction,
-} from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase, FileChangeKind } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -48,14 +45,13 @@ import { GitWorkspace, requireGit } from "../harness/git-workspace";
 import type { AnthropicMessageBody, MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitPhase, makeAgentExecution, requireLlmProxy } from "../support/runs";
+import { makeAgentExecution, requireLlmProxy } from "../support/runs";
 import {
   awaitFileReview,
   awaitProgressEntries,
   type ExpectedProgressEntry,
   requireChangeByPath,
   requireReviewSet,
-  submitChangeSetDecision,
 } from "../support/file-review";
 import { uniqueName } from "../support/naming";
 import { makeSession } from "../support/sessions";
@@ -140,6 +136,7 @@ async function startEditTurn(workspace: GitWorkspace, edits: [Edit, Edit]): Prom
       agentRef: agentRefOf(agent),
       harness: Harness.NATIVE,
       localWorkspaces: [{ name: "repo", path: workspace.dir }],
+      fileReview: true,
     }),
   );
   fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }));
@@ -172,17 +169,16 @@ async function observeFirstTwoEdits(executionId: string, expected: [ExpectedProg
   expect(capturing, "the snapshot previews the CAPTURING set by id").toBeDefined();
 }
 
-// Releases the held final turn, awaits the review boundary, asserts the
-// progress snapshot is gone and every write is in the set, then discards the
-// set so the run completes.
+// Releases the held final turn, awaits the turn's end, and asserts it
+// completed with the progress snapshot gone and every write in the set
+// offered for review.
 async function expectClearedAtBoundary(executionId: string, paths: string[]): Promise<void> {
   mock.releaseHolds();
-  const waiting = await awaitFileReview(clients, executionId);
-  expect(waiting.status?.fileChangeProgress, "progress is cleared once the set leaves CAPTURING").toBeUndefined();
-  const set = requireReviewSet(waiting);
+  const ended = await awaitFileReview(clients, executionId);
+  expect(ended.status?.phase, "the turn ends; review never holds it").toBe(RunPhase.RUN_COMPLETED);
+  expect(ended.status?.fileChangeProgress, "progress is cleared once the set leaves CAPTURING").toBeUndefined();
+  const set = requireReviewSet(ended);
   for (const path of paths) requireChangeByPath(set, path);
-  await submitChangeSetDecision(clients, executionId, set, FileDecisionAction.REJECT);
-  await awaitPhase(clients, executionId, RunPhase.RUN_COMPLETED);
 }
 
 describe("Run file review — mid-run progress", () => {

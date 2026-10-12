@@ -639,6 +639,9 @@ export function useNewSessionFlow(
           vaults: vaults?.length ? [...vaults] : undefined,
           // Only an included My vault travels; off is the wire default.
           includeMyVault: includeMyVault || undefined,
+          // The console offers each turn's edits for Keep and Undo after
+          // the turn; every other client leaves review off.
+          fileReview: true,
           // The typed-wins merge happens downstream in useCreateRun;
           // both fields are forwarded verbatim here.
           metadata,

@@ -8,7 +8,8 @@
  *   - a participant (can_create_run_in, not can_edit) keeps the composer
  *     and plan building, but stop, approvals, edits, file decisions and
  *     auto-approve are withheld, the agent and vaults are locked, and a
- *     pending decision names the creator it waits on;
+ *     pending approval names the creator it waits on (file review holds no
+ *     turn, so it names no one);
  *   - an owner keeps every control.
  *
  * The thread and composer are prop-capturing probes.
@@ -194,6 +195,15 @@ describe("SessionViewer — a shared conversation", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     expect(screen.getByText("Waiting for Bob Owner to approve")).toBeTruthy();
+  });
+
+  it("never tells a participant that file review holds the turn", () => {
+    access.canDecide = false;
+    stubConv.fileChangeSets = [{ id: "run_1:1", changes: [] }];
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+
+    expect(screen.queryByText(/Waiting for/)).toBeNull();
+    expect(screen.getByTestId("composer-probe")).toBeTruthy();
   });
 
   it("keeps every control for an owner", () => {

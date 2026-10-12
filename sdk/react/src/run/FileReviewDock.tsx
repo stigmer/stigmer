@@ -12,9 +12,9 @@ export interface FileReviewDockProps {
   /**
    * The change sets awaiting review. Renders nothing when empty. Feed this from
    * `useSessionConversation().fileChangeSets` — the AWAITING_REVIEW sets of the
-   * active run, the same seam whose `submitFileDecision` routes decisions
-   * to that run, so what the dock shows and what it can decide are
-   * consistent by construction.
+   * conversation's newest turn, finished or not, the same seam whose
+   * `submitFileDecision` routes decisions to that turn, so what the dock
+   * shows and what it can decide are consistent by construction.
    */
   readonly changeSets: readonly FileChangeSet[];
   /**
@@ -48,8 +48,10 @@ export interface FileReviewDockProps {
  *
  * WHY DOCKED, NOT IN-THREAD. The transcript's stamped edit rows are
  * observational — they show what changed, badged with the live review state —
- * but a *decision* the agent is blocked on must never scroll out of view. An
- * in-thread card does exactly that on a long conversation. Docking the bar to
+ * but the newest turn's open decision must never scroll out of view. An
+ * in-thread card does exactly that on a long conversation. The turn does not
+ * wait on it: its edits are already applied, Undo puts a file back, and the
+ * next message keeps whatever is still undecided. Docking the bar to
  * the composer keeps the pending decision visible regardless of scroll
  * position, matching the shape of Cursor's own review bar. Once decided, the
  * dock empties and the thread's read-only record (and the rows' Kept/Discarded

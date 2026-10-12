@@ -26,6 +26,12 @@ export interface SharedSessionFields {
   /** Skill references to enable for runs in this session. */
   readonly skillRefs?: ResourceRef[];
   /**
+   * Whether each turn's file edits are offered for review, Keep or Undo,
+   * after the turn. Off unless set. Review never makes a turn wait: the
+   * edits are applied, and an Undo puts a file back.
+   */
+  readonly fileReview?: boolean;
+  /**
    * Custom key-value pairs stored on `SessionSpec.metadata`.
    *
    * A passthrough for embedder-owned keys (correlation IDs, tenant tags)
@@ -152,6 +158,7 @@ export function useCreateSession(): UseCreateSessionReturn {
           workspaceEntries: input.workspaceEntries,
           plugins: input.plugins,
           skillRefs: input.skillRefs,
+          fileReview: input.fileReview,
           metadata: mergeSessionContext(input.metadata, input.sessionContext),
           agentRef: input.agentRef,
           harness: input.harness ? toProtoHarness(input.harness) : undefined,
