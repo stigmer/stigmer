@@ -487,7 +487,7 @@ describe("Run — what a subagent is not given", () => {
     () => {
       it("a subagent is given none of the platform's own tools: the memory tool the parent is offered, and no channel's send tool", async () => {
         const { org } = await provisionOrgWithFacts(clients, fixtures, [], async (slug) => {
-          await target.fundTenancy?.(slug);
+          await target.keyTenancy?.(slug);
         });
         const { agent, subagents } = await parentWith(org, [{ name: uniqueName("helper") }]);
         const name = subagents[0]!.metadata!.slug;
@@ -559,6 +559,8 @@ describe("Run — the parent pinned its subagent at save", () => {
 describe("Run — the Cursor engine and a subagent's own configuration", () => {
   it("a Cursor turn whose subagent brings its own tool lists is refused at turn start with one sentence", async () => {
     const { org } = await target.provisionTenancy();
+    // A Cursor run still reserves credit where the target bills one.
+    await target.fundTenancy?.(org);
     const { agent, subagents } = await parentWith(org, [{ name: uniqueName("listed"), disallowedTools: ["Bash"] }]);
     const name = subagents[0]!.metadata!.slug;
 
