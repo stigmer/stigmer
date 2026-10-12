@@ -7,8 +7,8 @@
 //
 // Scope (recorded here, not re-decided): the workspace members listed in
 // the root package.json are Turborepo's world. backend/services/runner,
-// backend/services/stigmer-server, site/, test/extension-consumer and the
-// examples/* packages stay standalone with their own lockfiles, per the
+// backend/services/stigmer-server, ee/server, site/, test/extension-consumer
+// and the examples/* packages stay standalone with their own lockfiles, per the
 // standalone-package model (the exports-map contract extension-consumer
 // compile-proves from exactly that posture) and the
 // stigmer-cloud composition Dockerfile. Their Makefile targets and CI lanes

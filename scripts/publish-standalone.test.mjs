@@ -243,14 +243,15 @@ test("parseArgs takes --pack-dir as publish-libs does: a directory, resolved, ne
   );
 });
 
-test("the two standalone packages stamp cleanly from their committed manifests", () => {
-  // The release workflows run this script against exactly these two
+test("every standalone package stamps cleanly from its committed manifest", () => {
+  // The release workflows run this script against exactly these
   // directories. Every @stigmer/* dependency each carries must be a file:
   // link (so the stamp pins it) — a dependency added as a bare version
   // range would publish untested resolution and escape the pinned set.
   for (const dir of [
     "backend/services/runner",
     "backend/services/stigmer-server",
+    "ee/server",
   ]) {
     const manifest = JSON.parse(
       readFileSync(join(repoRoot, dir, "package.json"), "utf8"),

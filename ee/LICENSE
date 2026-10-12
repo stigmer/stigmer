@@ -1,0 +1,63 @@
+Stigmer Enterprise License, Version 1
+Copyright (c) 2026-present Stigmer, Inc.
+
+This license covers the contents of the ee/ directory of the Stigmer
+repository, wherever they are distributed, including in the packages and
+images Stigmer, Inc. builds from it (the "Software"). Everything outside
+that directory, including the open-source Stigmer server those packages
+and images also contain, is licensed under the Apache License, Version
+2.0, and can be used without this license.
+
+1. Production use. You may use the Software in production only if you, and
+   any entity you represent, have agreed to and comply with a written
+   agreement with Stigmer, Inc. governing your use of the Software (such as
+   an order form or a subscription agreement), and hold a license key
+   Stigmer, Inc. issued to you, used within the limits that key and that
+   agreement state. Section 3 says what applies once the key expires.
+
+2. Use without a license key. You may use the Software, in production or
+   otherwise, with no license key configured. In that mode it provides only
+   the features of the open-source Stigmer server, and section 1 does not
+   apply.
+
+3. After a license key expires. Your license key states when it expires
+   and how long a grace period follows. Until the grace period ends, the
+   Software works as licensed. After it ends, the Software limits itself to
+   a restricted mode, keeping your users, organizations and data intact,
+   and you may keep using it in that mode in production for 90 days while
+   you renew or move off it. After that, production use needs a renewed
+   license key, or no license key as section 2 allows. Using the Software
+   as this section describes is not a breach of this license.
+
+4. Development and testing. You may copy and modify the Software for
+   development and testing, without a license key or an agreement.
+
+5. Modifications. Subject to section 1, you may modify the Software and
+   publish patches to it. Stigmer, Inc. and its licensors retain all right,
+   title and interest in and to such modifications and patches, which may
+   be used in production only as sections 1 to 3 allow.
+
+6. Restrictions. You may not:
+   (a) use in production a copy of the Software in which the license key
+       check is removed, disabled or circumvented, or which accepts a
+       license key Stigmer, Inc. did not issue, including by changing the
+       public keys compiled into it;
+   (b) provide the Software to third parties as a hosted or managed
+       service, unless your agreement with Stigmer, Inc. allows it;
+   (c) remove or alter this license, or any copyright or licensing notice
+       in the Software.
+   You are not granted any rights beyond those this license states. Except
+   as needed to install and use the Software as this license allows, it is
+   forbidden to copy, merge, publish, distribute, sublicense and/or sell
+   the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Third-party components incorporated into the Software are licensed under
+the original licenses their owners provide.
