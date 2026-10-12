@@ -13,9 +13,12 @@
  *
  * The phase transition + persist is ONE atomic read-modify-write under
  * the store's per-resource write lock — the lifecycle counterpart of the
- * UpdateStatus merge chokepoint (pause/cancel/terminate are reachable
- * from WAITING_FOR_APPROVAL, so the concurrent-SubmitApproval window is
- * real); lifecycle simply authors no approval events.
+ * UpdateStatus merge chokepoint. Cancel is reachable from
+ * WAITING_FOR_APPROVAL and PAUSED as well as PENDING and IN_PROGRESS (the
+ * session's interrupt stops every unfinished turn through its steps,
+ * domain/session/hitl/interrupt.ts), so the window with a concurrent
+ * answer is real; pause and terminate admit PENDING and IN_PROGRESS only.
+ * A cancel records the stop's cause, `user`, with its phase.
  *
  * That persist makes each transition atomic, not a whole chain. Recover's
  * chain acts on Temporal and on the run's value plan before its
@@ -148,8 +151,14 @@ interface LifecycleInputWithReasonShape extends LifecycleInputShape {
 // Shared steps (lifecycle_steps.go).
 // ---------------------------------------------------------------------------
 
+/** What the cancel chain's steps need (interrupt runs them too). */
+export type CancelDeps = Pick<
+  LifecycleDeps,
+  "store" | "logger" | "broker" | "sessionEventBroker" | "engineState" | "statusObservers"
+>;
+
 function newLoadExecutionByIdStep<Desc extends DescMessage>(
-  deps: LifecycleDeps,
+  deps: Pick<LifecycleDeps, "store">,
 ): PipelineStep<Desc> {
   return {
     name: "LoadExecutionById",
@@ -228,7 +237,7 @@ function newValidatePhaseStep<Desc extends DescMessage>(config: {
  */
 function newEngineLifecycleStep<Desc extends DescMessage>(config: {
   name: string;
-  deps: LifecycleDeps;
+  deps: Pick<LifecycleDeps, "engineState" | "logger">;
   invoke: (
     engine: Extract<
       ReturnType<ExecutionEngineStateProvider>,
@@ -294,6 +303,11 @@ export function applyLifecyclePhaseTransition(
   ) {
     const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
     status.completedAt = now;
+    if (targetPhase === RunPhase.RUN_CANCELLED) {
+      // A person stopped the turn: the cause the session's idle reads
+      // (RunStatus.stop_cause), recorded with the phase.
+      status.stopCause = "user";
+    }
 
     // Cascade to in-flight sub-agents: a cancelled/terminated parent
     // leaves no live delegation, so IN_PROGRESS/PENDING sub-agents move
@@ -364,7 +378,7 @@ export function cancelInProgressSubAgents(
  * a half-built document.
  */
 function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
-  deps: LifecycleDeps,
+  deps: Pick<LifecycleDeps, "store" | "logger" | "sessionEventBroker" | "statusObservers">,
   targetPhase: RunPhase,
   setError: boolean,
   clearError: boolean,
@@ -416,7 +430,7 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
 
 /** Publishes the transition to live subscribers (Go LifecycleBroadcastStep). */
 function newLifecycleBroadcastStep<Desc extends DescMessage>(
-  deps: LifecycleDeps,
+  deps: Pick<LifecycleDeps, "broker">,
 ): PipelineStep<Desc> {
   return {
     name: "LifecycleBroadcast",
@@ -486,35 +500,52 @@ export async function cancelExecution(
     input,
     RunCommandController.method.cancel,
     identity,
-    [
-      newLoadExecutionByIdStep(deps),
-      newValidatePhaseStep({
-        name: "ValidateCancellable",
-        targetPhase: RunPhase.RUN_CANCELLED,
-        allowed: [
-          RunPhase.RUN_PENDING,
-          RunPhase.RUN_IN_PROGRESS,
-        ],
-        refusal: (phase) =>
-          `cannot cancel execution in phase ${phaseName(phase)}; only PENDING or IN_PROGRESS can be cancelled`,
-        logger: deps.logger,
-      }),
-      newEngineLifecycleStep({
-        name: "CancelTemporalWorkflow",
-        deps,
-        invoke: (engine, executionId) =>
-          engine.engine.cancelWorkflow(executionId),
-        failureMessage: "failed to cancel Temporal workflow",
-      }),
-      newUpdateExecutionPhaseAndPersistStep(
-        deps,
-        RunPhase.RUN_CANCELLED,
-        false,
-        false,
-      ),
-      newLifecycleBroadcastStep(deps),
-    ],
+    cancelSteps<Desc>(deps),
   );
+}
+
+/** The phases a cancel stops: every unfinished one. */
+export const CANCELLABLE_PHASES: ReadonlyArray<RunPhase> = [
+  RunPhase.RUN_PENDING,
+  RunPhase.RUN_IN_PROGRESS,
+  RunPhase.RUN_WAITING_FOR_APPROVAL,
+  RunPhase.RUN_PAUSED,
+];
+
+/**
+ * The cancel chain after its Authorize: the run is loaded by the input's
+ * `id`, an already cancelled run is success, a finished one is refused,
+ * the workflow is cancelled (at its gate's or its pause's wait, where it
+ * writes CANCELLED itself), the transition is persisted with its
+ * session's events and observers, and broadcast. A run at the approval
+ * gate or paused is cancelled at its workflow's wait.
+ */
+export function cancelSteps<Desc extends DescMessage>(deps: CancelDeps): PipelineStep<Desc>[] {
+  return [
+    newLoadExecutionByIdStep(deps),
+    newValidatePhaseStep({
+      name: "ValidateCancellable",
+      targetPhase: RunPhase.RUN_CANCELLED,
+      allowed: [...CANCELLABLE_PHASES],
+      refusal: (phase) =>
+        `cannot cancel execution in phase ${phaseName(phase)}; only an unfinished one (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL or PAUSED) can be cancelled`,
+      logger: deps.logger,
+    }),
+    newEngineLifecycleStep({
+      name: "CancelTemporalWorkflow",
+      deps,
+      invoke: (engine, executionId) =>
+        engine.engine.cancelWorkflow(executionId),
+      failureMessage: "failed to cancel Temporal workflow",
+    }),
+    newUpdateExecutionPhaseAndPersistStep(
+      deps,
+      RunPhase.RUN_CANCELLED,
+      false,
+      false,
+    ),
+    newLifecycleBroadcastStep(deps),
+  ];
 }
 
 /** Terminate — the forceful sibling: terminates the workflow, sets error. */

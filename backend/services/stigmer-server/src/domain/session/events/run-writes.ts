@@ -23,10 +23,14 @@
  *                       removal ends the session's turn when nothing else
  *                       works, so the session never reads running forever.
  *
- * A run's session and the count of its session's other working runs come
- * from the run list index's `session` and `working_session` keys
- * (run/list-index.ts), read under the session's lock without decoding a
- * run. An update that must know the conversation's newest turn asks for
+ * A run's session, the count of its session's other working runs and its
+ * other waiting runs come from the run list index's `session`,
+ * `working_session` and `waiting_session` keys (run/list-index.ts), read
+ * under the session's lock without decoding a run; the open asks of the
+ * waiting runs and of the written run come from the log's gate columns
+ * (gates.ts). An update may append events of its own (an answer to an
+ * ask, interrupt.ts and ../hitl/answer.ts): they come first, and the asks
+ * they close are closed before the status is computed. An update that must know the conversation's newest turn asks for
  * the run of the session's newest `user.message` (`runOfNewestType`), and
  * only that update pays the read.
  *
@@ -57,6 +61,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 import type {
+  OpenSessionEventGate,
   ResourceEventWriteResult,
   ResourceEventWriter,
   SessionEventContext,
@@ -68,7 +73,8 @@ import type { SessionEventBroker } from "./broker.js";
 import { SESSION_EVENT_ID_PREFIX, SESSION_STATUS_TYPES } from "./catalog.js";
 import { actionWordOf, originWordOf, scopeWordOf } from "../filereview/words.js";
 import { draftOf, eventOf } from "./codec.js";
-import { sessionEventsForTransition, sessionIdOfRun } from "./transitions.js";
+import { gatesOfEvent } from "./gates.js";
+import { sessionEventsForTransition, sessionIdOfRun, sessionStatusOf } from "./transitions.js";
 import type { RunTransition } from "./transitions.js";
 
 /** What a run write that appends session events needs. */
@@ -80,6 +86,7 @@ export interface RunEventWriteDeps {
 type RunListKey = keyof typeof agentExecutionListIndex.keys;
 const SESSION_KEY: RunListKey = "session";
 const WORKING_KEY: RunListKey = "working_session";
+const WAITING_KEY: RunListKey = "waiting_session";
 
 /** What an update may ask the store for beyond what every write is handed. */
 export interface RunUpdateOptions {
@@ -95,6 +102,7 @@ function scopeOf(sessionId?: string, options: RunUpdateOptions = {}): SessionEve
   return {
     sessionKey: SESSION_KEY,
     workingKey: WORKING_KEY,
+    waitingKey: WAITING_KEY,
     stateEventTypes: SESSION_STATUS_TYPES,
     ...(sessionId === undefined ? {} : { sessionId }),
     ...(options.runOfNewestType === undefined ? {} : { runOfNewestType: options.runOfNewestType }),
@@ -105,19 +113,50 @@ function phaseOf(run: Run): RunPhase {
   return run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
 }
 
-/** A transition's events as store drafts; none for a run in no session, which has no log. */
+/**
+ * The session's open asks once `appending` is in the log: the context's
+ * gates less those the write's own events close.
+ */
+export function gatesAfter(
+  session: SessionEventContext,
+  appending: ReadonlyArray<SessionEvent> = [],
+): OpenSessionEventGate[] {
+  const closing = new Set(appending.map((event) => gatesOfEvent(event).closes).filter((id) => id !== ""));
+  return session.gates.filter((gate) => !closing.has(gate.toolUseId));
+}
+
+/** The open asks of one run, by tool use id, once `appending` is in the log. */
+export function openAsksOf(
+  session: SessionEventContext,
+  runId: string,
+  appending: ReadonlyArray<SessionEvent> = [],
+): ReadonlySet<string> {
+  return new Set(gatesAfter(session, appending).filter((gate) => gate.runId === runId).map((gate) => gate.toolUseId));
+}
+
+/**
+ * A transition's events as store drafts, after the write's own events;
+ * none for a run in no session, which has no log.
+ */
 function draftsFor(
   transition: RunTransition,
   session: SessionEventContext,
   sessionRow: Run | undefined,
+  own: ReadonlyArray<SessionEvent> = [],
 ): SessionEventDraft[] {
   if (sessionRow === undefined || sessionIdOfRun(sessionRow) === "") {
     return [];
   }
-  return sessionEventsForTransition(transition, {
-    othersWorking: session.othersWorking,
-    state: session.latestStateType === "session.status_running" ? "running" : "idle",
-  }).map(draftOf);
+  const latest = session.latestState === undefined ? undefined : sessionStatusOf(eventOf(session.latestState));
+  return [
+    ...own,
+    ...sessionEventsForTransition(transition, {
+      othersWorking: session.othersWorking,
+      othersWaiting: session.othersWaiting,
+      gates: gatesAfter(session, own),
+      status: latest,
+    }),
+  ].map(draftOf);
 }
 
 /** The run create chain's Persist writer (pipeline/steps/persist.ts). */
@@ -148,17 +187,22 @@ export async function createRunAppendingEvents(deps: RunEventWriteDeps, run: Run
  * A row-locked change: `modify` mutates the committed run in place, as
  * Store.updateResource's does, and must be synchronous; it is handed the
  * session as committed (with the run of `options.runOfNewestType` when
- * asked), and throwing writes nothing. The transition's events commit
- * with the run, then one `stigmer.file_review.decided` per FILE_DECIDED
- * the change added (module header). Throws ResourceNotFoundError when
- * the run is absent.
+ * asked), and throwing writes nothing. It may return events of its own,
+ * appended first (module header). The transition's events commit with the
+ * run, then one `stigmer.file_review.decided` per FILE_DECIDED the change
+ * added (module header). Throws ResourceNotFoundError when the run is
+ * absent.
  */
 export async function updateRunAppendingEvents(
   deps: RunEventWriteDeps,
   runId: string,
-  modify: (run: Run, session: SessionEventContext) => void,
+  modify: (run: Run, session: SessionEventContext) => ReadonlyArray<SessionEvent> | void,
   options: RunUpdateOptions = {},
-): Promise<{ readonly run: Run; readonly previousPhase: RunPhase }> {
+): Promise<{
+  readonly run: Run;
+  readonly previousPhase: RunPhase;
+  readonly events: ReadonlyArray<SessionEvent>;
+}> {
   let previousPhase = RunPhase.RUN_PHASE_UNSPECIFIED;
   const result = await write(
     deps,
@@ -169,12 +213,12 @@ export async function updateRunAppendingEvents(
       }
       previousPhase = phaseOf(previous);
       const decidedBefore = fileDecidedEventIds(previous);
-      modify(previous, others);
+      const own = modify(previous, others) ?? [];
       const transition: RunTransition = { kind: "update", previousPhase, run: previous };
       return {
         put: previous,
         events: [
-          ...draftsFor(transition, others, previous),
+          ...draftsFor(transition, others, previous, own),
           ...decidedDraftsFor(previous, decidedBefore),
         ],
       };
@@ -182,7 +226,7 @@ export async function updateRunAppendingEvents(
     undefined,
     options,
   );
-  return { run: result.row!, previousPhase };
+  return { run: result.row!, previousPhase, events: result.events.map(eventOf) };
 }
 
 /**

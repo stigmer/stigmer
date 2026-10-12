@@ -90,13 +90,18 @@ import {
   SessionEventConflictError,
   assertSessionEventLimit,
   dedupeSessionEventDrafts,
+  gatesOfDraft,
+  openGatesOf,
   sameBytes,
   sessionEventInstant,
 } from "../session-events.js";
 import type {
+  OpenSessionEventGate,
+  SessionEventGateDeclaration,
   ResourceEventWriteResult,
   ResourceEventWriter,
   SessionEventAppend,
+  SessionEventContext,
   SessionEventDraft,
   SessionEventGuard,
   SessionEventQuery,
@@ -180,15 +185,18 @@ export class PostgresStore implements Store {
   private pool: Pool | undefined;
   private readonly logger: StoreLogger;
   private readonly listIndexes: ListIndexRegistry;
+  private readonly gates: SessionEventGateDeclaration | undefined;
 
   private constructor(
     pool: Pool,
     logger: StoreLogger,
     listIndexes: ListIndexRegistry,
+    gates: SessionEventGateDeclaration | undefined,
   ) {
     this.pool = pool;
     this.logger = logger;
     this.listIndexes = listIndexes;
+    this.gates = gates;
     this.bootstrapState = new PostgresBootstrapStateStore(() => this.open());
     this.resourceNames = new PostgresResourceNameStore(() => this.open());
     this.pendingOAuthStates = new PostgresPendingOAuthStateStore(() =>
@@ -205,6 +213,7 @@ export class PostgresStore implements Store {
     this.sessionEvents = new PostgresSessionEventStore(
       () => this.open(),
       (fn) => this.withTransaction(fn),
+      gates,
     );
   }
 
@@ -245,9 +254,10 @@ export class PostgresStore implements Store {
     }
     client.release();
 
-    const store = new PostgresStore(pool, logger, listIndexes);
+    const store = new PostgresStore(pool, logger, listIndexes, options.sessionEventGates);
     try {
       await store.reconcileListIndexes();
+      await store.reconcileSessionEventGates();
     } catch (error) {
       await store.close();
       throw error;
@@ -483,19 +493,37 @@ export class PostgresStore implements Store {
         assertSameSession(kindName, id, sessionId, keyValue(before, scope.sessionKey));
       }
 
-      const outcome = write(
-        previous,
-        sessionId === ""
-          ? { othersWorking: 0, latestStateType: undefined, runOfNewestType: undefined }
-          : {
-              othersWorking: await this.countOthersWorking(client, declaration, id, scope.workingKey, sessionId),
-              latestStateType: await latestOfTypes(client, sessionId, scope.stateEventTypes),
-              runOfNewestType:
-                scope.runOfNewestType === undefined
-                  ? undefined
-                  : await runOfNewestOfType(client, sessionId, scope.runOfNewestType),
-            },
-      );
+      let context: SessionEventContext = {
+        othersWorking: 0,
+        latestStateType: undefined,
+        latestState: undefined,
+        runOfNewestType: undefined,
+        othersWaiting: [],
+        gates: [],
+      };
+      if (sessionId !== "") {
+        const latestState = await latestOfTypes(client, sessionId, scope.stateEventTypes);
+        const othersWaiting =
+          scope.waitingKey === undefined
+            ? []
+            : await this.othersHolding(client, declaration, id, scope.waitingKey, sessionId);
+        context = {
+          othersWorking: (await this.othersHolding(client, declaration, id, scope.workingKey, sessionId))
+            .length,
+          latestStateType: latestState?.type,
+          latestState,
+          runOfNewestType:
+            scope.runOfNewestType === undefined
+              ? undefined
+              : await runOfNewestOfType(client, sessionId, scope.runOfNewestType),
+          othersWaiting,
+          gates:
+            scope.waitingKey === undefined
+              ? []
+              : await openGatesOfRuns(client, sessionId, [...othersWaiting, id]),
+        };
+      }
+      const outcome = write(previous, context);
       if (sessionId === "" && outcome.events.length > 0) {
         throw new Error(`${kindName}/${id} is in no session; it cannot write session events`);
       }
@@ -546,6 +574,7 @@ export class PostgresStore implements Store {
               sessionId,
               org,
               dedupeSessionEventDrafts(sessionId, outcome.events),
+              this.gates,
             );
       return { previous, row, events };
     });
@@ -588,23 +617,23 @@ export class PostgresStore implements Store {
   }
 
   /**
-   * How many rows other than `id` hold `workingKey` valued `sessionId`: the
-   * proven rows from the key table alone (no row is read), and every
-   * unproven row of the kind evaluated from its bytes in place of its key
-   * rows, which may be stale (none in steady state; the reconciliation at
-   * open derives them).
+   * The rows other than `id` that hold `key` valued `sessionId`: the proven
+   * rows from the key table alone (no row is read), and every unproven row
+   * of the kind evaluated from its bytes in place of its key rows, which
+   * may be stale (none in steady state; the reconciliation at open derives
+   * them).
    */
-  private async countOthersWorking(
+  private async othersHolding(
     client: PoolClient,
     declaration: ListIndexDeclaration,
     id: string,
-    workingKey: string,
+    key: string,
     sessionId: string,
-  ): Promise<number> {
+  ): Promise<string[]> {
     const kindName = apiResourceKindName(declaration.kind);
     const keyed = await client.query(
       `SELECT id FROM resource_list_keys WHERE kind = $1 AND key = $2 AND value = $3 AND id <> $4`,
-      [kindName, workingKey, sessionId, id],
+      [kindName, key, sessionId, id],
     );
     const unproven = oneRowPerId(
       (await client.query(UNPROVEN_ROWS_SQL, [kindName, declaration.revision])).rows as Array<{
@@ -613,14 +642,67 @@ export class PostgresStore implements Store {
       }>,
     );
     const unprovenIds = new Set(unproven.map((row) => row.id));
-    let count = (keyed.rows as Array<{ id: string }>).filter((row) => !unprovenIds.has(row.id)).length;
+    const holding = (keyed.rows as Array<{ id: string }>)
+      .map((row) => row.id)
+      .filter((rowId) => !unprovenIds.has(rowId));
     for (const row of unproven) {
       const facts = row.id === id ? undefined : factsOfBytes(declaration, row.data);
-      if (facts !== undefined && keyValue(facts, workingKey) === sessionId) {
-        count += 1;
+      if (facts !== undefined && keyValue(facts, key) === sessionId) {
+        holding.push(row.id);
       }
     }
-    return count;
+    return holding.sort();
+  }
+
+  /**
+   * Derives the gates of every session event stamped with another revision
+   * than the declaration's (session-events.ts, "Gates"), in batches by
+   * (session, seq): the events of a gate type from their bytes, every other
+   * event by its stamp alone. A store opened without a declaration derives
+   * nothing.
+   */
+  private async reconcileSessionEventGates(): Promise<void> {
+    const gates = this.gates;
+    if (gates === undefined) {
+      return;
+    }
+    let derived = 0;
+    for (let afterSession = "", afterSeq = 0; ; ) {
+      const batch = (
+        await this.open().query(
+          `SELECT session_id, seq, type, data FROM (
+             SELECT session_id, seq, type, data FROM session_events WHERE gate_revision < $1
+             UNION ALL
+             SELECT session_id, seq, type, data FROM session_events WHERE gate_revision > $1
+           ) stale
+           WHERE type = ANY($2::text[]) AND (session_id, seq) > ($3, $4)
+           ORDER BY session_id, seq LIMIT $5`,
+          [gates.revision, [...gates.types], afterSession, afterSeq, RECONCILE_BATCH],
+        )
+      ).rows as Array<{ session_id: string; seq: string; type: string; data: Uint8Array }>;
+      for (const row of batch) {
+        const derivedGates = gatesOfDraft(gates, row);
+        await this.open().query(
+          `UPDATE session_events SET opens_gate = $3, closes_gate = $4, gate_revision = $5
+           WHERE session_id = $1 AND seq = $2`,
+          [row.session_id, row.seq, derivedGates.opens, derivedGates.closes, gates.revision],
+        );
+        derived += 1;
+        afterSession = row.session_id;
+        afterSeq = Number(row.seq);
+      }
+      if (batch.length < RECONCILE_BATCH) {
+        break;
+      }
+    }
+    await this.open().query(
+      `UPDATE session_events SET opens_gate = '', closes_gate = '', gate_revision = $1
+       WHERE (gate_revision < $1 OR gate_revision > $1) AND NOT (type = ANY($2::text[]))`,
+      [gates.revision, [...gates.types]],
+    );
+    if (derived > 0) {
+      this.logger.info("session event gates derived", { events: derived });
+    }
   }
 
   async findByField<Desc extends DescMessage>(
@@ -2460,19 +2542,53 @@ async function latestOfTypes(
   client: PoolClient,
   sessionId: string,
   types: ReadonlyArray<string>,
-): Promise<string | undefined> {
-  let newest: { readonly seq: number; readonly type: string } | undefined;
+): Promise<SessionEventRecord | undefined> {
+  let newest: SessionEventRecord | undefined;
   for (const type of types) {
     const result = await client.query(
-      `SELECT seq FROM session_events WHERE session_id = $1 AND type = $2 ORDER BY seq DESC LIMIT 1`,
+      `SELECT ${SESSION_EVENT_COLUMNS} FROM session_events
+       WHERE session_id = $1 AND type = $2 ORDER BY seq DESC LIMIT 1`,
       [sessionId, type],
     );
-    const row = result.rows[0] as { seq: string } | undefined;
+    const row = result.rows[0] as SessionEventRow | undefined;
     if (row !== undefined && (newest === undefined || Number(row.seq) > newest.seq)) {
-      newest = { seq: Number(row.seq), type };
+      newest = sessionEventOf(row);
     }
   }
-  return newest?.type;
+  return newest;
+}
+
+/**
+ * The open gates of `runIds` in a session, in log order: the gates their
+ * events open (the opens_gate partial index) that no event of the session
+ * closes (the closes_gate partial index). Nothing is decoded.
+ */
+async function openGatesOfRuns(
+  client: PoolClient,
+  sessionId: string,
+  runIds: ReadonlyArray<string>,
+): Promise<OpenSessionEventGate[]> {
+  const opened = (
+    await client.query(
+      `SELECT run_id, opens_gate, seq FROM session_events
+       WHERE session_id = $1 AND opens_gate <> '' AND run_id = ANY($2::text[])`,
+      [sessionId, [...runIds]],
+    )
+  ).rows as Array<{ run_id: string; opens_gate: string; seq: string }>;
+  if (opened.length === 0) {
+    return [];
+  }
+  const closed = (
+    await client.query(
+      `SELECT closes_gate FROM session_events
+       WHERE session_id = $1 AND closes_gate <> '' AND closes_gate = ANY($2::text[])`,
+      [sessionId, opened.map((row) => row.opens_gate)],
+    )
+  ).rows as Array<{ closes_gate: string }>;
+  return openGatesOf(
+    opened.map((row) => ({ runId: row.run_id, toolUseId: row.opens_gate, seq: Number(row.seq) })),
+    new Set(closed.map((row) => row.closes_gate)),
+  );
 }
 
 /** The run of the session's newest event of `type`; undefined when it has none. */
@@ -2495,6 +2611,7 @@ async function insertSessionEvents(
   sessionId: string,
   org: string,
   drafts: ReadonlyArray<SessionEventDraft>,
+  gates: SessionEventGateDeclaration | undefined,
 ): Promise<SessionEventRecord[]> {
   if (drafts.length === 0) {
     return [];
@@ -2514,6 +2631,7 @@ async function insertSessionEvents(
   for (const draft of drafts) {
     seq += 1;
     records.push({ ...draft, sessionId, seq, processedAt });
+    const derived = gatesOfDraft(gates, draft);
     const base = params.length;
     params.push(
       sessionId,
@@ -2525,13 +2643,17 @@ async function insertSessionEvents(
       org,
       processedAt,
       Buffer.from(draft.data),
+      derived.opens,
+      derived.closes,
+      gates?.revision ?? 0,
     );
     tuples.push(
-      `(${Array.from({ length: 9 }, (_, i) => `$${base + i + 1}`).join(", ")})`,
+      `(${Array.from({ length: 12 }, (_, i) => `$${base + i + 1}`).join(", ")})`,
     );
   }
   await client.query(
-    `INSERT INTO session_events (session_id, seq, event_id, run_id, thread_id, type, org, processed_at, data)
+    `INSERT INTO session_events
+       (session_id, seq, event_id, run_id, thread_id, type, org, processed_at, data, opens_gate, closes_gate, gate_revision)
      VALUES ${tuples.join(", ")}`,
     params,
   );
@@ -2547,6 +2669,7 @@ class PostgresSessionEventStore implements SessionEventStore {
   constructor(
     private readonly open: () => Pool,
     private readonly transaction: <T>(fn: (client: PoolClient) => Promise<T>) => Promise<T>,
+    private readonly gates: SessionEventGateDeclaration | undefined,
   ) {}
 
   async list(sessionId: string, query: SessionEventQuery): Promise<SessionEventRecord[]> {
@@ -2631,7 +2754,7 @@ class PostgresSessionEventStore implements SessionEventStore {
           throw new SessionEventConflictError(sessionId, draft.eventId);
         }
       }
-      const appended = await insertSessionEvents(client, sessionId, org, fresh);
+      const appended = await insertSessionEvents(client, sessionId, org, fresh, this.gates);
       const byId = new Map(appended.map((record) => [record.eventId, record]));
       return {
         records: unique.map((draft) => byId.get(draft.eventId) ?? held.get(draft.eventId)!),

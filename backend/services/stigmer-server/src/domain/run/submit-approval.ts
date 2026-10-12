@@ -1,28 +1,22 @@
 /**
- * SubmitApproval — ports controller/submit_approval.go: the HITL approval
- * decision writer.
+ * SubmitApproval: the run-scoped answer to a waiting tool call, kept for
+ * the clients that still send it, an adapter onto the session's answer
+ * core (domain/session/hitl/answer.ts) since approvals became session
+ * events. Its wire and its authorization (can_edit on the run) stay.
  *
- * Chain per Go: ValidateProto → LoadExisting → ValidateApproval →
- * RecordApprovalDecision → SignalWorkflow → BuildResponse.
+ * Chain: Authorize (can_edit on the run) → ValidateProto → LoadExisting
+ * (NOT_FOUND for an unknown run) → FindToolCall (FAILED_PRECONDITION for
+ * a run that is neither waiting nor in progress, then INVALID_ARGUMENT for
+ * a call the run does not hold, both as before) → the answer core, on the
+ * tool use the call wrote (its id derived the runner's way,
+ * domain/session/events/ids.ts).
  *
- * Behavior by action: APPROVE executes the tool; SKIP feeds a skip
- * message to the LLM; REJECT denies ONE tool call and continues the run
- * (never fails it — the runner feeds the objection back to the model);
- * APPROVE_ALL approves the clicked tool AND auto-approves co-pending
- * calls of the SAME lease class (the clicked tool's built-in category or
- * its MCP server — deriveLeaseScope), leaving other classes gated.
- *
- * The decision recording is one atomic read-modify-write under the store
- * write lock, with a TOCTOU re-check (a concurrent submit that won the
- * race surfaces as Internal, exactly Go's closure error). Idempotency: a
- * repeated identical submit is a no-op answering current state.
- *
- * The approvalGateResolved signal fires ONLY when the HITL gate fully
- * clears — no pending approval (filereview/gate.ts; file review never
- * holds a turn). With the engine disconnected the signal is skipped with a
- * WARN and the decision still persists (Go's nil-creator arm).
+ * The words map onto the session's: APPROVE is allow; SKIP and REJECT are
+ * deny, the comment its deny_message (the agent reads it); APPROVE_ALL is
+ * a grant of the call's class for the rest of the turn. The reply is the
+ * run after the answer, as before.
  */
-import { create } from "@bufbuild/protobuf";
+import { enumToJson } from "@bufbuild/protobuf";
 
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -32,71 +26,38 @@ import {
   ApprovalActionSchema,
   RunPhase,
   RunPhaseSchema,
-  MessageType,
-  ToolCallStatus,
-  ToolCallStatusSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import type { SubmitApprovalInput } from "@stigmer/protos/ai/stigmer/agentic/run/v1/io_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { enumToJson } from "@bufbuild/protobuf";
 
-import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
-import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
-import { stepsForSlot } from "../../extensions/gate-slots.js";
-import type { RunStatusObserver } from "../../extensions/status-hooks.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import {
   failedPreconditionError,
   internalError,
   invalidArgumentError,
   notFoundError,
-  unavailableError,
 } from "../../pipeline/errors.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
-import type { CallerIdentity } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
-import type { Store } from "../../store/interface.js";
 
-import {
-  ensureApprovalRequests,
-  recordDecisionEvent,
-} from "./approval/author.js";
-import { deriveLeaseScope, sameLeaseScope } from "./approval/lease-scope.js";
-import { projectPendingApprovals } from "./approval/project.js";
-import type { ExecutionEngineStateProvider } from "./engine.js";
-import { EngineWorkflowNotFoundError } from "./engine.js";
-import { gateResolved } from "./filereview/gate.js";
-import { notifyStatusObservers } from "./status-observers.js";
-import type { SessionEventBroker } from "../session/events/broker.js";
-import { overwriteRunAppendingEvents } from "../session/events/run-writes.js";
-import { settleInterruptedToolCalls } from "./tool-call-settle.js";
-import type { StreamBroker } from "./stream-broker.js";
+import { answerOutcomeOf, answerSteps } from "../session/hitl/answer.js";
+import type { AnswerDeps, AnswerRequest } from "../session/hitl/answer.js";
+import { toolUseEventId } from "../session/events/ids.js";
+import { sessionIdOfRun } from "../session/events/transitions.js";
 
-export interface SubmitApprovalDeps {
-  readonly store: Store;
-  readonly logger: Logger;
+export interface SubmitApprovalDeps extends AnswerDeps {
   /** The composed authorization seam — the Authorize step at position 1 of every chain calls it. */
   readonly authorizer: Authorizer;
-  readonly broker: StreamBroker;
-  readonly engineState: ExecutionEngineStateProvider;
-  /** The composed slot registrations — this chain's approval gate slot. */
-  readonly gateSteps: ResolvedGateSteps;
-  /** The stale-workflow reconcile's →FAILED stamp is a notified transition. */
-  readonly statusObservers: ReadonlyArray<RunStatusObserver>;
-  /** The reconcile's stamp ends its session's turn (session/events/run-writes.ts). */
-  readonly sessionEventBroker: SessionEventBroker;
 }
 
 type SubmitApprovalDesc =
   typeof RunCommandController.method.submitApproval.input;
 
-// Context keys for inter-step communication — Go's key strings, verbatim.
-const IS_IDEMPOTENT_REQUEST_KEY = "isIdempotentRequest";
 const TARGET_RESOURCE_KEY = "targetResource";
 
 export async function submitApproval(
@@ -143,400 +104,49 @@ export async function submitApproval(
       },
     })
     .addStep({
-      name: "ValidateApproval",
+      name: "FindToolCall",
       execute(ctx) {
         const execution = ctx.get(TARGET_RESOURCE_KEY) as Run;
-        const executionId = execution.metadata?.id ?? "";
-        const requestedToolCallId = ctx.input.toolCallId;
-        const requestedAction = ctx.input.action;
-        const currentPhase =
-          execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
-
-        // Approval is accepted during active execution phases where tool
-        // calls may await decisions; terminal and pre-start phases refuse.
-        if (
-          currentPhase !== RunPhase.RUN_WAITING_FOR_APPROVAL &&
-          currentPhase !== RunPhase.RUN_IN_PROGRESS
-        ) {
+        const phase = execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
+        if (phase !== RunPhase.RUN_WAITING_FOR_APPROVAL && phase !== RunPhase.RUN_IN_PROGRESS) {
           throw failedPreconditionError(
-            `execution ${executionId} is in phase ${protoName(RunPhaseSchema, currentPhase)}, approval requires RUN_WAITING_FOR_APPROVAL or RUN_IN_PROGRESS`,
+            `execution ${ctx.input.runId} is in phase ${enumToJson(RunPhaseSchema, phase) as string}, approval requires RUN_WAITING_FOR_APPROVAL or RUN_IN_PROGRESS`,
           );
         }
-
-        // The ToolCall in messages is the single source of truth.
-        const tc = findToolCallInExecution(execution, requestedToolCallId);
-        if (tc === undefined) {
+        if (findToolCallInExecution(execution, ctx.input.toolCallId) === undefined) {
           throw invalidArgumentError(
-            `tool_call_id ${requestedToolCallId} not found in messages for execution ${executionId}`,
-          );
-        }
-
-        // Idempotency: a decision already recorded on the ToolCall.
-        const existingAction = tc.approvalAction;
-        if (existingAction !== ApprovalAction.UNSPECIFIED) {
-          if (existingAction === requestedAction) {
-            deps.logger.info(
-              "IDEMPOTENT: ToolCall already has matching approval action",
-              {
-                executionId,
-                toolCallId: requestedToolCallId,
-                action: protoName(ApprovalActionSchema, requestedAction),
-              },
-            );
-            ctx.set(IS_IDEMPOTENT_REQUEST_KEY, true);
-            return;
-          }
-          throw failedPreconditionError(
-            `tool call ${requestedToolCallId} already has approval action ${protoName(ApprovalActionSchema, existingAction)}, cannot change to ${protoName(ApprovalActionSchema, requestedAction)}`,
-          );
-        }
-
-        if (tc.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) {
-          throw failedPreconditionError(
-            `tool call ${requestedToolCallId} has status ${protoName(ToolCallStatusSchema, tc.status)}, expected TOOL_CALL_WAITING_APPROVAL`,
+            `tool_call_id ${ctx.input.toolCallId} not found in messages for execution ${ctx.input.runId}`,
           );
         }
       },
     });
-  // The approval gate slot: after
-  // ValidateApproval, before the approval side effects (the record is the
-  // atomic read-modify-write). Empty in OSS.
-  for (const step of stepsForSlot<SubmitApprovalDesc>(
-    deps.gateSteps,
-    "agent-execution-submit-approval:gate",
+  for (const step of answerSteps<SubmitApprovalDesc>(deps, (ctx) =>
+    answerRequestOf(ctx.get(TARGET_RESOURCE_KEY) as Run, ctx.input),
   )) {
     builder.addStep(step);
   }
-  await builder
-    .addStep({
-      name: "RecordApprovalDecision",
-      async execute(ctx) {
-        if (ctx.get(IS_IDEMPOTENT_REQUEST_KEY) === true) {
-          deps.logger.debug(
-            "Skipping approval decision recording for idempotent request",
-          );
-          return;
-        }
-        const executionId = ctx.input.runId;
-        const toolCallId = ctx.input.toolCallId;
-        const action = ctx.input.action;
-        const comment = ctx.input.comment;
-        const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-        // The decider is the principal this chain authorized at position
-        // 1 — the same id auditActorFor stamps as created_by.id, so the
-        // approval ledger and the audit trail name one person the same
-        // way in every edition (the trusted-local operator on a laptop,
-        // the account on a signed-in server; stigmer/stigmer#1385).
-        const decidedBy = ctx.callerIdentity.identityId;
-
-        let updated: Run;
-        try {
-          updated = await deps.store.updateResource(
-            ApiResourceKind.run,
-            executionId,
-            RunSchema,
-            (execution) => {
-              // Re-check under the write lock: TOCTOU guard against a
-              // concurrent request that recorded a decision between our
-              // validation step and this locked update.
-              const tc = findToolCallInExecution(execution, toolCallId);
-              if (tc === undefined) {
-                throw new Error(
-                  `tool call ${toolCallId} no longer exists in execution ${executionId}`,
-                );
-              }
-              if (tc.approvalAction !== ApprovalAction.UNSPECIFIED) {
-                throw new Error(
-                  `tool call ${toolCallId} already has approval action ${protoName(ApprovalActionSchema, tc.approvalAction)} (concurrent approval won the race)`,
-                );
-              }
-
-              // The tool call was found in the status, so the status is
-              // present.
-              const status = execution.status!;
-
-              // Author REQUESTED events BEFORE recording the decision,
-              // while every gated tool call is still WAITING — seeds the
-              // stream for executions predating the field, so a decision
-              // event always has a preceding request.
-              ensureApprovalRequests(status, executionId);
-
-              tc.approvalAction = action;
-              tc.approvalDecidedAt = now;
-              tc.approvedBy = decidedBy;
-              // The rich decision event (decided_by + the user's comment)
-              // in the same locked write that records the decision on the
-              // scan, so it can never be duplicated or clobbered.
-              recordDecisionEvent(status, tc, decidedBy, comment);
-
-              // APPROVE_ALL grants a run-lifetime lease scoped to the
-              // clicked tool's class; co-pending calls of the SAME class
-              // are auto-approved with a plain APPROVE and no comment (the
-              // escalation comment belongs to the clicked tool).
-              if (action === ApprovalAction.APPROVE_ALL) {
-                for (const bulkTc of bulkApproveCoPendingToolCalls(
-                  execution,
-                  toolCallId,
-                  now,
-                  decidedBy,
-                )) {
-                  recordDecisionEvent(status, bulkTc, decidedBy, "");
-                }
-              }
-
-              // Recompute pending_approvals — the approved entry
-              // disappears because its approval_action is now set.
-              status.pendingApprovals = projectPendingApprovals(
-                status.phase,
-                status.messages,
-                status.subAgentRuns,
-                status.approvalEventStream,
-                deps.logger,
-              );
-            },
-          );
-        } catch (error) {
-          if (error instanceof ResourceNotFoundError) {
-            throw notFoundError("Run", executionId);
-          }
-          throw internalError(error, "failed to persist approval decision");
-        }
-
-        deps.logger.info(
-          "Recorded approval decision on ToolCall, recomputed pending_approvals",
-          {
-            executionId,
-            toolCallId,
-            action: protoName(ApprovalActionSchema, action),
-            pendingApprovalsRemaining:
-              updated.status?.pendingApprovals.length ?? 0,
-          },
-        );
-
-        deps.broker.broadcast(updated);
-        ctx.set(TARGET_RESOURCE_KEY, updated);
-      },
-    })
-    .addStep({
-      name: "SignalWorkflow",
-      async execute(ctx) {
-        if (ctx.get(IS_IDEMPOTENT_REQUEST_KEY) === true) {
-          deps.logger.debug("Skipping workflow signal for idempotent request");
-          return;
-        }
-
-        const engine = deps.engineState();
-        if (!engine.connected) {
-          // Go's nil-creator arm: the decision persists; the signal is
-          // skipped while no engine is connected.
-          deps.logger.warn(
-            "Workflow creator not available - skipping Temporal signal",
-          );
-          return;
-        }
-
-        const execution = ctx.get(TARGET_RESOURCE_KEY) as Run;
-        const executionId = execution.metadata?.id ?? "";
-        const pendingRemaining = execution.status?.pendingApprovals.length ?? 0;
-
-        // The turn resumes only once every pending approval is decided.
-        // REJECT is not special: it resolves exactly one call, like SKIP.
-        if (execution.status !== undefined && !gateResolved(execution.status)) {
-          deps.logger.info(
-            "Approval recorded, HITL gate not yet resolved — waiting",
-            {
-              executionId,
-              toolCallId: ctx.input.toolCallId,
-              pendingApprovalsRemaining: pendingRemaining,
-            },
-          );
-          return;
-        }
-
-        try {
-          await engine.engine.signalApprovalGateResolved(executionId);
-        } catch (error) {
-          if (error instanceof EngineWorkflowNotFoundError) {
-            deps.logger.warn(
-              "Workflow not found - reconciling stale execution status to FAILED",
-              { executionId },
-            );
-            await reconcileStaleExecution(deps, execution);
-            throw failedPreconditionError(
-              `workflow not running for execution ${executionId} - the backing workflow has terminated unexpectedly and the execution has been marked as failed`,
-            );
-          }
-          throw unavailableError(
-            `failed to signal workflow: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-        deps.logger.info(
-          "Successfully sent approvalGateResolved signal to workflow",
-          { executionId },
-        );
-      },
-    })
-    .addStep({
-      name: "BuildResponse",
-      execute(ctx) {
-        const execution = ctx.get(TARGET_RESOURCE_KEY) as Run;
-        const tc = findToolCallInExecution(execution, ctx.input.toolCallId);
-        deps.logger.info("AUDIT: Approval decision submitted", {
-          executionId: execution.metadata?.id ?? "",
-          org: execution.metadata?.org ?? "",
-          toolCallId: ctx.input.toolCallId,
-          toolName: tc?.name ?? "unknown",
-          action: protoName(ApprovalActionSchema, ctx.input.action),
-          decidedBy: ctx.callerIdentity.identityId,
-          comment: ctx.input.comment,
-        });
-      },
-    })
-    .build()
-    .execute(reqCtx);
-
-  return reqCtx.get(TARGET_RESOURCE_KEY) as Run;
+  await builder.build().execute(reqCtx);
+  return answerOutcomeOf(reqCtx).run;
 }
 
-/**
- * Terminalizes an execution stuck in WAITING_FOR_APPROVAL because the
- * backing workflow no longer runs (Go reconcileStaleExecution).
- * Best-effort: a failed persist is logged and the caller still surfaces
- * the WorkflowNotFound refusal. The approval-event ledger is preserved
- * verbatim for the audit trail; pending_approvals is deliberately left
- * empty (a FAILED execution has no actionable approvals). Whole-resource
- * save is intentional: this writes a TERMINAL state with no live appender
- * racing the stream.
- */
-async function reconcileStaleExecution(
-  deps: SubmitApprovalDeps,
-  execution: Run,
-): Promise<void> {
-  const executionId = execution.metadata?.id ?? "";
-
-  const reconciled = create(RunSchema, {
-    apiVersion: execution.apiVersion,
-    kind: execution.kind,
-    metadata: execution.metadata,
-    spec: execution.spec,
-    status: {
-      phase: RunPhase.RUN_FAILED,
-      error:
-        "Workflow backing this execution is no longer running. Execution has been marked as failed.",
-      messages: execution.status?.messages ?? [],
-      audit: execution.status?.audit,
-      approvalEventStream: execution.status?.approvalEventStream,
-    },
-  });
-
-  // A system message explaining what happened.
-  reconciled.status?.messages.push(
-    create(AgentMessageSchema, {
-      type: MessageType.MESSAGE_SYSTEM,
-      content:
-        "The workflow backing this execution is no longer running. This can happen due to infrastructure issues or manual termination. The execution has been marked as failed.",
-    }),
-  );
-
-  // The gated call that brought the user here — plus any other in-flight
-  // call — is still non-terminal; this write terminalizes the execution,
-  // so settle them (issue #207).
-  settleInterruptedToolCalls(
-    reconciled.status,
-    new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
-  );
-
-  try {
-    // The whole-resource save stays; the session's events come from the
-    // committed row, not the copy this reconcile started from.
-    await overwriteRunAppendingEvents(deps, reconciled);
-  } catch (error) {
-    deps.logger.error(
-      "Failed to reconcile stale execution status - execution will remain in WAITING_FOR_APPROVAL until next attempt",
-      {
-        executionId,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    );
-    return;
+/** The session answer an approval decision is. */
+function answerRequestOf(run: Run, input: SubmitApprovalInput): AnswerRequest {
+  const toolUseId = toolUseEventId(input.runId, input.toolCallId);
+  const sessionId = sessionIdOfRun(run);
+  switch (input.action) {
+    case ApprovalAction.APPROVE:
+      return { sessionId, toolUseId, result: "allow", denyMessage: "", grant: false };
+    case ApprovalAction.APPROVE_ALL:
+      return { sessionId, toolUseId, result: "allow", denyMessage: "", grant: true };
+    case ApprovalAction.SKIP:
+    case ApprovalAction.REJECT:
+      return { sessionId, toolUseId, result: "deny", denyMessage: input.comment, grant: false };
+    /* v8 ignore next 4 -- @preserve: ValidateProto admits only the four defined actions */
+    default:
+      throw invalidArgumentError(
+        `action ${enumToJson(ApprovalActionSchema, input.action) as string} is not an answer`,
+      );
   }
-
-  deps.logger.info("RECONCILIATION: Updated stale execution status to FAILED", {
-    executionId,
-  });
-
-  // Notify site 4 of 4 (status-observers.ts): the reconcile's →FAILED stamp
-  // is a persisted terminal transition.
-  await notifyStatusObservers(
-    deps,
-    reconciled,
-    execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED,
-    RunPhase.RUN_FAILED,
-  );
-}
-
-/**
- * The gate-resolving half of an APPROVE_ALL decision, SCOPED to the
- * clicked tool's lease class (Go bulkApproveCoPendingToolCalls): every
- * co-pending call (still WAITING_APPROVAL, no decision) of the SAME lease
- * scope is set to a plain APPROVE (the audit trail stays unambiguous —
- * exactly one tool carries APPROVE_ALL, the user's escalation point);
- * calls of a DIFFERENT class stay WAITING_APPROVAL so the gate keeps
- * waiting for them. Returns the calls it approved so the caller authors a
- * decision event for each.
- */
-export function bulkApproveCoPendingToolCalls(
-  execution: Run,
-  clickedToolCallId: string,
-  decidedAt: string,
-  decidedBy: string,
-): ToolCall[] {
-  const clicked = findToolCallInExecution(execution, clickedToolCallId);
-  if (clicked === undefined) {
-    return [];
-  }
-  const clickedScope = deriveLeaseScope(clicked);
-  if (clickedScope === undefined) {
-    // The clicked tool has no leasable scope (an unknown/ungated name
-    // that somehow carried APPROVE_ALL). Nothing else can match it.
-    // Defensive — a gated tool always has a scope.
-    return [];
-  }
-
-  const approved: ToolCall[] = [];
-  const approveIfWaitingInScope = (tc: ToolCall): void => {
-    if (tc.id === clickedToolCallId) {
-      return;
-    }
-    if (tc.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) {
-      return;
-    }
-    if (tc.approvalAction !== ApprovalAction.UNSPECIFIED) {
-      return;
-    }
-    const scope = deriveLeaseScope(tc);
-    if (scope === undefined || !sameLeaseScope(scope, clickedScope)) {
-      return;
-    }
-    tc.approvalAction = ApprovalAction.APPROVE;
-    tc.approvalDecidedAt = decidedAt;
-    tc.approvedBy = decidedBy;
-    approved.push(tc);
-  };
-
-  for (const msg of execution.status?.messages ?? []) {
-    for (const tc of msg.toolCalls) {
-      approveIfWaitingInScope(tc);
-    }
-  }
-  for (const sa of execution.status?.subAgentRuns ?? []) {
-    for (const msg of sa.messages) {
-      for (const tc of msg.toolCalls) {
-        approveIfWaitingInScope(tc);
-      }
-    }
-  }
-  return approved;
 }
 
 /**
@@ -564,12 +174,4 @@ export function findToolCallInExecution(
     }
   }
   return undefined;
-}
-
-/** The full proto enum value name — Go's .String() rendering. */
-function protoName(
-  schema: Parameters<typeof enumToJson>[0],
-  value: number,
-): string {
-  return enumToJson(schema, value) as string;
 }

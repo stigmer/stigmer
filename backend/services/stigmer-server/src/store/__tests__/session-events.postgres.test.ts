@@ -12,7 +12,10 @@
  * pod runs while a roll overlaps it with the new one. The rows it writes
  * are unproven for the new store, so the working count and a row's
  * session are read from their bytes, and their stale key rows are not
- * believed.
+ * believed. And a log written before the gate columns existed (the asks a
+ * runner wrote before the server derived gates): the next store opened
+ * with the server's gate declaration derives them, so a turn that waits on
+ * such an ask still reads it as open.
  */
 import { create } from "@bufbuild/protobuf";
 import { afterAll, describe, expect, it } from "vitest";
@@ -22,6 +25,9 @@ import { RunPhase } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { LIST_INDEXES } from "../../boot/list-indexes.js";
+import { STORE_OPEN_OPTIONS } from "../../boot/store-options.js";
+import { draftOf } from "../../domain/session/events/codec.js";
+import { SessionEventSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
 import { SqliteStore } from "../sqlite/store.js";
 
 import type { Store, StoreOpenOptions } from "../interface.js";
@@ -46,7 +52,9 @@ const CONTRACT_CASE_NAMES = [
   "a resource write commits the row with its events and hands the writer the committed row",
   "a resource write that throws commits neither the row nor its events",
   "the working count is the session's other working rows: not the row itself, not another session's, not a stopped one",
-  "the writer is handed the type of the session's newest state event, read under the lock",
+  "the writer is handed the session's other waiting rows, and the open gates of those rows and of the written row, in log order",
+  "a writer whose scope names no waiting key is handed no waiting rows and no gates",
+  "the writer is handed the session's newest state event and its type, read under the lock",
   "the writer is handed the run of the session's newest event of a type only when its scope asks, and none when the session has no such event",
   "the run handed is the newest of several events of the type, not the newest event's",
   "writers of one session run one after the other, each counting what the other committed",
@@ -64,6 +72,11 @@ interface DriverFixture {
   open(options: StoreOpenOptions): Promise<{ store: Store; close(): Promise<void> }>;
   /** The new binary's store and an older one's (no list indexes) on one database. */
   openPair(): Promise<{ store: Store; old: Store; close(): Promise<void> }>;
+  /**
+   * A store that derives no gates (an older binary's), and the server's own
+   * opened later on the same database.
+   */
+  openUpgrade(): Promise<{ old: Store; reopen(): Promise<Store>; close(): Promise<void> }>;
 }
 
 const sqliteFixture: DriverFixture = {
@@ -81,6 +94,22 @@ const sqliteFixture: DriverFixture = {
       old,
       close: async () => {
         await old.close();
+        await temp.cleanup();
+      },
+    };
+  },
+  async openUpgrade() {
+    const temp = tempStore({ listIndexes: LIST_INDEXES });
+    let upgraded: Store | undefined;
+    return {
+      old: temp.store,
+      async reopen() {
+        await temp.store.close();
+        upgraded = SqliteStore.open(temp.dbPath, undefined, STORE_OPEN_OPTIONS);
+        return upgraded;
+      },
+      close: async () => {
+        await upgraded?.close();
         await temp.cleanup();
       },
     };
@@ -106,6 +135,23 @@ const postgresFixture: DriverFixture = {
       close: async () => {
         await old.close();
         await store.close();
+      },
+    };
+  },
+  async openUpgrade() {
+    postgresDatabase ??= await createTestDatabase();
+    const databaseUrl = postgresDatabase.databaseUrl;
+    const old = await PostgresStore.open(databaseUrl, undefined, { listIndexes: LIST_INDEXES });
+    let upgraded: Store | undefined;
+    return {
+      old,
+      async reopen() {
+        upgraded = await PostgresStore.open(databaseUrl, undefined, STORE_OPEN_OPTIONS);
+        return upgraded;
+      },
+      close: async () => {
+        await old.close();
+        await upgraded?.close();
       },
     };
   },
@@ -192,6 +238,51 @@ describe.each([sqliteFixture, postgresFixture])("the session event log ($name)",
           SCOPE,
         );
         expect(result.events[0]?.sessionId).toBe(sessionId);
+      } finally {
+        await close();
+      }
+    });
+
+    it("asks a log held before its gates were derived open their gates at the next open with the declaration", async () => {
+      const { old, reopen, close } = await fixture.openUpgrade();
+      try {
+        const sessionId = `ses_upgrade_${Date.now().toString(36)}_${++counter}`;
+        const waiting = run(sessionId, RunPhase.RUN_WAITING_FOR_APPROVAL);
+        const runId = waiting.metadata!.id;
+        await old.saveResource(ApiResourceKind.run, runId, RunSchema, waiting);
+        const ask = (id: string) =>
+          draftOf(
+            create(SessionEventSchema, {
+              runId,
+              event: { case: "agentToolUse", value: { id, name: "write", input: {}, evaluatedPermission: "ask" } },
+            }),
+          );
+        const result = draftOf(
+          create(SessionEventSchema, {
+            runId,
+            event: { case: "agentToolResult", value: { id: `${runId}.a.r`, toolUseId: `${runId}.a` } },
+          }),
+        );
+        await old.sessionEvents.append(sessionId, "org-pair", [ask(`${runId}.a`), ask(`${runId}.b`), result], {
+          kind: ApiResourceKind.run,
+          id: runId,
+          schema: RunSchema,
+          admit: () => undefined,
+        });
+
+        const store = await reopen();
+        let gates: ReadonlyArray<string> = [];
+        await store.writeResourceAppendingEvents(
+          ApiResourceKind.run,
+          runId,
+          RunSchema,
+          (previous, session) => {
+            gates = session.gates.map((gate) => gate.toolUseId);
+            return { put: previous!, events: [] };
+          },
+          { ...SCOPE, waitingKey: "waiting_session", sessionId },
+        );
+        expect(gates).toEqual([`${runId}.b`]);
       } finally {
         await close();
       }

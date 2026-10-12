@@ -86,14 +86,19 @@ import {
   SessionEventConflictError,
   assertSessionEventLimit,
   dedupeSessionEventDrafts,
+  gatesOfDraft,
+  openGatesOf,
   sameBytes,
   sessionEventInstant,
 } from "../session-events.js";
 import type {
+  OpenSessionEventGate,
   ResourceEventWriteResult,
   ResourceEventWriter,
   SessionEventAppend,
+  SessionEventContext,
   SessionEventDraft,
+  SessionEventGateDeclaration,
   SessionEventGuard,
   SessionEventQuery,
   SessionEventRecord,
@@ -192,17 +197,20 @@ export class SqliteStore implements Store {
   private readonly dbPath: string;
   private readonly logger: StoreLogger;
   private readonly listIndexes: ListIndexRegistry;
+  private readonly gates: SessionEventGateDeclaration | undefined;
 
   private constructor(
     db: DatabaseSync,
     dbPath: string,
     logger: StoreLogger,
     listIndexes: ListIndexRegistry,
+    gates: SessionEventGateDeclaration | undefined,
   ) {
     this.db = db;
     this.dbPath = dbPath;
     this.logger = logger;
     this.listIndexes = listIndexes;
+    this.gates = gates;
     this.bootstrapState = new SqliteBootstrapStateStore(() => this.open());
     this.resourceNames = new SqliteResourceNameStore(() => this.open());
     this.pendingOAuthStates = new SqlitePendingOAuthStateStore(() =>
@@ -216,7 +224,7 @@ export class SqliteStore implements Store {
     this.organizationDeletions = new SqliteOrganizationDeletionStore(() =>
       this.open(),
     );
-    this.sessionEvents = new SqliteSessionEventStore(() => this.open());
+    this.sessionEvents = new SqliteSessionEventStore(() => this.open(), gates);
   }
 
   /**
@@ -252,9 +260,10 @@ export class SqliteStore implements Store {
       throw error;
     }
 
-    const store = new SqliteStore(db, dbPath, logger, listIndexes);
+    const store = new SqliteStore(db, dbPath, logger, listIndexes, options.sessionEventGates);
     try {
       store.reconcileListIndexes();
+      store.reconcileSessionEventGates();
     } catch (error) {
       db.close();
       throw error;
@@ -501,19 +510,34 @@ export class SqliteStore implements Store {
         assertSameSession(kindName, id, sessionId, keyValue(before, scope.sessionKey));
       }
 
-      const outcome = write(
-        previous,
-        sessionId === ""
-          ? { othersWorking: 0, latestStateType: undefined, runOfNewestType: undefined }
-          : {
-              othersWorking: countOthersWorking(db, declaration, id, scope.workingKey, sessionId),
-              latestStateType: latestOfTypes(db, sessionId, scope.stateEventTypes),
-              runOfNewestType:
-                scope.runOfNewestType === undefined
-                  ? undefined
-                  : runOfNewestOfType(db, sessionId, scope.runOfNewestType),
-            },
-      );
+      let context: SessionEventContext = {
+        othersWorking: 0,
+        latestStateType: undefined,
+        latestState: undefined,
+        runOfNewestType: undefined,
+        othersWaiting: [],
+        gates: [],
+      };
+      if (sessionId !== "") {
+        const latestState = latestOfTypes(db, sessionId, scope.stateEventTypes);
+        const othersWaiting =
+          scope.waitingKey === undefined
+            ? []
+            : othersHolding(db, declaration, id, scope.waitingKey, sessionId);
+        context = {
+          othersWorking: othersHolding(db, declaration, id, scope.workingKey, sessionId).length,
+          latestStateType: latestState?.type,
+          latestState,
+          runOfNewestType:
+            scope.runOfNewestType === undefined
+              ? undefined
+              : runOfNewestOfType(db, sessionId, scope.runOfNewestType),
+          othersWaiting,
+          gates:
+            scope.waitingKey === undefined ? [] : openGatesOfRuns(db, sessionId, [...othersWaiting, id]),
+        };
+      }
+      const outcome = write(previous, context);
       if (sessionId === "" && outcome.events.length > 0) {
         throw new Error(`${kindName}/${id} is in no session; it cannot write session events`);
       }
@@ -562,6 +586,7 @@ export class SqliteStore implements Store {
               sessionId,
               org,
               dedupeSessionEventDrafts(sessionId, outcome.events),
+              this.gates,
             );
       db.exec("COMMIT");
       return { previous, row, events };
@@ -791,6 +816,56 @@ export class SqliteStore implements Store {
    * Derives every unproven row of each declared kind and stamps every other
    * kind's unstamped rows, so the unproven set is empty once open returns.
    */
+  /**
+   * Derives the gates of every session event stamped with another revision
+   * than the declaration's (postgres/store.ts's twin), in batches by
+   * (session, seq).
+   */
+  private reconcileSessionEventGates(): void {
+    const gates = this.gates;
+    if (gates === undefined) {
+      return;
+    }
+    const db = this.open();
+    const types = [...gates.types];
+    const placeholders = types.map(() => "?").join(", ");
+    const page = db.prepare(
+      `SELECT session_id, seq, type, data FROM session_events
+       WHERE gate_revision <> ? AND type IN (${placeholders}) AND (session_id, seq) > (?, ?)
+       ORDER BY session_id, seq LIMIT ?`,
+    );
+    const update = db.prepare(
+      `UPDATE session_events SET opens_gate = ?, closes_gate = ?, gate_revision = ?
+       WHERE session_id = ? AND seq = ?`,
+    );
+    let derived = 0;
+    for (let afterSession = "", afterSeq = 0; ; ) {
+      const batch = page.all(gates.revision, ...types, afterSession, afterSeq, RECONCILE_BATCH) as Array<{
+        session_id: string;
+        seq: number;
+        type: string;
+        data: Uint8Array;
+      }>;
+      for (const row of batch) {
+        const derivedGates = gatesOfDraft(gates, row);
+        update.run(derivedGates.opens, derivedGates.closes, gates.revision, row.session_id, row.seq);
+        derived += 1;
+        afterSession = row.session_id;
+        afterSeq = Number(row.seq);
+      }
+      if (batch.length < RECONCILE_BATCH) {
+        break;
+      }
+    }
+    db.prepare(
+      `UPDATE session_events SET opens_gate = '', closes_gate = '', gate_revision = ?
+       WHERE gate_revision <> ? AND type NOT IN (${placeholders})`,
+    ).run(gates.revision, gates.revision, ...types);
+    if (derived > 0) {
+      this.logger.info("session event gates derived", { events: derived });
+    }
+  }
+
   private reconcileListIndexes(): void {
     const db = this.open();
     const declarations = this.listIndexes.declarations();
@@ -2363,24 +2438,24 @@ function storedSessionOf(
 }
 
 /**
- * How many rows other than `id` hold `workingKey` valued `sessionId`
+ * The rows other than `id` that hold `key` valued `sessionId`
  * (postgres/store.ts's twin): the proven rows from the key table alone, no
  * row read, and every unproven row evaluated from its bytes in place of its
  * possibly stale key rows.
  */
-function countOthersWorking(
+function othersHolding(
   db: DatabaseSync,
   declaration: ListIndexDeclaration,
   id: string,
-  workingKey: string,
+  key: string,
   sessionId: string,
-): number {
+): string[] {
   const kindName = apiResourceKindName(declaration.kind);
   const keyed = db
     .prepare(
       `SELECT id FROM resource_list_keys WHERE kind = ? AND key = ? AND value = ? AND id <> ?`,
     )
-    .all(kindName, workingKey, sessionId, id) as Array<{ id: string }>;
+    .all(kindName, key, sessionId, id) as Array<{ id: string }>;
   const unproven = oneRowPerId(
     db
       .prepare(UNPROVEN_ROWS_SQL)
@@ -2390,33 +2465,66 @@ function countOthersWorking(
     }>,
   );
   const unprovenIds = new Set(unproven.map((row) => row.id));
-  let count = keyed.filter((row) => !unprovenIds.has(row.id)).length;
+  const holding = keyed.map((row) => row.id).filter((rowId) => !unprovenIds.has(rowId));
   for (const row of unproven) {
     const facts = row.id === id ? undefined : factsOfBytes(declaration, row.data);
-    if (facts !== undefined && keyValue(facts, workingKey) === sessionId) {
-      count += 1;
+    if (facts !== undefined && keyValue(facts, key) === sessionId) {
+      holding.push(row.id);
     }
   }
-  return count;
+  return holding.sort();
 }
 
-/** The type of the session's newest event among `types` (postgres/store.ts's twin). */
+/** The session's newest event among `types` (postgres/store.ts's twin). */
 function latestOfTypes(
   db: DatabaseSync,
   sessionId: string,
   types: ReadonlyArray<string>,
-): string | undefined {
+): SessionEventRecord | undefined {
   const newestOf = db.prepare(
-    `SELECT seq FROM session_events WHERE session_id = ? AND type = ? ORDER BY seq DESC LIMIT 1`,
+    `SELECT ${SESSION_EVENT_COLUMNS} FROM session_events
+     WHERE session_id = ? AND type = ? ORDER BY seq DESC LIMIT 1`,
   );
-  let newest: { readonly seq: number; readonly type: string } | undefined;
+  let newest: SessionEventRecord | undefined;
   for (const type of types) {
-    const row = newestOf.get(sessionId, type) as { seq: number } | undefined;
+    const row = newestOf.get(sessionId, type) as SessionEventRow | undefined;
     if (row !== undefined && (newest === undefined || Number(row.seq) > newest.seq)) {
-      newest = { seq: Number(row.seq), type };
+      newest = sessionEventOf(row);
     }
   }
-  return newest?.type;
+  return newest;
+}
+
+/** The open gates of `runIds` in a session, in log order (postgres/store.ts's twin). */
+function openGatesOfRuns(
+  db: DatabaseSync,
+  sessionId: string,
+  runIds: ReadonlyArray<string>,
+): OpenSessionEventGate[] {
+  if (runIds.length === 0) {
+    return [];
+  }
+  const opened = db
+    .prepare(
+      `SELECT run_id, opens_gate, seq FROM session_events
+       WHERE session_id = ? AND opens_gate <> '' AND run_id IN (${runIds.map(() => "?").join(", ")})`,
+    )
+    .all(sessionId, ...runIds) as Array<{ run_id: string; opens_gate: string; seq: number }>;
+  if (opened.length === 0) {
+    return [];
+  }
+  const closedBy = db.prepare(
+    `SELECT 1 AS one FROM session_events WHERE session_id = ? AND closes_gate = ? LIMIT 1`,
+  );
+  const closed = new Set(
+    opened
+      .map((row) => row.opens_gate)
+      .filter((toolUseId) => closedBy.get(sessionId, toolUseId) !== undefined),
+  );
+  return openGatesOf(
+    opened.map((row) => ({ runId: row.run_id, toolUseId: row.opens_gate, seq: Number(row.seq) })),
+    closed,
+  );
 }
 
 /** The run of the session's newest event of `type`; undefined when it has none. */
@@ -2435,6 +2543,7 @@ function insertSessionEvents(
   sessionId: string,
   org: string,
   drafts: ReadonlyArray<SessionEventDraft>,
+  gates: SessionEventGateDeclaration | undefined,
 ): SessionEventRecord[] {
   if (drafts.length === 0) {
     return [];
@@ -2447,11 +2556,13 @@ function insertSessionEvents(
   const processedAt = sessionEventInstant(Date.now(), last?.last_processed_at);
   let seq = last === undefined ? 0 : Number(last.last_seq);
   const insert = db.prepare(
-    `INSERT INTO session_events (session_id, seq, event_id, run_id, thread_id, type, org, processed_at, data)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO session_events
+       (session_id, seq, event_id, run_id, thread_id, type, org, processed_at, data, opens_gate, closes_gate, gate_revision)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const records = drafts.map((draft) => {
     seq += 1;
+    const derived = gatesOfDraft(gates, draft);
     insert.run(
       sessionId,
       seq,
@@ -2462,6 +2573,9 @@ function insertSessionEvents(
       org,
       processedAt,
       draft.data,
+      derived.opens,
+      derived.closes,
+      gates?.revision ?? 0,
     );
     return { ...draft, sessionId, seq, processedAt };
   });
@@ -2473,7 +2587,10 @@ function insertSessionEvents(
 }
 
 class SqliteSessionEventStore implements SessionEventStore {
-  constructor(private readonly open: () => DatabaseSync) {}
+  constructor(
+    private readonly open: () => DatabaseSync,
+    private readonly gates: SessionEventGateDeclaration | undefined,
+  ) {}
 
   async list(sessionId: string, query: SessionEventQuery): Promise<SessionEventRecord[]> {
     assertSessionEventLimit(query.limit);
@@ -2552,7 +2669,7 @@ class SqliteSessionEventStore implements SessionEventStore {
           held.set(draft.eventId, sessionEventOf(stored));
         }
       }
-      const appended = insertSessionEvents(db, sessionId, org, fresh);
+      const appended = insertSessionEvents(db, sessionId, org, fresh, this.gates);
       db.exec("COMMIT");
       const byId = new Map(appended.map((record) => [record.eventId, record]));
       return {

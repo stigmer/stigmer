@@ -414,6 +414,7 @@ function deletedBeforeWriteStore(
     getResource: () => Promise.resolve(create(RunSchema, run)),
     updateResource: () => Promise.reject(MISSING()),
     writeResourceAppendingEvents: () => Promise.reject(MISSING()),
+    sessionEvents: { list: () => Promise.resolve([]) },
   } as unknown as Store;
 }
 

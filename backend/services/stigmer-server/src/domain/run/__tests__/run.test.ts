@@ -50,7 +50,6 @@ import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
 import {
   ApprovalAction,
-  ApprovalEventType,
   RunPhase,
   FileChangeSetStatus,
   FileDecisionAction,
@@ -92,6 +91,8 @@ import {
 } from "../../organization/__tests__/support.js";
 import type { OrganizationIds } from "../../organization/__tests__/support.js";
 import { namingSaves } from "../../../store/__tests__/named-saves.js";
+import { eventOf } from "../../session/events/codec.js";
+import { appendAsks } from "../../session/hitl/__tests__/asks.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -232,7 +233,27 @@ async function seed(
     RunSchema,
     create(RunSchema, init),
   );
+  // A waiting row's ask is in its session's log, as the runner writes it.
+  await appendAsks(server.store, init.metadata.id);
   return init.metadata.id;
+}
+
+/** The answers recorded in a run's session log, as `<tool use>:<result>[:<deny message>]`. */
+async function answersOf(runId: string): Promise<string[]> {
+  const run = await query.get({ value: runId });
+  const sessionId = run.spec?.target.case === "sessionId" ? run.spec.target.value : "";
+  const records = await server.store.sessionEvents.list(sessionId, {
+    order: "asc",
+    runId,
+    types: ["user.tool_confirmation"],
+    limit: 100,
+  });
+  return records.map((record) => {
+    const event = eventOf(record).event;
+    return event.case === "userToolConfirmation"
+      ? [event.value.toolUseId, event.value.result, ...(event.value.denyMessage === "" ? [] : [event.value.denyMessage])].join(":")
+      : "";
+  });
 }
 
 async function expectCode(
@@ -1120,7 +1141,7 @@ describe("updateStatus over the wire (the broker's write path)", () => {
 });
 
 describe("submitApproval over the wire (submit_approval_contract_test.go arms)", () => {
-  it("records the decision, empties the gate, and authors the event pair", async () => {
+  it("records the decision, empties the gate, and answers the tool use in the session's log", async () => {
     const init = gatedSeed();
     const id = await seed(init);
 
@@ -1135,30 +1156,22 @@ describe("submitApproval over the wire (submit_approval_contract_test.go arms)",
     expect(tc?.approvalAction).toBe(ApprovalAction.APPROVE);
     expect(tc?.approvalDecidedAt).not.toBe("");
     expect(result.status?.pendingApprovals).toHaveLength(0);
-
-    // The append-only stream carries exactly one REQUESTED + one APPROVED,
-    // the decision with the user's comment.
-    const events = result.status?.approvalEventStream?.events ?? [];
-    const mine = events.filter((ev) => ev.approvalRequestId === "tc-1");
-    expect(mine.map((ev) => ev.eventType).sort()).toEqual(
-      [ApprovalEventType.REQUESTED, ApprovalEventType.APPROVED].sort(),
-    );
-    const decided = mine.find(
-      (ev) => ev.eventType === ApprovalEventType.APPROVED,
-    );
-    expect(
-      decided?.payload.case === "decided" ? decided.payload.value.comment : "",
-    ).toBe("go ahead");
+    expect(await answersOf(id)).toEqual([`${id}.tc-1:allow`]);
 
     // A tokenless laptop request is decided by the trusted-local operator,
     // recorded exactly as its audit actor is (#1385).
-    const operator = trustedLocalIdentity().identityId;
-    expect(tc?.approvedBy).toBe(operator);
-    expect(
-      decided?.payload.case === "decided"
-        ? decided.payload.value.decidedBy
-        : "",
-    ).toBe(operator);
+    expect(tc?.approvedBy).toBe(trustedLocalIdentity().identityId);
+  });
+
+  it("a SKIP or REJECT is a deny whose comment the agent reads", async () => {
+    const id = await seed(gatedSeed());
+    await command.submitApproval({
+      runId: id,
+      toolCallId: "tc-1",
+      action: ApprovalAction.REJECT,
+      comment: "use make clean instead",
+    });
+    expect(await answersOf(id)).toEqual([`${id}.tc-1:deny:use make clean instead`]);
   });
 
   it("is idempotent for a repeated identical submit and refuses a conflicting change", async () => {
@@ -1169,22 +1182,24 @@ describe("submitApproval over the wire (submit_approval_contract_test.go arms)",
       toolCallId: "tc-1",
       action: ApprovalAction.SKIP,
     });
-    // Same action again: a no-op answering current state.
+    // The same answer again (SKIP and REJECT are both a deny): a no-op
+    // answering current state.
     const repeat = await command.submitApproval({
       runId: id,
       toolCallId: "tc-1",
-      action: ApprovalAction.SKIP,
+      action: ApprovalAction.REJECT,
     });
     expect(repeat.status?.messages[0]?.toolCalls[0]?.approvalAction).toBe(
-      ApprovalAction.SKIP,
+      ApprovalAction.REJECT,
     );
-    // A different action on a decided call refuses.
+    expect(await answersOf(id)).toEqual([`${id}.tc-1:deny`]);
+    // A different answer on an answered call refuses.
     await expectCode(
       () =>
         command.submitApproval({
           runId: id,
           toolCallId: "tc-1",
-          action: ApprovalAction.REJECT,
+          action: ApprovalAction.APPROVE,
         }),
       Code.FailedPrecondition,
     );
@@ -1268,7 +1283,7 @@ describe("submitApproval over the wire (submit_approval_contract_test.go arms)",
       apiVersion: API_VERSION,
       kind: KIND,
       metadata: { id, name: slug, slug, org: ORG_ID },
-      spec: { message: "Say hello." },
+      spec: { target: { case: "sessionId", value: `ses_${id}` }, message: "Say hello." },
       status: {
         phase: RunPhase.RUN_WAITING_FOR_APPROVAL,
         messages: [
@@ -1350,7 +1365,7 @@ describe("submitApproval over the wire (submit_approval_contract_test.go arms)",
     ).toBe(ApprovalAction.APPROVE_ALL);
   });
 
-  it("a racing heartbeat never clobbers the decision, and REQUESTED never duplicates", async () => {
+  it("a racing heartbeat never clobbers the decision, and the answer is recorded once", async () => {
     // The designed overlap window (update_status_concurrency_test.go):
     // both paths persist via the lock-serialized atomic updateResource.
     for (let i = 0; i < 20; i++) {
@@ -1387,17 +1402,7 @@ describe("submitApproval over the wire (submit_approval_contract_test.go arms)",
       expect(tc?.approvalAction, `iteration ${i}: decision lost`).toBe(
         ApprovalAction.APPROVE,
       );
-      const events = (final.status?.approvalEventStream?.events ?? []).filter(
-        (ev) => ev.approvalRequestId === "tc-1",
-      );
-      expect(
-        events.filter((ev) => ev.eventType === ApprovalEventType.REQUESTED),
-        `iteration ${i}: REQUESTED duplicated`,
-      ).toHaveLength(1);
-      expect(
-        events.filter((ev) => ev.eventType === ApprovalEventType.APPROVED),
-        `iteration ${i}: decision event lost`,
-      ).toHaveLength(1);
+      expect(await answersOf(id), `iteration ${i}: answer lost or doubled`).toEqual([`${id}.tc-1:allow`]);
     }
   });
 });
@@ -1531,11 +1536,9 @@ describe("the engine-connected signal arms (stubbed engine, direct calls)", () =
       .flatMap((m) => m.toolCalls)
       .find((c) => c.id === "tc-1");
     expect(tc?.status).toBe(ToolCallStatus.TOOL_CALL_INTERRUPTED);
-    // The ledger is preserved for the audit trail; the projection is empty
+    // The answer stays in the session's log; the projection is empty
     // (terminal).
-    expect(
-      (final.status?.approvalEventStream?.events ?? []).length,
-    ).toBeGreaterThan(0);
+    expect(await answersOf(id)).toEqual([`${id}.tc-1:allow`]);
     expect(final.status?.pendingApprovals).toHaveLength(0);
   });
 
@@ -1601,20 +1604,7 @@ describe("the decider is the authorized caller (direct calls, #1385)", () => {
     };
   }
 
-  function decidedByOf(
-    execution: Run,
-    toolCallId: string,
-  ): string | undefined {
-    const event = (execution.status?.approvalEventStream?.events ?? []).find(
-      (ev) =>
-        ev.approvalRequestId === toolCallId && ev.payload.case === "decided",
-    );
-    return event?.payload.case === "decided"
-      ? event.payload.value.decidedBy
-      : undefined;
-  }
-
-  it("an APPROVE records the caller on the tool call and its decision event", async () => {
+  it("an APPROVE records the caller on the tool call", async () => {
     const id = await seed(gatedSeed());
 
     const result = await submitApproval(
@@ -1630,7 +1620,6 @@ describe("the decider is the authorized caller (direct calls, #1385)", () => {
     expect(result.status?.messages[0]?.toolCalls[0]?.approvedBy).toBe(
       "usr_decider",
     );
-    expect(decidedByOf(result, "tc-1")).toBe("usr_decider");
   });
 
   it("APPROVE_ALL records the caller on the clicked call and every co-pending call it settles", async () => {
@@ -1659,8 +1648,8 @@ describe("the decider is the authorized caller (direct calls, #1385)", () => {
     );
     for (const settled of ["tc-shell-1", "tc-shell-2"]) {
       expect(byId.get(settled)?.approvedBy, settled).toBe("usr_decider");
-      expect(decidedByOf(result, settled), settled).toBe("usr_decider");
     }
+    expect(await answersOf(id)).toEqual([`${id}.tc-shell-1:allow`, `${id}.tc-shell-2:allow`]);
     // The call of another lease class is undecided, so nobody is recorded.
     expect(byId.get("tc-write")?.approvedBy).toBe("");
   });
