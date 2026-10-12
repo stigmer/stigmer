@@ -38,7 +38,13 @@
  * loaded_versions is the one field merged by union rather than replaced:
  * every attempt of a turn resolves its skills and plugins again, so a turn
  * resumed after a pause may load a newer version than it started on, and a
- * run that ran two versions of one skill must say both.
+ * run that ran two versions of one skill must say both. Its entries are
+ * admitted first (AdmitLoadedVersions): updateStatus is open to whoever
+ * may edit the run, not only the runner, and every read names each stored
+ * entry with its target's current slug, so an entry the reference rule
+ * would refuse from the run's organization (another organization's
+ * resource, a parent's not shared with its children, an id nothing holds)
+ * is dropped, never stored and never named.
  *
  * Broadcast rides in-memory channels.
  */
@@ -81,6 +87,11 @@ import type { CallerIdentity } from "../../extensions/identity.js";
 import { isServerComposedRequest } from "../../extensions/identity.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import {
+  checkReference,
+  loadReferenceTargets,
+  type SpecReference,
+} from "../../pipeline/steps/references.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
@@ -163,6 +174,12 @@ export async function updateStatus(
         if (ctx.input.status === undefined) {
           throw invalidArgumentError("status is required");
         }
+      },
+    })
+    .addStep({
+      name: "AdmitLoadedVersions",
+      async execute(ctx) {
+        await admitLoadedVersions(deps.store, ctx.input, deps.logger);
       },
     })
     .addStep({
@@ -698,4 +715,73 @@ function unionReferences(
     );
   }
   return merged;
+}
+
+/**
+ * Keeps, in a write's loaded_versions, only the entries the run may hold:
+ * those it holds already, and new ones the reference rule admits from the
+ * run's organization (`checkReference`: a resource of its own organization
+ * that exists, or one its parent shares with child organizations). Each new
+ * target is read once; a write that adds nothing new reads nothing but the
+ * run. The floor clause does not apply: the run did load what it lists, and
+ * the floor guards what a spec exposes. A dropped entry is logged, never
+ * refused, so a skill deleted mid-turn cannot fail the turn's later writes.
+ */
+export async function admitLoadedVersions(
+  store: Store,
+  input: RunUpdateStatusInput,
+  logger: Logger,
+): Promise<void> {
+  const loaded = input.status?.loadedVersions;
+  if (loaded === undefined || (loaded.skills.length === 0 && loaded.plugins.length === 0)) {
+    return;
+  }
+  let run: Run;
+  try {
+    run = await store.getResource(ApiResourceKind.run, input.runId, RunSchema);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      // The merge answers NotFound for the same read.
+      return;
+    }
+    throw internalError(error, "failed to read the run");
+  }
+  const runOrg = run.metadata?.org ?? "";
+  const held = new Set(
+    [...(run.status?.loadedVersions?.skills ?? []), ...(run.status?.loadedVersions?.plugins ?? [])].map(
+      (ref) => `${ref.id}@${ref.version}`,
+    ),
+  );
+  const lists = [
+    [ApiResourceKind.skill, loaded.skills],
+    [ApiResourceKind.plugin, loaded.plugins],
+  ] as const;
+  const fresh: SpecReference[] = lists.flatMap(([kind, refs]) =>
+    refs
+      .filter((ref) => !held.has(`${ref.id}@${ref.version}`))
+      .map((ref) => ({ kind, org: ref.org, id: ref.id, slug: "" })),
+  );
+  if (fresh.length === 0) {
+    return;
+  }
+  const targets = await loadReferenceTargets(store, fresh, runOrg);
+  const parent = { org: runOrg, visibility: run.metadata?.visibility ?? 0 };
+  const admits = (kind: ApiResourceKind, ref: ApiResourceReference): boolean => {
+    if (held.has(`${ref.id}@${ref.version}`)) {
+      return true;
+    }
+    const verdict = checkReference(targets, parent, { kind, org: ref.org, id: ref.id, slug: "" });
+    if (verdict.kind === "ok" || verdict.kind === "below-floor") {
+      return true;
+    }
+    logger.warn("Dropped a loaded version the run's organization may not reference", {
+      executionId: input.runId,
+      kind: ApiResourceKind[kind],
+      id: ref.id,
+      verdict: verdict.kind,
+    });
+    return false;
+  };
+  loaded.skills = loaded.skills.filter((ref) => admits(ApiResourceKind.skill, ref));
+  loaded.plugins = loaded.plugins.filter((ref) => admits(ApiResourceKind.plugin, ref));
 }

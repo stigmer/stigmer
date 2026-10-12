@@ -22,7 +22,12 @@
  *     echo of a stored one passes);
  *   - the populated getRunSummary arm (phase counts, active count,
  *     avg duration, failure ranks) that the zero-record conformance arm
- *     cannot reach.
+ *     cannot reach;
+ *   - what a run loaded (status.loaded_versions) admits only what the
+ *     reference rule admits from the run's organization: a status write
+ *     naming another organization's skill, or an id nothing holds, stores
+ *     none of it, so no read names it; its own organization's skill is
+ *     stored and named.
  */
 import { newPermissiveSingleTeamAuthorizer } from "../../../pipeline/steps/authorize.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
@@ -39,6 +44,7 @@ import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/protos/ai/stigmer/agentic/run/v1/command_pb";
@@ -475,6 +481,43 @@ describe("get / list / listBySession over the wire", () => {
     expect(new Set(result.entries.map((e) => e.metadata!.id))).toEqual(ids);
     expect(result.nextPageToken).toBe("");
     expect(result.totalPages).toBe(1);
+  });
+});
+
+describe("what a run loaded (loaded_versions) over the wire", () => {
+  async function seedSkill(id: string, org: string, slug: string): Promise<void> {
+    await namingSaves(server.store).saveResource(
+      ApiResourceKind.skill,
+      id,
+      SkillSchema,
+      create(SkillSchema, { metadata: { id, org, slug, name: slug }, spec: { name: slug, skillMd: "# s" } }),
+    );
+  }
+
+  it("stores and names its own organization's skill, and drops another organization's and an id nothing holds", async () => {
+    const id = await seed(seedInput());
+    await seedSkill("skl_loaded_own", ORG_ID, "loaded-own");
+    await seedSkill("skl_loaded_theirs", idOf("other-org"), "loaded-theirs");
+    const version = "1".repeat(64);
+
+    await command.updateStatus({
+      runId: id,
+      status: {
+        phase: RunPhase.RUN_IN_PROGRESS,
+        loadedVersions: {
+          skills: [
+            { org: ORG_ID, kind: ApiResourceKind.skill, id: "skl_loaded_own", version },
+            { org: idOf("other-org"), kind: ApiResourceKind.skill, id: "skl_loaded_theirs", version },
+            { org: ORG_ID, kind: ApiResourceKind.skill, id: "skl_loaded_nothing", version },
+          ],
+        },
+      },
+    });
+
+    const read = await query.get({ value: id });
+    expect(read.status?.loadedVersions?.skills.map((r) => [r.org, r.id, r.slug])).toEqual([
+      [ORG_ID, "skl_loaded_own", "loaded-own"],
+    ]);
   });
 });
 
