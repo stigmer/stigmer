@@ -26,9 +26,17 @@
  * identifies no registration.
  */
 
-/** OIDC Discovery 1.0 §4: the issuer, without its trailing slashes, plus the well-known path. */
+/**
+ * OIDC Discovery 1.0 §4: the issuer, without its trailing slashes, plus the
+ * well-known path. The slashes are trimmed by a scan from the end, never a
+ * pattern: a provider's issuer is written by an organization admin, and a
+ * pattern that backtracks over a run of slashes costs the square of its
+ * length.
+ */
 export function discoveryUrl(issuer: string): string {
-  return `${issuer.replace(/\/+$/, "")}/.well-known/openid-configuration`;
+  let end = issuer.length;
+  while (end > 0 && issuer[end - 1] === "/") end -= 1;
+  return `${issuer.slice(0, end)}/.well-known/openid-configuration`;
 }
 
 /** The facts a discovery document gives a lane. */

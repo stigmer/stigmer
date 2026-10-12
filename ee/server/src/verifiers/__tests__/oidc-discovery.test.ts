@@ -30,6 +30,17 @@ describe("discoveryUrl", () => {
       "https://login.example.test/oauth2/default/.well-known/openid-configuration",
     );
     expect(discoveryUrl(ISSUER)).toBe(URL_OF);
+    expect(discoveryUrl("https://idp.example.test///")).toBe(URL_OF);
+  });
+
+  it("reads an issuer with a long run of slashes inside it in linear time", () => {
+    // A provider's issuer is written by an organization admin. A pattern that
+    // backtracks over a run of slashes not at the end would cost the square
+    // of its length; the contract's 2048-character bound only caps the cost.
+    const issuer = `https://idp.example.test/${"/".repeat(50_000)}x`;
+    const started = performance.now();
+    expect(discoveryUrl(issuer)).toBe(`${issuer}/.well-known/openid-configuration`);
+    expect(performance.now() - started).toBeLessThan(250);
   });
 });
 

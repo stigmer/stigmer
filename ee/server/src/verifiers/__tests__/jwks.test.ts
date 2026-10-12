@@ -192,7 +192,7 @@ describe("newJwksKeyCache", () => {
     const a = servedJwks([rsaJwk("a1")]);
     const cache = newJwksKeyCache({
       fetchImpl: ((input: string | URL | Request) =>
-        String(input).startsWith("https://a.test")
+        new URL(String(input)).host === "a.test"
           ? a.fetchImpl(input)
           : Promise.resolve(
               new Response(JSON.stringify({ keys: [rsaJwk("b1")] })),
