@@ -510,14 +510,14 @@ function useProviderKeyActions(): UseProviderKeyActionsReturn
     error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
     isSubmitting: { type: "boolean", description: "`true` while a save or a removal is in flight." },
     removeKey: { type: "(org: string, provider: ProviderKeyProvider) => Promise<ProviderKey>", description: "Remove the organization's key for a provider." },
-    setKey: { type: "(org: string, provider: ProviderKeyProvider, apiKey: string, baseUrl?: string) => Promise<ProviderKey>", description: "Save the organization's key for a provider, replacing any it holds, optionally against an own endpoint (`baseUrl`: an `https` URL as the provider's SDK takes it; omitted or empty for the provider's own API). The provider (or the endpoint) is asked about the key once first, and a key it rejects is refused, as is an endpoint that is not `https` or not on a public address. Resolves with the saved key, without its secret." },
+    setKey: { type: "(org: string, provider: ProviderKeyProvider, apiKey: string, baseUrl?: string) => Promise<ProviderKey>", description: "Save the organization's key for a provider, replacing any it holds, optionally against an own endpoint (`baseUrl`: an `https` URL as the provider's SDK takes it; omitted or empty for the provider's own API, and always omitted for `cursor`, which the contract refuses one for). The provider (or the endpoint) is asked about the key once first, and a key it rejects is refused, as is an endpoint that is not `https` or not on a public address. Resolves with the saved key, without its secret." },
   }}
 />
 
 
 ### useProviderKeys
 
-Data hook that lists an organization's own LLM provider keys.
+Data hook that lists an organization's own provider keys.
 
 No answer carries a key: each row names the provider, the key's last
 four characters, the endpoint it is used against (`baseUrl`, empty for
@@ -940,8 +940,8 @@ an edition that serves no subscriptions.
 
 ### ProviderKeyNotice
 
-Says a run was not started because the organization has no key for its
-model's provider, and where an admin adds one, in place of a bare
+Says a run was not started because the organization has no key for the
+provider it needs, and where an admin adds one, in place of a bare
 refusal.
 
 **Props** — `ProviderKeyNoticeProps`
@@ -949,7 +949,7 @@ refusal.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names." },
-    error: { type: "Error", description: "The refusal: its message is the server's own copy, naming the provider and the model.", required: true },
+    error: { type: "Error", description: "The refusal: its message is the server's own copy, naming the provider, and the model when the run names one.", required: true },
     providerKeysHref: { type: "string", description: "Where the provider keys page is, in the host's routing. Defaults to DEFAULT_PROVIDER_KEYS_HREF." },
   }}
 />
@@ -961,14 +961,16 @@ if (providerKeyRequired(error) !== null) return <ProviderKeyNotice error={error}
 
 ### ProviderKeysSection
 
-Settings section for an organization's own LLM provider keys.
+Settings section for an organization's own provider keys.
 
 On Stigmer Cloud every model call runs on a key the organization owns, on
 every plan: an admin saves an Anthropic or OpenAI key, optionally against
 the organization's own Anthropic- or OpenAI-compatible endpoint (a company
-gateway, a model server it runs), and its agents run on it. The provider
-bills the organization directly. A run whose model needs a provider with
-no key is refused until one is added. A saved key is never shown again,
+gateway, a model server it runs), and a Cursor key (a user API key or a
+team service-account key, always on Cursor's own hosts) for the agents
+that run on Cursor; its agents run on them. The provider bills the
+organization directly. A run that needs a provider with no key is refused
+until one is added. A saved key is never shown again,
 only its last four characters. A child organization is served by its
 parent's key for a provider it holds none of, shown read-only.
 
@@ -1221,15 +1223,18 @@ function planUpgradeFeature(error: unknown): Feature | null
 
 ### PROVIDER_KEY_REQUIRED
 
-The reason Stigmer Cloud refuses a run whose model needs a provider the
-organization holds no key for (billing/providerkey/v1/api.proto).
+The reason Stigmer Cloud refuses a run that needs a provider the
+organization holds no key for: its model's, or Cursor for a run on the
+Cursor harness (billing/providerkey/v1/api.proto).
 
 
 ### ProviderKeyProvider
 
-The providers an organization holds a key for, by their wire names. Each
-names a wire protocol: `anthropic` is Anthropic's API or any endpoint that
-speaks it, `openai` is OpenAI's or any endpoint that speaks it.
+The providers an organization holds a key for, by their wire names.
+`anthropic` is Anthropic's API or any endpoint that speaks it, `openai` is
+OpenAI's or any endpoint that speaks it; `cursor` is a Cursor user API key
+or team service-account key, served from Cursor's own hosts and saved
+without a base URL.
 
 
 ### providerKeyRequired
@@ -1248,9 +1253,9 @@ What a `PROVIDER_KEY_REQUIRED` refusal names.
 
 <TypeTable
   type={{
-    model: { type: "string", description: "The model the run would have used.", required: true },
+    model: { type: "string", description: "The model the run would have used; empty when it names none, as a Cursor run on Auto does.", required: true },
     org: { type: "string", description: "The organization the run was refused in.", required: true },
-    provider: { type: "string", description: "The provider it has no key for: `anthropic` or `openai`.", required: true },
+    provider: { type: "string", description: "The provider it has no key for: `anthropic`, `openai` or `cursor`.", required: true },
   }}
 />
 
