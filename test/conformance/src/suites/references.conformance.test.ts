@@ -22,7 +22,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { makeSlackAgentChannel } from "../support/agentchannels";
 import { makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
-import { makeSchedule } from "../support/schedules";
+import { makeSchedule, targetMissingReason } from "../support/schedules";
 import { makeSession } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
 
@@ -129,7 +129,7 @@ describe("delete and remake: a reference never moves to a newcomer that takes a 
     const fired = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
     expect(fired.outcome).toBe(ScheduleFireOutcome.TARGET_MISSING);
     // The reason names the organization by the id the reference holds.
-    expect(fired.refusalReason).toBe(`target agent ${schedule.metadata!.org}/${before.id} not found`);
+    expect(fired.refusalReason).toBe(targetMissingReason(schedule.metadata!.org, before.id));
     expect(fired.runId).toBe("");
   });
 

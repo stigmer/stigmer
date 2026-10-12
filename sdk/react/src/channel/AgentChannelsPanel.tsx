@@ -475,12 +475,13 @@ function ChannelCard({
   // channel's serving app, read as "deleted channel app", never as the
   // platform app an absent reference means.
   const servingAppSlug = channel.spec?.appRef?.slug || null;
+  const namedServingApp = servingAppSlug
+    ? channelApps.find((app) => app.metadata?.slug === servingAppSlug)
+        ?.metadata?.name || servingAppSlug
+    : null;
   const servingAppName = isDeletedReference(channel.spec?.appRef)
     ? deletedReferenceLabel(ApiResourceKind.channel_app)
-    : servingAppSlug
-      ? channelApps.find((app) => app.metadata?.slug === servingAppSlug)
-          ?.metadata?.name || servingAppSlug
-      : null;
+    : namedServingApp;
 
   // The spec's provider marker is set at create; unknown cases (a newer
   // server) fall back to the default provider mark rather than no icon,

@@ -129,12 +129,9 @@ function dropReferenceIds(message: ReflectMessage): void {
     if (field.fieldKind === "message") {
       dropReferenceIds(message.get(field));
     } else if (field.fieldKind === "list" && field.listKind === "message") {
+      // No manifest kind holds messages in a map, so a map is not walked.
       for (const item of message.get(field)) {
         dropReferenceIds(item as ReflectMessage);
-      }
-    } else if (field.fieldKind === "map" && field.mapKind === "message") {
-      for (const [, value] of message.get(field)) {
-        dropReferenceIds(value as ReflectMessage);
       }
     }
   }

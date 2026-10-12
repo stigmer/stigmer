@@ -909,11 +909,8 @@ function emitTSPreComputeField(buf: string[], f: FieldSchema, imports: TsImportS
     buf.push(`  const ${fieldName} = input.${fieldName} !== undefined ? fromJson(ValueSchema, input.${fieldName}) : undefined;\n`);
   } else if (t.kind === "message" && t.messageType === "ApiResourceReference") {
     imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
-    if (refKind !== 0) {
-      buf.push(`  const ${fieldName} = (input.${fieldName}?.slug || input.${fieldName}?.org || input.${fieldName}?.id) ? create(ApiResourceReferenceSchema, { ...input.${fieldName}, kind: ${refKind} }) : undefined;\n`);
-    } else {
-      buf.push(`  const ${fieldName} = (input.${fieldName}?.slug || input.${fieldName}?.org || input.${fieldName}?.id) ? create(ApiResourceReferenceSchema, input.${fieldName}) : undefined;\n`);
-    }
+    const init = refKind !== 0 ? `{ ...input.${fieldName}, kind: ${refKind} }` : `input.${fieldName}`;
+    buf.push(`  const ${fieldName} = (input.${fieldName}?.slug || input.${fieldName}?.org || input.${fieldName}?.id) ? create(ApiResourceReferenceSchema, ${init}) : undefined;\n`);
   } else if (t.kind === "message") {
     buf.push(`  const ${fieldName} = input.${fieldName} ? build${t.messageType}Proto(input.${fieldName}) : undefined;\n`);
   } else if (t.kind === "array" && t.elementType?.kind === "message" && t.elementType.messageType === "ApiResourceReference") {
@@ -1080,11 +1077,8 @@ function emitTSNestedFieldAssign(buf: string[], f: FieldSchema, typeMap: Map<str
     }
   } else if (t.kind === "message" && t.messageType === "ApiResourceReference") {
     imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema");
-    if (refKind !== 0) {
-      buf.push(`  if (input.${fieldName}?.slug || input.${fieldName}?.org || input.${fieldName}?.id) msg.${fieldName} = create(ApiResourceReferenceSchema, { ...input.${fieldName}, kind: ${refKind} });\n`);
-    } else {
-      buf.push(`  if (input.${fieldName}?.slug || input.${fieldName}?.org || input.${fieldName}?.id) msg.${fieldName} = create(ApiResourceReferenceSchema, input.${fieldName});\n`);
-    }
+    const init = refKind !== 0 ? `{ ...input.${fieldName}, kind: ${refKind} }` : `input.${fieldName}`;
+    buf.push(`  if (input.${fieldName}?.slug || input.${fieldName}?.org || input.${fieldName}?.id) msg.${fieldName} = create(ApiResourceReferenceSchema, ${init});\n`);
   } else if (t.kind === "message") {
     const msgType = t.messageType ?? "";
     if (!isSpecialType(msgType)) {
