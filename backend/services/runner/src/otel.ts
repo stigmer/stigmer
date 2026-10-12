@@ -119,6 +119,20 @@ export async function initMetrics(serviceName: string, options: TelemetryInitOpt
 }
 
 /**
+ * Start a runner process's own tracing and metrics, exporting to the
+ * collector; resolves to one flush for both, `null` when nothing is exported.
+ */
+export async function startRunnerTelemetry(serviceName: string): Promise<(() => Promise<void>) | null> {
+  const tracing = await initTracing(serviceName);
+  const metrics = await initMetrics(serviceName);
+  if (!tracing && !metrics) return null;
+  return async () => {
+    await metrics?.();
+    await tracing?.();
+  };
+}
+
+/**
  * Record cursor turn metrics. No-op when metrics are not initialized.
  */
 export async function recordTurnMetrics(opts: {

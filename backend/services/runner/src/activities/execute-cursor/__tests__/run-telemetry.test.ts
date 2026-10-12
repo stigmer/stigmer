@@ -136,6 +136,17 @@ describe("CursorRunTelemetry", () => {
     expect(span.status, "with content off, no failure text").toEqual({ code: SpanStatusCode.ERROR });
   });
 
+  it("ignores an end for a call it never saw, and every fact that is not a tool call's", () => {
+    const telemetry = CursorRunTelemetry.start({ model: "composer-2", mode: "agent" });
+    telemetry.observe([
+      { kind: "tool_finished", callId: "unseen", result: "x" },
+      { kind: "tool_error", callId: "unseen-too", message: "y" },
+      { kind: "text_delta", runId: "r1", text: "hello" },
+    ]);
+    telemetry.end({ kind: "completed" });
+    expect(exporter.getFinishedSpans().map((span) => span.name)).toEqual(["invoke_agent Cursor"]);
+  });
+
   it("sums every usage report, counting cache reads and writes in the input", () => {
     const telemetry = CursorRunTelemetry.start({ model: "composer-2", mode: "agent" });
     telemetry.usage({ inputTokens: 100, outputTokens: 10, cacheReadTokens: 400, cacheWriteTokens: 50 });

@@ -57,7 +57,7 @@ vi.mock("@opentelemetry/api", () => ({
   metrics: { setGlobalMeterProvider: () => {} },
 }));
 
-import { ATTR_RUNNER_PROCESS, initMetrics, initTracing } from "../otel.js";
+import { ATTR_RUNNER_PROCESS, initMetrics, initTracing, startRunnerTelemetry } from "../otel.js";
 import { resetTelemetrySettingsForTests } from "../otel-export.js";
 
 afterEach(() => {
@@ -89,6 +89,18 @@ describe("telemetry initialization", () => {
 
     await initTracing("stigmer-runner");
     expect(resources).toEqual([{ "service.name": "stigmer-runner" }]);
+  });
+
+  it("starts a runner's own tracing and metrics as one flush, and nothing without an endpoint", async () => {
+    expect(await startRunnerTelemetry("stigmer-runner")).toBeNull();
+
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://127.0.0.1:4318";
+    resetTelemetrySettingsForTests();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const flush = await startRunnerTelemetry("stigmer-runner");
+    expect(flush).not.toBeNull();
+    await flush?.();
+    expect(resources).toEqual([{ "service.name": "stigmer-runner" }, { "service.name": "stigmer-runner" }]);
   });
 
   it("sets up nothing without an endpoint", async () => {

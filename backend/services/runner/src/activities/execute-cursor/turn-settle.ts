@@ -54,6 +54,7 @@ import { CursorTranslator } from "./translator.js";
 import { runTurnBoundary, type TurnBoundaryResult } from "./turn-boundary.js";
 import {
   consumeCursorTurnStream,
+  foldDrainedDeltas,
   makeCursorTurnOnDelta,
   type CursorTurnStreamDeps,
   type TurnOnDeltaDeps,
@@ -183,9 +184,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // streaming flag, mark any in-flight sub-agent CANCELLED on a stopped turn,
   // flush the recorder, and persist so the UI sees the settled rows.
   const finalizeStreamPhase = async (): Promise<void> => {
-    const drained = translator.drainDeltas();
-    for (const fact of drained) transcript.apply(fact);
-    telemetry.observe(drained);
+    foldDrainedDeltas(translator, transcript, telemetry);
     // The runtime finalizes once `runTurn` returns, on every path; this
     // harness finalizes EARLIER too because it persists on the settled rows
     // right below, before `run.wait()` and the boundary, and the console's

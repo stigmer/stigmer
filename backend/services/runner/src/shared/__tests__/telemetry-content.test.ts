@@ -20,6 +20,7 @@ import {
   exportedArguments,
   exportedResult,
   renderMessages,
+  toolCallContent,
   turnContent,
   type ChatMessage,
 } from "../telemetry-content.js";
@@ -177,5 +178,43 @@ describe("turnContent", () => {
 
   it("has no output before there is an answer", () => {
     expect(turnContent("Fix the build", undefined).output).toBeUndefined();
+  });
+});
+
+describe("the shapes a message's content can take", () => {
+  it("cuts every string inside nested arguments and keeps other values as they are", () => {
+    const long = "y".repeat(2 * TEXT_KEEP + 10);
+    const { arguments: args } = exportedArguments("execute", { list: [long, 3, null], nested: { deep: long }, flag: true });
+    expect((args.list as unknown[])[0]).toBe(cutText(long));
+    expect((args.list as unknown[]).slice(1)).toEqual([3, null]);
+    expect((args.nested as { deep: string }).deep).toBe(cutText(long));
+    expect(args.flag).toBe(true);
+  });
+
+  it("skips what is not a message, a message of no known role, and blocks that carry no text", () => {
+    const rendered = renderMessages([
+      null,
+      "a bare string",
+      { type: "function", content: "an unknown role" },
+      new HumanMessage({ content: [{ type: "text", text: "kept" }, "a raw string block", { type: "unknown" }] as never }),
+      { type: "ai", content: undefined },
+    ]);
+    expect(rendered).toEqual([
+      { role: "user", parts: [{ type: "text", content: "kept" }, { type: "text", content: "a raw string block" }] },
+      { role: "assistant", parts: [] },
+    ]);
+  });
+
+  it("reads a tool message whose content is a list of blocks as its text", () => {
+    const rendered = renderMessages([new ToolMessage({ content: [{ type: "text", text: "line one" }, { type: "text", text: " and two" }] as never, tool_call_id: "c1" })]);
+    expect(rendered).toEqual([{ role: "tool", parts: [{ type: "tool_call_response", id: "c1", response: "line one and two" }] }]);
+  });
+
+  it("puts a marker naming the size in place of arguments too large for a span", () => {
+    const wide = Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`k${i}`, "z".repeat(2 * TEXT_KEEP)]));
+    const content = toolCallContent("execute", wide);
+    const parsed = JSON.parse(content.arguments) as { elided_bytes: number };
+    expect(parsed.elided_bytes).toBeGreaterThan(SPAN_CONTENT_BYTES / 2);
+    expect(content.withheld).toBe(false);
   });
 });

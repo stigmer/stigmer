@@ -127,6 +127,21 @@ export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
 }
 
 /**
+ * Fold the delta facts the translator queued since the last drain into the
+ * transcript, and hand them to the turn's spans: after each stream event,
+ * and once more when the stream has ended (`turn-settle.ts`).
+ */
+export function foldDrainedDeltas(
+  translator: Pick<CursorTranslator, "drainDeltas">,
+  transcript: Pick<TurnSink["transcript"], "apply">,
+  telemetry: CursorTurnObserver | undefined,
+): void {
+  const drained = translator.drainDeltas();
+  for (const fact of drained) transcript.apply(fact);
+  telemetry?.observe(drained);
+}
+
+/**
  * Build the shared onDelta callback. The Cursor SDK's fine-grained delta channel
  * carries token usage, live shell output, and precise tool-call timings; it also
  * fires far more often than discrete stream events, so it is where the runtime's
@@ -228,10 +243,9 @@ export async function consumeCursorTurnStream(
       // completion with no running before it starts and finishes together);
       // each drained delta is its own, and carries `observedAt` where it stamps.
       const observed = translator.translate(event);
-      const drained = translator.drainDeltas();
       transcript.applyObservation(observed);
-      for (const fact of drained) transcript.apply(fact);
-      deps.telemetry?.observe([...observed, ...drained]);
+      deps.telemetry?.observe(observed);
+      foldDrainedDeltas(translator, transcript, deps.telemetry);
 
       // First-denial stop (HITL clean pause). In CAPTURE mode this fires only for
       // an IRREVERSIBLE tool the hook still gates (shell, MCP, or a gitignored

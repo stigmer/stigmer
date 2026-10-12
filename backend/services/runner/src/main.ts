@@ -36,7 +36,7 @@ import {
   captureRunnerSecrets,
   getRunnerSecret,
 } from "./shared/runner-credential-store.js";
-import { initTracing, initMetrics } from "./otel.js";
+import { initTracing, initMetrics, startRunnerTelemetry } from "./otel.js";
 import { createStigmerRunner } from "./runner.js";
 import { createStigmerRunnerManager } from "./runner-manager.js";
 import type { StigmerRunnerManager } from "./runner-manager.js";
@@ -78,14 +78,13 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
   };
 
   let manager: StigmerRunnerManager;
-  let otelShutdown: (() => Promise<void>) | null = null;
-  let metricsShutdown: (() => Promise<void>) | null = null;
+  // The manager is the runner's own process (the CLI and the desktop app
+  // start it), so it owns its telemetry as the other modes do; a setting
+  // the standard does not name is the same fatal error as any other.
+  let flushTelemetry: (() => Promise<void>) | null = null;
   try {
-    // The manager is the runner's own process (the CLI and the desktop app
-    // start it), so it owns its telemetry as the other modes do; a setting
-    // the standard does not name is the same fatal error as any other.
-    otelShutdown = await initTracing("stigmer-runner");
-    metricsShutdown = await initMetrics("stigmer-runner");
+    /* v8 ignore next -- @preserve: manager mode's process boundary, driven over IPC by test/conformance's runner-ipc harness; startRunnerTelemetry is otel.ts's, tested there */
+    flushTelemetry = await startRunnerTelemetry("stigmer-runner");
     manager = await createStigmerRunnerManager({
       temporalAddress: config.temporalAddress,
       temporalNamespace: config.temporalNamespace,
@@ -154,8 +153,8 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
         }
         case "shutdown": {
           await manager.shutdown();
-          await metricsShutdown?.();
-          await otelShutdown?.();
+          /* v8 ignore next -- @preserve: manager mode's process boundary (above) */
+          await flushTelemetry?.();
           sendIpc({ type: "shutdownComplete" });
           rl.close();
           return;
@@ -179,8 +178,8 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
 
   // stdin closed (parent process died) — shut down gracefully
   await manager.shutdown();
-  await metricsShutdown?.();
-  await otelShutdown?.();
+  /* v8 ignore next -- @preserve: manager mode's process boundary (above) */
+  await flushTelemetry?.();
 }
 
 // ─── Pool Mode ───────────────────────────────────────────────────────────────

@@ -240,6 +240,28 @@ describe("OtelSpansMiddleware", () => {
       ]);
     });
 
+    it("reads the system prompt from a string, from a message's text blocks, or finds none", async () => {
+      contentOn();
+      const mw = createOtelSpansMiddleware();
+      const reply = async () => answer({ content: "ok" });
+      await mw.wrapModelCall!(makeModelRequest({ systemPrompt: "as a string" }), reply);
+      await mw.wrapModelCall!(
+        makeModelRequest({ systemMessage: new SystemMessage({ content: [{ type: "text", text: "from blocks" }, { type: "image_url", image_url: "x" }] as never }) }),
+        reply,
+      );
+      await mw.wrapModelCall!(makeModelRequest({ systemMessage: new SystemMessage({ content: [{ type: "image_url", image_url: "x" }] as never }) }), reply);
+      const instructions = spans().map((span) => span.attributes["gen_ai.system_instructions"]);
+      expect(instructions[0]).toContain("as a string");
+      expect(instructions[1]).toContain("from blocks");
+      expect(instructions[2], "no text, no instructions").toBeUndefined();
+    });
+
+    it("names a model by its model_name when it carries no model field", async () => {
+      const mw = createOtelSpansMiddleware();
+      await mw.wrapModelCall!(makeModelRequest({ model: { model_name: "gpt-x" } }), async () => answer({ content: "ok" }));
+      expect(spans()[0]!.name).toBe("chat gpt-x");
+    });
+
     it("marks a failed call and rethrows", async () => {
       const mw = createOtelSpansMiddleware();
       class ProviderDown extends Error {
