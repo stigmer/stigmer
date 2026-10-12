@@ -1,7 +1,8 @@
 // The package entry: re-exports what a plugin eval's server and runner both
 // execute with (the transcript reader, the expect guard, mock rendering and
-// the try-stop wording), so neither reaches into a file path. Each module's
-// header carries its rules and trade-offs.
+// the try-stop wording) and the AI judge's rule set (its instruction,
+// rubrics, verdict schema, message and verdict reader), so neither reaches
+// into a file path. Each module's header carries its rules and trade-offs.
 
 export {
   parseTranscript,
@@ -31,3 +32,23 @@ export {
   type SavedTool,
 } from "./mock.js";
 export { COST_LIMIT_ERROR_PREFIX, formatTryStop, parseTryStop, type TryStop } from "./try-stop.js";
+export { JUDGE_INSTRUCTIONS, JUDGE_INSTRUCTION_VERSION } from "./judge/instruction.js";
+export type { JsonObject, JsonValue } from "./judge/json.js";
+export {
+  DID_THE_TASK,
+  JUDGE_EVALUATOR_VERSION,
+  MADE_NOTHING_UP,
+  REASON_MAX_LENGTH,
+  RUBRICS,
+  VERDICT_SCHEMA,
+  judgeMessage,
+  type Rubric,
+} from "./judge/rubrics.js";
+export {
+  ALL_VERDICT_RESULTS,
+  readVerdict,
+  type RubricVerdict,
+  type VerdictReading,
+  type VerdictResultName,
+  type VerdictShape,
+} from "./judge/verdict.js";

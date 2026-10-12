@@ -13,7 +13,7 @@
  *     the case directory, read from the plugin's archive and rendered as
  *     text), over the run's trace as the `llm` trace focus shows it.
  *
- * A vote's verdict is the AI judge's shape (domain/score/judge/rubrics.ts)
+ * A vote's verdict is the AI judge's shape (@stigmer/eval-runtime's rubrics)
  * with one rubric named after the grader and results limited to passed
  * and failed, read strictly by `readVerdict`. Three votes, two decide; a
  * vote that failed or could not be read counts for neither side, and a
@@ -27,7 +27,7 @@
  *
  * Proven by __tests__/graders.test.ts.
  */
-import { renderTranscript } from "@stigmer/eval-runtime";
+import { REASON_MAX_LENGTH, readVerdict, renderTranscript } from "@stigmer/eval-runtime";
 import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 
 import type {
@@ -35,11 +35,8 @@ import type {
   EvalGraderCheck,
   PluginFiles,
 } from "@stigmer/plugin-package";
-import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 
 import type { EvalTrace } from "../../score/eval/trace.js";
-import { REASON_MAX_LENGTH } from "../../score/judge/rubrics.js";
-import { readVerdict } from "../../score/judge/verdict.js";
 import type { GraderVerdict } from "./verdict.js";
 import {
   binaryFileReason,
@@ -249,7 +246,7 @@ export function readVote(
     return { refused: "the judge returned no verdict" };
   }
   return {
-    passed: verdict.result === CriterionResult.passed,
+    passed: verdict.result === "passed",
     reason: verdict.reason,
   };
 }

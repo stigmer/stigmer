@@ -1,10 +1,10 @@
 /**
  * The judge scores the server writes for a completed run: pending while
  * the judge works, then graded from its verdict, or not graded with a
- * reason. All three carry the rubrics' version (rubrics.ts), so the
- * one-per-version rule (CheckScoreUnique) holds across them, and are
- * recorded through the in-process create chain, where the source guard
- * admits a judge's source from the server alone.
+ * reason. All three carry the rubrics' version (`JUDGE_EVALUATOR_VERSION`,
+ * @stigmer/eval-runtime), so the one-per-version rule (CheckScoreUnique)
+ * holds across them, and are recorded through the in-process create chain,
+ * where the source guard admits a judge's source from the server alone.
  *
  * A score passes when no rubric failed: not applicable is not a failure.
  */
@@ -22,9 +22,17 @@ import { ScoreCriterionSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v
 import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/status_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
+import { JUDGE_EVALUATOR_VERSION } from "@stigmer/eval-runtime";
+import type { RubricVerdict, VerdictResultName } from "@stigmer/eval-runtime";
+
 import { JUDGE_METRIC } from "../constants.js";
-import { JUDGE_EVALUATOR_VERSION } from "./rubrics.js";
-import type { RubricVerdict } from "./verdict.js";
+
+/** Each verdict result as the score contract names it. */
+export const CRITERION_RESULT_OF: Readonly<Record<VerdictResultName, CriterionResult>> = {
+  passed: CriterionResult.passed,
+  failed: CriterionResult.failed,
+  not_applicable: CriterionResult.not_applicable,
+};
 
 /** The pending judge score of `run`: picked for grading, the grade not in yet. */
 export function pendingJudgeScore(run: Run): Score {
@@ -43,10 +51,14 @@ export function gradedJudgeScore(
   if (score.spec !== undefined) {
     score.spec.value = {
       case: "passed",
-      value: verdicts.every((verdict) => verdict.result !== CriterionResult.failed),
+      value: verdicts.every((verdict) => verdict.result !== "failed"),
     };
     score.spec.criteria = verdicts.map((verdict) =>
-      create(ScoreCriterionSchema, verdict),
+      create(ScoreCriterionSchema, {
+        name: verdict.name,
+        result: CRITERION_RESULT_OF[verdict.result],
+        reason: verdict.reason,
+      }),
     );
     score.spec.judgeModel = judgeModel;
   }

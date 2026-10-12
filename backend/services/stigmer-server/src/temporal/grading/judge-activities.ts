@@ -29,7 +29,7 @@
  *     workflow's policy for up to ten minutes; every other refusal is
  *     answered as the failure the record activity reports.
  *   - poll: whether the judge run has ended.
- *   - record: the verdict, read strictly (domain/score/judge/verdict.ts),
+ *   - record: the verdict, read strictly (`readVerdict`, @stigmer/eval-runtime),
  *     or the reason there is none, replacing the pending score
  *     (domain/score/record.ts); a judge run still going is stopped; the
  *     budget is settled with what the judge spent; and last the judge's
@@ -54,6 +54,8 @@ import { fromBinary } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ApplicationFailure } from "@temporalio/common";
+
+import { VERDICT_SCHEMA, judgeMessage, readVerdict } from "@stigmer/eval-runtime";
 
 import type { Evaluator } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -93,10 +95,8 @@ import {
   notGradedJudgeScore,
   pendingJudgeScore,
 } from "../../domain/score/judge/judge-score.js";
-import { VERDICT_SCHEMA, judgeMessage } from "../../domain/score/judge/rubrics.js";
 import { isSampled } from "../../domain/score/judge/sampling.js";
 import { subjectOf } from "../../domain/score/judge/subject.js";
-import { readVerdict } from "../../domain/score/judge/verdict.js";
 import type {
   JudgeRunCreator,
   JudgeSessionDeleter,

@@ -15,7 +15,7 @@ export default defineConfig({
       experimentalAstAwareRemapping: true,
     },
     environment: "node",
-    include: ["src/__tests__/**/*.test.ts"],
+    include: ["src/**/__tests__/**/*.test.ts"],
   },
   resolve: {
     alias: [

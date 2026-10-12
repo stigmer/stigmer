@@ -37,6 +37,7 @@ import type { Client } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { DID_THE_TASK, JUDGE_EVALUATOR_VERSION, MADE_NOTHING_UP } from "@stigmer/eval-runtime";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { EvaluatorCommandController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/command_pb";
@@ -84,11 +85,6 @@ import {
   PER_GRADE_CAP_USD,
   judgeRunRequest,
 } from "../../../domain/score/judge/judge-run.js";
-import {
-  DID_THE_TASK,
-  JUDGE_EVALUATOR_VERSION,
-  MADE_NOTHING_UP,
-} from "../../../domain/score/judge/rubrics.js";
 import { pendingJudgeScore } from "../../../domain/score/judge/judge-score.js";
 import type {
   JudgeRunCreator,

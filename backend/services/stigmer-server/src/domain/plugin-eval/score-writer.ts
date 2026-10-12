@@ -38,6 +38,7 @@ import { createHash } from "node:crypto";
 
 import { create } from "@bufbuild/protobuf";
 
+import { JUDGE_INSTRUCTION_VERSION, REASON_MAX_LENGTH } from "@stigmer/eval-runtime";
 import type { EvalGrader } from "@stigmer/plugin-package";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
@@ -51,10 +52,6 @@ import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/s
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 import { EVAL_METRIC } from "../score/constants.js";
-import {
-  JUDGE_INSTRUCTION_VERSION,
-  REASON_MAX_LENGTH,
-} from "../score/judge/rubrics.js";
 import { replaceUnlessGraded } from "../score/record.js";
 import type { ScoreWrite, ScoreWriteDeps } from "../score/record.js";
 import type { GraderVerdict } from "./graders/verdict.js";

@@ -27,6 +27,7 @@ import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { JUDGE_EVALUATOR_VERSION } from "@stigmer/eval-runtime";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -48,7 +49,6 @@ import {
   PER_GRADE_CAP_USD,
   judgeRunName,
 } from "../../../domain/score/judge/judge-run.js";
-import { JUDGE_EVALUATOR_VERSION } from "../../../domain/score/judge/rubrics.js";
 import type {
   JudgeRunCreator,
   JudgeSessionDeleter,

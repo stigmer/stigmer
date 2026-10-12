@@ -46,9 +46,9 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { PluginSchema, type Plugin } from "@stigmer/protos/ai/stigmer/agentic/plugin/v1/api_pb";
 import { mergePluginRefs, mergeSkillRefs, pluginAgentName, pluginSubagents, resolveBlueprint } from "../blueprint-resolver.js";
+import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime";
 import {
   BUILT_IN_JUDGE_DISALLOWED_TOOLS,
-  BUILT_IN_JUDGE_INSTRUCTIONS,
   GRADES_RUN_LABEL,
 } from "../builtin-judge.js";
 
@@ -77,7 +77,7 @@ describe("resolveBlueprint", () => {
 
     expect(blueprint.agent?.id).toBe("");
     expect(blueprint.agent?.spec.disallowedTools).toEqual([...BUILT_IN_JUDGE_DISALLOWED_TOOLS]);
-    expect(blueprint.instructions).toBe(BUILT_IN_JUDGE_INSTRUCTIONS);
+    expect(blueprint.instructions).toBe(JUDGE_INSTRUCTIONS);
     expect(blueprint.pluginAgents).toEqual([]);
     expect(blueprint.subagents).toEqual([]);
     expect(blueprint.plugins).toEqual([]);

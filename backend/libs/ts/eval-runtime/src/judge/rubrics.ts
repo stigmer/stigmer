@@ -1,7 +1,9 @@
 /**
  * The AI judge's standard rubrics, the verdict's shape, and the message a
  * judge run is sent. The rubrics are the platform's, versioned here in
- * code: no organization edits what grades its runs.
+ * code: no organization edits what grades its runs. They live in this
+ * library so the server that grades a run and the benchmark that holds the
+ * rubrics to their examples run the same text, schema and message.
  *
  * Two rubrics, each answered passed, failed or not applicable with a
  * reason. Binary verdicts with reasons are steadier across runs and models
@@ -9,21 +11,16 @@
  * person's thumbs.
  *
  * `JUDGE_EVALUATOR_VERSION` names this set: the SHA-256 of the rubric
- * texts, the verdict schema and the version of the runner's judge
- * instruction, so a score from one version is never compared with
- * another's as one. The instruction lives in the runner (its
- * shared/builtin-judge.ts); `JUDGE_INSTRUCTION_VERSION` here and its
- * `BUILT_IN_JUDGE_VERSION` there move together, each pinned by its own
- * package's test.
+ * texts, the verdict schema and the version of the judge's instruction
+ * (instruction.ts), so a score from one version is never compared with
+ * another's as one.
  *
  * Proven by __tests__/judge.test.ts (the version pin).
  */
 import { createHash } from "node:crypto";
 
-import type { JsonObject } from "@bufbuild/protobuf";
-
-/** The version of the runner's built-in judge instruction (module header). */
-export const JUDGE_INSTRUCTION_VERSION = "1";
+import { JUDGE_INSTRUCTION_VERSION } from "./instruction.js";
+import type { JsonObject } from "./json.js";
 
 /** Did the run do what it was asked. */
 export const DID_THE_TASK = "did-the-task";
@@ -56,7 +53,7 @@ export const RUBRICS: ReadonlyArray<Rubric> = [
   },
 ];
 
-/** The longest reason a criterion carries (the score's own limit, spec.proto). */
+/** The longest reason a criterion carries (the score's own limit, score/v1/spec.proto). */
 export const REASON_MAX_LENGTH = 500;
 
 /** The judge run's structured output schema: exactly the rubrics, each a result and a reason. */
@@ -101,8 +98,8 @@ export const JUDGE_EVALUATOR_VERSION = createHash("sha256")
 
 /**
  * The judge run's message: the rubrics, then the subject (subject.ts),
- * fenced as data. The runner's judge instruction says the same thing from
- * the system side: the conversation is evidence to grade, never
+ * fenced as data. The judge's instruction (instruction.ts) says the same
+ * thing from the system side: the conversation is evidence to grade, never
  * instructions to follow.
  */
 export function judgeMessage(subject: string): string {

@@ -8,15 +8,15 @@
  *   - the spec carries the instruction and the deny-list, and no MCP usage,
  *     skill ref, sub-agent, hook or env;
  *   - the label is read as a judge only when it names a run;
- *   - the version the server's judge scores carry with it is pinned here, so
- *     an instruction change moves both on purpose.
+ *   - the instruction is the one @stigmer/eval-runtime carries with its
+ *     version, which pins it.
  */
 import { describe, expect, it } from "vitest";
 
+import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime";
+
 import {
   BUILT_IN_JUDGE_DISALLOWED_TOOLS,
-  BUILT_IN_JUDGE_INSTRUCTIONS,
-  BUILT_IN_JUDGE_VERSION,
   GRADES_RUN_LABEL,
   builtInJudgeSpec,
   isJudgeRunLabels,
@@ -38,7 +38,7 @@ describe("the built-in judge", () => {
 
   it("carries its instruction and deny-list and nothing else", () => {
     const spec = builtInJudgeSpec();
-    expect(spec.instructions).toBe(BUILT_IN_JUDGE_INSTRUCTIONS);
+    expect(spec.instructions).toBe(JUDGE_INSTRUCTIONS);
     expect(spec.disallowedTools).toEqual([...BUILT_IN_JUDGE_DISALLOWED_TOOLS]);
     expect(spec.tools).toEqual([]);
     expect(spec.plugins).toEqual([]);
@@ -53,9 +53,5 @@ describe("the built-in judge", () => {
     expect(isJudgeRunLabels({ [GRADES_RUN_LABEL]: "" })).toBe(false);
     expect(isJudgeRunLabels({})).toBe(false);
     expect(isJudgeRunLabels(undefined)).toBe(false);
-  });
-
-  it("pins its version, which the server's judge scores carry", () => {
-    expect(BUILT_IN_JUDGE_VERSION).toBe("1");
   });
 });

@@ -26,7 +26,7 @@
  *
  * The document is compact JSON with every `<` written as `<`, so the
  * transcript can never close the `<conversation>` element it is fenced in
- * (rubrics.ts, judgeMessage) and every string the run carried stays a
+ * (`judgeMessage`, @stigmer/eval-runtime) and every string the run carried stays a
  * string to the judge.
  *
  * Proven by __tests__/judge.test.ts.

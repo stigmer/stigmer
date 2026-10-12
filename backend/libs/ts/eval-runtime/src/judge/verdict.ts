@@ -5,24 +5,28 @@
  * failed or not_applicable unless the caller narrows them) and a reason of
  * 1 to 500 characters, and nothing else. A plugin eval's AI-graded check
  * asks one rubric named after its grader, answered passed or failed only,
- * since the format's judge votes PASS or FAIL. Anything else is refused, never read as a lower grade: a
- * model's structured reply can still miss its schema (the runner's
- * extraction tiers fall back to the reply's text), and a skipped rubric
- * read as a failure would change what a grade means. The grading activity
- * records a refusal as not graded, "the judge's answer could not be read".
+ * since the format's judge votes PASS or FAIL. Anything else is refused,
+ * never read as a lower grade: a model's structured reply can still miss
+ * its schema (the runner's extraction tiers fall back to the reply's
+ * text), and a skipped rubric read as a failure would change what a grade
+ * means. The server records a refusal as not graded, "the judge's answer
+ * could not be read".
+ *
+ * Results are the schema's own words; the server maps them onto its score
+ * contract, so this library depends on no generated code.
  *
  * Proven by __tests__/judge.test.ts.
  */
-import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
-
-import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
-
+import type { JsonObject, JsonValue } from "./json.js";
 import { REASON_MAX_LENGTH, RUBRICS } from "./rubrics.js";
+
+/** A result a verdict may give, as the schema spells it. */
+export type VerdictResultName = "passed" | "failed" | "not_applicable";
 
 /** One rubric's verdict. */
 export interface RubricVerdict {
   readonly name: string;
-  readonly result: CriterionResult;
+  readonly result: VerdictResultName;
   readonly reason: string;
 }
 
@@ -30,15 +34,6 @@ export interface RubricVerdict {
 export type VerdictReading =
   | { readonly kind: "read"; readonly verdicts: ReadonlyArray<RubricVerdict> }
   | { readonly kind: "refused"; readonly cause: string };
-
-/** A result a verdict may give, as the schema spells it. */
-export type VerdictResultName = "passed" | "failed" | "not_applicable";
-
-const RESULTS: Readonly<Record<VerdictResultName, CriterionResult>> = {
-  passed: CriterionResult.passed,
-  failed: CriterionResult.failed,
-  not_applicable: CriterionResult.not_applicable,
-};
 
 /** Every result, as the platform's rubrics allow. */
 export const ALL_VERDICT_RESULTS: ReadonlyArray<VerdictResultName> = [
@@ -111,5 +106,5 @@ function rubricVerdictOf(
   ) {
     return undefined;
   }
-  return { name, result: RESULTS[named], reason };
+  return { name, result: named, reason };
 }

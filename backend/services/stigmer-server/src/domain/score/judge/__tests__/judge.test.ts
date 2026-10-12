@@ -1,7 +1,8 @@
 /**
- * Pins the AI judge's pure parts: which runs are sampled, what the judge is
- * shown, how its answer is read, the version every judge score carries, and
- * the judge run's request.
+ * Pins the AI judge's pure parts the server keeps: which runs are sampled,
+ * what the judge is shown, and the judge run's request. How its answer is
+ * read and the version every judge score carries are pinned with the rule
+ * set, in @stigmer/eval-runtime.
  *
  * The load-bearing pins:
  *   - sampling is fixed by the run's id and lands near the rate over ten
@@ -10,17 +11,14 @@
  *     spilled result is always marked, the whole subject stays within
  *     60,000 characters by dropping middle calls behind one counted marker,
  *     and no `<` reaches the fenced document;
- *   - the verdict is read only when it names exactly the rubrics, each with
- *     a known result and a reason of 1 to 500 characters;
- *   - JUDGE_EVALUATOR_VERSION is pinned: a rubric, schema or instruction
- *     change moves it on purpose, here;
  *   - the judge run carries the reserved label, the grade's cap, the
  *     verdict schema, a session subject and the native harness, in the
  *     judged run's organization, under a name fixed by the judged run.
  */
 import { create } from "@bufbuild/protobuf";
-import type { JsonObject } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
+
+import { VERDICT_SCHEMA, judgeMessage } from "@stigmer/eval-runtime";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -28,7 +26,6 @@ import {
   MessageType,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
-import { CriterionResult } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
 import {
@@ -39,13 +36,6 @@ import {
   judgeRunName,
   judgeRunRequest,
 } from "../judge-run.js";
-import {
-  DID_THE_TASK,
-  JUDGE_EVALUATOR_VERSION,
-  MADE_NOTHING_UP,
-  VERDICT_SCHEMA,
-  judgeMessage,
-} from "../rubrics.js";
 import { isSampled } from "../sampling.js";
 import {
   CUT_MARKER,
@@ -53,7 +43,6 @@ import {
   TOOL_FIELD_MAX_LENGTH,
   subjectOf,
 } from "../subject.js";
-import { readVerdict } from "../verdict.js";
 
 function runWith(opts: {
   readonly message?: string;
@@ -187,53 +176,6 @@ describe("subjectOf", () => {
     const run = runWith({});
     if (run.status !== undefined) run.status.structuredOutput = { label: "bug" };
     expect((JSON.parse(subjectOf(run)) as { final_answer: string }).final_answer).toBe('{"label":"bug"}');
-  });
-});
-
-describe("readVerdict", () => {
-  const good = {
-    [DID_THE_TASK]: { result: "failed", reason: "The assign call failed but the answer says it was assigned." },
-    [MADE_NOTHING_UP]: { result: "not_applicable", reason: "No claims." },
-  };
-
-  it("reads exactly the rubrics, in rubric order", () => {
-    expect(readVerdict(good)).toEqual({
-      kind: "read",
-      verdicts: [
-        { name: DID_THE_TASK, result: CriterionResult.failed, reason: good[DID_THE_TASK].reason },
-        { name: MADE_NOTHING_UP, result: CriterionResult.not_applicable, reason: "No claims." },
-      ],
-    });
-  });
-
-  it("refuses wrong rubrics, a missing or long reason, an unknown result, extra keys and no output", () => {
-    const refusals: Array<JsonObject | undefined> = [
-      undefined,
-      { [DID_THE_TASK]: good[DID_THE_TASK] },
-      { ...good, extra: { result: "passed", reason: "x" } },
-      { ...good, [DID_THE_TASK]: { result: "passed" } },
-      { ...good, [DID_THE_TASK]: { result: "passed", reason: "" } },
-      { ...good, [DID_THE_TASK]: { result: "passed", reason: "r".repeat(501) } },
-      { ...good, [DID_THE_TASK]: { result: "mostly", reason: "x" } },
-      { ...good, [DID_THE_TASK]: { result: "passed", reason: "x", score: 1 } },
-      { ...good, [DID_THE_TASK]: "passed" },
-    ];
-    for (const output of refusals) {
-      expect(readVerdict(output).kind, JSON.stringify(output)).toBe("refused");
-    }
-  });
-});
-
-describe("rubrics", () => {
-  it("pins the version every judge score carries", () => {
-    expect(JUDGE_EVALUATOR_VERSION).toBe(
-      "8191b6ca352b050221ccb7b3e85aa453333df6fbf70b322858cb793a65681d20",
-    );
-  });
-
-  it("asks for exactly the two rubrics", () => {
-    expect(VERDICT_SCHEMA["required"]).toEqual([DID_THE_TASK, MADE_NOTHING_UP]);
-    expect(VERDICT_SCHEMA["additionalProperties"]).toBe(false);
   });
 });
 

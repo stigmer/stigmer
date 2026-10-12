@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/eval-runtime",
   "version": "0.0.0-dev",
-  "description": "What a plugin eval's server and runner both execute with, so the two never drift: the plugin-eval format's transcript reader, its expect dialect and a linear matcher, mock answer rendering, and the wording of a try's own stops",
+  "description": "What a plugin eval's and the AI judge's server and runner both execute with, so the two never drift: the plugin-eval format's transcript reader, its expect dialect and a linear matcher, mock answer rendering, the wording of a try's own stops, and the AI judge's rubrics, verdict schema, message and verdict reader",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,
@@ -28,7 +28,8 @@
     "stigmer",
     "claude-code",
     "plugin-eval",
-    "mocks"
+    "mocks",
+    "llm-judge"
   ],
   "publishConfig": {
     "access": "public",
