@@ -81,7 +81,7 @@ import type {
   ExecutionEngineState,
 } from "../engine.js";
 import { ENGINE_DISCONNECTED, EngineWorkflowNotFoundError } from "../engine.js";
-import { submitApproval } from "../submit-approval.js";
+import { DENY_MESSAGE_MAX, submitApproval } from "../submit-approval.js";
 import { submitFileDecision } from "../submit-file-decision.js";
 import { stubConnectedEngine } from "./engine-stub.js";
 import { fileReviewSeed } from "./file-review-seed.js";
@@ -1172,6 +1172,17 @@ describe("submitApproval over the wire (submit_approval_contract_test.go arms)",
       comment: "use make clean instead",
     });
     expect(await answersOf(id)).toEqual([`${id}.tc-1:deny:use make clean instead`]);
+  });
+
+  it("a deny's comment reaches the agent cut to the session's own bound", async () => {
+    const id = await seed(gatedSeed());
+    await command.submitApproval({
+      runId: id,
+      toolCallId: "tc-1",
+      action: ApprovalAction.REJECT,
+      comment: "x".repeat(DENY_MESSAGE_MAX + 500),
+    });
+    expect(await answersOf(id)).toEqual([`${id}.tc-1:deny:${"x".repeat(DENY_MESSAGE_MAX)}`]);
   });
 
   it("is idempotent for a repeated identical submit and refuses a conflicting change", async () => {

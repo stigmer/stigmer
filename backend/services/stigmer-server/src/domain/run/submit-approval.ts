@@ -12,8 +12,9 @@
  * domain/session/events/ids.ts).
  *
  * The words map onto the session's: APPROVE is allow; SKIP and REJECT are
- * deny, the comment its deny_message (the agent reads it); APPROVE_ALL is
- * a grant of the call's class for the rest of the turn. The reply is the
+ * deny, the comment its deny_message (the agent reads it; cut to
+ * confirmToolUse's bound); APPROVE_ALL is a grant of the call's class for
+ * the rest of the turn. The reply is the
  * run after the answer, as before.
  */
 import { enumToJson } from "@bufbuild/protobuf";
@@ -129,6 +130,13 @@ export async function submitApproval(
   return answerOutcomeOf(reqCtx).run;
 }
 
+/**
+ * The longest deny message an adapter answer carries: confirmToolUse's own
+ * bound (ConfirmToolUseInput.deny_message), so the old method's unbounded
+ * comment reaches the agent no longer than the new one's.
+ */
+export const DENY_MESSAGE_MAX = 2000;
+
 /** The session answer an approval decision is. */
 function answerRequestOf(run: Run, input: SubmitApprovalInput): AnswerRequest {
   const toolUseId = toolUseEventId(input.runId, input.toolCallId);
@@ -140,7 +148,13 @@ function answerRequestOf(run: Run, input: SubmitApprovalInput): AnswerRequest {
       return { sessionId, toolUseId, result: "allow", denyMessage: "", grant: true };
     case ApprovalAction.SKIP:
     case ApprovalAction.REJECT:
-      return { sessionId, toolUseId, result: "deny", denyMessage: input.comment, grant: false };
+      return {
+        sessionId,
+        toolUseId,
+        result: "deny",
+        denyMessage: [...input.comment].slice(0, DENY_MESSAGE_MAX).join(""),
+        grant: false,
+      };
     /* v8 ignore next 4 -- @preserve: ValidateProto admits only the four defined actions */
     default:
       throw invalidArgumentError(

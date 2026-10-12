@@ -27,7 +27,7 @@
  * run-approval conformance suite.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
-import { Code, ConnectError } from "@connectrpc/connect";
+import { ConnectError } from "@connectrpc/connect";
 
 import { RunSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -162,6 +162,19 @@ export async function interrupt(
   });
 }
 
+/** Whether the run is gone or finished now. */
+async function finishedSince(deps: InterruptDeps, runId: string): Promise<boolean> {
+  try {
+    const run = await deps.store.getResource(ApiResourceKind.run, runId, RunSchema);
+    return !CANCELLABLE_PHASES.includes(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      return true;
+    }
+    throw error;
+  }
+}
+
 /** Cancels every unfinished run of the session; returns the ids it stopped. */
 async function stopUnfinishedRuns(
   deps: InterruptDeps,
@@ -199,11 +212,10 @@ async function stopUnfinishedRuns(
     try {
       await builder.build().execute(cancelCtx);
     } catch (error) {
-      // A run that finished (or was removed) since the list is not stopped.
-      if (
-        error instanceof ConnectError &&
-        (error.code === Code.FailedPrecondition || error.code === Code.NotFound)
-      ) {
+      // A run that finished (or was removed) since the list is not stopped;
+      // any other refusal (the engine gone since the check) is the
+      // interrupt's failure, never a turn reported stopped that still runs.
+      if (error instanceof ConnectError && (await finishedSince(deps, runId))) {
         deps.logger.info("a run finished before the interrupt reached it", { runId, sessionId });
         continue;
       }

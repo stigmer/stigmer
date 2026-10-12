@@ -281,5 +281,16 @@ describe("interrupt's faults", () => {
     const error = await refusal(stop(deps({ engine: { cancelWorkflow: () => Promise.reject(new Error("engine down")) } })));
     expect(error.code).toBe(Code.Internal);
   });
-});
 
+  it("an engine gone after the check fails the interrupt; the turn is not reported stopped", async () => {
+    await seedTurn("run_queued", RunPhase.RUN_PENDING);
+    let checks = 0;
+    const d: InterruptDeps = {
+      ...deps(),
+      engineState: () =>
+        ++checks === 1 ? { connected: true, engine: stubConnectedEngine() } : ENGINE_DISCONNECTED,
+    };
+    expect((await refusal(stop(d))).code).toBe(Code.FailedPrecondition);
+    expect((await phaseOf("run_queued")).status?.phase).toBe(RunPhase.RUN_PENDING);
+  });
+});

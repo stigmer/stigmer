@@ -32,9 +32,11 @@
  *                    read them until the transcript leaves the run), the
  *                    recomputed pending approvals and whatever the
  *                    session's status becomes. Under the session's lock it
- *                    re-checks that the ask is still open; a concurrent
- *                    identical answer that landed first is answered as the
- *                    replay.
+ *                    checks again what ValidateAnswer checked (the ask is
+ *                    open, the call waits undecided, the run waits or
+ *                    works), so an answer racing a stop is refused; a
+ *                    concurrent identical answer that landed first is
+ *                    answered as the replay.
  *   SignalWorkflow . when the run has no open ask left, the turn's workflow
  *                    is told to resume. A workflow that no longer runs
  *                    fails the run (reconcileStaleExecution).
@@ -94,6 +96,7 @@ import { pendingApprovalsOf } from "../../run/approval/pending.js";
 import type { ExecutionEngineStateProvider } from "../../run/engine.js";
 import { EngineWorkflowNotFoundError } from "../../run/engine.js";
 import { gateResolved } from "../../run/filereview/gate.js";
+import { isTerminalExecutionPhase } from "../../run/phases.js";
 import { notifyStatusObservers } from "../../run/status-observers.js";
 import type { StreamBroker } from "../../run/stream-broker.js";
 import { settleInterruptedToolCalls } from "../../run/tool-call-settle.js";
@@ -534,7 +537,16 @@ async function recordAnswer(
   const { run, events } = await updateRunAppendingEvents(deps, runId, (current, session) => {
     const open = openAsksOf(session, runId);
     const row = askedRowOf(current, request.toolUseId);
-    if (row === undefined || !open.has(request.toolUseId) || row.call.approvalAction !== ApprovalAction.UNSPECIFIED) {
+    const phase = current.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
+    // Everything ValidateAnswer checked, again under the lock: a stop or
+    // another answer may have landed since.
+    if (
+      row === undefined ||
+      !open.has(request.toolUseId) ||
+      row.call.approvalAction !== ApprovalAction.UNSPECIFIED ||
+      row.call.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL ||
+      (phase !== RunPhase.RUN_WAITING_FOR_APPROVAL && phase !== RunPhase.RUN_IN_PROGRESS)
+    ) {
       throw new AskClosedError(request.toolUseId);
     }
     const stamp = (call: ToolCall, action: ApprovalAction): void => {
@@ -594,6 +606,10 @@ async function recordAnswer(
  */
 async function signalWhenResolved(deps: AnswerDeps, run: Run): Promise<void> {
   const runId = run.metadata?.id ?? "";
+  /* v8 ignore next 3 -- @preserve: the locked write refuses an answer on a finished run, so a recorded answer's run never is one; kept so a finished run is never reconciled from here */
+  if (isTerminalExecutionPhase(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED)) {
+    return;
+  }
   if (run.status !== undefined && !gateResolved(run.status)) {
     deps.logger.info("answer recorded; the turn still waits for others", {
       runId,

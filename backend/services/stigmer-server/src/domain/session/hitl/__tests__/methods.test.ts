@@ -513,5 +513,33 @@ describe("the answer core's edges", () => {
     expect(lines.join("")).toContain("Failed to reconcile stale execution status");
     expect((await stored()).status?.phase).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
   });
-});
 
+  it("an answer that a stop overtakes is refused under the lock, records nothing and signals nothing", async () => {
+    await seedWaiting([{ id: "tc-1", name: "write" }]);
+    const stopping: ResolvedGateSteps = new Map([
+      [
+        "agent-execution-submit-approval:gate",
+        [
+          {
+            name: "StopLandsMeanwhile",
+            async execute() {
+              await updateRunAppendingEvents(
+                { store: temp.store, sessionEventBroker: new SessionEventBroker(silentLogger) },
+                RUN,
+                (r) => {
+                  r.status!.phase = RunPhase.RUN_CANCELLED;
+                },
+              );
+            },
+          } satisfies PipelineStep<DescMessage>,
+        ],
+      ],
+    ]);
+    expect((await refusal(confirm(use("tc-1"), "allow", "", { ...deps(), gateSteps: stopping }))).code).toBe(
+      Code.FailedPrecondition,
+    );
+    expect((await logAfterAsks()).filter((line) => line.startsWith("user.tool_confirmation"))).toEqual([]);
+    expect(callOf(await stored(), "tc-1")?.approvalAction).toBe(ApprovalAction.UNSPECIFIED);
+    expect(signalled).toEqual([]);
+  });
+});
