@@ -9,6 +9,7 @@
 import { describe, expect, it } from "vitest";
 import {
   PLOT_INSET,
+  dayNumber,
   describeTrend,
   domainOf,
   scaleMaxOf,
@@ -66,5 +67,10 @@ describe("trend geometry", () => {
       "Run health: 2 days from 2026-10-01 to 2026-10-05, latest 50% on 2026-10-05 (2 runs), 1 gap, marked: 2026-10-04 agent version v2 first seen.",
     );
     expect(describeTrend("Empty", [], [], String, String)).toBe("Empty: no data.");
+  });
+
+  it("reads a YYYY-MM-DD date as days since the epoch, and anything else as NaN", () => {
+    expect(dayNumber("1970-01-02")).toBe(1);
+    expect(Number.isNaN(dayNumber("not a date"))).toBe(true);
   });
 });

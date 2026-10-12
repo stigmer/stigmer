@@ -9,10 +9,12 @@
  *     stampless row, a row before the window and an eval score skipped;
  *   - the window: 0 is 30 days, ending on today's UTC day;
  *   - the bound: a read past QUALITY_REPORT_MAX_SCORES is refused with
- *     FAILED_PRECONDITION naming a shorter window;
+ *     FAILED_PRECONDITION naming a shorter window; an undecodable row is
+ *     skipped and a store fault is INTERNAL;
  *   - the session scope: one store read per session per request, one
  *     scope question per session, a refused or vanished session's scores
- *     dropped, nothing read without a scope or for the server itself.
+ *     dropped, nothing read without a scope, for the server itself or for
+ *     a score that names no session; a store fault is INTERNAL.
  *
  * Composed pins, trusted local (the real stack, runs stored as an engine
  * leaves them):
@@ -50,7 +52,10 @@ import {
   ScoreState,
 } from "@stigmer/protos/ai/stigmer/agentic/score/v1/enum_pb";
 import { AgentQualityReportSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
-import type { QualitySummary } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
+import type {
+  AgentQualityReport,
+  QualitySummary,
+} from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import { ScoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/score/v1/query_pb";
 import { ScoreStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/status_pb";
 import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -78,6 +83,7 @@ import type { ListIndexRow } from "../../../store/list-index.js";
 import { PLUGIN_EVAL_LABEL } from "../../plugin-eval/constants.js";
 import {
   QUALITY_REPORT_BATCH,
+  QUALITY_REPORT_KEY,
   QUALITY_REPORT_MAX_SCORES,
   QualityTally,
   isFlagged,
@@ -326,6 +332,35 @@ describe("the tally", () => {
     expect(report.versions).toEqual([]);
   });
 
+  it("counts a state or a criterion result with no meaning nowhere, and skips a score with no spec", () => {
+    const tally = new QualityTally(qualityWindowOf(7, NOW));
+    tally.add(
+      scoreOf({
+        state: ScoreState.unspecified,
+        criteria: [["ended-cleanly", CriterionResult.unspecified]],
+        at: "2026-10-12T10:00:00Z",
+      }),
+    );
+    const noSpec = scoreOf({ at: "2026-10-12T10:00:00Z" });
+    noSpec.spec = undefined;
+    tally.add(noSpec);
+    const [health] = tallyOf(tally.build().total, "run-health");
+    expect(health).toMatchObject({
+      passed: 0,
+      failed: 0,
+      notGraded: 0,
+      pending: 0,
+    });
+    expect(health?.criteria).toEqual([
+      expect.objectContaining({
+        name: "ended-cleanly",
+        passed: 0,
+        failed: 0,
+        notApplicable: 0,
+      }),
+    ]);
+  });
+
   it("flags a graded failure only", () => {
     const at = "2026-10-12T10:00:00Z";
     expect(isFlagged(scoreOf({ passed: false, at }))).toBe(true);
@@ -388,6 +423,60 @@ describe("the bound", () => {
   });
 });
 
+describe("the report's faults", () => {
+  function stepOver(store: Store) {
+    const step = newTallyAgentQualityStep({
+      store,
+      logger: silentLogger,
+      listReadScope: undefined,
+      now: () => NOW,
+    });
+    const ctx = new RequestContext(
+      ScoreQueryController.method.getAgentQualityReport.input,
+      create(ScoreQueryController.method.getAgentQualityReport.input, {
+        org: "org_a",
+        agentId: "agt_one",
+      }),
+      PERSON,
+      ApiResourceKind.score,
+    );
+    return { step, ctx };
+  }
+
+  it("skips a row it cannot decode and counts the rest", async () => {
+    const good = scoreOf({ at: "2026-10-12T10:00:00Z" });
+    const rows: ListIndexRow[] = [
+      {
+        id: "scr_bad",
+        data: new Uint8Array([0xff, 0xff, 0xff]),
+        cursor: { createdAt: "2026-10-12T10:00:00Z", id: "scr_bad" },
+      },
+      {
+        id: good.metadata!.id,
+        data: toBinary(ScoreSchema, good),
+        cursor: { createdAt: "2026-10-12T10:00:00Z", id: good.metadata!.id },
+      },
+    ];
+    const { step, ctx } = stepOver({
+      queryResources: () => Promise.resolve(rows),
+    } as unknown as Store);
+    await step.execute(ctx);
+    const report = ctx.get(QUALITY_REPORT_KEY) as AgentQualityReport;
+    expect(report.total?.runs).toBe(1);
+  });
+
+  it("answers a store fault as INTERNAL", async () => {
+    const { step, ctx } = stepOver({
+      queryResources: () => Promise.reject(new Error("connection refused")),
+    } as unknown as Store);
+    const failure = await Promise.resolve(step.execute(ctx)).then(
+      () => undefined,
+      (error: unknown) => ConnectError.from(error),
+    );
+    expect(failure?.code).toBe(Code.Internal);
+  });
+});
+
 describe("the session scope", () => {
   function sessionOf(id: string): Session {
     return create(SessionSchema, { metadata: { id, org: "org_a" } });
@@ -437,6 +526,27 @@ describe("the session scope", () => {
     );
     expect(reads.sort()).toEqual(["ses_gone", "ses_mine", "ses_theirs"]);
     expect(offered.sort()).toEqual(["ses_mine", "ses_theirs"]);
+  });
+
+  it("drops a score that names no session without reading, and faults on a store error", async () => {
+    const { store, scope, reads } = fakes(new Set(["ses_mine"]), new Set());
+    const narrow = sessionReadScope(store, silentLogger, scope, PERSON);
+    expect(await narrow([scoreOf({ sessionId: "" })])).toEqual([]);
+    expect(reads).toEqual([]);
+
+    const broken = {
+      getResource: () => Promise.reject(new Error("connection refused")),
+    } as unknown as Store;
+    const failure = await sessionReadScope(
+      broken,
+      silentLogger,
+      scope,
+      PERSON,
+    )([scoreOf({ sessionId: "ses_mine" })]).then(
+      () => undefined,
+      (error: unknown) => ConnectError.from(error),
+    );
+    expect(failure?.code).toBe(Code.Internal);
   });
 
   it("keeps everything, reading nothing, with no scope or for the server itself", async () => {

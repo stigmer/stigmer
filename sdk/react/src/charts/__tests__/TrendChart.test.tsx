@@ -77,4 +77,19 @@ describe("TrendChart", () => {
       document.getElementById(plot.getAttribute("aria-describedby") ?? "")?.textContent,
     ).toBe("Nothing yet: no data.");
   });
+
+  it("labels the axis with the series' own first and last day when no window is given", () => {
+    const { container } = render(
+      <TrendChart label="Thumbs, daily" points={[...POINTS].reverse()} />,
+    );
+    const axis = Array.from(container.querySelectorAll('div[aria-hidden="true"]')).find(
+      (div) =>
+        div.children.length === 2 &&
+        /^\d{4}-\d{2}-\d{2}$/.test(div.children[0]?.textContent ?? ""),
+    );
+    expect(Array.from(axis?.children ?? []).map((span) => span.textContent)).toEqual([
+      "2026-10-01",
+      "2026-10-09",
+    ]);
+  });
 });

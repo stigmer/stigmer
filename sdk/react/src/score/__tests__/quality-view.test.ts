@@ -23,6 +23,7 @@ import {
   flaggedWhatOf,
   formatPassRate,
   latestFinishedEvalByVersion,
+  metricLabelOf,
   metricRateOf,
   passRateOf,
   versionChangesOf,
@@ -139,5 +140,14 @@ describe("evals by version", () => {
     expect(latest.has("v2")).toBe(false);
     expect(evalPassRateOf(partial)).toEqual({ rate: 0.5, count: 2 });
     expect(evalPassRateOf(older)).toBeNull();
+  });
+});
+
+describe("metric labels", () => {
+  it("names the platform's metrics in words and any other by its own name", () => {
+    expect(metricLabelOf("run-health")).toBe("Run health");
+    expect(metricLabelOf("judge")).toBe("AI judge");
+    expect(metricLabelOf("feedback")).toBe("Thumbs");
+    expect(metricLabelOf("a-later-rubric")).toBe("a-later-rubric");
   });
 });

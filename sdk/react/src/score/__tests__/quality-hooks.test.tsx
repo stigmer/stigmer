@@ -134,4 +134,19 @@ describe("useFlaggedRuns", () => {
     await waitFor(() => expect(result.current.items).toHaveLength(1));
     expect(result.current.hasMore).toBe(true);
   });
+
+  it("reads nothing more when the list is complete", async () => {
+    const listFlaggedByAgent = vi.fn(async () => ({
+      totalCount: 1,
+      items: [flaggedScore("s1", "judge", "run_1")],
+      nextPageToken: "",
+    }));
+    const { result } = renderHook(() => useFlaggedRuns("agt_1", 30), {
+      wrapper: orgWrapper({ score: { listFlaggedByAgent } }),
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    act(() => result.current.loadMore());
+    expect(listFlaggedByAgent).toHaveBeenCalledTimes(1);
+    expect(result.current.isLoadingMore).toBe(false);
+  });
 });

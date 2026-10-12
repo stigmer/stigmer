@@ -190,6 +190,35 @@ interface MetricCounts {
   readonly criteria: Map<string, CriterionCounts>;
 }
 
+/**
+ * Which counter a score's state adds to: graded splits on its value, and
+ * a state with no meaning counts nowhere. Keyed by every state, so a state
+ * added to the contract does not compile until it names its counter.
+ */
+const OUTCOME_OF_STATE: Readonly<
+  Record<
+    ScoreState,
+    (
+      passed: boolean,
+    ) => "passed" | "failed" | "notGraded" | "pending" | undefined
+  >
+> = {
+  [ScoreState.unspecified]: () => undefined,
+  [ScoreState.graded]: (passed) => (passed ? "passed" : "failed"),
+  [ScoreState.not_graded]: () => "notGraded",
+  [ScoreState.pending]: () => "pending",
+};
+
+/** Which counter a criterion's result adds to, keyed by every result. */
+const FIELD_OF_CRITERION_RESULT: Readonly<
+  Record<CriterionResult, keyof CriterionCounts | undefined>
+> = {
+  [CriterionResult.unspecified]: undefined,
+  [CriterionResult.passed]: "passed",
+  [CriterionResult.failed]: "failed",
+  [CriterionResult.not_applicable]: "notApplicable",
+};
+
 class SummaryCounts {
   private readonly runs = new Set<string>();
   private readonly metrics = new Map<string, MetricCounts>();
@@ -218,26 +247,11 @@ class SummaryCounts {
     if (instant > counts.lastSeen) {
       counts.lastSeen = instant;
     }
-    switch (score.status?.state ?? ScoreState.unspecified) {
-      case ScoreState.graded:
-        if (spec.value.case === "passed" && spec.value.value) {
-          counts.passed += 1;
-        } else {
-          counts.failed += 1;
-        }
-        break;
-      case ScoreState.not_graded:
-        counts.notGraded += 1;
-        break;
-      case ScoreState.pending:
-        counts.pending += 1;
-        break;
-      case ScoreState.unspecified:
-        break;
-      default: {
-        const unhandled: never = score.status?.state as never;
-        void unhandled;
-      }
+    const outcome = OUTCOME_OF_STATE[
+      score.status?.state ?? ScoreState.unspecified
+    ](spec.value.case === "passed" && spec.value.value);
+    if (outcome !== undefined) {
+      counts[outcome] += 1;
     }
     for (const criterion of spec.criteria) {
       let tally = counts.criteria.get(criterion.name);
@@ -245,22 +259,9 @@ class SummaryCounts {
         tally = { passed: 0, failed: 0, notApplicable: 0 };
         counts.criteria.set(criterion.name, tally);
       }
-      switch (criterion.result) {
-        case CriterionResult.passed:
-          tally.passed += 1;
-          break;
-        case CriterionResult.failed:
-          tally.failed += 1;
-          break;
-        case CriterionResult.not_applicable:
-          tally.notApplicable += 1;
-          break;
-        case CriterionResult.unspecified:
-          break;
-        default: {
-          const unhandled: never = criterion.result;
-          void unhandled;
-        }
+      const field = FIELD_OF_CRITERION_RESULT[criterion.result];
+      if (field !== undefined) {
+        tally[field] += 1;
       }
     }
   }

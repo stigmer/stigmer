@@ -190,4 +190,28 @@ describe("AgentQualityReportView in the Quality tab", () => {
     await waitFor(() => expect(within(list).getAllByRole("listitem")).toHaveLength(2));
     expect(within(list).queryByRole("button")).toBeNull();
   });
+
+  it("asks for an organization when none is active", async () => {
+    render(<AgentQualityTab agent={agent} />, {
+      wrapper: orgWrapper(client(async () => qualityReport()), []),
+    });
+    expect(
+      await screen.findByText("Pick an organization to see how this agent's runs went in it."),
+    ).toBeDefined();
+  });
+
+  it("shows the flagged list's own refusal in the SDK's error pattern", async () => {
+    const mock = client(async () => qualityReport());
+    mock.score.listFlaggedByAgent.mockRejectedValue(
+      new StigmerError("unavailable", "the flagged list is unavailable", Code.Unavailable),
+    );
+    render(<AgentQualityTab agent={agent} />, { wrapper: orgWrapper(mock) });
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("alert").some((alert) =>
+          (alert.textContent ?? "").includes("the flagged list is unavailable"),
+        ),
+      ).toBe(true),
+    );
+  });
 });
