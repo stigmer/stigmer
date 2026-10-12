@@ -277,6 +277,8 @@ Where the native harness's models are served when the runner talks to providers 
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | All | No | `http/protobuf` | `grpc`, `http/protobuf` or `http/json` (and the per-signal forms). Any other value refuses the runner's start. Before 2026-10 the runner spoke gRPC only: a gRPC collector port needs `grpc` set. |
 | `OTEL_EXPORTER_OTLP_HEADERS` | All | No | _(none)_ | The collector's login, `key=value` pairs comma-separated (and the per-signal `..._TRACES_HEADERS`, `..._METRICS_HEADERS`). A runner secret: taken into custody at boot, never in an agent's environment; a sandboxed runner receives it on `STIGMER_SANDBOX_RUNNER_SECRETS`. |
 | `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` | All | No | _(off)_ | `true` (or `span_only`, `span_and_event`) puts the conversation's text on the spans, within the saved conversation's rules. |
+| `OTEL_SDK_DISABLED` | All | No | _(unset)_ | `true` turns every exporter off, whatever else is set. |
+| `OTEL_BSP_MAX_EXPORT_BATCH_SIZE` | All | No | 512, or 32 with content on | Spans per export. With content on a span carries up to 64 KiB, so the default drops to 32 to keep a batch under a gRPC collector's 4 MiB; a value set here wins. |
 
 ### Advanced and debug
 

@@ -17,7 +17,7 @@
  * (`subagent-wiring.ts`).
  *
  * The provider and model come from the facts `buildChatModel` recorded for
- * the request's model instance (`shared/model-client.ts`), never from the
+ * the request's model instance (`shared/model-facts.ts`), never from the
  * model's name, so one middleware serves the parent's graph and every
  * sub-agent's. Input tokens include cached ones, with the cache's reads
  * and writes beside them, as the conventions ask. The conversation's text
@@ -75,7 +75,7 @@ import {
   TRACER_NAME,
 } from "../gen-ai-conventions.js";
 import { telemetrySettings } from "../otel-export.js";
-import { chatModelFacts } from "../shared/model-client.js";
+import { chatModelFacts } from "../shared/model-facts.js";
 import { chatContent, exportedResult, toolCallContent } from "../shared/telemetry-content.js";
 import type { StigmerMiddleware, OtelSpansConfig, ModelCallRequest } from "./types.js";
 

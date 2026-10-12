@@ -114,6 +114,11 @@ function protocolOf(env: NodeJS.ProcessEnv, signal: TelemetrySignal): OtlpProtoc
   throw new Error(`${name}="${raw}" is not an OTLP protocol. Set it to one of ${OTLP_PROTOCOLS.join(", ")}, or leave it unset for ${DEFAULT_OTLP_PROTOCOL}.`);
 }
 
+/** Whether a signal's own endpoint (`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `..._METRICS_ENDPOINT`) is set. */
+function signalEndpointSet(env: NodeJS.ProcessEnv, signal: TelemetrySignal): boolean {
+  return present(env[`OTEL_EXPORTER_OTLP_${signalVariable(signal)}_ENDPOINT`]) !== undefined;
+}
+
 /** Whether the operator switched the conversation's text on. */
 export function contentCaptureOn(env: NodeJS.ProcessEnv = process.env): boolean {
   return CONTENT_ON_VALUES.has(present(env[CAPTURE_CONTENT_ENV])?.toLowerCase() ?? "");
@@ -127,7 +132,7 @@ export function resolveTelemetrySettings(env: NodeJS.ProcessEnv = process.env): 
   const disabled = present(env.OTEL_SDK_DISABLED)?.toLowerCase() === "true";
   const general = present(env.OTEL_EXPORTER_OTLP_ENDPOINT) !== undefined;
   const signal = (name: TelemetrySignal): TelemetrySettings["traces"] => ({
-    enabled: !disabled && (general || present(env[`OTEL_EXPORTER_OTLP_${signalVariable(name)}_ENDPOINT`]) !== undefined),
+    enabled: !disabled && (general || signalEndpointSet(env, name)),
     protocol: protocolOf(env, name),
   });
   const content = contentCaptureOn(env);
