@@ -19,6 +19,7 @@ import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { selectElementText } from "../internal/select-element-text.js";
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
+import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 
 /** Props for {@link IdentityProviderDetailPanel}. */
 export interface IdentityProviderDetailPanelProps {
@@ -220,6 +221,18 @@ export function IdentityProviderDetailPanel({
           </PermissionGate>
         )}
       </div>
+
+      {/* Rename: for whoever may delete the provider. Sign-in does not
+          name its slug, so the people it signs in keep signing in. */}
+      {mode === "view" && (
+        <ResourceSlugField
+          kind="identity_provider"
+          resourceId={meta?.id || null}
+          currentSlug={meta?.slug ?? ""}
+          onRenamed={(renamed) => onUpdated?.(renamed as IdentityProvider)}
+          className="stg:max-w-md"
+        />
+      )}
 
       {/* Body */}
       {mode === "view" ? (

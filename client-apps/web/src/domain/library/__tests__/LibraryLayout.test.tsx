@@ -230,3 +230,64 @@ describe("LibraryLayout org segment", () => {
     expect(window.location.pathname).toBe("/library/agents/acme/support-bot");
   });
 });
+
+/**
+ * Stand-in for a detail view that read its resource and learned its
+ * current slug. It renders as a route child, hidden under the overlay.
+ */
+function CanonicalSlugButton({ slug }: { slug: string }) {
+  const { canonicalSlug } = useLibraryNavigation();
+  return <button onClick={() => canonicalSlug(slug)}>current slug</button>;
+}
+
+describe("LibraryLayout resource segment", () => {
+  it("replaces a slug the resource was renamed away from, adding no history entry and without remounting the detail", async () => {
+    setRoute("/library/agents/acme/test-bot?tab=channels");
+    agentDetailMounts = 0;
+    const entries = window.history.length;
+
+    render(
+      <LibraryLayout>
+        <CanonicalSlugButton slug="support-bot" />
+      </LibraryLayout>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "current slug", hidden: true }));
+
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/library/agents/acme/support-bot"),
+    );
+    expect(window.location.search).toBe("?tab=channels");
+    expect(window.history.length).toBe(entries);
+    expect(agentDetailMounts).toBe(1);
+  });
+
+  it("corrects the org and the resource segments together", async () => {
+    setRoute("/library/agents/acme-old/test-bot");
+
+    render(
+      <LibraryLayout>
+        <CanonicalSlugButton slug="support-bot" />
+      </LibraryLayout>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "current slug", hidden: true }));
+
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/library/agents/acme/support-bot"),
+    );
+  });
+
+  it("leaves the URL alone when the slug is already the current one", () => {
+    setRoute("/library/agents/acme/support-bot");
+    const entries = window.history.length;
+
+    render(
+      <LibraryLayout>
+        <CanonicalSlugButton slug="support-bot" />
+      </LibraryLayout>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "current slug", hidden: true }));
+
+    expect(window.location.pathname).toBe("/library/agents/acme/support-bot");
+    expect(window.history.length).toBe(entries);
+  });
+});

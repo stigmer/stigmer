@@ -44,6 +44,9 @@ import { AgentQualityTab } from "./AgentQualityTab.js";
 import { AgentEvalsTab } from "../agent-eval/AgentEvalsTab.js";
 import { AgentVersionsTab } from "./AgentVersionsTab.js";
 import { useAgentVersionCount } from "./useAgentVersions.js";
+import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
+import { keptReference } from "../internal/kept-reference.js";
+import type { RenamedResource } from "../resource-detail/useRenameResource.js";
 
 const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
@@ -147,6 +150,13 @@ export interface AgentDetailViewProps {
    */
   readonly onResourceUpdated?: (agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent) => void;
   /**
+   * Fired with the renamed agent after a rename from the Overview tab's
+   * slug field (shown when `editable` and the caller may delete the
+   * agent). A host whose address names the slug moves it to the new one;
+   * the old slug keeps leading to the agent for 30 days.
+   */
+  readonly onRenamed?: (agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent) => void;
+  /**
    * Builds the absolute public chat URL for shares in the Shares tab.
    * The host application owns URL construction — its configured public
    * origin may differ from the rendering origin (e.g. the desktop app).
@@ -220,6 +230,7 @@ export function AgentDetailView({
   defaultTab,
   editable: editableProp = false,
   onResourceUpdated,
+  onRenamed,
   buildShareUrl,
   onPluginClick,
   onAgentClick,
@@ -284,6 +295,14 @@ export function AgentDetailView({
   );
 
   const clearSaveError = useCallback(() => setSaveError(null), []);
+
+  const handleRenamed = useCallback(
+    (renamed: RenamedResource) => {
+      onRenamed?.(renamed as import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent);
+      refetch();
+    },
+    [onRenamed, refetch],
+  );
 
   // The eval the Quality tab's version table last opened: the Evals tab
   // mounts on it.
@@ -481,21 +500,32 @@ export function AgentDetailView({
     tabContent = <AgentVersionsTab agent={agent} />;
   } else {
     tabContent = (
-      <AgentOverview
-        spec={spec}
-        agentOrg={agentOrg}
-        agentSlug={meta?.slug ?? slug}
-        description={spec?.description}
-        onSkillClick={onSkillClick}
-        editable={editable}
-        isSaving={isUpdating}
-        saveField={saveField}
-        saveRunDefaults={saveRunDefaults}
-        onPluginClick={onPluginClick}
-        onAgentClick={onAgentClick}
-        saveError={saveError}
-        clearSaveError={clearSaveError}
-      />
+      <div className="stg:flex stg:flex-col stg:gap-6">
+        {editable && (
+          <ResourceSlugField
+            kind="agent"
+            resourceId={meta?.id ?? null}
+            currentSlug={meta?.slug ?? ""}
+            onRenamed={handleRenamed}
+            className="stg:max-w-md"
+          />
+        )}
+        <AgentOverview
+          spec={spec}
+          agentOrg={agentOrg}
+          agentSlug={meta?.slug ?? slug}
+          description={spec?.description}
+          onSkillClick={onSkillClick}
+          editable={editable}
+          isSaving={isUpdating}
+          saveField={saveField}
+          saveRunDefaults={saveRunDefaults}
+          onPluginClick={onPluginClick}
+          onAgentClick={onAgentClick}
+          saveError={saveError}
+          clearSaveError={clearSaveError}
+        />
+      </div>
     );
   }
 
@@ -571,7 +601,7 @@ function AgentOverview({
     async (refs: ResourceRefRow[]) =>
       saveField?.(
         "plugins",
-        refs.map((r) => ({ org: r.org, slug: r.slug })),
+        refs.map(keptReference),
       ) ?? false,
     [saveField],
   );
@@ -580,7 +610,7 @@ function AgentOverview({
     async (refs: ResourceRefRow[]) =>
       saveField?.(
         "skillRefs",
-        refs.map((r) => ({ org: r.org, slug: r.slug })),
+        refs.map(keptReference),
       ) ?? false,
     [saveField],
   );
@@ -607,6 +637,7 @@ function AgentOverview({
       (spec?.plugins ?? []).map((ref) => ({
         org: ref.org || agentOrg,
         slug: ref.slug,
+        ...(ref.id ? { id: ref.id } : {}),
         label: referenceLabel(ApiResourceKind.plugin, ref, agentOrg, slugForOrg),
       })),
     [spec?.plugins, agentOrg, slugForOrg],
@@ -617,6 +648,7 @@ function AgentOverview({
       (spec?.skillRefs ?? []).map((ref) => ({
         org: ref.org || agentOrg,
         slug: ref.slug,
+        ...(ref.id ? { id: ref.id } : {}),
         label: referenceLabel(ApiResourceKind.skill, ref, agentOrg, slugForOrg),
       })),
     [spec?.skillRefs, agentOrg, slugForOrg],

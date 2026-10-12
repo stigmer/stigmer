@@ -2012,10 +2012,14 @@ export {
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
+  useRenameResource,
   ResourceActionBar,
   ResourceDetailShell,
   Section,
   ConfirmDialog,
+  RenameSlugField,
+  ResourceSlugField,
+  RESOURCE_RENAME_HINT,
 } from "./resource-detail/index.js";
 export type {
   AdditionalTab,
@@ -2029,6 +2033,11 @@ export type {
   UseConfirmActionReturn,
   DeletableResourceKind,
   UseDeleteResourceReturn,
+  RenamableResourceKind,
+  RenamedResource,
+  UseRenameResourceReturn,
+  RenameSlugFieldProps,
+  ResourceSlugFieldProps,
   ResourceActionBarProps,
   ConfirmDialogProps,
 } from "./resource-detail/index.js";

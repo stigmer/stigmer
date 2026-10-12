@@ -14,6 +14,7 @@ import { useDeleteOAuthApp } from "./useDeleteOAuthApp.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { parseAddressList } from "./addresses.js";
+import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -270,6 +271,17 @@ export function OAuthAppDetailPanel({
           </div>
         )}
       </div>
+
+      {/* Rename: for whoever may delete the app */}
+      {mode === "view" && (
+        <ResourceSlugField
+          kind="oauth_app"
+          resourceId={meta?.id || null}
+          currentSlug={meta?.slug ?? ""}
+          onRenamed={(renamed) => onUpdated?.(renamed as OAuthApp)}
+          className="stg:max-w-md"
+        />
+      )}
 
       {/* Inline delete confirmation */}
       {confirmingDelete && (

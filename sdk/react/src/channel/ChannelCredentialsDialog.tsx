@@ -9,6 +9,7 @@ import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchann
 import { Button } from "../button/Button.js";
 import { ChannelToolCredentials } from "./ChannelToolCredentials.js";
 import { agentChannelToInput, useSaveAgentChannel } from "./useSaveAgentChannel.js";
+import { keptReference } from "../internal/kept-reference.js";
 
 /** Props for {@link ChannelCredentialsDialog}. */
 export interface ChannelCredentialsDialogProps {
@@ -109,6 +110,7 @@ function ChannelCredentialsDialogBody({
     (channel.spec?.vaults ?? []).map((ref) => ({
       org: ref.org,
       slug: ref.slug,
+      ...(ref.id ? { id: ref.id } : {}),
     })),
   );
 
@@ -118,7 +120,7 @@ function ChannelCredentialsDialogBody({
       // is an explicit unbind (apply semantics replace the spec).
       await save({
         ...agentChannelToInput(channel),
-        vaults: [...draft],
+        vaults: draft.map(keptReference),
       });
       onSaved?.();
       onClose();

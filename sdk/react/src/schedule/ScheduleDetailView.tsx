@@ -79,6 +79,8 @@ import { useUpdateScheduleSpec } from "./useUpdateScheduleSpec.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
+import { keptReference } from "../internal/kept-reference.js";
+import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 
 /** Props for {@link ScheduleDetailView}. */
 export interface ScheduleDetailViewProps {
@@ -103,11 +105,18 @@ export interface ScheduleDetailViewProps {
   /** Called when the schedule loads or reloads (e.g. breadcrumb label sync). */
   readonly onResourceLoad?: (schedule: Schedule) => void;
   /**
+   * Fired with the renamed schedule after a rename from the slug field. A
+   * host whose address names the slug moves it to the new one.
+   */
+  readonly onRenamed?: (schedule: Schedule) => void;
+  /**
    * Enable inline editing of the schedule's mutable spec fields
    * (cadence, message, vaults, engine & model, budget). Each
    * field saves independently via a lossless full-resource re-apply
-   * ({@link useUpdateScheduleSpec}). The server-immutable fields —
-   * slug, target agent, target type — never gain an edit affordance;
+   * ({@link useUpdateScheduleSpec}). The slug is renamed on its own,
+   * from the Overview's slug field, by whoever may delete the schedule
+   * (the old slug keeps leading to it for 30 days). The server-immutable
+   * fields — target agent, target type — never gain an edit affordance;
    * workspace edits go through Edit YAML for now.
    * @default false
    */
@@ -171,6 +180,7 @@ export function ScheduleDetailView({
   onNavigateToRun,
   onDeleted,
   onResourceLoad,
+  onRenamed,
   editable = false,
   additionalTabs,
   activeTab,
@@ -492,6 +502,18 @@ export function ScheduleDetailView({
 
   const overviewContent = (
     <div className="stg:flex stg:flex-col stg:gap-6">
+      {editable && (
+        <ResourceSlugField
+          kind="schedule"
+          resourceId={scheduleId || null}
+          currentSlug={meta?.slug ?? ""}
+          onRenamed={(renamed) => {
+            onRenamed?.(renamed as Schedule);
+            refetch();
+          }}
+          className="stg:max-w-md"
+        />
+      )}
       <Section title="Definition">
         <dl className="stg:divide-y stg:divide-border">
           <DetailRow label="Cadence">
@@ -577,8 +599,7 @@ export function ScheduleDetailView({
                     if (s.target.case === "agent") {
                       s.target.value.vaults = refs.map((r) =>
                         create(ApiResourceReferenceSchema, {
-                          org: r.org,
-                          slug: r.slug,
+                          ...keptReference(r),
                           kind: ApiResourceKind.vault,
                         }),
                       );
@@ -959,7 +980,7 @@ function VaultsInlineEditor({
   error,
 }: {
   readonly org: string;
-  readonly refs: readonly { org: string; slug: string }[];
+  readonly refs: readonly { org: string; slug: string; id?: string }[];
   /** The identity that created the schedule; "" when unknown. */
   readonly creatorId: string;
   readonly onSave: (refs: readonly ResourceRef[]) => Promise<boolean>;
@@ -973,7 +994,7 @@ function VaultsInlineEditor({
   const [draft, setDraft] = useState<ResourceRef[]>([]);
 
   const startEdit = () => {
-    setDraft(refs.map((r) => ({ org: r.org, slug: r.slug })));
+    setDraft(refs.map((r) => ({ org: r.org, slug: r.slug, ...(r.id ? { id: r.id } : {}) })));
     setIsEditing(true);
   };
 

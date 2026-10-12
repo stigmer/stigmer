@@ -7,7 +7,8 @@
  * server refuses: editing needs `can_edit` on the team, deleting needs
  * `can_delete`, managing members needs `can_grant_access` (all three are
  * the organization's administrators); every organization viewer sees the
- * team and who is in it.
+ * team and who is in it. Renaming (the slug field) needs `can_delete`, as
+ * deleting does; memberships and shares name the team by id and stay.
  *
  * An edit spreads `toTeamUpdateInput(team)` before overriding the name and
  * description: the update replaces the whole resource, and anything not
@@ -25,6 +26,7 @@ import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { TEAM_DESCRIPTION_MAX_LENGTH } from "./CreateTeamForm.js";
 import { TeamMembersPanel } from "./TeamMembersPanel.js";
 import { useDeleteTeam, useUpdateTeam } from "./useTeamMutations.js";
+import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
 
 /** Props for {@link TeamDetailPanel}. */
 export interface TeamDetailPanelProps {
@@ -108,6 +110,16 @@ export function TeamDetailPanel({
             onUpdated?.(saved);
           }}
           onCancel={() => setEditing(false)}
+        />
+      )}
+
+      {!editing && (
+        <ResourceSlugField
+          kind="team"
+          resourceId={teamId || null}
+          currentSlug={team.metadata?.slug ?? ""}
+          onRenamed={(renamed) => onUpdated?.(renamed as Team)}
+          className="stg:max-w-md"
         />
       )}
 

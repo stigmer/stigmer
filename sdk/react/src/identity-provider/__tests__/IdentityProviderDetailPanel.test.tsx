@@ -101,11 +101,17 @@ describe("IdentityProviderDetailPanel edit gate", () => {
     }));
     renderPanel(vi.fn(), checkMyPermission);
 
-    await waitFor(() => expect(checkMyPermission).toHaveBeenCalledTimes(1));
-    const asked = checkMyPermission.mock.calls[0]![0];
-    expect(asked.resource?.kind).toBe("identity_provider");
-    expect(asked.resource?.id).toBe("idp-1");
-    expect(asked.relation).toBe("can_edit");
+    // can_edit gates Edit; can_delete gates the slug field (rename).
+    await waitFor(() =>
+      expect(new Set(checkMyPermission.mock.calls.map(([input]) => input.relation))).toEqual(
+        new Set(["can_edit", "can_delete"]),
+      ),
+    );
+    for (const [asked] of checkMyPermission.mock.calls) {
+      expect(asked.resource?.kind).toBe("identity_provider");
+      expect(asked.resource?.id).toBe("idp-1");
+    }
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
     // The configuration stays readable; only the edit affordance is withheld.
     expect(screen.getByRole("heading", { name: "Acme Okta" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();

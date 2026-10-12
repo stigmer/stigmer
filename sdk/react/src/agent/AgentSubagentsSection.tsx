@@ -21,6 +21,7 @@ import { Section } from "../resource-detail/Section.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { AgentPicker } from "./AgentPicker.js";
 import { useAgent } from "./useAgent.js";
+import { keptReference } from "../internal/kept-reference.js";
 
 /** The most agents one agent may list; the server refuses more. */
 export const MAX_SUBAGENTS = 20;
@@ -50,9 +51,9 @@ export interface AgentSubagentsSectionProps {
   readonly onAgentClick?: (ref: { org: string; slug: string }) => void;
 }
 
-/** A stored reference sent back as it is, its pin included. */
+/** A stored reference sent back as it is: by its id, its pin included (internal/kept-reference.ts). */
 function keptRef(ref: ApiResourceReference): ResourceRef {
-  return { org: ref.org, slug: ref.slug, ...(ref.version && { version: ref.version }) };
+  return keptReference(ref);
 }
 
 /**
@@ -110,7 +111,7 @@ export function AgentSubagentsSection({
   const handleUpdate = useCallback(
     async (index: number) => {
       await onSave?.(
-        refs.map((r, i) => (i === index ? { org: r.org, slug: r.slug, version: "" } : keptRef(r))),
+        refs.map((r, i) => (i === index ? { ...keptReference(r), version: "" } : keptRef(r))),
       );
     },
     [refs, onSave],

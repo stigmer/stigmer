@@ -71,10 +71,12 @@ describe("ChannelAppDetailPanel credentials and delete gates", () => {
       ([input]) =>
         `${input.resource?.kind}:${input.resource?.id}:${input.relation}`,
     );
-    expect(asked.sort()).toEqual([
+    // can_delete gates both deletion and the slug field (rename).
+    expect([...new Set(asked)].sort()).toEqual([
       "channel_app:chapp_1:can_delete",
       "channel_app:chapp_1:can_edit",
     ]);
+    expect(await screen.findByRole("button", { name: "Rename" })).toBeTruthy();
   });
 
   it("a caller granted viewer reads the setup values with neither control", async () => {
@@ -83,7 +85,13 @@ describe("ChannelAppDetailPanel credentials and delete gates", () => {
     }));
     renderPanel(checkMyPermission);
 
-    await waitFor(() => expect(checkMyPermission).toHaveBeenCalledTimes(2));
+    // can_delete gates both deletion and the slug field (rename).
+    await waitFor(() =>
+      expect(
+        new Set(checkMyPermission.mock.calls.map(([input]) => input.relation)),
+      ).toEqual(new Set(["can_edit", "can_delete"])),
+    );
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
     // The setup guidance stays readable; only the change affordances are withheld.
     expect(screen.getByText("Events request URL")).toBeTruthy();
     await waitFor(() =>

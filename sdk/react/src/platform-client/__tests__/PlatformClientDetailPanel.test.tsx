@@ -186,7 +186,8 @@ describe("PlatformClientDetailPanel actions by permission", () => {
       ([input]) =>
         `${input.resource?.kind}:${input.resource?.id}:${input.relation}`,
     );
-    expect(asked.sort()).toEqual([
+    // can_delete gates both Delete and the slug field (rename).
+    expect([...new Set(asked)].sort()).toEqual([
       "platform_client:pc-1:can_delete",
       "platform_client:pc-1:can_edit",
     ]);
@@ -208,7 +209,13 @@ describe("PlatformClientDetailPanel actions by permission", () => {
     }));
     const { container } = renderPanel(vi.fn(), PLATFORM_CLIENT, checkMyPermission);
 
-    await waitFor(() => expect(checkMyPermission).toHaveBeenCalledTimes(2));
+    // can_delete gates both Delete and the slug field (rename).
+    await waitFor(() =>
+      expect(new Set(checkMyPermission.mock.calls.map(([input]) => input.relation))).toEqual(
+        new Set(["can_edit", "can_delete"]),
+      ),
+    );
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
     // The configuration stays readable; only the change affordances are withheld.
     expect(screen.getByText("client-abc")).toBeTruthy();
     await waitFor(() => {

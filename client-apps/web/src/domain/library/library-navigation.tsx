@@ -45,11 +45,17 @@ interface ActiveDetail {
    * the current slug): the view keeps its identity across the correction.
    */
   readonly opened?: string;
+  /**
+   * The resource segment the detail was opened with, when the resource
+   * answered to another slug since (one it was renamed away from, or a
+   * rename made from the view): the view keeps its identity across it.
+   */
+  readonly openedSlug?: string;
 }
 
-/** The detail view's identity: a correction of the org segment's spelling keeps it. */
+/** The detail view's identity: a correction of the org or resource segment's spelling keeps it. */
 export function detailKey(detail: ActiveDetail): string {
-  return `${detail.resourceType}/${detail.opened ?? detail.org}/${detail.slug}`;
+  return `${detail.resourceType}/${detail.opened ?? detail.org}/${detail.openedSlug ?? detail.slug}`;
 }
 
 interface LibraryNavigationValue {
@@ -67,6 +73,14 @@ interface LibraryNavigationValue {
     org: string,
     slug: string,
   ) => void;
+  /**
+   * The slug the open detail's resource answers to now, as its view read
+   * it: a URL that names a slug the resource was renamed away from (which
+   * still leads to it for 30 days), or a rename made from the view, is
+   * replaced in place, with no new history entry, by the one naming the
+   * current slug. A call naming the slug already shown changes nothing.
+   */
+  canonicalSlug: (slug: string) => void;
   /** Clear the active detail, returning to the underlying list page. */
   clearDetail: () => void;
 }
@@ -133,7 +147,10 @@ function detailsEqual(a: ActiveDetail | null, b: ActiveDetail | null): boolean {
  * from a stored org id, or one carrying a slug the org has since been
  * renamed away from, still opens the page (the server accepts either),
  * and the URL is then replaced in place, with no new history entry, by
- * the one naming the current slug.
+ * the one naming the current slug. The resource segment follows the same
+ * rule, told by the detail view (`canonicalSlug`): the view reads the
+ * resource by the URL's slug anyway, and the answer carries its current
+ * one, so no second lookup is made.
  */
 export function LibraryNavigationProvider({
   children,
@@ -194,8 +211,9 @@ export function LibraryNavigationProvider({
     if (
       !shown ||
       shown.resourceType !== activeDetail.resourceType ||
-      shown.slug !== activeDetail.slug ||
-      shown.org === activeDetail.org
+      (shown.org !== activeDetail.org && shown.org !== activeDetail.opened) ||
+      (shown.slug !== activeDetail.slug && shown.slug !== activeDetail.openedSlug) ||
+      (shown.org === activeDetail.org && shown.slug === activeDetail.slug)
     ) {
       return;
     }
@@ -205,6 +223,14 @@ export function LibraryNavigationProvider({
       `${detailToPath(activeDetail)}${window.location.search}${window.location.hash}`,
     );
   }, [activeDetail]);
+
+  const canonicalSlug = useCallback((slug: string) => {
+    const current = activeDetailRef.current;
+    if (!current || slug === "" || current.slug === slug) return;
+    const next: ActiveDetail = { ...current, slug, openedSlug: current.openedSlug ?? current.slug };
+    activeDetailRef.current = next;
+    setActiveDetail(next);
+  }, []);
 
   const clearDetail = useCallback(() => {
     if (activeDetailRef.current) {
@@ -237,9 +263,10 @@ export function LibraryNavigationProvider({
       activeDetail,
       currentLibraryPath,
       navigateToDetail,
+      canonicalSlug,
       clearDetail,
     }),
-    [activeDetail, currentLibraryPath, navigateToDetail, clearDetail],
+    [activeDetail, currentLibraryPath, navigateToDetail, canonicalSlug, clearDetail],
   );
 
   return (

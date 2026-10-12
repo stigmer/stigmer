@@ -121,10 +121,12 @@ describe("OAuthAppDetailPanel edit and delete gates", () => {
       ([input]) =>
         `${input.resource?.kind}:${input.resource?.id}:${input.relation}`,
     );
-    expect(asked.sort()).toEqual([
+    // can_delete gates both Delete and the slug field (rename).
+    expect([...new Set(asked)].sort()).toEqual([
       "oauth_app:oa-1:can_delete",
       "oauth_app:oa-1:can_edit",
     ]);
+    expect(await screen.findByRole("button", { name: "Rename" })).toBeTruthy();
   });
 
   it("an admin who did not create the app reads it with neither control", async () => {
@@ -133,9 +135,14 @@ describe("OAuthAppDetailPanel edit and delete gates", () => {
     }));
     renderPanel(vi.fn(), checkMyPermission);
 
-    await waitFor(() => expect(checkMyPermission).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(new Set(checkMyPermission.mock.calls.map(([input]) => input.relation))).toEqual(
+        new Set(["can_edit", "can_delete"]),
+      ),
+    );
     // The configuration stays readable; only the change affordances are withheld.
     expect(screen.getByRole("heading", { name: "github" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Edit" })).toBeNull(),
     );

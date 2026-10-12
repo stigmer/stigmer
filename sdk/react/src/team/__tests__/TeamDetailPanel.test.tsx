@@ -38,7 +38,9 @@ describe("TeamDetailPanel save payload", () => {
   it("keeps the id, slug and labels when only the description is edited", async () => {
     const update = vi.fn(async (_input: TeamInput) => TEAM);
     render(
-      <StigmerContext.Provider value={{ team: { update } } as never}>
+      <StigmerContext.Provider
+        value={{ team: { update }, iamPolicy: { checkMyPermission: async () => ({ isAuthorized: false }) } } as never}
+      >
         <TeamDetailPanel team={TEAM} org="org_acme" />
       </StigmerContext.Provider>,
     );
