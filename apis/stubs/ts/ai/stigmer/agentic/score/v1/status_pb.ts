@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/score/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_score_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEioQEKC1Njb3JlU3RhdHVzEjYKBXN0YXRlGAEgASgOMicuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlNjb3JlU3RhdGUSGQoRbm90X2dyYWRlZF9yZWFzb24YAiABKAkSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdGIGcHJvdG8z", [file_ai_stigmer_agentic_score_v1_enum, file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvc3RhdHVzLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEizwEKC1Njb3JlU3RhdHVzEjYKBXN0YXRlGAEgASgOMicuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlNjb3JlU3RhdGUSGQoRbm90X2dyYWRlZF9yZWFzb24YAiABKAkSEAoIYWdlbnRfaWQYAyABKAkSGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAQgASgJEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRiBnByb3RvMw", [file_ai_stigmer_agentic_score_v1_enum, file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * ScoreStatus contains system-managed state for a score.
@@ -35,6 +35,23 @@ export type ScoreStatus = Message<"ai.stigmer.agentic.score.v1.ScoreStatus"> & {
    * @generated from field: string not_graded_reason = 2;
    */
   notGradedReason: string;
+
+  /**
+   * ID of the agent the scored run ran, copied from the run when the score
+   * is created. Empty for a run of the built-in assistant.
+   *
+   * @generated from field: string agent_id = 3;
+   */
+  agentId: string;
+
+  /**
+   * Content hash of the agent version the scored run ran, copied from the
+   * run when the score is created. Unique only within its agent; empty when
+   * agent_id is empty or the agent had no recorded version.
+   *
+   * @generated from field: string agent_version_hash = 4;
+   */
+  agentVersionHash: string;
 
   /**
    * Standard audit information (created_at, updated_at, created_by, etc.)

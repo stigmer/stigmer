@@ -183,6 +183,11 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks for dashboard metrics, activity feeds, and analytics data.",
   },
+  charts: {
+    title: "Charts",
+    description:
+      "Small inline-SVG charts drawn from the theme's chart tokens, each with a screen-reader table of its data.",
+  },
   github: {
     title: "GitHub",
     description:
@@ -259,10 +264,10 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Platform-operator console for managed Cursor team accounts.",
   },
-  "pricing-governance": {
-    title: "Pricing Governance",
+  "model-catalog": {
+    title: "Model Catalog",
     description:
-      "Platform-operator console for the model registry baseline and pricing overrides.",
+      "Platform-operator console for the model registry baseline.",
   },
   licenses: {
     title: "Licenses",
@@ -303,7 +308,7 @@ const SOURCE_PATH_OVERRIDES: Record<string, string> = {
 // platform-operator-only surfaces — the docs site's audience is Stigmer
 // customers, who can never reach those consoles (they are gated on
 // platform:stigmer permissions). Operator surfaces are whole modules by
-// design (cursor-accounts, pricing-governance), so exclusion stays
+// design (cursor-accounts, model-catalog), so exclusion stays
 // domain-level: a new operator export lands in an operator module and is
 // excluded automatically, with nothing to remember per symbol.
 const EXCLUDED_DOMAINS = new Set([
@@ -314,7 +319,7 @@ const EXCLUDED_DOMAINS = new Set([
   "empty-state",
   "inline-edit",
   "cursor-accounts",
-  "pricing-governance",
+  "model-catalog",
   "licenses",
   "plan-catalog",
 ]);

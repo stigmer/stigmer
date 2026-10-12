@@ -37,9 +37,9 @@
 # `debris` row records a behavior deliberately not carried forward, so the
 # cut stays visible, and a `debris-candidate` row awaits that decision.
 #
-# The counts the rows were reconciled against: 23 billing RPCs (14 command
-# + 9 query), 5 gate steps + 2 status hooks, 7 Stripe handlers over 8 event
-# strings, 6 billing schedule ids from 5 starters.
+# The counts the rows were reconciled against: 21 billing RPCs (13 command
+# + 8 query), 5 gate steps + 2 status hooks, 7 Stripe handlers over 8 event
+# strings, 4 billing schedule ids from 4 starters.
 
 
 rows:
@@ -605,13 +605,13 @@ rows:
     note: >-
       The composition deduplicates a report on RecordLlmCallUsageInput.call_id when the caller sends one, falling back to sequence when it does not, so a restarted proxy's legitimate calls are never dropped as duplicates. This row's arm sends no call_id; the call_id path is pinned by the hosted edition's own suites.
 
-  # --- pricing governance (platform can_manage_model_pricing) ----------------
+  # --- model catalog (platform can_manage_model_pricing) ---------------------
   - id: billing.rpc.pricing-admin-lanes.ordinary-caller-permission-denied
     surface: billing
     lane: >-
       rpc.upsertModelPricingBaseline
     behavior: >-
-      Each pricing-admin RPC answers PERMISSION_DENIED with its proto error_msg to an org owner who is not a platform operator — "only platform operators can edit the model registry baseline" (upsert/retire), "only platform operators can decide pricing overrides" (decide), "only platform operators can view pricing governance" (getModelPricingGovernance), "only platform operators can view the model registry baseline" (listModelPricingBaselines).
+      Each pricing-admin RPC answers PERMISSION_DENIED with its proto error_msg to an org owner who is not a platform operator — "only platform operators can edit the model registry baseline" (upsert/retire), "only platform operators can view the model registry baseline" (listModelPricingBaselines).
     class: carve-out
     disposition: conformance
     observability: launcher
@@ -629,7 +629,7 @@ rows:
     caller: operator
     needs: [none]
     note: >-
-      The pricing-governance operator lanes (upsert/retire/decide/list/governance) are operator tooling with a console and travel with the provider-reconciliation subsystem. Baselines are PLATFORM-GLOBAL state, not org state — the arm keys on a run-unique model id and retires it on cleanup so nothing outlives the test.
+      The model catalog operator lanes (upsert/retire/list) are operator tooling with a console. Baselines are PLATFORM-GLOBAL state, not org state — the arm keys on a run-unique model id and retires it on cleanup so nothing outlives the test.
   - id: billing.rpc.retire-model-pricing-baseline.unknown-not-found
     surface: billing
     lane: >-
@@ -641,45 +641,6 @@ rows:
     observability: launcher
     caller: operator
     needs: [none]
-  - id: billing.rpc.decide-model-pricing-override.unknown-not-found
-    surface: billing
-    lane: >-
-      rpc.decideModelPricingOverride
-    behavior: >-
-      decideModelPricingOverride for an override nobody proposed answers NOT_FOUND "No pricing override found with id <override_id>", approving or rejecting alike.
-    class: behavior
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [none]
-    note: >-
-      The already-decided case is not drivable from outside — no RPC creates a pending override, only the Temporal provider-reconciliation corrector does — so it is the `unit` row below.
-  - id: billing.rpc.decide-model-pricing-override.already-decided-failed-precondition
-    surface: billing
-    lane: >-
-      rpc.decideModelPricingOverride
-    behavior: >-
-      decideModelPricingOverride on an override whose status is not PENDING_SIGNOFF answers FAILED_PRECONDITION "Pricing override <id> is <status>, not PENDING_SIGNOFF — only pending proposals can be decided."; a concurrent decision loses the CAS with ABORTED.
-    class: behavior
-    disposition: unit
-    observability: none
-    caller: operator
-    needs: [none]
-    note: >-
-      A pending override exists only after the provider-reconciliation corrector (default off; fed by the Anthropic / Cursor admin APIs) proposes one, so the launcher cannot observe this branch; the hosted edition's own suites pin it.
-  - id: billing.rpc.get-model-pricing-governance.returns-queue
-    surface: billing
-    lane: >-
-      rpc.getModelPricingGovernance
-    behavior: >-
-      getModelPricingGovernance returns one entry per model in the effective registry (the base variant only; sorted by harness, provider, model; baseline_* and effective_* rates equal while the entry has no active override; active_overrides listed) and the pending_overrides proposal queue — empty on a fresh environment, since only the provider-reconciliation corrector proposes.
-    class: behavior
-    disposition: conformance
-    observability: launcher
-    caller: operator
-    needs: [none]
-    note: >-
-      On a fresh environment `entries` carries every seeded registry model (the pricing baseline is seeded on every boot); only `pending_overrides` is empty.
 
   # --- local OSS posture ----------------------------------------------------
   - id: billing.rpc.oss-boundary.every-billing-rpc-unimplemented
@@ -687,7 +648,7 @@ rows:
     lane: >-
       rpc.getBillingAccount
     behavior: >-
-      On a target where billingLedger is false (the local OSS server), every one of the 23 billing RPCs answers Unimplemented — the edition boundary (billing is Cloud only) as an observable contract.
+      On a target where billingLedger is false (the local OSS server), every one of the 21 billing RPCs answers Unimplemented — the edition boundary (billing is Cloud only) as an observable contract.
     class: carve-out
     disposition: conformance
     observability: none
@@ -1099,12 +1060,12 @@ rows:
   # ===========================================================================
   # BILLING — workers, schedules, notifier (Temporal vocabulary is a carve-out)
   # ===========================================================================
-  - id: billing.worker.schedule-ids.six-byte-pinned
+  - id: billing.worker.schedule-ids.four-byte-pinned
     surface: billing
     lane: >-
       worker
     behavior: >-
-      The billing workers own exactly these Temporal schedule ids — reservation-expiry, grant-expiry, billing-usage-repricing, billing-reconciliation, billing-provider-reconciliation-anthropic, billing-provider-reconciliation-cursor — and the byte-pinned workflow types billing/grant-expiry, billing/reservation-expiry, billing/reconciliation, billing/usage-repricing, billing/provider-reconciliation. Java ran them on five queues (reservation_expiry, grant_expiry, usage_repricing, billing_reconciliation, provider_reconciliation); the composition runs them on ONE composition-own queue, cloud-billing — the queue is server vocabulary, never a wire artifact.
+      The billing workers own exactly these Temporal schedule ids — reservation-expiry, grant-expiry, billing-usage-repricing, billing-reconciliation — and the byte-pinned workflow types billing/grant-expiry, billing/reservation-expiry, billing/reconciliation, billing/usage-repricing. Java ran them on one queue each (reservation_expiry, grant_expiry, usage_repricing, billing_reconciliation); the composition runs them on ONE composition-own queue, cloud-billing — the queue is server vocabulary, never a wire artifact.
     class: carve-out
     disposition: unit
     observability: none
@@ -1156,19 +1117,6 @@ rows:
     observability: none
     caller: none
     needs: [none]
-  - id: billing.worker.provider-reconciliation.governance-notifier-best-effort
-    surface: billing
-    lane: >-
-      worker
-    behavior: >-
-      Provider reconciliation posts pricing-governance notifications to Discord best-effort — no-op when unconfigured, retried by Temporal, the workflow absorbing final failure.
-    class: behavior
-    disposition: unit
-    observability: none
-    caller: none
-    needs: [fake-discord]
-    note: >-
-      The hosted edition's own suites may drive it against the fake Discord receiver.
 
   # --- pure-logic tables the hosted billing engine carries -------------------
   - id: billing.unit.micros-arithmetic
@@ -1244,17 +1192,6 @@ rows:
     behavior: >-
       The credit pack catalog (ids, prices, credits) and the billing policy seed match Java's tables.
     class: carve-out
-    disposition: unit
-    observability: none
-    caller: none
-    needs: [none]
-  - id: billing.unit.blended-rate-solver-and-provider-admin-clients
-    surface: billing
-    lane: >-
-      unit
-    behavior: >-
-      Provider reconciliation's blended-rate solver and the Anthropic/Cursor admin clients parse and solve as Java's tables.
-    class: behavior
     disposition: unit
     observability: none
     caller: none
@@ -2178,12 +2115,6 @@ metrics:
     alerts: [postgres-wal-above-80-of-max-wal-size]
     note: >-
       The WAL directory's size in bytes (sum over pg_ls_waldir()), which needs the pg_monitor role — granted to stigmer_app by hand on 2026-07-29 and carried by the composition's connections as the same role. Probed inside the same poll but on its own terms, as Java does: a failure sits out the next 15 polls and warns once with the GRANT to run, the last good value stays observed through the window, and only a probe that has never succeeded is absent. The rule's threshold is 80 % of max_wal_size (1024 MB), a production fact the rule carries.
-  - name: stigmer.platform.provider_standing.probes
-    surface: platform
-    disposition: ported
-    alerts: [platform-provider-standing-degraded, platform-provider-standing-probe-silence]
-    note: >-
-      One count per provider per hourly canary pass, labelled provider and outcome (healthy / platform_billing / platform_auth / unclassified_error / unreachable / not_configured), recorded by the composition's providerstanding/metrics.ts from the probe activity. Every provider × outcome series is pre-registered at zero at unit boot as Java's constructor did: the silence rule is a low-rate rule over three hours, which can only evaluate a series that exists, and the degraded rule must see a first non-healthy verdict after a boot as a 0→1 edge rather than a dropped first sample.
   - name: stigmer.cursor.account_default.drift
     surface: platform
     disposition: ported
@@ -2201,7 +2132,7 @@ metrics:
     disposition: ported
     alerts: [sandbox-pool-below-target]
     note: >-
-      Pool members by status, one series per status the pool model knows (provisioning, ready, claimed), the label lowercased as Java emitted it and as the rule filters (status = ready). Same poll as the target. Every status is observed on every poll, zero included, so a status with no members reads 0 rather than vanishing from the series: an absent series cannot be alerted on, the same born-at-zero reasoning as the provider-standing counter above.
+      Pool members by status, one series per status the pool model knows (provisioning, ready, claimed), the label lowercased as Java emitted it and as the rule filters (status = ready). Same poll as the target. Every status is observed on every poll, zero included, so a status with no members reads 0 rather than vanishing from the series: an absent series cannot be alerted on.
   - name: stigmer.proxy.cursor.execution_authority_lookups
     surface: proxy
     disposition: dropped
@@ -2255,31 +2186,6 @@ metrics:
   - name: stigmer.billing.auto_recharge.reconciled
     surface: billing
     disposition: ported
-  - name: stigmer.billing.pricing.reconciliation.runs
-    surface: billing
-    disposition: ported
-    alerts: [pricing-reconciliation-silence-anthropic, pricing-reconciliation-silence-cursor]
-  - name: stigmer.billing.pricing.rate_corrected
-    surface: billing
-    disposition: ported
-  - name: stigmer.billing.pricing.rate_proposal_pending
-    surface: billing
-    disposition: ported
-  - name: stigmer.billing.pricing.governance_notification_failed
-    surface: billing
-    disposition: ported
-    alerts: [pricing-governance-notification-failed]
-  - name: stigmer.billing.pricing.reconciliation.last_run_unreconciled
-    surface: billing
-    disposition: ported
-    alerts: [pricing-books-disagree-anthropic, pricing-books-disagree-cursor]
-  - name: stigmer.billing.pricing.signoff.pending
-    surface: billing
-    disposition: ported
-  - name: stigmer.billing.pricing.signoff.oldest_age_hours
-    surface: billing
-    disposition: ported
-    alerts: [pricing-signoff-waiting-too-long]
   - name: stigmer.billing.model_pin.unknown
     surface: billing
     disposition: dropped

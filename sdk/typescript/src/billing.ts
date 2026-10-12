@@ -15,8 +15,6 @@ import {
   SetAutoRechargeConfigInputSchema,
   GetBillingUsageReportInputSchema,
   GetCustomerModelPricingInputSchema,
-  GetModelPricingGovernanceInputSchema,
-  DecideModelPricingOverrideInputSchema,
   UpsertModelPricingBaselineInputSchema,
   RetireModelPricingBaselineInputSchema,
   ListModelPricingBaselinesInputSchema,
@@ -26,11 +24,9 @@ import {
   type CreditLedgerResponse,
   type BillingUsageReportResponse,
   type CustomerModelPricingResponse,
-  type ModelPricingGovernanceResponse,
   type ModelPricingBaselinesResponse,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import type { CreditLedgerEntry } from "@stigmer/protos/ai/stigmer/billing/v1/credit_pb";
-import type { ModelPricingOverride } from "@stigmer/protos/ai/stigmer/billing/v1/pricing_override_pb";
 import type { ModelPricingBaseline } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import type { BillingAccount, CreditBalance } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import type { LedgerEntryType, LedgerView } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
@@ -154,19 +150,6 @@ export interface ListModelPricingBaselinesParams {
    * audit history). Default: ACTIVE documents only.
    */
   readonly includeHistory?: boolean;
-}
-
-/** Parameters for deciding a pending pricing override. */
-export interface DecideModelPricingOverrideParams {
-  /** The PENDING_SIGNOFF override to decide. */
-  readonly overrideId: string;
-  /**
-   * `true` approves (the override becomes ACTIVE and supersedes any
-   * current ACTIVE override on the same pricing key); `false` rejects.
-   */
-  readonly approve: boolean;
-  /** Optional note recorded on the decision for the audit trail. */
-  readonly decisionNote?: string;
 }
 
 /**
@@ -445,48 +428,6 @@ export class BillingClient {
   }
 
   /**
-   * Retrieve the platform pricing governance view: baseline vs effective
-   * rates per model, ACTIVE override provenance, and pending sign-off
-   * proposals from the pricing feedback loop.
-   *
-   * Platform-operator surface (`can_manage_model_pricing` on
-   * `platform:stigmer`): rates are raw provider prices, pre-markup.
-   */
-  async getModelPricingGovernance(): Promise<ModelPricingGovernanceResponse> {
-    try {
-      return await this.query.getModelPricingGovernance(
-        create(GetModelPricingGovernanceInputSchema, {}),
-      );
-    } catch (e) {
-      throw wrapError(e);
-    }
-  }
-
-  /**
-   * Record a human decision on a PENDING_SIGNOFF pricing override.
-   *
-   * Approving makes the override ACTIVE (superseding any current ACTIVE
-   * override on the same pricing key) and recomposes the effective
-   * registry; rejecting archives it for audit. Returns the decided
-   * override with the decision stamped.
-   */
-  async decideModelPricingOverride(
-    params: DecideModelPricingOverrideParams,
-  ): Promise<ModelPricingOverride> {
-    try {
-      return await this.command.decideModelPricingOverride(
-        create(DecideModelPricingOverrideInputSchema, {
-          overrideId: params.overrideId,
-          approve: params.approve,
-          decisionNote: params.decisionNote ?? "",
-        }),
-      );
-    } catch (e) {
-      throw wrapError(e);
-    }
-  }
-
-  /**
    * Retrieve the model registry baseline catalog: ACTIVE entries by
    * default, or the full append-only revision history with
    * `includeHistory`.
@@ -512,7 +453,7 @@ export class BillingClient {
    * Create or revise one model registry baseline entry (catalog + list
    * prices). Append-only: an existing ACTIVE entry for the same
    * (modelId, provider, harness) key is superseded, never mutated, and
-   * the effective registry recomposes immediately. Returns the new
+   * the registry is rebuilt immediately. Returns the new
    * revision with server-stamped lifecycle fields.
    */
   async upsertModelPricingBaseline(
@@ -531,9 +472,9 @@ export class BillingClient {
   }
 
   /**
-   * Retire one model from the registry catalog. The model disappears
-   * from every price surface on the next composition pass; the document
-   * is kept for audit and the key can be revived by a subsequent upsert.
+   * Retire one model from the registry catalog. The rebuilt registry
+   * drops it from every price surface; the document is kept for audit
+   * and the key can be revived by a subsequent upsert.
    */
   async retireModelPricingBaseline(
     params: RetireModelPricingBaselineParams,

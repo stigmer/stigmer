@@ -15,13 +15,11 @@ import ai.stigmer.billing.v1.CreditBalance;
 import ai.stigmer.billing.v1.CreditLedgerEntry;
 import ai.stigmer.billing.v1.CreditLedgerResponse;
 import ai.stigmer.billing.v1.CustomerModelPricingResponse;
-import ai.stigmer.billing.v1.DecideModelPricingOverrideInput;
 import ai.stigmer.billing.v1.GetBillingAccountInput;
 import ai.stigmer.billing.v1.GetBillingUsageReportInput;
 import ai.stigmer.billing.v1.GetCreditBalanceInput;
 import ai.stigmer.billing.v1.GetCreditLedgerInput;
 import ai.stigmer.billing.v1.GetCustomerModelPricingInput;
-import ai.stigmer.billing.v1.GetModelPricingGovernanceInput;
 import ai.stigmer.billing.v1.GetOrCreateBillingAccountInput;
 import ai.stigmer.billing.v1.GrantCreditsInput;
 import ai.stigmer.billing.v1.LedgerEntryType;
@@ -29,8 +27,6 @@ import ai.stigmer.billing.v1.LedgerView;
 import ai.stigmer.billing.v1.ListModelPricingBaselinesInput;
 import ai.stigmer.billing.v1.ModelPricingBaseline;
 import ai.stigmer.billing.v1.ModelPricingBaselinesResponse;
-import ai.stigmer.billing.v1.ModelPricingGovernanceResponse;
-import ai.stigmer.billing.v1.ModelPricingOverride;
 import ai.stigmer.billing.v1.RetireModelPricingBaselineInput;
 import ai.stigmer.billing.v1.SetAutoRechargeConfigInput;
 import ai.stigmer.billing.v1.UpsertModelPricingBaselineInput;
@@ -58,8 +54,9 @@ import java.util.Objects;
  * organization ({@code can_view_billing} for queries,
  * {@code can_manage_billing} for the organization's own commands). The
  * credit mutations ({@code adjustCredits}, {@code grantCredits}) require
- * {@code can_manage_credits} on the platform, and the pricing-governance
- * methods require platform-operator privileges.
+ * {@code can_manage_credits} on the platform, and the model-catalog
+ * methods ({@code can_manage_model_pricing}) require platform-operator
+ * privileges.
  *
  * <pre>{@code
  * CreditBalance balance = client.billing().getCreditBalance(org);
@@ -274,22 +271,6 @@ public final class BillingClient {
         }
     }
 
-    /**
-     * Retrieves the platform pricing governance view: baseline vs effective
-     * rates per model, active override provenance, and pending sign-off
-     * proposals from the pricing feedback loop.
-     *
-     * <p>Platform-operator surface: rates are raw provider prices, pre-markup.
-     */
-    public ModelPricingGovernanceResponse getModelPricingGovernance() {
-        try {
-            return query.getModelPricingGovernance(
-                    GetModelPricingGovernanceInput.getDefaultInstance());
-        } catch (StatusRuntimeException e) {
-            throw StigmerException.wrap(e);
-        }
-    }
-
     /** Retrieves the model registry baseline catalog (ACTIVE entries only). */
     public ModelPricingBaselinesResponse listModelPricingBaselines() {
         return listModelPricingBaselines(false);
@@ -313,27 +294,12 @@ public final class BillingClient {
     }
 
     /**
-     * Records a human decision on a PENDING_SIGNOFF pricing override.
-     *
-     * <p>Approving makes the override ACTIVE (superseding any current ACTIVE
-     * override on the same pricing key) and recomposes the effective
-     * registry; rejecting archives it for audit.
-     */
-    public ModelPricingOverride decideModelPricingOverride(DecideModelPricingOverrideParams params) {
-        try {
-            return command.decideModelPricingOverride(params.toProto());
-        } catch (StatusRuntimeException e) {
-            throw StigmerException.wrap(e);
-        }
-    }
-
-    /**
      * Creates or revises one model registry baseline entry (catalog + list
      * prices).
      *
      * <p>Append-only: an existing ACTIVE entry for the same
      * (modelId, provider, harness) key is superseded, never mutated, and the
-     * effective registry recomposes immediately.
+     * registry is rebuilt immediately.
      */
     public ModelPricingBaseline upsertModelPricingBaseline(UpsertModelPricingBaselineParams params) {
         try {
@@ -346,9 +312,8 @@ public final class BillingClient {
     /**
      * Retires one model from the registry catalog.
      *
-     * <p>The model disappears from every price surface on the next
-     * composition pass; the document is kept for audit and the key can be
-     * revived by a subsequent upsert.
+     * <p>The rebuilt registry drops it from every price surface; the document
+     * is kept for audit and the key can be revived by a subsequent upsert.
      */
     public ModelPricingBaseline retireModelPricingBaseline(RetireModelPricingBaselineParams params) {
         try {
@@ -923,65 +888,6 @@ public final class BillingClient {
             public SetAutoRechargeConfigParams build() {
                 Objects.requireNonNull(org, "org is required");
                 return new SetAutoRechargeConfigParams(this);
-            }
-        }
-    }
-
-    // -- DecideModelPricingOverrideParams ---------------------------------------------
-
-    /** Parameters for deciding a pending pricing override. */
-    public static final class DecideModelPricingOverrideParams {
-        final String overrideId;
-        final boolean approve;
-        final String decisionNote;
-
-        private DecideModelPricingOverrideParams(Builder builder) {
-            this.overrideId = builder.overrideId;
-            this.approve = builder.approve;
-            this.decisionNote = builder.decisionNote;
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        DecideModelPricingOverrideInput toProto() {
-            return DecideModelPricingOverrideInput.newBuilder()
-                    .setOverrideId(overrideId)
-                    .setApprove(approve)
-                    .setDecisionNote(decisionNote)
-                    .build();
-        }
-
-        public static final class Builder {
-            private String overrideId;
-            private boolean approve;
-            private String decisionNote = "";
-
-            private Builder() {}
-
-            /** The PENDING_SIGNOFF override to decide (required). */
-            public Builder overrideId(String overrideId) {
-                this.overrideId = Objects.requireNonNull(overrideId);
-                return this;
-            }
-
-            /**
-             * {@code true} approves (the override becomes ACTIVE and supersedes
-             * any current ACTIVE override on the same key); {@code false} rejects.
-             */
-            public Builder approve(boolean approve) {
-                this.approve = approve;
-                return this;
-            }
-
-            /** Optional note recorded on the decision for the audit trail. */
-            public Builder decisionNote(String decisionNote) {
-                this.decisionNote = Objects.requireNonNull(decisionNote);
-                return this;
-            }
-
-            public DecideModelPricingOverrideParams build() {
-                Objects.requireNonNull(overrideId, "overrideId is required");
-                return new DecideModelPricingOverrideParams(this);
             }
         }
     }

@@ -9,12 +9,10 @@ package ai.stigmer.billing.v1;
  * <pre>
  * ModelPricingBaselineStatus tracks the lifecycle of one baseline document.
  *
- * The state machine is append-only, mirroring ModelPricingOverrideStatus: an
- * edit SUPERSEDES the previous ACTIVE document rather than mutating it, so
- * the collection is a complete audit history of every catalog entry and
- * list price the platform ever published. RETIRED removes the model from
- * the effective registry (and the composition pass archives any overrides
- * that targeted it).
+ * The state machine is append-only: an edit SUPERSEDES the previous ACTIVE
+ * document rather than mutating it, so the collection is a complete audit
+ * history of every catalog entry and list price the platform ever
+ * published. RETIRED removes the model from the registry.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.billing.v1.ModelPricingBaselineStatus}
@@ -28,7 +26,7 @@ public enum ModelPricingBaselineStatus
   model_pricing_baseline_status_unspecified(0),
   /**
    * <pre>
-   * Composed into the effective registry; at most one ACTIVE document
+   * Rendered into the registry; at most one ACTIVE document
    * exists per (model_id, provider, harness) key.
    * </pre>
    *
@@ -70,7 +68,7 @@ public enum ModelPricingBaselineStatus
   public static final int model_pricing_baseline_status_unspecified_VALUE = 0;
   /**
    * <pre>
-   * Composed into the effective registry; at most one ACTIVE document
+   * Rendered into the registry; at most one ACTIVE document
    * exists per (model_id, provider, harness) key.
    * </pre>
    *

@@ -7,26 +7,27 @@
 // module is the agent's part in it: the agent read, the create, and the
 // report and document.
 //
-// The agent is read first, by id or by reference in the organization, so
-// the eval is created in the agent's own organization and the output names
-// it by slug; reading it is part of the start, so its refusal exits 1, as
-// create's does. The version is not read here: create resolves a tag,
-// refuses a version that does not exist, and stamps the hash, which the
-// tables show. The eval is sent with no name: the server names it by its
-// id. `--json` writes the SDK's agent eval result document with the
+// The agent is read first, by id or by reference in the organization (the
+// group's one rule, resources/agent/resolve.ts), so the eval is created in
+// the agent's own organization and the output names it by slug; reading
+// it is part of the start, so its refusal exits 1, as create's does. The
+// version is not read here: create resolves a tag, refuses a version that
+// does not exist, and stamps the hash, which the tables show. The eval is
+// sent with no name: the server names it by its id. `--json` writes the SDK's agent eval result document with the
 // agent's slug, and `stillRunning: true` when the command could not cancel
 // an eval it stopped following.
 
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentEval } from "@stigmer/protos/ai/stigmer/agentic/agenteval/v1/api_pb";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { toAgentEvalResultDocument, type AgentEvalResultDocument, type Stigmer } from "@stigmer/sdk";
-import { requireOrganization } from "../../client/single-org.js";
 import { asStartRefusal, runEval, type EvalIo } from "../plugin-eval/follow.js";
 import type { EvalExit } from "../plugin-eval/report.js";
-import { idPrefixesFor, parseReference } from "../reference.js";
+import { resolveAgent } from "../agent/resolve.js";
 import type { AgentEvalOptions, AgentTarget } from "./options.js";
 import { agentEvalExitCode, agentFinishedTries, renderAgentEvalReport } from "./report.js";
+
+/** The commands that set the organization a slug is read in, when none is set. */
+const SET_ORG_WITH = ["stigmer config context set --org <org>", "stigmer agent eval --org <org> ..."] as const;
 
 /** The result document the command writes: the SDK's, and whether the eval may still run. */
 interface CliAgentEvalDocument extends AgentEvalResultDocument {
@@ -45,7 +46,7 @@ export async function runAgentEval(
   options: AgentEvalOptions,
   io: EvalIo,
 ): Promise<EvalExit> {
-  const agent = await resolveAgent(client, target.ref, org).catch(asStartRefusal);
+  const agent = await resolveAgent(client, target.ref, org, SET_ORG_WITH).catch(asStartRefusal);
   const slug = agent.metadata?.slug || agent.metadata?.name || target.ref;
   return runEval<AgentEval>(
     {
@@ -79,18 +80,6 @@ export async function cancelAgentEval(client: Stigmer, id: string, io: Pick<Eval
   io.stderr.write(
     `Cancelled ${id}: tries in flight stop; ${status?.triesFinished ?? 0} of ${status?.triesTotal ?? 0} tries had finished.\n`,
   );
-}
-
-async function resolveAgent(client: Stigmer, ref: string, org: string): Promise<Agent> {
-  const parsed = parseReference(ref, org, idPrefixesFor(ApiResourceKind.agent));
-  if (parsed.kind === "id") {
-    return client.agent.get(parsed.id);
-  }
-  await requireOrganization(client, parsed.org, [
-    "stigmer config context set --org <org>",
-    "stigmer agent eval --org <org> ...",
-  ]);
-  return client.agent.getByReference({ org: parsed.org, slug: parsed.slug });
 }
 
 async function startEval(client: Stigmer, agent: Agent, target: AgentTarget, options: AgentEvalOptions): Promise<AgentEval> {

@@ -133,10 +133,11 @@ enum IamPermission {
   // Admin-gated like can_create_oauth_app.
   can_create_channel_app = 31;
 
-  // Platform-level permission to view pricing governance and decide
-  // pricing-override sign-offs from the pricing feedback loop. A human
-  // operator action, kept distinct from can_execute_billing_ops (the
-  // machine account's internal billing pipeline).
+  // Platform-level permission to edit and read the model catalog: the
+  // operator-maintained model pricing baselines every run's model list and
+  // price reads. A human operator action, kept distinct from
+  // can_execute_billing_ops (the machine account's internal billing
+  // pipeline).
   can_manage_model_pricing = 32;
 
   // Values 33 and 34 held can_use_records / can_create_datastore until
@@ -176,13 +177,13 @@ enum IamPermission {
   // remove them but never write them.
   can_write_reserved_labels = 37;
 
-  // Platform-level permission to view platform provider standing: the
-  // canary-probe verdicts (health, billing/auth rejections, latency) for
-  // the platform's own LLM provider accounts. Read-only and gated to
-  // platform operators — provider account health is platform-internal,
-  // never org-visible. Deliberately distinct from the manage-class
-  // platform permissions: the standing console only observes.
-  can_view_provider_standing = 38;
+  // 38 was can_view_provider_standing, the operator grant behind the
+  // canary probe of the platform's own LLM provider accounts. Every model
+  // call now runs on a key the organization owns, so the probe and its
+  // console were removed; the number and the name are reserved so neither
+  // is ever reused for a different permission.
+  reserved 38;
+  reserved "can_view_provider_standing";
 
   // 39 was can_set_public_visibility, the operator grant behind the
   // retired visibility_public level (see ApiResourceVisibility). No

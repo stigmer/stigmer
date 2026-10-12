@@ -1,5 +1,7 @@
 /**
- * Pins the agent's Quality tab: an agent with no evaluator shows grading
+ * Pins the agent's Quality tab's grading settings, below the quality
+ * report (pinned by `score/__tests__/AgentQualityReportView.test.tsx`,
+ * mounted here over an empty report): an agent with no evaluator shows grading
  * off and, when editable, switching it on creates the evaluator with one
  * run in ten and ten dollars a month; a stored evaluator shows its
  * settings and this month's spend and last not-graded reason, and a save
@@ -8,14 +10,13 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import { StigmerError } from "@stigmer/sdk";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
-import { StigmerContext } from "../../context";
-import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { orgWrapper } from "../../organization/__tests__/org-fixture";
+import { emptyReport } from "../../score/__tests__/quality-fixture";
 import { AgentQualityTab } from "../AgentQualityTab";
 
 vi.mock("../../models/ModelSelector.js", () => ({
@@ -60,17 +61,16 @@ function client(evaluator: ReturnType<typeof stored> | null) {
       create: vi.fn().mockImplementation(async () => stored()),
       update: vi.fn().mockImplementation(async () => stored()),
     },
+    score: {
+      getAgentQualityReport: vi.fn(async () => emptyReport()),
+      listFlaggedByAgent: vi.fn(async () => ({ totalCount: 0, items: [], nextPageToken: "" })),
+    },
+    agenteval: { listByAgent: vi.fn(async () => ({ totalCount: 0, items: [] })) },
   };
 }
 
-function wrap(mock: unknown) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <FetchCacheContext.Provider value={null}>
-        <StigmerContext.Provider value={mock as never}>{children}</StigmerContext.Provider>
-      </FetchCacheContext.Provider>
-    );
-  };
+function wrap(mock: ReturnType<typeof client>) {
+  return orgWrapper(mock);
 }
 
 describe("AgentQualityTab", () => {

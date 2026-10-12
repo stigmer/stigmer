@@ -51,6 +51,15 @@ export const SCORE_JUDGE_MODEL_JUDGE_ONLY_MESSAGE =
 export const SCORE_CRITERIA_NOT_HUMAN_MESSAGE =
   "spec.criteria is written by the platform's checks, never on a person's feedback";
 
+/**
+ * The refusal of an evaluator version on a person's feedback: thumbs come
+ * from no versioned checks or rubric, and an agent's quality report keeps
+ * one tally per metric and version, so a person naming a version of their
+ * own would split the thumbs and put their text on the agent's page.
+ */
+export const SCORE_EVALUATOR_VERSION_NOT_HUMAN_MESSAGE =
+  "spec.evaluator_version names the platform's checks or rubrics, never a person's feedback";
+
 /** The refusal of a person's feedback with no thumbs. */
 export const FEEDBACK_VALUE_REQUIRED_MESSAGE =
   "feedback needs a value: spec.passed true for thumbs up, false for thumbs down";

@@ -1028,6 +1028,10 @@ export {
   useSessionScores,
   useRateRun,
   useUpdateRating,
+  AgentQualityReportView,
+  useAgentQualityReport,
+  useFlaggedRuns,
+  FLAGGED_PAGE_SIZE,
 } from "./score/index.js";
 export type {
   RunScoresProps,
@@ -1035,7 +1039,20 @@ export type {
   UseRateRunReturn,
   UseUpdateRatingReturn,
   RunRating,
+  AgentQualityReportViewProps,
+  UseAgentQualityReportReturn,
+  UseFlaggedRunsReturn,
 } from "./score/index.js";
+
+// Charts — small inline-SVG charts drawn from the theme's chart tokens, with
+// no charting dependency and a screen-reader table of their data
+export { TrendChart } from "./charts/index.js";
+export type {
+  TrendChartProps,
+  TrendMarker,
+  TrendPoint,
+  TrendSeries,
+} from "./charts/index.js";
 
 // Evaluators — AI grading switched on per agent: its sample, its monthly
 // spending limit and its judge model (the agent's Quality tab)
@@ -1360,37 +1377,28 @@ export type {
   CreditPackInfo,
 } from "./billing/index.js";
 
-// Pricing governance — platform-operator authoring of the model registry
-// baseline and pricing-override sign-offs (gated on can_manage_model_pricing)
+// Model catalog — platform-operator authoring of the model registry
+// baseline: models, capabilities and list prices (gated on
+// can_manage_model_pricing)
 export {
-  usePricingGovernance,
   useModelPricingBaselines,
-  useModelGovernanceView,
-  useDecidePricingOverride,
+  useModelCatalogView,
   useUpsertModelPricingBaseline,
   useRetireModelPricingBaseline,
-  PricingGovernancePanel,
-  ModelCatalogPanel,
-  PricingGovernanceConsole,
-} from "./pricing-governance/index.js";
+  ModelCatalogConsole,
+} from "./model-catalog/index.js";
 export type {
-  UsePricingGovernanceReturn,
   UseModelPricingBaselinesOptions,
   UseModelPricingBaselinesReturn,
-  GovernanceFlow,
-  ModelGovernanceRow,
-  UseModelGovernanceViewReturn,
-  DecidePricingOverrideInput,
-  UseDecidePricingOverrideReturn,
+  ModelCatalogFlow,
+  ModelCatalogRow,
+  UseModelCatalogViewReturn,
   UpsertModelPricingBaselineInput,
   UseUpsertModelPricingBaselineReturn,
   RetireModelPricingBaselineInput,
   UseRetireModelPricingBaselineReturn,
-  PricingGovernancePanelProps,
-  ModelCatalogPanelProps,
-  PricingGovernanceConsoleProps,
-  PricingGovernanceTab,
-} from "./pricing-governance/index.js";
+  ModelCatalogConsoleProps,
+} from "./model-catalog/index.js";
 
 // Cursor accounts — platform-operator management of managed Cursor teams
 // (admin keys, member execution keys, org assignments, roster/spend)
@@ -1418,18 +1426,6 @@ export type {
   CursorAccountsConsoleProps,
   CursorAccountEditorProps,
 } from "./cursor-accounts/index.js";
-
-// Provider standing — read-only platform-operator view of the platform's
-// LLM provider account health (canary-probe verdicts)
-export {
-  useProviderStanding,
-  ProviderStandingConsole,
-  ProviderStandingAccessNotice,
-} from "./provider-standing/index.js";
-export type {
-  UseProviderStandingReturn,
-  ProviderStandingConsoleProps,
-} from "./provider-standing/index.js";
 
 // Licenses — platform-operator issuing of Stigmer licenses: the renewal
 // calendar, the issue form and the signed ticket (gated on can_issue_license)

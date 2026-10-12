@@ -41,7 +41,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "r/agentic/score/v1/io.proto\0328ai/stigmer/" +
       "commons/apiresource/rpc_service_options." +
       "proto\032+ai/stigmer/commons/rpc/method_opt" +
-      "ions.proto2\353\003\n\024ScoreQueryController\022{\n\003g" +
+      "ions.proto2\345\006\n\024ScoreQueryController\022{\n\003g" +
       "et\022$.ai.stigmer.agentic.score.v1.ScoreId" +
       "\032\".ai.stigmer.agentic.score.v1.Score\"*\302\270" +
       "\030&\010\001\020=\"\005value*\031unauthorized to get score" +
@@ -53,11 +53,21 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       ".score.v1.ListScoresBySessionRequest\032&.a" +
       "i.stigmer.agentic.score.v1.ScoreList\"<\302\270" +
       "\0308\010\001\020*\"\nsession_id*&unauthorized to list" +
-      " scores of session\032\004\240\377+=B\235\001B\nQueryProtoP" +
-      "\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Score.V1\312\002" +
-      "\033Ai\\Stigmer\\Agentic\\Score\\V1\342\002\'Ai\\Stigme" +
-      "r\\Agentic\\Score\\V1\\GPBMetadata\352\002\037Ai::Sti" +
-      "gmer::Agentic::Score::V1b\006proto3"
+      " scores of session\022\275\001\n\025getAgentQualityRe" +
+      "port\0229.ai.stigmer.agentic.score.v1.GetAg" +
+      "entQualityReportRequest\032/.ai.stigmer.age" +
+      "ntic.score.v1.AgentQualityReport\"8\302\270\0304\010\001" +
+      "\020\036\"\003org*)unauthorized to view agent qual" +
+      "ity report\022\267\001\n\022listFlaggedByAgent\022<.ai.s" +
+      "tigmer.agentic.score.v1.ListFlaggedScore" +
+      "sByAgentRequest\032&.ai.stigmer.agentic.sco" +
+      "re.v1.ScoreList\";\302\270\0307\010\001\020\036\"\003org*,unauthor" +
+      "ized to list flagged scores of agent\032\004\240\377" +
+      "+=B\235\001B\nQueryProtoP\001\242\002\004ASAS\252\002\033Ai.Stigmer." +
+      "Agentic.Score.V1\312\002\033Ai\\Stigmer\\Agentic\\Sc" +
+      "ore\\V1\342\002\'Ai\\Stigmer\\Agentic\\Score\\V1\\GPB" +
+      "Metadata\352\002\037Ai::Stigmer::Agentic::Score::" +
+      "V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

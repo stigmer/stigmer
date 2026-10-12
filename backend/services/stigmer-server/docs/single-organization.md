@@ -136,6 +136,8 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | ScoreCommandController.create | metadata.org |
 | ScoreCommandController.update | metadata.org |
+| ScoreQueryController.getAgentQualityReport | org |
+| ScoreQueryController.listFlaggedByAgent | org |
 
 ## `ai.stigmer.agentic.session.v1`
 

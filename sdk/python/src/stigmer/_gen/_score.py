@@ -59,6 +59,18 @@ class ScoreClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_agent_quality_report(self, input: io_pb2.GetAgentQualityReportRequest) -> io_pb2.AgentQualityReport:
+        try:
+            return self._query.getAgentQualityReport(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_flagged_by_agent(self, input: io_pb2.ListFlaggedScoresByAgentRequest) -> io_pb2.ScoreList:
+        try:
+            return self._query.listFlaggedByAgent(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class ScoreInput:

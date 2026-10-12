@@ -24,7 +24,6 @@ const (
 	BillingQueryController_GetCreditLedger_FullMethodName           = "/ai.stigmer.billing.v1.BillingQueryController/getCreditLedger"
 	BillingQueryController_GetBillingUsageReport_FullMethodName     = "/ai.stigmer.billing.v1.BillingQueryController/getBillingUsageReport"
 	BillingQueryController_GetCustomerModelPricing_FullMethodName   = "/ai.stigmer.billing.v1.BillingQueryController/getCustomerModelPricing"
-	BillingQueryController_GetModelPricingGovernance_FullMethodName = "/ai.stigmer.billing.v1.BillingQueryController/getModelPricingGovernance"
 	BillingQueryController_ListModelPricingBaselines_FullMethodName = "/ai.stigmer.billing.v1.BillingQueryController/listModelPricingBaselines"
 	BillingQueryController_PreviewAuthorization_FullMethodName      = "/ai.stigmer.billing.v1.BillingQueryController/previewAuthorization"
 	BillingQueryController_GetRunBillingSignal_FullMethodName       = "/ai.stigmer.billing.v1.BillingQueryController/getRunBillingSignal"
@@ -49,18 +48,11 @@ type BillingQueryControllerClient interface {
 	// Retrieve the customer-facing model price list with markup applied.
 	// Returns prices for all models, organized by harness and cost tier.
 	GetCustomerModelPricing(ctx context.Context, in *GetCustomerModelPricingInput, opts ...grpc.CallOption) (*CustomerModelPricingResponse, error)
-	// Retrieve the platform pricing governance view: baseline vs effective
-	// rates per model, active override provenance, and pending sign-off
-	// proposals from the pricing feedback loop.
-	//
-	// Operator surface: exposes raw provider rates (pre-markup), so it is
-	// platform-gated, not org-gated.
-	GetModelPricingGovernance(ctx context.Context, in *GetModelPricingGovernanceInput, opts ...grpc.CallOption) (*ModelPricingGovernanceResponse, error)
 	// Retrieve the model registry baseline catalog (ACTIVE documents, or the
 	// full append-only revision history when include_history is set).
 	//
 	// Operator surface: exposes raw provider rates (pre-markup) and revision
-	// provenance, so it is platform-gated like the governance view.
+	// provenance, so it is platform-gated, not org-gated.
 	ListModelPricingBaselines(ctx context.Context, in *ListModelPricingBaselinesInput, opts ...grpc.CallOption) (*ModelPricingBaselinesResponse, error)
 	// Preview whether an organization can fund a run, without writing
 	// a reservation. The read-only twin of BillingCommandController's
@@ -133,16 +125,6 @@ func (c *billingQueryControllerClient) GetCustomerModelPricing(ctx context.Conte
 	return out, nil
 }
 
-func (c *billingQueryControllerClient) GetModelPricingGovernance(ctx context.Context, in *GetModelPricingGovernanceInput, opts ...grpc.CallOption) (*ModelPricingGovernanceResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ModelPricingGovernanceResponse)
-	err := c.cc.Invoke(ctx, BillingQueryController_GetModelPricingGovernance_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *billingQueryControllerClient) ListModelPricingBaselines(ctx context.Context, in *ListModelPricingBaselinesInput, opts ...grpc.CallOption) (*ModelPricingBaselinesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ModelPricingBaselinesResponse)
@@ -192,18 +174,11 @@ type BillingQueryControllerServer interface {
 	// Retrieve the customer-facing model price list with markup applied.
 	// Returns prices for all models, organized by harness and cost tier.
 	GetCustomerModelPricing(context.Context, *GetCustomerModelPricingInput) (*CustomerModelPricingResponse, error)
-	// Retrieve the platform pricing governance view: baseline vs effective
-	// rates per model, active override provenance, and pending sign-off
-	// proposals from the pricing feedback loop.
-	//
-	// Operator surface: exposes raw provider rates (pre-markup), so it is
-	// platform-gated, not org-gated.
-	GetModelPricingGovernance(context.Context, *GetModelPricingGovernanceInput) (*ModelPricingGovernanceResponse, error)
 	// Retrieve the model registry baseline catalog (ACTIVE documents, or the
 	// full append-only revision history when include_history is set).
 	//
 	// Operator surface: exposes raw provider rates (pre-markup) and revision
-	// provenance, so it is platform-gated like the governance view.
+	// provenance, so it is platform-gated, not org-gated.
 	ListModelPricingBaselines(context.Context, *ListModelPricingBaselinesInput) (*ModelPricingBaselinesResponse, error)
 	// Preview whether an organization can fund a run, without writing
 	// a reservation. The read-only twin of BillingCommandController's
@@ -239,9 +214,6 @@ func (UnimplementedBillingQueryControllerServer) GetBillingUsageReport(context.C
 }
 func (UnimplementedBillingQueryControllerServer) GetCustomerModelPricing(context.Context, *GetCustomerModelPricingInput) (*CustomerModelPricingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCustomerModelPricing not implemented")
-}
-func (UnimplementedBillingQueryControllerServer) GetModelPricingGovernance(context.Context, *GetModelPricingGovernanceInput) (*ModelPricingGovernanceResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetModelPricingGovernance not implemented")
 }
 func (UnimplementedBillingQueryControllerServer) ListModelPricingBaselines(context.Context, *ListModelPricingBaselinesInput) (*ModelPricingBaselinesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListModelPricingBaselines not implemented")
@@ -362,24 +334,6 @@ func _BillingQueryController_GetCustomerModelPricing_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BillingQueryController_GetModelPricingGovernance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetModelPricingGovernanceInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingQueryControllerServer).GetModelPricingGovernance(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingQueryController_GetModelPricingGovernance_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingQueryControllerServer).GetModelPricingGovernance(ctx, req.(*GetModelPricingGovernanceInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _BillingQueryController_ListModelPricingBaselines_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListModelPricingBaselinesInput)
 	if err := dec(in); err != nil {
@@ -460,10 +414,6 @@ var BillingQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getCustomerModelPricing",
 			Handler:    _BillingQueryController_GetCustomerModelPricing_Handler,
-		},
-		{
-			MethodName: "getModelPricingGovernance",
-			Handler:    _BillingQueryController_GetModelPricingGovernance_Handler,
 		},
 		{
 			MethodName: "listModelPricingBaselines",

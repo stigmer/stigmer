@@ -110,7 +110,6 @@ describe("useSettingsNavGroups", () => {
     verdicts = {
       can_manage_model_pricing: true,
       can_manage_cursor_accounts: true,
-      can_view_provider_standing: true,
       can_issue_license: true,
       can_manage_plans: true,
     };
@@ -121,16 +120,16 @@ describe("useSettingsNavGroups", () => {
       `${BASE_LABELS},${PLATFORM_SETTINGS_NAV_GROUP.label}`,
     );
     expect(el.getAttribute("data-platform-items")).toBe(
-      "Pricing Governance,Cursor Accounts,Provider Standing,Licenses,Plans",
+      "Model catalog,Cursor Accounts,Licenses,Plans",
     );
   });
 
-  it("filters per item: pricing-only operator sees only Pricing Governance", () => {
+  it("filters per item: pricing-only operator sees only Model catalog", () => {
     verdicts = { can_manage_model_pricing: true };
     render(<GroupsProbe />);
 
     expect(screen.getByTestId("groups").getAttribute("data-platform-items")).toBe(
-      "Pricing Governance",
+      "Model catalog",
     );
   });
 
@@ -140,15 +139,6 @@ describe("useSettingsNavGroups", () => {
 
     expect(screen.getByTestId("groups").getAttribute("data-platform-items")).toBe(
       "Cursor Accounts",
-    );
-  });
-
-  it("filters per item: standing-only operator sees only Provider Standing", () => {
-    verdicts = { can_view_provider_standing: true };
-    render(<GroupsProbe />);
-
-    expect(screen.getByTestId("groups").getAttribute("data-platform-items")).toBe(
-      "Provider Standing",
     );
   });
 

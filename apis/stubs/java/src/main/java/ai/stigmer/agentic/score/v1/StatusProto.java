@@ -43,16 +43,18 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "\n(ai/stigmer/agentic/score/v1/status.pro" +
       "to\022\033ai.stigmer.agentic.score.v1\032&ai/stig" +
       "mer/agentic/score/v1/enum.proto\032+ai/stig" +
-      "mer/commons/apiresource/status.proto\"\300\001\n" +
+      "mer/commons/apiresource/status.proto\"\211\002\n" +
       "\013ScoreStatus\022=\n\005state\030\001 \001(\0162\'.ai.stigmer" +
       ".agentic.score.v1.ScoreStateR\005state\022*\n\021n" +
       "ot_graded_reason\030\002 \001(\tR\017notGradedReason\022" +
-      "F\n\005audit\030c \001(\01320.ai.stigmer.commons.apir" +
-      "esource.ApiResourceAuditR\005auditB\236\001B\013Stat" +
-      "usProtoP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Sc" +
-      "ore.V1\312\002\033Ai\\Stigmer\\Agentic\\Score\\V1\342\002\'A" +
-      "i\\Stigmer\\Agentic\\Score\\V1\\GPBMetadata\352\002" +
-      "\037Ai::Stigmer::Agentic::Score::V1b\006proto3"
+      "\031\n\010agent_id\030\003 \001(\tR\007agentId\022,\n\022agent_vers" +
+      "ion_hash\030\004 \001(\tR\020agentVersionHash\022F\n\005audi" +
+      "t\030c \001(\01320.ai.stigmer.commons.apiresource" +
+      ".ApiResourceAuditR\005auditB\236\001B\013StatusProto" +
+      "P\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Score.V1\312" +
+      "\002\033Ai\\Stigmer\\Agentic\\Score\\V1\342\002\'Ai\\Stigm" +
+      "er\\Agentic\\Score\\V1\\GPBMetadata\352\002\037Ai::St" +
+      "igmer::Agentic::Score::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -65,7 +67,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_score_v1_ScoreStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_score_v1_ScoreStatus_descriptor,
-        new java.lang.String[] { "State", "NotGradedReason", "Audit", });
+        new java.lang.String[] { "State", "NotGradedReason", "AgentId", "AgentVersionHash", "Audit", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.score.v1.EnumProto.getDescriptor();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();

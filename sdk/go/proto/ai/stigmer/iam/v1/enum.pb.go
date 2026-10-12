@@ -79,10 +79,11 @@ const (
 	// messaging-platform apps holding webhook and OAuth credentials).
 	// Admin-gated like can_create_oauth_app.
 	IamPermission_can_create_channel_app IamPermission = 31
-	// Platform-level permission to view pricing governance and decide
-	// pricing-override sign-offs from the pricing feedback loop. A human
-	// operator action, kept distinct from can_execute_billing_ops (the
-	// machine account's internal billing pipeline).
+	// Platform-level permission to edit and read the model catalog: the
+	// operator-maintained model pricing baselines every run's model list and
+	// price reads. A human operator action, kept distinct from
+	// can_execute_billing_ops (the machine account's internal billing
+	// pipeline).
 	IamPermission_can_manage_model_pricing IamPermission = 32
 	// Platform-level permission to manage Cursor accounts: the managed
 	// Cursor teams (admin keys, member execution keys, org assignments)
@@ -101,13 +102,6 @@ const (
 	// on (plugin membership and lineage, the stamps a run's vaults are found by) — so ordinary requests may echo or
 	// remove them but never write them.
 	IamPermission_can_write_reserved_labels IamPermission = 37
-	// Platform-level permission to view platform provider standing: the
-	// canary-probe verdicts (health, billing/auth rejections, latency) for
-	// the platform's own LLM provider accounts. Read-only and gated to
-	// platform operators — provider account health is platform-internal,
-	// never org-visible. Deliberately distinct from the manage-class
-	// platform permissions: the standing console only observes.
-	IamPermission_can_view_provider_standing IamPermission = 38
 	// Organization-level permission to install a plugin: push an Agent
 	// Plugins archive into the organization. Who may bring a package into an
 	// organization is a policy an administrator sets on its own.
@@ -181,7 +175,6 @@ var (
 		35: "can_manage_cursor_accounts",
 		36: "can_participate",
 		37: "can_write_reserved_labels",
-		38: "can_view_provider_standing",
 		40: "can_create_plugin",
 		41: "can_manage_plans",
 		42: "can_issue_license",
@@ -223,7 +216,6 @@ var (
 		"can_manage_cursor_accounts":  35,
 		"can_participate":             36,
 		"can_write_reserved_labels":   37,
-		"can_view_provider_standing":  38,
 		"can_create_plugin":           40,
 		"can_manage_plans":            41,
 		"can_issue_license":           42,
@@ -446,7 +438,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1\x1a google/protobuf/descriptor.proto\"R\n" +
 	"\vIamRoleMeta\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription*\xe1\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription*\xe3\n" +
 	"\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
@@ -477,8 +469,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x18can_manage_model_pricing\x10 \x12\x1e\n" +
 	"\x1acan_manage_cursor_accounts\x10#\x12\x13\n" +
 	"\x0fcan_participate\x10$\x12\x1d\n" +
-	"\x19can_write_reserved_labels\x10%\x12\x1e\n" +
-	"\x1acan_view_provider_standing\x10&\x12\x15\n" +
+	"\x19can_write_reserved_labels\x10%\x12\x15\n" +
 	"\x11can_create_plugin\x10(\x12\x14\n" +
 	"\x10can_manage_plans\x10)\x12\x15\n" +
 	"\x11can_issue_license\x10*\x12\x13\n" +
@@ -491,7 +482,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\acan_use\x105\x12\x13\n" +
 	"\x0fcan_manage_keys\x107\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x16\x10\x16\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*\xb7\x04\n" +
+	"\"\x04\b&\x10&\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x1acan_view_provider_standing*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*\xb7\x04\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12U\n" +
 	"\x05owner\x10\x01\x1aJ\x8a\xc4,F\n" +

@@ -82,7 +82,7 @@ function scoreRow(score: Score): string[] {
  * an escape sequence would reach every other viewer's terminal: each run of
  * control characters becomes one space.
  */
-function oneLine(text: string): string {
+export function oneLine(text: string): string {
   return text.replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ").trim();
 }
 

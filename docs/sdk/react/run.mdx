@@ -1504,8 +1504,10 @@ decision bar, pinned in the fixed strip above the composer.
 
 WHY DOCKED, NOT IN-THREAD. The transcript's stamped edit rows are
 observational — they show what changed, badged with the live review state —
-but a *decision* the agent is blocked on must never scroll out of view. An
-in-thread card does exactly that on a long conversation. Docking the bar to
+but the newest turn's open decision must never scroll out of view. An
+in-thread card does exactly that on a long conversation. The turn does not
+wait on it: its edits are already applied, Undo puts a file back, and the
+next message keeps whatever is still undecided. Docking the bar to
 the composer keeps the pending decision visible regardless of scroll
 position, matching the shape of Cursor's own review bar. Once decided, the
 dock empties and the thread's read-only record (and the rows' Kept/Discarded
@@ -1529,7 +1531,7 @@ same seam.
 
 <TypeTable
   type={{
-    changeSets: { type: "readonly FileChangeSet[]", description: "The change sets awaiting review. Renders nothing when empty. Feed this from `useSessionConversation().fileChangeSets` — the AWAITING_REVIEW sets of the active run, the same seam whose `submitFileDecision` routes decisions to that run, so what the dock shows and what it can decide are consistent by construction.", required: true },
+    changeSets: { type: "readonly FileChangeSet[]", description: "The change sets awaiting review. Renders nothing when empty. Feed this from `useSessionConversation().fileChangeSets` — the AWAITING_REVIEW sets of the conversation's newest turn, finished or not, the same seam whose `submitFileDecision` routes decisions to that turn, so what the dock shows and what it can decide are consistent by construction.", required: true },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     decisionErrors: { type: "ReadonlyMap<string, Error>", description: "Per-decision failures, keyed like submittingDecisionKeys — surfaced in-card beside the control that failed." },
     onSubmit: { type: "(changeSetId: string, action: FileDecisionAction, options?: FileDecisionOptions) => void", description: "Called when the user makes a decision on one of the docked sets. Wire to `useSessionConversation().submitFileDecision` (or an equivalent useFileReview-backed handler bound to the owning run).", required: true },
@@ -2281,6 +2283,7 @@ Omit it for a conversation with the built-in assistant.
   type={{
     agentRef: { type: "ResourceRef", description: "The agent the new conversation runs. Omit for the built-in assistant." },
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities execute. Immutable after the first run runs.", typeDescriptionLink: "/docs/sdk/react/session#executiontargetoption" },
+    fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn. Off unless set. Review never makes a turn wait: the edits are applied, and an Undo puts a file back." },
     harness: { type: "HarnessOption", description: "Run harness. Immutable after the first run runs.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of vaults. Off unless set: each person who sends a turn uses their own My vault, never another's." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs stored on the created session's `SessionSpec.metadata`.  A passthrough for embedder-owned keys (correlation IDs, tenant tags) and for platform-reserved `stigmer.ai/*` keys set explicitly. For the common case — standing user context injected into the agent's prompt — prefer the typed sessionContext field, which maps onto the reserved `stigmer.ai/session-context` key and wins over a raw entry under that key when both are provided." },
@@ -2510,17 +2513,14 @@ Aggregate change statistics parsed from a `git diff --stat` summary line.
 The single read seam for displaying a run's file change sets.
 
 Returns the server-computed `status.file_change_sets` projection when it is
-present (a LIVE run — the projection is structurally shared across
-stream frames, so consumers keep stable references and streaming re-renders
-stay scoped to the actively-changing card), and otherwise folds the ledger
-(a TERMINAL run — the server projects nil there, but the ledger is
-preserved). The fold therefore never runs on the streaming hot path; it only
-reconstructs the settled sets a dead run would otherwise not display.
+present (the projection is structurally shared across stream frames, so
+consumers keep stable references and streaming re-renders stay scoped to
+the actively-changing card), and otherwise folds the ledger (a status read
+without the projection; the ledger is always preserved).
 
-The two branches are equivalent by construction for a non-terminal run
-(the fold minus its terminal gate IS the server projection — locked by the
-corpus parity test), so this accessor is a single consistent source whichever
-branch it takes.
+The two branches are equivalent by construction (the fold IS the server
+projection — locked by the corpus parity test), so this accessor is a
+single consistent source whichever branch it takes.
 
 ```tsx
 function displayFileChangeSets(status: RunStatus | undefined): FileChangeSet[]
@@ -2890,12 +2890,10 @@ function findActiveTodo(todos: object | undefined): TodoItem | null
 Folds a file-review event ledger into its list of `FileChangeSet`s,
 grouped by `change_set_id` in first-seen order.
 
-This is the display fold: unlike the server projection it does NOT collapse to
-an empty list for a terminal run, so a completed/failed/cancelled
-run still yields its settled sets for read-only display. For the LIVE
-(actionable) view, prefer the server-computed `status.file_change_sets`
-projection (it is structurally shared across stream frames); this fold is the
-settled/terminal complement — see [`displayFileChangeSets`](#displayfilechangesets).
+This is the display fold, the server projection's twin: a status that
+carries no projection still yields its sets. Prefer the server-computed
+`status.file_change_sets` when present (it is structurally shared across
+stream frames) — see [`displayFileChangeSets`](#displayfilechangesets).
 
 The fold is a faithful port of the Go/Java projector: scalar and snapshot
 fields are last-writer-wins, `decisions` accumulate, `changes` are replaced

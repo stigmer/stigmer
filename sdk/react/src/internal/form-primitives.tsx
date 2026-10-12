@@ -3,7 +3,7 @@
 import { cn } from "@stigmer/theme";
 
 // ---------------------------------------------------------------------------
-// Shared form primitives for the operator consoles (pricing-governance
+// Shared form primitives for the operator consoles (model-catalog
 // editors and search inputs, cursor-accounts editor and key forms).
 // Internal — never exported from the package barrel.
 // ---------------------------------------------------------------------------

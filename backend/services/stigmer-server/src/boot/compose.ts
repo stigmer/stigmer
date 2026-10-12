@@ -1934,6 +1934,7 @@ export async function composeServer(
       logger,
       authorizer,
       authorizationLifecycle,
+      listReadScope,
     });
     registerEvaluatorServices(router, {
       store,
