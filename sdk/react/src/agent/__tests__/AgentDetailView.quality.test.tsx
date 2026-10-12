@@ -3,14 +3,23 @@
  * and opening it shows the agent's AI grading read through
  * `evaluator.getByAgent`, editable on a plugin-managed agent too when the
  * host makes the view editable (grading is not the agent's definition).
+ * The report on top hands the view's `onNavigateToRun` to its flagged
+ * runs, and a version's eval link opens the Evals tab on that eval.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Code } from "@connectrpc/connect";
 import { StigmerError } from "@stigmer/sdk";
 import { samples } from "../../test/samples";
 import { AgentDetailView } from "../AgentDetailView";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
+import { agentEvalWith } from "../../agent-eval/__tests__/agent-eval-fixture";
+import {
+  VERSION_HASH,
+  emptyReport,
+  flaggedScore,
+  qualityReport,
+} from "../../score/__tests__/quality-fixture";
 
 vi.mock("../../models/ModelSelector.js", () => ({
   ModelSelector: () => <span>model picker</span>,
@@ -31,6 +40,11 @@ describe("AgentDetailView's Quality tab", () => {
         {
           agent: { getByReference: vi.fn(async () => agent), update: vi.fn() },
           evaluator: { getByAgent, create: vi.fn(), update: vi.fn() },
+          score: {
+            getAgentQualityReport: vi.fn(async () => emptyReport()),
+            listFlaggedByAgent: vi.fn(async () => ({ totalCount: 0, items: [], nextPageToken: "" })),
+          },
+          agenteval: { listByAgent: vi.fn(async () => ({ totalCount: 0, items: [] })) },
           plugin: { getByReference: vi.fn(async () => undefined) },
           platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
           iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
@@ -44,5 +58,57 @@ describe("AgentDetailView's Quality tab", () => {
     expect(toggle.getAttribute("aria-checked")).toBe("false");
     expect((toggle as HTMLButtonElement).disabled, "editable on a plugin-managed agent").toBe(false);
     expect(getByAgent).toHaveBeenCalledWith(expect.objectContaining({ agentId: agent.metadata.id }));
+  });
+
+  it("opens a flagged run through the host, and a version's eval on the Evals tab", async () => {
+    const agent = samples.agent({ name: "Support Bot", org: ACME_ID });
+    const newer = agentEvalWith([], { id: "aev_newer", version: "ffffffffffffffff" });
+    const linked = agentEvalWith([{ slug: "p", cases: [{ name: "a", score: 1 }] }], {
+      id: "aev_linked",
+      version: VERSION_HASH,
+    });
+    const onNavigateToRun = vi.fn();
+    render(<AgentDetailView org="acme" slug="support-bot" onNavigateToRun={onNavigateToRun} />, {
+      wrapper: orgWrapper(
+        {
+          agent: { getByReference: vi.fn(async () => agent), update: vi.fn() },
+          evaluator: {
+            getByAgent: vi.fn(async () => {
+              throw new StigmerError("not-found", "no evaluator", Code.NotFound);
+            }),
+          },
+          score: {
+            getAgentQualityReport: vi.fn(async () => qualityReport()),
+            listFlaggedByAgent: vi.fn(async () => ({
+              totalCount: 1,
+              items: [flaggedScore("s1", "judge", "run_judged", ["task"])],
+              nextPageToken: "",
+            })),
+          },
+          agenteval: {
+            listByAgent: vi.fn(async () => ({ totalCount: 2, items: [newer, linked] })),
+            get: vi.fn(async (id: string) => (id === "aev_linked" ? linked : newer)),
+          },
+          plugin: { getByReference: vi.fn(async () => undefined) },
+          platform: { getServerInfo: vi.fn(async () => ({ singleOrg: false })) },
+          iamPolicy: { checkMyPermission: vi.fn(async () => ({ isAuthorized: false })) },
+        },
+        undefined,
+        true,
+      ),
+    });
+    fireEvent.click(await screen.findByRole("tab", { name: "Quality" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Open run: AI judge: task/ }));
+    expect(onNavigateToRun).toHaveBeenCalledWith("run_judged");
+
+    fireEvent.click(await screen.findByRole("button", { name: "100% of 1 case" }));
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "Evals" }).getAttribute("aria-selected")).toBe("true"),
+    );
+    const past = await screen.findByRole("list", { name: "Past evals" });
+    const current = within(past)
+      .getAllByRole("button")
+      .find((button) => button.getAttribute("aria-current") === "true");
+    expect(current?.textContent).toContain(`Version ${VERSION_HASH.slice(0, 8)}`);
   });
 });

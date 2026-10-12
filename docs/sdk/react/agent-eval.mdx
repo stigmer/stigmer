@@ -177,6 +177,7 @@ editors, past evals with their results, and Compare.
   type={{
     agent: { type: "Agent", description: "The agent whose evals the tab shows and runs.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
     className: { type: "string", description: "Additional CSS class names for the root element." },
+    initialEvalId: { type: "string", description: "The eval opened when the tab mounts, as when the Quality tab's version table links one; the newest when omitted." },
     onNavigateToRun: { type: "(runId: string) => void", description: "Called with a try's run id when the person opens it; the host owns the route. Tries are listed without links when omitted." },
     onOpenPlugins: { type: "() => void", description: "Opens the agent's plugins, where one is attached: offered when the agent attaches none. `AgentDetailView` opens its Overview tab." },
   }}
