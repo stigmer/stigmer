@@ -519,6 +519,34 @@ describe("what a run loaded (loaded_versions) over the wire", () => {
       [ORG_ID, "skl_loaded_own", "loaded-own"],
     ]);
   });
+
+  it("keeps what the run holds across later writes, drops a new foreign entry beside it, and answers NotFound for a missing run", async () => {
+    const id = await seed(seedInput());
+    await seedSkill("skl_held_own", ORG_ID, "held-own");
+    const v1 = "1".repeat(64);
+    const held = { org: ORG_ID, kind: ApiResourceKind.skill, id: "skl_held_own", version: v1 };
+    await command.updateStatus({ runId: id, status: { phase: RunPhase.RUN_IN_PROGRESS, loadedVersions: { skills: [held] } } });
+    // A resend of what the run holds, then the held entry beside a foreign one.
+    await command.updateStatus({ runId: id, status: { phase: RunPhase.RUN_IN_PROGRESS, loadedVersions: { skills: [held] } } });
+    await command.updateStatus({
+      runId: id,
+      status: {
+        phase: RunPhase.RUN_IN_PROGRESS,
+        loadedVersions: {
+          skills: [held],
+          plugins: [{ org: idOf("other-org"), kind: ApiResourceKind.plugin, id: "plg_theirs", version: "d".repeat(64) }],
+        },
+      },
+    });
+    const read = await query.get({ value: id });
+    expect(read.status?.loadedVersions?.skills.map((r) => [r.id, r.version])).toEqual([["skl_held_own", v1]]);
+    expect(read.status?.loadedVersions?.plugins).toEqual([]);
+
+    await expectCode(
+      () => command.updateStatus({ runId: "aexec_loaded_missing", status: { loadedVersions: { skills: [held] } } }),
+      Code.NotFound,
+    );
+  });
 });
 
 describe("update / delete over the wire", () => {

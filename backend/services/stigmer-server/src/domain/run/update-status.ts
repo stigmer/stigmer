@@ -744,6 +744,7 @@ export async function admitLoadedVersions(
       // The merge answers NotFound for the same read.
       return;
     }
+    /* v8 ignore next -- @preserve: a store fault other than a missing row; no test injects one here */
     throw internalError(error, "failed to read the run");
   }
   const runOrg = run.metadata?.org ?? "";
