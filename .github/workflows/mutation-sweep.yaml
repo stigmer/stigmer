@@ -133,6 +133,16 @@ jobs:
       - name: Install the target's package
         run: cd "$PACKAGE" && npm ci
 
+      # Stigmer Enterprise links the server through the server's compiled
+      # dist (ee/server's file: dependencies), so its targets need the server
+      # installed and built; every other target's package links only the
+      # libraries above.
+      - name: Build the server the Enterprise package links
+        if: matrix.target.package == 'ee/server'
+        run: |
+          (cd backend/services/stigmer-server && npm ci)
+          make build-server
+
       - name: Prove the target's tests run under Stryker
         if: github.event_name == 'pull_request'
         run: node scripts/mutation-sweep.mjs --targets "$TARGETS" --run "$TARGET" --out "$RUNNER_TEMP/sweep" --dry-run

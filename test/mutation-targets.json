@@ -61,6 +61,26 @@
       ],
       "concurrency": 4
     },
+    "ee-provider-validation": {
+      "title": "Stigmer Enterprise's identity provider validation",
+      "package": "ee/server",
+      "mutate": [
+        "src/iam/provider/validation.ts",
+        "!src/**/__tests__/**",
+        "!src/**/*.test.ts"
+      ],
+      "concurrency": 6
+    },
+    "ee-federation-verifier": {
+      "title": "Stigmer Enterprise's federated token verification",
+      "package": "ee/server",
+      "mutate": [
+        "src/iam/federation/verifier.ts",
+        "!src/**/__tests__/**",
+        "!src/**/*.test.ts"
+      ],
+      "concurrency": 6
+    },
     "runner-middleware-pricing-guards": {
       "title": "the runner's middleware, pricing and guards",
       "package": "backend/services/runner",
