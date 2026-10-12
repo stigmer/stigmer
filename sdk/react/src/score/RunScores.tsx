@@ -35,7 +35,7 @@ export interface RunScoresProps {
  * reason for each flag ("the last call to create_ticket failed (step 7)"),
  * and, where the run's agent has AI grading switched on, the judge chip:
  * "Judge: grading…" while the grade is in progress, then "Judge: passed" or
- * "Judge: 1 of 2 failed", which opens to each rubric's reason and the model
+ * "Judge: 1 of 4 failed", which opens to each rubric's reason and the model
  * that graded it. A try of a plugin eval carries the eval chip ("Eval:
  * passed", "Eval: 1 of 3 failed"), which opens to each check's verdict and
  * reason. A run the platform could not grade says so quietly, with the
@@ -253,6 +253,8 @@ function HealthChip({ view }: { readonly view: RunHealthView }) {
 const RUBRIC_LABELS: Readonly<Record<string, string>> = {
   "did-the-task": "Did the task",
   "made-nothing-up": "Made nothing up",
+  "acted-only-as-asked": "Did only what was asked",
+  "asked-when-unclear": "Asked when unclear",
 };
 
 const RESULT_LABELS: Readonly<Record<CriterionResult, string>> = {

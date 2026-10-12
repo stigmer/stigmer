@@ -1,16 +1,17 @@
 An Evaluator switches AI grading on for one agent. While it is enabled, Stigmer
-sends a sample of the agent's completed runs to an AI judge with two standard
-rubrics, "did the task" and "made nothing up", and records the verdict as a
-score on each graded run. The sample rate and a monthly spending limit bound
-how many runs are graded and what grading costs.
+sends a sample of the agent's completed runs to an AI judge with four standard
+rubrics, "did the task", "made nothing up", "did only what was asked" and "asked
+when unclear", and records the verdict as a score on each graded run. The sample
+rate and a monthly spending limit bound how many runs are graded and what
+grading costs.
 
 Access is the agent's: whoever can edit the agent changes its grading, and
 whoever can see the agent sees the settings and this month's spend, members of
 child organizations included when the agent is shared with them.
 
-You switch grading on from the agent's Quality tab in the console; an
-evaluator is never authored as a manifest. The shape below is what `get` and
-`getByAgent` return.
+You switch grading on from the agent's Quality tab in the console; an evaluator
+is never authored as a manifest. The shape below is what `get` and `getByAgent`
+return.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1

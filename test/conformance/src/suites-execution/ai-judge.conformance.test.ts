@@ -42,6 +42,8 @@ import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import { agentRefOf, makeAgent } from "../support/agents";
 import {
+  ACTED_ONLY_AS_ASKED,
+  ASKED_WHEN_UNCLEAR,
   DID_THE_TASK,
   JUDGE,
   JUDGE_LIMIT_REACHED_REASON,
@@ -84,8 +86,10 @@ afterAll(async () => {
 });
 
 const PASSING_VERDICT = JSON.stringify({
-  [DID_THE_TASK]: { result: "passed", reason: "The answer gives the summary the request asked for." },
-  [MADE_NOTHING_UP]: { result: "not_applicable", reason: "The answer claims no action or data." },
+  [DID_THE_TASK]: { reason: "The answer gives the summary the request asked for.", result: "passed" },
+  [MADE_NOTHING_UP]: { reason: "The answer claims no action or data.", result: "not_applicable" },
+  [ACTED_ONLY_AS_ASKED]: { reason: "No tool call changed anything.", result: "not_applicable" },
+  [ASKED_WHEN_UNCLEAR]: { reason: "The request had one plain reading.", result: "not_applicable" },
 });
 
 interface Graded {
@@ -149,6 +153,8 @@ describe("AI grading", () => {
     expect(verdict.spec?.criteria.map((c) => [c.name, c.result])).toEqual([
       [DID_THE_TASK, CriterionResult.passed],
       [MADE_NOTHING_UP, CriterionResult.not_applicable],
+      [ACTED_ONLY_AS_ASKED, CriterionResult.not_applicable],
+      [ASKED_WHEN_UNCLEAR, CriterionResult.not_applicable],
     ]);
     expect(verdict.spec?.criteria[0]?.reason).toBe("The answer gives the summary the request asked for.");
 

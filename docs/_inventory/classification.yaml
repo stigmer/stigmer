@@ -176,7 +176,7 @@ pages:
     teaches:
       A Score records how good a finished run was, as a person's thumbs with a
       comment, the three free run-health checks with their reasons, or an AI
-      judge's verdict on two standard rubrics, switched on per Agent with a
+      judge's verdict on four standard rubrics, switched on per Agent with a
       sample rate and a monthly limit in its Quality tab, or a plugin eval's
       checks on one try, and the not-graded state; whoever sees the run sees
       its scores, read with `stigmer runs scores`.
