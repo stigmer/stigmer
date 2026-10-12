@@ -97,6 +97,7 @@ import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { consumerInstallArgs, tarballInstallArgs } from "./lib/consumer-install-args.mjs";
+import { linkedPacker } from "./lib/linked-tarballs.mjs";
 import { resolveBeforeFromArgv } from "./lib/resolve-before.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
@@ -194,64 +195,35 @@ const workDir = mkdtempSync(join(tmpdir(), "stigmer-consumer-install-"));
 process.on("exit", () => rmSync(workDir, { recursive: true, force: true }));
 
 /**
- * Packs a directory and returns the tarball path. Memoised per directory so
- * a lib the package AND the consumer both link is packed once.
+ * Packs a directory as it stands and returns the tarball path; the linked
+ * packer (scripts/lib/linked-tarballs.mjs) packs its links first and
+ * memoises, so a lib the package AND the consumer both link is packed once.
  */
-const packed = new Map();
-function packDir(dir) {
-  const key = resolve(dir);
-  if (!packed.has(key)) {
-    if (!existsSync(join(key, "dist"))) {
-      fail(
-        `${key} has no dist — build the file:-linked libs first (npm run build:runner-deps at the repo root)`,
-      );
-    }
-    const [result] = JSON.parse(
-      npm(["pack", "--json", "--pack-destination", workDir], key),
+function npmPack(dir) {
+  if (!existsSync(join(dir, "dist"))) {
+    fail(
+      `${dir} has no dist — build the file:-linked libs first (npm run build:runner-deps at the repo root)`,
     );
-    packed.set(key, join(workDir, result.filename));
-  }
-  return packed.get(key);
-}
-
-/**
- * For a manifest's @stigmer/* dependencies, returns the spec a consumer
- * install can resolve: a packed tarball for each dev-tree `file:` link,
- * the spec itself otherwise (a version the release lane already pinned).
- */
-function consumerResolvableSpecs(deps, baseDir) {
-  const out = {};
-  for (const [name, spec] of Object.entries(deps ?? {})) {
-    if (!name.startsWith("@stigmer/")) continue;
-    out[name] = spec.startsWith("file:")
-      ? `file:${packDir(resolve(baseDir, spec.slice("file:".length)))}`
-      : spec;
-  }
-  return out;
-}
-
-let tarball;
-const originalManifest = readFileSync(manifestPath, "utf8");
-try {
-  const rewritten = consumerResolvableSpecs(manifest.dependencies, packageDir);
-  const changed = Object.entries(rewritten).filter(
-    ([name, spec]) => manifest.dependencies[name] !== spec,
-  );
-  if (changed.length > 0) {
-    for (const [name, spec] of changed) {
-      manifest.dependencies[name] = spec;
-      console.log(
-        `verify-consumer-install: packed local ${name} (dev file: link rewritten for the tarball)`,
-      );
-    }
-    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
   }
   const [result] = JSON.parse(
-    npm(["pack", "--json", "--pack-destination", workDir], packageDir),
+    npm(["pack", "--json", "--pack-destination", workDir], dir),
   );
-  tarball = join(workDir, result.filename);
-} finally {
-  writeFileSync(manifestPath, originalManifest);
+  return join(workDir, result.filename);
+}
+
+const { packDir, consumerResolvableSpecs } = linkedPacker(
+  npmPack,
+  (dir, name) =>
+    console.log(
+      `verify-consumer-install: packed local ${name} for ${dir} (dev file: link rewritten for the tarball)`,
+    ),
+);
+
+let tarball;
+try {
+  tarball = packDir(packageDir);
+} catch (error) {
+  fail(error.message);
 }
 
 // ─── Install the tarball the way a consumer does ─────────────────────────────
