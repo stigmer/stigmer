@@ -12,7 +12,8 @@ public interface ScoreListOrBuilder extends
 
   /**
    * <pre>
-   * Number of scores in the list.
+   * Number of scores in this response. On a paged list it counts this page
+   * only; follow next_page_token for the rest.
    * </pre>
    *
    * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
@@ -63,4 +64,30 @@ public interface ScoreListOrBuilder extends
    */
   ai.stigmer.agentic.score.v1.ScoreOrBuilder getItemsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Set when more scores may follow: pass it as page_token to continue. A
+   * page may hold fewer scores than page_size, even none, and still carry a
+   * token. Empty when the list is complete, and always empty on the lists
+   * of one run or one session, which are returned whole.
+   * </pre>
+   *
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The nextPageToken.
+   */
+  java.lang.String getNextPageToken();
+  /**
+   * <pre>
+   * Set when more scores may follow: pass it as page_token to continue. A
+   * page may hold fewer scores than page_size, even none, and still carry a
+   * token. Empty when the list is complete, and always empty on the lists
+   * of one run or one session, which are returned whole.
+   * </pre>
+   *
+   * <code>string next_page_token = 3 [json_name = "nextPageToken"];</code>
+   * @return The bytes for nextPageToken.
+   */
+  com.google.protobuf.ByteString
+      getNextPageTokenBytes();
 }

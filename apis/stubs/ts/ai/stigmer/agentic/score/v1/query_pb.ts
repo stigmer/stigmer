@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ScoreSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_score_v1_api } from "./api_pb.js";
-import type { ListScoresByRunRequestSchema, ListScoresBySessionRequestSchema, ScoreIdSchema, ScoreListSchema } from "./io_pb.js";
+import type { AgentQualityReportSchema, GetAgentQualityReportRequestSchema, ListFlaggedScoresByAgentRequestSchema, ListScoresByRunRequestSchema, ListScoresBySessionRequestSchema, ScoreIdSchema, ScoreListSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_score_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/score/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_score_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MTLrAwoUU2NvcmVRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlNjb3JlSWQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuU2NvcmUiKsK4GCYIARA9IgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBzY29yZRKeAQoJbGlzdEJ5UnVuEjMuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLkxpc3RTY29yZXNCeVJ1blJlcXVlc3QaJi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuU2NvcmVMaXN0IjTCuBgwCAEQKSIGcnVuX2lkKiJ1bmF1dGhvcml6ZWQgdG8gbGlzdCBzY29yZXMgb2YgcnVuEq4BCg1saXN0QnlTZXNzaW9uEjcuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLkxpc3RTY29yZXNCeVNlc3Npb25SZXF1ZXN0GiYuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlNjb3JlTGlzdCI8wrgYOAgBECoiCnNlc3Npb25faWQqJnVuYXV0aG9yaXplZCB0byBsaXN0IHNjb3JlcyBvZiBzZXNzaW9uGgSg/ys9YgZwcm90bzM", [file_ai_stigmer_agentic_score_v1_api, file_ai_stigmer_agentic_score_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2NvcmUvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MTLlBgoUU2NvcmVRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlNjb3JlSWQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuU2NvcmUiKsK4GCYIARA9IgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBzY29yZRKeAQoJbGlzdEJ5UnVuEjMuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLkxpc3RTY29yZXNCeVJ1blJlcXVlc3QaJi5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuU2NvcmVMaXN0IjTCuBgwCAEQKSIGcnVuX2lkKiJ1bmF1dGhvcml6ZWQgdG8gbGlzdCBzY29yZXMgb2YgcnVuEq4BCg1saXN0QnlTZXNzaW9uEjcuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLkxpc3RTY29yZXNCeVNlc3Npb25SZXF1ZXN0GiYuYWkuc3RpZ21lci5hZ2VudGljLnNjb3JlLnYxLlNjb3JlTGlzdCI8wrgYOAgBECoiCnNlc3Npb25faWQqJnVuYXV0aG9yaXplZCB0byBsaXN0IHNjb3JlcyBvZiBzZXNzaW9uEr0BChVnZXRBZ2VudFF1YWxpdHlSZXBvcnQSOS5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuR2V0QWdlbnRRdWFsaXR5UmVwb3J0UmVxdWVzdBovLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5BZ2VudFF1YWxpdHlSZXBvcnQiOMK4GDQIARAeIgNvcmcqKXVuYXV0aG9yaXplZCB0byB2aWV3IGFnZW50IHF1YWxpdHkgcmVwb3J0ErcBChJsaXN0RmxhZ2dlZEJ5QWdlbnQSPC5haS5zdGlnbWVyLmFnZW50aWMuc2NvcmUudjEuTGlzdEZsYWdnZWRTY29yZXNCeUFnZW50UmVxdWVzdBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zY29yZS52MS5TY29yZUxpc3QiO8K4GDcIARAeIgNvcmcqLHVuYXV0aG9yaXplZCB0byBsaXN0IGZsYWdnZWQgc2NvcmVzIG9mIGFnZW50GgSg/ys9YgZwcm90bzM", [file_ai_stigmer_agentic_score_v1_api, file_ai_stigmer_agentic_score_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ScoreQueryController handles read operations for scores.
@@ -51,6 +51,35 @@ export const ScoreQueryController: GenService<{
   listBySession: {
     methodKind: "unary";
     input: typeof ListScoresBySessionRequestSchema;
+    output: typeof ScoreListSchema;
+  },
+  /**
+   * Get how one agent's runs in an organization went: grades counted in
+   * total, per day and per agent version.
+   *
+   * Counts every run of the agent in the organization, including runs the
+   * caller cannot open, and returns no text from any of them. Requires
+   * can_view on the organization named in org and on the agent.
+   *
+   * @generated from rpc ai.stigmer.agentic.score.v1.ScoreQueryController.getAgentQualityReport
+   */
+  getAgentQualityReport: {
+    methodKind: "unary";
+    input: typeof GetAgentQualityReportRequestSchema;
+    output: typeof AgentQualityReportSchema;
+  },
+  /**
+   * List the failed grades of one agent's runs in an organization, newest
+   * first: a failed health check, a failed judge verdict or a thumbs down.
+   *
+   * Lists only the runs the caller can open. Requires can_view on the
+   * organization named in org and on the agent.
+   *
+   * @generated from rpc ai.stigmer.agentic.score.v1.ScoreQueryController.listFlaggedByAgent
+   */
+  listFlaggedByAgent: {
+    methodKind: "unary";
+    input: typeof ListFlaggedScoresByAgentRequestSchema;
     output: typeof ScoreListSchema;
   },
 }> = /*@__PURE__*/

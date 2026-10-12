@@ -77,6 +77,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
       "version-history",
       "dependency-graph",
       "dashboard",
+      "charts",
       "activity",
       "manifest",
     ],

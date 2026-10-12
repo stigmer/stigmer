@@ -71,6 +71,13 @@
       "components": 3
     },
     {
+      "slug": "charts",
+      "title": "Charts",
+      "description": "Small inline-SVG charts drawn from the theme's chart tokens, each with a screen-reader table of its data.",
+      "hooks": 0,
+      "components": 1
+    },
+    {
       "slug": "composer",
       "title": "Composer",
       "description": "The unified message input with model selection, workspace, and attachments.",
@@ -263,8 +270,8 @@
       "slug": "score",
       "title": "score",
       "description": "",
-      "hooks": 3,
-      "components": 1
+      "hooks": 5,
+      "components": 2
     },
     {
       "slug": "service-account",

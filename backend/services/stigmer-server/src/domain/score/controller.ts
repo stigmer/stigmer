@@ -14,7 +14,11 @@
  * are org-visible, so no IndexSearch or DeleteSearchIndex step appears in
  * this domain.
  *
- * Proven by __tests__/score.test.ts and score.conformance.test.ts.
+ * The two per-agent reads (an agent's quality report and its flagged
+ * scores) are in quality.ts; their chains are here beside the others.
+ *
+ * Proven by __tests__/score.test.ts, __tests__/quality.test.ts and
+ * score.conformance.test.ts.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 
@@ -24,6 +28,9 @@ import { ScoreSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb"
 import type { Score } from "@stigmer/protos/ai/stigmer/agentic/score/v1/api_pb";
 import { ScoreIdSchema } from "@stigmer/protos/ai/stigmer/agentic/score/v1/io_pb";
 import type {
+  AgentQualityReport,
+  GetAgentQualityReportRequest,
+  ListFlaggedScoresByAgentRequest,
   ListScoresByRunRequest,
   ListScoresBySessionRequest,
   ScoreId,
@@ -33,6 +40,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
+import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
@@ -68,6 +76,14 @@ import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
 import type { Store } from "../../store/interface.js";
 import {
+  FLAGGED_SCORES_KEY,
+  QUALITY_REPORT_KEY,
+  type QualityLaneDeps,
+  newListFlaggedScoresStep,
+  newTallyAgentQualityStep,
+  resolveQualityAgentTarget,
+} from "./quality.js";
+import {
   LIST_RESULT_KEY,
   newCheckScoreUniqueStep,
   newGuardScoreSourceStep,
@@ -76,6 +92,7 @@ import {
   newListScoresBySessionStep,
   newLoadScoredRunStep,
   newResolveScoreDefaultsStep,
+  newStampScoredRunStep,
   newValidateScoreUpdateStep,
   resolveScoreCreateTargets,
 } from "./steps.js";
@@ -87,6 +104,10 @@ export interface ScoreControllerDeps {
   readonly authorizer: Authorizer;
   /** The composed tuple-lifecycle driver; undefined = the shared steps no-op. */
   readonly authorizationLifecycle: ResourceAuthorizationLifecycle | undefined;
+  /** The composed list read scope; undefined = trusted local, nothing narrowed. */
+  readonly listReadScope: ListReadScope | undefined;
+  /** Today's clock for the per-agent reads' window; defaults to the wall clock. */
+  readonly now?: () => Date;
 }
 
 /** Registers both score services on the router (routes stage). */
@@ -103,6 +124,9 @@ export function registerScoreServices(
     get: (id, ctx) => getScore(deps, id, ctx),
     listByRun: (req, ctx) => listByRun(deps, req, ctx),
     listBySession: (req, ctx) => listBySession(deps, req, ctx),
+    getAgentQualityReport: (req, ctx) =>
+      getAgentQualityReport(deps, req, ctx),
+    listFlaggedByAgent: (req, ctx) => listFlaggedByAgent(deps, req, ctx),
   });
 }
 
@@ -147,6 +171,7 @@ async function createScore(
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
+    .addStep(newStampScoredRunStep())
     .addStep(newInitializeScoreStateStep())
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.score))
     .addStep(newPersistStep(deps.store))
@@ -303,6 +328,94 @@ async function listBySession(
     .build()
     .execute(reqCtx);
   return chainResult<ScoreList>(reqCtx.get(LIST_RESULT_KEY), "score list");
+}
+
+/**
+ * GetAgentQualityReport: how one agent's runs in an organization were
+ * graded (quality.ts). Authorize asks can_view on the organization, then
+ * AuthorizeResolvedTarget can_view on the agent, before any row is read.
+ */
+async function getAgentQualityReport(
+  deps: ScoreControllerDeps,
+  req: GetAgentQualityReportRequest,
+  ctx: HandlerContext,
+): Promise<AgentQualityReport> {
+  const input = ScoreQueryController.method.getAgentQualityReport.input;
+  const reqCtx = new RequestContext(
+    input,
+    req,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof input>("score-agent-quality-report", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ScoreQueryController.method.getAgentQualityReport,
+        deps.authorizer,
+      ),
+    )
+    .addStep(newValidateProtoStep())
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        resolveQualityAgentTarget,
+      ),
+    )
+    .addStep(newTallyAgentQualityStep(qualityDepsOf(deps)))
+    .build()
+    .execute(reqCtx);
+  return chainResult<AgentQualityReport>(
+    reqCtx.get(QUALITY_REPORT_KEY),
+    "agent quality report",
+  );
+}
+
+/**
+ * ListFlaggedByAgent: one page of the agent's failed grades the caller can
+ * open (quality.ts), authorized as the report is.
+ */
+async function listFlaggedByAgent(
+  deps: ScoreControllerDeps,
+  req: ListFlaggedScoresByAgentRequest,
+  ctx: HandlerContext,
+): Promise<ScoreList> {
+  const input = ScoreQueryController.method.listFlaggedByAgent.input;
+  const reqCtx = new RequestContext(
+    input,
+    req,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof input>("score-list-flagged-by-agent", deps.logger)
+    .addStep(
+      newAuthorizeStep(
+        ScoreQueryController.method.listFlaggedByAgent,
+        deps.authorizer,
+      ),
+    )
+    .addStep(newValidateProtoStep())
+    .addStep(
+      newAuthorizeResolvedTargetStep(
+        deps.authorizer,
+        resolveQualityAgentTarget,
+      ),
+    )
+    .addStep(newListFlaggedScoresStep(qualityDepsOf(deps)))
+    .build()
+    .execute(reqCtx);
+  return chainResult<ScoreList>(
+    reqCtx.get(FLAGGED_SCORES_KEY),
+    "flagged score list",
+  );
+}
+
+function qualityDepsOf(deps: ScoreControllerDeps): QualityLaneDeps {
+  return {
+    store: deps.store,
+    logger: deps.logger,
+    listReadScope: deps.listReadScope,
+    now: deps.now ?? (() => new Date()),
+  };
 }
 
 /**

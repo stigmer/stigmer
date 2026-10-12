@@ -11,7 +11,9 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 //
 // @internal
 // A score's visibility is its run's (can_view from run), so a list
-// authorized on the run or the session needs no per-row filter.
+// authorized on the run or the session needs no per-row filter. The two
+// per-agent reads are authorized on the organization and the agent: the
+// report returns counts only, and the flagged list is narrowed per row.
 service ScoreQueryController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = score;
 
@@ -37,5 +39,50 @@ service ScoreQueryController {
     option (ai.stigmer.commons.rpc.config).permission = can_view;
     option (ai.stigmer.commons.rpc.config).field_path = "session_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list scores of session";
+  }
+
+  // Get how one agent's runs in an organization went: grades counted in
+  // total, per day and per agent version.
+  //
+  // Counts every run of the agent in the organization, including runs the
+  // caller cannot open, and returns no text from any of them. Requires
+  // can_view on the organization named in org and on the agent.
+  //
+  // @internal
+  // Org-scoped as getAgentUsageReport is (oss#389): agent can_view reaches
+  // child organizations through shares, so the organization is the
+  // annotation's question and only its runs are read. The handler then
+  // asks can_view on the agent (AuthorizeResolvedTarget), so a caller who
+  // cannot see the agent learns nothing about it. Runs are private to
+  // their conversation's viewers, which is why the report carries counts
+  // and names only. Counted on read from the score list index's agent key;
+  // a window holding more grades than the server's bound is refused with
+  // FAILED_PRECONDITION naming a shorter window.
+  rpc getAgentQualityReport(GetAgentQualityReportRequest) returns (AgentQualityReport) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view agent quality report";
+  }
+
+  // List the failed grades of one agent's runs in an organization, newest
+  // first: a failed health check, a failed judge verdict or a thumbs down.
+  //
+  // Lists only the runs the caller can open. Requires can_view on the
+  // organization named in org and on the agent.
+  //
+  // @internal
+  // Authorized as getAgentQualityReport is. Each page is narrowed by the
+  // list read scope over the scores' sessions, not the scores themselves:
+  // a score's own check walks score, run and session on the authorization
+  // engine, the slow path that rolled back on 2026-09-14, while a
+  // session's is answered directly, and a score's visibility is its
+  // session's. Paged under the shared examine budget
+  // (pipeline/steps/list-page.ts).
+  rpc listFlaggedByAgent(ListFlaggedScoresByAgentRequest) returns (ScoreList) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to list flagged scores of agent";
   }
 }

@@ -2,6 +2,9 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.score.v1.AgentQualityReport;
+import ai.stigmer.agentic.score.v1.GetAgentQualityReportRequest;
+import ai.stigmer.agentic.score.v1.ListFlaggedScoresByAgentRequest;
 import ai.stigmer.agentic.score.v1.ListScoresByRunRequest;
 import ai.stigmer.agentic.score.v1.ListScoresBySessionRequest;
 import ai.stigmer.agentic.score.v1.Score;
@@ -55,6 +58,18 @@ public final class ScoreClient {
     public ScoreList listBySession(ListScoresBySessionRequest input) {
         try {
             return query.listBySession(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public AgentQualityReport getAgentQualityReport(GetAgentQualityReportRequest input) {
+        try {
+            return query.getAgentQualityReport(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ScoreList listFlaggedByAgent(ListFlaggedScoresByAgentRequest input) {
+        try {
+            return query.listFlaggedByAgent(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

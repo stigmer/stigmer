@@ -19,9 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ScoreQueryController_Get_FullMethodName           = "/ai.stigmer.agentic.score.v1.ScoreQueryController/get"
-	ScoreQueryController_ListByRun_FullMethodName     = "/ai.stigmer.agentic.score.v1.ScoreQueryController/listByRun"
-	ScoreQueryController_ListBySession_FullMethodName = "/ai.stigmer.agentic.score.v1.ScoreQueryController/listBySession"
+	ScoreQueryController_Get_FullMethodName                   = "/ai.stigmer.agentic.score.v1.ScoreQueryController/get"
+	ScoreQueryController_ListByRun_FullMethodName             = "/ai.stigmer.agentic.score.v1.ScoreQueryController/listByRun"
+	ScoreQueryController_ListBySession_FullMethodName         = "/ai.stigmer.agentic.score.v1.ScoreQueryController/listBySession"
+	ScoreQueryController_GetAgentQualityReport_FullMethodName = "/ai.stigmer.agentic.score.v1.ScoreQueryController/getAgentQualityReport"
+	ScoreQueryController_ListFlaggedByAgent_FullMethodName    = "/ai.stigmer.agentic.score.v1.ScoreQueryController/listFlaggedByAgent"
 )
 
 // ScoreQueryControllerClient is the client API for ScoreQueryController service.
@@ -36,6 +38,19 @@ type ScoreQueryControllerClient interface {
 	ListByRun(ctx context.Context, in *ListScoresByRunRequest, opts ...grpc.CallOption) (*ScoreList, error)
 	// List every score of every run in a session.
 	ListBySession(ctx context.Context, in *ListScoresBySessionRequest, opts ...grpc.CallOption) (*ScoreList, error)
+	// Get how one agent's runs in an organization went: grades counted in
+	// total, per day and per agent version.
+	//
+	// Counts every run of the agent in the organization, including runs the
+	// caller cannot open, and returns no text from any of them. Requires
+	// can_view on the organization named in org and on the agent.
+	GetAgentQualityReport(ctx context.Context, in *GetAgentQualityReportRequest, opts ...grpc.CallOption) (*AgentQualityReport, error)
+	// List the failed grades of one agent's runs in an organization, newest
+	// first: a failed health check, a failed judge verdict or a thumbs down.
+	//
+	// Lists only the runs the caller can open. Requires can_view on the
+	// organization named in org and on the agent.
+	ListFlaggedByAgent(ctx context.Context, in *ListFlaggedScoresByAgentRequest, opts ...grpc.CallOption) (*ScoreList, error)
 }
 
 type scoreQueryControllerClient struct {
@@ -76,6 +91,26 @@ func (c *scoreQueryControllerClient) ListBySession(ctx context.Context, in *List
 	return out, nil
 }
 
+func (c *scoreQueryControllerClient) GetAgentQualityReport(ctx context.Context, in *GetAgentQualityReportRequest, opts ...grpc.CallOption) (*AgentQualityReport, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentQualityReport)
+	err := c.cc.Invoke(ctx, ScoreQueryController_GetAgentQualityReport_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scoreQueryControllerClient) ListFlaggedByAgent(ctx context.Context, in *ListFlaggedScoresByAgentRequest, opts ...grpc.CallOption) (*ScoreList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ScoreList)
+	err := c.cc.Invoke(ctx, ScoreQueryController_ListFlaggedByAgent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ScoreQueryControllerServer is the server API for ScoreQueryController service.
 // All implementations should embed UnimplementedScoreQueryControllerServer
 // for forward compatibility.
@@ -88,6 +123,19 @@ type ScoreQueryControllerServer interface {
 	ListByRun(context.Context, *ListScoresByRunRequest) (*ScoreList, error)
 	// List every score of every run in a session.
 	ListBySession(context.Context, *ListScoresBySessionRequest) (*ScoreList, error)
+	// Get how one agent's runs in an organization went: grades counted in
+	// total, per day and per agent version.
+	//
+	// Counts every run of the agent in the organization, including runs the
+	// caller cannot open, and returns no text from any of them. Requires
+	// can_view on the organization named in org and on the agent.
+	GetAgentQualityReport(context.Context, *GetAgentQualityReportRequest) (*AgentQualityReport, error)
+	// List the failed grades of one agent's runs in an organization, newest
+	// first: a failed health check, a failed judge verdict or a thumbs down.
+	//
+	// Lists only the runs the caller can open. Requires can_view on the
+	// organization named in org and on the agent.
+	ListFlaggedByAgent(context.Context, *ListFlaggedScoresByAgentRequest) (*ScoreList, error)
 }
 
 // UnimplementedScoreQueryControllerServer should be embedded to have
@@ -105,6 +153,12 @@ func (UnimplementedScoreQueryControllerServer) ListByRun(context.Context, *ListS
 }
 func (UnimplementedScoreQueryControllerServer) ListBySession(context.Context, *ListScoresBySessionRequest) (*ScoreList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListBySession not implemented")
+}
+func (UnimplementedScoreQueryControllerServer) GetAgentQualityReport(context.Context, *GetAgentQualityReportRequest) (*AgentQualityReport, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAgentQualityReport not implemented")
+}
+func (UnimplementedScoreQueryControllerServer) ListFlaggedByAgent(context.Context, *ListFlaggedScoresByAgentRequest) (*ScoreList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListFlaggedByAgent not implemented")
 }
 func (UnimplementedScoreQueryControllerServer) testEmbeddedByValue() {}
 
@@ -180,6 +234,42 @@ func _ScoreQueryController_ListBySession_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ScoreQueryController_GetAgentQualityReport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAgentQualityReportRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScoreQueryControllerServer).GetAgentQualityReport(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScoreQueryController_GetAgentQualityReport_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScoreQueryControllerServer).GetAgentQualityReport(ctx, req.(*GetAgentQualityReportRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ScoreQueryController_ListFlaggedByAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListFlaggedScoresByAgentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScoreQueryControllerServer).ListFlaggedByAgent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScoreQueryController_ListFlaggedByAgent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScoreQueryControllerServer).ListFlaggedByAgent(ctx, req.(*ListFlaggedScoresByAgentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ScoreQueryController_ServiceDesc is the grpc.ServiceDesc for ScoreQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -198,6 +288,14 @@ var ScoreQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "listBySession",
 			Handler:    _ScoreQueryController_ListBySession_Handler,
+		},
+		{
+			MethodName: "getAgentQualityReport",
+			Handler:    _ScoreQueryController_GetAgentQualityReport_Handler,
+		},
+		{
+			MethodName: "listFlaggedByAgent",
+			Handler:    _ScoreQueryController_ListFlaggedByAgent_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

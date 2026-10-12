@@ -61,6 +61,16 @@ func (s *ScoreClient) ListBySession(ctx context.Context, input *scorev1.ListScor
 	return resp, wrapErr(err)
 }
 
+func (s *ScoreClient) GetAgentQualityReport(ctx context.Context, input *scorev1.GetAgentQualityReportRequest) (*scorev1.AgentQualityReport, error) {
+	resp, err := s.query.GetAgentQualityReport(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (s *ScoreClient) ListFlaggedByAgent(ctx context.Context, input *scorev1.ListFlaggedScoresByAgentRequest) (*scorev1.ScoreList, error) {
+	resp, err := s.query.ListFlaggedByAgent(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // ScoreInput holds the fields for creating/updating a Score.
 type ScoreInput struct {
 	// Id is the resource's metadata.id, for exact update addressing when

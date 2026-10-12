@@ -16,6 +16,7 @@ import {
   type GradingSettings,
 } from "../evaluator/grading-settings.js";
 import { ModelSelector } from "../models/ModelSelector.js";
+import { AgentQualityReportView } from "../score/AgentQualityReportView.js";
 import { Section } from "../resource-detail/Section.js";
 import { Switch } from "../switch/Switch.js";
 import { INPUT_CLASS, PRIMARY_BUTTON_CLASS } from "../vault/styles.js";
@@ -30,12 +31,25 @@ export interface AgentQualityTabProps {
    * @default false
    */
   readonly editable?: boolean;
+  /**
+   * Called with a run id when the person opens a flagged run; the host owns
+   * the route. Flagged runs are listed without links when omitted.
+   */
+  readonly onNavigateToRun?: (runId: string) => void;
+  /**
+   * Called with an agent eval's id when the person opens a version's latest
+   * eval from the report; `AgentDetailView` opens its Evals tab on it.
+   */
+  readonly onOpenEval?: (evalId: string) => void;
   /** Additional CSS class names for the root element. */
   readonly className?: string;
 }
 
 /**
- * The agent's Quality tab: AI grading switched on or off, how many runs it
+ * The agent's Quality tab. On top, how the agent's runs went in the active
+ * organization over the last 7, 30 or 90 days
+ * ({@link AgentQualityReportView}): pass rates, daily trends, a table by
+ * agent version and the flagged runs. Below it, AI grading switched on or off, how many runs it
  * grades ("one in N runs"), the monthly limit in estimated model spend, the
  * judge's model, and this month's spend and counts, with the reason the
  * last run picked for grading was not graded.
@@ -49,20 +63,42 @@ export interface AgentQualityTabProps {
 export function AgentQualityTab({
   agent,
   editable = false,
+  onNavigateToRun,
+  onOpenEval,
   className,
 }: AgentQualityTabProps) {
+  return (
+    <div className={cn("stg:flex stg:flex-col stg:gap-6", className)}>
+      <AgentQualityReportView
+        agent={agent}
+        onNavigateToRun={onNavigateToRun}
+        onOpenEval={onOpenEval}
+      />
+      <GradingSettings agent={agent} editable={editable} />
+    </div>
+  );
+}
+
+/** Today's grading settings: read the agent's evaluator, then its form. */
+function GradingSettings({
+  agent,
+  editable,
+}: {
+  readonly agent: Agent;
+  readonly editable: boolean;
+}) {
   const agentId = agent.metadata?.id ?? "";
   const { evaluator, isLoading, error, refetch } = useAgentEvaluator(agentId);
 
   if (isLoading) {
     return (
-      <p className={cn("stg:text-xs stg:text-muted-foreground", className)}>
+      <p className="stg:text-xs stg:text-muted-foreground">
         Loading AI grading…
       </p>
     );
   }
   if (error !== null) {
-    return <ErrorMessage error={error} retry={refetch} className={className} />;
+    return <ErrorMessage error={error} retry={refetch} />;
   }
 
   // A fresh read remounts the form, so the stored settings are its start.
@@ -77,7 +113,6 @@ export function AgentQualityTab({
       evaluator={evaluator}
       editable={editable}
       onSaved={refetch}
-      className={className}
     />
   );
 }

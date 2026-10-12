@@ -49,6 +49,7 @@
     "version-history",
     "dependency-graph",
     "dashboard",
+    "charts",
     "activity",
     "manifest",
     "---Integrations---",

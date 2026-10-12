@@ -183,6 +183,11 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks for dashboard metrics, activity feeds, and analytics data.",
   },
+  charts: {
+    title: "Charts",
+    description:
+      "Small inline-SVG charts drawn from the theme's chart tokens, each with a screen-reader table of its data.",
+  },
   github: {
     title: "GitHub",
     description:

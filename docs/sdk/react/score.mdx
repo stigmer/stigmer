@@ -6,6 +6,84 @@ title: score
 
 ## Hooks
 
+### useAgentQualityReport
+
+Data hook that reads an agent's quality report for the active
+organization: `days` days ending today (UTC), 1 to 90, where 0 asks for
+the server's default of 30.
+
+Pass an empty `agentId` to skip fetching, while the agent is loading.
+
+**Signature**
+
+```tsx
+function useAgentQualityReport(agentId: string, days: number): UseAgentQualityReportReturn
+```
+
+<TypeTable
+  type={{
+    agentId: { type: "string", description: "", required: true },
+    days: { type: "number", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseAgentQualityReportReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` until the first answer (or refusal) for the current agent, window and organization." },
+    refetch: { type: "() => void", description: "Read the report again." },
+    report: { type: "AgentQualityReport | null", description: "The report, or `null` before the first answer and while idle." },
+  }}
+/>
+
+```tsx
+const { report, error } = useAgentQualityReport(agent.metadata?.id ?? "", 30);
+```
+
+
+### useFlaggedRuns
+
+Data hook that lists an agent's flagged runs in the active organization
+over the last `days` days (1 to 90; 0 asks for 30), newest first, a page
+of [`FLAGGED_PAGE_SIZE`](#flagged_page_size) at a time.
+
+Pass an empty `agentId` to skip fetching, while the agent is loading.
+
+**Signature**
+
+```tsx
+function useFlaggedRuns(agentId: string, days: number): UseFlaggedRunsReturn
+```
+
+<TypeTable
+  type={{
+    agentId: { type: "string", description: "", required: true },
+    days: { type: "number", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseFlaggedRunsReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the first page's read, or `null` when healthy." },
+    hasMore: { type: "boolean", description: "`true` when the server said more may follow." },
+    isLoading: { type: "boolean", description: "`true` until the first page answers (or fails) for the current agent, window and organization." },
+    isLoadingMore: { type: "boolean", description: "`true` while a further page is in flight." },
+    items: { type: "readonly Score[]", description: "The flagged scores read so far, newest first." },
+    loadMore: { type: "() => void", description: "Read the next page and append it; a no-op while one is in flight or none follows." },
+    loadMoreError: { type: "Error | null", description: "Error from the last further page's read, or `null`." },
+    refetch: { type: "() => void", description: "Read the first page again, dropping the pages after it." },
+  }}
+/>
+
+```tsx
+const { items, hasMore, loadMore } = useFlaggedRuns(agentId, 30);
+```
+
+
 ### useRateRun
 
 Behavior hook that wraps `score.create()` for a person's thumbs on a
@@ -109,6 +187,31 @@ await updateRating(myRating, { passed: true });
 
 ## Components
 
+### AgentQualityReportView
+
+An agent's quality over the last 7, 30 or 90 days in the active
+organization: tiles, daily trends, a by-version table and the flagged
+runs.
+
+**Props** — `AgentQualityReportViewProps`
+
+<TypeTable
+  type={{
+    agent: { type: "Agent", description: "The agent whose runs the report counts.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
+    className: { type: "string", description: "Additional CSS class names for the root element." },
+    onNavigateToRun: { type: "(runId: string) => void", description: "Called with a run id when the person opens a flagged run; the host owns the route. Flagged runs are listed without links when omitted." },
+    onOpenEval: { type: "(evalId: string) => void", description: "Called with an agent eval's id when the person opens a version's eval; `AgentDetailView` opens its Evals tab on it. The eval column is plain text when omitted." },
+  }}
+/>
+
+```tsx
+<AgentQualityReportView
+  agent={agent}
+  onNavigateToRun={(runId) => router.push(`/runs/${runId}`)}
+/>
+```
+
+
 ### RunScores
 
 A completed run's scores under its final answer: thumbs up and down with
@@ -146,6 +249,11 @@ All visual properties flow through `--stgm-*` tokens.
 
 
 ## Types
+
+### FLAGGED_PAGE_SIZE
+
+How many flagged scores one page asks for.
+
 
 ### RunRating
 
