@@ -80,7 +80,6 @@ const activities = {
     error: grade.error,
     costUsd: grade.costUsd,
     durationSeconds: grade.durationSeconds,
-    outOfCredit: false,
   }),
 };
 

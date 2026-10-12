@@ -3,9 +3,9 @@
  * completed run with an AI judge, and the one predicate every reader uses
  * to tell such a run apart.
  *
- * A judge run is an ordinary run, so billing, the out-of-credit refusal,
- * an organization's own provider keys, pricing, the cost cap and the model
- * stack all apply to it unchanged. What makes it a judge is one reserved
+ * A judge run is an ordinary run, so admission, an organization's own
+ * provider keys, pricing, the cost cap and the model stack all apply to it
+ * unchanged. What makes it a judge is one reserved
  * label, `stigmer.ai/grades-run = <judged run id>`, which the server
  * writes and a client may not introduce wherever the edition guards
  * reserved labels (pipeline/steps/guard-reserved-labels.ts; the hosted
@@ -86,9 +86,9 @@ export interface JudgeRunRequest {
 
 /**
  * The judge run's create request: a new session of its own on the native
- * harness, in the judged run's organization (so that organization's
- * credit pays, and the hosted edition's create gate refuses it when the
- * credit is out), capped at one grade's cost.
+ * harness, in the judged run's organization (so that organization's own
+ * provider key serves it, and admission refuses it when the organization
+ * has none for the judge's model), capped at one grade's cost.
  */
 export function judgeRunRequest(request: JudgeRunRequest): Run {
   const judgedId = request.judged.metadata?.id ?? "";

@@ -30,7 +30,7 @@ Exit codes:
   0    every case that ran reached the threshold and every case loaded
   1    a case scored below the threshold, a case did not load, no case ran, an
        option was not valid, the eval could not start, or it was lost and cancelled
-  2    partial: the spending limit was reached or the organization ran out of credit
+  2    partial: the spending limit was reached
   3    the server could not be reached
   4    not signed in, or the sign-in expired
   130  interrupted: the eval was cancelled, by Ctrl+C or any other cancel`;

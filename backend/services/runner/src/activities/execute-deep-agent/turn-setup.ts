@@ -59,7 +59,7 @@ import { isPathCapturable } from "../../shared/filereview/git-substrate.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
 import { buildPlanModePermissions } from "../../shared/plan-mode-permissions.js";
 import { buildMiddlewareStack } from "../../middleware/index.js";
-import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
+import type { ApprovalGateConfig, PersonRefusal } from "../../middleware/approval-gate.js";
 import { WEB_FETCH_TOOL_NAME, createWebFetchTool, resolveGuardPosture } from "../../tools/index.js";
 import { executionFingerprintKey } from "../../shared/fingerprint-secret.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded, type ModelPricing } from "../../shared/model-pricing.js";
@@ -154,7 +154,7 @@ export interface DeepAgentGateState {
   /** Tool-call ids the gate auto-skipped this turn, each with the hook whose ask it was (`null`: the default's); written by the gate, read by `reconcileUnattendedSkips`. */
   readonly unattendedSkips: Map<string, string | null>;
   /** The calls a person skipped or rejected among the decisions this turn resumes with. */
-  readonly refusedByPerson?: ReadonlyMap<string, "skip" | "reject">;
+  readonly refusedByPerson?: ReadonlyMap<string, PersonRefusal>;
 }
 
 /** The engine this turn runs on and everything the stream and the settle read from it. */
@@ -327,16 +327,20 @@ export function readGateState(input: TurnInput, tools: DeepAgentTools): DeepAgen
     globalBypass: input.mcp.leases.global,
     unattended: isUnattendedApprovalMode(input.execution),
     unattendedSkips: new Map<string, string | null>(),
-    refusedByPerson: refusalsOf(input.approvalDecisions),
+    refusedByPerson: refusalsOf(input.approvalDecisions, input.approvalDenyMessages),
   };
 }
 
-/** The skip and reject decisions among a turn's resumed approvals, by tool-call id. */
-export function refusalsOf(decisions: ReadonlyMap<string, ApprovalAction>): ReadonlyMap<string, "skip" | "reject"> {
-  const refused = new Map<string, "skip" | "reject">();
+/** The skip and reject decisions among a turn's resumed approvals, by tool-call id, each with the reason given. */
+export function refusalsOf(
+  decisions: ReadonlyMap<string, ApprovalAction>,
+  denyMessages: ReadonlyMap<string, string> = new Map(),
+): ReadonlyMap<string, PersonRefusal> {
+  const refused = new Map<string, PersonRefusal>();
   for (const [id, action] of decisions) {
-    if (action === ApprovalAction.SKIP) refused.set(id, "skip");
-    else if (action === ApprovalAction.REJECT) refused.set(id, "reject");
+    const comment = denyMessages.get(id) ?? "";
+    if (action === ApprovalAction.SKIP) refused.set(id, { action: "skip", comment });
+    else if (action === ApprovalAction.REJECT) refused.set(id, { action: "reject", comment });
   }
   return refused;
 }
@@ -809,7 +813,7 @@ export function checkTurnToolLists(
  */
 export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngine): Promise<DeepAgentGraphInput> {
   const graphState: GraphStateSnapshot = await engine.graph.getState(engine.langgraphConfig);
-  const resume = resolveResumeInput(input.approvalDecisions, graphState);
+  const resume = resolveResumeInput(input.approvalDecisions, graphState, input.approvalDenyMessages);
   if (resume.isResumeFromApproval) {
     return { kind: "resume", command: resume.graphInput };
   }

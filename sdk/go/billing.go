@@ -6,7 +6,6 @@ import (
 
 	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 	billingv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1"
-	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -15,90 +14,25 @@ import (
 // messages are returned as-is (the search.go convention): the proto types
 // are the contract, and hand-mapped mirrors would only drift from it.
 type (
-	// BillingAccount is an organization's billing account with balance and auto-recharge config.
+	// BillingAccount is an organization's billing account: its Stripe customer and status.
 	BillingAccount = billingv1.BillingAccount
-	// CreditBalance is the credit balance breakdown (available, reserved, total).
-	CreditBalance = billingv1.CreditBalance
-	// CreditLedgerEntry is one immutable credit ledger entry.
-	CreditLedgerEntry = billingv1.CreditLedgerEntry
-	// CreditLedgerResponse is a paginated page of ledger entries.
-	CreditLedgerResponse = billingv1.CreditLedgerResponse
-	// BillingUsageReportResponse is an aggregated usage report for a date range.
+	// BillingUsageReportResponse counts an organization's runs and LLM calls for a date range.
 	BillingUsageReportResponse = billingv1.BillingUsageReportResponse
-	// CreateCreditCheckoutSessionResponse holds the Stripe-hosted checkout URL.
-	CreateCreditCheckoutSessionResponse = billingv1.CreateCreditCheckoutSessionResponse
 	// CreateBillingPortalSessionResponse holds the Stripe-hosted portal URL.
 	CreateBillingPortalSessionResponse = billingv1.CreateBillingPortalSessionResponse
 	// CreatePaymentMethodSetupSessionResponse holds the Stripe-hosted setup URL.
 	CreatePaymentMethodSetupSessionResponse = billingv1.CreatePaymentMethodSetupSessionResponse
-	// CustomerModelPricingResponse is the customer-facing model price list.
-	CustomerModelPricingResponse = billingv1.CustomerModelPricingResponse
 	// ModelPricingBaselinesResponse is the model registry baseline catalog.
 	ModelPricingBaselinesResponse = billingv1.ModelPricingBaselinesResponse
 	// ModelPricingBaseline is one model registry baseline entry (catalog + list prices).
 	ModelPricingBaseline = billingv1.ModelPricingBaseline
-	// LedgerEntryType filters ledger queries to specific entry types.
-	LedgerEntryType = billingv1.LedgerEntryType
-	// LedgerView selects a server-resolved slice of the ledger.
-	LedgerView = billingv1.LedgerView
 )
 
-// AdjustCreditsParams configures a manual credit adjustment.
-type AdjustCreditsParams struct {
-	Org string
-	// AmountMicros is positive to add credits, negative to remove.
-	AmountMicros int64
-	// Reason is recorded on the ledger entry (audit trail).
-	Reason string
-	// IdempotencyKey deduplicates retries of the same adjustment.
-	IdempotencyKey string
-}
-
-// GrantCreditsParams configures a promotional credit grant.
-type GrantCreditsParams struct {
-	Org string
-	// AmountMicros is the amount to grant. Must be positive.
-	AmountMicros int64
-	// ExpiresAt is when the grant expires (use-it-or-lose-it). Zero means the
-	// grant never expires. Precision is whole seconds.
-	ExpiresAt time.Time
-	// Reason is recorded on the ledger entry (audit trail).
-	Reason string
-	// IdempotencyKey deduplicates retries of the same grant.
-	IdempotencyKey string
-}
-
-// GetCreditLedgerParams configures a credit ledger query.
-type GetCreditLedgerParams struct {
-	Org string
-	// Page selects a result page; nil returns the server default page.
-	Page *Page
-	// TypeFilter narrows to specific entry types. Empty means all types.
-	TypeFilter []LedgerEntryType
-	// StartTime filters to entries on or after this timestamp. Zero means unbounded.
-	StartTime time.Time
-	// EndTime filters to entries on or before this timestamp. Zero means unbounded.
-	EndTime time.Time
-	// View selects a server-resolved ledger slice. LedgerView_ledger_view_statement
-	// returns only customer-facing money-movement entries and excludes internal
-	// mechanics (per-call usage debits, reservation holds/releases). When both
-	// View and TypeFilter are set, the effective filter is their intersection.
-	View LedgerView
-}
-
-// GetBillingUsageReportParams configures a billing usage report query.
+// GetBillingUsageReportParams configures a usage report query.
 type GetBillingUsageReportParams struct {
 	Org       string
 	StartTime time.Time
 	EndTime   time.Time
-}
-
-// CreateCheckoutSessionParams configures a Stripe Checkout Session.
-type CreateCheckoutSessionParams struct {
-	Org        string
-	PackID     string
-	SuccessURL string
-	CancelURL  string
 }
 
 // CreateBillingPortalSessionParams configures a Stripe Billing Portal session.
@@ -113,21 +47,6 @@ type CreatePaymentMethodSetupSessionParams struct {
 	Org        string
 	SuccessURL string
 	CancelURL  string
-}
-
-// SetAutoRechargeConfigParams configures automatic credit recharge.
-type SetAutoRechargeConfigParams struct {
-	Org                  string
-	Enabled              bool
-	ThresholdMicros      int64
-	RechargeAmountMicros int64
-	MonthlyCapMicros     int64
-}
-
-// GetCustomerModelPricingParams configures a customer model pricing query.
-type GetCustomerModelPricingParams struct {
-	// Org resolves org-specific policy overrides. Empty for default pricing.
-	Org string
 }
 
 // ListModelPricingBaselinesParams configures a baseline catalog query.
@@ -156,13 +75,13 @@ type RetireModelPricingBaselineParams struct {
 	RevisionNote string
 }
 
-// BillingClient provides the billing bounded context: account provisioning,
-// balance queries, ledger history, credit purchases via Stripe Checkout, and
-// the operator model-pricing surfaces.
+// BillingClient provides the billing bounded context: the organization's
+// billing account (its Stripe customer), the Stripe portal and card setup
+// sessions, the usage meter's call and run counts, and the operator
+// model-pricing surfaces.
 //
-// Internal run-billing RPCs (authorizeRun, recordLlmCallUsage,
-// finalizeRun) are not exposed — they are called only by the Temporal
-// workflow and the LLM proxy.
+// The proxy's metering write (recordLlmCallUsage) is not exposed; only the
+// server calls it.
 type BillingClient struct {
 	command billingv1.BillingCommandControllerClient
 	query   billingv1.BillingQueryControllerClient
@@ -195,108 +114,14 @@ func (b *BillingClient) GetBillingAccount(ctx context.Context, org string) (*Bil
 	return resp, nil
 }
 
-// GetCreditBalance retrieves the credit balance breakdown for an organization.
-func (b *BillingClient) GetCreditBalance(ctx context.Context, org string) (*CreditBalance, error) {
-	resp, err := b.query.GetCreditBalance(ctx, &billingv1.GetCreditBalanceInput{Org: org})
-	if err != nil {
-		return nil, gen.WrapErr(err)
-	}
-	return resp, nil
-}
-
-// AdjustCredits manually adjusts an organization's credit balance.
-//
-// Positive AmountMicros adds credits, negative removes them. The adjustment
-// is recorded as a ledger entry with the supplied reason; the idempotency key
-// deduplicates retries. Requires can_manage_credits on the platform: a
-// platform operator, or an identity Stigmer has made a credit issuer. Owning
-// the organization is not enough.
-func (b *BillingClient) AdjustCredits(ctx context.Context, params *AdjustCreditsParams) (*CreditLedgerEntry, error) {
-	resp, err := b.command.AdjustCredits(ctx, &billingv1.AdjustCreditsInput{
-		Org:            params.Org,
-		AmountMicros:   params.AmountMicros,
-		Reason:         params.Reason,
-		IdempotencyKey: params.IdempotencyKey,
-	})
-	if err != nil {
-		return nil, gen.WrapErr(err)
-	}
-	return resp, nil
-}
-
-// GrantCredits grants promotional credits to an organization, optionally
-// expiring (use-it-or-lose-it).
-//
-// The grant burns before adjustment and purchased credits. When ExpiresAt is
-// set, any remainder unconsumed at that time is removed from the balance by
-// the platform's grant-expiry sweep. Idempotent: replaying an applied
-// idempotency key returns the original ledger entry, even after the expiry
-// has passed. Requires can_manage_credits on the platform, as AdjustCredits
-// does.
-func (b *BillingClient) GrantCredits(ctx context.Context, params *GrantCreditsParams) (*CreditLedgerEntry, error) {
-	req := &billingv1.GrantCreditsInput{
-		Org:            params.Org,
-		AmountMicros:   params.AmountMicros,
-		Reason:         params.Reason,
-		IdempotencyKey: params.IdempotencyKey,
-	}
-	if !params.ExpiresAt.IsZero() {
-		req.ExpiresAt = timestamppb.New(params.ExpiresAt)
-	}
-	resp, err := b.command.GrantCredits(ctx, req)
-	if err != nil {
-		return nil, gen.WrapErr(err)
-	}
-	return resp, nil
-}
-
-// GetCreditLedger retrieves paginated credit ledger entries with optional filters.
-func (b *BillingClient) GetCreditLedger(ctx context.Context, params *GetCreditLedgerParams) (*CreditLedgerResponse, error) {
-	req := &billingv1.GetCreditLedgerInput{
-		Org:        params.Org,
-		TypeFilter: params.TypeFilter,
-		View:       params.View,
-	}
-	if params.Page != nil {
-		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}
-	}
-	if !params.StartTime.IsZero() {
-		req.StartTime = timestamppb.New(params.StartTime)
-	}
-	if !params.EndTime.IsZero() {
-		req.EndTime = timestamppb.New(params.EndTime)
-	}
-	resp, err := b.query.GetCreditLedger(ctx, req)
-	if err != nil {
-		return nil, gen.WrapErr(err)
-	}
-	return resp, nil
-}
-
-// GetBillingUsageReport retrieves an aggregated billing usage report for a
-// date range: total provider cost, total billable amount, run and LLM
-// call counts, and a per-model breakdown with cost tier attribution.
+// GetBillingUsageReport retrieves an aggregated usage report for a date
+// range: the run and LLM call counts, and a per-model breakdown of call
+// counts by model and harness.
 func (b *BillingClient) GetBillingUsageReport(ctx context.Context, params *GetBillingUsageReportParams) (*BillingUsageReportResponse, error) {
 	resp, err := b.query.GetBillingUsageReport(ctx, &billingv1.GetBillingUsageReportInput{
 		Org:       params.Org,
 		StartTime: timestamppb.New(params.StartTime),
 		EndTime:   timestamppb.New(params.EndTime),
-	})
-	if err != nil {
-		return nil, gen.WrapErr(err)
-	}
-	return resp, nil
-}
-
-// CreateCreditCheckoutSession creates a Stripe Checkout Session to purchase a
-// credit pack. The caller should redirect the user to the returned checkout
-// URL; credits are provisioned asynchronously via webhook after payment.
-func (b *BillingClient) CreateCreditCheckoutSession(ctx context.Context, params *CreateCheckoutSessionParams) (*CreateCreditCheckoutSessionResponse, error) {
-	resp, err := b.command.CreateCreditCheckoutSession(ctx, &billingv1.CreateCreditCheckoutSessionInput{
-		Org:        params.Org,
-		PackId:     params.PackID,
-		SuccessUrl: params.SuccessURL,
-		CancelUrl:  params.CancelURL,
 	})
 	if err != nil {
 		return nil, gen.WrapErr(err)
@@ -320,8 +145,8 @@ func (b *BillingClient) CreateBillingPortalSession(ctx context.Context, params *
 
 // CreatePaymentMethodSetupSession creates a Stripe Checkout Session that
 // saves a payment method without charging it. The caller should redirect the
-// user to the returned setup URL; this is how an organization that has never
-// bought credit puts a card on file.
+// user to the returned setup URL; this is how an organization puts a card on
+// file for its plan's invoices.
 func (b *BillingClient) CreatePaymentMethodSetupSession(ctx context.Context, params *CreatePaymentMethodSetupSessionParams) (*CreatePaymentMethodSetupSessionResponse, error) {
 	resp, err := b.command.CreatePaymentMethodSetupSession(ctx, &billingv1.CreatePaymentMethodSetupSessionInput{
 		Org:        params.Org,
@@ -334,46 +159,12 @@ func (b *BillingClient) CreatePaymentMethodSetupSession(ctx context.Context, par
 	return resp, nil
 }
 
-// SetAutoRechargeConfig configures automatic credit recharge for an
-// organization. When enabled, the billing system charges the account's saved
-// payment method whenever the available balance drops below the configured
-// threshold. Returns the updated BillingAccount.
-func (b *BillingClient) SetAutoRechargeConfig(ctx context.Context, params *SetAutoRechargeConfigParams) (*BillingAccount, error) {
-	resp, err := b.command.SetAutoRechargeConfig(ctx, &billingv1.SetAutoRechargeConfigInput{
-		Org:                  params.Org,
-		Enabled:              params.Enabled,
-		ThresholdMicros:      params.ThresholdMicros,
-		RechargeAmountMicros: params.RechargeAmountMicros,
-		MonthlyCapMicros:     params.MonthlyCapMicros,
-	})
-	if err != nil {
-		return nil, gen.WrapErr(err)
-	}
-	return resp, nil
-}
-
-// GetCustomerModelPricing retrieves the customer-facing model price list with
-// markup applied — the prices the customer pays, organized by harness and
-// cost tier. Pass params to resolve org-specific policy overrides; nil params
-// returns default pricing.
-func (b *BillingClient) GetCustomerModelPricing(ctx context.Context, params *GetCustomerModelPricingParams) (*CustomerModelPricingResponse, error) {
-	req := &billingv1.GetCustomerModelPricingInput{}
-	if params != nil {
-		req.Org = params.Org
-	}
-	resp, err := b.query.GetCustomerModelPricing(ctx, req)
-	if err != nil {
-		return nil, gen.WrapErr(err)
-	}
-	return resp, nil
-}
-
 // ListModelPricingBaselines retrieves the model registry baseline catalog:
 // ACTIVE entries by default, or the full append-only revision history with
 // IncludeHistory. Nil params lists ACTIVE entries.
 //
 // Platform-operator surface (can_manage_model_pricing on platform:stigmer):
-// rates are raw provider prices, pre-markup.
+// rates are the providers' list prices.
 func (b *BillingClient) ListModelPricingBaselines(ctx context.Context, params *ListModelPricingBaselinesParams) (*ModelPricingBaselinesResponse, error) {
 	req := &billingv1.ListModelPricingBaselinesInput{}
 	if params != nil {

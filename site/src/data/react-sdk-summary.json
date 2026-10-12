@@ -46,8 +46,8 @@
       "slug": "billing",
       "title": "Billing",
       "description": "Hooks and components for subscription plans, payment methods, and invoices.",
-      "hooks": 16,
-      "components": 14
+      "hooks": 12,
+      "components": 9
     },
     {
       "slug": "button",
@@ -334,7 +334,7 @@
       "title": "Usage",
       "description": "Hooks and components for organization-level usage reporting and cost breakdown.",
       "hooks": 2,
-      "components": 5
+      "components": 4
     },
     {
       "slug": "user",

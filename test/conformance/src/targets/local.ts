@@ -75,7 +75,7 @@ export class LocalTarget implements TargetProfile {
     // no billing controllers are routed (the suite pins the Unimplemented
     // answer), no side-channel proxy (runners dial
     // providers directly), no marketing-site lane.
-    billingLedger: false,
+    billingEngine: false,
     // Plans and subscriptions are cloud_only kinds: the suite pins Unimplemented.
     billingPlans: false,
     sideChannelProxy: false,

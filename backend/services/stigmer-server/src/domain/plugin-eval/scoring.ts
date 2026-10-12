@@ -241,7 +241,7 @@ export function recomputeCases(
       continue;
     }
     // A target none of whose with-plugin tries was graded (the cost
-    // ceiling, credit or a cancel stopped the eval first, none has finished
+    // ceiling or a cancel stopped the eval first, none has finished
     // yet, or every one that finished was a platform failure) is not one
     // the case ran on, whatever its without-plugin tries did, since only
     // the with-plugin arm decides a pass; a case with no such target is

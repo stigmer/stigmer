@@ -145,7 +145,7 @@ public enum IamPermission
   /**
    * <pre>
    * Platform-level permission to execute internal billing operations
-   * (authorize, record, finalize). Gated to operator (machine account).
+   * (recording a metered LLM call). Gated to operator (machine account).
    * </pre>
    *
    * <code>can_execute_billing_ops = 29;</code>
@@ -153,8 +153,8 @@ public enum IamPermission
   can_execute_billing_ops(29),
   /**
    * <pre>
-   * Organization-level permission to create agent shares billed to the
-   * organization.
+   * Organization-level permission to create agent shares whose runs the
+   * organization pays for.
    * </pre>
    *
    * <code>can_create_agent_share = 30;</code>
@@ -256,16 +256,6 @@ public enum IamPermission
    * <code>can_create_team = 45;</code>
    */
   can_create_team(45),
-  /**
-   * <pre>
-   * Platform-level permission to add or remove an organization's credits
-   * without a purchase: BillingCommandController.adjustCredits and
-   * grantCredits, checked on the static platform target.
-   * </pre>
-   *
-   * <code>can_manage_credits = 46;</code>
-   */
-  can_manage_credits(46),
   /**
    * <pre>
    * Organization-level permission to create, find and list the
@@ -453,7 +443,7 @@ public enum IamPermission
   /**
    * <pre>
    * Platform-level permission to execute internal billing operations
-   * (authorize, record, finalize). Gated to operator (machine account).
+   * (recording a metered LLM call). Gated to operator (machine account).
    * </pre>
    *
    * <code>can_execute_billing_ops = 29;</code>
@@ -461,8 +451,8 @@ public enum IamPermission
   public static final int can_execute_billing_ops_VALUE = 29;
   /**
    * <pre>
-   * Organization-level permission to create agent shares billed to the
-   * organization.
+   * Organization-level permission to create agent shares whose runs the
+   * organization pays for.
    * </pre>
    *
    * <code>can_create_agent_share = 30;</code>
@@ -564,16 +554,6 @@ public enum IamPermission
    * <code>can_create_team = 45;</code>
    */
   public static final int can_create_team_VALUE = 45;
-  /**
-   * <pre>
-   * Platform-level permission to add or remove an organization's credits
-   * without a purchase: BillingCommandController.adjustCredits and
-   * grantCredits, checked on the static platform target.
-   * </pre>
-   *
-   * <code>can_manage_credits = 46;</code>
-   */
-  public static final int can_manage_credits_VALUE = 46;
   /**
    * <pre>
    * Organization-level permission to create, find and list the
@@ -685,7 +665,6 @@ public enum IamPermission
       case 41: return can_manage_plans;
       case 42: return can_issue_license;
       case 45: return can_create_team;
-      case 46: return can_manage_credits;
       case 49: return can_manage_child_orgs;
       case 50: return can_view_settings;
       case 51: return can_create_vault;

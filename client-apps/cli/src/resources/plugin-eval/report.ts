@@ -19,8 +19,8 @@
 // threshold and every case file loaded; 1 for a case below it, a load
 // finding, no case at all, or a case whose with-plugin tries on a target
 // were all not graded (a case that never ran is not a pass); 2 for a
-// partial run (the spending limit, the
-// organization out of credit, or a reason or phase a newer server added);
+// partial run (the spending limit, or a reason or phase a newer server
+// added);
 // 130 when the eval was cancelled, by this command's Ctrl+C or any other
 // cancel (the console's Cancel, `plugin eval cancel`). A connection or
 // sign-in failure keeps the CLI's own 3 or 4, outside this file. A case
@@ -226,8 +226,6 @@ export function partialLine(evaluation: { readonly status?: EvalProgress }, inte
   switch (reason) {
     case PluginEvalPartialReason.cost_ceiling:
       return `Stopped at the spending limit: ${ran}.`;
-    case PluginEvalPartialReason.out_of_credit:
-      return `Stopped: the organization is out of credit; ${ran}.`;
     case PluginEvalPartialReason.cancelled:
       return `Cancelled: ${ran}.`;
     case PluginEvalPartialReason.unspecified:
@@ -262,7 +260,7 @@ export function exitCodeOf(
     return EvalExit.Interrupted;
   }
   if (reason !== PluginEvalPartialReason.unspecified) {
-    // The spending limit, no credit, or a reason a newer server added: the
+    // The spending limit, or a reason a newer server added: the
     // eval stopped early, so its aggregates cover only part of the suite.
     return EvalExit.Partial;
   }

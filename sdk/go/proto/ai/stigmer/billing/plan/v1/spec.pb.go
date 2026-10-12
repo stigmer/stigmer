@@ -33,8 +33,8 @@ type PlanInstrument int32
 
 const (
 	PlanInstrument_plan_instrument_unspecified PlanInstrument = 0
-	// Bought as a Subscription by an organization on Stigmer Cloud, billed
-	// monthly against usage.
+	// Bought as a Subscription by an organization on Stigmer Cloud, invoiced
+	// a flat fee each month.
 	PlanInstrument_subscription PlanInstrument = 1
 	// Bought as a License by a self-hosting customer, invoiced for a term.
 	PlanInstrument_license PlanInstrument = 2
@@ -100,8 +100,8 @@ type PlanSpec struct {
 	// What the plan permits: its limits and features.
 	Entitlements *v1.Entitlements `protobuf:"bytes,2,opt,name=entitlements,proto3" json:"entitlements,omitempty"`
 	// The commercial terms. Which fields are set depends on the instrument:
-	// a subscription plan carries the greater-of terms, a license plan its
-	// annual price.
+	// a subscription plan carries its monthly fee, a license plan its annual
+	// price.
 	Terms *PlanTerms `protobuf:"bytes,3,opt,name=terms,proto3" json:"terms,omitempty"`
 	// One or two sentences describing the plan as the pricing page shows it.
 	Description   string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
@@ -169,20 +169,17 @@ func (x *PlanSpec) GetDescription() string {
 
 // The commercial terms of a plan.
 //
-// Amounts are micro-USD (one millionth of a dollar), the unit the billing
-// ledger already uses; shares are basis points (one hundredth of a percent).
-// Every field has explicit presence: absent means the term does not apply to
-// this plan, which is how a subscription plan and a license plan share one
-// message. A monthly plan costs the greater of monthly_minimum_micros and
-// usage_share_basis_points of the month's usage.
+// Amounts are micro-USD (one millionth of a dollar). Every field has
+// explicit presence: absent means the term does not apply to this plan,
+// which is how a subscription plan and a license plan share one message. A
+// monthly plan costs its monthly fee, monthly_minimum_micros, plus
+// per_extra_org_micros for each child organization beyond the ones it
+// includes. Usage is never part of a plan's price.
 type PlanTerms struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The least a subscription plan bills per month, in micro-USD. Absent on a
-	// license plan.
+	// The plan's monthly fee: what a subscription plan bills per month, in
+	// micro-USD. Absent on a license plan.
 	MonthlyMinimumMicros *int64 `protobuf:"varint,1,opt,name=monthly_minimum_micros,json=monthlyMinimumMicros,proto3,oneof" json:"monthly_minimum_micros,omitempty"`
-	// The share of monthly usage a subscription plan bills when it exceeds the
-	// minimum, in basis points. Absent on a license plan.
-	UsageShareBasisPoints *int32 `protobuf:"varint,2,opt,name=usage_share_basis_points,json=usageShareBasisPoints,proto3,oneof" json:"usage_share_basis_points,omitempty"`
 	// What a subscription plan bills per month for each child organization
 	// beyond the ones its entitlements include, in micro-USD. Absent when the
 	// plan includes no child organizations.
@@ -231,13 +228,6 @@ func (x *PlanTerms) GetMonthlyMinimumMicros() int64 {
 	return 0
 }
 
-func (x *PlanTerms) GetUsageShareBasisPoints() int32 {
-	if x != nil && x.UsageShareBasisPoints != nil {
-		return *x.UsageShareBasisPoints
-	}
-	return 0
-}
-
 func (x *PlanTerms) GetPerExtraOrgMicros() int64 {
 	if x != nil && x.PerExtraOrgMicros != nil {
 		return *x.PerExtraOrgMicros
@@ -256,7 +246,7 @@ var File_ai_stigmer_billing_plan_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_plan_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/billing/plan/v1/spec.proto\x12\x1aai.stigmer.billing.plan.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1bbuf/validate/validate.proto\"\xb1\x05\n" +
+	"%ai/stigmer/billing/plan/v1/spec.proto\x12\x1aai.stigmer.billing.plan.v1\x1a(ai/stigmer/platform/v1/entitlement.proto\x1a\x1bbuf/validate/validate.proto\"\xf7\x04\n" +
 	"\bPlanSpec\x12Y\n" +
 	"\n" +
 	"instrument\x18\x01 \x01(\x0e2*.ai.stigmer.billing.plan.v1.PlanInstrumentB\r\xbaH\n" +
@@ -264,19 +254,16 @@ const file_ai_stigmer_billing_plan_v1_spec_proto_rawDesc = "" +
 	"instrument\x12P\n" +
 	"\fentitlements\x18\x02 \x01(\v2$.ai.stigmer.platform.v1.EntitlementsB\x06\xbaH\x03\xc8\x01\x01R\fentitlements\x12;\n" +
 	"\x05terms\x18\x03 \x01(\v2%.ai.stigmer.billing.plan.v1.PlanTermsR\x05terms\x12*\n" +
-	"\vdescription\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\vdescription:\x8e\x03\xbaH\x8a\x03\x1a\xe6\x01\n" +
-	"&plan_spec.license_has_no_monthly_terms\x12La license plan carries no monthly_minimum_micros or usage_share_basis_points\x1anthis.instrument != 2 || (!has(this.terms.monthly_minimum_micros) && !has(this.terms.usage_share_basis_points))\x1a\x9e\x01\n" +
-	"*plan_spec.subscription_has_no_annual_price\x122a subscription plan carries no annual_price_micros\x1a<this.instrument != 1 || !has(this.terms.annual_price_micros)\"\xff\x02\n" +
+	"\vdescription\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\vdescription:\xd4\x02\xbaH\xd0\x02\x1a\xac\x01\n" +
+	"&plan_spec.license_has_no_monthly_terms\x12Aa license plan carries no monthly_minimum_micros, the monthly fee\x1a?this.instrument != 2 || !has(this.terms.monthly_minimum_micros)\x1a\x9e\x01\n" +
+	"*plan_spec.subscription_has_no_annual_price\x122a subscription plan carries no annual_price_micros\x1a<this.instrument != 1 || !has(this.terms.annual_price_micros)\"\xb8\x02\n" +
 	"\tPlanTerms\x12B\n" +
-	"\x16monthly_minimum_micros\x18\x01 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x00R\x14monthlyMinimumMicros\x88\x01\x01\x12H\n" +
-	"\x18usage_share_basis_points\x18\x02 \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\x90N(\x00H\x01R\x15usageShareBasisPoints\x88\x01\x01\x12=\n" +
-	"\x14per_extra_org_micros\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x02R\x11perExtraOrgMicros\x88\x01\x01\x12<\n" +
-	"\x13annual_price_micros\x18\x04 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x03R\x11annualPriceMicros\x88\x01\x01B\x19\n" +
-	"\x17_monthly_minimum_microsB\x1b\n" +
-	"\x19_usage_share_basis_pointsB\x17\n" +
+	"\x16monthly_minimum_micros\x18\x01 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x00R\x14monthlyMinimumMicros\x88\x01\x01\x12=\n" +
+	"\x14per_extra_org_micros\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x01R\x11perExtraOrgMicros\x88\x01\x01\x12<\n" +
+	"\x13annual_price_micros\x18\x04 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x02R\x11annualPriceMicros\x88\x01\x01B\x19\n" +
+	"\x17_monthly_minimum_microsB\x17\n" +
 	"\x15_per_extra_org_microsB\x16\n" +
-	"\x14_annual_price_micros*P\n" +
+	"\x14_annual_price_microsJ\x04\b\x02\x10\x03R\x18usage_share_basis_points*P\n" +
 	"\x0ePlanInstrument\x12\x1f\n" +
 	"\x1bplan_instrument_unspecified\x10\x00\x12\x10\n" +
 	"\fsubscription\x10\x01\x12\v\n" +

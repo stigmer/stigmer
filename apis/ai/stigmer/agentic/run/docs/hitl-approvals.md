@@ -12,10 +12,10 @@ When an agent is about to invoke a tool that requires approval:
 
 1. The tool call's status changes to `TOOL_CALL_WAITING_APPROVAL`
 2. The run phase changes to `RUN_WAITING_FOR_APPROVAL`
-3. `status.pending_approvals` is populated with details of every tool awaiting a decision
+3. The session's log holds the call as an `agent.tool_use` (or `agent.mcp_tool_use`) with `evaluated_permission` `ask`, and the session goes idle with `stop_reason` `requires_action` naming it; `status.pending_approvals` describes every call awaiting an answer
 4. Run pauses — no further processing occurs
-5. A human submits a decision via the `submitApproval` RPC
-6. Once all pending approvals have decisions, run resumes
+5. A human answers with `confirmToolUse` or `grantPermission` on the session (or the run-scoped `submitApproval`)
+6. Once every waiting call is answered, run resumes
 
 ---
 
@@ -59,7 +59,11 @@ Agent is IN_PROGRESS
     │   - args_preview: {"repository": "acme/important-repo"}
     │   - requested_at: "2026-02-28T10:00:00Z"
     │
-    └── Human submits decision via submitApproval RPC
+    ├── the session's log holds the agent.tool_use (evaluated_permission
+    │   "ask") and goes idle: stop_reason requires_action, event_ids
+    │   naming the call
+    │
+    └── Human answers via confirmToolUse (or grantPermission)
 ```
 
 ### Batch Approval (Multiple Tools)
@@ -77,9 +81,9 @@ status.pending_approvals = [
   { tool_call_id: "call_C", tool_name: "send_email",  interrupt_id: "intr_2" }
 ]
 
-Human submits:
-  submitApproval(tool_call_id: "call_A", action: APPROVE)
-  submitApproval(tool_call_id: "call_C", action: SKIP)
+Human answers (the tool use ids the requires_action idle names):
+  confirmToolUse(tool_use_id: "<run>.call_A", result: "allow")
+  confirmToolUse(tool_use_id: "<run>.call_C", result: "deny")
 
 All decisions collected → graph resumes with both decisions in one Command.
 ```
@@ -92,7 +96,7 @@ Each entry in `status.pending_approvals` is a `PendingApproval` message:
 
 | Field | Type | Description |
 |---|---|---|
-| `tool_call_id` | `string` | ID of the tool call awaiting approval. Pass this to `submitApproval`. |
+| `tool_call_id` | `string` | ID of the tool call awaiting approval. Pass this to `submitApproval`; `confirmToolUse` takes the call's tool use id from the session's log. |
 | `tool_name` | `string` | Name of the tool. Example: `"delete_repository"`. |
 | `message` | `string` | Human-readable approval prompt with resolved argument placeholders. |
 | `args_preview` | `string` | Sanitized JSON preview of tool arguments. Sensitive values are redacted. |
@@ -133,9 +137,17 @@ Values 1 to 3 are reserved and never reused. The field is data-compatible: old r
 
 ---
 
-## Submitting a Decision
+## Answering a Call
 
-Call the `submitApproval` RPC with the run ID, the tool call ID, and your decision.
+A waiting call is answered on its session, by the tool use the session's log names (`stop_reason.event_ids` of the newest `session.status_idle`):
+
+- `SessionCommandController.confirmToolUse` with `allow` or `deny`, recorded as a `user.tool_confirmation`. A deny may carry a `deny_message`; the agent reads it and adapts instead of retrying.
+- `SessionCommandController.grantPermission` allows the call and every call of its class for the rest of the turn ("approve all of this kind", below), recorded as the call's confirmation, a `stigmer.permission.grant` and a confirmation for each other waiting call of the class.
+- `SessionCommandController.interrupt` stops the session's unfinished turns instead, a waiting turn included; each ends cancelled.
+
+Each needs `can_edit` on the session. An answer already recorded is answered again without a second event; a different answer to the same call is refused. When every waiting call of the turn is answered, the turn resumes.
+
+The run-scoped `submitApproval` RPC remains for the clients that send it, an adapter onto the same answers: the run ID, the tool call ID and one of the decisions below.
 
 ```bash
 # Approve — tool executes normally
@@ -143,12 +155,12 @@ stigmer runs approve run_abc123 \
   --tool-call call_abc123 \
   --comment "Verified the target repository is safe to delete"
 
-# Skip — tool is skipped, LLM adapts its plan
+# Skip — the tool does not run, and the agent adapts its plan
 stigmer runs skip run_abc123 \
   --tool-call-id call_abc123 \
   --comment "Will handle this operation manually"
 
-# Reject — run fails immediately
+# Reject — the tool does not run; the run continues with your objection
 stigmer runs reject run_abc123 \
   --tool-call-id call_abc123 \
   --comment "Wrong repository — this looks like a mistake"
@@ -156,16 +168,14 @@ stigmer runs reject run_abc123 \
 
 ### Four Possible Decisions
 
-| Decision | `ApprovalAction` | Effect on ToolCall | Effect on Run |
+| Decision | `ApprovalAction` | The session's answer | Effect |
 |---|---|---|---|
-| Approve | `APPROVAL_ACTION_APPROVE` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED` | Phase returns to `RUN_IN_PROGRESS` |
-| Skip | `APPROVAL_ACTION_SKIP` | `TOOL_CALL_SKIPPED` (terminal) | Phase returns to `RUN_IN_PROGRESS`. LLM receives: "Tool was skipped by user." |
-| Reject | `APPROVAL_ACTION_REJECT` | `TOOL_CALL_SKIPPED` (terminal, with the objection recorded) | Phase returns to `RUN_IN_PROGRESS` — the run continues |
-| Approve all | `APPROVAL_ACTION_APPROVE_ALL` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED`; every co-pending tool of the same lease scope resolves to APPROVE | Phase returns to `RUN_IN_PROGRESS`; the rest of this run does not ask again for that scope |
+| Approve | `APPROVAL_ACTION_APPROVE` | `allow` | The tool runs |
+| Skip | `APPROVAL_ACTION_SKIP` | `deny`, the comment as `deny_message` | The tool does not run; the run continues and the agent reads the comment |
+| Reject | `APPROVAL_ACTION_REJECT` | `deny`, the comment as `deny_message` | The same as Skip: one call is denied, the run continues |
+| Approve all | `APPROVAL_ACTION_APPROVE_ALL` | `grantPermission` | The tool runs; every waiting call of the same lease scope is allowed with it, and the rest of the turn does not ask again for that scope |
 
-**On Skip:** The LLM receives a message: `"Tool '{name}' was skipped by user. Please proceed without this operation."` This allows the agent to adapt its plan and continue the run without the skipped tool's result.
-
-**On Reject:** The tool is denied and the user's objection (the optional `comment`) is fed back to the model as the tool result, so it adapts rather than retrying. REJECT denies a SINGLE tool call — it does NOT fail the run, mirroring how interactive agent tools treat a denied tool. To stop the entire run, use `cancel` (graceful) or `terminate` (force) — the dedicated hard-stop verbs. The distinction from SKIP is the strength of the signal, not the outcome.
+Skip and Reject are one answer, a deny: the denied call's result tells the agent the person refused it, with their reason when one was given, so it adapts rather than retrying. A deny never fails the run; to stop the turn, interrupt the session (or `cancel` the run, or `terminate` it to force the stop).
 
 **On Approve all ("approve all of this kind"):** The clicked tool is approved, and it grants a lease for the rest of this run scoped to ONE class of call, derived from the clicked call:
 
@@ -179,14 +189,14 @@ Every co-pending call currently in `TOOL_CALL_WAITING_APPROVAL` with the same sc
 
 ## Audit Trail
 
-Every approval decision is recorded in the `ToolCall` fields:
+Every answer is a `user.tool_confirmation` in the session's log (and a `stigmer.permission.grant` for an approve-all), with its time, its thread and, for a deny, its reason. The decision is also stamped on the `ToolCall` fields:
 
 | Field | Description |
 |---|---|
 | `approval_requested_at` | When approval was requested |
 | `approval_decided_at` | When the decision was submitted |
 | `approved_by` | User ID who made the decision (from authentication context) |
-| `approval_action` | The action taken (APPROVE, SKIP, REJECT, APPROVE_ALL) |
+| `approval_action` | The action taken: APPROVE for an allow, REJECT for a deny, APPROVE_ALL on the call a grant was given on |
 | `approval_policy_source` | What decided or resolved the call's approval — see [Why a Tool Is Gated](#why-a-tool-is-gated-authorization-provenance) |
 | `policy_engine_version` | Version of the policy-evaluation logic that produced the decision |
 
@@ -274,7 +284,7 @@ The server records `status.approval_mode = APPROVAL_MODE_UNATTENDED` on these tu
 
 - **What is gated is unchanged.** The same default decides which tools ask; only the *resolution* differs.
 - A gated tool is resolved as an **automatic SKIP**: the tool does not run, the model is told the action requires an approval that is not available in this conversation, and the turn continues to normal completion. The user gets a plain-language explanation — never tool or approval vocabulary.
-- The skipped call is stamped `TOOL_CALL_SKIPPED` with `approval_policy_source = APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP`. `approval_action` and `approved_by` stay unset — those record **human** decisions only. No approval-request event is authored, so `pending_approvals` stays empty by construction.
+- The skipped call is stamped `TOOL_CALL_SKIPPED` with `approval_policy_source = APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP`. `approval_action` and `approved_by` stay unset — those record **human** decisions only. The call does not ask, so `pending_approvals` stays empty and the session never waits on it.
 
 The principle behind the design is that there are **two different consents**:
 

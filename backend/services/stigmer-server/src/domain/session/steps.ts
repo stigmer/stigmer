@@ -208,9 +208,10 @@ export function newValidateExecutionTargetImmutabilityStep(
 // A session can span multiple harness-side conversations: when the
 // cursor-runner's resume fails, it creates a fresh Cursor agent and
 // replaces harness_state_id via a normal session update. The replaced id
-// must not be destroyed — billing reconciliation joins Cursor ledger
-// events on the union of current + prior ids, and every turn that ran
-// under a replaced id would otherwise become an orphaned ledger event.
+// must not be destroyed — Cursor's own usage events name the conversation
+// id they ran under, so joining them back to the session reads the union
+// of current + prior ids, and every turn that ran under a replaced id
+// would otherwise become an orphaned event.
 //
 // The history is computed here, from the observed harness_state_id
 // transition, and never taken from client input: BuildUpdateState performs

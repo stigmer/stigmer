@@ -7,7 +7,8 @@ package ai.stigmer.billing.v1;
 
 /**
  * <pre>
- * GetBillingUsageReportInput requests an aggregated billing usage report.
+ * GetBillingUsageReportInput requests the counts of an organization's
+ * metered calls and runs in a period.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.GetBillingUsageReportInput}
@@ -359,7 +360,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetBillingUsageReportInput requests an aggregated billing usage report.
+   * GetBillingUsageReportInput requests the counts of an organization's
+   * metered calls and runs in a period.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.GetBillingUsageReportInput}

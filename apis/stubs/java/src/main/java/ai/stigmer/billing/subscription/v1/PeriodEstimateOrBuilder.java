@@ -86,28 +86,6 @@ public interface PeriodEstimateOrBuilder extends
 
   /**
    * <pre>
-   * What the period's usage has cost in provider charges so far, across
-   * the organization and the child organizations it pays for.
-   * </pre>
-   *
-   * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
-   * @return The providerCostMicros.
-   */
-  long getProviderCostMicros();
-
-  /**
-   * <pre>
-   * The commission the wallet has already collected on that usage. It
-   * counts toward the plan's cost instead of adding to it.
-   * </pre>
-   *
-   * <code>int64 commission_collected_micros = 5 [json_name = "commissionCollectedMicros"];</code>
-   * @return The commissionCollectedMicros.
-   */
-  long getCommissionCollectedMicros();
-
-  /**
-   * <pre>
    * The child organizations counted against the plan this period.
    * </pre>
    *

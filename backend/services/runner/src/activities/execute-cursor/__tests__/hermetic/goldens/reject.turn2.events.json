@@ -1,0 +1,61 @@
+[
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_use": {
+      "id": "aex_hermetic_0001.call-clean",
+      "input": {
+        "command": "rm -rf build/",
+        "cwd": "/x",
+        "timeout": 30000
+      },
+      "name": "shell",
+      "evaluated_permission": "ask"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "stigmer_permission_asked": {
+      "id": "aex_hermetic_0001.call-clean.ask",
+      "tool_use_id": "aex_hermetic_0001.call-clean",
+      "message": "Run command: rm -rf build/",
+      "args_preview": "{\"command\":\"rm -rf build/\",\"cwd\":\"/x\",\"timeout\":30000}",
+      "policy_source": "builtin_category"
+    }
+  },
+  {
+    "session_id": "ses_hermetic_0001",
+    "run_id": "aex_hermetic_0001",
+    "user_tool_confirmation": {
+      "id": "sevt_tc_a8a4da1d4b4f5ca217a62705bebada6df052c87d",
+      "result": "deny",
+      "tool_use_id": "aex_hermetic_0001.call-clean",
+      "deny_message": "use make clean instead"
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-clean.r",
+      "tool_use_id": "aex_hermetic_0001.call-clean",
+      "content": [
+        {
+          "type": "text",
+          "text": "Rejected by user"
+        }
+      ],
+      "is_error": true
+    }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_message": {
+      "id": "aex_hermetic_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Understood: I will use make clean instead."
+        }
+      ]
+    }
+  }
+]

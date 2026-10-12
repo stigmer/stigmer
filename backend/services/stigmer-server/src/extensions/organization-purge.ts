@@ -125,7 +125,7 @@ export interface OrganizationPurgeStage {
 
 /** Rows a purge keeps on purpose. Exactly one of `table` and `kind`. */
 export interface RetainedRows {
-  /** A table the unit keeps, schema-qualified where it has a schema ("cloud.credit_ledger_entry"). */
+  /** A table the unit keeps, schema-qualified where it has a schema ("cloud.billing_period_statement"). */
   readonly table?: string;
   /** A resource kind the unit keeps. */
   readonly kind?: ApiResourceKind;

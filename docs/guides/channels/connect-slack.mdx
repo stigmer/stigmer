@@ -7,9 +7,9 @@ description:
 
 Connecting a channel puts your Agent inside Slack. Workspace members send it a
 direct message or @mention it in a channel, and it answers right there — with
-your Organization's policies, rate limits, and billing enforced by Stigmer. This
-guide shows you how to connect a workspace, give the Agent its tool credentials,
-and manage the connection afterward.
+your Organization's policies and rate limits enforced by Stigmer. This guide
+shows you how to connect a workspace, give the Agent its tool credentials, and
+manage the connection afterward.
 
 <Callout type="info">
   Connecting to Slack requires Stigmer Cloud. On a local backend you can manage
@@ -28,7 +28,8 @@ You need three things:
   Agents can all serve a channel.
 - Permission to install apps in the Slack workspace. If your workspace restricts
   app installs, a Slack admin has to approve the install.
-- Credits in your Organization — conversations from Slack are billed to it.
+- A [model provider key](/docs/guides/integrations/model-provider-keys) in your
+  Organization for the Agent's model — conversations from Slack run on it.
 
 ## Connect the workspace
 
@@ -133,11 +134,13 @@ serves a workspace through one of your Organization's channels.
 
 ## Who pays for Slack conversations
 
-Conversations from Slack use your Organization's credits — for every workspace
-member who chats with the bot. Stigmer protects your balance automatically:
-messages are rate limited per user and across the workspace, and if your
-Organization runs out of credits, the bot answers with a short unavailable
-message instead of overdrawing your balance.
+Conversations from Slack run on your Organization's own provider keys, for every
+workspace member who chats with the bot, and your model provider bills them to
+you. Stigmer protects your spend automatically: messages are rate limited per
+user and across the workspace, and the Agent's
+[cost cap](/docs/concepts/billing#set-a-cost-cap), if you set one, stops any one
+message at it. If your Organization has no key for the Agent's model, the bot
+answers that it isn't set up to answer yet, and nothing runs.
 
 ## Review conversations from the console
 

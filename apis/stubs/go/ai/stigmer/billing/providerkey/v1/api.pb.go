@@ -60,10 +60,6 @@ type ProviderKey struct {
 	// When the proxy last served a call on the key; unset when it never has.
 	// Updated at most once a minute.
 	LastUsedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
-	// No longer used: always true. Every plan serves calls on the
-	// organization's own key, and list never returns a parent's key the
-	// organization's own key shadows. Kept because it is a wire field.
-	InUse bool `protobuf:"varint,8,opt,name=in_use,json=inUse,proto3" json:"in_use,omitempty"`
 	// Set when the row is the parent organization's key, serving this child
 	// organization because it holds none of its own for the provider. Such a
 	// row is read-only here; it is managed on the parent.
@@ -156,13 +152,6 @@ func (x *ProviderKey) GetLastUsedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *ProviderKey) GetInUse() bool {
-	if x != nil {
-		return x.InUse
-	}
-	return false
-}
-
 func (x *ProviderKey) GetInheritedFromOrg() string {
 	if x != nil {
 		return x.InheritedFromOrg
@@ -181,7 +170,7 @@ var File_ai_stigmer_billing_providerkey_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/billing/providerkey/v1/api.proto\x12!ai.stigmer.billing.providerkey.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x89\x03\n" +
+	"+ai/stigmer/billing/providerkey/v1/api.proto\x12!ai.stigmer.billing.providerkey.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x80\x03\n" +
 	"\vProviderKey\x12\x10\n" +
 	"\x03org\x18\x01 \x01(\tR\x03org\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x19\n" +
@@ -193,11 +182,10 @@ const file_ai_stigmer_billing_providerkey_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12<\n" +
 	"\flast_used_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"lastUsedAt\x12\x15\n" +
-	"\x06in_use\x18\b \x01(\bR\x05inUse\x12,\n" +
+	"lastUsedAt\x12,\n" +
 	"\x12inherited_from_org\x18\t \x01(\tR\x10inheritedFromOrg\x12\x19\n" +
 	"\bbase_url\x18\n" +
-	" \x01(\tR\abaseUrlB\xb4\x02\n" +
+	" \x01(\tR\abaseUrlJ\x04\b\b\x10\tR\x06in_useB\xb4\x02\n" +
 	"%com.ai.stigmer.billing.providerkey.v1B\bApiProtoP\x01ZXgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/providerkey/v1;providerkeyv1\xa2\x02\x04ASBP\xaa\x02!Ai.Stigmer.Billing.Providerkey.V1\xca\x02!Ai\\Stigmer\\Billing\\Providerkey\\V1\xe2\x02-Ai\\Stigmer\\Billing\\Providerkey\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Billing::Providerkey::V1b\x06proto3"
 
 var (

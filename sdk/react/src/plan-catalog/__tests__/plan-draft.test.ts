@@ -1,12 +1,12 @@
-// The plan form's draft: dollars become exact micros and a percent basis
-// points, the first wrong field is named, child organizations are asked
+// The plan form's draft: dollars become exact micros, the first wrong
+// field is named, child organizations are asked
 // only of a plan that admits them, and features are deduplicated in
 // contract order.
 
 import { describe, expect, it } from "vitest";
 import { PlanInstrument } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
 import { Feature } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
-import { EMPTY_PLAN_DRAFT, parseBasisPoints, parseUsd, planInputFromDraft } from "../plan-draft";
+import { EMPTY_PLAN_DRAFT, parseUsd, planInputFromDraft } from "../plan-draft";
 
 describe("parsing", () => {
   it("reads dollars exactly, to the cent", () => {
@@ -16,19 +16,12 @@ describe("parsing", () => {
     expect(parseUsd("9.999")).toBeNull();
     expect(parseUsd("-1")).toBeNull();
   });
-
-  it("reads percents as basis points, up to 100%", () => {
-    expect(parseBasisPoints("10")).toBe(1_000);
-    expect(parseBasisPoints("12.5")).toBe(1_250);
-    expect(parseBasisPoints("100")).toBe(10_000);
-    expect(parseBasisPoints("101")).toBeNull();
-  });
 });
 
 describe("planInputFromDraft", () => {
   const draft = { ...EMPTY_PLAN_DRAFT, name: "Team 2027", slug: "team-2027", monthlyMinimumUsd: "129" };
 
-  it("builds a subscription plan", () => {
+  it("builds a subscription plan whose terms are its monthly fee", () => {
     const result = planInputFromDraft({ ...draft, features: [Feature.teams, Feature.channels, Feature.teams] });
     expect(result).toEqual({
       ok: true,
@@ -38,7 +31,7 @@ describe("planInputFromDraft", () => {
         org: "",
         instrument: PlanInstrument.subscription,
         entitlements: { features: [Feature.channels, Feature.teams] },
-        terms: { monthlyMinimumMicros: 129_000_000n, usageShareBasisPoints: 1_000 },
+        terms: { monthlyMinimumMicros: 129_000_000n },
       },
     });
   });

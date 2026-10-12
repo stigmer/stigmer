@@ -166,18 +166,6 @@ public interface ProviderKeyOrBuilder extends
 
   /**
    * <pre>
-   * No longer used: always true. Every plan serves calls on the
-   * organization's own key, and list never returns a parent's key the
-   * organization's own key shadows. Kept because it is a wire field.
-   * </pre>
-   *
-   * <code>bool in_use = 8 [json_name = "inUse"];</code>
-   * @return The inUse.
-   */
-  boolean getInUse();
-
-  /**
-   * <pre>
    * Set when the row is the parent organization's key, serving this child
    * organization because it holds none of its own for the provider. Such a
    * row is read-only here; it is managed on the parent.

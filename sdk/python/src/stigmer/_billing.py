@@ -2,90 +2,27 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 
 import grpc
 
 from ai.stigmer.billing.v1 import billing_account_pb2
 from ai.stigmer.billing.v1 import command_pb2_grpc
-from ai.stigmer.billing.v1 import credit_pb2
 from ai.stigmer.billing.v1 import io_pb2 as billing_io_pb2
 from ai.stigmer.billing.v1 import model_pricing_baseline_pb2
 from ai.stigmer.billing.v1 import query_pb2_grpc
-from ai.stigmer.commons.rpc import pagination_pb2
 
 from ._gen._errors import wrap_error
-from ._gen._types import Page
-
-
-@dataclass
-class AdjustCreditsParams:
-    """Parameters for a manual credit adjustment."""
-
-    org: str
-    amount_micros: int
-    """Positive to add credits, negative to remove."""
-    reason: str
-    """Human-readable reason recorded on the ledger entry (audit trail)."""
-    idempotency_key: str
-    """Client-supplied deduplication key to prevent double-processing."""
-
-
-@dataclass
-class GrantCreditsParams:
-    """Parameters for a promotional credit grant."""
-
-    org: str
-    amount_micros: int
-    """Amount to grant. Must be positive; grants never remove credits."""
-    reason: str
-    """Human-readable reason recorded on the ledger entry (audit trail)."""
-    idempotency_key: str
-    """Client-supplied deduplication key to prevent double-processing."""
-    expires_at: datetime | None = None
-    """When the grant expires (use-it-or-lose-it). ``None`` means the grant
-    never expires. Precision is whole seconds; sub-second precision is
-    discarded."""
-
-
-@dataclass
-class GetCreditLedgerParams:
-    """Parameters for querying the credit ledger."""
-
-    org: str
-    page: Page | None = None
-    type_filter: list[int] = field(default_factory=list)
-    """Filter to specific ``LedgerEntryType`` values. Empty means all types."""
-    start_time: datetime | None = None
-    """Filter to entries on or after this timestamp."""
-    end_time: datetime | None = None
-    """Filter to entries on or before this timestamp."""
-    view: int = 0
-    """Server-resolved ledger slice (``LedgerView``). ``ledger_view_statement``
-    returns only customer-facing money-movement entries and excludes internal
-    mechanics (per-call usage debits, reservation holds/releases). When both
-    ``view`` and ``type_filter`` are set, the effective filter is their
-    intersection."""
 
 
 @dataclass
 class GetBillingUsageReportParams:
-    """Parameters for querying the billing usage report."""
+    """Parameters for querying the usage report."""
 
     org: str
     start_time: datetime
     end_time: datetime
-
-
-@dataclass
-class CreateCheckoutSessionParams:
-    """Parameters for creating a Stripe Checkout Session."""
-
-    org: str
-    pack_id: str
-    success_url: str
-    cancel_url: str
 
 
 @dataclass
@@ -103,17 +40,6 @@ class CreatePaymentMethodSetupSessionParams:
     org: str
     success_url: str
     cancel_url: str
-
-
-@dataclass
-class SetAutoRechargeConfigParams:
-    """Parameters for configuring auto-recharge."""
-
-    org: str
-    enabled: bool
-    threshold_micros: int
-    recharge_amount_micros: int
-    monthly_cap_micros: int
 
 
 @dataclass
@@ -142,21 +68,21 @@ class RetireModelPricingBaselineParams:
 class BillingClient:
     """Billing bounded-context client.
 
-    Wraps the user-facing billing RPCs: account provisioning, balance
-    queries, ledger history, credit purchases via Stripe Checkout, and the
-    operator model-pricing surfaces.  Responses are returned as proto
-    messages — the proto types are the contract.
+    Wraps the user-facing billing RPCs: the organization's billing account
+    (its Stripe customer), the Stripe portal and card setup sessions, the
+    usage meter's call and run counts, and the operator model-pricing
+    surfaces.  Responses are returned as proto messages — the proto types
+    are the contract.
 
-    Internal run-billing RPCs (``authorizeRun``,
-    ``recordLlmCallUsage``, ``finalizeRun``) are not exposed — they
-    are called only by the Temporal workflow and the LLM proxy.
+    The proxy's metering write (``recordLlmCallUsage``) is not exposed;
+    only the server calls it.
     """
 
     def __init__(self, channel: grpc.Channel) -> None:
         self._command = command_pb2_grpc.BillingCommandControllerStub(channel)
         self._query = query_pb2_grpc.BillingQueryControllerStub(channel)
 
-    # ── Account & balance ────────────────────────────────────────────────
+    # ── Account & usage ──────────────────────────────────────────────────
 
     def get_or_create_billing_account(
         self, org: str
@@ -180,91 +106,13 @@ class BillingClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def get_credit_balance(self, org: str) -> billing_account_pb2.CreditBalance:
-        """Retrieve the credit balance breakdown for an organization."""
-        req = billing_io_pb2.GetCreditBalanceInput(org=org)
-        try:
-            return self._query.getCreditBalance(req)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def adjust_credits(
-        self, params: AdjustCreditsParams
-    ) -> credit_pb2.CreditLedgerEntry:
-        """Manually adjust an organization's credit balance.
-
-        Positive ``amount_micros`` adds credits, negative removes them.  The
-        adjustment is recorded as a ledger entry with the supplied reason; the
-        idempotency key deduplicates retries.  Requires ``can_manage_credits``
-        on the platform: a platform operator, or an identity Stigmer has made
-        a credit issuer.  Owning the organization is not enough.
-        """
-        req = billing_io_pb2.AdjustCreditsInput(
-            org=params.org,
-            amount_micros=params.amount_micros,
-            reason=params.reason,
-            idempotency_key=params.idempotency_key,
-        )
-        try:
-            return self._command.adjustCredits(req)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def grant_credits(
-        self, params: GrantCreditsParams
-    ) -> credit_pb2.CreditLedgerEntry:
-        """Grant promotional credits to an organization, optionally expiring.
-
-        The grant burns before adjustment and purchased credits
-        (use-it-or-lose-it).  When ``expires_at`` is set, any remainder
-        unconsumed at that time is removed from the balance by the platform's
-        grant-expiry sweep.  Idempotent: replaying an applied idempotency key
-        returns the original ledger entry, even after the expiry has passed.
-        Requires ``can_manage_credits`` on the platform, as
-        ``adjust_credits`` does.
-        """
-        req = billing_io_pb2.GrantCreditsInput(
-            org=params.org,
-            amount_micros=params.amount_micros,
-            reason=params.reason,
-            idempotency_key=params.idempotency_key,
-        )
-        if params.expires_at is not None:
-            req.expires_at.FromDatetime(params.expires_at)
-        try:
-            return self._command.grantCredits(req)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def get_credit_ledger(
-        self, params: GetCreditLedgerParams
-    ) -> billing_io_pb2.CreditLedgerResponse:
-        """Retrieve paginated credit ledger entries with optional filters."""
-        req = billing_io_pb2.GetCreditLedgerInput(
-            org=params.org,
-            type_filter=params.type_filter,
-            view=params.view,
-        )
-        if params.page is not None:
-            req.page.CopyFrom(
-                pagination_pb2.PageInfo(num=params.page.num, size=params.page.size)
-            )
-        if params.start_time is not None:
-            req.start_time.FromDatetime(params.start_time)
-        if params.end_time is not None:
-            req.end_time.FromDatetime(params.end_time)
-        try:
-            return self._query.getCreditLedger(req)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def get_billing_usage_report(
         self, params: GetBillingUsageReportParams
     ) -> billing_io_pb2.BillingUsageReportResponse:
-        """Retrieve an aggregated billing usage report for a date range.
+        """Retrieve an aggregated usage report for a date range.
 
-        Returns total provider cost, total billable amount, run and
-        LLM call counts, and a per-model breakdown with cost tier attribution.
+        Returns the run and LLM call counts, and a per-model breakdown of
+        call counts by model and harness.
         """
         req = billing_io_pb2.GetBillingUsageReportInput(org=params.org)
         req.start_time.FromDatetime(params.start_time)
@@ -275,26 +123,6 @@ class BillingClient:
             raise wrap_error(e) from e
 
     # ── Stripe ───────────────────────────────────────────────────────────
-
-    def create_credit_checkout_session(
-        self, params: CreateCheckoutSessionParams
-    ) -> billing_io_pb2.CreateCreditCheckoutSessionResponse:
-        """Create a Stripe Checkout Session to purchase a credit pack.
-
-        Returns the Stripe-hosted checkout URL.  The caller should redirect
-        the user to ``checkout_url`` to complete payment; credits are
-        provisioned asynchronously via webhook after payment succeeds.
-        """
-        req = billing_io_pb2.CreateCreditCheckoutSessionInput(
-            org=params.org,
-            pack_id=params.pack_id,
-            success_url=params.success_url,
-            cancel_url=params.cancel_url,
-        )
-        try:
-            return self._command.createCreditCheckoutSession(req)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
 
     def create_billing_portal_session(
         self, params: CreateBillingPortalSessionParams
@@ -319,8 +147,8 @@ class BillingClient:
         """Create a Stripe Checkout Session that saves a payment method.
 
         Returns the Stripe-hosted setup URL.  The caller should redirect the
-        user to ``setup_url``.  This is how an organization that has never
-        bought credit puts a card on file; nothing is charged.
+        user to ``setup_url``.  This is how an organization puts a card on
+        file for its plan's invoices; nothing is charged.
         """
         req = billing_io_pb2.CreatePaymentMethodSetupSessionInput(
             org=params.org,
@@ -332,43 +160,7 @@ class BillingClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def set_auto_recharge_config(
-        self, params: SetAutoRechargeConfigParams
-    ) -> billing_account_pb2.BillingAccount:
-        """Configure automatic credit recharge for an organization.
-
-        When enabled, the billing system charges the account's saved payment
-        method whenever the available balance drops below the configured
-        threshold.  Returns the updated ``BillingAccount``.
-        """
-        req = billing_io_pb2.SetAutoRechargeConfigInput(
-            org=params.org,
-            enabled=params.enabled,
-            threshold_micros=params.threshold_micros,
-            recharge_amount_micros=params.recharge_amount_micros,
-            monthly_cap_micros=params.monthly_cap_micros,
-        )
-        try:
-            return self._command.setAutoRechargeConfig(req)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     # ── Pricing ──────────────────────────────────────────────────────────
-
-    def get_customer_model_pricing(
-        self, org: str = ""
-    ) -> billing_io_pb2.CustomerModelPricingResponse:
-        """Retrieve the customer-facing model price list with markup applied.
-
-        These are the prices the customer pays, organized by harness and
-        cost tier.  Pass ``org`` to resolve org-specific policy overrides;
-        omit for default pricing.
-        """
-        req = billing_io_pb2.GetCustomerModelPricingInput(org=org)
-        try:
-            return self._query.getCustomerModelPricing(req)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
 
     def list_model_pricing_baselines(
         self, include_history: bool = False
@@ -379,7 +171,7 @@ class BillingClient:
         with ``include_history=True``.
 
         Platform-operator surface (``can_manage_model_pricing`` on
-        ``platform:stigmer``): rates are raw provider prices, pre-markup.
+        ``platform:stigmer``): rates are the providers' list prices.
         """
         req = billing_io_pb2.ListModelPricingBaselinesInput(
             include_history=include_history

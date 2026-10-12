@@ -39,7 +39,6 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
     getPluginByReference: vi.fn().mockResolvedValue({}),
     getPluginArtifact: vi.fn().mockResolvedValue({}),
     getPluginArtifactDownloadUrl: vi.fn().mockResolvedValue({}),
-    recordLlmCallUsage: vi.fn().mockResolvedValue({}),
     getAgentByReference: vi.fn().mockResolvedValue({}),
     createSession: vi.fn().mockResolvedValue({}),
     // A session log that takes every append and holds nothing to read back.

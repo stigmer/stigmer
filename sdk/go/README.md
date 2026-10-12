@@ -72,26 +72,33 @@ The client provides sub-clients for each resource type:
 | `client.Vault`          | Vault           | Get, GetByReference, GetMine, GetByExternalId, Create, Update, UpdateVisibility, Delete, List, SetSecrets, RemoveSecrets, SetConnection, RemoveConnections, StartSignIn, CompleteSignIn, CreateConnectLink, GetConnectLink, StartConnectLink, CompleteConnectLink |
 | `client.Run`            | Run             | Get, Create, Subscribe, List, ListBySession, Cancel, Pause, Resume, Terminate, Recover, SubmitApproval, UploadAttachment, GetArtifactDownloadUrl |
 | `client.Search`         | Cross-resource  | Query |
-| `client.Billing`        | Billing         | GetOrCreateBillingAccount, GetBillingAccount, GetCreditBalance, AdjustCredits, GetCreditLedger, GetBillingUsageReport, CreateCreditCheckoutSession, CreateBillingPortalSession, CreatePaymentMethodSetupSession, SetAutoRechargeConfig, GetCustomerModelPricing + operator pricing methods |
+| `client.Billing`        | Billing         | GetOrCreateBillingAccount, GetBillingAccount, GetBillingUsageReport, CreateBillingPortalSession, CreatePaymentMethodSetupSession + operator pricing methods |
 
 ## Billing
 
-Credit balance queries, ledger history, and manual credit adjustments for an
-organization. Queries require `can_view_billing` on the org and the org's own
-billing commands require `can_manage_billing`. Adding or removing credits
-without a purchase (`AdjustCredits`, `GrantCredits`) requires
-`can_manage_credits` on the platform, held by platform operators and by the
-funding identities Stigmer makes credit issuers:
+An organization's billing account (its Stripe customer), the Stripe portal
+and card setup sessions, and the usage meter's run and call counts. Queries
+require `can_view_billing` on the org and the org's own billing commands
+require `can_manage_billing`. The operator pricing methods
+(`ListModelPricingBaselines`, `UpsertModelPricingBaseline`,
+`RetireModelPricingBaseline`) require `can_manage_model_pricing` on the
+platform:
 
 ```go
-balance, err := client.Billing.GetCreditBalance(ctx, org)
+account, err := client.Billing.GetBillingAccount(ctx, org)
 
-entry, err := client.Billing.AdjustCredits(ctx, &stigmer.AdjustCreditsParams{
-    Org:            org,
-    AmountMicros:   25_000_000, // +$25.00
-    Reason:         "support credit for an outage",
-    IdempotencyKey: "support-" + org + "-2026-09",
+setup, err := client.Billing.CreatePaymentMethodSetupSession(ctx, &stigmer.CreatePaymentMethodSetupSessionParams{
+    Org:        org,
+    SuccessURL: "https://example.com/billing?setup=success",
+    CancelURL:  "https://example.com/billing",
 })
+
+report, err := client.Billing.GetBillingUsageReport(ctx, &stigmer.GetBillingUsageReportParams{
+    Org:       org,
+    StartTime: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+    EndTime:   time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC),
+})
+fmt.Println(report.GetRunCount(), report.GetLlmCallCount())
 ```
 
 ## Configuration

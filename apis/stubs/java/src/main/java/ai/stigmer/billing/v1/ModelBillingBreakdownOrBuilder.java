@@ -35,30 +35,6 @@ public interface ModelBillingBreakdownOrBuilder extends
       getHarnessBytes();
 
   /**
-   * <code>string cost_tier = 3 [json_name = "costTier"];</code>
-   * @return The costTier.
-   */
-  java.lang.String getCostTier();
-  /**
-   * <code>string cost_tier = 3 [json_name = "costTier"];</code>
-   * @return The bytes for costTier.
-   */
-  com.google.protobuf.ByteString
-      getCostTierBytes();
-
-  /**
-   * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
-   * @return The providerCostMicros.
-   */
-  long getProviderCostMicros();
-
-  /**
-   * <code>int64 billable_amount_micros = 5 [json_name = "billableAmountMicros"];</code>
-   * @return The billableAmountMicros.
-   */
-  long getBillableAmountMicros();
-
-  /**
    * <code>int32 call_count = 6 [json_name = "callCount"];</code>
    * @return The callCount.
    */

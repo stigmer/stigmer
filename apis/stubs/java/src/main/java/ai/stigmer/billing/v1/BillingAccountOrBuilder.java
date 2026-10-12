@@ -71,60 +71,6 @@ public interface BillingAccountOrBuilder extends
 
   /**
    * <pre>
-   * Real-time credit balance breakdown.
-   * </pre>
-   *
-   * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-   * @return Whether the balance field is set.
-   */
-  boolean hasBalance();
-  /**
-   * <pre>
-   * Real-time credit balance breakdown.
-   * </pre>
-   *
-   * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-   * @return The balance.
-   */
-  ai.stigmer.billing.v1.CreditBalance getBalance();
-  /**
-   * <pre>
-   * Real-time credit balance breakdown.
-   * </pre>
-   *
-   * <code>.ai.stigmer.billing.v1.CreditBalance balance = 4 [json_name = "balance"];</code>
-   */
-  ai.stigmer.billing.v1.CreditBalanceOrBuilder getBalanceOrBuilder();
-
-  /**
-   * <pre>
-   * User-configurable automatic recharge settings.
-   * </pre>
-   *
-   * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-   * @return Whether the autoRecharge field is set.
-   */
-  boolean hasAutoRecharge();
-  /**
-   * <pre>
-   * User-configurable automatic recharge settings.
-   * </pre>
-   *
-   * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-   * @return The autoRecharge.
-   */
-  ai.stigmer.billing.v1.AutoRechargeConfig getAutoRecharge();
-  /**
-   * <pre>
-   * User-configurable automatic recharge settings.
-   * </pre>
-   *
-   * <code>.ai.stigmer.billing.v1.AutoRechargeConfig auto_recharge = 5 [json_name = "autoRecharge"];</code>
-   */
-  ai.stigmer.billing.v1.AutoRechargeConfigOrBuilder getAutoRechargeOrBuilder();
-
-  /**
-   * <pre>
    * Stripe Customer ID. Empty until the org's first Stripe interaction.
    * </pre>
    *
@@ -145,30 +91,9 @@ public interface BillingAccountOrBuilder extends
 
   /**
    * <pre>
-   * Maximum negative balance allowed before hard-stopping runs.
-   * Free orgs: 0. Paid orgs: typically 2_000_000 ($2.00). Enterprise: contract-specific.
-   * </pre>
-   *
-   * <code>int64 allowed_negative_balance_micros = 7 [json_name = "allowedNegativeBalanceMicros"];</code>
-   * @return The allowedNegativeBalanceMicros.
-   */
-  long getAllowedNegativeBalanceMicros();
-
-  /**
-   * <pre>
-   * Balance threshold that triggers low-balance warnings and notifications.
-   * </pre>
-   *
-   * <code>int64 low_balance_threshold_micros = 8 [json_name = "lowBalanceThresholdMicros"];</code>
-   * @return The lowBalanceThresholdMicros.
-   */
-  long getLowBalanceThresholdMicros();
-
-  /**
-   * <pre>
-   * Saved payment method for off-session charges and Portal display.
-   * Populated automatically after the first Stripe Checkout purchase or
-   * when the user adds a payment method via the Stripe Customer Portal.
+   * Saved payment method for the plan's invoices and Portal display.
+   * Populated when a card is saved through the setup session or the
+   * Stripe Customer Portal.
    * </pre>
    *
    * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
@@ -177,9 +102,9 @@ public interface BillingAccountOrBuilder extends
   boolean hasDefaultPaymentMethod();
   /**
    * <pre>
-   * Saved payment method for off-session charges and Portal display.
-   * Populated automatically after the first Stripe Checkout purchase or
-   * when the user adds a payment method via the Stripe Customer Portal.
+   * Saved payment method for the plan's invoices and Portal display.
+   * Populated when a card is saved through the setup session or the
+   * Stripe Customer Portal.
    * </pre>
    *
    * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
@@ -188,9 +113,9 @@ public interface BillingAccountOrBuilder extends
   ai.stigmer.billing.v1.PaymentMethodSummary getDefaultPaymentMethod();
   /**
    * <pre>
-   * Saved payment method for off-session charges and Portal display.
-   * Populated automatically after the first Stripe Checkout purchase or
-   * when the user adds a payment method via the Stripe Customer Portal.
+   * Saved payment method for the plan's invoices and Portal display.
+   * Populated when a card is saved through the setup session or the
+   * Stripe Customer Portal.
    * </pre>
    *
    * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>

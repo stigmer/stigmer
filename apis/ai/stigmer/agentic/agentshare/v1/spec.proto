@@ -203,8 +203,9 @@ message AgentShareMessages {
   // Shown when a visitor or the org exceeds the message rate limit.
   string rate_limited = 1 [(buf.validate.field).string.max_len = 300];
 
-  // Shown when the share cannot serve the conversation — the org's credits
-  // are exhausted or the agent's tools are not ready (fails closed).
+  // Shown when the share cannot serve the conversation — the organization
+  // holds no provider key for the agent's model or the agent's tools are
+  // not ready (fails closed).
   string unavailable = 2 [(buf.validate.field).string.max_len = 300];
 
   // Shown when a conversation hits its turn limit or inactivity timeout.

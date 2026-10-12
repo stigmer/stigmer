@@ -119,14 +119,9 @@ export type { RecentActivityEntry as RecentActivityEntryProto } from "./activity
 // Billing client
 export {
   BillingClient,
-  type AdjustCreditsParams,
-  type CreateCheckoutSessionParams,
   type CreateBillingPortalSessionParams,
   type CreatePaymentMethodSetupSessionParams,
-  type SetAutoRechargeConfigParams,
-  type GetCreditLedgerParams,
   type GetBillingUsageReportParams,
-  type GetCustomerModelPricingParams,
 } from "./billing.js";
 
 // Search client

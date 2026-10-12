@@ -163,6 +163,9 @@ Rows read `| \`Message.field\` | class |`.
 | Field | Class |
 |---|---|
 | `ai.stigmer.agentic.session.v1.AppendSessionEventsInput.run_id` | stamped id |
+| `ai.stigmer.agentic.session.v1.ConfirmToolUseInput.session_id` | stamped id |
+| `ai.stigmer.agentic.session.v1.GrantPermissionInput.session_id` | stamped id |
+| `ai.stigmer.agentic.session.v1.InterruptSessionInput.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ListSessionEventsRequest.run_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ListSessionEventsRequest.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.agent_id` | stamped id |

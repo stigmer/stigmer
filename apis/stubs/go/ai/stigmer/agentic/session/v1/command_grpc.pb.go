@@ -24,6 +24,9 @@ const (
 	SessionCommandController_Update_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionCommandController/update"
 	SessionCommandController_UpdateSubject_FullMethodName     = "/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject"
 	SessionCommandController_ReviewFileChanges_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/reviewFileChanges"
+	SessionCommandController_ConfirmToolUse_FullMethodName    = "/ai.stigmer.agentic.session.v1.SessionCommandController/confirmToolUse"
+	SessionCommandController_GrantPermission_FullMethodName   = "/ai.stigmer.agentic.session.v1.SessionCommandController/grantPermission"
+	SessionCommandController_Interrupt_FullMethodName         = "/ai.stigmer.agentic.session.v1.SessionCommandController/interrupt"
 	SessionCommandController_Delete_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
 	SessionCommandController_AppendEvents_FullMethodName      = "/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents"
 )
@@ -71,6 +74,64 @@ type SessionCommandControllerClient interface {
 	// The same decision sent again records nothing new and starts no second
 	// turn.
 	ReviewFileChanges(ctx context.Context, in *ReviewFileChangesInput, opts ...grpc.CallOption) (*ReviewFileChangesResponse, error)
+	// Allow or deny a tool use that waits for an answer.
+	//
+	// A call that needs a person's answer is an agent.tool_use (or
+	// agent.mcp_tool_use) with evaluated_permission ask, and the session goes
+	// idle with stop_reason requires_action naming it. The answer is appended
+	// as a user.tool_confirmation. A deny may carry a message, which the
+	// agent reads. When every waiting call of the turn is answered, the turn
+	// resumes; until then the session re-states requires_action with the
+	// calls still waiting.
+	//
+	// ## Error Conditions
+	//
+	//   - NOT_FOUND: the tool use is not one of this conversation's calls that
+	//     asked
+	//   - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+	//     was stopped), or it was already answered the other way (an answer is
+	//     final)
+	//
+	// ## Idempotency
+	//
+	// The same answer sent again records nothing new and returns the event
+	// first recorded.
+	ConfirmToolUse(ctx context.Context, in *ConfirmToolUseInput, opts ...grpc.CallOption) (*SessionEvent, error)
+	// Allow a tool use, and every call of its class for the rest of the turn.
+	//
+	// The class is the call's built-in category (write, delete or shell), its
+	// MCP server, or, when a hook asked, that hook on that tool. The grant is
+	// appended as a stigmer.permission.grant after the call's
+	// user.tool_confirmation, and every other call of the class waiting in
+	// the same turn is allowed with it. A call with no class (one the
+	// default never asks about) is allowed alone, with no grant.
+	//
+	// ## Error Conditions
+	//
+	// As confirmToolUse.
+	//
+	// ## Idempotency
+	//
+	// The same grant sent again records nothing new.
+	GrantPermission(ctx context.Context, in *GrantPermissionInput, opts ...grpc.CallOption) (*GrantPermissionResponse, error)
+	// Stop the session's unfinished work.
+	//
+	// Appends a user.interrupt and stops every unfinished turn of the
+	// conversation: queued, working, waiting for an answer or paused. Each
+	// ends cancelled and the session goes idle with end_turn. Files undone
+	// in a turn that waited are put back at once.
+	//
+	// ## Error Conditions
+	//
+	//   - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
+	//     be stopped)
+	//   - FAILED_PRECONDITION: the execution engine is not connected
+	//
+	// ## Idempotency
+	//
+	// An interrupt with nothing unfinished records the event and stops
+	// nothing.
+	Interrupt(ctx context.Context, in *InterruptSessionInput, opts ...grpc.CallOption) (*InterruptSessionResponse, error)
 	// Delete a session.
 	//
 	// Deletion cascades to the session's runs. Billing usage
@@ -148,6 +209,36 @@ func (c *sessionCommandControllerClient) ReviewFileChanges(ctx context.Context, 
 	return out, nil
 }
 
+func (c *sessionCommandControllerClient) ConfirmToolUse(ctx context.Context, in *ConfirmToolUseInput, opts ...grpc.CallOption) (*SessionEvent, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionEvent)
+	err := c.cc.Invoke(ctx, SessionCommandController_ConfirmToolUse_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sessionCommandControllerClient) GrantPermission(ctx context.Context, in *GrantPermissionInput, opts ...grpc.CallOption) (*GrantPermissionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GrantPermissionResponse)
+	err := c.cc.Invoke(ctx, SessionCommandController_GrantPermission_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sessionCommandControllerClient) Interrupt(ctx context.Context, in *InterruptSessionInput, opts ...grpc.CallOption) (*InterruptSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InterruptSessionResponse)
+	err := c.cc.Invoke(ctx, SessionCommandController_Interrupt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *sessionCommandControllerClient) Delete(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Session)
@@ -211,6 +302,64 @@ type SessionCommandControllerServer interface {
 	// The same decision sent again records nothing new and starts no second
 	// turn.
 	ReviewFileChanges(context.Context, *ReviewFileChangesInput) (*ReviewFileChangesResponse, error)
+	// Allow or deny a tool use that waits for an answer.
+	//
+	// A call that needs a person's answer is an agent.tool_use (or
+	// agent.mcp_tool_use) with evaluated_permission ask, and the session goes
+	// idle with stop_reason requires_action naming it. The answer is appended
+	// as a user.tool_confirmation. A deny may carry a message, which the
+	// agent reads. When every waiting call of the turn is answered, the turn
+	// resumes; until then the session re-states requires_action with the
+	// calls still waiting.
+	//
+	// ## Error Conditions
+	//
+	//   - NOT_FOUND: the tool use is not one of this conversation's calls that
+	//     asked
+	//   - FAILED_PRECONDITION: the call no longer waits (its turn moved on or
+	//     was stopped), or it was already answered the other way (an answer is
+	//     final)
+	//
+	// ## Idempotency
+	//
+	// The same answer sent again records nothing new and returns the event
+	// first recorded.
+	ConfirmToolUse(context.Context, *ConfirmToolUseInput) (*SessionEvent, error)
+	// Allow a tool use, and every call of its class for the rest of the turn.
+	//
+	// The class is the call's built-in category (write, delete or shell), its
+	// MCP server, or, when a hook asked, that hook on that tool. The grant is
+	// appended as a stigmer.permission.grant after the call's
+	// user.tool_confirmation, and every other call of the class waiting in
+	// the same turn is allowed with it. A call with no class (one the
+	// default never asks about) is allowed alone, with no grant.
+	//
+	// ## Error Conditions
+	//
+	// As confirmToolUse.
+	//
+	// ## Idempotency
+	//
+	// The same grant sent again records nothing new.
+	GrantPermission(context.Context, *GrantPermissionInput) (*GrantPermissionResponse, error)
+	// Stop the session's unfinished work.
+	//
+	// Appends a user.interrupt and stops every unfinished turn of the
+	// conversation: queued, working, waiting for an answer or paused. Each
+	// ends cancelled and the session goes idle with end_turn. Files undone
+	// in a turn that waited are put back at once.
+	//
+	// ## Error Conditions
+	//
+	//   - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
+	//     be stopped)
+	//   - FAILED_PRECONDITION: the execution engine is not connected
+	//
+	// ## Idempotency
+	//
+	// An interrupt with nothing unfinished records the event and stops
+	// nothing.
+	Interrupt(context.Context, *InterruptSessionInput) (*InterruptSessionResponse, error)
 	// Delete a session.
 	//
 	// Deletion cascades to the session's runs. Billing usage
@@ -251,6 +400,15 @@ func (UnimplementedSessionCommandControllerServer) UpdateSubject(context.Context
 }
 func (UnimplementedSessionCommandControllerServer) ReviewFileChanges(context.Context, *ReviewFileChangesInput) (*ReviewFileChangesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReviewFileChanges not implemented")
+}
+func (UnimplementedSessionCommandControllerServer) ConfirmToolUse(context.Context, *ConfirmToolUseInput) (*SessionEvent, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConfirmToolUse not implemented")
+}
+func (UnimplementedSessionCommandControllerServer) GrantPermission(context.Context, *GrantPermissionInput) (*GrantPermissionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GrantPermission not implemented")
+}
+func (UnimplementedSessionCommandControllerServer) Interrupt(context.Context, *InterruptSessionInput) (*InterruptSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Interrupt not implemented")
 }
 func (UnimplementedSessionCommandControllerServer) Delete(context.Context, *SessionId) (*Session, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -368,6 +526,60 @@ func _SessionCommandController_ReviewFileChanges_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionCommandController_ConfirmToolUse_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfirmToolUseInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionCommandControllerServer).ConfirmToolUse(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionCommandController_ConfirmToolUse_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionCommandControllerServer).ConfirmToolUse(ctx, req.(*ConfirmToolUseInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SessionCommandController_GrantPermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GrantPermissionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionCommandControllerServer).GrantPermission(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionCommandController_GrantPermission_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionCommandControllerServer).GrantPermission(ctx, req.(*GrantPermissionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SessionCommandController_Interrupt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InterruptSessionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionCommandControllerServer).Interrupt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionCommandController_Interrupt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionCommandControllerServer).Interrupt(ctx, req.(*InterruptSessionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SessionCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SessionId)
 	if err := dec(in); err != nil {
@@ -430,6 +642,18 @@ var SessionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "reviewFileChanges",
 			Handler:    _SessionCommandController_ReviewFileChanges_Handler,
+		},
+		{
+			MethodName: "confirmToolUse",
+			Handler:    _SessionCommandController_ConfirmToolUse_Handler,
+		},
+		{
+			MethodName: "grantPermission",
+			Handler:    _SessionCommandController_GrantPermission_Handler,
+		},
+		{
+			MethodName: "interrupt",
+			Handler:    _SessionCommandController_Interrupt_Handler,
 		},
 		{
 			MethodName: "delete",

@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/plan/v1/spec.proto.
  */
 export const file_ai_stigmer_billing_plan_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2JpbGxpbmcvcGxhbi92MS9zcGVjLnByb3RvEhphaS5zdGlnbWVyLmJpbGxpbmcucGxhbi52MSKDBQoIUGxhblNwZWMSTQoKaW5zdHJ1bWVudBgBIAEoDjIqLmFpLnN0aWdtZXIuYmlsbGluZy5wbGFuLnYxLlBsYW5JbnN0cnVtZW50Qg26SArIAQGCAQQQASAAEkIKDGVudGl0bGVtZW50cxgCIAEoCzIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRW50aXRsZW1lbnRzQga6SAPIAQESNAoFdGVybXMYAyABKAsyJS5haS5zdGlnbWVyLmJpbGxpbmcucGxhbi52MS5QbGFuVGVybXMSHQoLZGVzY3JpcHRpb24YBCABKAlCCLpIBXIDGIAIOo4DukiKAxrmAQomcGxhbl9zcGVjLmxpY2Vuc2VfaGFzX25vX21vbnRobHlfdGVybXMSTGEgbGljZW5zZSBwbGFuIGNhcnJpZXMgbm8gbW9udGhseV9taW5pbXVtX21pY3JvcyBvciB1c2FnZV9zaGFyZV9iYXNpc19wb2ludHMabnRoaXMuaW5zdHJ1bWVudCAhPSAyIHx8ICghaGFzKHRoaXMudGVybXMubW9udGhseV9taW5pbXVtX21pY3JvcykgJiYgIWhhcyh0aGlzLnRlcm1zLnVzYWdlX3NoYXJlX2Jhc2lzX3BvaW50cykpGp4BCipwbGFuX3NwZWMuc3Vic2NyaXB0aW9uX2hhc19ub19hbm51YWxfcHJpY2USMmEgc3Vic2NyaXB0aW9uIHBsYW4gY2FycmllcyBubyBhbm51YWxfcHJpY2VfbWljcm9zGjx0aGlzLmluc3RydW1lbnQgIT0gMSB8fCAhaGFzKHRoaXMudGVybXMuYW5udWFsX3ByaWNlX21pY3JvcykirAIKCVBsYW5UZXJtcxIsChZtb250aGx5X21pbmltdW1fbWljcm9zGAEgASgDQge6SAQiAigASACIAQESMQoYdXNhZ2Vfc2hhcmVfYmFzaXNfcG9pbnRzGAIgASgFQgq6SAcaBRiQTigASAGIAQESKgoUcGVyX2V4dHJhX29yZ19taWNyb3MYAyABKANCB7pIBCICKABIAogBARIpChNhbm51YWxfcHJpY2VfbWljcm9zGAQgASgDQge6SAQiAigASAOIAQFCGQoXX21vbnRobHlfbWluaW11bV9taWNyb3NCGwoZX3VzYWdlX3NoYXJlX2Jhc2lzX3BvaW50c0IXChVfcGVyX2V4dHJhX29yZ19taWNyb3NCFgoUX2FubnVhbF9wcmljZV9taWNyb3MqUAoOUGxhbkluc3RydW1lbnQSHwobcGxhbl9pbnN0cnVtZW50X3Vuc3BlY2lmaWVkEAASEAoMc3Vic2NyaXB0aW9uEAESCwoHbGljZW5zZRACYgZwcm90bzM", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate]);
+  fileDesc("CiVhaS9zdGlnbWVyL2JpbGxpbmcvcGxhbi92MS9zcGVjLnByb3RvEhphaS5zdGlnbWVyLmJpbGxpbmcucGxhbi52MSLJBAoIUGxhblNwZWMSTQoKaW5zdHJ1bWVudBgBIAEoDjIqLmFpLnN0aWdtZXIuYmlsbGluZy5wbGFuLnYxLlBsYW5JbnN0cnVtZW50Qg26SArIAQGCAQQQASAAEkIKDGVudGl0bGVtZW50cxgCIAEoCzIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuRW50aXRsZW1lbnRzQga6SAPIAQESNAoFdGVybXMYAyABKAsyJS5haS5zdGlnbWVyLmJpbGxpbmcucGxhbi52MS5QbGFuVGVybXMSHQoLZGVzY3JpcHRpb24YBCABKAlCCLpIBXIDGIAIOtQCukjQAhqsAQomcGxhbl9zcGVjLmxpY2Vuc2VfaGFzX25vX21vbnRobHlfdGVybXMSQWEgbGljZW5zZSBwbGFuIGNhcnJpZXMgbm8gbW9udGhseV9taW5pbXVtX21pY3JvcywgdGhlIG1vbnRobHkgZmVlGj90aGlzLmluc3RydW1lbnQgIT0gMiB8fCAhaGFzKHRoaXMudGVybXMubW9udGhseV9taW5pbXVtX21pY3JvcykangEKKnBsYW5fc3BlYy5zdWJzY3JpcHRpb25faGFzX25vX2FubnVhbF9wcmljZRIyYSBzdWJzY3JpcHRpb24gcGxhbiBjYXJyaWVzIG5vIGFubnVhbF9wcmljZV9taWNyb3MaPHRoaXMuaW5zdHJ1bWVudCAhPSAxIHx8ICFoYXModGhpcy50ZXJtcy5hbm51YWxfcHJpY2VfbWljcm9zKSL8AQoJUGxhblRlcm1zEiwKFm1vbnRobHlfbWluaW11bV9taWNyb3MYASABKANCB7pIBCICKABIAIgBARIqChRwZXJfZXh0cmFfb3JnX21pY3JvcxgDIAEoA0IHukgEIgIoAEgBiAEBEikKE2FubnVhbF9wcmljZV9taWNyb3MYBCABKANCB7pIBCICKABIAogBAUIZChdfbW9udGhseV9taW5pbXVtX21pY3Jvc0IXChVfcGVyX2V4dHJhX29yZ19taWNyb3NCFgoUX2FubnVhbF9wcmljZV9taWNyb3NKBAgCEANSGHVzYWdlX3NoYXJlX2Jhc2lzX3BvaW50cypQCg5QbGFuSW5zdHJ1bWVudBIfChtwbGFuX2luc3RydW1lbnRfdW5zcGVjaWZpZWQQABIQCgxzdWJzY3JpcHRpb24QARILCgdsaWNlbnNlEAJiBnByb3RvMw", [file_ai_stigmer_platform_v1_entitlement, file_buf_validate_validate]);
 
 /**
  * PlanSpec defines what a plan grants and what buys it.
@@ -48,8 +48,8 @@ export type PlanSpec = Message<"ai.stigmer.billing.plan.v1.PlanSpec"> & {
 
   /**
    * The commercial terms. Which fields are set depends on the instrument:
-   * a subscription plan carries the greater-of terms, a license plan its
-   * annual price.
+   * a subscription plan carries its monthly fee, a license plan its annual
+   * price.
    *
    * @generated from field: ai.stigmer.billing.plan.v1.PlanTerms terms = 3;
    */
@@ -73,31 +73,23 @@ export const PlanSpecSchema: GenMessage<PlanSpec> = /*@__PURE__*/
 /**
  * The commercial terms of a plan.
  *
- * Amounts are micro-USD (one millionth of a dollar), the unit the billing
- * ledger already uses; shares are basis points (one hundredth of a percent).
- * Every field has explicit presence: absent means the term does not apply to
- * this plan, which is how a subscription plan and a license plan share one
- * message. A monthly plan costs the greater of monthly_minimum_micros and
- * usage_share_basis_points of the month's usage.
+ * Amounts are micro-USD (one millionth of a dollar). Every field has
+ * explicit presence: absent means the term does not apply to this plan,
+ * which is how a subscription plan and a license plan share one message. A
+ * monthly plan costs its monthly fee, monthly_minimum_micros, plus
+ * per_extra_org_micros for each child organization beyond the ones it
+ * includes. Usage is never part of a plan's price.
  *
  * @generated from message ai.stigmer.billing.plan.v1.PlanTerms
  */
 export type PlanTerms = Message<"ai.stigmer.billing.plan.v1.PlanTerms"> & {
   /**
-   * The least a subscription plan bills per month, in micro-USD. Absent on a
-   * license plan.
+   * The plan's monthly fee: what a subscription plan bills per month, in
+   * micro-USD. Absent on a license plan.
    *
    * @generated from field: optional int64 monthly_minimum_micros = 1;
    */
   monthlyMinimumMicros?: bigint;
-
-  /**
-   * The share of monthly usage a subscription plan bills when it exceeds the
-   * minimum, in basis points. Absent on a license plan.
-   *
-   * @generated from field: optional int32 usage_share_basis_points = 2;
-   */
-  usageShareBasisPoints?: number;
 
   /**
    * What a subscription plan bills per month for each child organization
@@ -141,8 +133,8 @@ export enum PlanInstrument {
   plan_instrument_unspecified = 0,
 
   /**
-   * Bought as a Subscription by an organization on Stigmer Cloud, billed
-   * monthly against usage.
+   * Bought as a Subscription by an organization on Stigmer Cloud, invoiced
+   * a flat fee each month.
    *
    * @generated from enum value: subscription = 1;
    */

@@ -153,8 +153,6 @@ describe("partialLine", () => {
     expect(partialLine(finishedEval(), false)).toBe("");
     pluginEval.status!.partialReason = PluginEvalPartialReason.cost_ceiling;
     expect(partialLine(pluginEval, false)).toBe("Stopped at the spending limit: 3 of 4 tries ran.");
-    pluginEval.status!.partialReason = PluginEvalPartialReason.out_of_credit;
-    expect(partialLine(pluginEval, false)).toContain("out of credit");
     pluginEval.status!.partialReason = PluginEvalPartialReason.cancelled;
     expect(partialLine(pluginEval, false)).toBe("Cancelled: 3 of 4 tries ran.");
     expect(partialLine(finishedEval(PluginEvalPhase.running), true)).toBe("Cancelled: 3 of 4 tries ran.");
@@ -206,12 +204,10 @@ describe("evalExitCode", () => {
     expect(exit(notRun)).toBe(EvalExit.Passed);
   });
 
-  it("is 2 for a partial run, at the spending limit or out of credit", () => {
-    for (const reason of [PluginEvalPartialReason.cost_ceiling, PluginEvalPartialReason.out_of_credit]) {
-      const partial = finishedEval(PluginEvalPhase.partial);
-      partial.status!.partialReason = reason;
-      expect(exit(partial)).toBe(EvalExit.Partial);
-    }
+  it("is 2 for a partial run at the spending limit", () => {
+    const partial = finishedEval(PluginEvalPhase.partial);
+    partial.status!.partialReason = PluginEvalPartialReason.cost_ceiling;
+    expect(exit(partial)).toBe(EvalExit.Partial);
   });
 
   it("is 2 for a partial eval whose reason, or phase, a newer server added, whatever its cases scored", () => {

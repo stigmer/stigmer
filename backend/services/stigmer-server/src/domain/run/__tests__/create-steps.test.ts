@@ -1304,8 +1304,8 @@ describe("the compose steps where callers are persons", () => {
 // The StartWorkflow failure arm's
 // PENDING→FAILED stamp is notify site 3 of 4 — an execution that consumed
 // its create-gate side effects and then never started still reaches the
-// composed observers (a billing composition settles its reservation on
-// exactly this).
+// composed observers (a composition that holds something at create
+// releases it on exactly this).
 // SetInitialPhase stamps PENDING before the workflow starts, so a client
 // sees the run as pending from its create reply on.
 describe("newSetInitialPhaseStep", () => {

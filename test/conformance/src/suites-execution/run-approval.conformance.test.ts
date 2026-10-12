@@ -1,6 +1,8 @@
 // Conformance suite for Run HITL tool approval (Class B).
-// Domain: agentic / agentexecution — the submitApproval RPC and the
-// approval-gate lifecycle a tool-using run goes through.
+// Domain: agentic / agentexecution and session — the session's answers
+// (confirmToolUse, grantPermission), its stop (interrupt), the run-scoped
+// submitApproval adapter, and the approval-gate lifecycle a tool-using run
+// goes through.
 //
 // This is the first suite that exercises a real *tool*: the engine can only
 // reach RUN_WAITING_FOR_APPROVAL when an agent lists a plugin whose MCP
@@ -28,7 +30,25 @@
 // stable across resume regardless of run_id instability.
 //
 // Asserted contract:
-// - submitApproval is on the Command controller; SubmitApprovalInput is
+// - What waits is the session's log: a call that asks is an
+//   agent.mcp_tool_use with evaluated_permission ask, and the session goes
+//   idle with stop_reason requires_action whose event_ids name every call
+//   still waiting, oldest first; answering one of two re-states the idle
+//   with the remainder.
+// - SessionCommandController.confirmToolUse answers a call by that id with
+//   allow or deny, recorded as one user.tool_confirmation; a deny's
+//   deny_message is what the agent reads on its next request, and the
+//   denied call's result in the log is an error. A replayed answer is
+//   success with nothing new; a contrary one is FAILED_PRECONDITION.
+// - grantPermission allows the call and every waiting call of its class
+//   (here, its MCP server) in one answer: the call's confirmation, one
+//   stigmer.permission.grant, then a confirmation per co-pending call.
+// - interrupt stops every unfinished turn of the session: at the gate, a
+//   paused turn, and a second turn queued while an earlier one waits (the
+//   session reads running while that turn is unfinished); each ends
+//   CANCELLED with stop_cause user, and the session idle with end_turn.
+// - submitApproval is on the Command controller, an adapter onto the same
+//   answers; SubmitApprovalInput is
 //   {run_id, tool_call_id, ApprovalAction action, comment}, and the
 //   response is the Run with the decision recorded and
 //   pending_approvals recomputed synchronously.
@@ -80,7 +100,6 @@ import { Code } from "@connectrpc/connect";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import {
   ApprovalAction,
-  ApprovalEventType,
   ApprovalPolicySource,
   RunPhase,
   MessageType,
@@ -99,7 +118,6 @@ import {
   allToolCalls,
   awaitPhase,
   awaitTerminal,
-  decidedByOf,
   makeAgentExecution,
   requireLlmProxy,
   requireMcpFixture,
@@ -108,6 +126,7 @@ import {
   submitApprovalPerContract,
 } from "../support/runs";
 import { toolServerSegment } from "../support/plugins";
+import { answersOf, awaitIdleWith, awaitRequiresAction, confirmPerContract, newestIdle, sessionLog } from "../support/answers";
 import { uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
 import { zipFiles } from "../support/skills";
@@ -163,13 +182,14 @@ async function runToGate(
   org: string,
   agentRef: AgentRefInit,
   blocks: ToolUseBlock[],
-  opts: { autoApproveAll?: boolean; turnsBeforeDone?: AnthropicMessageBody[] } = {},
+  opts: { autoApproveAll?: boolean; turnsBeforeDone?: AnthropicMessageBody[]; done?: boolean } = {},
 ): Promise<{ executionId: string; gated: Run }> {
   mock.enqueue(anthropicToolUses(blocks));
   // Further assistant turns between the gated one and the terminating text —
   // the lever for a SECOND tool turn on the same server (the lease arm).
   for (const turn of opts.turnsBeforeDone ?? []) mock.enqueue(turn);
-  mock.enqueue(anthropicText("Done."));
+  // A turn that is stopped at its gate never asks again: it scripts no end.
+  if (opts.done ?? true) mock.enqueue(anthropicText("Done."));
 
   const execution = await clients.agentExecutionCommand.create(
     makeAgentExecution({ org, name: uniqueName("aex-hitl"), agentRef, autoApproveAll: opts.autoApproveAll }),
@@ -188,15 +208,6 @@ function echoBlock(toolCallId: string, text: string): ToolUseBlock {
   return { toolCallId, toolName: DESTRUCTIVE_ECHO_TOOL_NAME, toolInput: { text } };
 }
 
-// Whether the approval-event stream records `type` for a tool call. The
-// stream is keyed by approval_request_id, which the proto pins equal to the
-// tool_call_id (approval.proto), so the transcript's id is the lookup key.
-function approvalStreamHas(exec: Run, toolCallId: string, type: ApprovalEventType): boolean {
-  return (exec.status?.approvalEventStream?.events ?? []).some(
-    (event) => event.approvalRequestId === toolCallId && event.eventType === type,
-  );
-}
-
 describe("Run submitApproval — gate resolution", () => {
   it("[rpc:RunCommandController.submitApproval] APPROVE resolves the gate and completes the execution", async () => {
     const { org } = await target.provisionTenancy();
@@ -204,13 +215,13 @@ describe("Run submitApproval — gate resolution", () => {
     const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_echo_approve", "hello")]);
 
     const toolCallId = gated.status!.pendingApprovals[0]!.toolCallId;
-    // The gate is on the ledger before it is decided: the approval-event stream
-    // (the source pending_approvals is projected from) carries REQUESTED for
-    // exactly this call while the run is parked.
+    // The gate is the session's before it is decided: the session is idle
+    // with requires_action naming exactly this call's tool use.
+    const sessionId = sessionIdOf(gated);
     expect(
-      approvalStreamHas(gated, toolCallId, ApprovalEventType.REQUESTED),
-      "a parked gate is a REQUESTED event on the approval-event stream",
-    ).toBe(true);
+      await awaitRequiresAction(clients, sessionId, 1),
+      "a parked gate is the session's requires_action naming the call",
+    ).toEqual([`${executionId}.${toolCallId}`]);
 
     // The single gate is fully resolved synchronously: the approved entry is gone.
     await submitApprovalPerContract({
@@ -229,18 +240,16 @@ describe("Run submitApproval — gate resolution", () => {
       final.status?.phase,
       `approved execution should COMPLETE; reached ${RunPhase[final.status?.phase ?? 0]}`,
     ).toBe(RunPhase.RUN_COMPLETED);
-    // And the decision is on the ledger too, keyed by the same id.
-    expect(
-      approvalStreamHas(final, toolCallId, ApprovalEventType.APPROVED),
-      "the APPROVE decision is an APPROVED event for the same tool call",
-    ).toBe(true);
-    // The ledger names who decided: the caller that created the run is the
-    // caller that approved it, recorded as the same principal (#1385).
+    // And the answer is the session's, on the same tool use: the adapter
+    // records an allow.
+    expect(await answersOf(clients, sessionId, executionId), "the APPROVE is an allow in the session's log").toEqual([
+      `${executionId}.${toolCallId} allow`,
+    ]);
+    // The caller that created the run is the caller that approved it,
+    // recorded as the same principal (#1385). The tool call carries it
+    // (#1417): approved_by is what a transcript reader sees.
     const creator = final.status?.audit?.specAudit?.createdBy?.id ?? "";
     expect(creator, "the execution records its creator").not.toBe("");
-    expect(decidedByOf(final, toolCallId), "the decision names the approving caller").toBe(creator);
-    // The tool call itself carries the same principal (#1417): approved_by is
-    // what a transcript reader sees without replaying the event stream.
     const approvedTc = allToolCalls(final).find((tc) => tc.id === toolCallId);
     expect(approvedTc, `execution ${executionId}: the approved tool call ${toolCallId} is in the transcript`).toBeDefined();
     expect(approvedTc!.approvedBy, `execution ${executionId}: the approved tool call names the approving caller`).toBe(
@@ -477,13 +486,9 @@ describe("Run submitApproval — lease, cancel at the gate, durable resume", () 
     expect(mock.remaining(), "all three scripted turns were consumed").toBe(0);
   });
 
-  // Cancel AT THE GATE (the Go arm TestOffline_HITL_CancelAtGate) is not
-  // ported: this server refuses cancel/terminate/pause outside PENDING and
-  // IN_PROGRESS (lifecycle.ts ValidateCancellable, ported from the Go server),
-  // while the retired Java service cancelled a WAITING_FOR_APPROVAL run to
-  // CANCELLED. Whether a parked gate may be abandoned without a decision is a
-  // cross-edition contract question for the maintainers, not a test to bend
-  // either way, so the arm stays unported until it is decided.
+  // Cancel AT THE GATE (the Go arm TestOffline_HITL_CancelAtGate) is the
+  // session's interrupt arm below: a parked gate is abandoned by stopping
+  // the session's unfinished turns.
 
   it("[rpc:RunCommandController.submitApproval] the approved ToolCall survives the resume with TOOL_CALL_COMPLETED and a result — a true resume, not a replay", async () => {
     // Under the runner's durable checkpointer (its OSS default) the resumed
@@ -518,6 +523,271 @@ describe("Run submitApproval — lease, cancel at the gate, durable resume", () 
     expect(finalAi?.content, "the resumed run appended the model's final message").not.toBe("");
     expect(mock.remaining(), "both scripted turns were consumed exactly once").toBe(0);
     expect(mock.consumed()).toBe(2);
+  });
+});
+
+// The session's own answers and stop: what a Managed Agents client sends.
+// The ids answered are the ones the session's requires_action idle names,
+// read from the log as a client reads them, never from a run's rows.
+describe("the session answers a waiting call, and stops its turns", () => {
+  it("[rpc:SessionCommandController.confirmToolUse] the idle names the waiting call; an allow is recorded once, and the turn resumes and completes", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_confirm_allow", "hello")]);
+    const sessionId = sessionIdOf(gated);
+    const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
+    expect(toolUseId, "the idle names the call's tool use").toBe(`${executionId}.call_confirm_allow`);
+
+    await confirmPerContract({
+      clients,
+      runId: executionId,
+      expectedRemaining: 0,
+      label: "the allow clears the gate",
+      answer: () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId, result: "allow" }),
+    });
+
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase, "the allowed turn completes").toBe(RunPhase.RUN_COMPLETED);
+    expect(await answersOf(clients, sessionId, executionId)).toEqual([`${toolUseId} allow`]);
+    const allowed = allToolCalls(final).find((tc) => tc.id === "call_confirm_allow");
+    expect(allowed?.status, "the allowed call ran").toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(allowed?.approvedBy, "and names the person who answered").toBe(final.status?.audit?.specAudit?.createdBy?.id);
+    await awaitIdleWith(clients, sessionId, "end_turn");
+  });
+
+  it("[rpc:SessionCommandController.confirmToolUse] answering one of two re-states the idle with the remainder; the last answer resumes the turn", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [
+      echoBlock("call_remainder_1", "one"),
+      echoBlock("call_remainder_2", "two"),
+    ]);
+    const sessionId = sessionIdOf(gated);
+    const [first, second] = await awaitRequiresAction(clients, sessionId, 2);
+    expect([first, second]).toEqual([`${executionId}.call_remainder_1`, `${executionId}.call_remainder_2`]);
+
+    await confirmPerContract({
+      clients,
+      runId: executionId,
+      expectedRemaining: 1,
+      label: "one call still waits",
+      answer: () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: first!, result: "allow" }),
+    });
+    expect(await awaitRequiresAction(clients, sessionId, 1), "the idle is re-stated with the remainder").toEqual([second]);
+
+    await confirmPerContract({
+      clients,
+      runId: executionId,
+      expectedRemaining: 0,
+      label: "nothing waits",
+      answer: () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: second!, result: "allow" }),
+    });
+    expect((await awaitTerminal(clients, executionId)).status?.phase).toBe(RunPhase.RUN_COMPLETED);
+  });
+
+  it("[rpc:SessionCommandController.confirmToolUse] a deny's message is what the agent reads, and the denied call's result is an error", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_confirm_deny", "hello")]);
+    const sessionId = sessionIdOf(gated);
+    const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
+    const reason = "use the quiet echo instead";
+
+    await confirmPerContract({
+      clients,
+      runId: executionId,
+      expectedRemaining: 0,
+      label: "the deny clears the gate",
+      answer: () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId, result: "deny", denyMessage: reason }),
+    });
+
+    const final = await awaitTerminal(clients, executionId);
+    expect(final.status?.phase, "a deny never fails the run").toBe(RunPhase.RUN_COMPLETED);
+    expect(await answersOf(clients, sessionId, executionId)).toEqual([`${toolUseId} deny "${reason}"`]);
+    const denied = allToolCalls(final).find((tc) => tc.id === "call_confirm_deny");
+    expect(denied?.status, "the denied call never ran").not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    const scripted = mock.scriptedRequests();
+    expect(scripted.length, "the gated turn and the one after the answer").toBe(2);
+    expect(JSON.stringify(scripted[1]!.body), "the model reads the person's reason").toContain(reason);
+    const results = (await sessionLog(clients, sessionId)).filter(
+      (e) => e.event.case === "agentMcpToolResult" && e.event.value.mcpToolUseId === toolUseId,
+    );
+    expect(results.map((e) => e.event.case === "agentMcpToolResult" && e.event.value.isError), "the denied call's result").toEqual([
+      true,
+    ]);
+  });
+
+  it("[rpc:SessionCommandController.confirmToolUse] a replayed answer is success with nothing new; a contrary one is refused", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentRef } = await provisionGatedAgent(org);
+    // Two co-pending calls keep the gate open between the answers.
+    const { executionId, gated } = await runToGate(org, agentRef, [
+      echoBlock("call_replay_1", "one"),
+      echoBlock("call_replay_2", "two"),
+    ]);
+    const sessionId = sessionIdOf(gated);
+    const [first, second] = await awaitRequiresAction(clients, sessionId, 2);
+
+    const answered = await clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: first!, result: "allow" });
+    const replayed = await clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: first!, result: "allow" });
+    expect(replayed.event.value?.id, "the replay answers the recorded event").toBe(answered.event.value?.id);
+    expect(replayed.seq, "at its place in the log").toBe(answered.seq);
+    await expectGrpcCode(
+      () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: first!, result: "deny" }),
+      Code.FailedPrecondition,
+      "a contrary answer",
+    );
+    expect(await answersOf(clients, sessionId, executionId), "one answer recorded").toEqual([`${first} allow`]);
+
+    await confirmPerContract({
+      clients,
+      runId: executionId,
+      expectedRemaining: 0,
+      label: "the second answer clears the gate",
+      answer: () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: second!, result: "allow" }),
+    });
+    expect((await awaitTerminal(clients, executionId)).status?.phase).toBe(RunPhase.RUN_COMPLETED);
+  });
+
+  it("[rpc:SessionCommandController.confirmToolUse] refuses a deny_message on an allow, and a tool use that is not one of the session's asks", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_confirm_bad", "hello")]);
+    const sessionId = sessionIdOf(gated);
+    const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
+    await expectGrpcCode(
+      () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId, result: "allow", denyMessage: "why" }),
+      Code.InvalidArgument,
+      "a deny_message on an allow",
+    );
+    await expectGrpcCode(
+      () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId: `${executionId}.call_not_asked`, result: "allow" }),
+      Code.NotFound,
+      "a tool use the session never asked about",
+    );
+    await confirmPerContract({
+      clients,
+      runId: executionId,
+      expectedRemaining: 0,
+      label: "the settling allow clears the gate",
+      answer: () => clients.sessionCommand.confirmToolUse({ sessionId, toolUseId, result: "allow" }),
+    });
+    await awaitTerminal(clients, executionId);
+  });
+
+  it("[rpc:SessionCommandController.grantPermission] a grant allows the co-pending calls of its class in one answer, with one grant event", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [
+      echoBlock("call_grant_1", "one"),
+      echoBlock("call_grant_2", "two"),
+    ]);
+    const sessionId = sessionIdOf(gated);
+    const [first, second] = await awaitRequiresAction(clients, sessionId, 2);
+
+    let granted: Awaited<ReturnType<typeof clients.sessionCommand.grantPermission>> | undefined;
+    await confirmPerContract({
+      clients,
+      runId: executionId,
+      expectedRemaining: 0,
+      label: "the grant answers both calls",
+      answer: async () => {
+        granted = await clients.sessionCommand.grantPermission({ sessionId, toolUseId: first! });
+      },
+    });
+    const lease = granted!.grant?.event.case === "stigmerPermissionGrant" ? granted!.grant.event.value : undefined;
+    expect(lease?.scope, "a grant lasts the turn").toBe("turn");
+    expect(lease?.lease?.server, "its class is the call's MCP server").not.toBe("");
+    expect(granted!.confirmations.map((c) => c.event.case === "userToolConfirmation" && c.event.value.toolUseId)).toEqual([
+      first,
+      second,
+    ]);
+    expect(await answersOf(clients, sessionId, executionId)).toEqual([`${first} allow`, `grant ${first}`, `${second} allow`]);
+    expect((await awaitTerminal(clients, executionId)).status?.phase).toBe(RunPhase.RUN_COMPLETED);
+  });
+
+  it("[rpc:SessionCommandController.interrupt] stops a turn at its gate: CANCELLED by the person, and the session ends its turn", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_interrupt_gate", "hello")], { done: false });
+    const sessionId = sessionIdOf(gated);
+    await awaitRequiresAction(clients, sessionId, 1);
+
+    const stopped = await clients.sessionCommand.interrupt({ sessionId });
+    expect(stopped.event?.event.case).toBe("userInterrupt");
+    expect(stopped.stoppedRunIds).toEqual([executionId]);
+    const final = await awaitTerminal(clients, executionId);
+    expect(RunPhase[final.status?.phase ?? 0]).toBe(RunPhase[RunPhase.RUN_CANCELLED]);
+    expect(final.status?.stopCause).toBe("user");
+    expect(final.status?.pendingApprovals).toEqual([]);
+    await awaitIdleWith(clients, sessionId, "end_turn");
+  });
+
+  it("[rpc:SessionCommandController.interrupt] stops a paused turn", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentRef } = await provisionGatedAgent(org);
+    mock.enqueue(anthropicText("Held until paused."), { delayMs: 120_000 });
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-paused"), agentRef }),
+    );
+    const executionId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+    await awaitPhase(clients, executionId, RunPhase.RUN_IN_PROGRESS);
+    await clients.agentExecutionCommand.pause({ id: executionId, reason: "conformance" });
+    const paused = await awaitPhase(clients, executionId, RunPhase.RUN_PAUSED);
+    const sessionId = sessionIdOf(paused);
+
+    const stopped = await clients.sessionCommand.interrupt({ sessionId });
+    expect(stopped.stoppedRunIds).toEqual([executionId]);
+    const final = await awaitTerminal(clients, executionId);
+    expect(RunPhase[final.status?.phase ?? 0]).toBe(RunPhase[RunPhase.RUN_CANCELLED]);
+    expect(final.status?.stopCause).toBe("user");
+    mock.releaseHolds();
+  });
+
+  it("[rpc:SessionCommandController.interrupt] a second turn sent while the first waits reads running; the interrupt stops both", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_interrupt_queue", "hello")], { done: false });
+    const sessionId = sessionIdOf(gated);
+    await awaitRequiresAction(clients, sessionId, 1);
+
+    mock.enqueue(anthropicText("Second, held."), { delayMs: 120_000 });
+    const second = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-queued"), sessionId, message: "and another thing" }),
+    );
+    const secondId = second.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: secondId }));
+    expect(newestIdle(await sessionLog(clients, sessionId)), "the session reads running while a turn is unfinished").toBeUndefined();
+    const statuses = (await sessionLog(clients, sessionId)).filter((e) => e.event.case?.startsWith("sessionStatus") === true);
+    expect(statuses.at(-1)?.event.case, "the newest status is running").toBe("sessionStatusRunning");
+    expect((await clients.agentExecutionQuery.get({ value: executionId })).status?.phase, "the first turn still waits").toBe(
+      RunPhase.RUN_WAITING_FOR_APPROVAL,
+    );
+
+    const stopped = await clients.sessionCommand.interrupt({ sessionId });
+    expect([...stopped.stoppedRunIds].sort()).toEqual([executionId, secondId].sort());
+    for (const runId of [executionId, secondId]) {
+      const final = await awaitTerminal(clients, runId);
+      expect(RunPhase[final.status?.phase ?? 0], runId).toBe(RunPhase[RunPhase.RUN_CANCELLED]);
+    }
+    mock.releaseHolds();
+    await awaitIdleWith(clients, sessionId, "end_turn");
+  });
+
+  it("[rpc:SessionCommandController.interrupt] refuses to stop one thread alone", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentRef } = await provisionGatedAgent(org);
+    const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_interrupt_thread", "hello")]);
+    const sessionId = sessionIdOf(gated);
+    await expectGrpcCode(
+      () => clients.sessionCommand.interrupt({ sessionId, sessionThreadId: `${executionId}.task_1` }),
+      Code.InvalidArgument,
+      "a thread",
+    );
+    const [toolUseId] = await awaitRequiresAction(clients, sessionId, 1);
+    await clients.sessionCommand.confirmToolUse({ sessionId, toolUseId, result: "allow" });
+    await awaitTerminal(clients, executionId);
   });
 });
 

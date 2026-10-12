@@ -25,8 +25,8 @@ import "buf/validate/validate.proto";
 message PlanSpec {
   option (buf.validate.message).cel = {
     id: "plan_spec.license_has_no_monthly_terms"
-    message: "a license plan carries no monthly_minimum_micros or usage_share_basis_points"
-    expression: "this.instrument != 2 || (!has(this.terms.monthly_minimum_micros) && !has(this.terms.usage_share_basis_points))"
+    message: "a license plan carries no monthly_minimum_micros, the monthly fee"
+    expression: "this.instrument != 2 || !has(this.terms.monthly_minimum_micros)"
   };
   option (buf.validate.message).cel = {
     id: "plan_spec.subscription_has_no_annual_price"
@@ -47,8 +47,8 @@ message PlanSpec {
   ai.stigmer.platform.v1.Entitlements entitlements = 2 [(buf.validate.field).required = true];
 
   // The commercial terms. Which fields are set depends on the instrument:
-  // a subscription plan carries the greater-of terms, a license plan its
-  // annual price.
+  // a subscription plan carries its monthly fee, a license plan its annual
+  // price.
   PlanTerms terms = 3;
 
   // One or two sentences describing the plan as the pricing page shows it.
@@ -64,8 +64,8 @@ message PlanSpec {
 enum PlanInstrument {
   plan_instrument_unspecified = 0;
 
-  // Bought as a Subscription by an organization on Stigmer Cloud, billed
-  // monthly against usage.
+  // Bought as a Subscription by an organization on Stigmer Cloud, invoiced
+  // a flat fee each month.
   subscription = 1;
 
   // Bought as a License by a self-hosting customer, invoiced for a term.
@@ -74,23 +74,23 @@ enum PlanInstrument {
 
 // The commercial terms of a plan.
 //
-// Amounts are micro-USD (one millionth of a dollar), the unit the billing
-// ledger already uses; shares are basis points (one hundredth of a percent).
-// Every field has explicit presence: absent means the term does not apply to
-// this plan, which is how a subscription plan and a license plan share one
-// message. A monthly plan costs the greater of monthly_minimum_micros and
-// usage_share_basis_points of the month's usage.
+// Amounts are micro-USD (one millionth of a dollar). Every field has
+// explicit presence: absent means the term does not apply to this plan,
+// which is how a subscription plan and a license plan share one message. A
+// monthly plan costs its monthly fee, monthly_minimum_micros, plus
+// per_extra_org_micros for each child organization beyond the ones it
+// includes. Usage is never part of a plan's price.
 message PlanTerms {
-  // The least a subscription plan bills per month, in micro-USD. Absent on a
-  // license plan.
+  // The plan's monthly fee: what a subscription plan bills per month, in
+  // micro-USD. Absent on a license plan.
   optional int64 monthly_minimum_micros = 1 [(buf.validate.field).int64.gte = 0];
 
-  // The share of monthly usage a subscription plan bills when it exceeds the
-  // minimum, in basis points. Absent on a license plan.
-  optional int32 usage_share_basis_points = 2 [(buf.validate.field).int32 = {
-    gte: 0
-    lte: 10000
-  }];
+  // 2 held usage_share_basis_points, a share of the month's provider cost a
+  // subscription plan billed when it exceeded the monthly fee. A plan is a
+  // flat fee and usage is never part of its price, so the number and the
+  // name are reserved so neither is ever reused for a different field.
+  reserved 2;
+  reserved "usage_share_basis_points";
 
   // What a subscription plan bills per month for each child organization
   // beyond the ones its entitlements include, in micro-USD. Absent when the

@@ -26,7 +26,9 @@ import type {
   BetaManagedAgentsSessionThreadCreatedEvent,
   BetaManagedAgentsSessionThreadStatusIdleEvent,
   BetaManagedAgentsSessionThreadStatusRunningEvent,
+  BetaManagedAgentsUserInterruptEvent,
   BetaManagedAgentsUserMessageEvent,
+  BetaManagedAgentsUserToolConfirmationEvent,
 } from "@anthropic-ai/sdk/resources/beta/sessions/events";
 import type {
   BetaManagedAgentsDeltaEvent,
@@ -319,6 +321,48 @@ const CASES: ReadonlyArray<Case> = [
     proto: { case: "agentThreadContextCompacted", value: { id: "e21", processedAt: AT } },
     sdk: { id: "e21", type: "agent.thread_context_compacted", processed_at: AT } satisfies BetaManagedAgentsAgentThreadContextCompactedEvent,
   },
+  {
+    name: "user.tool_confirmation, allow on the primary thread",
+    proto: {
+      case: "userToolConfirmation",
+      value: { id: "e30", processedAt: AT, result: "allow", toolUseId: "run_1.toolu_1" },
+    },
+    sdk: {
+      id: "e30",
+      type: "user.tool_confirmation",
+      processed_at: AT,
+      result: "allow",
+      tool_use_id: "run_1.toolu_1",
+    } satisfies BetaManagedAgentsUserToolConfirmationEvent,
+  },
+  {
+    name: "user.tool_confirmation, deny with a message, in a sub-agent's thread",
+    proto: {
+      case: "userToolConfirmation",
+      value: {
+        id: "e31",
+        processedAt: AT,
+        result: "deny",
+        toolUseId: "run_1.toolu_2",
+        denyMessage: "use make clean instead",
+        sessionThreadId: "run_1.task_1",
+      },
+    },
+    sdk: {
+      id: "e31",
+      type: "user.tool_confirmation",
+      processed_at: AT,
+      result: "deny",
+      tool_use_id: "run_1.toolu_2",
+      deny_message: "use make clean instead",
+      session_thread_id: "run_1.task_1",
+    } satisfies BetaManagedAgentsUserToolConfirmationEvent,
+  },
+  {
+    name: "user.interrupt",
+    proto: { case: "userInterrupt", value: { id: "e32", processedAt: AT } },
+    sdk: { id: "e32", type: "user.interrupt", processed_at: AT } satisfies BetaManagedAgentsUserInterruptEvent,
+  },
 ];
 
 describe("every event the contract carries renders as the pinned SDK types it", () => {
@@ -442,6 +486,46 @@ describe("Stigmer's own events render by the same three rules, under their stigm
         expected_digest: "d1",
         origin: "person",
         reason: "not this",
+      },
+    },
+    {
+      proto: {
+        case: "stigmerPermissionGrant",
+        value: {
+          id: "s9",
+          processedAt: AT,
+          toolUseId: "run_1.toolu_1",
+          scope: "turn",
+          lease: { category: "write", server: "", tool: "" },
+        },
+      },
+      json: {
+        id: "s9",
+        type: "stigmer.permission.grant",
+        processed_at: AT,
+        tool_use_id: "run_1.toolu_1",
+        scope: "turn",
+        lease: { category: "write", hook: null },
+      },
+    },
+    {
+      proto: {
+        case: "stigmerPermissionGrant",
+        value: {
+          id: "s10",
+          processedAt: AT,
+          toolUseId: "run_1.toolu_2",
+          scope: "turn",
+          lease: { category: "", server: "github", hook: "", tool: "create_issue" },
+        },
+      },
+      json: {
+        id: "s10",
+        type: "stigmer.permission.grant",
+        processed_at: AT,
+        tool_use_id: "run_1.toolu_2",
+        scope: "turn",
+        lease: { server: "github", hook: "", tool: "create_issue" },
       },
     },
     {

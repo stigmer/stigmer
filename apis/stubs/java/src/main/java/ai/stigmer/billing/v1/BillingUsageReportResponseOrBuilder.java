@@ -12,26 +12,6 @@ public interface BillingUsageReportResponseOrBuilder extends
 
   /**
    * <pre>
-   * Total provider cost in the period.
-   * </pre>
-   *
-   * <code>int64 total_provider_cost_micros = 1 [json_name = "totalProviderCostMicros"];</code>
-   * @return The totalProviderCostMicros.
-   */
-  long getTotalProviderCostMicros();
-
-  /**
-   * <pre>
-   * Total amount billed to the customer in the period.
-   * </pre>
-   *
-   * <code>int64 total_billable_amount_micros = 2 [json_name = "totalBillableAmountMicros"];</code>
-   * @return The totalBillableAmountMicros.
-   */
-  long getTotalBillableAmountMicros();
-
-  /**
-   * <pre>
    * Number of runs in the period.
    * </pre>
    *
@@ -52,7 +32,7 @@ public interface BillingUsageReportResponseOrBuilder extends
 
   /**
    * <pre>
-   * Breakdown by model.
+   * Calls in the period, by model and harness.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -61,7 +41,7 @@ public interface BillingUsageReportResponseOrBuilder extends
       getModelBreakdownList();
   /**
    * <pre>
-   * Breakdown by model.
+   * Calls in the period, by model and harness.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -69,7 +49,7 @@ public interface BillingUsageReportResponseOrBuilder extends
   ai.stigmer.billing.v1.ModelBillingBreakdown getModelBreakdown(int index);
   /**
    * <pre>
-   * Breakdown by model.
+   * Calls in the period, by model and harness.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -77,7 +57,7 @@ public interface BillingUsageReportResponseOrBuilder extends
   int getModelBreakdownCount();
   /**
    * <pre>
-   * Breakdown by model.
+   * Calls in the period, by model and harness.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>
@@ -86,7 +66,7 @@ public interface BillingUsageReportResponseOrBuilder extends
       getModelBreakdownOrBuilderList();
   /**
    * <pre>
-   * Breakdown by model.
+   * Calls in the period, by model and harness.
    * </pre>
    *
    * <code>repeated .ai.stigmer.billing.v1.ModelBillingBreakdown model_breakdown = 5 [json_name = "modelBreakdown"];</code>

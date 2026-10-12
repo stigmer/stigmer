@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/providerkey/v1/api.proto.
  */
 export const file_ai_stigmer_billing_providerkey_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEiogIKC1Byb3ZpZGVyS2V5EgsKA29yZxgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIQCghrZXlfaGludBgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGaW5fdXNlGAggASgIEhoKEmluaGVyaXRlZF9mcm9tX29yZxgJIAEoCRIQCghiYXNlX3VybBgKIAEoCWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvcHJvdmlkZXJrZXkvdjEvYXBpLnByb3RvEiFhaS5zdGlnbWVyLmJpbGxpbmcucHJvdmlkZXJrZXkudjEioAIKC1Byb3ZpZGVyS2V5EgsKA29yZxgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIQCghrZXlfaGludBgDIAEoCRISCgpjcmVhdGVkX2J5GAQgASgJEi4KCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3RfdXNlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASGgoSaW5oZXJpdGVkX2Zyb21fb3JnGAkgASgJEhAKCGJhc2VfdXJsGAogASgJSgQICBAJUgZpbl91c2ViBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * An organization's own model provider key, as every caller sees it: the key
@@ -88,15 +88,6 @@ export type ProviderKey = Message<"ai.stigmer.billing.providerkey.v1.ProviderKey
    * @generated from field: google.protobuf.Timestamp last_used_at = 7;
    */
   lastUsedAt?: Timestamp;
-
-  /**
-   * No longer used: always true. Every plan serves calls on the
-   * organization's own key, and list never returns a parent's key the
-   * organization's own key shadows. Kept because it is a wire field.
-   *
-   * @generated from field: bool in_use = 8;
-   */
-  inUse: boolean;
 
   /**
    * Set when the row is the parent organization's key, serving this child

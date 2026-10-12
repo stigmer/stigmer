@@ -1,7 +1,9 @@
 /**
  * The persist chokepoint's two contracts: what one write does (the secret
- * backstop, the usage summary, the heartbeat, the STOP; a failed progress
- * capture never fails a write), and how requests
+ * backstop, which runs before the session's events are read from the rows,
+ * so a secret-like write that waits for a person reaches the log withheld;
+ * the usage summary, the heartbeat, the STOP; a failed progress capture
+ * never fails a write), and how requests
  * coalesce (one write in flight, one follow-up at most, every request's
  * promise resolving only once its state is on the wire).
  */
@@ -17,6 +19,10 @@ import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { TurnProgress } from "../capture.js";
 import { newProgressCaptureState, type ProgressSubstrate } from "../../shared/filereview/progress.js";
 import { PersistChokepoint } from "../persist-chokepoint.js";
+import { SessionEventEmitter } from "../events/emitter.js";
+import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { toJsonString } from "@bufbuild/protobuf";
 import { UsageAccumulator } from "../usage-accumulator.js";
 
 interface Gate {
@@ -67,6 +73,65 @@ function chokepointOver(
 }
 
 describe("PersistChokepoint: one write", () => {
+  it("withholds a secret-like write's content from the session's events: no event and no preview carries it", async () => {
+    const appended: SessionEvent[] = [];
+    const previews: SessionEventPreview[] = [];
+    const appendSessionEvents = vi.fn(async (_run: string, batch: readonly SessionEvent[], sent: readonly SessionEventPreview[]) => {
+      appended.push(...batch);
+      previews.push(...sent);
+      return create(AppendSessionEventsResponseSchema);
+    });
+    const events = new SessionEventEmitter({
+      client: { appendSessionEvents, listRunSessionEvents: vi.fn(async () => []) },
+      runId: "aex_test",
+      credential: async () => undefined,
+      delay: async () => {},
+    });
+    await events.begin({ sessionId: "ses_1", resumed: false, status: create(RunStatusSchema) });
+    const { client, gates } = heldClient();
+    const status = create(RunStatusSchema, {});
+    const chokepoint = new PersistChokepoint({
+      client,
+      executionId: "aex_test",
+      status,
+      offload: undefined,
+      usage: () => undefined,
+      progress: () => undefined,
+      heartbeat: vi.fn(),
+      onPlatformStop: vi.fn(),
+      events,
+    });
+    status.messages.push(
+      create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_AI,
+        content: "Writing the env file.",
+        toolCalls: [
+          create(ToolCallSchema, {
+            id: "w1",
+            name: "write",
+            status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requiresApproval: true,
+            args: { path: ".env", content: "SECRET=1" },
+            argsPreview: JSON.stringify({ path: ".env", content: "SECRET=1" }),
+          }),
+        ],
+      }),
+    );
+
+    const written = chokepoint.write();
+    await vi.waitFor(() => expect(gates).toHaveLength(1));
+    gates[0]!.open();
+    await written;
+
+    expect(appended.map((e) => e.event.case), "the write reached the log as a tool use").toContain("agentToolUse");
+    for (const event of appended) {
+      expect(toJsonString(SessionEventSchema, event), `${event.event.case} withholds the content`).not.toContain("SECRET=1");
+    }
+    for (const preview of previews) {
+      expect(JSON.stringify(preview), "no preview carries the content").not.toContain("SECRET=1");
+    }
+  });
+
   it("withholds secret content, refreshes streaming_usage, writes, heartbeats, and relays STOP", async () => {
     const { client, gates } = heldClient([RunControlSignal.STOP]);
     const usage = new UsageAccumulator(ServiceTier.STANDARD, ThinkingMode.DISABLED);

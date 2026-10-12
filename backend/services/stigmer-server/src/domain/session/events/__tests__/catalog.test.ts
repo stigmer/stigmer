@@ -55,7 +55,7 @@ describe("the catalog", () => {
     }
   });
 
-  it("every Stigmer event but a file-review decision is the runner's to append", () => {
+  it("every Stigmer event but a file-review decision and a permission grant is the runner's to append", () => {
     const own = SESSION_EVENT_TYPES.filter(isStigmerEventType);
     expect(own).toEqual([
       "stigmer.agent.thinking",
@@ -66,9 +66,18 @@ describe("the catalog", () => {
       "stigmer.file_review.changes",
       "stigmer.file_review.decided",
       "stigmer.file_review.reconciled",
+      "stigmer.permission.grant",
     ]);
     for (const type of own) {
-      expect(RUNNER_EVENT_TYPES.has(type), type).toBe(type !== "stigmer.file_review.decided");
+      expect(RUNNER_EVENT_TYPES.has(type), type).toBe(
+        type !== "stigmer.file_review.decided" && type !== "stigmer.permission.grant",
+      );
+    }
+  });
+
+  it("a person's answers and stop are the server's to write, never a runner's", () => {
+    for (const type of ["user.tool_confirmation", "user.interrupt", "user.message"]) {
+      expect(RUNNER_EVENT_TYPES.has(type), type).toBe(false);
     }
   });
 

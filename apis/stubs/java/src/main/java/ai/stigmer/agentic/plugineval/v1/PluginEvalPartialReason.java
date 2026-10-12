@@ -29,14 +29,6 @@ public enum PluginEvalPartialReason
   plugin_eval_partial_reason_cost_ceiling(1),
   /**
    * <pre>
-   * The organization ran out of credit.
-   * </pre>
-   *
-   * <code>plugin_eval_partial_reason_out_of_credit = 2;</code>
-   */
-  plugin_eval_partial_reason_out_of_credit(2),
-  /**
-   * <pre>
    * Someone cancelled the eval.
    * </pre>
    *
@@ -67,14 +59,6 @@ public enum PluginEvalPartialReason
    * <code>plugin_eval_partial_reason_cost_ceiling = 1;</code>
    */
   public static final int plugin_eval_partial_reason_cost_ceiling_VALUE = 1;
-  /**
-   * <pre>
-   * The organization ran out of credit.
-   * </pre>
-   *
-   * <code>plugin_eval_partial_reason_out_of_credit = 2;</code>
-   */
-  public static final int plugin_eval_partial_reason_out_of_credit_VALUE = 2;
   /**
    * <pre>
    * Someone cancelled the eval.
@@ -111,7 +95,6 @@ public enum PluginEvalPartialReason
     switch (value) {
       case 0: return plugin_eval_partial_reason_unspecified;
       case 1: return plugin_eval_partial_reason_cost_ceiling;
-      case 2: return plugin_eval_partial_reason_out_of_credit;
       case 3: return plugin_eval_partial_reason_cancelled;
       default: return null;
     }

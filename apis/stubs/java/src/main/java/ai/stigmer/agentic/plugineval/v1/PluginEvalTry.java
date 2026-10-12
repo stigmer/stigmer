@@ -206,8 +206,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object notGradedReason_ = "";
   /**
    * <pre>
-   * Why the try produced no score, as in "platform busy" or "out of
-   * credit"; empty when graded.
+   * Why the try produced no score, as in "platform busy"; empty when
+   * graded.
    * </pre>
    *
    * <code>string not_graded_reason = 6 [json_name = "notGradedReason"];</code>
@@ -228,8 +228,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Why the try produced no score, as in "platform busy" or "out of
-   * credit"; empty when graded.
+   * Why the try produced no score, as in "platform busy"; empty when
+   * graded.
    * </pre>
    *
    * <code>string not_graded_reason = 6 [json_name = "notGradedReason"];</code>
@@ -1237,8 +1237,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object notGradedReason_ = "";
     /**
      * <pre>
-     * Why the try produced no score, as in "platform busy" or "out of
-     * credit"; empty when graded.
+     * Why the try produced no score, as in "platform busy"; empty when
+     * graded.
      * </pre>
      *
      * <code>string not_graded_reason = 6 [json_name = "notGradedReason"];</code>
@@ -1258,8 +1258,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Why the try produced no score, as in "platform busy" or "out of
-     * credit"; empty when graded.
+     * Why the try produced no score, as in "platform busy"; empty when
+     * graded.
      * </pre>
      *
      * <code>string not_graded_reason = 6 [json_name = "notGradedReason"];</code>
@@ -1280,8 +1280,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Why the try produced no score, as in "platform busy" or "out of
-     * credit"; empty when graded.
+     * Why the try produced no score, as in "platform busy"; empty when
+     * graded.
      * </pre>
      *
      * <code>string not_graded_reason = 6 [json_name = "notGradedReason"];</code>
@@ -1298,8 +1298,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Why the try produced no score, as in "platform busy" or "out of
-     * credit"; empty when graded.
+     * Why the try produced no score, as in "platform busy"; empty when
+     * graded.
      * </pre>
      *
      * <code>string not_graded_reason = 6 [json_name = "notGradedReason"];</code>
@@ -1313,8 +1313,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Why the try produced no score, as in "platform busy" or "out of
-     * credit"; empty when graded.
+     * Why the try produced no score, as in "platform busy"; empty when
+     * graded.
      * </pre>
      *
      * <code>string not_graded_reason = 6 [json_name = "notGradedReason"];</code>

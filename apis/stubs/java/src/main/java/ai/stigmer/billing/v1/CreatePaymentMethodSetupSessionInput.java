@@ -11,7 +11,7 @@ package ai.stigmer.billing.v1;
  * setup mode, to save a payment method without a purchase.
  *
  * The caller's email is resolved from their identity account for Stripe
- * Customer creation, as for a credit checkout.
+ * Customer creation.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput}
@@ -374,7 +374,7 @@ private static final long serialVersionUID = 0L;
    * setup mode, to save a payment method without a purchase.
    *
    * The caller's email is resolved from their identity account for Stripe
-   * Customer creation, as for a credit checkout.
+   * Customer creation.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.CreatePaymentMethodSetupSessionInput}

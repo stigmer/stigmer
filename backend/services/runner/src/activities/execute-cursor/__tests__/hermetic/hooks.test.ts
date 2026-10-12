@@ -425,12 +425,15 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
 
     await runCursorTurn(scenario, { threadId: "", turnSeq: 0 });
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
-    expect(record.decideWaitingToolCalls(ApprovalAction.REJECT, "2026-01-01T00:00:30.000Z")).toBe(1);
+    expect(record.decideWaitingToolCalls(ApprovalAction.REJECT, "2026-01-01T00:00:30.000Z", undefined, "publish only after review")).toBe(1);
 
     await runCursorTurn(scenario, { threadId: "agent-reject-0001", turnSeq: 1 });
     expect(answers, "the hook allows the retry; the person's refusal still refuses it").toEqual(["deny", "deny"]);
-    expect(raws.at(-1), "the model reads the person's decision").toContain(
-      "Tool 'shell' was rejected by the user. Do not retry it; proceed by taking their objection into account.",
+    expect(raws.at(-1), "the model reads the person's decision and their reason").toContain(
+      "Tool 'shell' was rejected by the user: publish only after review. Do not retry it; proceed by taking their objection into account.",
+    );
+    expect(String(agent.sends[1]?.message), "the resumed prompt names the refused action with the reason").toContain(
+      "(the user said: publish only after review)",
     );
     expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
     const status = record.lastFullStatus!;

@@ -249,8 +249,9 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent share.
-     * Enabling a share is a billing-affecting decision: conversations over
-     * the hosted link consume the sharing organization's credits.
+     * Enabling a share is a spending decision: conversations over the hosted
+     * link call models on the sharing organization's own provider keys, and
+     * the providers bill the organization for them.
      * </pre>
      */
     default void create(ai.stigmer.agentic.agentshare.v1.AgentShare request,
@@ -352,8 +353,9 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent share.
-     * Enabling a share is a billing-affecting decision: conversations over
-     * the hosted link consume the sharing organization's credits.
+     * Enabling a share is a spending decision: conversations over the hosted
+     * link call models on the sharing organization's own provider keys, and
+     * the providers bill the organization for them.
      * </pre>
      */
     public void create(ai.stigmer.agentic.agentshare.v1.AgentShare request,
@@ -444,8 +446,9 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent share.
-     * Enabling a share is a billing-affecting decision: conversations over
-     * the hosted link consume the sharing organization's credits.
+     * Enabling a share is a spending decision: conversations over the hosted
+     * link call models on the sharing organization's own provider keys, and
+     * the providers bill the organization for them.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare create(ai.stigmer.agentic.agentshare.v1.AgentShare request) throws io.grpc.StatusException {
@@ -532,8 +535,9 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent share.
-     * Enabling a share is a billing-affecting decision: conversations over
-     * the hosted link consume the sharing organization's credits.
+     * Enabling a share is a spending decision: conversations over the hosted
+     * link call models on the sharing organization's own provider keys, and
+     * the providers bill the organization for them.
      * </pre>
      */
     public ai.stigmer.agentic.agentshare.v1.AgentShare create(ai.stigmer.agentic.agentshare.v1.AgentShare request) {
@@ -621,8 +625,9 @@ public final class AgentShareCommandControllerGrpc {
     /**
      * <pre>
      * Create an agent share.
-     * Enabling a share is a billing-affecting decision: conversations over
-     * the hosted link consume the sharing organization's credits.
+     * Enabling a share is a spending decision: conversations over the hosted
+     * link call models on the sharing organization's own provider keys, and
+     * the providers bill the organization for them.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentshare.v1.AgentShare> create(

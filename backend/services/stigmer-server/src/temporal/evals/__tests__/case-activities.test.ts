@@ -32,8 +32,9 @@
  *     grader not checked;
  *   - start-vote: a try, eval or grader gone; evidence that is not text;
  *     the reference transcript in the vote's message, or missing; a caller
- *     the seam refuses; a refused create (credit, the run's own reason, a
- *     failure outside the RPC contract);
+ *     the seam refuses; a refused create (the run's own reason, a keyless
+ *     organization's FAILED_PRECONDITION copy among them; a failure outside
+ *     the RPC contract);
  *   - read-vote: a vote run gone; an answer that cannot be read; each
  *     ended phase; its session kept, so a read retried after a lost answer
  *     reads the same vote and cost;
@@ -112,7 +113,6 @@ import {
   CANNOT_ACT_REASON,
   DELETE_VOTE_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
-  OUT_OF_CREDIT_REASON,
   PLUGIN_EVAL_BUSY_FAILURE_TYPE,
   PLUGIN_UPDATED_REASON,
   READ_VOTE_ACTIVITY_NAME,
@@ -179,6 +179,10 @@ const CELL: CaseInput = {
   timeoutSeconds: 300,
   budgetUsd: 4,
 };
+
+/** Admission's refusal of a run whose organization has no key for its model. */
+const KEYLESS_COPY =
+  "This organization has no Anthropic key for model 'claude-sonnet-4-5', so the run was not started. An admin can add one in Settings → Provider keys.";
 
 const CALLER: CallerIdentity = {
   identityId: "acc_eval",
@@ -593,12 +597,12 @@ describe("start-try's refused session", () => {
     });
     expect(
       await refusing(
-        new ConnectError("out of credits", Code.FailedPrecondition),
+        new ConnectError(KEYLESS_COPY, Code.FailedPrecondition),
       )[START_TRY_ACTIVITY_NAME](CELL),
     ).toEqual({
       kind: "refused",
-      failure: "out-of-credit",
-      reason: OUT_OF_CREDIT_REASON,
+      failure: "not-started",
+      reason: KEYLESS_COPY,
     });
     await expect(
       refusing(new ConnectError("full", Code.ResourceExhausted))[
@@ -995,7 +999,7 @@ describe("start-vote beside its main path", () => {
   });
 
   it("fails a vote whose session create is refused, with the refusal's reason, and rethrows any other failure", async () => {
-    let refusal: Error = new ConnectError("out of credits", Code.FailedPrecondition);
+    let refusal: Error = new ConnectError(KEYLESS_COPY, Code.FailedPrecondition);
     let sessions = 0;
     // The try's own session is created; every vote's is refused.
     const { cases, start } = await completedTry({
@@ -1010,7 +1014,7 @@ describe("start-vote beside its main path", () => {
     await completeTry(start.runId);
     expect(
       await cases[START_VOTE_ACTIVITY_NAME](CELL, start.runId, COMPARE, 0),
-    ).toEqual({ kind: "failed", reason: OUT_OF_CREDIT_REASON });
+    ).toEqual({ kind: "failed", reason: KEYLESS_COPY });
     refusal = new ConnectError("judge model withdrawn", Code.InvalidArgument);
     expect(
       await cases[START_VOTE_ACTIVITY_NAME](CELL, start.runId, COMPARE, 0),
@@ -1120,16 +1124,13 @@ describe("start-vote beside its main path", () => {
     });
   });
 
-  it("answers a refused vote with out of credit or the run's own reason, deleting its session", async () => {
+  it("answers a refused vote with the run's own reason, deleting its session", async () => {
     const { cases, start, record } = await completedTry();
     await completeTry(start.runId);
-    record.refuse = new ConnectError(
-      "insufficient credits",
-      Code.FailedPrecondition,
-    );
+    record.refuse = new ConnectError(KEYLESS_COPY, Code.FailedPrecondition);
     expect(
       await cases[START_VOTE_ACTIVITY_NAME](CELL, start.runId, COMPARE, 0),
-    ).toEqual({ kind: "failed", reason: OUT_OF_CREDIT_REASON });
+    ).toEqual({ kind: "failed", reason: KEYLESS_COPY });
     record.refuse = new ConnectError(
       "the judge model is not enabled",
       Code.FailedPrecondition,
@@ -1582,7 +1583,6 @@ describe("record-score beside a graded try", () => {
       state: "not-graded",
       score: 0,
       notGradedReason: TRY_GONE_REASON,
-      outOfCredit: false,
     });
   });
 
@@ -1600,7 +1600,6 @@ describe("record-score beside a graded try", () => {
     expect(result).toMatchObject({
       state: "not-graded",
       notGradedReason: TRY_GONE_REASON,
-      outOfCredit: false,
     });
     const scores = (
       await listRunScores(temp.store, capturingLogger().logger, start.runId)

@@ -31,7 +31,7 @@ const (
 	UsageMeteringSource_USAGE_METERING_SOURCE_PROXY_PROVIDER_REPORTED UsageMeteringSource = 1
 	// OSS/BYOK mode: runner reports provider response usage directly.
 	UsageMeteringSource_USAGE_METERING_SOURCE_RUNNER_PROVIDER_REPORTED_OSS UsageMeteringSource = 2
-	// Estimate from tokenizer/preflight/local accounting. Never billing-authoritative in cloud mode.
+	// Estimate from tokenizer/preflight/local accounting. Never metering-authoritative in cloud mode.
 	UsageMeteringSource_USAGE_METERING_SOURCE_ESTIMATED UsageMeteringSource = 3
 	// Reconciliation from provider admin usage/cost reports.
 	UsageMeteringSource_USAGE_METERING_SOURCE_PROVIDER_ADMIN_RECONCILED UsageMeteringSource = 4
@@ -91,11 +91,12 @@ type UsageTrustLevel int32
 
 const (
 	UsageTrustLevel_USAGE_TRUST_LEVEL_UNSPECIFIED UsageTrustLevel = 0
-	// Billing-authoritative: safe to debit credits from.
+	// The proxy's own measurement of the provider-reported usage: the
+	// metering source of truth.
 	UsageTrustLevel_USAGE_TRUST_LEVEL_BILLING_AUTHORITY UsageTrustLevel = 1
-	// Server-observed but not billing (e.g., proxy timing).
+	// Server-observed but not the metered usage (e.g., proxy timing).
 	UsageTrustLevel_USAGE_TRUST_LEVEL_SERVER_OBSERVED UsageTrustLevel = 2
-	// Display-only: runner-reported, never used for billing.
+	// Display-only: runner-reported, never used for metering.
 	UsageTrustLevel_USAGE_TRUST_LEVEL_DISPLAY_ONLY UsageTrustLevel = 3
 )
 
@@ -214,138 +215,6 @@ func (UsageCompletionStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{2}
 }
 
-// Status of the billing debit for a usage record.
-type BillingDebitStatus int32
-
-const (
-	BillingDebitStatus_BILLING_DEBIT_STATUS_UNSPECIFIED BillingDebitStatus = 0
-	// No billing applicable (e.g., OSS mode, $0 cost, incomplete usage).
-	BillingDebitStatus_BILLING_DEBIT_STATUS_NOT_APPLICABLE BillingDebitStatus = 1
-	// Debit pending (usage written, billing not yet attempted).
-	BillingDebitStatus_BILLING_DEBIT_STATUS_PENDING BillingDebitStatus = 2
-	// Credits successfully debited.
-	BillingDebitStatus_BILLING_DEBIT_STATUS_DEBITED BillingDebitStatus = 3
-	// Debit failed but retryable (transient error).
-	BillingDebitStatus_BILLING_DEBIT_STATUS_FAILED_RETRYABLE BillingDebitStatus = 4
-	// Debit failed terminally (e.g., no reservation found).
-	BillingDebitStatus_BILLING_DEBIT_STATUS_FAILED_TERMINAL BillingDebitStatus = 5
-	// Conflict detected (duplicate with different payload).
-	BillingDebitStatus_BILLING_DEBIT_STATUS_CONFLICT BillingDebitStatus = 6
-)
-
-// Enum value maps for BillingDebitStatus.
-var (
-	BillingDebitStatus_name = map[int32]string{
-		0: "BILLING_DEBIT_STATUS_UNSPECIFIED",
-		1: "BILLING_DEBIT_STATUS_NOT_APPLICABLE",
-		2: "BILLING_DEBIT_STATUS_PENDING",
-		3: "BILLING_DEBIT_STATUS_DEBITED",
-		4: "BILLING_DEBIT_STATUS_FAILED_RETRYABLE",
-		5: "BILLING_DEBIT_STATUS_FAILED_TERMINAL",
-		6: "BILLING_DEBIT_STATUS_CONFLICT",
-	}
-	BillingDebitStatus_value = map[string]int32{
-		"BILLING_DEBIT_STATUS_UNSPECIFIED":      0,
-		"BILLING_DEBIT_STATUS_NOT_APPLICABLE":   1,
-		"BILLING_DEBIT_STATUS_PENDING":          2,
-		"BILLING_DEBIT_STATUS_DEBITED":          3,
-		"BILLING_DEBIT_STATUS_FAILED_RETRYABLE": 4,
-		"BILLING_DEBIT_STATUS_FAILED_TERMINAL":  5,
-		"BILLING_DEBIT_STATUS_CONFLICT":         6,
-	}
-)
-
-func (x BillingDebitStatus) Enum() *BillingDebitStatus {
-	p := new(BillingDebitStatus)
-	*p = x
-	return p
-}
-
-func (x BillingDebitStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (BillingDebitStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_enumTypes[3].Descriptor()
-}
-
-func (BillingDebitStatus) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_run_v1_usage_proto_enumTypes[3]
-}
-
-func (x BillingDebitStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use BillingDebitStatus.Descriptor instead.
-func (BillingDebitStatus) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{3}
-}
-
-// Status of cost calculation for a usage record.
-type CostCalculationStatus int32
-
-const (
-	CostCalculationStatus_COST_CALCULATION_STATUS_UNSPECIFIED CostCalculationStatus = 0
-	// Cost computed from pricing registry at write time.
-	CostCalculationStatus_COST_CALCULATION_STATUS_COMPUTED CostCalculationStatus = 1
-	// Cost is an estimate (model not found in registry).
-	CostCalculationStatus_COST_CALCULATION_STATUS_ESTIMATED CostCalculationStatus = 2
-	// Model pricing not found; cost is zero.
-	CostCalculationStatus_COST_CALCULATION_STATUS_PRICE_NOT_FOUND CostCalculationStatus = 3
-	// Cost was reconciled against provider reports.
-	CostCalculationStatus_COST_CALCULATION_STATUS_RECONCILED CostCalculationStatus = 4
-	// Cost was manually adjusted.
-	CostCalculationStatus_COST_CALCULATION_STATUS_MANUAL_ADJUSTED CostCalculationStatus = 5
-)
-
-// Enum value maps for CostCalculationStatus.
-var (
-	CostCalculationStatus_name = map[int32]string{
-		0: "COST_CALCULATION_STATUS_UNSPECIFIED",
-		1: "COST_CALCULATION_STATUS_COMPUTED",
-		2: "COST_CALCULATION_STATUS_ESTIMATED",
-		3: "COST_CALCULATION_STATUS_PRICE_NOT_FOUND",
-		4: "COST_CALCULATION_STATUS_RECONCILED",
-		5: "COST_CALCULATION_STATUS_MANUAL_ADJUSTED",
-	}
-	CostCalculationStatus_value = map[string]int32{
-		"COST_CALCULATION_STATUS_UNSPECIFIED":     0,
-		"COST_CALCULATION_STATUS_COMPUTED":        1,
-		"COST_CALCULATION_STATUS_ESTIMATED":       2,
-		"COST_CALCULATION_STATUS_PRICE_NOT_FOUND": 3,
-		"COST_CALCULATION_STATUS_RECONCILED":      4,
-		"COST_CALCULATION_STATUS_MANUAL_ADJUSTED": 5,
-	}
-)
-
-func (x CostCalculationStatus) Enum() *CostCalculationStatus {
-	p := new(CostCalculationStatus)
-	*p = x
-	return p
-}
-
-func (x CostCalculationStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (CostCalculationStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_enumTypes[4].Descriptor()
-}
-
-func (CostCalculationStatus) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_run_v1_usage_proto_enumTypes[4]
-}
-
-func (x CostCalculationStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use CostCalculationStatus.Descriptor instead.
-func (CostCalculationStatus) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{4}
-}
-
 // Whose provider credential served a proxied LLM call.
 //
 // The proxy picks the key, injects it upstream, and reports the same source
@@ -387,11 +256,11 @@ func (x ProviderKeySource) String() string {
 }
 
 func (ProviderKeySource) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_enumTypes[5].Descriptor()
+	return file_ai_stigmer_agentic_run_v1_usage_proto_enumTypes[3].Descriptor()
 }
 
 func (ProviderKeySource) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_run_v1_usage_proto_enumTypes[5]
+	return &file_ai_stigmer_agentic_run_v1_usage_proto_enumTypes[3]
 }
 
 func (x ProviderKeySource) Number() protoreflect.EnumNumber {
@@ -400,7 +269,7 @@ func (x ProviderKeySource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ProviderKeySource.Descriptor instead.
 func (ProviderKeySource) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{3}
 }
 
 // Normalized token usage from a single LLM call.
@@ -422,7 +291,7 @@ type TokenUsage struct {
 	ReasoningTokens int64 `protobuf:"varint,6,opt,name=reasoning_tokens,json=reasoningTokens,proto3" json:"reasoning_tokens,omitempty"`
 	// Tool-use prompt tokens (Vertex toolUsePromptTokenCount).
 	ToolUsePromptTokens int64 `protobuf:"varint,7,opt,name=tool_use_prompt_tokens,json=toolUsePromptTokens,proto3" json:"tool_use_prompt_tokens,omitempty"`
-	// Audio tokens (future multimodal billing).
+	// Audio tokens (multimodal models).
 	AudioInputTokens  int64 `protobuf:"varint,8,opt,name=audio_input_tokens,json=audioInputTokens,proto3" json:"audio_input_tokens,omitempty"`
 	AudioOutputTokens int64 `protobuf:"varint,9,opt,name=audio_output_tokens,json=audioOutputTokens,proto3" json:"audio_output_tokens,omitempty"`
 	// Provider-specific token details not yet normalized.
@@ -531,235 +400,6 @@ func (x *TokenUsage) GetProviderTokenDetails() map[string]int64 {
 	return nil
 }
 
-// Pricing rates snapshot at the time of the LLM call.
-type PricingSnapshot struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Version of the model pricing registry used.
-	PricingRegistryVersion string `protobuf:"bytes,1,opt,name=pricing_registry_version,json=pricingRegistryVersion,proto3" json:"pricing_registry_version,omitempty"`
-	// When this pricing became effective.
-	PricingEffectiveAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=pricing_effective_at,json=pricingEffectiveAt,proto3" json:"pricing_effective_at,omitempty"`
-	// Currency (always "USD" for now).
-	Currency string `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
-	// Provider cost rates (micro-USD per million tokens).
-	InputPriceMicrosPerMillion         int64 `protobuf:"varint,10,opt,name=input_price_micros_per_million,json=inputPriceMicrosPerMillion,proto3" json:"input_price_micros_per_million,omitempty"`
-	OutputPriceMicrosPerMillion        int64 `protobuf:"varint,11,opt,name=output_price_micros_per_million,json=outputPriceMicrosPerMillion,proto3" json:"output_price_micros_per_million,omitempty"`
-	CacheCreationPriceMicrosPerMillion int64 `protobuf:"varint,12,opt,name=cache_creation_price_micros_per_million,json=cacheCreationPriceMicrosPerMillion,proto3" json:"cache_creation_price_micros_per_million,omitempty"`
-	CacheReadPriceMicrosPerMillion     int64 `protobuf:"varint,13,opt,name=cache_read_price_micros_per_million,json=cacheReadPriceMicrosPerMillion,proto3" json:"cache_read_price_micros_per_million,omitempty"`
-	ReasoningPriceMicrosPerMillion     int64 `protobuf:"varint,14,opt,name=reasoning_price_micros_per_million,json=reasoningPriceMicrosPerMillion,proto3" json:"reasoning_price_micros_per_million,omitempty"`
-	// Cursor Token Rate applied to every billable token on non-Auto Cursor
-	// Teams requests (micro-USD per million tokens). Charged by Cursor on top
-	// of model API pricing; folded into provider_cost_micros for cursor-harness
-	// calls. Zero for native harness and for exempt cursor models (Auto/Composer).
-	CursorTokenRateMicrosPerMillion int64 `protobuf:"varint,15,opt,name=cursor_token_rate_micros_per_million,json=cursorTokenRateMicrosPerMillion,proto3" json:"cursor_token_rate_micros_per_million,omitempty"`
-	// Customer billing policy applied.
-	MarkupPolicyVersion string `protobuf:"bytes,30,opt,name=markup_policy_version,json=markupPolicyVersion,proto3" json:"markup_policy_version,omitempty"`
-	CostTier            string `protobuf:"bytes,31,opt,name=cost_tier,json=costTier,proto3" json:"cost_tier,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *PricingSnapshot) Reset() {
-	*x = PricingSnapshot{}
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PricingSnapshot) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PricingSnapshot) ProtoMessage() {}
-
-func (x *PricingSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PricingSnapshot.ProtoReflect.Descriptor instead.
-func (*PricingSnapshot) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *PricingSnapshot) GetPricingRegistryVersion() string {
-	if x != nil {
-		return x.PricingRegistryVersion
-	}
-	return ""
-}
-
-func (x *PricingSnapshot) GetPricingEffectiveAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.PricingEffectiveAt
-	}
-	return nil
-}
-
-func (x *PricingSnapshot) GetCurrency() string {
-	if x != nil {
-		return x.Currency
-	}
-	return ""
-}
-
-func (x *PricingSnapshot) GetInputPriceMicrosPerMillion() int64 {
-	if x != nil {
-		return x.InputPriceMicrosPerMillion
-	}
-	return 0
-}
-
-func (x *PricingSnapshot) GetOutputPriceMicrosPerMillion() int64 {
-	if x != nil {
-		return x.OutputPriceMicrosPerMillion
-	}
-	return 0
-}
-
-func (x *PricingSnapshot) GetCacheCreationPriceMicrosPerMillion() int64 {
-	if x != nil {
-		return x.CacheCreationPriceMicrosPerMillion
-	}
-	return 0
-}
-
-func (x *PricingSnapshot) GetCacheReadPriceMicrosPerMillion() int64 {
-	if x != nil {
-		return x.CacheReadPriceMicrosPerMillion
-	}
-	return 0
-}
-
-func (x *PricingSnapshot) GetReasoningPriceMicrosPerMillion() int64 {
-	if x != nil {
-		return x.ReasoningPriceMicrosPerMillion
-	}
-	return 0
-}
-
-func (x *PricingSnapshot) GetCursorTokenRateMicrosPerMillion() int64 {
-	if x != nil {
-		return x.CursorTokenRateMicrosPerMillion
-	}
-	return 0
-}
-
-func (x *PricingSnapshot) GetMarkupPolicyVersion() string {
-	if x != nil {
-		return x.MarkupPolicyVersion
-	}
-	return ""
-}
-
-func (x *PricingSnapshot) GetCostTier() string {
-	if x != nil {
-		return x.CostTier
-	}
-	return ""
-}
-
-// Cost computation result stamped on each usage record.
-type CostStamp struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Currency (always "USD").
-	Currency string `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency,omitempty"`
-	// Raw provider cost computed server-side from pricing registry.
-	// For cursor-harness calls this includes the Cursor Token Rate fee
-	// (see cursor_platform_fee_micros for the explicit sub-component).
-	ProviderCostMicros int64 `protobuf:"varint,2,opt,name=provider_cost_micros,json=providerCostMicros,proto3" json:"provider_cost_micros,omitempty"`
-	// Amount debited from customer credits (after markup policy).
-	CustomerBillableAmountMicros int64 `protobuf:"varint,3,opt,name=customer_billable_amount_micros,json=customerBillableAmountMicros,proto3" json:"customer_billable_amount_micros,omitempty"`
-	// How cost was computed.
-	CalculationStatus CostCalculationStatus `protobuf:"varint,4,opt,name=calculation_status,json=calculationStatus,proto3,enum=ai.stigmer.agentic.run.v1.CostCalculationStatus" json:"calculation_status,omitempty"`
-	// Full pricing snapshot for historical reproducibility.
-	Pricing *PricingSnapshot `protobuf:"bytes,5,opt,name=pricing,proto3" json:"pricing,omitempty"`
-	// Cursor Token Rate fee charged by Cursor on top of model API pricing,
-	// already included in provider_cost_micros. Surfaced explicitly for audit
-	// and per-call transparency. Zero for native harness and exempt cursor models.
-	CursorPlatformFeeMicros int64 `protobuf:"varint,6,opt,name=cursor_platform_fee_micros,json=cursorPlatformFeeMicros,proto3" json:"cursor_platform_fee_micros,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
-}
-
-func (x *CostStamp) Reset() {
-	*x = CostStamp{}
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CostStamp) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CostStamp) ProtoMessage() {}
-
-func (x *CostStamp) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CostStamp.ProtoReflect.Descriptor instead.
-func (*CostStamp) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *CostStamp) GetCurrency() string {
-	if x != nil {
-		return x.Currency
-	}
-	return ""
-}
-
-func (x *CostStamp) GetProviderCostMicros() int64 {
-	if x != nil {
-		return x.ProviderCostMicros
-	}
-	return 0
-}
-
-func (x *CostStamp) GetCustomerBillableAmountMicros() int64 {
-	if x != nil {
-		return x.CustomerBillableAmountMicros
-	}
-	return 0
-}
-
-func (x *CostStamp) GetCalculationStatus() CostCalculationStatus {
-	if x != nil {
-		return x.CalculationStatus
-	}
-	return CostCalculationStatus_COST_CALCULATION_STATUS_UNSPECIFIED
-}
-
-func (x *CostStamp) GetPricing() *PricingSnapshot {
-	if x != nil {
-		return x.Pricing
-	}
-	return nil
-}
-
-func (x *CostStamp) GetCursorPlatformFeeMicros() int64 {
-	if x != nil {
-		return x.CursorPlatformFeeMicros
-	}
-	return 0
-}
-
 // Proxy-observed timing for a single LLM call.
 // These are server-side measurements, not client-perceived latency.
 type ProxyTiming struct {
@@ -788,7 +428,7 @@ type ProxyTiming struct {
 
 func (x *ProxyTiming) Reset() {
 	*x = ProxyTiming{}
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -800,7 +440,7 @@ func (x *ProxyTiming) String() string {
 func (*ProxyTiming) ProtoMessage() {}
 
 func (x *ProxyTiming) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -813,7 +453,7 @@ func (x *ProxyTiming) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProxyTiming.ProtoReflect.Descriptor instead.
 func (*ProxyTiming) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ProxyTiming) GetProxyReceivedAt() *timestamppb.Timestamp {
@@ -893,113 +533,22 @@ func (x *ProxyTiming) GetResponseBytes() int64 {
 	return 0
 }
 
-// Links a usage record to its billing debit in the credit ledger.
-type BillingLink struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Current debit status.
-	DebitStatus BillingDebitStatus `protobuf:"varint,1,opt,name=debit_status,json=debitStatus,proto3,enum=ai.stigmer.agentic.run.v1.BillingDebitStatus" json:"debit_status,omitempty"`
-	// Run reservation ID (from authorizeRun).
-	ReservationId string `protobuf:"bytes,2,opt,name=reservation_id,json=reservationId,proto3" json:"reservation_id,omitempty"`
-	// Billing ledger debit ID (from reportLlmCallUsage).
-	BillingDebitId string `protobuf:"bytes,3,opt,name=billing_debit_id,json=billingDebitId,proto3" json:"billing_debit_id,omitempty"`
-	// When the debit was applied.
-	DebitedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=debited_at,json=debitedAt,proto3" json:"debited_at,omitempty"`
-	// Operational visibility.
-	BillingAttemptCount int32  `protobuf:"varint,5,opt,name=billing_attempt_count,json=billingAttemptCount,proto3" json:"billing_attempt_count,omitempty"`
-	LastBillingError    string `protobuf:"bytes,6,opt,name=last_billing_error,json=lastBillingError,proto3" json:"last_billing_error,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *BillingLink) Reset() {
-	*x = BillingLink{}
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BillingLink) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BillingLink) ProtoMessage() {}
-
-func (x *BillingLink) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BillingLink.ProtoReflect.Descriptor instead.
-func (*BillingLink) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *BillingLink) GetDebitStatus() BillingDebitStatus {
-	if x != nil {
-		return x.DebitStatus
-	}
-	return BillingDebitStatus_BILLING_DEBIT_STATUS_UNSPECIFIED
-}
-
-func (x *BillingLink) GetReservationId() string {
-	if x != nil {
-		return x.ReservationId
-	}
-	return ""
-}
-
-func (x *BillingLink) GetBillingDebitId() string {
-	if x != nil {
-		return x.BillingDebitId
-	}
-	return ""
-}
-
-func (x *BillingLink) GetDebitedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.DebitedAt
-	}
-	return nil
-}
-
-func (x *BillingLink) GetBillingAttemptCount() int32 {
-	if x != nil {
-		return x.BillingAttemptCount
-	}
-	return 0
-}
-
-func (x *BillingLink) GetLastBillingError() string {
-	if x != nil {
-		return x.LastBillingError
-	}
-	return ""
-}
-
-// Immutable, billing-authoritative record for a single LLM API call.
+// Immutable, metering-authoritative record for a single LLM API call.
 //
 // Written by the proxy after each SSE stream completes (cloud mode) or by
 // the runner directly (OSS mode). Stored in the `llm_call_usage_record`
-// MongoDB collection, never embedded in the run document.
+// table, never embedded in the run document.
 //
 // ## Lifecycle
-// 1. Proxy observes SSE stream completion and extracts final usage
-// 2. Server inserts LlmCallUsageRecord (idempotent by idempotency_key)
-// 3. Server computes cost and triggers billing debit
-// 4. billing_link.debit_status transitions to DEBITED
+//  1. Proxy observes SSE stream completion and extracts final usage
+//  2. Server resolves the call against the model catalog (harness, served
+//     tier, thinking mode) and inserts LlmCallUsageRecord (idempotent by
+//     idempotency_key)
 //
 // ## Idempotency
 // Unique on idempotency_key: run_id + the call's identity + metering_source,
 // where the identity is call_id when the reporter supplied one, else sequence.
-// Insert-only; never mutated except for billing_link status transitions and
-// repricing.
+// Insert-only; never mutated.
 type LlmCallUsageRecord struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ─── Identity ───────────────────────────────────────────────────────────────
@@ -1019,10 +568,8 @@ type LlmCallUsageRecord struct {
 	// Hash of normalized payload for conflict detection on retries.
 	CanonicalPayloadHash string `protobuf:"bytes,6,opt,name=canonical_payload_hash,json=canonicalPayloadHash,proto3" json:"canonical_payload_hash,omitempty"`
 	// The call's identity as the reporting proxy minted it (RecordLlmCallUsageInput.call_id),
-	// stamped verbatim. The durable link from a ledger usage_debit
-	// (CreditLedgerSource.llm_call_id) back to this record, and what every later
-	// debit of this record — the live one and the repricing sweep's — keys on.
-	// Empty for records whose reporter sent no call id; those key on sequence.
+	// stamped verbatim; the idempotency key is built on it. Empty for records
+	// whose reporter sent no call id; those key on sequence.
 	CallId string `protobuf:"bytes,9,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`
 	// ─── Timestamps ─────────────────────────────────────────────────────────────
 	// When the proxy observed stream completion.
@@ -1034,8 +581,6 @@ type LlmCallUsageRecord struct {
 	MeteringSource UsageMeteringSource   `protobuf:"varint,20,opt,name=metering_source,json=meteringSource,proto3,enum=ai.stigmer.agentic.run.v1.UsageMeteringSource" json:"metering_source,omitempty"`
 	TrustLevel     UsageTrustLevel       `protobuf:"varint,21,opt,name=trust_level,json=trustLevel,proto3,enum=ai.stigmer.agentic.run.v1.UsageTrustLevel" json:"trust_level,omitempty"`
 	UsageStatus    UsageCompletionStatus `protobuf:"varint,22,opt,name=usage_status,json=usageStatus,proto3,enum=ai.stigmer.agentic.run.v1.UsageCompletionStatus" json:"usage_status,omitempty"`
-	// Whether this record should produce a billing debit.
-	IsBillable bool `protobuf:"varint,23,opt,name=is_billable,json=isBillable,proto3" json:"is_billable,omitempty"`
 	// ─── Provider / Request Metadata ────────────────────────────────────────────
 	Provider          string `protobuf:"bytes,30,opt,name=provider,proto3" json:"provider,omitempty"`
 	RequestedModel    string `protobuf:"bytes,31,opt,name=requested_model,json=requestedModel,proto3" json:"requested_model,omitempty"`
@@ -1057,21 +602,17 @@ type LlmCallUsageRecord struct {
 	// mirroring service_tier's convention: cursor harness derives it from the
 	// resolved wire id's variant suffix; empty when the wire carries no
 	// evidence — never guessed. Thinking is per-token price-neutral
-	// (ledger-verified, stigmer/stigmer#772), so this field feeds the
-	// requested-vs-billed consumption-drift reconciliation, not pricing.
+	// (stigmer/stigmer#772), so this field feeds the requested-vs-billed
+	// consumption-drift reconciliation.
 	Thinking string `protobuf:"bytes,44,opt,name=thinking,proto3" json:"thinking,omitempty"`
 	// ─── Token Usage ────────────────────────────────────────────────────────────
 	Tokens *TokenUsage `protobuf:"bytes,50,opt,name=tokens,proto3" json:"tokens,omitempty"`
-	// ─── Cost ───────────────────────────────────────────────────────────────────
-	Cost *CostStamp `protobuf:"bytes,51,opt,name=cost,proto3" json:"cost,omitempty"`
 	// ─── Proxy Timing ──────────────────────────────────────────────────────────
 	// Present when metering_source is PROXY_PROVIDER_REPORTED.
 	ProxyTiming *ProxyTiming `protobuf:"bytes,60,opt,name=proxy_timing,json=proxyTiming,proto3" json:"proxy_timing,omitempty"`
 	// ─── Raw Provider Usage ─────────────────────────────────────────────────────
 	// Compact JSON of provider's raw usage object for audit/debug.
 	ProviderUsageJson string `protobuf:"bytes,70,opt,name=provider_usage_json,json=providerUsageJson,proto3" json:"provider_usage_json,omitempty"`
-	// ─── Billing Handoff ────────────────────────────────────────────────────────
-	Billing *BillingLink `protobuf:"bytes,80,opt,name=billing,proto3" json:"billing,omitempty"`
 	// Organization that owns this run.
 	Org string `protobuf:"bytes,7,opt,name=org,proto3" json:"org,omitempty"`
 	// Session this run belongs to.
@@ -1085,7 +626,7 @@ type LlmCallUsageRecord struct {
 
 func (x *LlmCallUsageRecord) Reset() {
 	*x = LlmCallUsageRecord{}
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1097,7 +638,7 @@ func (x *LlmCallUsageRecord) String() string {
 func (*LlmCallUsageRecord) ProtoMessage() {}
 
 func (x *LlmCallUsageRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1110,7 +651,7 @@ func (x *LlmCallUsageRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LlmCallUsageRecord.ProtoReflect.Descriptor instead.
 func (*LlmCallUsageRecord) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *LlmCallUsageRecord) GetUsageRecordId() string {
@@ -1195,13 +736,6 @@ func (x *LlmCallUsageRecord) GetUsageStatus() UsageCompletionStatus {
 		return x.UsageStatus
 	}
 	return UsageCompletionStatus_USAGE_COMPLETION_STATUS_UNSPECIFIED
-}
-
-func (x *LlmCallUsageRecord) GetIsBillable() bool {
-	if x != nil {
-		return x.IsBillable
-	}
-	return false
 }
 
 func (x *LlmCallUsageRecord) GetProvider() string {
@@ -1302,13 +836,6 @@ func (x *LlmCallUsageRecord) GetTokens() *TokenUsage {
 	return nil
 }
 
-func (x *LlmCallUsageRecord) GetCost() *CostStamp {
-	if x != nil {
-		return x.Cost
-	}
-	return nil
-}
-
 func (x *LlmCallUsageRecord) GetProxyTiming() *ProxyTiming {
 	if x != nil {
 		return x.ProxyTiming
@@ -1321,13 +848,6 @@ func (x *LlmCallUsageRecord) GetProviderUsageJson() string {
 		return x.ProviderUsageJson
 	}
 	return ""
-}
-
-func (x *LlmCallUsageRecord) GetBilling() *BillingLink {
-	if x != nil {
-		return x.Billing
-	}
-	return nil
 }
 
 func (x *LlmCallUsageRecord) GetOrg() string {
@@ -1386,7 +906,7 @@ type UsageReportAggregate struct {
 
 func (x *UsageReportAggregate) Reset() {
 	*x = UsageReportAggregate{}
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1398,7 +918,7 @@ func (x *UsageReportAggregate) String() string {
 func (*UsageReportAggregate) ProtoMessage() {}
 
 func (x *UsageReportAggregate) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1411,7 +931,7 @@ func (x *UsageReportAggregate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UsageReportAggregate.ProtoReflect.Descriptor instead.
 func (*UsageReportAggregate) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *UsageReportAggregate) GetInputTokens() int64 {
@@ -1517,7 +1037,7 @@ type ModelUsage struct {
 
 func (x *ModelUsage) Reset() {
 	*x = ModelUsage{}
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1529,7 +1049,7 @@ func (x *ModelUsage) String() string {
 func (*ModelUsage) ProtoMessage() {}
 
 func (x *ModelUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1542,7 +1062,7 @@ func (x *ModelUsage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelUsage.ProtoReflect.Descriptor instead.
 func (*ModelUsage) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ModelUsage) GetModel() string {
@@ -1656,7 +1176,7 @@ type StreamingUsageSummary struct {
 
 func (x *StreamingUsageSummary) Reset() {
 	*x = StreamingUsageSummary{}
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1668,7 +1188,7 @@ func (x *StreamingUsageSummary) String() string {
 func (*StreamingUsageSummary) ProtoMessage() {}
 
 func (x *StreamingUsageSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1681,7 +1201,7 @@ func (x *StreamingUsageSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamingUsageSummary.ProtoReflect.Descriptor instead.
 func (*StreamingUsageSummary) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *StreamingUsageSummary) GetInputTokens() int64 {
@@ -1787,27 +1307,7 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"\x16provider_token_details\x18\x14 \x03(\v2?.ai.stigmer.agentic.run.v1.TokenUsage.ProviderTokenDetailsEntryR\x14providerTokenDetails\x1aG\n" +
 	"\x19ProviderTokenDetailsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"\xcd\x05\n" +
-	"\x0fPricingSnapshot\x128\n" +
-	"\x18pricing_registry_version\x18\x01 \x01(\tR\x16pricingRegistryVersion\x12L\n" +
-	"\x14pricing_effective_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x12pricingEffectiveAt\x12\x1a\n" +
-	"\bcurrency\x18\x03 \x01(\tR\bcurrency\x12B\n" +
-	"\x1einput_price_micros_per_million\x18\n" +
-	" \x01(\x03R\x1ainputPriceMicrosPerMillion\x12D\n" +
-	"\x1foutput_price_micros_per_million\x18\v \x01(\x03R\x1boutputPriceMicrosPerMillion\x12S\n" +
-	"'cache_creation_price_micros_per_million\x18\f \x01(\x03R\"cacheCreationPriceMicrosPerMillion\x12K\n" +
-	"#cache_read_price_micros_per_million\x18\r \x01(\x03R\x1ecacheReadPriceMicrosPerMillion\x12J\n" +
-	"\"reasoning_price_micros_per_million\x18\x0e \x01(\x03R\x1ereasoningPriceMicrosPerMillion\x12M\n" +
-	"$cursor_token_rate_micros_per_million\x18\x0f \x01(\x03R\x1fcursorTokenRateMicrosPerMillion\x122\n" +
-	"\x15markup_policy_version\x18\x1e \x01(\tR\x13markupPolicyVersion\x12\x1b\n" +
-	"\tcost_tier\x18\x1f \x01(\tR\bcostTier\"\x84\x03\n" +
-	"\tCostStamp\x12\x1a\n" +
-	"\bcurrency\x18\x01 \x01(\tR\bcurrency\x120\n" +
-	"\x14provider_cost_micros\x18\x02 \x01(\x03R\x12providerCostMicros\x12E\n" +
-	"\x1fcustomer_billable_amount_micros\x18\x03 \x01(\x03R\x1ccustomerBillableAmountMicros\x12_\n" +
-	"\x12calculation_status\x18\x04 \x01(\x0e20.ai.stigmer.agentic.run.v1.CostCalculationStatusR\x11calculationStatus\x12D\n" +
-	"\apricing\x18\x05 \x01(\v2*.ai.stigmer.agentic.run.v1.PricingSnapshotR\apricing\x12;\n" +
-	"\x1acursor_platform_fee_micros\x18\x06 \x01(\x03R\x17cursorPlatformFeeMicros\"\x9f\x05\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"\x9f\x05\n" +
 	"\vProxyTiming\x12F\n" +
 	"\x11proxy_received_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x0fproxyReceivedAt\x12Y\n" +
 	"\x1bupstream_request_started_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x18upstreamRequestStartedAt\x12O\n" +
@@ -1820,15 +1320,7 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"\x12stream_duration_ms\x18\f \x01(\x03R\x10streamDurationMs\x125\n" +
 	"\x17proxy_total_duration_ms\x18\r \x01(\x03R\x14proxyTotalDurationMs\x12#\n" +
 	"\rrequest_bytes\x18\x14 \x01(\x03R\frequestBytes\x12%\n" +
-	"\x0eresponse_bytes\x18\x15 \x01(\x03R\rresponseBytes\"\xcd\x02\n" +
-	"\vBillingLink\x12P\n" +
-	"\fdebit_status\x18\x01 \x01(\x0e2-.ai.stigmer.agentic.run.v1.BillingDebitStatusR\vdebitStatus\x12%\n" +
-	"\x0ereservation_id\x18\x02 \x01(\tR\rreservationId\x12(\n" +
-	"\x10billing_debit_id\x18\x03 \x01(\tR\x0ebillingDebitId\x129\n" +
-	"\n" +
-	"debited_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tdebitedAt\x122\n" +
-	"\x15billing_attempt_count\x18\x05 \x01(\x05R\x13billingAttemptCount\x12,\n" +
-	"\x12last_billing_error\x18\x06 \x01(\tR\x10lastBillingError\"\xd2\r\n" +
+	"\x0eresponse_bytes\x18\x15 \x01(\x03R\rresponseBytes\"\xe3\f\n" +
 	"\x12LlmCallUsageRecord\x12&\n" +
 	"\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\tR\x05runId\x12\x1e\n" +
@@ -1845,9 +1337,7 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"\x0fmetering_source\x18\x14 \x01(\x0e2..ai.stigmer.agentic.run.v1.UsageMeteringSourceR\x0emeteringSource\x12K\n" +
 	"\vtrust_level\x18\x15 \x01(\x0e2*.ai.stigmer.agentic.run.v1.UsageTrustLevelR\n" +
 	"trustLevel\x12S\n" +
-	"\fusage_status\x18\x16 \x01(\x0e20.ai.stigmer.agentic.run.v1.UsageCompletionStatusR\vusageStatus\x12\x1f\n" +
-	"\vis_billable\x18\x17 \x01(\bR\n" +
-	"isBillable\x12\x1a\n" +
+	"\fusage_status\x18\x16 \x01(\x0e20.ai.stigmer.agentic.run.v1.UsageCompletionStatusR\vusageStatus\x12\x1a\n" +
 	"\bprovider\x18\x1e \x01(\tR\bprovider\x12'\n" +
 	"\x0frequested_model\x18\x1f \x01(\tR\x0erequestedModel\x12%\n" +
 	"\x0eresolved_model\x18  \x01(\tR\rresolvedModel\x12\x1a\n" +
@@ -1862,18 +1352,16 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"error_code\x18* \x01(\tR\terrorCode\x12\\\n" +
 	"\x13provider_key_source\x18- \x01(\x0e2,.ai.stigmer.agentic.run.v1.ProviderKeySourceR\x11providerKeySource\x12\x1a\n" +
 	"\bthinking\x18, \x01(\tR\bthinking\x12=\n" +
-	"\x06tokens\x182 \x01(\v2%.ai.stigmer.agentic.run.v1.TokenUsageR\x06tokens\x128\n" +
-	"\x04cost\x183 \x01(\v2$.ai.stigmer.agentic.run.v1.CostStampR\x04cost\x12I\n" +
+	"\x06tokens\x182 \x01(\v2%.ai.stigmer.agentic.run.v1.TokenUsageR\x06tokens\x12I\n" +
 	"\fproxy_timing\x18< \x01(\v2&.ai.stigmer.agentic.run.v1.ProxyTimingR\vproxyTiming\x12.\n" +
-	"\x13provider_usage_json\x18F \x01(\tR\x11providerUsageJson\x12@\n" +
-	"\abilling\x18P \x01(\v2&.ai.stigmer.agentic.run.v1.BillingLinkR\abilling\x12\x10\n" +
+	"\x13provider_usage_json\x18F \x01(\tR\x11providerUsageJson\x12\x10\n" +
 	"\x03org\x18\a \x01(\tR\x03org\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\b \x01(\tR\tsessionId\x12Q\n" +
 	"\x06labels\x18Z \x03(\v29.ai.stigmer.agentic.run.v1.LlmCallUsageRecord.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b&\x10'J\x04\b'\x10(J\x04\b+\x10,R\x11cursor_account_idR\rcursor_key_idR\x11cursor_key_source\"\xfc\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x17\x10\x18J\x04\b&\x10'J\x04\b'\x10(J\x04\b+\x10,J\x04\b3\x104J\x04\bP\x10QR\vis_billableR\x11cursor_account_idR\rcursor_key_idR\x11cursor_key_sourceR\x04costR\abilling\"\xfc\x03\n" +
 	"\x14UsageReportAggregate\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
 	"\routput_tokens\x18\x02 \x01(\x03R\foutputTokens\x12!\n" +
@@ -1935,22 +1423,7 @@ const file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc = "" +
 	"/USAGE_COMPLETION_STATUS_PROVIDER_ERROR_NO_USAGE\x10\x04\x12*\n" +
 	"&USAGE_COMPLETION_STATUS_ESTIMATED_ONLY\x10\x05\x12&\n" +
 	"\"USAGE_COMPLETION_STATUS_RECONCILED\x10\x06\x12$\n" +
-	" USAGE_COMPLETION_STATUS_CONFLICT\x10\a*\x9f\x02\n" +
-	"\x12BillingDebitStatus\x12$\n" +
-	" BILLING_DEBIT_STATUS_UNSPECIFIED\x10\x00\x12'\n" +
-	"#BILLING_DEBIT_STATUS_NOT_APPLICABLE\x10\x01\x12 \n" +
-	"\x1cBILLING_DEBIT_STATUS_PENDING\x10\x02\x12 \n" +
-	"\x1cBILLING_DEBIT_STATUS_DEBITED\x10\x03\x12)\n" +
-	"%BILLING_DEBIT_STATUS_FAILED_RETRYABLE\x10\x04\x12(\n" +
-	"$BILLING_DEBIT_STATUS_FAILED_TERMINAL\x10\x05\x12!\n" +
-	"\x1dBILLING_DEBIT_STATUS_CONFLICT\x10\x06*\x8f\x02\n" +
-	"\x15CostCalculationStatus\x12'\n" +
-	"#COST_CALCULATION_STATUS_UNSPECIFIED\x10\x00\x12$\n" +
-	" COST_CALCULATION_STATUS_COMPUTED\x10\x01\x12%\n" +
-	"!COST_CALCULATION_STATUS_ESTIMATED\x10\x02\x12+\n" +
-	"'COST_CALCULATION_STATUS_PRICE_NOT_FOUND\x10\x03\x12&\n" +
-	"\"COST_CALCULATION_STATUS_RECONCILED\x10\x04\x12+\n" +
-	"'COST_CALCULATION_STATUS_MANUAL_ADJUSTED\x10\x05*\x80\x01\n" +
+	" USAGE_COMPLETION_STATUS_CONFLICT\x10\a*\x80\x01\n" +
 	"\x11ProviderKeySource\x12#\n" +
 	"\x1fPROVIDER_KEY_SOURCE_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cPROVIDER_KEY_SOURCE_PLATFORM\x10\x01\x12$\n" +
@@ -1970,60 +1443,48 @@ func file_ai_stigmer_agentic_run_v1_usage_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_run_v1_usage_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_run_v1_usage_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_ai_stigmer_agentic_run_v1_usage_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_ai_stigmer_agentic_run_v1_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ai_stigmer_agentic_run_v1_usage_proto_goTypes = []any{
 	(UsageMeteringSource)(0),      // 0: ai.stigmer.agentic.run.v1.UsageMeteringSource
 	(UsageTrustLevel)(0),          // 1: ai.stigmer.agentic.run.v1.UsageTrustLevel
 	(UsageCompletionStatus)(0),    // 2: ai.stigmer.agentic.run.v1.UsageCompletionStatus
-	(BillingDebitStatus)(0),       // 3: ai.stigmer.agentic.run.v1.BillingDebitStatus
-	(CostCalculationStatus)(0),    // 4: ai.stigmer.agentic.run.v1.CostCalculationStatus
-	(ProviderKeySource)(0),        // 5: ai.stigmer.agentic.run.v1.ProviderKeySource
-	(*TokenUsage)(nil),            // 6: ai.stigmer.agentic.run.v1.TokenUsage
-	(*PricingSnapshot)(nil),       // 7: ai.stigmer.agentic.run.v1.PricingSnapshot
-	(*CostStamp)(nil),             // 8: ai.stigmer.agentic.run.v1.CostStamp
-	(*ProxyTiming)(nil),           // 9: ai.stigmer.agentic.run.v1.ProxyTiming
-	(*BillingLink)(nil),           // 10: ai.stigmer.agentic.run.v1.BillingLink
-	(*LlmCallUsageRecord)(nil),    // 11: ai.stigmer.agentic.run.v1.LlmCallUsageRecord
-	(*UsageReportAggregate)(nil),  // 12: ai.stigmer.agentic.run.v1.UsageReportAggregate
-	(*ModelUsage)(nil),            // 13: ai.stigmer.agentic.run.v1.ModelUsage
-	(*StreamingUsageSummary)(nil), // 14: ai.stigmer.agentic.run.v1.StreamingUsageSummary
-	nil,                           // 15: ai.stigmer.agentic.run.v1.TokenUsage.ProviderTokenDetailsEntry
-	nil,                           // 16: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.LabelsEntry
-	(*timestamppb.Timestamp)(nil), // 17: google.protobuf.Timestamp
-	(ServiceTier)(0),              // 18: ai.stigmer.agentic.run.v1.ServiceTier
-	(ThinkingMode)(0),             // 19: ai.stigmer.agentic.run.v1.ThinkingMode
+	(ProviderKeySource)(0),        // 3: ai.stigmer.agentic.run.v1.ProviderKeySource
+	(*TokenUsage)(nil),            // 4: ai.stigmer.agentic.run.v1.TokenUsage
+	(*ProxyTiming)(nil),           // 5: ai.stigmer.agentic.run.v1.ProxyTiming
+	(*LlmCallUsageRecord)(nil),    // 6: ai.stigmer.agentic.run.v1.LlmCallUsageRecord
+	(*UsageReportAggregate)(nil),  // 7: ai.stigmer.agentic.run.v1.UsageReportAggregate
+	(*ModelUsage)(nil),            // 8: ai.stigmer.agentic.run.v1.ModelUsage
+	(*StreamingUsageSummary)(nil), // 9: ai.stigmer.agentic.run.v1.StreamingUsageSummary
+	nil,                           // 10: ai.stigmer.agentic.run.v1.TokenUsage.ProviderTokenDetailsEntry
+	nil,                           // 11: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.LabelsEntry
+	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
+	(ServiceTier)(0),              // 13: ai.stigmer.agentic.run.v1.ServiceTier
+	(ThinkingMode)(0),             // 14: ai.stigmer.agentic.run.v1.ThinkingMode
 }
 var file_ai_stigmer_agentic_run_v1_usage_proto_depIdxs = []int32{
-	15, // 0: ai.stigmer.agentic.run.v1.TokenUsage.provider_token_details:type_name -> ai.stigmer.agentic.run.v1.TokenUsage.ProviderTokenDetailsEntry
-	17, // 1: ai.stigmer.agentic.run.v1.PricingSnapshot.pricing_effective_at:type_name -> google.protobuf.Timestamp
-	4,  // 2: ai.stigmer.agentic.run.v1.CostStamp.calculation_status:type_name -> ai.stigmer.agentic.run.v1.CostCalculationStatus
-	7,  // 3: ai.stigmer.agentic.run.v1.CostStamp.pricing:type_name -> ai.stigmer.agentic.run.v1.PricingSnapshot
-	17, // 4: ai.stigmer.agentic.run.v1.ProxyTiming.proxy_received_at:type_name -> google.protobuf.Timestamp
-	17, // 5: ai.stigmer.agentic.run.v1.ProxyTiming.upstream_request_started_at:type_name -> google.protobuf.Timestamp
-	17, // 6: ai.stigmer.agentic.run.v1.ProxyTiming.first_response_byte_at:type_name -> google.protobuf.Timestamp
-	17, // 7: ai.stigmer.agentic.run.v1.ProxyTiming.last_response_byte_at:type_name -> google.protobuf.Timestamp
-	17, // 8: ai.stigmer.agentic.run.v1.ProxyTiming.proxy_completed_at:type_name -> google.protobuf.Timestamp
-	3,  // 9: ai.stigmer.agentic.run.v1.BillingLink.debit_status:type_name -> ai.stigmer.agentic.run.v1.BillingDebitStatus
-	17, // 10: ai.stigmer.agentic.run.v1.BillingLink.debited_at:type_name -> google.protobuf.Timestamp
-	17, // 11: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.observed_at:type_name -> google.protobuf.Timestamp
-	17, // 12: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.created_at:type_name -> google.protobuf.Timestamp
-	0,  // 13: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.metering_source:type_name -> ai.stigmer.agentic.run.v1.UsageMeteringSource
-	1,  // 14: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.trust_level:type_name -> ai.stigmer.agentic.run.v1.UsageTrustLevel
-	2,  // 15: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.usage_status:type_name -> ai.stigmer.agentic.run.v1.UsageCompletionStatus
-	5,  // 16: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.provider_key_source:type_name -> ai.stigmer.agentic.run.v1.ProviderKeySource
-	6,  // 17: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.tokens:type_name -> ai.stigmer.agentic.run.v1.TokenUsage
-	8,  // 18: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.cost:type_name -> ai.stigmer.agentic.run.v1.CostStamp
-	9,  // 19: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.proxy_timing:type_name -> ai.stigmer.agentic.run.v1.ProxyTiming
-	10, // 20: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.billing:type_name -> ai.stigmer.agentic.run.v1.BillingLink
-	16, // 21: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.labels:type_name -> ai.stigmer.agentic.run.v1.LlmCallUsageRecord.LabelsEntry
-	18, // 22: ai.stigmer.agentic.run.v1.StreamingUsageSummary.requested_service_tier:type_name -> ai.stigmer.agentic.run.v1.ServiceTier
-	19, // 23: ai.stigmer.agentic.run.v1.StreamingUsageSummary.requested_thinking_mode:type_name -> ai.stigmer.agentic.run.v1.ThinkingMode
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	10, // 0: ai.stigmer.agentic.run.v1.TokenUsage.provider_token_details:type_name -> ai.stigmer.agentic.run.v1.TokenUsage.ProviderTokenDetailsEntry
+	12, // 1: ai.stigmer.agentic.run.v1.ProxyTiming.proxy_received_at:type_name -> google.protobuf.Timestamp
+	12, // 2: ai.stigmer.agentic.run.v1.ProxyTiming.upstream_request_started_at:type_name -> google.protobuf.Timestamp
+	12, // 3: ai.stigmer.agentic.run.v1.ProxyTiming.first_response_byte_at:type_name -> google.protobuf.Timestamp
+	12, // 4: ai.stigmer.agentic.run.v1.ProxyTiming.last_response_byte_at:type_name -> google.protobuf.Timestamp
+	12, // 5: ai.stigmer.agentic.run.v1.ProxyTiming.proxy_completed_at:type_name -> google.protobuf.Timestamp
+	12, // 6: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.observed_at:type_name -> google.protobuf.Timestamp
+	12, // 7: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.created_at:type_name -> google.protobuf.Timestamp
+	0,  // 8: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.metering_source:type_name -> ai.stigmer.agentic.run.v1.UsageMeteringSource
+	1,  // 9: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.trust_level:type_name -> ai.stigmer.agentic.run.v1.UsageTrustLevel
+	2,  // 10: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.usage_status:type_name -> ai.stigmer.agentic.run.v1.UsageCompletionStatus
+	3,  // 11: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.provider_key_source:type_name -> ai.stigmer.agentic.run.v1.ProviderKeySource
+	4,  // 12: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.tokens:type_name -> ai.stigmer.agentic.run.v1.TokenUsage
+	5,  // 13: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.proxy_timing:type_name -> ai.stigmer.agentic.run.v1.ProxyTiming
+	11, // 14: ai.stigmer.agentic.run.v1.LlmCallUsageRecord.labels:type_name -> ai.stigmer.agentic.run.v1.LlmCallUsageRecord.LabelsEntry
+	13, // 15: ai.stigmer.agentic.run.v1.StreamingUsageSummary.requested_service_tier:type_name -> ai.stigmer.agentic.run.v1.ServiceTier
+	14, // 16: ai.stigmer.agentic.run.v1.StreamingUsageSummary.requested_thinking_mode:type_name -> ai.stigmer.agentic.run.v1.ThinkingMode
+	17, // [17:17] is the sub-list for method output_type
+	17, // [17:17] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_usage_proto_init() }
@@ -2037,8 +1498,8 @@ func file_ai_stigmer_agentic_run_v1_usage_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc), len(file_ai_stigmer_agentic_run_v1_usage_proto_rawDesc)),
-			NumEnums:      6,
-			NumMessages:   11,
+			NumEnums:      4,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

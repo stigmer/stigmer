@@ -145,7 +145,6 @@ export const PLUGIN_EVAL_SUITE_FAILED_FAILURE_TYPE = "PluginEvalSuiteFailed";
 
 /** The not-graded reasons the workflows give without an activity. */
 export const PLATFORM_BUSY_REASON = "platform busy";
-export const OUT_OF_CREDIT_REASON = "out of credit";
 export const CANNOT_ACT_REASON =
   "the eval cannot act for anyone in this organization";
 export const TRY_NOT_STARTED_REASON = "the try could not start";
@@ -210,7 +209,7 @@ export type SuitePlan =
   | { readonly kind: "stop" };
 
 /** Why an eval stopped early, in the workflow's words. */
-export type SuiteStop = "cost_ceiling" | "out_of_credit" | "cancelled";
+export type SuiteStop = "cost_ceiling" | "cancelled";
 
 /** How the eval ends; failed when one of the suite workflow's own steps could not be done. */
 export type SuiteEnd =
@@ -248,7 +247,7 @@ export interface TrySpend {
 }
 
 /** Why a try did not start. */
-export type TryFailure = "out-of-credit" | "cannot-act" | "not-started";
+export type TryFailure = "cannot-act" | "not-started";
 
 /** The start's answer. */
 export type TryStart =
@@ -335,8 +334,6 @@ export interface TryResult {
   readonly error: string;
   readonly costUsd: number;
   readonly durationSeconds: number;
-  /** The organization's credit refused the try: the suite stops starting tries. */
-  readonly outOfCredit: boolean;
   /** Which mock stopped the try, and why; absent otherwise. */
   readonly aborted?: {
     readonly server: string;

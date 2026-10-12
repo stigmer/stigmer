@@ -117,22 +117,14 @@ message RunStatus {
   //
   // @internal
   //
-  // Computed server-side by the Go/Java UpdateStatus handlers on every write.
-  // The handler scans messages[].tool_calls and
-  // sub_agent_runs[].messages[].tool_calls, collecting entries where
-  // status == WAITING_APPROVAL && requires_approval == true, and projects
-  // them into PendingApproval entries.
-  //
-  // Because this field is recomputed (not merged), it is always consistent
-  // with the authoritative tool call state embedded in messages. No lifecycle
-  // state machine, no merge logic, no forward-only enforcement needed.
-  //
-  // Lifecycle:
-  // 1. The runner sets ToolCall.status = WAITING_APPROVAL on the message
-  // 2. UpdateStatus handler recomputes this field, entry appears
-  // 3. Phase changes to RUN_WAITING_FOR_APPROVAL
-  // 4. User submits decisions via SubmitApproval RPC (one per tool call)
-  // 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
+  // Recomputed by the server on every write of the run: the tool calls in
+  // messages[].tool_calls and sub_agent_runs[].messages[].tool_calls with
+  // status WAITING_APPROVAL, requires_approval and no decision, kept to
+  // those whose agent.tool_use still waits in the session's log (an ask no
+  // user.tool_confirmation or result has closed). The log decides which
+  // calls wait; the rows describe them. Answers go through
+  // SessionCommandController.confirmToolUse and grantPermission
+  // (SubmitApproval is an adapter onto them).
   repeated PendingApproval pending_approvals = 16;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -141,36 +133,11 @@ message RunStatus {
   // Append-only ledger of approval requests and decisions for this run.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Server-authored, append-only record of every approval request and decision.
+  // No longer written: approvals and their answers are the session's events
+  // (agent.tool_use with evaluated_permission ask, user.tool_confirmation,
+  // stigmer.permission.grant). Runs written before then keep their entries.
   //
   // @internal
-  //
-  // This is the persisted form of the append-only stream that is the target
-  // single source of truth for approvals (see ApprovalEventStream in
-  // approval.proto). It is NOT yet read by any surface: pending_approvals is
-  // still projected from the authoritative message scan, and the UI/SDK read
-  // that. The stream coexists as a parallel, independently-authored record so
-  // that (1) the message-scan vs event-stream projection parity check becomes a
-  // real cross-writer regression guard rather than a tautology, and (2) the
-  // approval audit trail — who decided, when, with what comment — has a home,
-  // since the flat ToolCall.approval_action / approval_decided_at fields cannot
-  // capture a decision comment at all.
-  //
-  // Field ownership (one writer per event type):
-  //   - REQUESTED events are authored by the UpdateStatus handlers when a tool
-  //     call enters WAITING_APPROVAL (seeded once from the message scan for
-  //     runs that predate this field).
-  //   - Decision events (APPROVED / REJECTED / SKIPPED) are authored by the
-  //     SubmitApproval handler, carrying decided_by and the user's comment.
-  //
-  // Every append is keyed by the deterministic ApprovalEvent.event_id, so the
-  // stream is idempotent under retries and the rich decision event (authored in
-  // the same operation that records the decision on the message scan) can never
-  // be duplicated or overwritten by a coarse re-derivation.
-  //
-  // Because it is server-only, the runner never sends it; it is preserved
-  // across UpdateStatus writes automatically (the merge starts from the loaded
-  // run and only replaces runner-owned fields).
   ApprovalEventStream approval_event_stream = 22;
 
   // ─────────────────────────────────────────────────────────────────────────────

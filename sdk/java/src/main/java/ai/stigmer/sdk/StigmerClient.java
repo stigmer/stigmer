@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
  * <p>On top of the generated resource clients, {@code StigmerClient} adds:
  * <ul>
  *   <li>Configuration and gRPC channel setup</li>
- *   <li>{@link #billing()} credit management and Stripe integration client</li>
+ *   <li>{@link #billing()} billing account, Stripe and model catalog client</li>
  *   <li>Cross-resource {@link #search()} client</li>
  *   <li>{@link #github()} OAuth integration client</li>
  * </ul>
@@ -71,7 +71,7 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
 
     // -- Extra clients (not code-generated) ------------------------------------
 
-    /** Returns the billing client for credit management and Stripe integration. */
+    /** Returns the billing client for the billing account, Stripe and the model catalog. */
     public BillingClient billing() { return billing; }
 
     /** Returns the cross-resource search client. */

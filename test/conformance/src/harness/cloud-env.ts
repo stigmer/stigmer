@@ -45,13 +45,11 @@ export const CLOUD_ENV = {
   // The conf-operator user's console token — a platform operator the
   // hermetic bootstrap provisions through production RPCs (stigmer#547), used
   // by CloudTarget.provisionPrivilegedScope for operator-only writes
-  // (reserved labels, the public flip) and by CloudTarget.creditIssuer, the
-  // only caller that may fund a tenancy (can_manage_credits on the
-  // platform). Deliberately UNSET on pre-provisioned/deployed endpoints:
-  // handing conformance operator credentials to a real deployment is the
-  // permanent skip the stigmer#547 ruling recorded, so privileged-lane
-  // assertions skip there and the funded lanes refuse with this variable's
-  // name.
+  // (reserved labels, the public flip, the model catalog and the usage
+  // meter's platform lanes). Deliberately UNSET on pre-provisioned/deployed
+  // endpoints: handing conformance operator credentials to a real
+  // deployment is the permanent skip the stigmer#547 ruling recorded, so
+  // privileged-lane assertions skip there.
   operatorToken: "STIGMER_CONFORMANCE_CLOUD_OPERATOR_TOKEN",
   // The platform identity tenant the server under test was booted against
   // (its STIGMER_IDP_URL / Java idp-url), as the environment's mock tenant

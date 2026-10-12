@@ -8,7 +8,9 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 
 // BillingQueryController handles read operations for the billing bounded context.
 //
-// All RPCs authorize against the organization resource kind with can_view_billing.
+// An organization's own reads authorize against the organization resource
+// kind with can_view_billing; the model catalog's operator read authorizes
+// against the static platform target.
 service BillingQueryController {
   // Retrieve the billing account for an organization.
   rpc getBillingAccount(GetBillingAccountInput) returns (BillingAccount) {
@@ -18,33 +20,10 @@ service BillingQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
   }
 
-  // Retrieve the credit balance breakdown for an organization.
-  rpc getCreditBalance(GetCreditBalanceInput) returns (CreditBalance) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
-  }
-
-  // Retrieve paginated credit ledger entries with optional filters.
-  rpc getCreditLedger(GetCreditLedgerInput) returns (CreditLedgerResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
-  }
-
-  // Retrieve an aggregated billing usage report for a date range.
+  // Count an organization's metered LLM calls and runs in a date range,
+  // with the calls broken down by model and harness. A count, never an
+  // amount: the meter records what each call was, not what it cost.
   rpc getBillingUsageReport(GetBillingUsageReportInput) returns (BillingUsageReportResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
-    option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
-    option (ai.stigmer.commons.rpc.config).field_path = "org";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
-  }
-
-  // Retrieve the customer-facing model price list with markup applied.
-  // Returns prices for all models, organized by harness and cost tier.
-  rpc getCustomerModelPricing(GetCustomerModelPricingInput) returns (CustomerModelPricingResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
     option (ai.stigmer.commons.rpc.config).field_path = "org";
@@ -54,44 +33,12 @@ service BillingQueryController {
   // Retrieve the model registry baseline catalog (ACTIVE documents, or the
   // full append-only revision history when include_history is set).
   //
-  // Operator surface: exposes raw provider rates (pre-markup) and revision
-  // provenance, so it is platform-gated, not org-gated.
+  // Operator surface: exposes the providers' list prices with their
+  // revision provenance, so it is platform-gated, not org-gated.
   rpc listModelPricingBaselines(ListModelPricingBaselinesInput) returns (ModelPricingBaselinesResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = platform;
     option (ai.stigmer.commons.rpc.config).permission = can_manage_model_pricing;
     option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
     option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can view the model registry baseline";
-  }
-
-  // Preview whether an organization can fund a run, without writing
-  // a reservation. The read-only twin of BillingCommandController's
-  // authorizeRun: both ride the same server-side affordability
-  // predicate (start threshold, negative allowance, default cap), so a
-  // synchronous preflight refusal and the authoritative reservation can
-  // never drift.
-  //
-  // @internal
-  // Called by serving-side visitor billing preflights (guest and channel
-  // lanes) before accepting work the organization cannot fund.
-  rpc previewAuthorization(PreviewAuthorizationInput) returns (PreviewAuthorizationResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
-    option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
-    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
-    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
-  }
-
-  // Retrieve the current billing control signal for a run in progress
-  // (continue / low-balance warning / stop), derived from the run's
-  // reservation headroom and the billing account's status.
-  //
-  // @internal
-  // Called by serving-side status and approval lanes to piggyback
-  // STOP/WARNING onto runner-facing responses and to refuse continuing
-  // work once the balance is exhausted.
-  rpc getRunBillingSignal(GetRunBillingSignalInput) returns (GetRunBillingSignalResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
-    option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
-    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
-    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
   }
 }

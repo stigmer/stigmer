@@ -37,6 +37,7 @@ import type {
 import type {
   ResourceEventWriteResult,
   ResourceEventWriter,
+  SessionEventGateDeclaration,
   SessionEventScope,
   SessionEventStore,
 } from "./session-events.js";
@@ -614,10 +615,13 @@ export interface RawResourceDocument {
  * What a driver opens with beyond its connection. `listIndexes` is the
  * composition root's one list of list-index declarations
  * (boot/list-indexes.ts); a store opened without it keeps no list index
- * and refuses every `queryResources`.
+ * and refuses every `queryResources`. `sessionEventGates` is how each
+ * session event's gates are derived (session-events.ts, "Gates"); a store
+ * opened without it derives none.
  */
 export interface StoreOpenOptions {
   readonly listIndexes?: ReadonlyArray<ListIndexDeclaration>;
+  readonly sessionEventGates?: SessionEventGateDeclaration;
 }
 
 // =============================================================================

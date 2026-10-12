@@ -1,12 +1,9 @@
 /**
- * Pins the deciding hook's copy through both pending-approval
- * projections: a call a plugin's hook asked for carries
- * approval_policy_hook beside approval_policy_source from the ToolCall to
- * the message scan's PendingApproval (compute.ts), to the REQUESTED
- * event's ApprovalRequest (emit.ts), and from that event back to the
- * event-stream projection's PendingApproval (compute-from-events.ts), so
- * the two projections agree and an approval surface can name the plugin
- * without a lookup.
+ * Pins the deciding hook's copy through the pending-approval scan: a call
+ * a plugin's hook asked for carries approval_policy_hook beside
+ * approval_policy_source from the ToolCall to its PendingApproval
+ * (compute.ts), so an approval surface can name the plugin without a
+ * lookup.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -18,11 +15,9 @@ import {
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/message_pb";
 
 import { computePendingApprovals } from "../compute.js";
-import { computePendingApprovalsFromEvents } from "../compute-from-events.js";
-import { emitApprovalEvents } from "../emit.js";
 
-describe("approval_policy_hook through the projections", () => {
-  it("reaches the message scan, the requested event and the event-stream projection alike", () => {
+describe("approval_policy_hook through the scan", () => {
+  it("reaches the pending approval", () => {
     const messages = [
       create(AgentMessageSchema, {
         toolCalls: [
@@ -42,17 +37,6 @@ describe("approval_policy_hook through the projections", () => {
     const fromScan = computePendingApprovals(messages, []);
     expect(
       fromScan.map((p) => [p.approvalPolicySource, p.approvalPolicyHook]),
-    ).toEqual([[ApprovalPolicySource.HOOK, "safety"]]);
-
-    const stream = emitApprovalEvents(messages, []);
-    const requested = stream.events[0]?.payload;
-    expect(
-      requested?.case === "requested" && requested.value.approvalPolicyHook,
-    ).toBe("safety");
-
-    const fromEvents = computePendingApprovalsFromEvents(stream);
-    expect(
-      fromEvents.map((p) => [p.approvalPolicySource, p.approvalPolicyHook]),
     ).toEqual([[ApprovalPolicySource.HOOK, "safety"]]);
   });
 });

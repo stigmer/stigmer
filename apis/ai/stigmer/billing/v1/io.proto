@@ -4,10 +4,7 @@ package ai.stigmer.billing.v1;
 
 import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/run/v1/usage.proto";
-import "ai/stigmer/billing/v1/credit.proto";
-import "ai/stigmer/billing/v1/enum.proto";
 import "ai/stigmer/billing/v1/model_pricing_baseline.proto";
-import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -21,83 +18,9 @@ message GetOrCreateBillingAccountInput {
   string org = 1 [(buf.validate.field).required = true];
 }
 
-// AdjustCreditsInput adds or removes an organization's credits by hand: a
-// platform operator's correction, or a credit issuer's funding.
-message AdjustCreditsInput {
-  string org = 1 [(buf.validate.field).required = true];
-
-  // Positive to add credits, negative to remove.
-  int64 amount_micros = 2;
-
-  // Human-readable reason for the adjustment (audit trail).
-  string reason = 3 [(buf.validate.field).required = true];
-
-  // Client-supplied deduplication key to prevent double-processing.
-  string idempotency_key = 4 [(buf.validate.field).required = true];
-}
-
-// GrantCreditsInput creates a promotional credit grant, optionally expiring.
-//
-// Unlike adjustCredits (a signed balance adjustment), a grant is strictly
-// positive and carries use-it-or-lose-it semantics when expires_at is set:
-// the grant is consumed before adjustment and purchased credits (promotional
-// burn order), and whatever remains unconsumed at expiry is removed from the
-// balance with an expiry_debit ledger entry.
-message GrantCreditsInput {
-  string org = 1 [(buf.validate.field).required = true];
-
-  // Amount to grant. Must be positive; grants never remove credits.
-  int64 amount_micros = 2 [(buf.validate.field).int64.gt = 0];
-
-  // When the grant expires. Unset means the grant never expires.
-  //
-  // Must be in the future when the grant is created. Deliberately NOT
-  // enforced structurally: a replay of an already-applied idempotency key
-  // always returns the original ledger entry, even if the expiry has since
-  // passed — late retries of a successful grant must never fail. Expiry
-  // precision is whole seconds; sub-second precision is discarded.
-  google.protobuf.Timestamp expires_at = 3;
-
-  // Human-readable reason for the grant (audit trail).
-  string reason = 4 [(buf.validate.field).required = true];
-
-  // Client-supplied deduplication key to prevent double-processing.
-  string idempotency_key = 5 [(buf.validate.field).required = true];
-}
-
-// AuthorizeRunInput requests a credit reservation before the run starts.
-message AuthorizeRunInput {
-  string org = 1 [(buf.validate.field).required = true];
-  string run_id = 2 [(buf.validate.field).required = true];
-
-  // Execution harness ("native" or "cursor").
-  string harness = 3 [(buf.validate.field).required = true];
-
-  // Expected maximum cost. The system may reserve less if balance is limited.
-  int64 expected_cost_cap_micros = 4;
-}
-
-// AuthorizeRunResponse indicates whether the run may proceed.
-message AuthorizeRunResponse {
-  // Whether the run is authorized to start.
-  bool authorized = 1;
-
-  // Reservation ID for tracking. Empty if authorization was denied.
-  string reservation_id = 2;
-
-  // Micro-USD actually reserved (may be less than requested).
-  int64 reserved_micros = 3;
-
-  // Balance available after the reservation was placed.
-  int64 available_balance_micros = 4;
-
-  // Reason for denial, if authorized is false.
-  string denial_reason = 5;
-}
-
 // RecordLlmCallUsageInput carries proxy-observed data for a single LLM call.
-// The billing service computes cost server-side from the model registry —
-// the caller never provides cost figures.
+// The billing service resolves the call against the model catalog and
+// records what it was; no cost figure is sent or recorded.
 //
 // Deduplication identity: `call_id` when the caller supplies one, else
 // `sequence`. A report that is redelivered under the same identity records
@@ -155,7 +78,7 @@ message RecordLlmCallUsageInput {
 
   // Harness that originated this call ("native" or "cursor").
   // Set by the proxy controller based on which proxy path handled the request.
-  // When empty, the billing handler falls back to the model pricing registry.
+  // When empty, the billing handler falls back to the model catalog.
   string harness = 14;
 
   // 15, 16 and 17 held cursor_account_id, cursor_key_id and
@@ -192,7 +115,7 @@ message RecordLlmCallUsageInput {
   // Whose provider credential the proxy injected upstream for this call,
   // stamped verbatim onto the usage record (the proxy holds the fact).
   // ORGANIZATION means the organization's own provider key served the
-  // call: it is recorded and priced for visibility, and never debited.
+  // call, which is recorded and never charged.
   // PLATFORM means a connection the platform provides served it.
   // UNSPECIFIED from a proxy that predates the field.
   ai.stigmer.agentic.run.v1.ProviderKeySource provider_key_source = 21;
@@ -201,14 +124,14 @@ message RecordLlmCallUsageInput {
 // The run-side facts LLM metering denormalizes onto every usage
 // record, carried from the proxy that authorized the call to the billing
 // handler that records it. Deliberately narrower than the settings the
-// run resolved: only what metering reconciles or prices against.
+// run resolved: only what metering reconciles or resolves against.
 message MeteredRun {
   // The session the run belongs to, stamped onto the usage record.
   string session_id = 1;
 
   // The model the run resolved (status.run_config.model_name, whichever
   // layer chose it: the message, the agent's defaults or the lane's profile)
-  // — the authoritative statement of what was asked for, and the pricing
+  // — the authoritative statement of what was asked for, and the catalog
   // fallback when the wire's requested_model came up empty. Empty when no
   // layer named a model and the engine chose.
   string pinned_model = 2;
@@ -224,87 +147,22 @@ message MeteredRun {
   ai.stigmer.agentic.run.v1.ThinkingMode requested_thinking_mode = 4;
 }
 
-// RecordLlmCallUsageResponse returns the cost result so callers can
+// RecordLlmCallUsageResponse names the record written, so callers can
 // observe what was recorded without querying separately.
 message RecordLlmCallUsageResponse {
   // ID of the created LlmCallUsageRecord.
   string usage_record_id = 1;
 
-  // Provider cost computed server-side from the model registry.
-  int64 provider_cost_micros = 2;
-
-  // Amount debited from customer credits (after markup policy).
-  int64 customer_billable_amount_micros = 3;
-
-  // Whether this call was billable (complete usage + non-zero cost).
-  bool is_billable = 4;
+  // 2, 3 and 4 held provider_cost_micros, customer_billable_amount_micros
+  // and is_billable: the call's price and whether it was debited from the
+  // organization's prepaid credit. Calls are metered and never priced or
+  // charged, so the numbers and the names are reserved so neither is ever
+  // reused for a different field.
+  reserved 2, 3, 4;
+  reserved "provider_cost_micros", "customer_billable_amount_micros", "is_billable";
 
   // True if this was a duplicate (idempotency key already existed).
   bool is_duplicate = 5;
-}
-
-// FinalizeRunInput settles the billing for a completed run.
-// Releases unused reservation credits and produces the final billing record.
-message FinalizeRunInput {
-  string run_id = 1 [(buf.validate.field).required = true];
-}
-
-// FinalizeRunResponse summarizes the run's billing outcome.
-message FinalizeRunResponse {
-  // Total provider cost across all LLM calls in the run.
-  int64 total_provider_cost_micros = 1;
-
-  // Total amount charged to the customer across all LLM calls.
-  int64 total_billable_amount_micros = 2;
-
-  // Micro-USD released back to available balance from the reservation.
-  int64 released_reservation_micros = 3;
-
-  // Number of LLM calls billed in this run.
-  int32 billed_call_count = 4;
-}
-
-// RearmForRecoveryInput re-arms a settled reservation so a failed
-// run can be recovered.
-//
-// Recovery is the one sanctioned path past the settled-reservation latch.
-// The response is the same shape authorizeRun returns, carrying the
-// ROTATED reservation id — the fence that keeps settles still in flight
-// from the terminated run away from the re-armed hold.
-message RearmForRecoveryInput {
-  string run_id = 1 [(buf.validate.field).required = true];
-}
-
-// CreateCreditCheckoutSessionInput initiates a Stripe Checkout purchase
-// for a credit pack.
-//
-// The server creates a Stripe Checkout Session and returns the URL for
-// the client to redirect the user. The caller's email is resolved from
-// their identity account for Stripe Customer creation.
-message CreateCreditCheckoutSessionInput {
-  string org = 1 [(buf.validate.field).required = true];
-
-  // Credit pack to purchase (e.g., "starter", "growth", "team").
-  string pack_id = 2 [(buf.validate.field).required = true];
-
-  // URL to redirect to after successful payment.
-  string success_url = 3 [(buf.validate.field).required = true];
-
-  // URL to redirect to if the user cancels checkout.
-  string cancel_url = 4 [(buf.validate.field).required = true];
-}
-
-// CreateCreditCheckoutSessionResponse returns the Stripe Checkout URL
-// and purchase tracking identifiers.
-message CreateCreditCheckoutSessionResponse {
-  // Stripe-hosted checkout page URL. Redirect the user here.
-  string checkout_url = 1;
-
-  // Internal purchase ID for tracking this transaction.
-  string purchase_id = 2;
-
-  // Stripe Checkout Session ID.
-  string checkout_session_id = 3;
 }
 
 // CreateBillingPortalSessionInput opens a Stripe Customer Portal session
@@ -330,7 +188,7 @@ message CreateBillingPortalSessionResponse {
 // setup mode, to save a payment method without a purchase.
 //
 // The caller's email is resolved from their identity account for Stripe
-// Customer creation, as for a credit checkout.
+// Customer creation.
 message CreatePaymentMethodSetupSessionInput {
   string org = 1 [(buf.validate.field).required = true];
 
@@ -351,31 +209,6 @@ message CreatePaymentMethodSetupSessionResponse {
   string checkout_session_id = 2;
 }
 
-// SetAutoRechargeConfigInput configures automatic credit top-up for an org.
-//
-// When enabled, the billing system charges the account's saved payment
-// method whenever the available balance drops below threshold_micros.
-// The charge amount is fixed per event (recharge_amount_micros), capped
-// at monthly_cap_micros per calendar month.
-//
-// Enabling requires an active account with a saved payment method.
-// Disabling preserves the configuration for easy re-enablement.
-message SetAutoRechargeConfigInput {
-  string org = 1 [(buf.validate.field).required = true];
-
-  // Whether to enable auto-recharge.
-  bool enabled = 2;
-
-  // Trigger recharge when available balance drops below this amount.
-  int64 threshold_micros = 3;
-
-  // Fixed amount to charge per recharge event.
-  int64 recharge_amount_micros = 4;
-
-  // Maximum total auto-recharge spend per calendar month.
-  int64 monthly_cap_micros = 5;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Query Inputs & Responses
 // ─────────────────────────────────────────────────────────────────────────────
@@ -385,44 +218,8 @@ message GetBillingAccountInput {
   string org = 1 [(buf.validate.field).required = true];
 }
 
-// GetCreditBalanceInput retrieves just the balance breakdown.
-message GetCreditBalanceInput {
-  string org = 1 [(buf.validate.field).required = true];
-}
-
-// GetCreditLedgerInput retrieves paginated ledger entries with optional filters.
-message GetCreditLedgerInput {
-  string org = 1 [(buf.validate.field).required = true];
-
-  // Pagination parameters.
-  ai.stigmer.commons.rpc.PageInfo page = 2;
-
-  // Filter to specific entry types. Empty means all types.
-  repeated LedgerEntryType type_filter = 3;
-
-  // Filter to entries on or after this timestamp.
-  google.protobuf.Timestamp start_time = 4;
-
-  // Filter to entries on or before this timestamp.
-  google.protobuf.Timestamp end_time = 5;
-
-  // Selects a server-resolved slice of the ledger. When set to
-  // ledger_view_statement, the server returns only customer-facing
-  // money-movement entry types and excludes internal mechanics (per-call
-  // usage debits, reservation holds/releases). Defaults to the full ledger.
-  //
-  // When both view and type_filter are provided, the effective filter is
-  // their intersection — type_filter narrows within the view's set.
-  LedgerView view = 6;
-}
-
-// CreditLedgerResponse is a paginated list of ledger entries.
-message CreditLedgerResponse {
-  repeated CreditLedgerEntry entries = 1;
-  int32 total_pages = 2;
-}
-
-// GetBillingUsageReportInput requests an aggregated billing usage report.
+// GetBillingUsageReportInput requests the counts of an organization's
+// metered calls and runs in a period.
 message GetBillingUsageReportInput {
   string org = 1 [(buf.validate.field).required = true];
 
@@ -433,13 +230,15 @@ message GetBillingUsageReportInput {
   google.protobuf.Timestamp end_time = 3 [(buf.validate.field).required = true];
 }
 
-// BillingUsageReportResponse provides aggregated spend data for the period.
+// BillingUsageReportResponse counts the metered calls and runs in the
+// period. It carries no amount: calls are metered, never priced.
 message BillingUsageReportResponse {
-  // Total provider cost in the period.
-  int64 total_provider_cost_micros = 1;
-
-  // Total amount billed to the customer in the period.
-  int64 total_billable_amount_micros = 2;
+  // 1 and 2 held total_provider_cost_micros and
+  // total_billable_amount_micros, the period's priced and charged totals.
+  // Calls are metered and never priced or charged, so the numbers and the
+  // names are reserved so neither is ever reused for a different field.
+  reserved 1, 2;
+  reserved "total_provider_cost_micros", "total_billable_amount_micros";
 
   // Number of runs in the period.
   int32 run_count = 3;
@@ -447,30 +246,25 @@ message BillingUsageReportResponse {
   // Number of LLM calls in the period.
   int32 llm_call_count = 4;
 
-  // Breakdown by model.
+  // Calls in the period, by model and harness.
   repeated ModelBillingBreakdown model_breakdown = 5;
 }
 
-// ModelBillingBreakdown aggregates billing data for a single model.
+// ModelBillingBreakdown counts the period's calls for one model on one
+// harness.
 message ModelBillingBreakdown {
   string model = 1;
   string harness = 2;
-  string cost_tier = 3;
-  int64 provider_cost_micros = 4;
-  int64 billable_amount_micros = 5;
+
+  // 3, 4 and 5 held cost_tier, provider_cost_micros and
+  // billable_amount_micros: the model's pricing bracket and its priced and
+  // charged totals. Calls are metered and never priced or charged, so the
+  // numbers and the names are reserved so neither is ever reused for a
+  // different field.
+  reserved 3, 4, 5;
+  reserved "cost_tier", "provider_cost_micros", "billable_amount_micros";
+
   int32 call_count = 6;
-}
-
-// GetCustomerModelPricingInput requests the customer-facing price list.
-message GetCustomerModelPricingInput {
-  // Organization ID. Used to resolve org-specific policy overrides.
-  // When empty, returns default pricing.
-  string org = 1;
-}
-
-// CustomerModelPricingResponse returns the customer-visible price for each model.
-message CustomerModelPricingResponse {
-  repeated CustomerModelPricingEntry entries = 1;
 }
 
 // UpsertModelPricingBaselineInput creates or revises one model registry
@@ -516,82 +310,4 @@ message ListModelPricingBaselinesInput {
 // follow their key's ACTIVE document newest-first.
 message ModelPricingBaselinesResponse {
   repeated ModelPricingBaseline baselines = 1;
-}
-
-// CustomerModelPricingEntry is the customer-facing price for one model.
-//
-// Prices are in micro-USD per million tokens, with markup already applied.
-// These are what the customer pays, not what Stigmer pays the provider.
-message CustomerModelPricingEntry {
-  // Model identifier matching model-registry.json.
-  string model_id = 1;
-
-  // Human-readable model name.
-  string display_name = 2;
-
-  // LLM provider (e.g., "anthropic", "openai").
-  string provider = 3;
-
-  // Execution harness ("native" or "cursor").
-  string harness = 4;
-
-  // Model cost tier ("economy", "standard", "premium").
-  string cost_tier = 5;
-
-  // Customer price per million input tokens, in micro-USD.
-  int64 input_price_micros_per_million = 6;
-
-  // Customer price per million output tokens, in micro-USD.
-  int64 output_price_micros_per_million = 7;
-
-  // Customer price per million cache write tokens, in micro-USD.
-  int64 cache_creation_price_micros_per_million = 8;
-
-  // Customer price per million cache read tokens, in micro-USD.
-  int64 cache_read_price_micros_per_million = 9;
-
-  // Billing policy that produced these prices.
-  string pricing_policy_id = 10;
-
-  // Markup applied, in basis points.
-  int32 markup_basis_points = 11;
-}
-
-// PreviewAuthorizationInput asks whether an organization could fund an
-// run right now, without writing a reservation.
-message PreviewAuthorizationInput {
-  string org = 1 [(buf.validate.field).required = true];
-
-  // Expected maximum cost. 0 means use the server-configured default cap,
-  // exactly as authorizeRun treats it.
-  int64 expected_cost_cap_micros = 2;
-}
-
-// PreviewAuthorizationResponse is the read-only affordability verdict.
-message PreviewAuthorizationResponse {
-  // Whether an authorization attempt would currently succeed.
-  bool authorized = 1;
-
-  // Reason for denial, if authorized is false.
-  string denial_reason = 2;
-
-  // Micro-USD an authorization would reserve right now.
-  int64 reserve_amount_micros = 3;
-}
-
-// GetRunBillingSignalInput retrieves the billing control signal for
-// one run.
-message GetRunBillingSignalInput {
-  string run_id = 1 [(buf.validate.field).required = true];
-}
-
-// GetRunBillingSignalResponse carries the current directive for a
-// run in progress and the human-readable reason behind it.
-message GetRunBillingSignalResponse {
-  // The directive (continue / low-balance warning / stop).
-  RunBillingSignal signal = 1;
-
-  // Human-readable reason (e.g. "Credit balance exhausted"). Empty when
-  // the signal is continue_run.
-  string reason = 2;
 }

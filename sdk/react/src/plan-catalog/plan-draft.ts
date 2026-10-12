@@ -1,7 +1,8 @@
 // The plan create form's draft and its translation to the SDK's
-// PlanInput: dollars typed by an operator become exact micros, a percent
-// becomes basis points, and every field the contract cannot take is
-// refused here with the field that is wrong, before a request is sent.
+// PlanInput: dollars typed by an operator become exact micros, and every
+// field the contract cannot take is refused here with the field that is
+// wrong, before a request is sent. The monthly fee travels as the terms'
+// `monthlyMinimumMicros`, a wire name the contract keeps.
 
 import type { PlanInput } from "@stigmer/sdk";
 import { PlanInstrument } from "@stigmer/protos/ai/stigmer/billing/plan/v1/spec_pb";
@@ -17,7 +18,6 @@ export interface PlanDraft {
   readonly name: string;
   readonly slug: string;
   readonly monthlyMinimumUsd: string;
-  readonly usageSharePercent: string;
   readonly features: readonly Feature[];
   /** Empty: the plan includes every child organization. */
   readonly includedChildOrgs: string;
@@ -28,7 +28,6 @@ export const EMPTY_PLAN_DRAFT: PlanDraft = {
   name: "",
   slug: "",
   monthlyMinimumUsd: "",
-  usageSharePercent: "10",
   features: [Feature.channels, Feature.sharing],
   includedChildOrgs: "",
   perExtraOrganizationUsd: "",
@@ -51,16 +50,6 @@ export function parseUsd(text: string): bigint | null {
   return cents * MICROS_PER_CENT;
 }
 
-/** A percent with at most two decimals as basis points, or `null`. */
-export function parseBasisPoints(text: string): number | null {
-  const match = /^(\d{1,3})(?:\.(\d{1,2}))?$/.exec(text.trim());
-  if (match === null) {
-    return null;
-  }
-  const points = Number(match[1]) * 100 + Number((match[2] ?? "").padEnd(2, "0"));
-  return points <= 10_000 ? points : null;
-}
-
 /** Translate a draft into the create request, refusing what the contract cannot take. */
 export function planInputFromDraft(draft: PlanDraft): PlanDraftResult {
   const name = draft.name.trim();
@@ -74,10 +63,6 @@ export function planInputFromDraft(draft: PlanDraft): PlanDraftResult {
   const minimum = parseUsd(draft.monthlyMinimumUsd);
   if (minimum === null) {
     return { ok: false, field: "monthlyMinimumUsd", message: "A dollar amount, e.g. 99 or 99.50." };
-  }
-  const share = parseBasisPoints(draft.usageSharePercent);
-  if (share === null) {
-    return { ok: false, field: "usageSharePercent", message: "A percent from 0 to 100, e.g. 10." };
   }
   const childOrgs = draft.features.includes(Feature.child_orgs);
   let includedChildOrgs: number | undefined;
@@ -107,7 +92,6 @@ export function planInputFromDraft(draft: PlanDraft): PlanDraftResult {
       },
       terms: {
         monthlyMinimumMicros: minimum,
-        usageShareBasisPoints: share,
         ...(perExtraOrgMicros === undefined ? {} : { perExtraOrgMicros }),
       },
     },

@@ -280,7 +280,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * <pre>
    * Harness that originated this call ("native" or "cursor").
    * Set by the proxy controller based on which proxy path handled the request.
-   * When empty, the billing handler falls back to the model pricing registry.
+   * When empty, the billing handler falls back to the model catalog.
    * </pre>
    *
    * <code>string harness = 14 [json_name = "harness"];</code>
@@ -291,7 +291,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * <pre>
    * Harness that originated this call ("native" or "cursor").
    * Set by the proxy controller based on which proxy path handled the request.
-   * When empty, the billing handler falls back to the model pricing registry.
+   * When empty, the billing handler falls back to the model catalog.
    * </pre>
    *
    * <code>string harness = 14 [json_name = "harness"];</code>
@@ -392,7 +392,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * Whose provider credential the proxy injected upstream for this call,
    * stamped verbatim onto the usage record (the proxy holds the fact).
    * ORGANIZATION means the organization's own provider key served the
-   * call: it is recorded and priced for visibility, and never debited.
+   * call, which is recorded and never charged.
    * PLATFORM means a connection the platform provides served it.
    * UNSPECIFIED from a proxy that predates the field.
    * </pre>
@@ -406,7 +406,7 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    * Whose provider credential the proxy injected upstream for this call,
    * stamped verbatim onto the usage record (the proxy holds the fact).
    * ORGANIZATION means the organization's own provider key served the
-   * call: it is recorded and priced for visibility, and never debited.
+   * call, which is recorded and never charged.
    * PLATFORM means a connection the platform provides served it.
    * UNSPECIFIED from a proxy that predates the field.
    * </pre>

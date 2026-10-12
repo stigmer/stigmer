@@ -15,7 +15,7 @@ import { PlanInstrument, type PlanTerms } from "@stigmer/protos/ai/stigmer/billi
 import { PlanLifecycle } from "@stigmer/protos/ai/stigmer/billing/plan/v1/status_pb";
 import { Feature, type Entitlements } from "@stigmer/protos/ai/stigmer/platform/v1/entitlement_pb";
 import { FEATURE_COPY, isNamedFeature, type NamedFeature } from "../internal/features.js";
-import { formatCreditBalance } from "./format.js";
+import { formatUsd } from "./format.js";
 
 // BigInt(0), not a literal: the docs site compiles this source for a
 // target below ES2020, which has no BigInt literal syntax.
@@ -47,9 +47,9 @@ export function offeredFeatures(entitlements: Entitlements | undefined): readonl
 }
 
 /**
- * The plans an organization can subscribe to, cheapest monthly minimum
- * first, so a comparison reads upward from Free; equal minimums keep the
- * catalog's order. Retired rows and prepaid instruments are left out.
+ * The plans an organization can subscribe to, cheapest monthly fee first,
+ * so a comparison reads upward from Free; equal fees keep the catalog's
+ * order. Retired rows and prepaid instruments are left out.
  */
 export function buyablePlans(plans: readonly Plan[]): readonly Plan[] {
   return plans
@@ -58,7 +58,7 @@ export function buyablePlans(plans: readonly Plan[]): readonly Plan[] {
         plan.spec?.instrument === PlanInstrument.subscription && plan.status?.lifecycle === PlanLifecycle.active,
     )
     .map((plan, index) => ({ plan, index }))
-    .sort((a, b) => compareMinimums(a.plan, b.plan) || a.index - b.index)
+    .sort((a, b) => compareFees(a.plan, b.plan) || a.index - b.index)
     .map(({ plan }) => plan);
 }
 
@@ -75,59 +75,16 @@ export function featuresLost(from: Plan | undefined, to: Plan): readonly Offered
   return offeredFeatures(from?.spec?.entitlements).filter((offered) => !kept.has(offered.feature));
 }
 
-function compareMinimums(a: Plan, b: Plan): number {
+// The fee is the terms' `monthlyMinimumMicros`, a wire name the contract keeps.
+function compareFees(a: Plan, b: Plan): number {
   const left = a.spec?.terms?.monthlyMinimumMicros ?? ZERO;
   const right = b.spec?.terms?.monthlyMinimumMicros ?? ZERO;
   return left === right ? 0 : left < right ? -1 : 1;
 }
 
-/** A plan's monthly minimum, e.g. "$99.00/month". */
-export function formatMonthlyMinimum(terms: PlanTerms | undefined): string {
-  return `${formatCreditBalance(terms?.monthlyMinimumMicros ?? ZERO)}/month`;
-}
-
-/**
- * A plan's usage share as its terms state it, for operators who read terms,
- * e.g. "or 10% of provider cost, whichever is greater; the commission
- * already paid on tokens counts toward it". Empty when the plan has no
- * usage share.
- */
-export function formatUsageShare(terms: PlanTerms | undefined): string {
-  const percent = sharePercent(terms);
-  return percent === ""
-    ? ""
-    : `or ${percent} of provider cost, whichever is greater; the commission already paid on tokens counts toward it`;
-}
-
-/**
- * The same share as a customer reads it: usage stays paid from credits,
- * and the commission on it counts toward the minimum up to the spend at
- * which the plan costs nothing extra, e.g. "Usage is still paid from
- * credits. The 10% commission on it counts toward the minimum, so from
- * $990.00 a month in provider costs the plan costs nothing extra." Empty
- * when the plan has no usage share.
- */
-export function explainUsageShare(terms: PlanTerms | undefined): string {
-  const percent = sharePercent(terms);
-  if (percent === "") {
-    return "";
-  }
-  const basisPoints = BigInt(terms?.usageShareBasisPoints ?? 0);
-  // The provider cost whose share equals the minimum: past it, the share is the plan's cost and the commission pays it.
-  const breakEven = ((terms?.monthlyMinimumMicros ?? ZERO) * BigInt(10_000)) / basisPoints;
-  return (
-    `Usage is still paid from credits. The ${percent} commission on it counts toward the minimum, ` +
-    `so from ${formatCreditBalance(breakEven)} a month in provider costs the plan costs nothing extra.`
-  );
-}
-
-/** The usage share as a percentage, e.g. "10%" or "12.50%"; empty when there is none. */
-export function sharePercent(terms: PlanTerms | undefined): string {
-  const basisPoints = terms?.usageShareBasisPoints ?? 0;
-  if (basisPoints === 0) {
-    return "";
-  }
-  return `${basisPoints % 100 === 0 ? `${basisPoints / 100}` : (basisPoints / 100).toFixed(2)}%`;
+/** A plan's monthly fee, e.g. "$99.00/month". */
+export function formatMonthlyFee(terms: PlanTerms | undefined): string {
+  return `${formatUsd(terms?.monthlyMinimumMicros ?? ZERO)}/month`;
 }
 
 /** The child organizations a plan includes and what each beyond costs, or empty. */
@@ -143,7 +100,7 @@ export function formatChildOrgs(
   if (included === undefined) {
     return "Unlimited child organizations";
   }
-  const beyond = fee > ZERO ? `, then ${formatCreditBalance(fee)}/month each` : "";
+  const beyond = fee > ZERO ? `, then ${formatUsd(fee)}/month each` : "";
   return `${included} child organization${included === 1 ? "" : "s"} included${beyond}`;
 }
 

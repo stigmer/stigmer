@@ -546,7 +546,7 @@ function buildRunConfig(
   // Carried only when the user actively chose fast AND pinned a model
   // (fast is a per-model price; the server refuses it without one). An
   // untouched tier stays absent — unspecified-vs-explicit is a
-  // load-bearing ledger distinction (#357).
+  // load-bearing usage-record distinction (#357).
   if (serviceTier === "fast" && model !== "") {
     config.serviceTier = toProtoServiceTier(serviceTier);
   }

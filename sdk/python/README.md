@@ -100,25 +100,40 @@ with StigmerClient("sk_live_abc123") as client:
 
 ## Billing
 
-Credit balance queries, ledger history, and manual credit adjustments for an
-organization. Queries require `can_view_billing` on the org and the org's own
-billing commands require `can_manage_billing`. Adding or removing credits
-without a purchase (`adjust_credits`, `grant_credits`) requires
-`can_manage_credits` on the platform, held by platform operators and by the
-funding identities Stigmer makes credit issuers:
+An organization's billing account (its Stripe customer), the Stripe portal
+and card setup sessions, and the usage meter's run and call counts. Queries
+require `can_view_billing` on the org and the org's own billing commands
+require `can_manage_billing`. The operator pricing methods
+(`list_model_pricing_baselines`, `upsert_model_pricing_baseline`,
+`retire_model_pricing_baseline`) require `can_manage_model_pricing` on the
+platform:
 
 ```python
-from stigmer import StigmerClient, AdjustCreditsParams
+from datetime import datetime, timezone
+
+from stigmer import (
+    CreatePaymentMethodSetupSessionParams,
+    GetBillingUsageReportParams,
+    StigmerClient,
+)
 
 with StigmerClient("sk_live_abc123") as client:
-    balance = client.billing.get_credit_balance(org)
+    account = client.billing.get_billing_account(org)
 
-    entry = client.billing.adjust_credits(AdjustCreditsParams(
+    setup = client.billing.create_payment_method_setup_session(
+        CreatePaymentMethodSetupSessionParams(
+            org=org,
+            success_url="https://example.com/billing?setup=success",
+            cancel_url="https://example.com/billing",
+        )
+    )
+
+    report = client.billing.get_billing_usage_report(GetBillingUsageReportParams(
         org=org,
-        amount_micros=25_000_000,  # +$25.00
-        reason="support credit for an outage",
-        idempotency_key=f"support-{org}-2026-09",
+        start_time=datetime(2026, 10, 1, tzinfo=timezone.utc),
+        end_time=datetime(2026, 11, 1, tzinfo=timezone.utc),
     ))
+    print(report.run_count, report.llm_call_count)
 ```
 
 ## Error Handling

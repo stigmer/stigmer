@@ -12,9 +12,9 @@ package ai.stigmer.agentic.run.v1;
  * update and acts accordingly.
  *
  * Signal sources are opaque to the runner — the platform may set STOP due
- * to credit exhaustion, an admin kill, a user-configured budget cap, or any
- * future enforcement mechanism. The runner does not know or care about the
- * source; it only reacts to the signal value.
+ * to an admin kill, a user-configured budget cap, or any other enforcement
+ * mechanism. The runner does not know or care about the source; it only
+ * reacts to the signal value.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.run.v1.RunControlSignal}
@@ -41,8 +41,8 @@ public enum RunControlSignal
   RUN_CONTROL_SIGNAL_STOP(1),
   /**
    * <pre>
-   * Informational warning (e.g. low credit balance). The runner logs the
-   * warning and continues the run.
+   * Informational warning (e.g. a budget cap nearly reached). The runner
+   * logs the warning and continues the run.
    * </pre>
    *
    * <code>RUN_CONTROL_SIGNAL_WARNING = 2;</code>
@@ -79,8 +79,8 @@ public enum RunControlSignal
   public static final int RUN_CONTROL_SIGNAL_STOP_VALUE = 1;
   /**
    * <pre>
-   * Informational warning (e.g. low credit balance). The runner logs the
-   * warning and continues the run.
+   * Informational warning (e.g. a budget cap nearly reached). The runner
+   * logs the warning and continues the run.
    * </pre>
    *
    * <code>RUN_CONTROL_SIGNAL_WARNING = 2;</code>

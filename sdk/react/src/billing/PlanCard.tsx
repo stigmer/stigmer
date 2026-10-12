@@ -8,7 +8,7 @@ import {
   type PeriodEstimateLine,
 } from "@stigmer/protos/ai/stigmer/billing/subscription/v1/io_pb";
 import { StatusBadge } from "../resource-workbench/components/StatusBadge.js";
-import { formatCreditBalance, formatLedgerAmount } from "./format.js";
+import { formatUsd } from "./format.js";
 import { formatDay, formatPeriodDay } from "./plan-features.js";
 import type { PlanStanding } from "./plan-state.js";
 
@@ -95,7 +95,7 @@ function StandingDetail({ standing }: { standing: PlanStanding }) {
     case "free":
       return (
         <p className="stg:mt-1 stg:text-xs stg:text-muted-foreground">
-          Channels, sharing and unlimited members. Usage is paid from credits.
+          Channels, sharing and unlimited members.
         </p>
       );
     case "past-due":
@@ -137,18 +137,18 @@ function EstimateLines({ planName, estimate }: { planName: string; estimate: Per
           <div key={line.kind} className="stg:flex stg:justify-between stg:gap-3 stg:text-xs">
             <dt className="stg:text-muted-foreground">{lineLabel(line, planName, estimate)}</dt>
             <dd className="stg:tabular-nums stg:text-foreground">
-              {line.amountMicros < BigInt(0) ? formatLedgerAmount(line.amountMicros) : formatCreditBalance(line.amountMicros)}
+              {formatUsd(line.amountMicros)}
             </dd>
           </div>
         ))}
         <div className="stg:flex stg:justify-between stg:gap-3 stg:border-t stg:border-border stg:pt-1 stg:text-xs stg:font-medium">
           <dt className="stg:text-foreground">Total so far</dt>
-          <dd className="stg:tabular-nums stg:text-foreground">{formatCreditBalance(estimate.totalMicros)}</dd>
+          <dd className="stg:tabular-nums stg:text-foreground">{formatUsd(estimate.totalMicros)}</dd>
         </div>
       </dl>
       <p className="stg:mt-2 stg:text-xs stg:text-muted-foreground">
-        From usage so far. Usage itself is paid from credits; the commission already paid on it counts toward the
-        minimum, which covers the whole period.
+        The plan&apos;s fee for the whole period, with the child organizations counted so far. Model usage runs on
+        your organization&apos;s own provider keys and is not on the invoice.
       </p>
     </div>
   );
@@ -158,8 +158,6 @@ function lineLabel(line: PeriodEstimateLine, planName: string, estimate: PeriodE
   switch (line.kind) {
     case PeriodEstimateLineKind.plan:
       return `${planName} plan`;
-    case PeriodEstimateLineKind.commission_credit:
-      return "Commission already paid on tokens";
     case PeriodEstimateLineKind.child_orgs:
       return `Child organizations beyond those included (${estimate.childOrgCount} this period)`;
     case PeriodEstimateLineKind.period_estimate_line_kind_unspecified:

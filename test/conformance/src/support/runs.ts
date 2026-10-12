@@ -12,8 +12,9 @@
 // version on the session and stamps them on the turn's status. A Run
 // is a *running thing*, so this module also exposes phase-await helpers,
 // delegating the timing loop to the shared poll core — and the submit-approval
-// seam: the one place the approval read-model contract is
-// asserted (see the seam's own header below).
+// seam: the one place the run-scoped approval read-model contract is
+// asserted (see the seam's own header below). The session-scoped answers and
+// what the session's log says waits are support/answers.ts.
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import type { InitShape } from "./init-shape";
 import type { Run } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
@@ -267,19 +268,6 @@ export async function submitApprovalPerContract(
   const response = await opts.submit();
   expect(response.status?.pendingApprovals.length, opts.label).toBe(opts.expectedRemaining);
   return response;
-}
-
-// Who the approval ledger names as the decider of `toolCallId`: the decided
-// event's decided_by, or undefined when no decision is recorded. Read from the
-// append-only stream rather than the tool call, whose id an approved call's
-// resumed stream does not keep stable. The server records the principal it
-// authorized, the same id it stamps as created_by on what that caller creates,
-// so a suite compares the two without knowing the edition's identity scheme.
-export function decidedByOf(execution: Run, toolCallId: string): string | undefined {
-  const decided = (execution.status?.approvalEventStream?.events ?? []).find(
-    (event) => event.approvalRequestId === toolCallId && event.payload.case === "decided",
-  );
-  return decided?.payload.case === "decided" ? decided.payload.value.decidedBy : undefined;
 }
 
 // Root and sub-agent transcripts, the same scan the server's pending-approval

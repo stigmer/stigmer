@@ -173,13 +173,13 @@ describe.each(fixtures)("the grading budget ($name)", (fixture) => {
       await reserve(store, id, OCTOBER, CAP, LIMIT_REASON);
       await reserve(store, id, OCTOBER, CAP, LIMIT_REASON);
       await settle(store, id, OCTOBER, CAP, "2026-10", 0.031, { kind: "graded" });
-      await settle(store, id, OCTOBER, CAP, "2026-10", 0, { kind: "not-graded", reason: "out of credit" });
+      await settle(store, id, OCTOBER, CAP, "2026-10", 0, { kind: "not-graded", reason: "the judge could not start" });
       const status = (await read(store, id)).status;
       expect(status?.reservedUsd).toBe(0);
       expect(status?.spentUsd).toBe(0.031);
       expect(status?.graded).toBe(1);
       expect(status?.notGraded).toBe(1);
-      expect(status?.lastNotGradedReason).toBe("out of credit");
+      expect(status?.lastNotGradedReason).toBe("the judge could not start");
       await settle(store, "evl_nobody", OCTOBER, CAP, "2026-10", 0.1, { kind: "graded" });
     } finally {
       await close();

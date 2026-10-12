@@ -126,8 +126,8 @@ export const scenario = {
  * under the session, its workspace and hook state live under the session —
  * so a subject arranges THAT session's engine, never "the next turn"), and
  * the approval decisions the prompt will carry (the runtime's
- * `approvalDecisionsOf` over the persisted status — the one reader both
- * drivers call). A subject whose engine cannot re-run a settled action, or
+ * `approvalAnswersOf` over the modelled log and the persisted status — the
+ * one map both drivers call). A subject whose engine cannot re-run a settled action, or
  * whose model is told not to perform a skipped one, reads its decision here
  * instead of parsing the prompt for it.
  */

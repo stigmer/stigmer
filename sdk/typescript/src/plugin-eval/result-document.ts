@@ -23,14 +23,12 @@
 // graded.
 //
 // Two readings differ from Claude Code on purpose. A try the platform could
-// not grade (out of credit, platform busy) has `score: null`, never 0, and
-// is left out of every mean, so a case with no graded with-arm try has a
-// `null` score too; a cancelled eval reports `interrupted`, the
-// format's word for a run stopped by hand, and an eval that ran out of
-// credit reports `out_of_credit`, a reason the format does not have. With
-// several targets the top-level `cases` are the first target's, so a script
-// that reads one model reads the first; `targets` carries each one's full
-// list.
+// not grade (platform busy) has `score: null`, never 0, and is left out of
+// every mean, so a case with no graded with-arm try has a `null` score too;
+// a cancelled eval reports `interrupted`, the format's word for a run
+// stopped by hand. With several targets the top-level `cases` are the
+// first target's, so a script that reads one model reads the first;
+// `targets` carries each one's full list.
 //
 // Pure: no I/O, no clock unless the caller passes none and the eval has no
 // start time. Pinned by `__tests__/result-document.test.ts`.
@@ -51,8 +49,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/plugineval/v1/status_pb";
 import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 
-/** Why a suite did not finish, in the format's words plus Stigmer's `out_of_credit`. */
-export type ResultPartialReason = "cost_ceiling" | "interrupted" | "out_of_credit";
+/** Why a suite did not finish, in the format's words. */
+export type ResultPartialReason = "cost_ceiling" | "interrupted";
 
 /** One try of one arm. */
 export interface ResultRun {
@@ -230,8 +228,6 @@ export function partialReasonOf(
   switch (reason) {
     case PluginEvalPartialReason.cost_ceiling:
       return "cost_ceiling";
-    case PluginEvalPartialReason.out_of_credit:
-      return "out_of_credit";
     case PluginEvalPartialReason.cancelled:
       return "interrupted";
     case PluginEvalPartialReason.unspecified:

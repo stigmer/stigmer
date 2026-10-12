@@ -26,7 +26,7 @@ export interface ScoreDeleter {
 
 /**
  * The judge run's create, through the run's full create chain (session
- * auto-create, launch gates, the hosted edition's billing reservation and
+ * auto-create, launch gates, the edition's admission steps and the
  * sandbox), as `caller` when the composition minted one, else as the server;
  * and its forceful stop when it outlives its budget.
  */

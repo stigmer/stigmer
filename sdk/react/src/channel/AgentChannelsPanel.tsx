@@ -127,7 +127,7 @@ export function AgentChannelsPanel({
   // appears to someone whose create would be refused: can_manage_audience
   // on the agent (a channel puts it in front of a wider audience, the
   // owner's decision, not an editor's) and can_create_agent_channel on the
-  // organization (a channel spends its credits, an admin's act, so a
+  // organization (a channel spends its own provider keys, an admin's act, so a
   // member who owns the agent is not enough).
   const { allowed: canManageAudience } = useCheckPermission(
     agentId ? { kind: "agent", id: agentId } : null,

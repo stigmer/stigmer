@@ -14,10 +14,11 @@
  * runtime and the server do around a turn: builds the `TurnInput`, threads
  * the engine's state id (empty on an engine-minted harness's first turn, then
  * the id the adapter bound; one fixed id for a deterministic harness),
- * advances `turnSeq`, records a user's decision the way `SubmitApproval` does
- * (on the persisted row's `approvalAction`, the one copy) and derives the
- * decisions map from those rows on the next invocation with the runtime's
- * own reader, hands each reinvocation a CLONE of the previous status on BOTH
+ * advances `turnSeq`, records a person's answer the way the server's answer
+ * core does (a `user.tool_confirmation` on the modelled log and the stamp on
+ * the persisted row, `../approval-log.ts`) and derives the decisions map on
+ * the next invocation with the runtime's own map over that log
+ * (`harness/approval-answers.ts`), hands each reinvocation a CLONE of the previous status on BOTH
  * the sink and the record (`execution.status` — the runtime seeds the one
  * from the other, and an adapter may read the record's copy for its facts;
  * nothing survives by object identity), and owns the sink. The subject owns
@@ -82,7 +83,10 @@ import { RunStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_p
 import type { RunStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/api_pb";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/run/v1/enum_pb";
 
-import { approvalDecisionsOf, terminalizeNonExecutingDecisions } from "../../harness/approval-decisions.js";
+import type { SessionEvent } from "@stigmer/protos/ai/stigmer/agentic/session/v1/event_pb";
+import { approvalAnswersOf } from "../../harness/approval-answers.js";
+import { terminalizeNonExecutingDecisions } from "../../harness/approval-decisions.js";
+import { answerEventsFor, stampedActionOf } from "../approval-log.js";
 import type { TurnInput, TurnOutcome, UsageDelta } from "../../harness/types.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { emptyStatus, findToolCallRow } from "../proto-helpers.js";
@@ -142,6 +146,8 @@ export class ExecutionDriver {
   private threadId: string;
   private turnSeq = 0;
   private persisted: RunStatus | undefined;
+  /** The session's log as the server holds it: the answers {@link decide} appended, in order. */
+  readonly log: SessionEvent[] = [];
 
   constructor(private readonly subject: HarnessContractSubject, label: string) {
     this.executionId = `exec-${label}`;
@@ -156,11 +162,14 @@ export class ExecutionDriver {
   begin(turn: TurnScenario, options: TurnOptions = {}): TurnInFlight {
     const sink = options.sink ?? new RecordingTurnSink({ status: this.seedStatus(), executionId: this.executionId });
     // The engine's view and the record's copy both derive from the status
-    // this turn folds into, so a prepared sink's status is honoured too.
+    // this turn folds into, so a prepared sink's status is honoured too; the
+    // answers come off the modelled log through the runtime's own map, as
+    // its door reads them (`harness/approval-answers.ts`).
+    const answers = approvalAnswersOf(this.executionId, sink.status, this.log);
     const view: EngineView = {
       executionId: this.executionId,
       sessionId: this.sessionId,
-      approvalDecisions: approvalDecisionsOf(sink.status),
+      approvalDecisions: answers.decisions,
     };
     this.subject.arrange(turn, view);
     // Registered BEFORE the turn is entered so a hang reached synchronously
@@ -175,6 +184,7 @@ export class ExecutionDriver {
       turnSeq: this.turnSeq,
       sessionId: this.sessionId,
       approvalDecisions: view.approvalDecisions,
+      approvalDenyMessages: answers.denyMessages,
       persistedStatus: clone(RunStatusSchema, sink.status),
     });
     const settled = this.subject.adapter.runTurn(input, sink);
@@ -208,11 +218,12 @@ export class ExecutionDriver {
   }
 
   /**
-   * The server's act between invocations: `SubmitApproval` writes the user's
-   * verdict onto the WAITING row it owns. A decision on a row that does not
-   * exist or is not waiting is a test bug, not a contract case.
+   * The server's act between invocations: its answer core appends the
+   * person's answer to the session's log and stamps the WAITING row it owns,
+   * in one act (`approval-log.ts`). A decision on a row that does not exist
+   * or is not waiting is a test bug, not a contract case.
    */
-  decide(toolCallId: string, action: ApprovalAction): void {
+  decide(toolCallId: string, action: ApprovalAction, denyMessage = ""): void {
     const row = this.persisted ? findToolCallRow(this.persisted, toolCallId) : undefined;
     if (!row || row.status !== ToolCallStatus.TOOL_CALL_WAITING_APPROVAL) {
       const rows = (this.persisted?.messages ?? [])
@@ -221,7 +232,8 @@ export class ExecutionDriver {
         .join(", ");
       throw new Error(`${this.subject.name}: kit bug — decide('${toolCallId}') but no WAITING row was persisted (rows: ${rows || "none"})`);
     }
-    row.approvalAction = action;
+    this.log.push(...answerEventsFor({ sessionId: this.sessionId, runId: this.executionId }, row, action, denyMessage));
+    row.approvalAction = stampedActionOf(action);
   }
 
   /** The status a reinvocation is seeded with: a clone of what was persisted. */

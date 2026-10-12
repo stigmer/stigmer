@@ -26,6 +26,20 @@
  * holds while it works), read from the key table without decoding a row:
  * runs are the fattest rows in the store.
  *
+ * Gates. An event can open a gate (a tool use that waits for a person's
+ * answer) or close one (the answer, or the call's result), named by the
+ * tool use's id. The store keeps both in columns beside the bytes, derived
+ * by the declaration the domain hands it at open
+ * (`SessionEventGateDeclaration`, domain/session/events/gates.ts), the way
+ * list keys are derived (list-index.ts): on every write, and at open for
+ * every row stamped with another revision, so a log written before the
+ * columns existed gains its gates. A writer that asks (`scope.waitingKey`)
+ * is handed the open gates of the session's waiting rows and of the
+ * written row, read from the columns without decoding an event. A gate is
+ * closed only by an event of the run that opened it. What waits
+ * is computed from the log on every read; nothing about it is stored
+ * beside the log.
+ *
  * Lock order, everywhere: the session first, then rows. An append takes
  * the session's lock, then reads the row it is guarded by.
  *
@@ -88,6 +102,62 @@ export interface SessionEventGuard<Desc extends DescMessage = DescMessage> {
   readonly id: string;
   readonly schema: Desc;
   admit(row: MessageShape<Desc>): void;
+}
+
+/** The gate an event opens and the gate it closes: a tool use's id each, or "". */
+export interface SessionEventGates {
+  readonly opens: string;
+  readonly closes: string;
+}
+
+/** An event with no gate. */
+export const NO_SESSION_EVENT_GATES: SessionEventGates = { opens: "", closes: "" };
+
+/**
+ * How a store derives each event's gates: the domain's function of an
+ * event's type and bytes, the types it can give a gate (every other type
+ * has none, read without decoding), and the revision a change to either
+ * bumps. A store opened without one derives none.
+ */
+export interface SessionEventGateDeclaration {
+  readonly revision: number;
+  readonly types: ReadonlyArray<string>;
+  gatesOf(type: string, data: Uint8Array): SessionEventGates;
+}
+
+/** The gates of a draft under a declaration; none for a type it does not list. */
+export function gatesOfDraft(
+  declaration: SessionEventGateDeclaration | undefined,
+  draft: Pick<SessionEventDraft, "type" | "data">,
+): SessionEventGates {
+  if (declaration === undefined || !declaration.types.includes(draft.type)) {
+    return NO_SESSION_EVENT_GATES;
+  }
+  return declaration.gatesOf(draft.type, draft.data);
+}
+
+/** One gate still open: the tool use that waits, its row, and its place in the log. */
+export interface OpenSessionEventGate {
+  readonly runId: string;
+  readonly toolUseId: string;
+  readonly seq: number;
+}
+
+/**
+ * The open gates among `opened` (in log order): those no event of the same
+ * run closes. `closed` holds each closing event's run and the gate it
+ * closes; an event of another run never closes a run's gate, so one turn's
+ * writer cannot answer or settle another turn's ask. The one rule both
+ * drivers apply to the rows they read.
+ */
+export function openGatesOf(
+  opened: ReadonlyArray<OpenSessionEventGate>,
+  closed: ReadonlyArray<{ readonly runId: string; readonly toolUseId: string }>,
+): OpenSessionEventGate[] {
+  const closedKeys = new Set(closed.map((c) => `${c.runId}\u0000${c.toolUseId}`));
+  return opened
+    .filter((gate) => !closedKeys.has(`${gate.runId}\u0000${gate.toolUseId}`))
+    .sort((a, b) => a.seq - b.seq);
 }
 
 /** A resent event id whose bytes differ from the stored event's. */
@@ -154,6 +224,13 @@ export interface SessionEventScope {
    */
   readonly runOfNewestType?: string;
   /**
+   * The kind's list key a row holds, valued with its session, while it
+   * waits for a person's answer. When set, the writer is handed the other
+   * waiting rows (`SessionEventContext.othersWaiting`) and the open gates
+   * of those rows and of the written row (`SessionEventContext.gates`).
+   */
+  readonly waitingKey?: string;
+  /**
    * The session of a row not yet stored (a create), which has no key to
    * read it from. A written row whose session differs is refused.
    */
@@ -192,6 +269,15 @@ export interface SessionEventContext {
   readonly othersWorking: number;
   /** The type of the session's newest event among `scope.stateEventTypes`; undefined when it has none. */
   readonly latestStateType: string | undefined;
+  /** That newest event itself; undefined when the session has none. */
+  readonly latestState: SessionEventRecord | undefined;
+  /** The session's other rows holding `scope.waitingKey`; empty when the scope does not ask. */
+  readonly othersWaiting: ReadonlyArray<string>;
+  /**
+   * The open gates of the rows in `othersWaiting` and of the written row,
+   * in log order; empty when the scope does not ask.
+   */
+  readonly gates: ReadonlyArray<OpenSessionEventGate>;
   /**
    * The run of the session's newest event of `scope.runOfNewestType`;
    * undefined when the scope does not ask, or the session has no such event.

@@ -4,7 +4,7 @@
  * with the Java handler's copy (binding a channel widens who reaches the
  * agent, the owner's decision, so an editor's can_edit is not enough), then
  * can_create_agent_channel on the channel's organization (a channel spends
- * the organization's credits, an admin-level act, and a member owns the
+ * the organization's provider keys, an admin-level act, and a member owns the
  * agents they create); a missing referenced agent throws.
  */
 import { describe, expect, it } from "vitest";

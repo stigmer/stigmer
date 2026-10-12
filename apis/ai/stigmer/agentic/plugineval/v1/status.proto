@@ -93,8 +93,12 @@ enum PluginEvalPartialReason {
   // The eval's spending limit was reached.
   plugin_eval_partial_reason_cost_ceiling = 1;
 
-  // The organization ran out of credit.
-  plugin_eval_partial_reason_out_of_credit = 2;
+  // 2 was plugin_eval_partial_reason_out_of_credit: the organization's
+  // prepaid credit ran out. Runs use the organization's own provider keys
+  // and never draw credit, so the number and the name are reserved so
+  // neither is ever reused for a different reason.
+  reserved 2;
+  reserved "plugin_eval_partial_reason_out_of_credit";
 
   // Someone cancelled the eval.
   plugin_eval_partial_reason_cancelled = 3;
@@ -206,8 +210,8 @@ message PluginEvalTry {
   // scored checks that passed.
   double score = 5;
 
-  // Why the try produced no score, as in "platform busy" or "out of
-  // credit"; empty when graded.
+  // Why the try produced no score, as in "platform busy"; empty when
+  // graded.
   //
   // @internal
   // A platform failure is never a zero: the try is left out of every mean

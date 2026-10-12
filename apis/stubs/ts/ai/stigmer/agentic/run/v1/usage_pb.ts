@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/run/v1/usage.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_usage: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL3VzYWdlLnByb3RvEhlhaS5zdGlnbWVyLmFnZW50aWMucnVuLnYxIqYDCgpUb2tlblVzYWdlEhQKDGlucHV0X3Rva2VucxgBIAEoAxIVCg1vdXRwdXRfdG9rZW5zGAIgASgDEhQKDHRvdGFsX3Rva2VucxgDIAEoAxIjChtjYWNoZV9jcmVhdGlvbl9pbnB1dF90b2tlbnMYBCABKAMSHwoXY2FjaGVfcmVhZF9pbnB1dF90b2tlbnMYBSABKAMSGAoQcmVhc29uaW5nX3Rva2VucxgGIAEoAxIeChZ0b29sX3VzZV9wcm9tcHRfdG9rZW5zGAcgASgDEhoKEmF1ZGlvX2lucHV0X3Rva2VucxgIIAEoAxIbChNhdWRpb19vdXRwdXRfdG9rZW5zGAkgASgDEl8KFnByb3ZpZGVyX3Rva2VuX2RldGFpbHMYFCADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlRva2VuVXNhZ2UuUHJvdmlkZXJUb2tlbkRldGFpbHNFbnRyeRo7ChlQcm92aWRlclRva2VuRGV0YWlsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoAzoCOAEiugMKD1ByaWNpbmdTbmFwc2hvdBIgChhwcmljaW5nX3JlZ2lzdHJ5X3ZlcnNpb24YASABKAkSOAoUcHJpY2luZ19lZmZlY3RpdmVfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhAKCGN1cnJlbmN5GAMgASgJEiYKHmlucHV0X3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgKIAEoAxInCh9vdXRwdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAsgASgDEi8KJ2NhY2hlX2NyZWF0aW9uX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgMIAEoAxIrCiNjYWNoZV9yZWFkX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgNIAEoAxIqCiJyZWFzb25pbmdfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGA4gASgDEiwKJGN1cnNvcl90b2tlbl9yYXRlX21pY3Jvc19wZXJfbWlsbGlvbhgPIAEoAxIdChVtYXJrdXBfcG9saWN5X3ZlcnNpb24YHiABKAkSEQoJY29zdF90aWVyGB8gASgJIpMCCglDb3N0U3RhbXASEAoIY3VycmVuY3kYASABKAkSHAoUcHJvdmlkZXJfY29zdF9taWNyb3MYAiABKAMSJwofY3VzdG9tZXJfYmlsbGFibGVfYW1vdW50X21pY3JvcxgDIAEoAxJMChJjYWxjdWxhdGlvbl9zdGF0dXMYBCABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkNvc3RDYWxjdWxhdGlvblN0YXR1cxI7CgdwcmljaW5nGAUgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5QcmljaW5nU25hcHNob3QSIgoaY3Vyc29yX3BsYXRmb3JtX2ZlZV9taWNyb3MYBiABKAMi1AMKC1Byb3h5VGltaW5nEjUKEXByb3h5X3JlY2VpdmVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI/Cht1cHN0cmVhbV9yZXF1ZXN0X3N0YXJ0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjoKFmZpcnN0X3Jlc3BvbnNlX2J5dGVfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjkKFWxhc3RfcmVzcG9uc2VfYnl0ZV9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNgoScHJveHlfY29tcGxldGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIYChB1cHN0cmVhbV90dGZiX21zGAogASgDEhgKEHVwc3RyZWFtX3R0bGJfbXMYCyABKAMSGgoSc3RyZWFtX2R1cmF0aW9uX21zGAwgASgDEh8KF3Byb3h5X3RvdGFsX2R1cmF0aW9uX21zGA0gASgDEhUKDXJlcXVlc3RfYnl0ZXMYFCABKAMSFgoOcmVzcG9uc2VfYnl0ZXMYFSABKAMi7wEKC0JpbGxpbmdMaW5rEkMKDGRlYml0X3N0YXR1cxgBIAEoDjItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuQmlsbGluZ0RlYml0U3RhdHVzEhYKDnJlc2VydmF0aW9uX2lkGAIgASgJEhgKEGJpbGxpbmdfZGViaXRfaWQYAyABKAkSLgoKZGViaXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASHQoVYmlsbGluZ19hdHRlbXB0X2NvdW50GAUgASgFEhoKEmxhc3RfYmlsbGluZ19lcnJvchgGIAEoCSKlCgoSTGxtQ2FsbFVzYWdlUmVjb3JkEhcKD3VzYWdlX3JlY29yZF9pZBgBIAEoCRIOCgZydW5faWQYAiABKAkSEwoLcm9vdF9ydW5faWQYAyABKAkSEAoIc2VxdWVuY2UYBCABKAUSFwoPaWRlbXBvdGVuY3lfa2V5GAUgASgJEh4KFmNhbm9uaWNhbF9wYXlsb2FkX2hhc2gYBiABKAkSDwoHY2FsbF9pZBgJIAEoCRIvCgtvYnNlcnZlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKY3JlYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASRwoPbWV0ZXJpbmdfc291cmNlGBQgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Vc2FnZU1ldGVyaW5nU291cmNlEj8KC3RydXN0X2xldmVsGBUgASgOMiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Vc2FnZVRydXN0TGV2ZWwSRgoMdXNhZ2Vfc3RhdHVzGBYgASgOMjAuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Vc2FnZUNvbXBsZXRpb25TdGF0dXMSEwoLaXNfYmlsbGFibGUYFyABKAgSEAoIcHJvdmlkZXIYHiABKAkSFwoPcmVxdWVzdGVkX21vZGVsGB8gASgJEhYKDnJlc29sdmVkX21vZGVsGCAgASgJEhAKCGVuZHBvaW50GCEgASgJEhEKCXN0cmVhbWluZxgiIAEoCBIUCgxzZXJ2aWNlX3RpZXIYIyABKAkSGwoTcHJvdmlkZXJfcmVxdWVzdF9pZBgkIAEoCRIPCgdoYXJuZXNzGCUgASgJEhgKEGh0dHBfc3RhdHVzX2NvZGUYKCABKAUSFQoNZmluaXNoX3JlYXNvbhgpIAEoCRISCgplcnJvcl9jb2RlGCogASgJEkkKE3Byb3ZpZGVyX2tleV9zb3VyY2UYLSABKA4yLC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlByb3ZpZGVyS2V5U291cmNlEhAKCHRoaW5raW5nGCwgASgJEjUKBnRva2VucxgyIAEoCzIlLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVG9rZW5Vc2FnZRIyCgRjb3N0GDMgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Db3N0U3RhbXASPAoMcHJveHlfdGltaW5nGDwgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Qcm94eVRpbWluZxIbChNwcm92aWRlcl91c2FnZV9qc29uGEYgASgJEjcKB2JpbGxpbmcYUCABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLkJpbGxpbmdMaW5rEgsKA29yZxgHIAEoCRISCgpzZXNzaW9uX2lkGAggASgJEkkKBmxhYmVscxhaIAMoCzI5LmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuTGxtQ2FsbFVzYWdlUmVjb3JkLkxhYmVsc0VudHJ5Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgmECdKBAgnEChKBAgrECxSEWN1cnNvcl9hY2NvdW50X2lkUg1jdXJzb3Jfa2V5X2lkUhFjdXJzb3Jfa2V5X3NvdXJjZSK+AgoUVXNhZ2VSZXBvcnRBZ2dyZWdhdGUSFAoMaW5wdXRfdG9rZW5zGAEgASgDEhUKDW91dHB1dF90b2tlbnMYAiABKAMSFAoMdG90YWxfdG9rZW5zGAMgASgDEiMKG2NhY2hlX2NyZWF0aW9uX2lucHV0X3Rva2VucxgEIAEoAxIfChdjYWNoZV9yZWFkX2lucHV0X3Rva2VucxgFIAEoAxIYChByZWFzb25pbmdfdG9rZW5zGAYgASgDEhYKDmxsbV9jYWxsX2NvdW50GAogASgFEhwKFGJpbGxhYmxlX2Nvc3RfbWljcm9zGBQgASgDEhwKFHByb3ZpZGVyX2Nvc3RfbWljcm9zGBUgASgDEhUKDXByaW1hcnlfbW9kZWwYHiABKAkSGAoQcHJpbWFyeV9wcm92aWRlchgfIAEoCSLwAQoKTW9kZWxVc2FnZRINCgVtb2RlbBgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIUCgxpbnB1dF90b2tlbnMYAyABKAMSFQoNb3V0cHV0X3Rva2VucxgEIAEoAxIjChtjYWNoZV9jcmVhdGlvbl9pbnB1dF90b2tlbnMYBSABKAMSHwoXY2FjaGVfcmVhZF9pbnB1dF90b2tlbnMYBiABKAMSEgoKY2FsbF9jb3VudBgHIAEoBRIcChRiaWxsYWJsZV9jb3N0X21pY3JvcxgIIAEoAxIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgJIAEoAyKXAwoVU3RyZWFtaW5nVXNhZ2VTdW1tYXJ5EhQKDGlucHV0X3Rva2VucxgBIAEoAxIVCg1vdXRwdXRfdG9rZW5zGAIgASgDEhkKEWNhY2hlX3JlYWRfdG9rZW5zGAMgASgDEhoKEmNhY2hlX3dyaXRlX3Rva2VucxgEIAEoAxIUCgx0b3RhbF90b2tlbnMYBSABKAMSEgoKdHVybl9jb3VudBgGIAEoBRIaChJlc3RpbWF0ZWRfY29zdF91c2QYByABKAESDQoFbW9kZWwYCCABKAkSEwoLb2JzZXJ2ZWRfYXQYCSABKAkSRgoWcmVxdWVzdGVkX3NlcnZpY2VfdGllchgKIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU2VydmljZVRpZXISHgoWcmVxdWVzdGVkX21vZGVsX3BhcmFtcxgLIAEoCRJIChdyZXF1ZXN0ZWRfdGhpbmtpbmdfbW9kZRgMIAEoDjInLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVGhpbmtpbmdNb2RlKq4CChNVc2FnZU1ldGVyaW5nU291cmNlEiUKIVVTQUdFX01FVEVSSU5HX1NPVVJDRV9VTlNQRUNJRklFRBAAEjEKLVVTQUdFX01FVEVSSU5HX1NPVVJDRV9QUk9YWV9QUk9WSURFUl9SRVBPUlRFRBABEjYKMlVTQUdFX01FVEVSSU5HX1NPVVJDRV9SVU5ORVJfUFJPVklERVJfUkVQT1JURURfT1NTEAISIwofVVNBR0VfTUVURVJJTkdfU09VUkNFX0VTVElNQVRFRBADEjMKL1VTQUdFX01FVEVSSU5HX1NPVVJDRV9QUk9WSURFUl9BRE1JTl9SRUNPTkNJTEVEEAQSKwonVVNBR0VfTUVURVJJTkdfU09VUkNFX01BTlVBTF9BREpVU1RNRU5UEAUqqAEKD1VzYWdlVHJ1c3RMZXZlbBIhCh1VU0FHRV9UUlVTVF9MRVZFTF9VTlNQRUNJRklFRBAAEicKI1VTQUdFX1RSVVNUX0xFVkVMX0JJTExJTkdfQVVUSE9SSVRZEAESJQohVVNBR0VfVFJVU1RfTEVWRUxfU0VSVkVSX09CU0VSVkVEEAISIgoeVVNBR0VfVFJVU1RfTEVWRUxfRElTUExBWV9PTkxZEAMq/AIKFVVzYWdlQ29tcGxldGlvblN0YXR1cxInCiNVU0FHRV9DT01QTEVUSU9OX1NUQVRVU19VTlNQRUNJRklFRBAAEiQKIFVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX0NPTVBMRVRFEAESLgoqVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfU1RSRUFNX0lOVEVSUlVQVEVEEAISNQoxVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfUFJPVklERVJfRVJST1JfV0lUSF9VU0FHRRADEjMKL1VTQUdFX0NPTVBMRVRJT05fU1RBVFVTX1BST1ZJREVSX0VSUk9SX05PX1VTQUdFEAQSKgomVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfRVNUSU1BVEVEX09OTFkQBRImCiJVU0FHRV9DT01QTEVUSU9OX1NUQVRVU19SRUNPTkNJTEVEEAYSJAogVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfQ09ORkxJQ1QQByqfAgoSQmlsbGluZ0RlYml0U3RhdHVzEiQKIEJJTExJTkdfREVCSVRfU1RBVFVTX1VOU1BFQ0lGSUVEEAASJwojQklMTElOR19ERUJJVF9TVEFUVVNfTk9UX0FQUExJQ0FCTEUQARIgChxCSUxMSU5HX0RFQklUX1NUQVRVU19QRU5ESU5HEAISIAocQklMTElOR19ERUJJVF9TVEFUVVNfREVCSVRFRBADEikKJUJJTExJTkdfREVCSVRfU1RBVFVTX0ZBSUxFRF9SRVRSWUFCTEUQBBIoCiRCSUxMSU5HX0RFQklUX1NUQVRVU19GQUlMRURfVEVSTUlOQUwQBRIhCh1CSUxMSU5HX0RFQklUX1NUQVRVU19DT05GTElDVBAGKo8CChVDb3N0Q2FsY3VsYXRpb25TdGF0dXMSJwojQ09TVF9DQUxDVUxBVElPTl9TVEFUVVNfVU5TUEVDSUZJRUQQABIkCiBDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19DT01QVVRFRBABEiUKIUNPU1RfQ0FMQ1VMQVRJT05fU1RBVFVTX0VTVElNQVRFRBACEisKJ0NPU1RfQ0FMQ1VMQVRJT05fU1RBVFVTX1BSSUNFX05PVF9GT1VORBADEiYKIkNPU1RfQ0FMQ1VMQVRJT05fU1RBVFVTX1JFQ09OQ0lMRUQQBBIrCidDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19NQU5VQUxfQURKVVNURUQQBSqAAQoRUHJvdmlkZXJLZXlTb3VyY2USIwofUFJPVklERVJfS0VZX1NPVVJDRV9VTlNQRUNJRklFRBAAEiAKHFBST1ZJREVSX0tFWV9TT1VSQ0VfUExBVEZPUk0QARIkCiBQUk9WSURFUl9LRVlfU09VUkNFX09SR0FOSVpBVElPThACYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_enum, file_google_protobuf_timestamp]);
+  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL3VzYWdlLnByb3RvEhlhaS5zdGlnbWVyLmFnZW50aWMucnVuLnYxIqYDCgpUb2tlblVzYWdlEhQKDGlucHV0X3Rva2VucxgBIAEoAxIVCg1vdXRwdXRfdG9rZW5zGAIgASgDEhQKDHRvdGFsX3Rva2VucxgDIAEoAxIjChtjYWNoZV9jcmVhdGlvbl9pbnB1dF90b2tlbnMYBCABKAMSHwoXY2FjaGVfcmVhZF9pbnB1dF90b2tlbnMYBSABKAMSGAoQcmVhc29uaW5nX3Rva2VucxgGIAEoAxIeChZ0b29sX3VzZV9wcm9tcHRfdG9rZW5zGAcgASgDEhoKEmF1ZGlvX2lucHV0X3Rva2VucxgIIAEoAxIbChNhdWRpb19vdXRwdXRfdG9rZW5zGAkgASgDEl8KFnByb3ZpZGVyX3Rva2VuX2RldGFpbHMYFCADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlRva2VuVXNhZ2UuUHJvdmlkZXJUb2tlbkRldGFpbHNFbnRyeRo7ChlQcm92aWRlclRva2VuRGV0YWlsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoAzoCOAEi1AMKC1Byb3h5VGltaW5nEjUKEXByb3h5X3JlY2VpdmVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI/Cht1cHN0cmVhbV9yZXF1ZXN0X3N0YXJ0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjoKFmZpcnN0X3Jlc3BvbnNlX2J5dGVfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjkKFWxhc3RfcmVzcG9uc2VfYnl0ZV9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNgoScHJveHlfY29tcGxldGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIYChB1cHN0cmVhbV90dGZiX21zGAogASgDEhgKEHVwc3RyZWFtX3R0bGJfbXMYCyABKAMSGgoSc3RyZWFtX2R1cmF0aW9uX21zGAwgASgDEh8KF3Byb3h5X3RvdGFsX2R1cmF0aW9uX21zGA0gASgDEhUKDXJlcXVlc3RfYnl0ZXMYFCABKAMSFgoOcmVzcG9uc2VfYnl0ZXMYFSABKAMi0QkKEkxsbUNhbGxVc2FnZVJlY29yZBIXCg91c2FnZV9yZWNvcmRfaWQYASABKAkSDgoGcnVuX2lkGAIgASgJEhMKC3Jvb3RfcnVuX2lkGAMgASgJEhAKCHNlcXVlbmNlGAQgASgFEhcKD2lkZW1wb3RlbmN5X2tleRgFIAEoCRIeChZjYW5vbmljYWxfcGF5bG9hZF9oYXNoGAYgASgJEg8KB2NhbGxfaWQYCSABKAkSLwoLb2JzZXJ2ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmNyZWF0ZWRfYXQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEkcKD21ldGVyaW5nX3NvdXJjZRgUIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXNhZ2VNZXRlcmluZ1NvdXJjZRI/Cgt0cnVzdF9sZXZlbBgVIAEoDjIqLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXNhZ2VUcnVzdExldmVsEkYKDHVzYWdlX3N0YXR1cxgWIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXNhZ2VDb21wbGV0aW9uU3RhdHVzEhAKCHByb3ZpZGVyGB4gASgJEhcKD3JlcXVlc3RlZF9tb2RlbBgfIAEoCRIWCg5yZXNvbHZlZF9tb2RlbBggIAEoCRIQCghlbmRwb2ludBghIAEoCRIRCglzdHJlYW1pbmcYIiABKAgSFAoMc2VydmljZV90aWVyGCMgASgJEhsKE3Byb3ZpZGVyX3JlcXVlc3RfaWQYJCABKAkSDwoHaGFybmVzcxglIAEoCRIYChBodHRwX3N0YXR1c19jb2RlGCggASgFEhUKDWZpbmlzaF9yZWFzb24YKSABKAkSEgoKZXJyb3JfY29kZRgqIAEoCRJJChNwcm92aWRlcl9rZXlfc291cmNlGC0gASgOMiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Qcm92aWRlcktleVNvdXJjZRIQCgh0aGlua2luZxgsIAEoCRI1CgZ0b2tlbnMYMiABKAsyJS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlRva2VuVXNhZ2USPAoMcHJveHlfdGltaW5nGDwgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Qcm94eVRpbWluZxIbChNwcm92aWRlcl91c2FnZV9qc29uGEYgASgJEgsKA29yZxgHIAEoCRISCgpzZXNzaW9uX2lkGAggASgJEkkKBmxhYmVscxhaIAMoCzI5LmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuTGxtQ2FsbFVzYWdlUmVjb3JkLkxhYmVsc0VudHJ5Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgXEBhKBAgmECdKBAgnEChKBAgrECxKBAgzEDRKBAhQEFFSC2lzX2JpbGxhYmxlUhFjdXJzb3JfYWNjb3VudF9pZFINY3Vyc29yX2tleV9pZFIRY3Vyc29yX2tleV9zb3VyY2VSBGNvc3RSB2JpbGxpbmcivgIKFFVzYWdlUmVwb3J0QWdncmVnYXRlEhQKDGlucHV0X3Rva2VucxgBIAEoAxIVCg1vdXRwdXRfdG9rZW5zGAIgASgDEhQKDHRvdGFsX3Rva2VucxgDIAEoAxIjChtjYWNoZV9jcmVhdGlvbl9pbnB1dF90b2tlbnMYBCABKAMSHwoXY2FjaGVfcmVhZF9pbnB1dF90b2tlbnMYBSABKAMSGAoQcmVhc29uaW5nX3Rva2VucxgGIAEoAxIWCg5sbG1fY2FsbF9jb3VudBgKIAEoBRIcChRiaWxsYWJsZV9jb3N0X21pY3JvcxgUIAEoAxIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgVIAEoAxIVCg1wcmltYXJ5X21vZGVsGB4gASgJEhgKEHByaW1hcnlfcHJvdmlkZXIYHyABKAki8AEKCk1vZGVsVXNhZ2USDQoFbW9kZWwYASABKAkSEAoIcHJvdmlkZXIYAiABKAkSFAoMaW5wdXRfdG9rZW5zGAMgASgDEhUKDW91dHB1dF90b2tlbnMYBCABKAMSIwobY2FjaGVfY3JlYXRpb25faW5wdXRfdG9rZW5zGAUgASgDEh8KF2NhY2hlX3JlYWRfaW5wdXRfdG9rZW5zGAYgASgDEhIKCmNhbGxfY291bnQYByABKAUSHAoUYmlsbGFibGVfY29zdF9taWNyb3MYCCABKAMSHAoUcHJvdmlkZXJfY29zdF9taWNyb3MYCSABKAMilwMKFVN0cmVhbWluZ1VzYWdlU3VtbWFyeRIUCgxpbnB1dF90b2tlbnMYASABKAMSFQoNb3V0cHV0X3Rva2VucxgCIAEoAxIZChFjYWNoZV9yZWFkX3Rva2VucxgDIAEoAxIaChJjYWNoZV93cml0ZV90b2tlbnMYBCABKAMSFAoMdG90YWxfdG9rZW5zGAUgASgDEhIKCnR1cm5fY291bnQYBiABKAUSGgoSZXN0aW1hdGVkX2Nvc3RfdXNkGAcgASgBEg0KBW1vZGVsGAggASgJEhMKC29ic2VydmVkX2F0GAkgASgJEkYKFnJlcXVlc3RlZF9zZXJ2aWNlX3RpZXIYCiABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlNlcnZpY2VUaWVyEh4KFnJlcXVlc3RlZF9tb2RlbF9wYXJhbXMYCyABKAkSSAoXcmVxdWVzdGVkX3RoaW5raW5nX21vZGUYDCABKA4yJy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlRoaW5raW5nTW9kZSquAgoTVXNhZ2VNZXRlcmluZ1NvdXJjZRIlCiFVU0FHRV9NRVRFUklOR19TT1VSQ0VfVU5TUEVDSUZJRUQQABIxCi1VU0FHRV9NRVRFUklOR19TT1VSQ0VfUFJPWFlfUFJPVklERVJfUkVQT1JURUQQARI2CjJVU0FHRV9NRVRFUklOR19TT1VSQ0VfUlVOTkVSX1BST1ZJREVSX1JFUE9SVEVEX09TUxACEiMKH1VTQUdFX01FVEVSSU5HX1NPVVJDRV9FU1RJTUFURUQQAxIzCi9VU0FHRV9NRVRFUklOR19TT1VSQ0VfUFJPVklERVJfQURNSU5fUkVDT05DSUxFRBAEEisKJ1VTQUdFX01FVEVSSU5HX1NPVVJDRV9NQU5VQUxfQURKVVNUTUVOVBAFKqgBCg9Vc2FnZVRydXN0TGV2ZWwSIQodVVNBR0VfVFJVU1RfTEVWRUxfVU5TUEVDSUZJRUQQABInCiNVU0FHRV9UUlVTVF9MRVZFTF9CSUxMSU5HX0FVVEhPUklUWRABEiUKIVVTQUdFX1RSVVNUX0xFVkVMX1NFUlZFUl9PQlNFUlZFRBACEiIKHlVTQUdFX1RSVVNUX0xFVkVMX0RJU1BMQVlfT05MWRADKvwCChVVc2FnZUNvbXBsZXRpb25TdGF0dXMSJwojVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfVU5TUEVDSUZJRUQQABIkCiBVU0FHRV9DT01QTEVUSU9OX1NUQVRVU19DT01QTEVURRABEi4KKlVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX1NUUkVBTV9JTlRFUlJVUFRFRBACEjUKMVVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX1BST1ZJREVSX0VSUk9SX1dJVEhfVVNBR0UQAxIzCi9VU0FHRV9DT01QTEVUSU9OX1NUQVRVU19QUk9WSURFUl9FUlJPUl9OT19VU0FHRRAEEioKJlVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX0VTVElNQVRFRF9PTkxZEAUSJgoiVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfUkVDT05DSUxFRBAGEiQKIFVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX0NPTkZMSUNUEAcqgAEKEVByb3ZpZGVyS2V5U291cmNlEiMKH1BST1ZJREVSX0tFWV9TT1VSQ0VfVU5TUEVDSUZJRUQQABIgChxQUk9WSURFUl9LRVlfU09VUkNFX1BMQVRGT1JNEAESJAogUFJPVklERVJfS0VZX1NPVVJDRV9PUkdBTklaQVRJT04QAmIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_enum, file_google_protobuf_timestamp]);
 
 /**
  * Normalized token usage from a single LLM call.
@@ -74,7 +74,7 @@ export type TokenUsage = Message<"ai.stigmer.agentic.run.v1.TokenUsage"> & {
   toolUsePromptTokens: bigint;
 
   /**
-   * Audio tokens (future multimodal billing).
+   * Audio tokens (multimodal models).
    *
    * @generated from field: int64 audio_input_tokens = 8;
    */
@@ -99,150 +99,6 @@ export type TokenUsage = Message<"ai.stigmer.agentic.run.v1.TokenUsage"> & {
  */
 export const TokenUsageSchema: GenMessage<TokenUsage> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_run_v1_usage, 0);
-
-/**
- * Pricing rates snapshot at the time of the LLM call.
- *
- * @generated from message ai.stigmer.agentic.run.v1.PricingSnapshot
- */
-export type PricingSnapshot = Message<"ai.stigmer.agentic.run.v1.PricingSnapshot"> & {
-  /**
-   * Version of the model pricing registry used.
-   *
-   * @generated from field: string pricing_registry_version = 1;
-   */
-  pricingRegistryVersion: string;
-
-  /**
-   * When this pricing became effective.
-   *
-   * @generated from field: google.protobuf.Timestamp pricing_effective_at = 2;
-   */
-  pricingEffectiveAt?: Timestamp;
-
-  /**
-   * Currency (always "USD" for now).
-   *
-   * @generated from field: string currency = 3;
-   */
-  currency: string;
-
-  /**
-   * Provider cost rates (micro-USD per million tokens).
-   *
-   * @generated from field: int64 input_price_micros_per_million = 10;
-   */
-  inputPriceMicrosPerMillion: bigint;
-
-  /**
-   * @generated from field: int64 output_price_micros_per_million = 11;
-   */
-  outputPriceMicrosPerMillion: bigint;
-
-  /**
-   * @generated from field: int64 cache_creation_price_micros_per_million = 12;
-   */
-  cacheCreationPriceMicrosPerMillion: bigint;
-
-  /**
-   * @generated from field: int64 cache_read_price_micros_per_million = 13;
-   */
-  cacheReadPriceMicrosPerMillion: bigint;
-
-  /**
-   * @generated from field: int64 reasoning_price_micros_per_million = 14;
-   */
-  reasoningPriceMicrosPerMillion: bigint;
-
-  /**
-   * Cursor Token Rate applied to every billable token on non-Auto Cursor
-   * Teams requests (micro-USD per million tokens). Charged by Cursor on top
-   * of model API pricing; folded into provider_cost_micros for cursor-harness
-   * calls. Zero for native harness and for exempt cursor models (Auto/Composer).
-   *
-   * @generated from field: int64 cursor_token_rate_micros_per_million = 15;
-   */
-  cursorTokenRateMicrosPerMillion: bigint;
-
-  /**
-   * Customer billing policy applied.
-   *
-   * @generated from field: string markup_policy_version = 30;
-   */
-  markupPolicyVersion: string;
-
-  /**
-   * @generated from field: string cost_tier = 31;
-   */
-  costTier: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.PricingSnapshot.
- * Use `create(PricingSnapshotSchema)` to create a new message.
- */
-export const PricingSnapshotSchema: GenMessage<PricingSnapshot> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 1);
-
-/**
- * Cost computation result stamped on each usage record.
- *
- * @generated from message ai.stigmer.agentic.run.v1.CostStamp
- */
-export type CostStamp = Message<"ai.stigmer.agentic.run.v1.CostStamp"> & {
-  /**
-   * Currency (always "USD").
-   *
-   * @generated from field: string currency = 1;
-   */
-  currency: string;
-
-  /**
-   * Raw provider cost computed server-side from pricing registry.
-   * For cursor-harness calls this includes the Cursor Token Rate fee
-   * (see cursor_platform_fee_micros for the explicit sub-component).
-   *
-   * @generated from field: int64 provider_cost_micros = 2;
-   */
-  providerCostMicros: bigint;
-
-  /**
-   * Amount debited from customer credits (after markup policy).
-   *
-   * @generated from field: int64 customer_billable_amount_micros = 3;
-   */
-  customerBillableAmountMicros: bigint;
-
-  /**
-   * How cost was computed.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.CostCalculationStatus calculation_status = 4;
-   */
-  calculationStatus: CostCalculationStatus;
-
-  /**
-   * Full pricing snapshot for historical reproducibility.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.PricingSnapshot pricing = 5;
-   */
-  pricing?: PricingSnapshot;
-
-  /**
-   * Cursor Token Rate fee charged by Cursor on top of model API pricing,
-   * already included in provider_cost_micros. Surfaced explicitly for audit
-   * and per-call transparency. Zero for native harness and exempt cursor models.
-   *
-   * @generated from field: int64 cursor_platform_fee_micros = 6;
-   */
-  cursorPlatformFeeMicros: bigint;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.CostStamp.
- * Use `create(CostStampSchema)` to create a new message.
- */
-export const CostStampSchema: GenMessage<CostStamp> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 2);
 
 /**
  * Proxy-observed timing for a single LLM call.
@@ -326,80 +182,25 @@ export type ProxyTiming = Message<"ai.stigmer.agentic.run.v1.ProxyTiming"> & {
  * Use `create(ProxyTimingSchema)` to create a new message.
  */
 export const ProxyTimingSchema: GenMessage<ProxyTiming> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 3);
+  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 1);
 
 /**
- * Links a usage record to its billing debit in the credit ledger.
- *
- * @generated from message ai.stigmer.agentic.run.v1.BillingLink
- */
-export type BillingLink = Message<"ai.stigmer.agentic.run.v1.BillingLink"> & {
-  /**
-   * Current debit status.
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.BillingDebitStatus debit_status = 1;
-   */
-  debitStatus: BillingDebitStatus;
-
-  /**
-   * Run reservation ID (from authorizeRun).
-   *
-   * @generated from field: string reservation_id = 2;
-   */
-  reservationId: string;
-
-  /**
-   * Billing ledger debit ID (from reportLlmCallUsage).
-   *
-   * @generated from field: string billing_debit_id = 3;
-   */
-  billingDebitId: string;
-
-  /**
-   * When the debit was applied.
-   *
-   * @generated from field: google.protobuf.Timestamp debited_at = 4;
-   */
-  debitedAt?: Timestamp;
-
-  /**
-   * Operational visibility.
-   *
-   * @generated from field: int32 billing_attempt_count = 5;
-   */
-  billingAttemptCount: number;
-
-  /**
-   * @generated from field: string last_billing_error = 6;
-   */
-  lastBillingError: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.BillingLink.
- * Use `create(BillingLinkSchema)` to create a new message.
- */
-export const BillingLinkSchema: GenMessage<BillingLink> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 4);
-
-/**
- * Immutable, billing-authoritative record for a single LLM API call.
+ * Immutable, metering-authoritative record for a single LLM API call.
  *
  * Written by the proxy after each SSE stream completes (cloud mode) or by
  * the runner directly (OSS mode). Stored in the `llm_call_usage_record`
- * MongoDB collection, never embedded in the run document.
+ * table, never embedded in the run document.
  *
  * ## Lifecycle
  * 1. Proxy observes SSE stream completion and extracts final usage
- * 2. Server inserts LlmCallUsageRecord (idempotent by idempotency_key)
- * 3. Server computes cost and triggers billing debit
- * 4. billing_link.debit_status transitions to DEBITED
+ * 2. Server resolves the call against the model catalog (harness, served
+ *    tier, thinking mode) and inserts LlmCallUsageRecord (idempotent by
+ *    idempotency_key)
  *
  * ## Idempotency
  * Unique on idempotency_key: run_id + the call's identity + metering_source,
  * where the identity is call_id when the reporter supplied one, else sequence.
- * Insert-only; never mutated except for billing_link status transitions and
- * repricing.
+ * Insert-only; never mutated.
  *
  * @generated from message ai.stigmer.agentic.run.v1.LlmCallUsageRecord
  */
@@ -452,10 +253,8 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.run.v1.LlmCallUsage
 
   /**
    * The call's identity as the reporting proxy minted it (RecordLlmCallUsageInput.call_id),
-   * stamped verbatim. The durable link from a ledger usage_debit
-   * (CreditLedgerSource.llm_call_id) back to this record, and what every later
-   * debit of this record — the live one and the repricing sweep's — keys on.
-   * Empty for records whose reporter sent no call id; those key on sequence.
+   * stamped verbatim; the idempotency key is built on it. Empty for records
+   * whose reporter sent no call id; those key on sequence.
    *
    * @generated from field: string call_id = 9;
    */
@@ -493,13 +292,6 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.run.v1.LlmCallUsage
    * @generated from field: ai.stigmer.agentic.run.v1.UsageCompletionStatus usage_status = 22;
    */
   usageStatus: UsageCompletionStatus;
-
-  /**
-   * Whether this record should produce a billing debit.
-   *
-   * @generated from field: bool is_billable = 23;
-   */
-  isBillable: boolean;
 
   /**
    * ─── Provider / Request Metadata ────────────────────────────────────────────
@@ -573,8 +365,8 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.run.v1.LlmCallUsage
    * mirroring service_tier's convention: cursor harness derives it from the
    * resolved wire id's variant suffix; empty when the wire carries no
    * evidence — never guessed. Thinking is per-token price-neutral
-   * (ledger-verified, stigmer/stigmer#772), so this field feeds the
-   * requested-vs-billed consumption-drift reconciliation, not pricing.
+   * (stigmer/stigmer#772), so this field feeds the requested-vs-billed
+   * consumption-drift reconciliation.
    *
    * @generated from field: string thinking = 44;
    */
@@ -586,13 +378,6 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.run.v1.LlmCallUsage
    * @generated from field: ai.stigmer.agentic.run.v1.TokenUsage tokens = 50;
    */
   tokens?: TokenUsage;
-
-  /**
-   * ─── Cost ───────────────────────────────────────────────────────────────────
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.CostStamp cost = 51;
-   */
-  cost?: CostStamp;
 
   /**
    * ─── Proxy Timing ──────────────────────────────────────────────────────────
@@ -609,13 +394,6 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.run.v1.LlmCallUsage
    * @generated from field: string provider_usage_json = 70;
    */
   providerUsageJson: string;
-
-  /**
-   * ─── Billing Handoff ────────────────────────────────────────────────────────
-   *
-   * @generated from field: ai.stigmer.agentic.run.v1.BillingLink billing = 80;
-   */
-  billing?: BillingLink;
 
   /**
    * Organization that owns this run.
@@ -645,7 +423,7 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.run.v1.LlmCallUsage
  * Use `create(LlmCallUsageRecordSchema)` to create a new message.
  */
 export const LlmCallUsageRecordSchema: GenMessage<LlmCallUsageRecord> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 5);
+  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 2);
 
 /**
  * Aggregated usage across a scope (run, session, agent, or org).
@@ -735,7 +513,7 @@ export type UsageReportAggregate = Message<"ai.stigmer.agentic.run.v1.UsageRepor
  * Use `create(UsageReportAggregateSchema)` to create a new message.
  */
 export const UsageReportAggregateSchema: GenMessage<UsageReportAggregate> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 6);
+  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 3);
 
 /**
  * Per-model usage breakdown within a report scope.
@@ -807,7 +585,7 @@ export type ModelUsage = Message<"ai.stigmer.agentic.run.v1.ModelUsage"> & {
  * Use `create(ModelUsageSchema)` to create a new message.
  */
 export const ModelUsageSchema: GenMessage<ModelUsage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 7);
+  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 4);
 
 /**
  * Accumulated token usage from execution worker turn-ended events.
@@ -920,7 +698,7 @@ export type StreamingUsageSummary = Message<"ai.stigmer.agentic.run.v1.Streaming
  * Use `create(StreamingUsageSummarySchema)` to create a new message.
  */
 export const StreamingUsageSummarySchema: GenMessage<StreamingUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 8);
+  messageDesc(file_ai_stigmer_agentic_run_v1_usage, 5);
 
 /**
  * Identifies who wrote the usage record and under what conditions.
@@ -948,7 +726,7 @@ export enum UsageMeteringSource {
   RUNNER_PROVIDER_REPORTED_OSS = 2,
 
   /**
-   * Estimate from tokenizer/preflight/local accounting. Never billing-authoritative in cloud mode.
+   * Estimate from tokenizer/preflight/local accounting. Never metering-authoritative in cloud mode.
    *
    * @generated from enum value: USAGE_METERING_SOURCE_ESTIMATED = 3;
    */
@@ -987,21 +765,22 @@ export enum UsageTrustLevel {
   UNSPECIFIED = 0,
 
   /**
-   * Billing-authoritative: safe to debit credits from.
+   * The proxy's own measurement of the provider-reported usage: the
+   * metering source of truth.
    *
    * @generated from enum value: USAGE_TRUST_LEVEL_BILLING_AUTHORITY = 1;
    */
   BILLING_AUTHORITY = 1,
 
   /**
-   * Server-observed but not billing (e.g., proxy timing).
+   * Server-observed but not the metered usage (e.g., proxy timing).
    *
    * @generated from enum value: USAGE_TRUST_LEVEL_SERVER_OBSERVED = 2;
    */
   SERVER_OBSERVED = 2,
 
   /**
-   * Display-only: runner-reported, never used for billing.
+   * Display-only: runner-reported, never used for metering.
    *
    * @generated from enum value: USAGE_TRUST_LEVEL_DISPLAY_ONLY = 3;
    */
@@ -1082,119 +861,6 @@ export const UsageCompletionStatusSchema: GenEnum<UsageCompletionStatus> = /*@__
   enumDesc(file_ai_stigmer_agentic_run_v1_usage, 2);
 
 /**
- * Status of the billing debit for a usage record.
- *
- * @generated from enum ai.stigmer.agentic.run.v1.BillingDebitStatus
- */
-export enum BillingDebitStatus {
-  /**
-   * @generated from enum value: BILLING_DEBIT_STATUS_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * No billing applicable (e.g., OSS mode, $0 cost, incomplete usage).
-   *
-   * @generated from enum value: BILLING_DEBIT_STATUS_NOT_APPLICABLE = 1;
-   */
-  NOT_APPLICABLE = 1,
-
-  /**
-   * Debit pending (usage written, billing not yet attempted).
-   *
-   * @generated from enum value: BILLING_DEBIT_STATUS_PENDING = 2;
-   */
-  PENDING = 2,
-
-  /**
-   * Credits successfully debited.
-   *
-   * @generated from enum value: BILLING_DEBIT_STATUS_DEBITED = 3;
-   */
-  DEBITED = 3,
-
-  /**
-   * Debit failed but retryable (transient error).
-   *
-   * @generated from enum value: BILLING_DEBIT_STATUS_FAILED_RETRYABLE = 4;
-   */
-  FAILED_RETRYABLE = 4,
-
-  /**
-   * Debit failed terminally (e.g., no reservation found).
-   *
-   * @generated from enum value: BILLING_DEBIT_STATUS_FAILED_TERMINAL = 5;
-   */
-  FAILED_TERMINAL = 5,
-
-  /**
-   * Conflict detected (duplicate with different payload).
-   *
-   * @generated from enum value: BILLING_DEBIT_STATUS_CONFLICT = 6;
-   */
-  CONFLICT = 6,
-}
-
-/**
- * Describes the enum ai.stigmer.agentic.run.v1.BillingDebitStatus.
- */
-export const BillingDebitStatusSchema: GenEnum<BillingDebitStatus> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_usage, 3);
-
-/**
- * Status of cost calculation for a usage record.
- *
- * @generated from enum ai.stigmer.agentic.run.v1.CostCalculationStatus
- */
-export enum CostCalculationStatus {
-  /**
-   * @generated from enum value: COST_CALCULATION_STATUS_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * Cost computed from pricing registry at write time.
-   *
-   * @generated from enum value: COST_CALCULATION_STATUS_COMPUTED = 1;
-   */
-  COMPUTED = 1,
-
-  /**
-   * Cost is an estimate (model not found in registry).
-   *
-   * @generated from enum value: COST_CALCULATION_STATUS_ESTIMATED = 2;
-   */
-  ESTIMATED = 2,
-
-  /**
-   * Model pricing not found; cost is zero.
-   *
-   * @generated from enum value: COST_CALCULATION_STATUS_PRICE_NOT_FOUND = 3;
-   */
-  PRICE_NOT_FOUND = 3,
-
-  /**
-   * Cost was reconciled against provider reports.
-   *
-   * @generated from enum value: COST_CALCULATION_STATUS_RECONCILED = 4;
-   */
-  RECONCILED = 4,
-
-  /**
-   * Cost was manually adjusted.
-   *
-   * @generated from enum value: COST_CALCULATION_STATUS_MANUAL_ADJUSTED = 5;
-   */
-  MANUAL_ADJUSTED = 5,
-}
-
-/**
- * Describes the enum ai.stigmer.agentic.run.v1.CostCalculationStatus.
- */
-export const CostCalculationStatusSchema: GenEnum<CostCalculationStatus> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_usage, 4);
-
-/**
  * Whose provider credential served a proxied LLM call.
  *
  * The proxy picks the key, injects it upstream, and reports the same source
@@ -1229,5 +895,5 @@ export enum ProviderKeySource {
  * Describes the enum ai.stigmer.agentic.run.v1.ProviderKeySource.
  */
 export const ProviderKeySourceSchema: GenEnum<ProviderKeySource> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_usage, 5);
+  enumDesc(file_ai_stigmer_agentic_run_v1_usage, 3);
 

@@ -158,11 +158,6 @@
           "description": "The eval's spending limit was reached."
         },
         {
-          "name": "plugin_eval_partial_reason_out_of_credit",
-          "number": 2,
-          "description": "The organization ran out of credit."
-        },
-        {
           "name": "plugin_eval_partial_reason_cancelled",
           "number": 3,
           "description": "Someone cancelled the eval."
@@ -444,7 +439,6 @@
           "enumType": "ai.stigmer.agentic.plugineval.v1.PluginEvalPartialReason",
           "enumValues": [
             "plugin_eval_partial_reason_cost_ceiling",
-            "plugin_eval_partial_reason_out_of_credit",
             "plugin_eval_partial_reason_cancelled"
           ]
         },
@@ -1195,7 +1189,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Why the try produced no score, as in \"platform busy\" or \"out of\n credit\"; empty when graded.",
+          "description": "Why the try produced no score, as in \"platform busy\"; empty when\n graded.",
           "required": false
         },
         {

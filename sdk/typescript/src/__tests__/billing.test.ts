@@ -10,138 +10,33 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import { BillingQueryController } from "@stigmer/protos/ai/stigmer/billing/v1/query_pb";
 import {
-  CreditLedgerResponseSchema,
-  type AdjustCreditsInput,
-  type GrantCreditsInput,
-  type GetCreditLedgerInput,
+  BillingUsageReportResponseSchema,
+  type GetBillingUsageReportInput,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
-import { CreditLedgerEntrySchema } from "@stigmer/protos/ai/stigmer/billing/v1/credit_pb";
-import { LedgerEntryType, LedgerView } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { BillingClient } from "../billing.js";
 
-interface Captured {
-  adjustCredits?: AdjustCreditsInput;
-  grantCredits?: GrantCreditsInput;
-  getCreditLedger?: GetCreditLedgerInput;
-}
-
-function fakeTransport(captured: Captured): Transport {
-  return createRouterTransport(({ service }) => {
-    service(BillingCommandController, {
-      adjustCredits: (req) => {
-        captured.adjustCredits = req;
-        return create(CreditLedgerEntrySchema, { amountMicros: req.amountMicros });
-      },
-      grantCredits: (req) => {
-        captured.grantCredits = req;
-        return create(CreditLedgerEntrySchema, { amountMicros: req.amountMicros });
-      },
+describe("BillingClient.getBillingUsageReport", () => {
+  it("maps the time range onto GetBillingUsageReportInput and returns the counts", async () => {
+    let captured: GetBillingUsageReportInput | undefined;
+    const transport = createRouterTransport(({ service }) => {
+      service(BillingQueryController, {
+        getBillingUsageReport: (req) => {
+          captured = req;
+          return create(BillingUsageReportResponseSchema, { runCount: 3, llmCallCount: 12 });
+        },
+      });
     });
-    service(BillingQueryController, {
-      getCreditLedger: (req) => {
-        captured.getCreditLedger = req;
-        return create(CreditLedgerResponseSchema, {});
-      },
-    });
-  });
-}
-
-describe("BillingClient.adjustCredits", () => {
-  it("maps params onto AdjustCreditsInput and returns the ledger entry", async () => {
-    const captured: Captured = {};
-    const client = new BillingClient(fakeTransport(captured));
-
-    const entry = await client.adjustCredits({
-      org: "acme",
-      amountMicros: 25_000_000n,
-      reason: "initial tenant funding",
-      idempotencyKey: "fund-acme-001",
-    });
-
-    expect(entry.amountMicros).toBe(25_000_000n);
-    expect(captured.adjustCredits?.org).toBe("acme");
-    expect(captured.adjustCredits?.amountMicros).toBe(25_000_000n);
-    expect(captured.adjustCredits?.reason).toBe("initial tenant funding");
-    expect(captured.adjustCredits?.idempotencyKey).toBe("fund-acme-001");
-  });
-});
-
-describe("BillingClient.grantCredits", () => {
-  it("maps params including the expiry onto GrantCreditsInput", async () => {
-    const captured: Captured = {};
-    const client = new BillingClient(fakeTransport(captured));
-
-    const expiresAt = new Date("2026-08-31T23:59:59Z");
-    const entry = await client.grantCredits({
-      org: "acme",
-      amountMicros: 5_000_000n,
-      expiresAt,
-      reason: "monthly free allowance 2026-08",
-      idempotencyKey: "allowance-acme-2026-08",
-    });
-
-    expect(entry.amountMicros).toBe(5_000_000n);
-    const req = captured.grantCredits;
-    expect(req?.org).toBe("acme");
-    expect(req?.amountMicros).toBe(5_000_000n);
-    expect(req?.expiresAt && timestampDate(req.expiresAt)).toEqual(expiresAt);
-    expect(req?.reason).toBe("monthly free allowance 2026-08");
-    expect(req?.idempotencyKey).toBe("allowance-acme-2026-08");
-  });
-
-  it("omits the expiry for a never-expiring grant", async () => {
-    const captured: Captured = {};
-    const client = new BillingClient(fakeTransport(captured));
-
-    await client.grantCredits({
-      org: "acme",
-      amountMicros: 1_000_000n,
-      reason: "welcome credit",
-      idempotencyKey: "welcome-acme",
-    });
-
-    expect(captured.grantCredits?.expiresAt).toBeUndefined();
-  });
-});
-
-describe("BillingClient.getCreditLedger", () => {
-  it("maps all filters including the time range", async () => {
-    const captured: Captured = {};
-    const client = new BillingClient(fakeTransport(captured));
+    const client = new BillingClient(transport);
 
     const startTime = new Date("2026-08-01T00:00:00Z");
     const endTime = new Date("2026-08-13T00:00:00Z");
-    await client.getCreditLedger({
-      org: "acme",
-      page: { num: 2, size: 50 },
-      typeFilter: [LedgerEntryType.adjustment_credit],
-      startTime,
-      endTime,
-      view: LedgerView.statement,
-    });
+    const report = await client.getBillingUsageReport({ org: "acme", startTime, endTime });
 
-    const req = captured.getCreditLedger;
-    expect(req?.org).toBe("acme");
-    expect(req?.page?.num).toBe(2);
-    expect(req?.page?.size).toBe(50);
-    expect(req?.typeFilter).toEqual([LedgerEntryType.adjustment_credit]);
-    expect(req?.startTime && timestampDate(req.startTime)).toEqual(startTime);
-    expect(req?.endTime && timestampDate(req.endTime)).toEqual(endTime);
-    expect(req?.view).toBe(LedgerView.statement);
-  });
-
-  it("omits unset optional filters", async () => {
-    const captured: Captured = {};
-    const client = new BillingClient(fakeTransport(captured));
-
-    await client.getCreditLedger({ org: "acme" });
-
-    const req = captured.getCreditLedger;
-    expect(req?.page).toBeUndefined();
-    expect(req?.startTime).toBeUndefined();
-    expect(req?.endTime).toBeUndefined();
-    expect(req?.typeFilter).toEqual([]);
-    expect(req?.view).toBe(LedgerView.unspecified);
+    expect(report.runCount).toBe(3);
+    expect(report.llmCallCount).toBe(12);
+    expect(captured?.org).toBe("acme");
+    expect(captured?.startTime && timestampDate(captured.startTime)).toEqual(startTime);
+    expect(captured?.endTime && timestampDate(captured.endTime)).toEqual(endTime);
   });
 });
 
@@ -151,16 +46,12 @@ describe("BillingClient's organization-scoped calls name the organization as org
     return createRouterTransport(({ service }) => {
       service(BillingCommandController, {
         getOrCreateBillingAccount: (req) => (seen.set("getOrCreateBillingAccount", req), {}),
-        createCreditCheckoutSession: (req) => (seen.set("createCreditCheckoutSession", req), {}),
         createBillingPortalSession: (req) => (seen.set("createBillingPortalSession", req), {}),
         createPaymentMethodSetupSession: (req) => (seen.set("createPaymentMethodSetupSession", req), {}),
-        setAutoRechargeConfig: (req) => (seen.set("setAutoRechargeConfig", req), {}),
       });
       service(BillingQueryController, {
         getBillingAccount: (req) => (seen.set("getBillingAccount", req), {}),
-        getCreditBalance: (req) => (seen.set("getCreditBalance", req), {}),
         getBillingUsageReport: (req) => (seen.set("getBillingUsageReport", req), {}),
-        getCustomerModelPricing: (req) => (seen.set("getCustomerModelPricing", req), {}),
       });
     });
   }
@@ -168,43 +59,20 @@ describe("BillingClient's organization-scoped calls name the organization as org
   const calls: ReadonlyArray<readonly [string, (client: BillingClient) => Promise<unknown>]> = [
     ["getOrCreateBillingAccount", (c) => c.getOrCreateBillingAccount("acme")],
     ["getBillingAccount", (c) => c.getBillingAccount("acme")],
-    ["getCreditBalance", (c) => c.getCreditBalance("acme")],
-    [
-      "createCreditCheckoutSession",
-      (c) => c.createCreditCheckoutSession({ org: "acme", packId: "starter", successUrl: "https://ok", cancelUrl: "https://no" }),
-    ],
     ["createBillingPortalSession", (c) => c.createBillingPortalSession({ org: "acme", returnUrl: "https://back" })],
     [
       "createPaymentMethodSetupSession",
       (c) => c.createPaymentMethodSetupSession({ org: "acme", successUrl: "https://ok", cancelUrl: "https://no" }),
     ],
     [
-      "setAutoRechargeConfig",
-      (c) =>
-        c.setAutoRechargeConfig({
-          org: "acme",
-          enabled: true,
-          thresholdMicros: 1n,
-          rechargeAmountMicros: 2n,
-          monthlyCapMicros: 3n,
-        }),
-    ],
-    [
       "getBillingUsageReport",
       (c) => c.getBillingUsageReport({ org: "acme", startTime: new Date(0), endTime: new Date(1000) }),
     ],
-    ["getCustomerModelPricing", (c) => c.getCustomerModelPricing({ org: "acme" })],
   ];
 
   it.each(calls)("%s sends org", async (method, call) => {
     const seen = new Map<string, { readonly org: string }>();
     await call(new BillingClient(capturingTransport(seen)));
     expect(seen.get(method)?.org).toBe("acme");
-  });
-
-  it("getCustomerModelPricing with no org asks for the default prices", async () => {
-    const seen = new Map<string, { readonly org: string }>();
-    await new BillingClient(capturingTransport(seen)).getCustomerModelPricing();
-    expect(seen.get("getCustomerModelPricing")?.org).toBe("");
   });
 });

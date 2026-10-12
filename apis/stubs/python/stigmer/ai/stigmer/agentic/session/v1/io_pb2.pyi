@@ -98,6 +98,50 @@ class ReviewFileChangesResponse(_message.Message):
     reconcile_run_id: str
     def __init__(self, reconcile_run_id: _Optional[str] = ...) -> None: ...
 
+class ConfirmToolUseInput(_message.Message):
+    __slots__ = ("session_id", "tool_use_id", "result", "deny_message")
+    SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    TOOL_USE_ID_FIELD_NUMBER: _ClassVar[int]
+    RESULT_FIELD_NUMBER: _ClassVar[int]
+    DENY_MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    session_id: str
+    tool_use_id: str
+    result: str
+    deny_message: str
+    def __init__(self, session_id: _Optional[str] = ..., tool_use_id: _Optional[str] = ..., result: _Optional[str] = ..., deny_message: _Optional[str] = ...) -> None: ...
+
+class GrantPermissionInput(_message.Message):
+    __slots__ = ("session_id", "tool_use_id")
+    SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    TOOL_USE_ID_FIELD_NUMBER: _ClassVar[int]
+    session_id: str
+    tool_use_id: str
+    def __init__(self, session_id: _Optional[str] = ..., tool_use_id: _Optional[str] = ...) -> None: ...
+
+class GrantPermissionResponse(_message.Message):
+    __slots__ = ("grant", "confirmations")
+    GRANT_FIELD_NUMBER: _ClassVar[int]
+    CONFIRMATIONS_FIELD_NUMBER: _ClassVar[int]
+    grant: _event_pb2.SessionEvent
+    confirmations: _containers.RepeatedCompositeFieldContainer[_event_pb2.SessionEvent]
+    def __init__(self, grant: _Optional[_Union[_event_pb2.SessionEvent, _Mapping]] = ..., confirmations: _Optional[_Iterable[_Union[_event_pb2.SessionEvent, _Mapping]]] = ...) -> None: ...
+
+class InterruptSessionInput(_message.Message):
+    __slots__ = ("session_id", "session_thread_id")
+    SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    SESSION_THREAD_ID_FIELD_NUMBER: _ClassVar[int]
+    session_id: str
+    session_thread_id: str
+    def __init__(self, session_id: _Optional[str] = ..., session_thread_id: _Optional[str] = ...) -> None: ...
+
+class InterruptSessionResponse(_message.Message):
+    __slots__ = ("event", "stopped_run_ids")
+    EVENT_FIELD_NUMBER: _ClassVar[int]
+    STOPPED_RUN_IDS_FIELD_NUMBER: _ClassVar[int]
+    event: _event_pb2.SessionEvent
+    stopped_run_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, event: _Optional[_Union[_event_pb2.SessionEvent, _Mapping]] = ..., stopped_run_ids: _Optional[_Iterable[str]] = ...) -> None: ...
+
 class ListSessionEventsRequest(_message.Message):
     __slots__ = ("session_id", "page_size", "page_token", "order", "types", "created_at_gt", "created_at_gte", "created_at_lt", "created_at_lte", "run_id")
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]

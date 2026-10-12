@@ -20,13 +20,8 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	BillingQueryController_GetBillingAccount_FullMethodName         = "/ai.stigmer.billing.v1.BillingQueryController/getBillingAccount"
-	BillingQueryController_GetCreditBalance_FullMethodName          = "/ai.stigmer.billing.v1.BillingQueryController/getCreditBalance"
-	BillingQueryController_GetCreditLedger_FullMethodName           = "/ai.stigmer.billing.v1.BillingQueryController/getCreditLedger"
 	BillingQueryController_GetBillingUsageReport_FullMethodName     = "/ai.stigmer.billing.v1.BillingQueryController/getBillingUsageReport"
-	BillingQueryController_GetCustomerModelPricing_FullMethodName   = "/ai.stigmer.billing.v1.BillingQueryController/getCustomerModelPricing"
 	BillingQueryController_ListModelPricingBaselines_FullMethodName = "/ai.stigmer.billing.v1.BillingQueryController/listModelPricingBaselines"
-	BillingQueryController_PreviewAuthorization_FullMethodName      = "/ai.stigmer.billing.v1.BillingQueryController/previewAuthorization"
-	BillingQueryController_GetRunBillingSignal_FullMethodName       = "/ai.stigmer.billing.v1.BillingQueryController/getRunBillingSignal"
 )
 
 // BillingQueryControllerClient is the client API for BillingQueryController service.
@@ -35,36 +30,22 @@ const (
 //
 // BillingQueryController handles read operations for the billing bounded context.
 //
-// All RPCs authorize against the organization resource kind with can_view_billing.
+// An organization's own reads authorize against the organization resource
+// kind with can_view_billing; the model catalog's operator read authorizes
+// against the static platform target.
 type BillingQueryControllerClient interface {
 	// Retrieve the billing account for an organization.
 	GetBillingAccount(ctx context.Context, in *GetBillingAccountInput, opts ...grpc.CallOption) (*BillingAccount, error)
-	// Retrieve the credit balance breakdown for an organization.
-	GetCreditBalance(ctx context.Context, in *GetCreditBalanceInput, opts ...grpc.CallOption) (*CreditBalance, error)
-	// Retrieve paginated credit ledger entries with optional filters.
-	GetCreditLedger(ctx context.Context, in *GetCreditLedgerInput, opts ...grpc.CallOption) (*CreditLedgerResponse, error)
-	// Retrieve an aggregated billing usage report for a date range.
+	// Count an organization's metered LLM calls and runs in a date range,
+	// with the calls broken down by model and harness. A count, never an
+	// amount: the meter records what each call was, not what it cost.
 	GetBillingUsageReport(ctx context.Context, in *GetBillingUsageReportInput, opts ...grpc.CallOption) (*BillingUsageReportResponse, error)
-	// Retrieve the customer-facing model price list with markup applied.
-	// Returns prices for all models, organized by harness and cost tier.
-	GetCustomerModelPricing(ctx context.Context, in *GetCustomerModelPricingInput, opts ...grpc.CallOption) (*CustomerModelPricingResponse, error)
 	// Retrieve the model registry baseline catalog (ACTIVE documents, or the
 	// full append-only revision history when include_history is set).
 	//
-	// Operator surface: exposes raw provider rates (pre-markup) and revision
-	// provenance, so it is platform-gated, not org-gated.
+	// Operator surface: exposes the providers' list prices with their
+	// revision provenance, so it is platform-gated, not org-gated.
 	ListModelPricingBaselines(ctx context.Context, in *ListModelPricingBaselinesInput, opts ...grpc.CallOption) (*ModelPricingBaselinesResponse, error)
-	// Preview whether an organization can fund a run, without writing
-	// a reservation. The read-only twin of BillingCommandController's
-	// authorizeRun: both ride the same server-side affordability
-	// predicate (start threshold, negative allowance, default cap), so a
-	// synchronous preflight refusal and the authoritative reservation can
-	// never drift.
-	PreviewAuthorization(ctx context.Context, in *PreviewAuthorizationInput, opts ...grpc.CallOption) (*PreviewAuthorizationResponse, error)
-	// Retrieve the current billing control signal for a run in progress
-	// (continue / low-balance warning / stop), derived from the run's
-	// reservation headroom and the billing account's status.
-	GetRunBillingSignal(ctx context.Context, in *GetRunBillingSignalInput, opts ...grpc.CallOption) (*GetRunBillingSignalResponse, error)
 }
 
 type billingQueryControllerClient struct {
@@ -85,40 +66,10 @@ func (c *billingQueryControllerClient) GetBillingAccount(ctx context.Context, in
 	return out, nil
 }
 
-func (c *billingQueryControllerClient) GetCreditBalance(ctx context.Context, in *GetCreditBalanceInput, opts ...grpc.CallOption) (*CreditBalance, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreditBalance)
-	err := c.cc.Invoke(ctx, BillingQueryController_GetCreditBalance_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingQueryControllerClient) GetCreditLedger(ctx context.Context, in *GetCreditLedgerInput, opts ...grpc.CallOption) (*CreditLedgerResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreditLedgerResponse)
-	err := c.cc.Invoke(ctx, BillingQueryController_GetCreditLedger_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *billingQueryControllerClient) GetBillingUsageReport(ctx context.Context, in *GetBillingUsageReportInput, opts ...grpc.CallOption) (*BillingUsageReportResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BillingUsageReportResponse)
 	err := c.cc.Invoke(ctx, BillingQueryController_GetBillingUsageReport_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingQueryControllerClient) GetCustomerModelPricing(ctx context.Context, in *GetCustomerModelPricingInput, opts ...grpc.CallOption) (*CustomerModelPricingResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CustomerModelPricingResponse)
-	err := c.cc.Invoke(ctx, BillingQueryController_GetCustomerModelPricing_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -135,62 +86,28 @@ func (c *billingQueryControllerClient) ListModelPricingBaselines(ctx context.Con
 	return out, nil
 }
 
-func (c *billingQueryControllerClient) PreviewAuthorization(ctx context.Context, in *PreviewAuthorizationInput, opts ...grpc.CallOption) (*PreviewAuthorizationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PreviewAuthorizationResponse)
-	err := c.cc.Invoke(ctx, BillingQueryController_PreviewAuthorization_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingQueryControllerClient) GetRunBillingSignal(ctx context.Context, in *GetRunBillingSignalInput, opts ...grpc.CallOption) (*GetRunBillingSignalResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetRunBillingSignalResponse)
-	err := c.cc.Invoke(ctx, BillingQueryController_GetRunBillingSignal_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // BillingQueryControllerServer is the server API for BillingQueryController service.
 // All implementations should embed UnimplementedBillingQueryControllerServer
 // for forward compatibility.
 //
 // BillingQueryController handles read operations for the billing bounded context.
 //
-// All RPCs authorize against the organization resource kind with can_view_billing.
+// An organization's own reads authorize against the organization resource
+// kind with can_view_billing; the model catalog's operator read authorizes
+// against the static platform target.
 type BillingQueryControllerServer interface {
 	// Retrieve the billing account for an organization.
 	GetBillingAccount(context.Context, *GetBillingAccountInput) (*BillingAccount, error)
-	// Retrieve the credit balance breakdown for an organization.
-	GetCreditBalance(context.Context, *GetCreditBalanceInput) (*CreditBalance, error)
-	// Retrieve paginated credit ledger entries with optional filters.
-	GetCreditLedger(context.Context, *GetCreditLedgerInput) (*CreditLedgerResponse, error)
-	// Retrieve an aggregated billing usage report for a date range.
+	// Count an organization's metered LLM calls and runs in a date range,
+	// with the calls broken down by model and harness. A count, never an
+	// amount: the meter records what each call was, not what it cost.
 	GetBillingUsageReport(context.Context, *GetBillingUsageReportInput) (*BillingUsageReportResponse, error)
-	// Retrieve the customer-facing model price list with markup applied.
-	// Returns prices for all models, organized by harness and cost tier.
-	GetCustomerModelPricing(context.Context, *GetCustomerModelPricingInput) (*CustomerModelPricingResponse, error)
 	// Retrieve the model registry baseline catalog (ACTIVE documents, or the
 	// full append-only revision history when include_history is set).
 	//
-	// Operator surface: exposes raw provider rates (pre-markup) and revision
-	// provenance, so it is platform-gated, not org-gated.
+	// Operator surface: exposes the providers' list prices with their
+	// revision provenance, so it is platform-gated, not org-gated.
 	ListModelPricingBaselines(context.Context, *ListModelPricingBaselinesInput) (*ModelPricingBaselinesResponse, error)
-	// Preview whether an organization can fund a run, without writing
-	// a reservation. The read-only twin of BillingCommandController's
-	// authorizeRun: both ride the same server-side affordability
-	// predicate (start threshold, negative allowance, default cap), so a
-	// synchronous preflight refusal and the authoritative reservation can
-	// never drift.
-	PreviewAuthorization(context.Context, *PreviewAuthorizationInput) (*PreviewAuthorizationResponse, error)
-	// Retrieve the current billing control signal for a run in progress
-	// (continue / low-balance warning / stop), derived from the run's
-	// reservation headroom and the billing account's status.
-	GetRunBillingSignal(context.Context, *GetRunBillingSignalInput) (*GetRunBillingSignalResponse, error)
 }
 
 // UnimplementedBillingQueryControllerServer should be embedded to have
@@ -203,26 +120,11 @@ type UnimplementedBillingQueryControllerServer struct{}
 func (UnimplementedBillingQueryControllerServer) GetBillingAccount(context.Context, *GetBillingAccountInput) (*BillingAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBillingAccount not implemented")
 }
-func (UnimplementedBillingQueryControllerServer) GetCreditBalance(context.Context, *GetCreditBalanceInput) (*CreditBalance, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetCreditBalance not implemented")
-}
-func (UnimplementedBillingQueryControllerServer) GetCreditLedger(context.Context, *GetCreditLedgerInput) (*CreditLedgerResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetCreditLedger not implemented")
-}
 func (UnimplementedBillingQueryControllerServer) GetBillingUsageReport(context.Context, *GetBillingUsageReportInput) (*BillingUsageReportResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBillingUsageReport not implemented")
 }
-func (UnimplementedBillingQueryControllerServer) GetCustomerModelPricing(context.Context, *GetCustomerModelPricingInput) (*CustomerModelPricingResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetCustomerModelPricing not implemented")
-}
 func (UnimplementedBillingQueryControllerServer) ListModelPricingBaselines(context.Context, *ListModelPricingBaselinesInput) (*ModelPricingBaselinesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListModelPricingBaselines not implemented")
-}
-func (UnimplementedBillingQueryControllerServer) PreviewAuthorization(context.Context, *PreviewAuthorizationInput) (*PreviewAuthorizationResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PreviewAuthorization not implemented")
-}
-func (UnimplementedBillingQueryControllerServer) GetRunBillingSignal(context.Context, *GetRunBillingSignalInput) (*GetRunBillingSignalResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetRunBillingSignal not implemented")
 }
 func (UnimplementedBillingQueryControllerServer) testEmbeddedByValue() {}
 
@@ -262,42 +164,6 @@ func _BillingQueryController_GetBillingAccount_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BillingQueryController_GetCreditBalance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetCreditBalanceInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingQueryControllerServer).GetCreditBalance(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingQueryController_GetCreditBalance_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingQueryControllerServer).GetCreditBalance(ctx, req.(*GetCreditBalanceInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BillingQueryController_GetCreditLedger_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetCreditLedgerInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingQueryControllerServer).GetCreditLedger(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingQueryController_GetCreditLedger_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingQueryControllerServer).GetCreditLedger(ctx, req.(*GetCreditLedgerInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _BillingQueryController_GetBillingUsageReport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetBillingUsageReportInput)
 	if err := dec(in); err != nil {
@@ -312,24 +178,6 @@ func _BillingQueryController_GetBillingUsageReport_Handler(srv interface{}, ctx 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BillingQueryControllerServer).GetBillingUsageReport(ctx, req.(*GetBillingUsageReportInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BillingQueryController_GetCustomerModelPricing_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetCustomerModelPricingInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingQueryControllerServer).GetCustomerModelPricing(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingQueryController_GetCustomerModelPricing_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingQueryControllerServer).GetCustomerModelPricing(ctx, req.(*GetCustomerModelPricingInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -352,42 +200,6 @@ func _BillingQueryController_ListModelPricingBaselines_Handler(srv interface{}, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BillingQueryController_PreviewAuthorization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PreviewAuthorizationInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingQueryControllerServer).PreviewAuthorization(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingQueryController_PreviewAuthorization_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingQueryControllerServer).PreviewAuthorization(ctx, req.(*PreviewAuthorizationInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BillingQueryController_GetRunBillingSignal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRunBillingSignalInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingQueryControllerServer).GetRunBillingSignal(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingQueryController_GetRunBillingSignal_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingQueryControllerServer).GetRunBillingSignal(ctx, req.(*GetRunBillingSignalInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // BillingQueryController_ServiceDesc is the grpc.ServiceDesc for BillingQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -400,32 +212,12 @@ var BillingQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BillingQueryController_GetBillingAccount_Handler,
 		},
 		{
-			MethodName: "getCreditBalance",
-			Handler:    _BillingQueryController_GetCreditBalance_Handler,
-		},
-		{
-			MethodName: "getCreditLedger",
-			Handler:    _BillingQueryController_GetCreditLedger_Handler,
-		},
-		{
 			MethodName: "getBillingUsageReport",
 			Handler:    _BillingQueryController_GetBillingUsageReport_Handler,
 		},
 		{
-			MethodName: "getCustomerModelPricing",
-			Handler:    _BillingQueryController_GetCustomerModelPricing_Handler,
-		},
-		{
 			MethodName: "listModelPricingBaselines",
 			Handler:    _BillingQueryController_ListModelPricingBaselines_Handler,
-		},
-		{
-			MethodName: "previewAuthorization",
-			Handler:    _BillingQueryController_PreviewAuthorization_Handler,
-		},
-		{
-			MethodName: "getRunBillingSignal",
-			Handler:    _BillingQueryController_GetRunBillingSignal_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

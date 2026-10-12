@@ -74,7 +74,7 @@ describe("PlanCatalogConsole", () => {
     const form = screen.getByRole("form", { name: "New plan" });
     await userEvent.type(within(form).getByLabelText(/^Name/), "Team 2027");
     await userEvent.type(within(form).getByLabelText(/^Handle/), "team-2027");
-    await userEvent.type(within(form).getByLabelText(/^Monthly minimum/), "129");
+    await userEvent.type(within(form).getByLabelText(/^Monthly fee/), "129");
     await userEvent.click(within(form).getByRole("button", { name: "Review" }));
     expect(within(form).getByText(/terms are final once it exists/)).toBeTruthy();
     expect(client.plan.create).not.toHaveBeenCalled();
@@ -89,7 +89,7 @@ describe("PlanCatalogConsole", () => {
     const form = screen.getByRole("form", { name: "New plan" });
     await userEvent.type(within(form).getByLabelText(/^Name/), "Business 2027");
     await userEvent.type(within(form).getByLabelText(/^Handle/), "business-2027");
-    await userEvent.type(within(form).getByLabelText(/^Monthly minimum/), "499");
+    await userEvent.type(within(form).getByLabelText(/^Monthly fee/), "499");
     expect(within(form).queryByLabelText(/^Child organizations included/)).toBeNull();
     await userEvent.click(within(form).getByRole("checkbox", { name: /^Child organizations/ }));
     await userEvent.type(within(form).getByLabelText(/^Child organizations included/), "3");

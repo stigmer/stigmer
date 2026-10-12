@@ -517,6 +517,60 @@ public interface SessionEventOrBuilder extends
 
   /**
    * <pre>
+   * A person allowed or denied a tool use that waited for an answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+   * @return Whether the userToolConfirmation field is set.
+   */
+  boolean hasUserToolConfirmation();
+  /**
+   * <pre>
+   * A person allowed or denied a tool use that waited for an answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+   * @return The userToolConfirmation.
+   */
+  ai.stigmer.agentic.session.v1.UserToolConfirmationEvent getUserToolConfirmation();
+  /**
+   * <pre>
+   * A person allowed or denied a tool use that waited for an answer.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserToolConfirmationEvent user_tool_confirmation = 26 [json_name = "userToolConfirmation", (.ai.stigmer.commons.apiresource.event_type) = "user.tool_confirmation"];</code>
+   */
+  ai.stigmer.agentic.session.v1.UserToolConfirmationEventOrBuilder getUserToolConfirmationOrBuilder();
+
+  /**
+   * <pre>
+   * A person stopped the session's unfinished work.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+   * @return Whether the userInterrupt field is set.
+   */
+  boolean hasUserInterrupt();
+  /**
+   * <pre>
+   * A person stopped the session's unfinished work.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+   * @return The userInterrupt.
+   */
+  ai.stigmer.agentic.session.v1.UserInterruptEvent getUserInterrupt();
+  /**
+   * <pre>
+   * A person stopped the session's unfinished work.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.UserInterruptEvent user_interrupt = 27 [json_name = "userInterrupt", (.ai.stigmer.commons.apiresource.event_type) = "user.interrupt"];</code>
+   */
+  ai.stigmer.agentic.session.v1.UserInterruptEventOrBuilder getUserInterruptOrBuilder();
+
+  /**
+   * <pre>
    * The text of the agent's thinking.
    * </pre>
    *
@@ -733,6 +787,33 @@ public interface SessionEventOrBuilder extends
    * <code>.ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEvent stigmer_file_review_reconciled = 107 [json_name = "stigmerFileReviewReconciled", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.file_review.reconciled"];</code>
    */
   ai.stigmer.agentic.session.v1.StigmerFileReviewReconciledEventOrBuilder getStigmerFileReviewReconciledOrBuilder();
+
+  /**
+   * <pre>
+   * A person allowed every call of one class for the rest of the turn.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+   * @return Whether the stigmerPermissionGrant field is set.
+   */
+  boolean hasStigmerPermissionGrant();
+  /**
+   * <pre>
+   * A person allowed every call of one class for the rest of the turn.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+   * @return The stigmerPermissionGrant.
+   */
+  ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent getStigmerPermissionGrant();
+  /**
+   * <pre>
+   * A person allowed every call of one class for the rest of the turn.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerPermissionGrantEvent stigmer_permission_grant = 108 [json_name = "stigmerPermissionGrant", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.permission.grant"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerPermissionGrantEventOrBuilder getStigmerPermissionGrantOrBuilder();
 
   ai.stigmer.agentic.session.v1.SessionEvent.EventCase getEventCase();
 }

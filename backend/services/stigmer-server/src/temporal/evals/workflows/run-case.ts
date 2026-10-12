@@ -6,9 +6,8 @@
  *   - Start: the try's session and run, as the eval's caller, the run
  *     capped at the budget the suite passes (its equal share of what the
  *     eval has left, the suite workflow's tryBudgetUsd). A capacity refusal is retried for up to thirty minutes, then
- *     the try is not graded, "platform busy"; a credit refusal is reported
- *     so the suite stops; a target the organization cannot start is not
- *     graded with the run's own refusal.
+ *     the try is not graded, "platform busy"; a target the organization
+ *     cannot start is not graded with the run's own refusal.
  *   - Wait: the run is polled on a capped backoff (the grade-run
  *     workflow's shape) until it ends or the case's `timeout_seconds`
  *     pass, counted from when the run started: its `status.started_at`,
@@ -89,7 +88,6 @@ import {
   DELETE_VOTE_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
   GRADING_FAILED_REASON,
-  OUT_OF_CREDIT_REASON,
   PLATFORM_BUSY_REASON,
   PLUGIN_EVAL_BUSY_FAILURE_TYPE,
   PLUGIN_EVAL_CASE_FAILED_FAILURE_TYPE,
@@ -258,11 +256,6 @@ async function runTry(input: CaseInput, known: Known): Promise<TryResult> {
   }
   if (started.kind === "refused") {
     switch (started.failure) {
-      case "out-of-credit":
-        return {
-          ...notGraded("", "", OUT_OF_CREDIT_REASON),
-          outOfCredit: true,
-        };
       case "cannot-act":
         return notGraded(
           "",
@@ -661,7 +654,6 @@ function notGraded(
     error: "",
     costUsd: 0,
     durationSeconds: 0,
-    outOfCredit: false,
   };
 }
 

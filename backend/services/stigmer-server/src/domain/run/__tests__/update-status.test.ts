@@ -64,13 +64,14 @@ function runBuildStep(
   existing: Run,
   incoming: MessageInitShape<typeof RunStatusSchema>,
   writer: StatusWriter = "wire",
+  openAsks: ReadonlySet<string> = new Set(),
 ): Run {
   const input = create(RunUpdateStatusInputSchema, {
     runId: existing.metadata?.id ?? "",
     status: incoming,
   });
   const merged = clone(RunSchema, existing);
-  applyUpdateStatusMerge(merged, input, silentLogger, writer);
+  applyUpdateStatusMerge(merged, input, silentLogger, writer, false, openAsks);
   return merged;
 }
 
@@ -140,7 +141,7 @@ describe("the transcript regression guard (update_status_guard_test.go)", () => 
         },
         { content: "" },
       ],
-    });
+    }, "wire", new Set(["exec-guard.tc-write"]));
 
     expect(
       merged.status?.messages,
@@ -152,6 +153,11 @@ describe("the transcript regression guard (update_status_guard_test.go)", () => 
       "the gated WAITING_APPROVAL call projects exactly one pending approval",
     ).toHaveLength(1);
     expect(merged.status?.pendingApprovals[0]?.toolCallId).toBe("tc-write");
+    expect(
+      runBuildStep(existing, { phase: RunPhase.RUN_WAITING_FOR_APPROVAL, messages: merged.status!.messages }).status
+        ?.pendingApprovals,
+      "a waiting row whose ask is not open in the session's log is not pending",
+    ).toHaveLength(0);
   });
 
   it("rejects a shrinking WAITING_FOR_APPROVAL finalize (no phase carve-out)", () => {

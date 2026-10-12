@@ -13,8 +13,8 @@ module agentic
 # agent_channel template): the creator owns the schedule; view/edit/delete
 # require ownership or an explicit grant. Plain org members get NO implicit
 # access: a schedule carries billing-affecting levers (enabled, the cron
-# itself — every fire creates a run that consumes the owning org's
-# credits, unattended) whose consent bar is can_edit on the referenced
+# itself — every fire creates a run that spends on the owning org's own
+# provider keys, unattended) whose consent bar is can_edit on the referenced
 # agent at creation time, and ownership after (settled 2026-08-02). There is
 # deliberately no organization.can_create_schedule: creation is
 # target-gated, not org-admin-gated.

@@ -36,9 +36,10 @@ export const AgentChannelCommandController: GenService<{
   /**
    * Create an agent channel.
    *
-   * Connecting an agent to a channel is a billing-affecting decision:
-   * conversations arriving over the channel consume the connection-owning
-   * organization's credits.
+   * Connecting an agent to a channel is a spending decision: conversations
+   * arriving over the channel call models on the connection-owning
+   * organization's own provider keys, and the providers bill the
+   * organization for them.
    *
    * @generated from rpc ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandController.create
    */

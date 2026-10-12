@@ -20,7 +20,8 @@
  * TRUST BOUNDARY. This module asserts turn FACTS (which tools ran this turn),
  * the same trust level as the captured bytes themselves. It never asserts
  * CONSENT: a resolved consent id merely POINTS at a transcript row whose
- * `approval_action` was authored by the server's SubmitApproval (and is
+ * `approval_action` was stamped by the server's answer core with the person's
+ * answer (and is
  * preserved against runner writes) — the backend re-verifies every claimed row
  * against that server-owned record before authoring the policy decision, so a
  * runner cannot mint authorization it was never given.

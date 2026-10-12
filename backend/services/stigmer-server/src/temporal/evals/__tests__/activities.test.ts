@@ -15,8 +15,9 @@
  *     server disallowed by its turn segment, auto-approve) as the minted
  *     caller; the without-arm listing no plugin; a retried start adopts
  *     its earlier run;
- *     capacity thrown as busy; credit, the run's own refusal and a refusing
- *     caller answered, and a refused run's session deleted;
+ *     capacity thrown as busy; the run's own refusal (a keyless
+ *     organization's FAILED_PRECONDITION copy among them, in its own words)
+ *     and a refusing caller answered, and a refused run's session deleted;
  *   - grade-try: the code graders over the trace, the AI-graded check left
  *     to votes, the run's error and cost; a timeout named;
  *   - start-vote, read-vote and delete-vote: the vote's labels, message
@@ -64,7 +65,6 @@ import {
   FINISH_EVAL_ACTIVITY_NAME,
   GRADE_TRY_ACTIVITY_NAME,
   LOAD_SUITE_ACTIVITY_NAME,
-  OUT_OF_CREDIT_REASON,
   PLUGIN_EVAL_BUSY_FAILURE_TYPE,
   POLL_RUN_ACTIVITY_NAME,
   READ_VOTE_ACTIVITY_NAME,
@@ -167,6 +167,10 @@ const CELL: CaseInput = {
   timeoutSeconds: 120,
   budgetUsd: 4,
 };
+
+/** Admission's refusal of a run whose organization has no key for its model. */
+const KEYLESS_COPY =
+  "This organization has no Anthropic key for model 'claude-sonnet-4-5', so the run was not started. An admin can add one in Settings → Provider keys.";
 
 async function seeded(spec: Parameters<typeof seedEval>[1] = {}) {
   await seedPlugin(temp.store);
@@ -298,7 +302,6 @@ function graded(score: number, costUsd = 0.1): TryResult {
     error: "",
     costUsd,
     durationSeconds: 3,
-    outOfCredit: false,
   };
 }
 
@@ -452,17 +455,14 @@ describe("start-try", () => {
     );
   });
 
-  it("answers credit, the run's own refusal and a refusing caller, deleting a refused run's session", async () => {
+  it("answers the run's own refusal and a refusing caller, deleting a refused run's session", async () => {
     await seeded();
     const { cases, record } = build();
-    record.refuse = new ConnectError(
-      "insufficient credits",
-      Code.FailedPrecondition,
-    );
+    record.refuse = new ConnectError(KEYLESS_COPY, Code.FailedPrecondition);
     expect(await cases[START_TRY_ACTIVITY_NAME](CELL)).toEqual({
       kind: "refused",
-      failure: "out-of-credit",
-      reason: OUT_OF_CREDIT_REASON,
+      failure: "not-started",
+      reason: KEYLESS_COPY,
     });
     expect(record.deletedSessions).toEqual(["ses_1"]);
     record.refuse = new ConnectError(
@@ -750,7 +750,7 @@ describe("grading a try", () => {
       start.runId,
       false,
     );
-    const broken = { kind: "failed", reason: OUT_OF_CREDIT_REASON } as const;
+    const broken = { kind: "failed", reason: KEYLESS_COPY } as const;
     const pass = { kind: "vote", passed: true, reason: "yes" } as const;
     const result = await cases[RECORD_SCORE_ACTIVITY_NAME](CELL, start, grade, [
       [pass, broken, broken],
@@ -759,8 +759,7 @@ describe("grading a try", () => {
     ]);
     expect(result).toMatchObject({
       state: "not-graded",
-      notGradedReason: OUT_OF_CREDIT_REASON,
-      outOfCredit: true,
+      notGradedReason: KEYLESS_COPY,
     });
   });
 });

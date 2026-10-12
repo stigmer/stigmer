@@ -7,7 +7,8 @@ package ai.stigmer.billing.v1;
 
 /**
  * <pre>
- * ModelBillingBreakdown aggregates billing data for a single model.
+ * ModelBillingBreakdown counts the period's calls for one model on one
+ * harness.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.ModelBillingBreakdown}
@@ -34,7 +35,6 @@ private static final long serialVersionUID = 0L;
   private ModelBillingBreakdown() {
     model_ = "";
     harness_ = "";
-    costTier_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -133,67 +133,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int COST_TIER_FIELD_NUMBER = 3;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object costTier_ = "";
-  /**
-   * <code>string cost_tier = 3 [json_name = "costTier"];</code>
-   * @return The costTier.
-   */
-  @java.lang.Override
-  public java.lang.String getCostTier() {
-    java.lang.Object ref = costTier_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      costTier_ = s;
-      return s;
-    }
-  }
-  /**
-   * <code>string cost_tier = 3 [json_name = "costTier"];</code>
-   * @return The bytes for costTier.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getCostTierBytes() {
-    java.lang.Object ref = costTier_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      costTier_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int PROVIDER_COST_MICROS_FIELD_NUMBER = 4;
-  private long providerCostMicros_ = 0L;
-  /**
-   * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
-   * @return The providerCostMicros.
-   */
-  @java.lang.Override
-  public long getProviderCostMicros() {
-    return providerCostMicros_;
-  }
-
-  public static final int BILLABLE_AMOUNT_MICROS_FIELD_NUMBER = 5;
-  private long billableAmountMicros_ = 0L;
-  /**
-   * <code>int64 billable_amount_micros = 5 [json_name = "billableAmountMicros"];</code>
-   * @return The billableAmountMicros.
-   */
-  @java.lang.Override
-  public long getBillableAmountMicros() {
-    return billableAmountMicros_;
-  }
-
   public static final int CALL_COUNT_FIELD_NUMBER = 6;
   private int callCount_ = 0;
   /**
@@ -225,15 +164,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harness_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, harness_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(costTier_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, costTier_);
-    }
-    if (providerCostMicros_ != 0L) {
-      output.writeInt64(4, providerCostMicros_);
-    }
-    if (billableAmountMicros_ != 0L) {
-      output.writeInt64(5, billableAmountMicros_);
-    }
     if (callCount_ != 0) {
       output.writeInt32(6, callCount_);
     }
@@ -251,17 +181,6 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harness_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, harness_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(costTier_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, costTier_);
-    }
-    if (providerCostMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(4, providerCostMicros_);
-    }
-    if (billableAmountMicros_ != 0L) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt64Size(5, billableAmountMicros_);
     }
     if (callCount_ != 0) {
       size += com.google.protobuf.CodedOutputStream
@@ -286,12 +205,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getModel())) return false;
     if (!getHarness()
         .equals(other.getHarness())) return false;
-    if (!getCostTier()
-        .equals(other.getCostTier())) return false;
-    if (getProviderCostMicros()
-        != other.getProviderCostMicros()) return false;
-    if (getBillableAmountMicros()
-        != other.getBillableAmountMicros()) return false;
     if (getCallCount()
         != other.getCallCount()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -309,14 +222,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getModel().hashCode();
     hash = (37 * hash) + HARNESS_FIELD_NUMBER;
     hash = (53 * hash) + getHarness().hashCode();
-    hash = (37 * hash) + COST_TIER_FIELD_NUMBER;
-    hash = (53 * hash) + getCostTier().hashCode();
-    hash = (37 * hash) + PROVIDER_COST_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getProviderCostMicros());
-    hash = (37 * hash) + BILLABLE_AMOUNT_MICROS_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        getBillableAmountMicros());
     hash = (37 * hash) + CALL_COUNT_FIELD_NUMBER;
     hash = (53 * hash) + getCallCount();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -418,7 +323,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ModelBillingBreakdown aggregates billing data for a single model.
+   * ModelBillingBreakdown counts the period's calls for one model on one
+   * harness.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.ModelBillingBreakdown}
@@ -456,9 +362,6 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       model_ = "";
       harness_ = "";
-      costTier_ = "";
-      providerCostMicros_ = 0L;
-      billableAmountMicros_ = 0L;
       callCount_ = 0;
       return this;
     }
@@ -500,15 +403,6 @@ private static final long serialVersionUID = 0L;
         result.harness_ = harness_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.costTier_ = costTier_;
-      }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.providerCostMicros_ = providerCostMicros_;
-      }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.billableAmountMicros_ = billableAmountMicros_;
-      }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.callCount_ = callCount_;
       }
     }
@@ -534,17 +428,6 @@ private static final long serialVersionUID = 0L;
         harness_ = other.harness_;
         bitField0_ |= 0x00000002;
         onChanged();
-      }
-      if (!other.getCostTier().isEmpty()) {
-        costTier_ = other.costTier_;
-        bitField0_ |= 0x00000004;
-        onChanged();
-      }
-      if (other.getProviderCostMicros() != 0L) {
-        setProviderCostMicros(other.getProviderCostMicros());
-      }
-      if (other.getBillableAmountMicros() != 0L) {
-        setBillableAmountMicros(other.getBillableAmountMicros());
       }
       if (other.getCallCount() != 0) {
         setCallCount(other.getCallCount());
@@ -585,24 +468,9 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
-            case 26: {
-              costTier_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
-              break;
-            } // case 26
-            case 32: {
-              providerCostMicros_ = input.readInt64();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 32
-            case 40: {
-              billableAmountMicros_ = input.readInt64();
-              bitField0_ |= 0x00000010;
-              break;
-            } // case 40
             case 48: {
               callCount_ = input.readInt32();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000004;
               break;
             } // case 48
             default: {
@@ -766,142 +634,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object costTier_ = "";
-    /**
-     * <code>string cost_tier = 3 [json_name = "costTier"];</code>
-     * @return The costTier.
-     */
-    public java.lang.String getCostTier() {
-      java.lang.Object ref = costTier_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        costTier_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <code>string cost_tier = 3 [json_name = "costTier"];</code>
-     * @return The bytes for costTier.
-     */
-    public com.google.protobuf.ByteString
-        getCostTierBytes() {
-      java.lang.Object ref = costTier_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        costTier_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <code>string cost_tier = 3 [json_name = "costTier"];</code>
-     * @param value The costTier to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCostTier(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      costTier_ = value;
-      bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>string cost_tier = 3 [json_name = "costTier"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCostTier() {
-      costTier_ = getDefaultInstance().getCostTier();
-      bitField0_ = (bitField0_ & ~0x00000004);
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>string cost_tier = 3 [json_name = "costTier"];</code>
-     * @param value The bytes for costTier to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCostTierBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      costTier_ = value;
-      bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-
-    private long providerCostMicros_ ;
-    /**
-     * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
-     * @return The providerCostMicros.
-     */
-    @java.lang.Override
-    public long getProviderCostMicros() {
-      return providerCostMicros_;
-    }
-    /**
-     * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
-     * @param value The providerCostMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setProviderCostMicros(long value) {
-
-      providerCostMicros_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>int64 provider_cost_micros = 4 [json_name = "providerCostMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearProviderCostMicros() {
-      bitField0_ = (bitField0_ & ~0x00000008);
-      providerCostMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
-    private long billableAmountMicros_ ;
-    /**
-     * <code>int64 billable_amount_micros = 5 [json_name = "billableAmountMicros"];</code>
-     * @return The billableAmountMicros.
-     */
-    @java.lang.Override
-    public long getBillableAmountMicros() {
-      return billableAmountMicros_;
-    }
-    /**
-     * <code>int64 billable_amount_micros = 5 [json_name = "billableAmountMicros"];</code>
-     * @param value The billableAmountMicros to set.
-     * @return This builder for chaining.
-     */
-    public Builder setBillableAmountMicros(long value) {
-
-      billableAmountMicros_ = value;
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>int64 billable_amount_micros = 5 [json_name = "billableAmountMicros"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearBillableAmountMicros() {
-      bitField0_ = (bitField0_ & ~0x00000010);
-      billableAmountMicros_ = 0L;
-      onChanged();
-      return this;
-    }
-
     private int callCount_ ;
     /**
      * <code>int32 call_count = 6 [json_name = "callCount"];</code>
@@ -919,7 +651,7 @@ private static final long serialVersionUID = 0L;
     public Builder setCallCount(int value) {
 
       callCount_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -928,7 +660,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearCallCount() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000004);
       callCount_ = 0;
       onChanged();
       return this;

@@ -2,11 +2,11 @@
 
 import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { desktopBillingDeepLink } from "@/auth/desktop/billing-return";
+import { desktopBillingDeepLink, desktopBillingOutcome } from "@/auth/desktop/billing-return";
 
 /**
- * Where Stripe returns a Stigmer Desktop user after a card, a credit pack
- * or the billing portal, and the hand-off back to the app.
+ * Where Stripe returns a Stigmer Desktop user after a card or the billing
+ * portal, and the hand-off back to the app.
  *
  * Desktop opens Stripe's pages in the system browser, whose web session is
  * not the app's, so the return must not ask for a sign-in: this route is
@@ -28,12 +28,7 @@ export default function DesktopBillingReturnPage() {
 function DesktopBillingBridge() {
   const searchParams = useSearchParams();
   const deepLink = desktopBillingDeepLink(new URLSearchParams(searchParams.toString()));
-  const outcome =
-    searchParams.get("setup") === "success"
-      ? "Your card is saved."
-      : searchParams.get("checkout") === "success"
-        ? "Your credits are on their way."
-        : "Nothing was changed.";
+  const outcome = desktopBillingOutcome(new URLSearchParams(searchParams.toString()));
 
   useEffect(() => {
     window.location.href = deepLink;

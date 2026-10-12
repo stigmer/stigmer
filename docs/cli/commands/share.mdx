@@ -11,8 +11,8 @@ Share an Agent via a hosted chat link.
 `stigmer share` turns an Agent into a hosted chat page — for anyone with the
 link (no Stigmer account needed) or for signed-in members of your Organization.
 It prints the hosted chat link and, for public shares, a two-line embed snippet
-you can paste into any website. Visitors chat on the sharing Organization's
-credits.
+you can paste into any website. Visitors chat on the sharing Organization's own
+provider keys.
 
 ## Usage
 
@@ -90,9 +90,9 @@ for the next time you enable sharing.
 
 ## Notes
 
-- Anyone with a public link can chat, and usage bills the sharing Organization's
-  credits. Public links can be forwarded and indexed by search engines — don't
-  share Agents that know confidential information.
+- Anyone with a public link can chat, and every chat runs on the sharing
+  Organization's own provider keys. Public links can be forwarded and indexed by
+  search engines — don't share Agents that know confidential information.
 - Guest chat is served by Stigmer Cloud. Against a local backend the command
   still records the share, but the local link won't serve visitors.
 - A share lives in the Agent's own Organization, and creating one needs that

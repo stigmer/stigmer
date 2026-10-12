@@ -117,7 +117,7 @@ describe("agentEvalExitCode", () => {
 
   it("is 2 for a partial eval and 130 when cancelled", () => {
     const partial = finishedAgentEval(PluginEvalPhase.partial);
-    partial.status!.partialReason = PluginEvalPartialReason.out_of_credit;
+    partial.status!.partialReason = PluginEvalPartialReason.cost_ceiling;
     expect(agentEvalExitCode(partial, { interrupted: false })).toBe(EvalExit.Partial);
     expect(agentEvalExitCode(finishedAgentEval(), { interrupted: true })).toBe(EvalExit.Interrupted);
   });

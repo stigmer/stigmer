@@ -7,7 +7,7 @@
 //
 // The hosted edition serves every model call on a key the organization
 // owns and never on one of its own, so a run is admitted on a key and on
-// nothing else, and spends no credit:
+// nothing else:
 //   - an organization with no key for the run's model's provider is refused
 //     synchronously at create, FAILED_PRECONDITION with ErrorInfo reason
 //     PROVIDER_KEY_REQUIRED naming the provider and the model, and nothing
@@ -15,9 +15,8 @@
 //   - a Cursor run is refused the same way when the organization holds no
 //     Cursor key: the engine names the provider, and a run on Auto names no
 //     model, so the copy names none;
-//   - the same organization, once it saves its keys, runs to completion with
-//     no credit at all, and its balance does not move: the provider bills the
-//     organization directly.
+//   - the same organization, once it saves its keys, runs to completion: the
+//     provider bills the organization directly.
 //
 // The keyed half is native only: a Cursor key is checked with Cursor itself
 // at save, so no fixture can stand in for one, and a keyed Cursor run would
@@ -70,12 +69,12 @@ describe.skipIf(!billingEnabled)(
     // A billingGates target without these lanes is a target bug, not a
     // skippable condition — fail loudly rather than false-green.
     async function provisionBare(): Promise<TenancyContext> {
-      if (target.provisionUnfundedTenancy === undefined || target.keyTenancy === undefined) {
+      if (target.provisionKeylessTenancy === undefined || target.keyTenancy === undefined) {
         throw new Error(
-          `target ${target.name} declares billingGates but provides no provisionUnfundedTenancy() or keyTenancy()`,
+          `target ${target.name} declares billingGates but provides no provisionKeylessTenancy() or keyTenancy()`,
         );
       }
-      const context = await target.provisionUnfundedTenancy();
+      const context = await target.provisionKeylessTenancy();
       fixtures.defer(() => target.cleanupTenancy(context));
       return context;
     }
@@ -128,11 +127,10 @@ describe.skipIf(!billingEnabled)(
       expect(mock.remaining()).toBe(0);
     });
 
-    it("[billing.gate.provider-key.keyed-run-completes-without-credit] the same organization, once keyed, runs with no credit and its balance does not move", async () => {
+    it("[billing.gate.provider-key.keyed-run-completes] the same organization, once keyed, runs to completion", async () => {
       const { org } = await provisionBare();
       const agentRef = await provisionAgent(org);
       await target.keyTenancy!(org);
-      const before = await clients.billingQuery.getCreditBalance({ org });
 
       mock.enqueue(anthropicText("Done."));
       const created = await clients.agentExecutionCommand.create(
@@ -141,10 +139,7 @@ describe.skipIf(!billingEnabled)(
       fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
 
       const final = await awaitTerminal(clients, created.metadata!.id);
-      expect(final.status?.phase, "the keyed org's run completes with no credit").toBe(RunPhase.RUN_COMPLETED);
-      const after = await clients.billingQuery.getCreditBalance({ org });
-      expect(after.availableMicros, "a run on the org's own key spends no credit").toBe(before.availableMicros);
-      expect(after.reservedMicros, "and holds none").toBe(0n);
+      expect(final.status?.phase, "the keyed org's run completes").toBe(RunPhase.RUN_COMPLETED);
     });
   },
 );

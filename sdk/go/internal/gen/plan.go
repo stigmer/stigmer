@@ -68,13 +68,9 @@ type PlanInput struct {
 // PlanTermsInput is the SDK input type for PlanTerms.
 type PlanTermsInput struct {
 	// MonthlyMinimumMicros is not sent when zero: this input cannot tell a
-	// zero you set from none, so zero means unset. The least a subscription
-	// plan bills per month, in micro-USD.
+	// zero you set from none, so zero means unset. The plan's monthly fee:
+	// what a subscription plan bills per month, in micro-USD.
 	MonthlyMinimumMicros int64
-	// UsageShareBasisPoints is not sent when zero: this input cannot tell a
-	// zero you set from none, so zero means unset. The share of monthly usage
-	// a subscription plan bills when it exceeds the minimum, in basis points.
-	UsageShareBasisPoints int32
 	// PerExtraOrgMicros is not sent when zero: this input cannot tell a zero
 	// you set from none, so zero means unset. What a subscription plan bills
 	// per month for each child organization beyond the ones its entitlements
@@ -125,10 +121,6 @@ func (i *PlanTermsInput) toProto() (*planv1.PlanTerms, error) {
 		v := i.MonthlyMinimumMicros
 		p.MonthlyMinimumMicros = &v
 	}
-	if i.UsageShareBasisPoints != 0 {
-		v := i.UsageShareBasisPoints
-		p.UsageShareBasisPoints = &v
-	}
 	if i.PerExtraOrgMicros != 0 {
 		v := i.PerExtraOrgMicros
 		p.PerExtraOrgMicros = &v
@@ -169,7 +161,6 @@ func planTermsInputFromProto(p *planv1.PlanTerms) *PlanTermsInput {
 	}
 	input := &PlanTermsInput{}
 	input.MonthlyMinimumMicros = p.GetMonthlyMinimumMicros()
-	input.UsageShareBasisPoints = p.GetUsageShareBasisPoints()
 	input.PerExtraOrgMicros = p.GetPerExtraOrgMicros()
 	input.AnnualPriceMicros = p.GetAnnualPriceMicros()
 	return input
