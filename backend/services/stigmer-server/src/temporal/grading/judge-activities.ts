@@ -113,6 +113,7 @@ import type {
 } from "../../domain/score/ports.js";
 import {
   deleteScore,
+  pendingOfOtherVersions,
   replaceUnlessGraded,
   sameWriterScore,
 } from "../../domain/score/record.js";
@@ -181,8 +182,11 @@ export function createJudgeActivities(deps: JudgeActivityDeps): JudgeActivities 
       }
       // A pending score here is an earlier attempt's: one grading execution
       // runs per run, and the pending score is written only after its cap
-      // was set aside, so that cap is still reserved.
-      const earlier = existing;
+      // was set aside, so that cap is still reserved. An attempt planned
+      // before a deploy that changed the rules wrote it under their previous
+      // version; it is adopted the same way, and the grade's record removes
+      // it (domain/score/record.ts).
+      const earlier = existing ?? (await pendingOfOtherVersions(deps, pending))[0];
       const evaluator = await evaluatorOf(deps, run);
       const evaluatorId = evaluator?.metadata?.id ?? "";
       if (

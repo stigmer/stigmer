@@ -4,7 +4,8 @@
  * the main paths through the composed server:
  *   - plan: an evaluator switched off between its read and the
  *     reservation leaves no pending score; a judged run deleted meanwhile
- *     is skipped;
+ *     is skipped; a retried plan reuses its earlier attempt's cap, also when
+ *     that attempt's pending score carries the rules' previous version;
  *   - start: a judged run that is gone is not started; an earlier attempt's
  *     judge run is found by name, also when the create loses the race, and
  *     adopted only when it carries the judge label naming the judged run and
@@ -236,6 +237,20 @@ describe("plan-judge", () => {
     expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).toEqual(first);
     expect((await evaluatorStatus())?.reservedUsd, "one cap, not two").toBe(PER_GRADE_CAP_USD);
     expect((await judgeScores("run_1")).map((score) => score.status?.state)).toEqual([ScoreState.pending]);
+  });
+
+  it("reuses an earlier attempt's reservation when its pending score was written under rules a deploy has since changed", async () => {
+    await seedEvaluator();
+    await seedRun("run_1", { agentId: "agt_1" });
+    const first = await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1");
+    expect(first.kind).toBe("grade");
+    const [pending] = await judgeScores("run_1");
+    if (pending?.spec === undefined) throw new Error("expected the first attempt's pending score");
+    pending.spec.evaluatorVersion = "rules-before-the-deploy";
+    await temp.store.saveResource(ApiResourceKind.score, pending.metadata?.id ?? "", ScoreSchema, pending);
+    expect(await activities()[PLAN_JUDGE_ACTIVITY_NAME]("run_1")).toEqual(first);
+    expect((await evaluatorStatus())?.reservedUsd, "one cap, not two").toBe(PER_GRADE_CAP_USD);
+    expect((await judgeScores("run_1")).map((score) => score.spec?.evaluatorVersion)).toEqual(["rules-before-the-deploy"]);
   });
 
   it("removes an earlier attempt's pending score, and gives its cap back, when grading was switched off or the evaluator went", async () => {

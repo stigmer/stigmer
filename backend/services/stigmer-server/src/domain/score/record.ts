@@ -17,9 +17,12 @@
  * The placeholder rule holds across versions too. A grade planned before a
  * deploy that changes the judge's rules is recorded under the new version,
  * which the old version's pending score does not block; so once a graded or
- * not-graded score is recorded, the same writer's pending scores of the run
- * under any other version are deleted. Graded and not-graded scores of
- * other versions are history and are never touched.
+ * not-graded score is recorded, or found already recorded by an earlier
+ * attempt whose cleanup did not finish, the same writer's pending scores of
+ * the run under any other version are deleted (`pendingOfOtherVersions`
+ * finds them, and the judge's planner reads it to adopt an earlier attempt's
+ * placeholder across a deploy). Graded and not-graded scores of other
+ * versions are history and are never touched.
  *
  * The replacement is a delete then a create through the score's own chains
  * (ports.ts): score update admits a person's feedback only, which is what
@@ -86,6 +89,9 @@ export async function replaceUnlessGraded(
       continue;
     }
     if (rankOf(existing) >= incoming) {
+      if (rankOf(existing) > 0) {
+        await deleteOtherVersionPlaceholders(deps, score);
+      }
       return "kept";
     }
     await deleteScore(deps.deleter, existing.metadata?.id ?? "");
@@ -127,22 +133,32 @@ async function deleteOtherVersionPlaceholders(
   deps: ScoreWriteDeps,
   score: Score,
 ): Promise<void> {
+  for (const other of await pendingOfOtherVersions(deps, score)) {
+    await deleteScore(deps.deleter, other.metadata?.id ?? "");
+  }
+}
+
+/**
+ * The run's pending scores from the same writer as `score` (the same metric
+ * and server source) under any other evaluator version.
+ */
+export async function pendingOfOtherVersions(
+  deps: Pick<ScoreWriteDeps, "store" | "logger">,
+  score: Score,
+): Promise<Score[]> {
   const spec = score.spec;
   if (spec === undefined) {
-    return;
+    return [];
   }
   const scores = await listRunScores(deps.store, deps.logger, spec.runId);
-  for (const other of scores) {
-    if (
+  return scores.filter(
+    (other) =>
       other.spec?.metric === spec.metric &&
       other.spec.source === spec.source &&
       other.spec.source !== ScoreSource.human &&
       other.spec.evaluatorVersion !== spec.evaluatorVersion &&
-      other.status?.state === ScoreState.pending
-    ) {
-      await deleteScore(deps.deleter, other.metadata?.id ?? "");
-    }
-  }
+      other.status?.state === ScoreState.pending,
+  );
 }
 
 /** Deletes one score through its delete chain; one already gone is fine. */

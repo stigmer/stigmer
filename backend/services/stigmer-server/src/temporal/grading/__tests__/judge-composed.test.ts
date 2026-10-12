@@ -367,6 +367,16 @@ describe("replaceUnlessGraded", () => {
     );
   });
 
+  it("drops the run's pending score of another version on a retry that finds its grade already written", async () => {
+    // The first attempt recorded the grade and lost its cleanup to a fault;
+    // the retry finds the grade there and still removes the placeholder.
+    const runId = (await seedRun()).metadata!.id;
+    await inProcess.create(judgeScore(runId, { pending: true, version: "v-before" }));
+    await inProcess.create(judgeScore(runId, { passed: true }));
+    expect(await replaceUnlessGraded(writeDeps(), judgeScore(runId, { passed: true }))).toBe("kept");
+    expect((await scoresOf(runId, "judge")).map((score) => score.spec?.evaluatorVersion)).toEqual([JUDGE_EVALUATOR_VERSION]);
+  });
+
   it("answers run-gone for a run that does not exist", async () => {
     expect(await replaceUnlessGraded(writeDeps(), judgeScore("run_01jzzzzzzzzzzzzzzzzzzzzzzz", { passed: true }))).toBe(
       "run-gone",
