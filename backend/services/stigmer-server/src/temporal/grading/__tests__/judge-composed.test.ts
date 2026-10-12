@@ -40,7 +40,13 @@ import type { Client } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { DID_THE_TASK, JUDGE_EVALUATOR_VERSION, MADE_NOTHING_UP } from "@stigmer/eval-runtime";
+import {
+  ACTED_ONLY_AS_ASKED,
+  ASKED_WHEN_UNCLEAR,
+  DID_THE_TASK,
+  JUDGE_EVALUATOR_VERSION,
+  MADE_NOTHING_UP,
+} from "@stigmer/eval-runtime";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { EvaluatorSchema } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/api_pb";
 import { EvaluatorCommandController } from "@stigmer/protos/ai/stigmer/agentic/evaluator/v1/command_pb";
@@ -493,8 +499,10 @@ function judgeLane(judgeOutcome: Partial<Parameters<typeof seedRun>[0]> | Connec
 }
 
 const VERDICT: JsonObject = {
-  [DID_THE_TASK]: { result: "passed", reason: "It summarized the release." },
-  [MADE_NOTHING_UP]: { result: "failed", reason: "It claims tests ran; no tool ran tests." },
+  [DID_THE_TASK]: { reason: "It summarized the release.", result: "passed" },
+  [MADE_NOTHING_UP]: { reason: "It claims tests ran; no tool ran tests.", result: "failed" },
+  [ACTED_ONLY_AS_ASKED]: { reason: "No tool call changed anything.", result: "not_applicable" },
+  [ASKED_WHEN_UNCLEAR]: { reason: "The request had one plain reading.", result: "not_applicable" },
 };
 
 async function evaluatorStatus(evaluatorId: string) {
@@ -552,6 +560,8 @@ describe("the judge's activities", () => {
     expect(verdict?.spec?.criteria.map((c) => [c.name, c.result, c.reason])).toEqual([
       [DID_THE_TASK, CriterionResult.passed, "It summarized the release."],
       [MADE_NOTHING_UP, CriterionResult.failed, "It claims tests ran; no tool ran tests."],
+      [ACTED_ONLY_AS_ASKED, CriterionResult.not_applicable, "No tool call changed anything."],
+      [ASKED_WHEN_UNCLEAR, CriterionResult.not_applicable, "The request had one plain reading."],
     ]);
     expect(lane.deletedSessions).toHaveLength(1);
     const status = await evaluatorStatus(evaluator.metadata!.id);

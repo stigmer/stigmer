@@ -35,6 +35,8 @@ export { COST_LIMIT_ERROR_PREFIX, formatTryStop, parseTryStop, type TryStop } fr
 export { JUDGE_INSTRUCTIONS, JUDGE_INSTRUCTION_VERSION } from "./judge/instruction.js";
 export type { JsonObject, JsonValue } from "./judge/json.js";
 export {
+  ACTED_ONLY_AS_ASKED,
+  ASKED_WHEN_UNCLEAR,
   DID_THE_TASK,
   JUDGE_EVALUATOR_VERSION,
   MADE_NOTHING_UP,

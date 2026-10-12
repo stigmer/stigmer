@@ -7,8 +7,10 @@
  *     a known result and a non-empty string reason; a reason past 500
  *     characters is cut to the bound and marked, never refused
  *     (stigmer#2177);
- *   - JUDGE_EVALUATOR_VERSION is pinned: a rubric, schema or instruction
- *     change moves it on purpose, here;
+ *   - the four rubrics, each answered with its reason first;
+ *   - JUDGE_EVALUATOR_VERSION is pinned: a rubric, schema, instruction,
+ *     message or subject change moves it on purpose, here, and the
+ *     benchmark's calibration must then be run again;
  *   - JUDGE_INSTRUCTION_VERSION is pinned: it re-versions every judge,
  *     plugin eval and agent eval score, so it moves only on purpose.
  */
@@ -17,10 +19,14 @@ import { describe, expect, it } from "vitest";
 import { JUDGE_INSTRUCTION_VERSION } from "../instruction.js";
 import type { JsonObject } from "../json.js";
 import {
+  ACTED_ONLY_AS_ASKED,
+  ASKED_WHEN_UNCLEAR,
   DID_THE_TASK,
   JUDGE_EVALUATOR_VERSION,
   MADE_NOTHING_UP,
+  RUBRICS,
   VERDICT_SCHEMA,
+  judgeMessage,
 } from "../rubrics.js";
 import { cutReason, readVerdict } from "../verdict.js";
 
@@ -28,6 +34,8 @@ describe("readVerdict", () => {
   const good = {
     [DID_THE_TASK]: { result: "failed", reason: "The assign call failed but the answer says it was assigned." },
     [MADE_NOTHING_UP]: { result: "not_applicable", reason: "No claims." },
+    [ACTED_ONLY_AS_ASKED]: { reason: "Only the asked assign call changed anything.", result: "passed" },
+    [ASKED_WHEN_UNCLEAR]: { reason: "One plain reading.", result: "not_applicable" },
   };
 
   it("reads exactly the rubrics, in rubric order", () => {
@@ -36,6 +44,8 @@ describe("readVerdict", () => {
       verdicts: [
         { name: DID_THE_TASK, result: "failed", reason: good[DID_THE_TASK].reason },
         { name: MADE_NOTHING_UP, result: "not_applicable", reason: "No claims." },
+        { name: ACTED_ONLY_AS_ASKED, result: "passed", reason: good[ACTED_ONLY_AS_ASKED].reason },
+        { name: ASKED_WHEN_UNCLEAR, result: "not_applicable", reason: "One plain reading." },
       ],
     });
   });
@@ -44,7 +54,7 @@ describe("readVerdict", () => {
     const long = "r".repeat(600);
     expect(readVerdict({ ...good, [DID_THE_TASK]: { result: "passed", reason: long } })).toMatchObject({
       kind: "read",
-      verdicts: [{ name: DID_THE_TASK, result: "passed", reason: `${long.slice(0, 494)} [cut]` }, {}],
+      verdicts: [{ name: DID_THE_TASK, result: "passed", reason: `${long.slice(0, 494)} [cut]` }, {}, {}, {}],
     });
     expect(cutReason("r".repeat(500))).toBe("r".repeat(500));
     expect(cutReason("r".repeat(501))).toHaveLength(500);
@@ -81,13 +91,25 @@ describe("readVerdict", () => {
 describe("rubrics", () => {
   it("pins the version every judge score carries", () => {
     expect(JUDGE_EVALUATOR_VERSION).toBe(
-      "8191b6ca352b050221ccb7b3e85aa453333df6fbf70b322858cb793a65681d20",
+      "e6b2728dfc4b352a7bc30bd450fe6112dd914ffe5cb15ac34c9ff0a2616872e7",
     );
   });
 
-  it("asks for exactly the two rubrics", () => {
-    expect(VERDICT_SCHEMA["required"]).toEqual([DID_THE_TASK, MADE_NOTHING_UP]);
+  it("asks for exactly the four rubrics, each a reason before its result", () => {
+    expect(VERDICT_SCHEMA["required"]).toEqual([DID_THE_TASK, MADE_NOTHING_UP, ACTED_ONLY_AS_ASKED, ASKED_WHEN_UNCLEAR]);
     expect(VERDICT_SCHEMA["additionalProperties"]).toBe(false);
+    const properties = VERDICT_SCHEMA["properties"] as Record<string, { properties: Record<string, unknown> }>;
+    for (const rubric of RUBRICS) {
+      expect(Object.keys(properties[rubric.name]?.properties ?? {}), rubric.name).toEqual(["reason", "result"]);
+    }
+  });
+
+  it("names every rubric in the message, and tells the judge which turn it grades", () => {
+    const message = judgeMessage("{}");
+    for (const rubric of RUBRICS) {
+      expect(message).toContain(`- ${rubric.name}: ${rubric.text}`);
+    }
+    expect(message).toContain("earlier_turns are the turns before it");
   });
 
   it("pins the instruction's version, which every judge and eval score hashes", () => {
